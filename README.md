@@ -1,4 +1,4 @@
-# AURA V0.2.1 — Admin Hotfix
+# AURA V0.2.2 — Admin Recovery
 
 ## Hotfix V0.2.1
 
@@ -128,3 +128,14 @@ La siguiente versión debería incorporar:
 ## Estado de seguridad
 
 V0.2 es una base de desarrollo. Antes de un lanzamiento público se requieren revisión jurídica, verificación de edad adecuada, políticas completas, procesos DSA, privacidad/RGPD, protección de secretos, backups, pruebas de carga, protección antiabuso, antivirus/escaneo de archivos y moderación operativa.
+
+
+## Recuperación temporal de administrador
+
+1. En Render añade `ADMIN_RECOVERY_TOKEN` con un valor largo y aleatorio.
+2. Despliega.
+3. Abre `/admin-recovery`.
+4. Introduce el email configurado en `ADMIN_EMAIL`, el token temporal y una nueva contraseña.
+5. Tras el éxito, elimina `ADMIN_RECOVERY_TOKEN` de Render y vuelve a desplegar.
+
+La recuperación también marca la cuenta como administradora y crea una nueva sesión.

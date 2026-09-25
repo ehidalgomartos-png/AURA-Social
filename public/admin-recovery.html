@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Recuperación de administrador — AURA</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{min-height:100vh;display:grid;place-items:center;padding:24px;background:#f5f0e8}
+    .recovery{width:min(520px,100%);background:#fffdf9;border:1px solid rgba(13,34,56,.12);border-radius:26px;padding:30px;box-shadow:0 20px 60px rgba(13,34,56,.12)}
+    .recovery h1{margin:0 0 10px;color:#0d2238;font-size:30px}
+    .recovery p{color:#66727d;line-height:1.6}
+    .recovery form{display:grid;gap:14px;margin-top:22px}
+    .recovery input{width:100%;padding:13px 14px;border:1px solid rgba(13,34,56,.12);border-radius:13px}
+    .note{font-size:13px;background:#eef9f7;border-radius:14px;padding:14px;color:#173a52}
+    #msg{min-height:22px;font-size:14px}
+  </style>
+</head>
+<body>
+  <main class="recovery">
+    <div class="brand"><span class="brand-mark">A</span><span>AURA</span></div>
+    <h1>Recuperar administrador</h1>
+    <p>Esta pantalla solo funciona mientras exista un token temporal de recuperación configurado en Render.</p>
+    <div class="note">Después de recuperar la cuenta, elimina <strong>ADMIN_RECOVERY_TOKEN</strong> de Render y vuelve a desplegar.</div>
+    <form id="recoveryForm">
+      <input name="email" type="email" placeholder="Email administrador" required>
+      <input name="token" type="password" placeholder="Token temporal de recuperación" required>
+      <input name="newPassword" type="password" minlength="10" placeholder="Nueva contraseña (mín. 10 caracteres)" required>
+      <button class="button full" type="submit">Cambiar contraseña y entrar</button>
+      <p id="msg"></p>
+    </form>
+  </main>
+  <script>
+    const form=document.getElementById('recoveryForm');
+    const msg=document.getElementById('msg');
+    form.addEventListener('submit',async(e)=>{
+      e.preventDefault();
+      msg.textContent='Actualizando contraseña...';
+      const f=new FormData(form);
+      const r=await fetch('/api/auth/admin-recovery',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          email:f.get('email'),
+          token:f.get('token'),
+          newPassword:f.get('newPassword')
+        })
+      });
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){
+        const labels={
+          recovery_disabled:'La recuperación no está habilitada.',
+          invalid_recovery_credentials:'Email o token de recuperación incorrectos.',
+          invalid_password_length:'La contraseña debe tener entre 10 y 128 caracteres.',
+          admin_account_not_found:'No existe una cuenta con el ADMIN_EMAIL configurado.'
+        };
+        msg.textContent=labels[d.error]||'No se pudo recuperar la cuenta.';
+        return;
+      }
+      msg.textContent='Contraseña actualizada. Entrando en administración...';
+      setTimeout(()=>location.href='/admin',500);
+    });
+  </script>
+</body>
+</html>

@@ -1,11 +1,21 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { z } = require('zod');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+
+function safeEqualText(a, b) {
+  const aa = Buffer.from(String(a || ''));
+  const bb = Buffer.from(String(b || ''));
+  if (aa.length !== bb.length) return false;
+  return crypto.timingSafeEqual(aa, bb);
+}
+
 
 const registerSchema = z.object({
   email: z.string().email().max(254),
@@ -134,6 +144,58 @@ router.post('/login', async (req, res) => {
 
   delete user.password_hash;
   res.json({ ok: true, user });
+});
+
+
+router.post('/admin-recovery', async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const token = String(req.body.token || '');
+  const newPassword = String(req.body.newPassword || '');
+
+  const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const recoveryToken = String(process.env.ADMIN_RECOVERY_TOKEN || '');
+
+  if (!adminEmail || !recoveryToken) {
+    return res.status(404).json({ error: 'recovery_disabled' });
+  }
+
+  if (email !== adminEmail || !safeEqualText(token, recoveryToken)) {
+    return res.status(403).json({ error: 'invalid_recovery_credentials' });
+  }
+
+  if (newPassword.length < 10 || newPassword.length > 128) {
+    return res.status(400).json({ error: 'invalid_password_length' });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+
+  const result = await db.query(`
+    UPDATE users
+       SET password_hash=$2,
+           is_admin=true,
+           updated_at=now()
+     WHERE lower(email)=lower($1)
+     RETURNING id,email,username,display_name,is_admin,age_verified,show_sensitive
+  `, [adminEmail, passwordHash]);
+
+  if (!result.rowCount) {
+    return res.status(404).json({ error: 'admin_account_not_found' });
+  }
+
+  // Disable recovery for the lifetime of this running process after a successful reset.
+  process.env.ADMIN_RECOVERY_TOKEN = '';
+
+  const user = result.rows[0];
+  const sessionToken = signUser(user);
+
+  res.cookie('aura_token', sessionToken, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.COOKIE_SECURE === 'true',
+    maxAge: 14 * 24 * 60 * 60 * 1000
+  });
+
+  res.json({ ok: true, user, recoveryDisabledForCurrentProcess: true });
 });
 
 router.post('/logout', (_req, res) => {

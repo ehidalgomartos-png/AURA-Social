@@ -55,7 +55,7 @@ app.use('/api/stories', storyRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '0.2.1',
+    version: '0.2.2',
     mode: 'adult-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
@@ -71,4 +71,4 @@ app.get('/app', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'app.
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`AURA V0.2.1 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`AURA V0.2.2 running on http://localhost:${PORT}`));
