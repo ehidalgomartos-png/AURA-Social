@@ -1,4 +1,4 @@
-# AURA V0.3.2 — Messaging Reliability Hotfix — Consentimiento, Mensajes y PWA
+# AURA V0.3.3 — Message Preview — Consentimiento, Mensajes y PWA
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -182,3 +182,11 @@ El mensaje podía quedar guardado correctamente y, si fallaba una tarea secundar
 - Se muestra `Mensaje enviado` únicamente después de recibir confirmación del servidor.
 - Si el mensaje se guarda pero falla la recarga visual del chat, se informa de ello sin afirmar que el envío falló.
 - No modifica ni elimina datos existentes.
+
+
+## V0.3.3 — Vista previa de mensajes
+- La persona que envía ve la foto o vídeo inmediatamente al seleccionarlo, antes de subirlo o enviarlo.
+- La vista previa indica que aún no está enviado y muestra la clasificación Normal/Sensible/Desnudez.
+- Botón Quitar para retirar el archivo seleccionado.
+- La vista previa es local (`URL.createObjectURL`): seleccionar el archivo no lo sube al servidor.
+- El destinatario sigue viendo el contenido sensible según su permiso de consentimiento.

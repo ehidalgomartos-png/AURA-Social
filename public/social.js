@@ -192,8 +192,10 @@ async function openConversation(id) {
   activeConversationOther = d.other;
   const messages = d.messages.map(m => messageHTML(m, d.other)).join('');
   $('#chatPanel').className = 'chat-panel';
-  $('#chatPanel').innerHTML = `<header class="chat-head"><div class="avatar">${avatarHTML(d.other)}</div><div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}</header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
+  $('#chatPanel').innerHTML = `<header class="chat-head"><div class="avatar">${avatarHTML(d.other)}</div><div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}</header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
   $('#messageForm').onsubmit = sendMessage;
+  $('#messageFile').addEventListener('change', renderMessagePreview);
+  $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
   $$('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
   if ($('#revokeSensitive')) $('#revokeSensitive').onclick = async () => {
     await api(`/api/messages/users/${d.other.id}/sensitive-permission`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow: false }) });
@@ -221,6 +223,68 @@ async function acceptSensitiveMessages(e) {
   toast('Contenido sensible permitido para esta persona');
   await openConversation(activeConversationId);
 }
+
+let messagePreviewUrl = null;
+
+function clearMessagePreview() {
+  if (messagePreviewUrl) {
+    URL.revokeObjectURL(messagePreviewUrl);
+    messagePreviewUrl = null;
+  }
+  const preview = $('#messagePreview');
+  if (preview) {
+    preview.innerHTML = '';
+    preview.classList.add('hidden');
+  }
+  const fileInput = $('#messageFile');
+  if (fileInput) fileInput.value = '';
+}
+
+function messageLevelLabel(level) {
+  return ({ normal: 'Normal', sensitive: 'Sensible', nudity: 'Desnudez' })[level] || 'Normal';
+}
+
+function updateMessagePreviewLevel() {
+  const badge = $('#messagePreview .message-preview-badge');
+  if (badge) badge.textContent = messageLevelLabel($('#messageLevel').value);
+}
+
+function renderMessagePreview() {
+  const input = $('#messageFile');
+  const preview = $('#messagePreview');
+  if (!input || !preview) return;
+
+  const file = input.files?.[0];
+  if (!file) {
+    clearMessagePreview();
+    return;
+  }
+
+  if (messagePreviewUrl) URL.revokeObjectURL(messagePreviewUrl);
+  messagePreviewUrl = URL.createObjectURL(file);
+
+  const isVideo = file.type.startsWith('video/');
+  const media = isVideo
+    ? `<video src="${messagePreviewUrl}" controls muted playsinline></video>`
+    : `<img src="${messagePreviewUrl}" alt="Vista previa del archivo seleccionado">`;
+
+  preview.innerHTML = `
+    <div class="message-preview-head">
+      <div>
+        <b>Vista previa · todavía no enviado</b>
+        <small>${esc(file.name)}</small>
+      </div>
+      <div class="message-preview-actions">
+        <span class="message-preview-badge">${messageLevelLabel($('#messageLevel').value)}</span>
+        <button type="button" id="removeMessageFile" class="tiny-action">Quitar</button>
+      </div>
+    </div>
+    <div class="message-preview-media">${media}</div>
+  `;
+  preview.classList.remove('hidden');
+  $('#removeMessageFile').onclick = clearMessagePreview;
+}
+
 let messageSendInFlight = false;
 
 async function sendMessage(e) {
@@ -276,6 +340,7 @@ async function sendMessage(e) {
 
     // The server has confirmed persistence at this point.
     toast('Mensaje enviado');
+    clearMessagePreview();
 
     try {
       await openConversation(activeConversationId);
