@@ -69,6 +69,33 @@ function participantsHTML(p) {
   return `<div class="post-participants"><span class="participants-label">Con ${visible.join(', ')}${extra}</span>${taggedMe ? '<span class="tagged-me">✓ Estás etiquetado</span>' : ''}</div>`;
 }
 
+
+function inlineCommentsHTML(p) {
+  const comments = Array.isArray(p.latest_comments) ? p.latest_comments : [];
+  const count = Number(p.comment_count || 0);
+
+  if (!comments.length && !count) return '';
+
+  const rows = comments.map(comment => `
+    <div class="inline-comment">
+      ${profileLink(
+        comment.username,
+        `<b>@${esc(comment.username)}</b>`,
+        'inline-comment-user'
+      )}
+      <span>${esc(comment.body)}</span>
+    </div>
+  `).join('');
+
+  const more = count > comments.length
+    ? `<button type="button" class="view-comments-link" data-comments="${p.id}">Ver los ${count} comentarios</button>`
+    : count > 0
+      ? `<button type="button" class="view-comments-link subtle" data-comments="${p.id}">Ver comentarios</button>`
+      : '';
+
+  return `<div class="inline-comments-preview">${rows}${more}</div>`;
+}
+
 function postHTML(p) {
   return `<article class="post" data-id="${p.id}">
     <div class="post-head">
@@ -82,6 +109,7 @@ function postHTML(p) {
     <div class="post-media">${mediaHTML(p)}</div>
     <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button data-report="${p.id}">⋯</button></div>
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
+    ${inlineCommentsHTML(p)}
   </article>`;
 }
 

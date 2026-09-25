@@ -373,3 +373,53 @@
   }
   .comment-form{grid-template-columns:1fr}
 }
+
+
+/* AURA V0.4.2 — inline comments in feed */
+.inline-comments-preview{
+  padding:0 18px 16px;
+  display:grid;
+  gap:6px;
+}
+.inline-comment{
+  min-width:0;
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  font-size:13px;
+  line-height:1.45;
+  color:var(--ink);
+}
+.inline-comment-user{
+  flex:0 0 auto;
+  color:var(--navy);
+  font-weight:800;
+}
+.inline-comment-user:hover{
+  color:var(--teal);
+}
+.inline-comment span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.view-comments-link{
+  width:max-content;
+  border:0;
+  background:transparent;
+  padding:2px 0;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.view-comments-link:hover{
+  color:var(--teal);
+}
+.view-comments-link.subtle{
+  font-weight:600;
+}
+@media(max-width:620px){
+  .inline-comments-preview{
+    padding:0 14px 14px;
+  }
+}

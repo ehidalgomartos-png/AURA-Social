@@ -1,4 +1,4 @@
-# AURA V0.4.1 — Comments & Reports
+# AURA V0.4.2 — Inline Comments
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -259,3 +259,14 @@ No borra cuentas, publicaciones, mensajes, consentimientos ni datos existentes.
 - Los tres puntos `⋯` ya no usan `prompt()` del navegador.
 - Nuevo panel visual de denuncia con motivos en español y detalles opcionales.
 - Las denuncias siguen entrando en la cola normal/crítica del panel de moderación.
+
+
+## V0.4.2 — Comentarios visibles en el feed
+
+- Debajo de cada foto o vídeo se muestran los 2 comentarios más recientes.
+- El @usuario de cada comentario es clicable y abre su perfil.
+- Si hay más comentarios aparece `Ver los X comentarios`.
+- Al pulsarlo se abre el panel completo de comentarios de V0.4.1.
+- El botón circular de comentarios continúa abriendo el panel completo.
+- Al publicar un comentario el feed se actualiza y muestra inmediatamente la vista previa.
+- No añade migraciones ni modifica datos existentes.
