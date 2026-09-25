@@ -140,29 +140,126 @@ const messageSchema = z.object({
 
 router.post('/conversations/:id/messages', async (req, res) => {
   const id = req.params.id;
-  if (!(await conversationForUser(id, req.user.id))) return res.status(404).json({ error: 'conversation_not_found' });
-  const parsed = messageSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'invalid_message' });
-  const d = parsed.data;
-  const sender = await userRow(req.user.id);
-  const recipient = await otherMember(id, req.user.id);
-  if (!recipient) return res.status(404).json({ error: 'recipient_not_found' });
 
-  const blocked = await db.query(`SELECT 1 FROM blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1) LIMIT 1`, [req.user.id, recipient.id]);
-  if (blocked.rowCount) return res.status(403).json({ error: 'messaging_blocked' });
+  try {
+    if (!(await conversationForUser(id, req.user.id))) {
+      return res.status(404).json({ error: 'conversation_not_found' });
+    }
 
-  if (d.contentLevel === 'nudity' && (!sender?.creator_verified || !sender?.age_verified)) {
-    return res.status(403).json({ error: 'verified_creator_required_for_nudity' });
+    const parsed = messageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'invalid_message' });
+    }
+
+    const d = parsed.data;
+    const sender = await userRow(req.user.id);
+    const recipient = await otherMember(id, req.user.id);
+
+    if (!recipient) {
+      return res.status(404).json({ error: 'recipient_not_found' });
+    }
+
+    const blocked = await db.query(
+      `SELECT 1
+         FROM blocks
+        WHERE (blocker_id=$1 AND blocked_id=$2)
+           OR (blocker_id=$2 AND blocked_id=$1)
+        LIMIT 1`,
+      [req.user.id, recipient.id]
+    );
+
+    if (blocked.rowCount) {
+      return res.status(403).json({ error: 'messaging_blocked' });
+    }
+
+    if (
+      d.contentLevel === 'nudity' &&
+      (!sender?.creator_verified || !sender?.age_verified)
+    ) {
+      return res.status(403).json({
+        error: 'verified_creator_required_for_nudity'
+      });
+    }
+
+    // Persist the actual message atomically. A secondary notification
+    // must never turn a successfully stored message into a false "send failed".
+    const client = await db.pool.connect();
+    let savedMessage;
+
+    try {
+      await client.query('BEGIN');
+
+      const result = await client.query(`
+        INSERT INTO messages (
+          conversation_id,
+          sender_id,
+          body,
+          media_url,
+          media_type,
+          media_provider,
+          external_id,
+          playback_url,
+          content_level
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        RETURNING *
+      `, [
+        id,
+        req.user.id,
+        d.body.trim(),
+        d.mediaUrl,
+        d.mediaType,
+        d.mediaProvider,
+        d.externalId,
+        d.playbackUrl,
+        d.contentLevel
+      ]);
+
+      await client.query(
+        `UPDATE conversations SET updated_at=now() WHERE id=$1`,
+        [id]
+      );
+
+      await client.query('COMMIT');
+      savedMessage = result.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    // Notifications are useful, but non-critical. If they fail, the message
+    // remains correctly sent and the client still receives HTTP 201.
+    try {
+      await db.query(`
+        INSERT INTO notifications (
+          user_id, actor_id, type, entity_type, entity_id, text
+        )
+        VALUES ($1,$2,'message','conversation',$3,$4)
+      `, [
+        recipient.id,
+        req.user.id,
+        id,
+        d.contentLevel === 'normal'
+          ? 'Te ha enviado un mensaje.'
+          : 'Te ha enviado contenido sensible.'
+      ]);
+    } catch (notificationError) {
+      console.warn(
+        'AURA message notification failed after message was stored:',
+        notificationError?.message || notificationError
+      );
+    }
+
+    return res.status(201).json({
+      ok: true,
+      message: savedMessage
+    });
+  } catch (error) {
+    console.error('AURA message send failed:', error);
+    return res.status(500).json({ error: 'message_send_failed' });
   }
-
-  const r = await db.query(`
-    INSERT INTO messages (conversation_id,sender_id,body,media_url,media_type,media_provider,external_id,playback_url,content_level)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-    RETURNING *
-  `, [id,req.user.id,d.body.trim(),d.mediaUrl,d.mediaType,d.mediaProvider,d.externalId,d.playbackUrl,d.contentLevel]);
-  await db.query(`UPDATE conversations SET updated_at=now() WHERE id=$1`, [id]);
-  await db.query(`INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text) VALUES ($1,$2,'message','conversation',$3,$4)`, [recipient.id, req.user.id, id, d.contentLevel === 'normal' ? 'Te ha enviado un mensaje.' : 'Te ha enviado contenido sensible.']);
-  res.status(201).json({ ok: true, message: r.rows[0] });
 });
 
 router.get('/users/:id/sensitive-permission', async (req, res) => {

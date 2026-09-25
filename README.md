@@ -1,4 +1,4 @@
-# AURA V0.3.1 — Admin Verification Hotfix — Consentimiento, Mensajes y PWA
+# AURA V0.3.2 — Messaging Reliability Hotfix — Consentimiento, Mensajes y PWA
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -164,3 +164,21 @@ Cambios:
 - Se añade feedback visual después de verificar.
 - `Verificar creador` sigue verificando simultáneamente mayoría de edad.
 - No cambia el esquema de PostgreSQL ni borra datos.
+
+
+## Hotfix V0.3.2 — Mensajería
+
+Corrige un falso error detectado durante las pruebas de mensajes sensibles.
+
+### Qué ocurría
+El mensaje podía quedar guardado correctamente y, si fallaba una tarea secundaria posterior
+(como la creación de la notificación), el cliente recibía un error y mostraba
+`No se pudo enviar el mensaje`. Al reintentar, podían aparecer mensajes duplicados.
+
+### Cambios
+- El guardado del mensaje y la actualización de la conversación son atómicos.
+- Una incidencia al crear la notificación ya no invalida un mensaje enviado.
+- El botón Enviar se desactiva mientras la petición está en curso.
+- Se muestra `Mensaje enviado` únicamente después de recibir confirmación del servidor.
+- Si el mensaje se guarda pero falla la recarga visual del chat, se informa de ello sin afirmar que el envío falló.
+- No modifica ni elimina datos existentes.

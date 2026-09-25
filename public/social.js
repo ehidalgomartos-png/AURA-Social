@@ -221,16 +221,78 @@ async function acceptSensitiveMessages(e) {
   toast('Contenido sensible permitido para esta persona');
   await openConversation(activeConversationId);
 }
+let messageSendInFlight = false;
+
 async function sendMessage(e) {
   e.preventDefault();
+  if (messageSendInFlight) return;
+
+  const form = e.currentTarget;
+  const submit = form.querySelector('button[type="submit"]');
+  const originalText = submit?.textContent || 'Enviar';
+
+  messageSendInFlight = true;
+  if (submit) {
+    submit.disabled = true;
+    submit.textContent = 'Enviando...';
+  }
+
   try {
     const file = $('#messageFile').files[0];
     const media = await uploadFile(file);
-    const payload = { body: $('#messageBody').value, contentLevel: $('#messageLevel').value, ...(media ? { mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl } : {}) };
-    const { r, d } = await api(`/api/messages/conversations/${activeConversationId}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (!r.ok) throw new Error(d.error === 'verified_creator_required_for_nudity' ? 'Necesitas ser creador adulto verificado para enviar desnudez.' : 'No se pudo enviar el mensaje.');
-    await openConversation(activeConversationId);
-  } catch (err) { toast(err.message); }
+
+    const payload = {
+      body: $('#messageBody').value,
+      contentLevel: $('#messageLevel').value,
+      ...(media ? {
+        mediaUrl: media.url,
+        mediaType: media.mediaType,
+        mediaProvider: media.provider,
+        externalId: media.externalId,
+        playbackUrl: media.playbackUrl
+      } : {})
+    };
+
+    const { r, d } = await api(
+      `/api/messages/conversations/${activeConversationId}/messages`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    if (!r.ok) {
+      const message =
+        d.error === 'verified_creator_required_for_nudity'
+          ? 'Necesitas ser creador adulto verificado para enviar desnudez.'
+          : d.error === 'messaging_blocked'
+            ? 'No puedes enviar mensajes a esta persona.'
+            : d.error === 'invalid_message'
+              ? 'Escribe un mensaje o selecciona un archivo.'
+              : 'No se pudo enviar el mensaje.';
+      throw new Error(message);
+    }
+
+    // The server has confirmed persistence at this point.
+    toast('Mensaje enviado');
+
+    try {
+      await openConversation(activeConversationId);
+    } catch (refreshError) {
+      console.error('Message sent, but chat refresh failed:', refreshError);
+      toast('Mensaje enviado. Recarga la conversación para verlo.');
+    }
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    messageSendInFlight = false;
+    const currentSubmit = $('#messageForm button[type="submit"]');
+    if (currentSubmit) {
+      currentSubmit.disabled = false;
+      currentSubmit.textContent = originalText;
+    }
+  }
 }
 $('#newConversation').onclick = () => $('#newMessageModal').classList.remove('hidden');
 $('#closeNewMessage').onclick = () => $('#newMessageModal').classList.add('hidden');
