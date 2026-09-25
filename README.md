@@ -1,4 +1,4 @@
-# AURA V0.3.4 — Etiquetas visibles — Message Preview — Consentimiento, Mensajes y PWA
+# AURA V0.3.5 — Clickable Profiles — Etiquetas visibles — Message Preview — Consentimiento, Mensajes y PWA
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -200,3 +200,13 @@ El mensaje podía quedar guardado correctamente y, si fallaba una tarea secundar
 - Pendientes, rechazados o revocados nunca se muestran públicamente.
 - La cuadrícula del perfil indica cuántas personas aprobadas aparecen en cada publicación.
 - No requiere cambios destructivos en PostgreSQL.
+
+
+## V0.3.5 — Perfiles clicables
+
+- El avatar, nombre y @usuario de quien publica son clicables.
+- Los usuarios etiquetados que han aprobado consentimiento son clicables.
+- El autor de una solicitud de consentimiento también es clicable.
+- Al pulsar se abre el perfil público con bio, portada, estadísticas y publicaciones.
+- Desde el perfil público se puede seguir/dejar de seguir y abrir un mensaje privado.
+- Si pulsas tu propio usuario, AURA abre tu perfil normal.

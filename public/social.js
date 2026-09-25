@@ -47,23 +47,36 @@ function mediaHTML(p, compact = false) {
   if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
   return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
 }
+function profileLink(username, label, className = '') {
+  return `<button type="button" class="profile-link ${className}" data-profile="${esc(username)}">${label}</button>`;
+}
+
 function participantsHTML(p) {
   const participants = Array.isArray(p.participants) ? p.participants : [];
   if (!participants.length) return '';
 
-  const names = participants.slice(0, 3).map(x => `@${esc(x.username)}`);
-  const extra = participants.length > 3 ? ` y ${participants.length - 3} más` : '';
+  const visible = participants.slice(0, 3).map(x =>
+    profileLink(x.username, `@${esc(x.username)}`, 'participant-link')
+  );
+  const extra = participants.length > 3 ? ` <span class="participants-extra">y ${participants.length - 3} más</span>` : '';
   const taggedMe = me && participants.some(x => String(x.id) === String(me.id));
 
-  return `<div class="post-participants"><span class="participants-label">Con ${names.join(', ')}${extra}</span>${taggedMe ? '<span class="tagged-me">✓ Estás etiquetado</span>' : ''}</div>`;
+  return `<div class="post-participants"><span class="participants-label">Con ${visible.join(', ')}${extra}</span>${taggedMe ? '<span class="tagged-me">✓ Estás etiquetado</span>' : ''}</div>`;
 }
 
 function postHTML(p) {
   return `<article class="post" data-id="${p.id}">
-    <div class="post-head"><div class="avatar">${avatarHTML(p)}</div><div class="post-user"><b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>@${esc(p.username)} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'}</small>${participantsHTML(p)}</div></div>
+    <div class="post-head">
+      ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
+      <div class="post-user">
+        ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
+        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'}</small>
+        ${participantsHTML(p)}
+      </div>
+    </div>
     <div class="post-media">${mediaHTML(p)}</div>
     <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button>◯ ${p.comment_count || 0}</button><button data-report="${p.id}">⋯</button></div>
-    ${p.caption ? `<div class="post-caption"><b>${esc(p.username)}</b> ${esc(p.caption)}</div>` : ''}
+    ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
   </article>`;
 }
 
@@ -128,6 +141,123 @@ async function loadProfile() {
   await loadConsents();
 }
 
+
+async function openPublicProfile(username) {
+  const clean = String(username || '').replace(/^@/, '').trim();
+  if (!clean) return;
+
+  if (me && clean.toLowerCase() === String(me.username).toLowerCase()) {
+    $('#publicProfileModal').classList.add('hidden');
+    showView('profile');
+    return;
+  }
+
+  const modal = $('#publicProfileModal');
+  const content = $('#publicProfileContent');
+  modal.classList.remove('hidden');
+  content.innerHTML = '<div class="public-profile-loading">Cargando perfil...</div>';
+
+  try {
+    const [{ r: profileResponse, d: profileData }, { d: postsData }] = await Promise.all([
+      api(`/api/profiles/${encodeURIComponent(clean)}`),
+      api(`/api/posts/user/${encodeURIComponent(clean)}`)
+    ]);
+
+    if (!profileResponse.ok || !profileData.profile) {
+      throw new Error('profile_not_found');
+    }
+
+    const profile = profileData.profile;
+    const website = profile.website_url
+      ? `<a href="${esc(profile.website_url)}" target="_blank" rel="noopener noreferrer">${esc(profile.website_url)}</a>`
+      : '';
+
+    const actions = `
+      <div class="public-profile-actions">
+        <button
+          type="button"
+          class="${profileData.following ? 'secondary' : 'primary'}"
+          data-public-follow="${profile.id}"
+          data-following="${profileData.following ? '1' : '0'}">
+          ${profileData.following ? 'Siguiendo' : 'Seguir'}
+        </button>
+        <button type="button" class="secondary" data-message-profile="${esc(profile.username)}">Mensaje</button>
+      </div>
+    `;
+
+    const posts = Array.isArray(postsData.posts) ? postsData.posts : [];
+
+    content.innerHTML = `
+      <div class="public-profile-card">
+        <div class="cover" ${profile.cover_url ? `style="background-image:url('${esc(profile.cover_url)}')"` : ''}></div>
+        <div class="profile-body">
+          <div class="profile-avatar">${avatarHTML(profile)}</div>
+          <div class="profile-title">
+            <div>
+              <h2>${esc(profile.display_name)} ${profile.creator_verified ? '<span class="verified">✓</span>' : ''}</h2>
+              <p>@${esc(profile.username)}</p>
+            </div>
+            ${actions}
+          </div>
+          <p class="profile-bio">${esc(profile.bio || 'Todavía no ha escrito una biografía.')}</p>
+          <div class="profile-meta">
+            ${profile.location_label ? `<span>⌖ ${esc(profile.location_label)}</span>` : ''}
+            ${website}
+          </div>
+          <div class="profile-stats">
+            <span><b>${profile.post_count || 0}</b> publicaciones</span>
+            <span><b>${profile.follower_count || 0}</b> seguidores</span>
+            <span><b>${profile.following_count || 0}</b> siguiendo</span>
+          </div>
+        </div>
+      </div>
+      <div class="public-profile-posts explore-grid">
+        ${posts.map(p => `<div class="tile">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('') || '<p class="muted">Todavía no tiene publicaciones visibles.</p>'}
+      </div>
+    `;
+
+    const followButton = content.querySelector('[data-public-follow]');
+    if (followButton) {
+      followButton.onclick = async () => {
+        const following = followButton.dataset.following === '1';
+        const { r } = await api(`/api/profiles/${profile.id}/follow`, {
+          method: following ? 'DELETE' : 'POST'
+        });
+        if (!r.ok) return toast('No se pudo actualizar el seguimiento.');
+        followButton.dataset.following = following ? '0' : '1';
+        followButton.textContent = following ? 'Seguir' : 'Siguiendo';
+        followButton.className = following ? 'primary' : 'secondary';
+        toast(following ? 'Has dejado de seguir a esta persona' : 'Ahora sigues a esta persona');
+      };
+    }
+
+    const messageButton = content.querySelector('[data-message-profile]');
+    if (messageButton) {
+      messageButton.onclick = async () => {
+        const { r, d } = await api('/api/messages/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: profile.username })
+        });
+        if (!r.ok) return toast('No se pudo abrir la conversación.');
+        modal.classList.add('hidden');
+        showView('messages');
+        await loadConversations(d.conversationId);
+      };
+    }
+  } catch (error) {
+    content.innerHTML = '<div class="info-card"><b>No se pudo abrir el perfil.</b><p>Puede que esta cuenta ya no esté disponible.</p></div>';
+  }
+}
+
+document.addEventListener('click', event => {
+  const target = event.target.closest('[data-profile]');
+  if (!target) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openPublicProfile(target.dataset.profile);
+});
+
 function openProfileModal() {
   const form = $('#profileForm');
   form.displayName.value = me.display_name || '';
@@ -138,6 +268,7 @@ function openProfileModal() {
   $('#profileModal').classList.remove('hidden');
 }
 $('#closeProfileModal').onclick = () => $('#profileModal').classList.add('hidden');
+$('#closePublicProfileModal').onclick = () => $('#publicProfileModal').classList.add('hidden');
 $('#profileForm').addEventListener('submit', async e => {
   e.preventDefault();
   const msg = $('#profileMessage');
@@ -163,7 +294,7 @@ async function loadConsents() {
   const { d } = await api('/api/posts/consents/pending');
   const root = $('#consentRequests');
   if (!d.requests.length) { root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Cuando alguien indique que apareces en una publicación, podrás revisarla aquí.</p></div>'; return; }
-  root.innerHTML = d.requests.map(x => `<article class="consent-card"><div class="consent-head"><div class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</div><div><b>${esc(x.display_name)}</b><small>@${esc(x.username)} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
+  root.innerHTML = d.requests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
   $$('[data-consent]', root).forEach(b => b.onclick = async () => {
     if (b.dataset.consent === 'approved' && !d.ageVerified && b.closest('.consent-card').querySelector('.gate')) return toast('Primero necesitas verificar tu mayoría de edad.');
     const { r } = await api(`/api/posts/${b.dataset.post}/consent`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: b.dataset.consent }) });
