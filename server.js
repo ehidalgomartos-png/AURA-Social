@@ -55,7 +55,7 @@ app.use('/api/stories', storyRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '0.2.2',
+    version: '0.2.3',
     mode: 'adult-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
@@ -69,6 +69,7 @@ app.get('/api/health', (_req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/app', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`AURA V0.2.2 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`AURA V0.2.3 running on http://localhost:${PORT}`));

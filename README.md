@@ -1,4 +1,4 @@
-# AURA V0.2.2 — Admin Recovery
+# AURA V0.2.3 — Admin Recovery Fix
 
 ## Hotfix V0.2.1
 
@@ -139,3 +139,9 @@ V0.2 es una base de desarrollo. Antes de un lanzamiento público se requieren re
 5. Tras el éxito, elimina `ADMIN_RECOVERY_TOKEN` de Render y vuelve a desplegar.
 
 La recuperación también marca la cuenta como administradora y crea una nueva sesión.
+
+## Hotfix V0.2.3
+
+- Añade correctamente la ruta `/admin-recovery` antes del fallback general.
+- Mueve el JavaScript de recuperación a `public/admin-recovery.js` para cumplir la CSP.
+- Mantiene el procedimiento temporal con `ADMIN_RECOVERY_TOKEN`.

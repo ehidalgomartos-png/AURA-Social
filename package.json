@@ -1,6 +1,6 @@
 {
   "name": "aura-social",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "AURA V0.2 - adult-only social network with media uploads, social feed, stories, reels and moderation.",
   "main": "server.js",

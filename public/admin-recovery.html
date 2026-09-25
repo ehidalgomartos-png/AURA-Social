@@ -31,36 +31,6 @@
       <p id="msg"></p>
     </form>
   </main>
-  <script>
-    const form=document.getElementById('recoveryForm');
-    const msg=document.getElementById('msg');
-    form.addEventListener('submit',async(e)=>{
-      e.preventDefault();
-      msg.textContent='Actualizando contraseña...';
-      const f=new FormData(form);
-      const r=await fetch('/api/auth/admin-recovery',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          email:f.get('email'),
-          token:f.get('token'),
-          newPassword:f.get('newPassword')
-        })
-      });
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok){
-        const labels={
-          recovery_disabled:'La recuperación no está habilitada.',
-          invalid_recovery_credentials:'Email o token de recuperación incorrectos.',
-          invalid_password_length:'La contraseña debe tener entre 10 y 128 caracteres.',
-          admin_account_not_found:'No existe una cuenta con el ADMIN_EMAIL configurado.'
-        };
-        msg.textContent=labels[d.error]||'No se pudo recuperar la cuenta.';
-        return;
-      }
-      msg.textContent='Contraseña actualizada. Entrando en administración...';
-      setTimeout(()=>location.href='/admin',500);
-    });
-  </script>
+  <script src="/admin-recovery.js"></script>
 </body>
 </html>
