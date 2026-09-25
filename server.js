@@ -14,6 +14,8 @@ const moderationRoutes = require('./src/routes/moderation');
 const adminRoutes = require('./src/routes/admin');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
+const messageRoutes = require('./src/routes/messages');
+const notificationRoutes = require('./src/routes/notifications');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -51,17 +53,20 @@ app.use('/api/moderation', moderationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '0.2.3',
+    version: '0.3.0',
     mode: 'adult-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
-      'stories','reels','reports','blocking','admin-moderation','responsive-social-ui'
+      'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa'
     ]
   });
 });
@@ -72,4 +77,4 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`AURA V0.2.3 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`AURA V0.3.0 running on http://localhost:${PORT}`));

@@ -20,3 +20,65 @@ CREATE TABLE IF NOT EXISTS creator_verifications (id BIGSERIAL PRIMARY KEY,user_
 CREATE TABLE IF NOT EXISTS post_participants (post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,consent_status TEXT NOT NULL DEFAULT 'pending' CHECK(consent_status IN ('pending','approved','revoked','rejected')),requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),responded_at TIMESTAMPTZ,PRIMARY KEY(post_id,user_id));
 CREATE TABLE IF NOT EXISTS stories (id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,media_url TEXT NOT NULL,media_type TEXT NOT NULL CHECK(media_type IN ('image','video')),media_provider TEXT NOT NULL DEFAULT 'local',external_id TEXT,playback_url TEXT,content_level TEXT NOT NULL CHECK(content_level IN ('normal','sensitive','nudity')),moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','under_review','rejected')),created_at TIMESTAMPTZ NOT NULL DEFAULT now(),expires_at TIMESTAMPTZ NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_stories_active ON stories(expires_at DESC);
+
+-- AURA V0.3: richer profiles, notifications, consent and private messaging
+ALTER TABLE users ADD COLUMN IF NOT EXISTS location_label VARCHAR(120) NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url TEXT;
+
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS consent_state TEXT NOT NULL DEFAULT 'none';
+DO $$ BEGIN
+  ALTER TABLE posts ADD CONSTRAINT posts_consent_state_check
+    CHECK(consent_state IN ('none','pending','approved','rejected','revoked'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  actor_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK(type IN ('follow','message','consent_request','consent_approved','consent_rejected','consent_revoked','system')),
+  entity_type TEXT,
+  entity_id BIGINT,
+  text VARCHAR(500) NOT NULL DEFAULT '',
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id,read_at);
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS conversation_members (
+  conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_read_at TIMESTAMPTZ,
+  PRIMARY KEY(conversation_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id,conversation_id);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id BIGSERIAL PRIMARY KEY,
+  conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(4000) NOT NULL DEFAULT '',
+  media_url TEXT,
+  media_type TEXT CHECK(media_type IS NULL OR media_type IN ('image','video')),
+  media_provider TEXT,
+  external_id TEXT,
+  playback_url TEXT,
+  content_level TEXT NOT NULL DEFAULT 'normal' CHECK(content_level IN ('normal','sensitive','nudity')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id,created_at);
+
+CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
+  receiver_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  allowed BOOLEAN NOT NULL DEFAULT FALSE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(receiver_id,sender_id),
+  CHECK(receiver_id<>sender_id)
+);

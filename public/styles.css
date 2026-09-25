@@ -284,3 +284,5 @@ footer {
 
 .auth-duo{padding:110px clamp(24px,7vw,110px);display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}.dark-card{background:var(--navy);color:white}.dark-card h3{color:white}.dark-card input{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:white}.dark-card input::placeholder{color:rgba(255,255,255,.55)}.coral{background:var(--coral)}.mini-preview{display:flex;justify-content:space-between;gap:20px;border-top:1px solid rgba(255,255,255,.14);padding-top:18px;color:rgba(255,255,255,.68);font-size:12px}.mini-preview b{color:var(--teal)}
 @media(max-width:800px){.auth-duo{grid-template-columns:1fr;padding:75px 18px}}
+
+.brand-claim{font-family:Manrope,sans-serif;font-weight:800;color:var(--navy)!important;font-size:clamp(20px,2vw,28px)!important;margin-top:-10px!important}.brand-claim::before{content:"— ";color:var(--teal)}

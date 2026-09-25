@@ -1,147 +1,151 @@
-# AURA V0.2.3 — Admin Recovery Fix
+# AURA V0.3.0 — Consentimiento, Mensajes y PWA
 
-## Hotfix V0.2.1
+AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
-- Corrige cuentas creadas antes de configurar `ADMIN_EMAIL`.
-- En cada login, si el email de la cuenta coincide exactamente (ignorando mayúsculas/minúsculas y espacios) con `ADMIN_EMAIL`, la cuenta se promociona automáticamente a administrador.
-- El JWT nuevo incluye `isAdmin: true`.
-- No es necesario borrar la cuenta ni modificar PostgreSQL manualmente.
-- Después del despliegue: cerrar sesión e iniciar sesión de nuevo.
+**Claim de esta versión:** “Aquí, un pecho sigue siendo un pecho.”
 
+## Novedades V0.3
 
-Segunda versión funcional de AURA: red social exclusiva para adultos con contenido sensible bajo control del usuario y moderación prioritaria.
+### Mensajería privada
+- Conversaciones 1 a 1.
+- Texto, imagen y vídeo.
+- Clasificación `normal`, `sensitive` y `nudity`.
+- El contenido sensible recibido queda oculto hasta que el destinatario lo acepte para ese remitente.
+- Para aceptar contenido sensible el destinatario debe tener la mayoría de edad verificada.
+- La desnudez por mensaje solo puede enviarla una cuenta con edad y creador verificados.
+- Bloqueos existentes también bloquean la mensajería.
 
-## Identidad visual
+### Consentimiento entre participantes
+Al crear una publicación se pueden indicar usuarios que aparecen en ella.
 
-Se mantiene una identidad totalmente distinta de los otros proyectos:
+- La publicación queda `under_review` y fuera del feed.
+- Cada participante recibe una solicitud.
+- Cuando todos autorizan, la publicación pasa a `published`.
+- Un rechazo impide la publicación.
+- Una persona que ya autorizó puede retirar su consentimiento posteriormente.
+- La retirada oculta inmediatamente la publicación mientras queda pendiente de revisión.
 
+### Notificaciones
+- Nuevos seguidores.
+- Mensajes.
+- Solicitudes de consentimiento.
+- Consentimientos aprobados, rechazados o retirados.
+- Contador de no leídas y acción “Marcar todo leído”.
+
+### Perfil V0.3
+- Nombre visible y biografía.
+- Ubicación.
+- Web.
+- Cambio de avatar y portada mediante el sistema de subida multimedia.
+- Preferencia de contenido sensible.
+- Panel de consentimientos asociado al propio perfil.
+
+### PWA
+- `manifest.webmanifest`.
+- Service Worker.
+- Iconos 192/512.
+- Instalación en dispositivos compatibles.
+- Caché del shell de aplicación; las APIs y `/uploads` no se cachean.
+
+### Identidad
+Se mantiene la paleta propia de AURA:
 - Azul noche `#0D2238`
-- Azul pizarra `#173A52`
 - Marfil `#F5F0E8`
 - Turquesa `#2BB7A9`
 - Coral `#EF7A5D`
 
-## Nuevo en V0.2
+## Actualizar desde V0.2.3 en Render
 
-- Interfaz social responsive real.
-- Navegación escritorio + dock inferior móvil.
-- Feed: Para ti / Siguiendo / Nuevo.
-- Explorar.
-- Reels como tipo de publicación.
-- Stories con caducidad a las 24 horas.
-- Crear publicación desde foto o vídeo.
-- Preview antes de publicar.
-- Upload real de multimedia.
-- Modo local para desarrollo.
-- Adaptador Bunny Storage para imágenes.
-- Adaptador Bunny Stream para vídeos.
-- Perfil visual y estadísticas.
-- Activar/desactivar contenido sensible.
-- Panel admin web.
-- Buscador de usuarios en administración.
-- Verificación manual +18 y creador desde admin.
-- Cola de denuncias, con prioridad crítica para menores y contenido íntimo no consentido.
-- Auditoría de decisiones.
+No hacen falta nuevas variables de entorno para estas funciones.
 
-## Importante sobre +18
+1. Sustituir en GitHub los archivos de la versión anterior por V0.3.0.
+2. Render hará el deploy automático.
+3. El Start Command actual puede seguir siendo:
 
-La fecha de nacimiento durante el alta **no equivale a una verificación de edad real**. En esta versión, `age_verified` se activa manualmente desde Admin para permitir pruebas. Antes de producción deberá conectarse a un proveedor o sistema de acreditación de mayoría de edad apropiado.
+```bash
+npm run db:init && npm start
+```
+
+`db:init` es idempotente y añadirá las nuevas columnas/tablas.
+
+4. Comprobar:
+
+```text
+https://TU-DOMINIO/api/health
+```
+
+Debe devolver `"version":"0.3.0"`.
+
+## Variables de entorno básicas
+
+```text
+ADMIN_EMAIL
+APP_ORIGIN
+COOKIE_SECURE=true
+DATABASE_URL
+JWT_SECRET
+NODE_ENV=production
+```
+
+No cambies `JWT_SECRET` en producción salvo que quieras invalidar todas las sesiones actuales.
 
 ## Multimedia
 
-### Desarrollo: local
+Por defecto:
 
-En `.env`:
-
-```env
+```text
 MEDIA_STORAGE=local
 ```
 
-Los archivos se guardan en `/uploads`. Es útil para desarrollo, pero **no debe usarse en Render como almacenamiento permanente**, porque el filesystem del servicio no debe considerarse almacén persistente del producto.
+Sirve para desarrollo/pruebas. En Render, el almacenamiento local del Web Service no debe considerarse persistente. Para producción conviene activar Bunny:
 
-### Producción: Bunny
-
-```env
+```text
 MEDIA_STORAGE=bunny
-BUNNY_STORAGE_ZONE=...
-BUNNY_STORAGE_API_KEY=...
-BUNNY_STORAGE_PUBLIC_BASE_URL=https://tu-pull-zone.b-cdn.net
-BUNNY_STREAM_LIBRARY_ID=...
-BUNNY_STREAM_API_KEY=...
-BUNNY_STREAM_CDN_HOSTNAME=...
+BUNNY_STORAGE_ZONE=
+BUNNY_STORAGE_API_KEY=
+BUNNY_STORAGE_PUBLIC_BASE_URL=
+BUNNY_STREAM_LIBRARY_ID=
+BUNNY_STREAM_API_KEY=
+BUNNY_STREAM_CDN_HOSTNAME=
 ```
 
-- Imágenes → Bunny Storage.
-- Vídeos → Bunny Stream.
+## Endpoints nuevos
 
-## Instalación
+### Mensajes
+- `GET /api/messages/conversations`
+- `POST /api/messages/conversations`
+- `GET /api/messages/conversations/:id/messages`
+- `POST /api/messages/conversations/:id/messages`
+- `GET /api/messages/users/:id/sensitive-permission`
+- `POST /api/messages/users/:id/sensitive-permission`
 
-```bash
-cp .env.example .env
-npm install
-npm run db:init
-npm run dev
-```
+### Notificaciones
+- `GET /api/notifications`
+- `POST /api/notifications/read-all`
+- `POST /api/notifications/:id/read`
 
-Después:
+### Consentimientos
+- `GET /api/posts/consents/pending`
+- `POST /api/posts/:id/consent`
 
-- Portada: `http://localhost:3000/`
-- Red social: `http://localhost:3000/app`
-- Administración: `http://localhost:3000/admin`
+### Personas
+- `GET /api/profiles/search/users?q=...`
 
-## Crear administrador
+## Base de datos añadida
 
-Configura antes del registro:
+- `notifications`
+- `conversations`
+- `conversation_members`
+- `messages`
+- `sensitive_message_permissions`
+- `users.location_label`
+- `users.website_url`
+- `posts.consent_state`
 
-```env
-ADMIN_EMAIL=tu-email@example.com
-```
+La tabla `post_participants`, ya existente, ahora se usa para el flujo real de consentimiento.
 
-La cuenta registrada con ese email tendrá permiso de administrador.
+## Seguridad
 
-## Flujo de prueba recomendado
+La ruta de recuperación temporal del administrador heredada de V0.2 sigue deshabilitada siempre que `ADMIN_RECOVERY_TOKEN` no exista en Render.
 
-1. Registra el admin usando el email de `ADMIN_EMAIL`.
-2. Registra otra cuenta.
-3. En `/admin`, busca esa cuenta.
-4. Pulsa **Verificar +18** o **Verificar creador**.
-5. Inicia sesión con esa cuenta.
-6. En Perfil activa **Mostrar contenido sensible**.
-7. Ya puedes probar la publicación clasificada como desnudez con una cuenta de creador verificada.
-
-## Estructura preparada para V0.3
-
-La siguiente versión debería incorporar:
-
-- Mensajes privados reales.
-- Solicitud previa antes de recibir multimedia sensible por DM.
-- Consentimiento entre participantes etiquetados.
-- Revocación de consentimiento.
-- Notificaciones.
-- Comentarios visuales.
-- Guardados y compartir.
-- Perfil editable desde UI.
-- Moderación automática / clasificación asistida.
-- Verificación +18 mediante proveedor real.
-- PWA instalable y push notifications.
-
-## Estado de seguridad
-
-V0.2 es una base de desarrollo. Antes de un lanzamiento público se requieren revisión jurídica, verificación de edad adecuada, políticas completas, procesos DSA, privacidad/RGPD, protección de secretos, backups, pruebas de carga, protección antiabuso, antivirus/escaneo de archivos y moderación operativa.
-
-
-## Recuperación temporal de administrador
-
-1. En Render añade `ADMIN_RECOVERY_TOKEN` con un valor largo y aleatorio.
-2. Despliega.
-3. Abre `/admin-recovery`.
-4. Introduce el email configurado en `ADMIN_EMAIL`, el token temporal y una nueva contraseña.
-5. Tras el éxito, elimina `ADMIN_RECOVERY_TOKEN` de Render y vuelve a desplegar.
-
-La recuperación también marca la cuenta como administradora y crea una nueva sesión.
-
-## Hotfix V0.2.3
-
-- Añade correctamente la ruta `/admin-recovery` antes del fallback general.
-- Mueve el JavaScript de recuperación a `public/admin-recovery.js` para cumplir la CSP.
-- Mantiene el procedimiento temporal con `ADMIN_RECOVERY_TOKEN`.
+Antes de un lanzamiento público siguen siendo necesarios, entre otros: proveedor real de verificación +18, revisión jurídica, políticas completas, procedimientos DSA/RGPD, moderación operativa, escaneo/antimalware de archivos, backups, rate limits específicos para mensajes y pruebas de abuso/carga.
