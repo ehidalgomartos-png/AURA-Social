@@ -82,3 +82,29 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
   PRIMARY KEY(receiver_id,sender_id),
   CHECK(receiver_id<>sender_id)
 );
+
+
+-- AURA V0.4: interests, discovery and richer social activity
+CREATE TABLE IF NOT EXISTS user_interests (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  interest VARCHAR(40) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, interest)
+);
+CREATE INDEX IF NOT EXISTS idx_user_interests_interest ON user_interests(interest, user_id);
+
+-- Expand notification types to include social interactions.
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK(type IN (
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'system'
+  ));

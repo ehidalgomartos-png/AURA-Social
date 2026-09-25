@@ -192,9 +192,60 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
   res.json({posts:gateRows(posts,viewer)});
 });
 
-router.post('/:id/like', requireAuth, async (req,res)=>{await db.query(`INSERT INTO likes (user_id,post_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,[req.user.id,req.params.id]);res.json({ok:true});});
+router.post('/:id/like', requireAuth, async (req,res)=>{
+  const inserted=await db.query(
+    `INSERT INTO likes (user_id,post_id)
+     VALUES ($1,$2)
+     ON CONFLICT DO NOTHING
+     RETURNING post_id`,
+    [req.user.id,req.params.id]
+  );
+
+  if(inserted.rowCount){
+    const owner=await db.query(
+      `SELECT user_id FROM posts WHERE id=$1 AND moderation_status='published'`,
+      [req.params.id]
+    );
+
+    if(owner.rowCount && String(owner.rows[0].user_id)!==String(req.user.id)){
+      await db.query(`
+        INSERT INTO notifications (
+          user_id,actor_id,type,entity_type,entity_id,text
+        )
+        VALUES ($1,$2,'like','post',$3,'Le gusta tu publicación.')
+      `,[owner.rows[0].user_id,req.user.id,req.params.id]);
+    }
+  }
+
+  res.json({ok:true});
+});
 router.delete('/:id/like', requireAuth, async (req,res)=>{await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);res.json({ok:true});});
 const commentSchema=z.object({body:z.string().min(1).max(1000)});
-router.post('/:id/comments',requireAuth,async(req,res)=>{const parsed=commentSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_comment'});const result=await db.query(`INSERT INTO comments (user_id,post_id,body) VALUES ($1,$2,$3) RETURNING id,user_id,post_id,body,created_at`,[req.user.id,req.params.id,parsed.data.body]);res.status(201).json({ok:true,comment:result.rows[0]});});
+router.post('/:id/comments',requireAuth,async(req,res)=>{
+  const parsed=commentSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_comment'});
+
+  const result=await db.query(`
+    INSERT INTO comments (user_id,post_id,body)
+    VALUES ($1,$2,$3)
+    RETURNING id,user_id,post_id,body,created_at
+  `,[req.user.id,req.params.id,parsed.data.body]);
+
+  const owner=await db.query(
+    `SELECT user_id FROM posts WHERE id=$1 AND moderation_status='published'`,
+    [req.params.id]
+  );
+
+  if(owner.rowCount && String(owner.rows[0].user_id)!==String(req.user.id)){
+    await db.query(`
+      INSERT INTO notifications (
+        user_id,actor_id,type,entity_type,entity_id,text
+      )
+      VALUES ($1,$2,'comment','post',$3,'Ha comentado tu publicación.')
+    `,[owner.rows[0].user_id,req.user.id,req.params.id]);
+  }
+
+  res.status(201).json({ok:true,comment:result.rows[0]});
+});
 
 module.exports = router;

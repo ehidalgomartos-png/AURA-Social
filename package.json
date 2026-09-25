@@ -1,6 +1,6 @@
 {
   "name": "aura-social",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "private": true,
   "description": "AURA V0.3 - adult social network with consent workflows, private messaging, notifications and PWA.",
   "main": "server.js",

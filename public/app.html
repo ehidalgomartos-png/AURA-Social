@@ -42,10 +42,32 @@
     <section id="feedView" class="view">
       <div class="page-title"><div><span class="eyebrow">TU COMUNIDAD</span><h1>Inicio</h1></div><div class="segmented"><button data-mode="foryou" class="active">Para ti</button><button data-mode="following">Siguiendo</button><button data-mode="latest">Nuevo</button></div></div>
       <div id="stories" class="stories"></div>
-      <div class="content-layout"><div id="feed" class="feed"></div><aside class="right-panel"><div id="meCard" class="profile-mini skeleton"></div><div class="info-card"><span class="tag">18+</span><b>Aquí, un pecho sigue siendo un pecho.</b><p>El contenido sensible permanece oculto hasta que tu cuenta esté verificada y tú decidas mostrarlo.</p></div></aside></div>
+      <div class="content-layout"><div id="feed" class="feed"></div><aside class="right-panel"><div id="meCard" class="profile-mini skeleton"></div><section class="suggestion-panel"><div class="panel-title"><b>Personas para ti</b><button type="button" data-view-jump="explore">Ver más</button></div><div id="homeSuggestions" class="suggestion-list"><div class="mini-loading">Buscando personas...</div></div></section><div class="info-card"><span class="tag">18+</span><b>Aquí, un pecho sigue siendo un pecho.</b><p>El contenido sensible permanece oculto hasta que tu cuenta esté verificada y tú decidas mostrarlo.</p></div></aside></div>
     </section>
 
-    <section id="exploreView" class="view hidden"><div class="page-title"><div><span class="eyebrow">DESCUBRE</span><h1>Explorar</h1></div></div><div id="exploreGrid" class="explore-grid"></div></section>
+    <section id="exploreView" class="view hidden">
+      <div class="page-title">
+        <div><span class="eyebrow">DESCUBRE</span><h1>Explorar</h1></div>
+      </div>
+      <section class="people-discovery">
+        <div class="explore-search-row">
+          <form id="peopleSearchForm" class="people-search">
+            <input id="peopleSearchInput" type="search" minlength="2" placeholder="Buscar personas por nombre, @usuario o bio">
+            <button class="secondary" type="submit">Buscar</button>
+          </form>
+        </div>
+        <div id="interestFilters" class="interest-filters"></div>
+        <div class="discovery-heading">
+          <div><span class="eyebrow">PERSONAS</span><h2 id="peopleDiscoveryTitle">Personas que podrías conocer</h2></div>
+          <button id="clearPeopleSearch" class="tiny-action hidden" type="button">Limpiar búsqueda</button>
+        </div>
+        <div id="peopleSuggestions" class="people-grid"></div>
+      </section>
+      <section class="content-discovery">
+        <div class="discovery-heading"><div><span class="eyebrow">CONTENIDO</span><h2>Descubre publicaciones</h2></div></div>
+        <div id="exploreGrid" class="explore-grid"></div>
+      </section>
+    </section>
     <section id="reelsView" class="view hidden"><div class="page-title"><div><span class="eyebrow">VÍDEO VERTICAL</span><h1>Reels</h1></div></div><div id="reelsFeed" class="reels-feed"></div></section>
 
     <section id="messagesView" class="view hidden">
@@ -79,7 +101,7 @@
 
 <div id="modal" class="modal hidden"><div class="modal-card"><button id="closeModal" class="modal-close">×</button><span class="eyebrow">NUEVA PUBLICACIÓN</span><h2>Compartir en AURA</h2><form id="createForm"><label class="upload-drop"><input id="mediaFile" name="file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" required><span id="uploadText">Selecciona una foto o vídeo</span><div id="preview" class="preview hidden"></div></label><textarea name="caption" maxlength="2200" placeholder="Escribe algo..."></textarea><div class="form-row"><label>Formato<select name="kind"><option value="post">Publicación</option><option value="reel">Reel</option></select></label><label>Clasificación<select name="contentLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><label>Personas que aparecen <input name="participants" placeholder="@usuario1, @usuario2"><small>Si añades personas, la publicación no aparecerá hasta que todas den su consentimiento.</small></label><div class="policy-note"><b>Importante</b><span>La desnudez solo puede publicarse desde una cuenta de creador adulto verificado.</span></div><button class="primary full" type="submit">Publicar</button><p id="createMessage" class="status"></p></form><hr><form id="storyForm"><h3>Story 24 h</h3><p class="muted">Utiliza el mismo archivo seleccionado arriba y publícalo como Story.</p><button class="secondary full" type="submit">Publicar como Story</button><p id="storyMessage" class="status"></p></form></div></div>
 
-<div id="profileModal" class="modal hidden"><div class="modal-card"><button id="closeProfileModal" class="modal-close">×</button><span class="eyebrow">TU PERFIL</span><h2>Editar perfil</h2><form id="profileForm"><label>Nombre visible<input name="displayName" maxlength="80" required></label><label>Biografía<textarea name="bio" maxlength="500"></textarea></label><div class="form-row"><label>Ubicación<input name="locationLabel" maxlength="120" placeholder="Valencia"></label><label>Web<input name="websiteUrl" maxlength="4096" placeholder="https://..."></label></div><label>Foto de perfil<input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Foto de portada<input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary full" type="submit">Guardar cambios</button><p id="profileMessage" class="status"></p></form></div></div>
+<div id="profileModal" class="modal hidden"><div class="modal-card"><button id="closeProfileModal" class="modal-close">×</button><span class="eyebrow">TU PERFIL</span><h2>Editar perfil</h2><form id="profileForm"><label>Nombre visible<input name="displayName" maxlength="80" required></label><label>Biografía<textarea name="bio" maxlength="500"></textarea></label><div class="form-row"><label>Ubicación<input name="locationLabel" maxlength="120" placeholder="Valencia"></label><label>Web<input name="websiteUrl" maxlength="4096" placeholder="https://..."></label></div><fieldset class="interest-fieldset"><legend>Intereses <small>Elige hasta 8</small></legend><div id="profileInterests" class="interest-selector"></div></fieldset><label>Foto de perfil<input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Foto de portada<input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary full" type="submit">Guardar cambios</button><p id="profileMessage" class="status"></p></form></div></div>
 
 
 <div id="publicProfileModal" class="modal hidden">

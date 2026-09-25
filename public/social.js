@@ -5,6 +5,9 @@ let currentMode = 'foryou';
 let currentFileMedia = null;
 let activeConversationId = null;
 let activeConversationOther = null;
+let interestCatalog = [];
+let activeExploreInterest = '';
+
 
 async function api(url, opts = {}) {
   const r = await fetch(url, opts);
@@ -80,6 +83,110 @@ function postHTML(p) {
   </article>`;
 }
 
+
+function interestPillsHTML(interests = [], compact = false) {
+  if (!Array.isArray(interests) || !interests.length) return '';
+  const shown = interests.slice(0, compact ? 3 : 8);
+  return `<div class="interest-pills ${compact ? 'compact' : ''}">${shown.map(i => `<span>${esc(i)}</span>`).join('')}</div>`;
+}
+
+function personCardHTML(user, compact = false) {
+  return `<article class="person-card ${compact ? 'compact' : ''}" data-person-card="${user.id}">
+    ${profileLink(user.username, `<span class="person-avatar">${avatarHTML(user)}</span>`, 'person-avatar-link')}
+    <div class="person-copy">
+      ${profileLink(user.username, `<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'person-name-link')}
+      <small>${profileLink(user.username, `@${esc(user.username)}`, 'post-username-link')}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small>
+      ${!compact && user.bio ? `<p>${esc(user.bio)}</p>` : ''}
+      ${interestPillsHTML(user.interests, compact)}
+    </div>
+    <button
+      type="button"
+      class="person-follow ${user.following ? 'following' : ''}"
+      data-suggest-follow="${user.id}"
+      data-following="${user.following ? '1' : '0'}">
+      ${user.following ? 'Siguiendo' : 'Seguir'}
+    </button>
+  </article>`;
+}
+
+async function toggleSuggestedFollow(button) {
+  const following = button.dataset.following === '1';
+  button.disabled = true;
+
+  try {
+    const { r } = await api(`/api/profiles/${button.dataset.suggestFollow}/follow`, {
+      method: following ? 'DELETE' : 'POST'
+    });
+
+    if (!r.ok) throw new Error('follow_failed');
+
+    button.dataset.following = following ? '0' : '1';
+    button.textContent = following ? 'Seguir' : 'Siguiendo';
+    button.classList.toggle('following', !following);
+
+    await loadMe();
+    if ($('#homeSuggestions')) await loadHomeSuggestions();
+  } catch (_) {
+    toast('No se pudo actualizar el seguimiento.');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadInterestCatalog() {
+  if (interestCatalog.length) return interestCatalog;
+  const { d } = await api('/api/profiles/interests');
+  interestCatalog = Array.isArray(d.interests) ? d.interests : [];
+  return interestCatalog;
+}
+
+async function loadHomeSuggestions() {
+  const root = $('#homeSuggestions');
+  if (!root) return;
+
+  const { d } = await api('/api/profiles/suggestions?limit=4');
+  root.innerHTML = d.users?.length
+    ? d.users.map(u => personCardHTML(u, true)).join('')
+    : `<div class="mini-empty"><b>Ya conoces a todos por aquí.</b><small>Explora contenido o invita a alguien.</small></div>`;
+}
+
+async function renderInterestFilters() {
+  const root = $('#interestFilters');
+  if (!root) return;
+
+  const catalog = await loadInterestCatalog();
+  root.innerHTML = [
+    `<button type="button" class="${!activeExploreInterest ? 'active' : ''}" data-interest-filter="">Todos</button>`,
+    ...catalog.map(i => `<button type="button" class="${activeExploreInterest === i ? 'active' : ''}" data-interest-filter="${esc(i)}">${esc(i)}</button>`)
+  ].join('');
+}
+
+async function loadPeopleSuggestions(interest = activeExploreInterest) {
+  activeExploreInterest = interest || '';
+  const query = activeExploreInterest ? `&interest=${encodeURIComponent(activeExploreInterest)}` : '';
+  const { d } = await api(`/api/profiles/suggestions?limit=18${query}`);
+  $('#peopleSuggestions').innerHTML = d.users?.length
+    ? d.users.map(u => personCardHTML(u)).join('')
+    : `<div class="info-card discovery-empty"><b>No encontramos personas con ese interés todavía.</b><p>Prueba otra categoría.</p></div>`;
+  await renderInterestFilters();
+}
+
+async function searchPeople(query) {
+  const clean = String(query || '').trim();
+  if (clean.length < 2) {
+    $('#peopleDiscoveryTitle').textContent = 'Personas que podrías conocer';
+    $('#clearPeopleSearch').classList.add('hidden');
+    return loadPeopleSuggestions(activeExploreInterest);
+  }
+
+  const { d } = await api(`/api/profiles/search/users?q=${encodeURIComponent(clean)}`);
+  $('#peopleDiscoveryTitle').textContent = `Resultados para “${clean}”`;
+  $('#clearPeopleSearch').classList.remove('hidden');
+  $('#peopleSuggestions').innerHTML = d.users?.length
+    ? d.users.map(u => personCardHTML(u)).join('')
+    : `<div class="info-card discovery-empty"><b>No encontramos a nadie.</b><p>Prueba con otro nombre o @usuario.</p></div>`;
+}
+
 async function uploadFile(file) {
   if (!file) return null;
   const fd = new FormData();
@@ -100,7 +207,19 @@ async function loadMe() {
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
   const { d } = await api(`/api/posts/feed?mode=${mode}`);
-  $('#feed').innerHTML = d.posts.length ? d.posts.map(postHTML).join('') : `<div class="info-card"><b>Aún no hay publicaciones aquí.</b><p>Sé de las primeras personas en compartir contenido en AURA.</p></div>`;
+
+  $('#feed').innerHTML = d.posts.length
+    ? d.posts.map(postHTML).join('')
+    : `<div class="empty-feed-card">
+        <span class="empty-feed-icon">A</span>
+        <h2>${mode === 'following' ? 'Tu feed de Siguiendo empieza aquí.' : 'Todavía hay poco por aquí.'}</h2>
+        <p>${mode === 'following' ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.' : 'Descubre personas, sigue perfiles o publica algo para poner AURA en movimiento.'}</p>
+        <div class="empty-feed-actions">
+          <button type="button" class="primary" data-view-jump="explore">Descubrir personas</button>
+          <button type="button" class="secondary" data-open-create="1">Crear publicación</button>
+        </div>
+      </div>`;
+
   bindPostActions($('#feed'));
 }
 async function loadStories() {
@@ -111,8 +230,14 @@ async function loadStories() {
   bindCreateButtons();
 }
 async function loadExplore() {
-  const { d } = await api('/api/posts/discover');
-  $('#exploreGrid').innerHTML = d.posts.map(p => `<div class="tile">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('') || '<p class="muted">Todavía no hay contenido para explorar.</p>';
+  const [{ d: postsData }] = await Promise.all([
+    api('/api/posts/discover'),
+    loadPeopleSuggestions(activeExploreInterest)
+  ]);
+
+  $('#exploreGrid').innerHTML = postsData.posts.map(p =>
+    `<button type="button" class="tile tile-button" data-profile="${esc(p.username)}">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}<span class="tile-owner">@${esc(p.username)}</span></button>`
+  ).join('') || '<div class="info-card discovery-empty"><b>Todavía no hay contenido para explorar.</b><p>Las primeras publicaciones aparecerán aquí.</p></div>';
 }
 async function loadReels() {
   const { d } = await api('/api/posts/feed?mode=latest');
@@ -125,7 +250,7 @@ async function loadProfile() {
   if (!me) await loadMe();
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p><div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><span><b>${me.follower_count}</b> seguidores</span><span><b>${me.following_count}</b> siguiendo</span></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><span><b>${me.follower_count}</b> seguidores</span><span><b>${me.following_count}</b> siguiendo</span></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
   $('#profilePosts').innerHTML = d.posts.map(p => {
     const participants = Array.isArray(p.participants) ? p.participants : [];
     const participantBadge = participants.length
@@ -200,6 +325,7 @@ async function openPublicProfile(username) {
             ${actions}
           </div>
           <p class="profile-bio">${esc(profile.bio || 'Todavía no ha escrito una biografía.')}</p>
+          ${interestPillsHTML(profile.interests)}
           <div class="profile-meta">
             ${profile.location_label ? `<span>⌖ ${esc(profile.location_label)}</span>` : ''}
             ${website}
@@ -250,6 +376,43 @@ async function openPublicProfile(username) {
   }
 }
 
+document.addEventListener('click', async event => {
+  const followButton = event.target.closest('[data-suggest-follow]');
+  if (followButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    await toggleSuggestedFollow(followButton);
+    return;
+  }
+
+  const interestButton = event.target.closest('[data-interest-filter]');
+  if (interestButton) {
+    event.preventDefault();
+    activeExploreInterest = interestButton.dataset.interestFilter || '';
+    $('#peopleSearchInput').value = '';
+    $('#peopleDiscoveryTitle').textContent = activeExploreInterest
+      ? `Personas · ${activeExploreInterest}`
+      : 'Personas que podrías conocer';
+    $('#clearPeopleSearch').classList.add('hidden');
+    await loadPeopleSuggestions(activeExploreInterest);
+    return;
+  }
+
+  const jump = event.target.closest('[data-view-jump]');
+  if (jump) {
+    event.preventDefault();
+    showView(jump.dataset.viewJump);
+    return;
+  }
+
+  const create = event.target.closest('[data-open-create]');
+  if (create) {
+    event.preventDefault();
+    openModal();
+    return;
+  }
+});
+
 document.addEventListener('click', event => {
   const target = event.target.closest('[data-profile]');
   if (!target) return;
@@ -258,12 +421,22 @@ document.addEventListener('click', event => {
   openPublicProfile(target.dataset.profile);
 });
 
-function openProfileModal() {
+async function openProfileModal() {
   const form = $('#profileForm');
   form.displayName.value = me.display_name || '';
   form.bio.value = me.bio || '';
   form.locationLabel.value = me.location_label || '';
   form.websiteUrl.value = me.website_url || '';
+
+  const catalog = await loadInterestCatalog();
+  const selected = new Set(Array.isArray(me.interests) ? me.interests : []);
+  $('#profileInterests').innerHTML = catalog.map(interest => `
+    <label class="interest-option">
+      <input type="checkbox" name="interest" value="${esc(interest)}" ${selected.has(interest) ? 'checked' : ''}>
+      <span>${esc(interest)}</span>
+    </label>
+  `).join('');
+
   $('#profileMessage').textContent = '';
   $('#profileModal').classList.remove('hidden');
 }
@@ -277,9 +450,15 @@ $('#profileForm').addEventListener('submit', async e => {
     const fd = new FormData(e.target);
     const avatar = await uploadFile($('#avatarFile').files[0]);
     const cover = await uploadFile($('#coverFile').files[0]);
+    const interests = $$('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
     const payload = {
-      displayName: fd.get('displayName'), bio: fd.get('bio'), locationLabel: fd.get('locationLabel'), websiteUrl: fd.get('websiteUrl'),
-      ...(avatar ? { avatarUrl: avatar.url } : {}), ...(cover ? { coverUrl: cover.url } : {})
+      displayName: fd.get('displayName'),
+      bio: fd.get('bio'),
+      locationLabel: fd.get('locationLabel'),
+      websiteUrl: fd.get('websiteUrl'),
+      interests,
+      ...(avatar ? { avatarUrl: avatar.url } : {}),
+      ...(cover ? { coverUrl: cover.url } : {})
     };
     const { r, d } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!r.ok) throw new Error('No se pudo guardar el perfil.');
@@ -321,7 +500,7 @@ function updateNotificationBadge(n) {
 async function loadNotifications() {
   const { d } = await api('/api/notifications');
   updateNotificationBadge(d.unread);
-  $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'AURA')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'AURA'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows y solicitudes de consentimiento.</p></div>';
+  $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'AURA')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'AURA'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
   $$('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
 }
 $('#readAllNotifications').onclick = async () => { await api('/api/notifications/read-all', { method: 'POST' }); toast('Notificaciones marcadas como leídas'); await loadNotifications(); };
@@ -518,6 +697,21 @@ $('#newMessageForm').addEventListener('submit', async e => {
   $('#newMessageModal').classList.add('hidden'); e.target.reset(); showView('messages'); await loadConversations(d.conversationId);
 });
 
+
+$('#peopleSearchForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  await searchPeople($('#peopleSearchInput').value);
+});
+
+$('#clearPeopleSearch').onclick = async () => {
+  $('#peopleSearchInput').value = '';
+  $('#clearPeopleSearch').classList.add('hidden');
+  $('#peopleDiscoveryTitle').textContent = activeExploreInterest
+    ? `Personas · ${activeExploreInterest}`
+    : 'Personas que podrías conocer';
+  await loadPeopleSuggestions(activeExploreInterest);
+};
+
 function showView(name) {
   $$('.view').forEach(v => v.classList.add('hidden'));
   $(`#${name}View`).classList.remove('hidden');
@@ -583,6 +777,6 @@ window.addEventListener('aura-install-ready', e => {
 (async () => {
   try {
     await loadMe();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications()]);
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions()]);
   } catch (e) { console.error(e); }
 })();

@@ -1,4 +1,4 @@
-# AURA V0.3.5 — Clickable Profiles — Etiquetas visibles — Message Preview — Consentimiento, Mensajes y PWA
+# AURA V0.4.0 — Discovery & Community
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -210,3 +210,40 @@ El mensaje podía quedar guardado correctamente y, si fallaba una tarea secundar
 - Al pulsar se abre el perfil público con bio, portada, estadísticas y publicaciones.
 - Desde el perfil público se puede seguir/dejar de seguir y abrir un mensaje privado.
 - Si pulsas tu propio usuario, AURA abre tu perfil normal.
+
+
+## V0.4.0 — Discovery & Community
+
+Esta versión está centrada en que AURA se sienta viva incluso durante las primeras altas.
+
+### Descubrimiento de personas
+- Bloque `Personas para ti` en Inicio.
+- Nueva zona de personas dentro de Explorar.
+- Búsqueda por nombre, @usuario o texto de la bio.
+- Seguir / dejar de seguir directamente desde recomendaciones.
+- Perfiles y avatares siguen siendo clicables.
+
+### Intereses
+- 12 intereses iniciales:
+  Arte, Fotografía, Naturismo, Moda, Fitness, Viajes, Música, Lifestyle,
+  Belleza, Creatividad, Tecnología y Bienestar.
+- Se eligen desde Editar perfil.
+- Máximo 8 por usuario.
+- Aparecen en perfiles públicos y privados.
+- El motor de sugerencias prioriza intereses compartidos.
+- Explorar permite filtrar personas por interés.
+
+### Inicio
+- Nuevo estado vacío con llamadas a descubrir personas o crear contenido.
+- Sugerencias en la columna derecha de escritorio.
+
+### Actividad social
+- Los likes generan notificación al propietario del post.
+- Los comentarios generan notificación al propietario del post.
+- No se notifica a una persona por sus propias interacciones.
+
+### Migración
+`npm run db:init` crea `user_interests` y amplía de forma idempotente
+los tipos permitidos en `notifications`.
+
+No borra cuentas, publicaciones, mensajes, consentimientos ni datos existentes.
