@@ -1,4 +1,4 @@
-# AURA V0.3.0 — Consentimiento, Mensajes y PWA
+# AURA V0.3.1 — Admin Verification Hotfix — Consentimiento, Mensajes y PWA
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -149,3 +149,18 @@ La tabla `post_participants`, ya existente, ahora se usa para el flujo real de c
 La ruta de recuperación temporal del administrador heredada de V0.2 sigue deshabilitada siempre que `ADMIN_RECOVERY_TOKEN` no exista en Render.
 
 Antes de un lanzamiento público siguen siendo necesarios, entre otros: proveedor real de verificación +18, revisión jurídica, políticas completas, procedimientos DSA/RGPD, moderación operativa, escaneo/antimalware de archivos, backups, rate limits específicos para mensajes y pruebas de abuso/carga.
+
+
+## Hotfix V0.3.1
+
+Corrige los botones del panel de administración que visualmente aparecían pero no respondían.
+
+Causa: el panel generaba atributos `onclick` inline, bloqueados correctamente por la Content Security Policy de AURA (`script-src 'self'`).
+
+Cambios:
+- `Verificar +18` usa eventos externos compatibles con CSP.
+- `Verificar creador` usa eventos externos compatibles con CSP.
+- Las acciones de denuncias ya no usan `onclick` inline.
+- Se añade feedback visual después de verificar.
+- `Verificar creador` sigue verificando simultáneamente mayoría de edad.
+- No cambia el esquema de PostgreSQL ni borra datos.
