@@ -1,4 +1,13 @@
-# AURA V0.2.0
+# AURA V0.2.1 — Admin Hotfix
+
+## Hotfix V0.2.1
+
+- Corrige cuentas creadas antes de configurar `ADMIN_EMAIL`.
+- En cada login, si el email de la cuenta coincide exactamente (ignorando mayúsculas/minúsculas y espacios) con `ADMIN_EMAIL`, la cuenta se promociona automáticamente a administrador.
+- El JWT nuevo incluye `isAdmin: true`.
+- No es necesario borrar la cuenta ni modificar PostgreSQL manualmente.
+- Después del despliegue: cerrar sesión e iniciar sesión de nuevo.
+
 
 Segunda versión funcional de AURA: red social exclusiva para adultos con contenido sensible bajo control del usuario y moderación prioritaria.
 

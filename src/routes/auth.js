@@ -63,8 +63,8 @@ router.post('/register', async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
-  const isAdmin = email.toLowerCase() === adminEmail;
+  const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const isAdmin = email.trim().toLowerCase() === adminEmail;
 
   const result = await db.query(`
     INSERT INTO users (
@@ -111,6 +111,18 @@ router.post('/login', async (req, res) => {
 
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(401).json({ error: 'invalid_credentials' });
+
+  // ADMIN HOTFIX:
+  // If the account email matches ADMIN_EMAIL, promote it automatically.
+  // This repairs accounts created before ADMIN_EMAIL was configured correctly.
+  const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (adminEmail && user.email.trim().toLowerCase() === adminEmail && !user.is_admin) {
+    await db.query(
+      'UPDATE users SET is_admin=true, updated_at=now() WHERE id=$1',
+      [user.id]
+    );
+    user.is_admin = true;
+  }
 
   const token = signUser(user);
   res.cookie('aura_token', token, {
