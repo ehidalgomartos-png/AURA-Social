@@ -47,9 +47,20 @@ function mediaHTML(p, compact = false) {
   if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
   return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
 }
+function participantsHTML(p) {
+  const participants = Array.isArray(p.participants) ? p.participants : [];
+  if (!participants.length) return '';
+
+  const names = participants.slice(0, 3).map(x => `@${esc(x.username)}`);
+  const extra = participants.length > 3 ? ` y ${participants.length - 3} más` : '';
+  const taggedMe = me && participants.some(x => String(x.id) === String(me.id));
+
+  return `<div class="post-participants"><span class="participants-label">Con ${names.join(', ')}${extra}</span>${taggedMe ? '<span class="tagged-me">✓ Estás etiquetado</span>' : ''}</div>`;
+}
+
 function postHTML(p) {
   return `<article class="post" data-id="${p.id}">
-    <div class="post-head"><div class="avatar">${avatarHTML(p)}</div><div class="post-user"><b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>@${esc(p.username)} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'}</small></div></div>
+    <div class="post-head"><div class="avatar">${avatarHTML(p)}</div><div class="post-user"><b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>@${esc(p.username)} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'}</small>${participantsHTML(p)}</div></div>
     <div class="post-media">${mediaHTML(p)}</div>
     <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button>◯ ${p.comment_count || 0}</button><button data-report="${p.id}">⋯</button></div>
     ${p.caption ? `<div class="post-caption"><b>${esc(p.username)}</b> ${esc(p.caption)}</div>` : ''}
@@ -102,7 +113,13 @@ async function loadProfile() {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
   $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p><div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><span><b>${me.follower_count}</b> seguidores</span><span><b>${me.following_count}</b> siguiendo</span></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
-  $('#profilePosts').innerHTML = d.posts.map(p => `<div class="tile">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('');
+  $('#profilePosts').innerHTML = d.posts.map(p => {
+    const participants = Array.isArray(p.participants) ? p.participants : [];
+    const participantBadge = participants.length
+      ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
+      : '';
+    return `<div class="tile">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</div>`;
+  }).join('');
   $('#sensitiveToggle').onclick = async () => {
     const { r } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showSensitive: !me.show_sensitive }) });
     if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(); await loadFeed(currentMode); }

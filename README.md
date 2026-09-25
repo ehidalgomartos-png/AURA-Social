@@ -1,4 +1,4 @@
-# AURA V0.3.3 — Message Preview — Consentimiento, Mensajes y PWA
+# AURA V0.3.4 — Etiquetas visibles — Message Preview — Consentimiento, Mensajes y PWA
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -190,3 +190,13 @@ El mensaje podía quedar guardado correctamente y, si fallaba una tarea secundar
 - Botón Quitar para retirar el archivo seleccionado.
 - La vista previa es local (`URL.createObjectURL`): seleccionar el archivo no lo sube al servidor.
 - El destinatario sigue viendo el contenido sensible según su permiso de consentimiento.
+
+
+## V0.3.4 — Personas etiquetadas visibles
+
+- Las publicaciones muestran `Con @usuario` cuando una persona ha aprobado aparecer.
+- Si la persona etiquetada eres tú, aparece `✓ Estás etiquetado`.
+- Solo se muestran participantes con consentimiento aprobado.
+- Pendientes, rechazados o revocados nunca se muestran públicamente.
+- La cuadrícula del perfil indica cuántas personas aprobadas aparecen en cada publicación.
+- No requiere cambios destructivos en PostgreSQL.

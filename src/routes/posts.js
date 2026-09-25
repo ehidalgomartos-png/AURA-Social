@@ -75,6 +75,38 @@ function gateRows(rows, viewer) {
   });
 }
 
+async function attachApprovedParticipants(rows) {
+  if (!rows.length) return rows;
+  const postIds = rows.map(row => row.id);
+  const result = await db.query(`
+    SELECT pp.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
+      FROM post_participants pp
+      JOIN users u ON u.id=pp.user_id
+     WHERE pp.post_id = ANY($1::bigint[])
+       AND pp.consent_status='approved'
+       AND u.status='active'
+     ORDER BY pp.requested_at ASC, u.username ASC
+  `, [postIds]);
+
+  const byPost = new Map();
+  for (const participant of result.rows) {
+    const key = String(participant.post_id);
+    if (!byPost.has(key)) byPost.set(key, []);
+    byPost.get(key).push({
+      id: participant.id,
+      username: participant.username,
+      display_name: participant.display_name,
+      avatar_url: participant.avatar_url,
+      creator_verified: participant.creator_verified
+    });
+  }
+
+  return rows.map(row => ({
+    ...row,
+    participants: byPost.get(String(row.id)) || []
+  }));
+}
+
 router.get('/consents/pending', requireAuth, async (req,res)=>{
   const r=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,
@@ -141,20 +173,23 @@ router.get('/feed', optionalAuth, async (req, res) => {
      ORDER BY ${mode === 'foryou' ? '(SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,' : ''} p.created_at DESC
      LIMIT 50
   `, params);
-  res.json({ posts: gateRows(result.rows, viewer), mode });
+  const posts = await attachApprovedParticipants(result.rows);
+  res.json({ posts: gateRows(posts, viewer), mode });
 });
 
 router.get('/discover', optionalAuth, async (req, res) => {
   const viewer = await viewerFrom(req); const params=[]; let block='';
   if(req.user){params.push(req.user.id);block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;}
   const result=await db.query(`SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,(SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count FROM posts p JOIN users u ON u.id=p.user_id WHERE p.moderation_status='published' AND u.status='active' ${block} ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC LIMIT 60`,params);
-  res.json({posts:gateRows(result.rows,viewer)});
+  const posts=await attachApprovedParticipants(result.rows);
+  res.json({posts:gateRows(posts,viewer)});
 });
 
 router.get('/user/:username', optionalAuth, async (req, res) => {
   const viewer=await viewerFrom(req);
   const result=await db.query(`SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,(SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,(SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count FROM posts p JOIN users u ON u.id=p.user_id WHERE lower(u.username)=lower($1) AND p.moderation_status='published' ORDER BY p.created_at DESC LIMIT 60`,[req.params.username]);
-  res.json({posts:gateRows(result.rows,viewer)});
+  const posts=await attachApprovedParticipants(result.rows);
+  res.json({posts:gateRows(posts,viewer)});
 });
 
 router.post('/:id/like', requireAuth, async (req,res)=>{await db.query(`INSERT INTO likes (user_id,post_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,[req.user.id,req.params.id]);res.json({ok:true});});
