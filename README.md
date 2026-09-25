@@ -1,4 +1,4 @@
-# AURA V0.4.2 — Inline Comments
+# AURA V0.4.3 — Delete Comments
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -270,3 +270,21 @@ No borra cuentas, publicaciones, mensajes, consentimientos ni datos existentes.
 - El botón circular de comentarios continúa abriendo el panel completo.
 - Al publicar un comentario el feed se actualiza y muestra inmediatamente la vista previa.
 - No añade migraciones ni modifica datos existentes.
+
+
+## V0.4.3 — Borrar comentarios
+
+Se pueden eliminar comentarios desde el feed y desde el panel completo de comentarios.
+
+### Permisos
+- El autor de un comentario puede borrar su propio comentario.
+- El propietario de una publicación puede borrar comentarios de su publicación.
+- Un administrador puede borrar cualquier comentario.
+
+### Interfaz
+- En el feed aparece un control pequeño de eliminación únicamente cuando tienes permiso.
+- En el panel completo aparece el botón `Eliminar`.
+- AURA muestra un cuadro de confirmación propio antes de borrar.
+- Después de eliminar se actualizan el contador, los comentarios visibles y el panel abierto.
+
+El backend vuelve a comprobar los permisos; ocultar o manipular el botón en el navegador no permite borrar comentarios ajenos.

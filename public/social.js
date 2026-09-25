@@ -9,6 +9,7 @@ let interestCatalog = [];
 let activeExploreInterest = '';
 let activeCommentsPostId = null;
 let activeReportPostId = null;
+let pendingDeleteComment = null;
 
 
 async function api(url, opts = {}) {
@@ -78,12 +79,23 @@ function inlineCommentsHTML(p) {
 
   const rows = comments.map(comment => `
     <div class="inline-comment">
-      ${profileLink(
-        comment.username,
-        `<b>@${esc(comment.username)}</b>`,
-        'inline-comment-user'
-      )}
-      <span>${esc(comment.body)}</span>
+      <div class="inline-comment-text">
+        ${profileLink(
+          comment.username,
+          `<b>@${esc(comment.username)}</b>`,
+          'inline-comment-user'
+        )}
+        <span>${esc(comment.body)}</span>
+      </div>
+      ${comment.can_delete ? `
+        <button
+          type="button"
+          class="comment-delete-button inline"
+          data-delete-comment="${comment.id}"
+          data-delete-comment-post="${p.id}"
+          aria-label="Eliminar comentario"
+          title="Eliminar comentario">×</button>
+      ` : ''}
     </div>
   `).join('');
 
@@ -521,12 +533,23 @@ function commentHTML(comment) {
     )}
     <div class="comment-copy">
       <div class="comment-meta">
-        ${profileLink(
-          comment.username,
-          `<b>${esc(comment.display_name)} ${comment.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,
-          'comment-name-link'
-        )}
-        <small>${new Date(comment.created_at).toLocaleString()}</small>
+        <div>
+          ${profileLink(
+            comment.username,
+            `<b>${esc(comment.display_name)} ${comment.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,
+            'comment-name-link'
+          )}
+          <small>${new Date(comment.created_at).toLocaleString()}</small>
+        </div>
+        ${comment.can_delete ? `
+          <button
+            type="button"
+            class="comment-delete-button"
+            data-delete-comment="${comment.id}"
+            data-delete-comment-post="${activeCommentsPostId}"
+            aria-label="Eliminar comentario"
+            title="Eliminar comentario">Eliminar</button>
+        ` : ''}
       </div>
       <p>${esc(comment.body)}</p>
     </div>
@@ -582,6 +605,92 @@ function bindPostActions(root) {
   });
 }
 
+
+
+function openDeleteCommentDialog(commentId, postId) {
+  pendingDeleteComment = {
+    commentId: Number(commentId),
+    postId: Number(postId)
+  };
+  $('#deleteCommentStatus').textContent = '';
+  $('#deleteCommentModal').classList.remove('hidden');
+}
+
+function closeDeleteCommentDialog() {
+  $('#deleteCommentModal').classList.add('hidden');
+  $('#deleteCommentStatus').textContent = '';
+  pendingDeleteComment = null;
+}
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-delete-comment]');
+  if (!button) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  openDeleteCommentDialog(
+    button.dataset.deleteComment,
+    button.dataset.deleteCommentPost
+  );
+});
+
+$('#closeDeleteCommentModal').onclick = closeDeleteCommentDialog;
+$('#cancelDeleteComment').onclick = closeDeleteCommentDialog;
+
+$('#confirmDeleteComment').onclick = async () => {
+  if (!pendingDeleteComment) return;
+
+  const button = $('#confirmDeleteComment');
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Eliminando...';
+  $('#deleteCommentStatus').textContent = '';
+
+  try {
+    const { r, d } = await api(
+      `/api/posts/${pendingDeleteComment.postId}/comments/${pendingDeleteComment.commentId}`,
+      { method: 'DELETE' }
+    );
+
+    if (!r.ok) {
+      const message =
+        d.error === 'comment_delete_not_allowed'
+          ? 'No tienes permiso para eliminar este comentario.'
+          : d.error === 'comment_not_found'
+            ? 'El comentario ya no existe.'
+            : 'No se pudo eliminar el comentario.';
+      throw new Error(message);
+    }
+
+    const deletedPostId = pendingDeleteComment.postId;
+    closeDeleteCommentDialog();
+    toast('Comentario eliminado');
+
+    if (
+      activeCommentsPostId &&
+      Number(activeCommentsPostId) === Number(deletedPostId) &&
+      !$('#commentsModal').classList.contains('hidden')
+    ) {
+      await loadComments(activeCommentsPostId);
+    }
+
+    await loadFeed(currentMode);
+
+    if (!$('#reelsView').classList.contains('hidden')) {
+      await loadReels();
+    }
+
+    if (!$('#profileView').classList.contains('hidden')) {
+      await loadProfile();
+    }
+  } catch (error) {
+    $('#deleteCommentStatus').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+};
 
 $('#closeCommentsModal').onclick = () => {
   $('#commentsModal').classList.add('hidden');

@@ -65,8 +65,16 @@ router.post('/', requireAuth, async (req, res) => {
 
 async function viewerFrom(req) {
   if (!req.user) return null;
-  const vr = await db.query('SELECT age_verified,show_sensitive FROM users WHERE id=$1', [req.user.id]);
-  return vr.rowCount ? { ageVerified: vr.rows[0].age_verified, showSensitive: vr.rows[0].show_sensitive } : null;
+  const vr = await db.query(
+    'SELECT id,age_verified,show_sensitive,is_admin FROM users WHERE id=$1',
+    [req.user.id]
+  );
+  return vr.rowCount ? {
+    id: vr.rows[0].id,
+    ageVerified: vr.rows[0].age_verified,
+    showSensitive: vr.rows[0].show_sensitive,
+    isAdmin: vr.rows[0].is_admin
+  } : null;
 }
 function gateRows(rows, viewer) {
   return rows.map(post => {
@@ -108,7 +116,7 @@ async function attachApprovedParticipants(rows) {
 }
 
 
-async function attachCommentPreviews(rows) {
+async function attachCommentPreviews(rows, viewer = null) {
   if (!rows.length) return rows;
 
   const postIds = rows.map(row => row.id);
@@ -157,7 +165,14 @@ async function attachCommentPreviews(rows) {
 
   return rows.map(row => ({
     ...row,
-    latest_comments: byPost.get(String(row.id)) || []
+    latest_comments: (byPost.get(String(row.id)) || []).map(comment => ({
+      ...comment,
+      can_delete: !!viewer && (
+        String(comment.user_id) === String(viewer.id) ||
+        String(row.user_id) === String(viewer.id) ||
+        viewer.isAdmin === true
+      )
+    }))
   }));
 }
 
@@ -228,7 +243,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
      LIMIT 50
   `, params);
   const participantPosts = await attachApprovedParticipants(result.rows);
-  const posts = await attachCommentPreviews(participantPosts);
+  const posts = await attachCommentPreviews(participantPosts, viewer);
   res.json({ posts: gateRows(posts, viewer), mode });
 });
 
@@ -244,7 +259,7 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
   const viewer=await viewerFrom(req);
   const result=await db.query(`SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,(SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,(SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count FROM posts p JOIN users u ON u.id=p.user_id WHERE lower(u.username)=lower($1) AND p.moderation_status='published' ORDER BY p.created_at DESC LIMIT 60`,[req.params.username]);
   const participantPosts=await attachApprovedParticipants(result.rows);
-  const posts=await attachCommentPreviews(participantPosts);
+  const posts=await attachCommentPreviews(participantPosts, viewer);
   res.json({posts:gateRows(posts,viewer)});
 });
 
@@ -277,9 +292,13 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
 });
 router.delete('/:id/like', requireAuth, async (req,res)=>{await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);res.json({ok:true});});
 
-router.get('/:id/comments', optionalAuth, async (req,res)=>{
+router.get('/:id/comments', requireAuth, async (req,res)=>{
   const post = await db.query(
-    `SELECT id FROM posts WHERE id=$1 AND moderation_status='published' LIMIT 1`,
+    `SELECT id,user_id
+       FROM posts
+      WHERE id=$1
+        AND moderation_status='published'
+      LIMIT 1`,
     [req.params.id]
   );
 
@@ -305,7 +324,54 @@ router.get('/:id/comments', optionalAuth, async (req,res)=>{
     LIMIT 250
   `,[req.params.id]);
 
-  res.json({comments:result.rows});
+  const postOwnerId = post.rows[0].user_id;
+
+  const comments = result.rows.map(comment => ({
+    ...comment,
+    can_delete:
+      String(comment.user_id) === String(req.user.id) ||
+      String(postOwnerId) === String(req.user.id) ||
+      req.user.isAdmin === true
+  }));
+
+  res.json({comments});
+});
+
+
+router.delete('/:postId/comments/:commentId', requireAuth, async (req,res)=>{
+  const found = await db.query(`
+    SELECT
+      c.id,
+      c.user_id AS comment_owner_id,
+      c.post_id,
+      p.user_id AS post_owner_id
+    FROM comments c
+    JOIN posts p ON p.id=c.post_id
+    WHERE c.id=$1
+      AND c.post_id=$2
+    LIMIT 1
+  `,[req.params.commentId,req.params.postId]);
+
+  if(!found.rowCount){
+    return res.status(404).json({error:'comment_not_found'});
+  }
+
+  const comment = found.rows[0];
+  const allowed =
+    String(comment.comment_owner_id) === String(req.user.id) ||
+    String(comment.post_owner_id) === String(req.user.id) ||
+    req.user.isAdmin === true;
+
+  if(!allowed){
+    return res.status(403).json({error:'comment_delete_not_allowed'});
+  }
+
+  await db.query(
+    'DELETE FROM comments WHERE id=$1 AND post_id=$2',
+    [req.params.commentId,req.params.postId]
+  );
+
+  res.json({ok:true});
 });
 
 const commentSchema=z.object({body:z.string().min(1).max(1000)});
