@@ -59,7 +59,7 @@ app.use('/api/notifications', notificationRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '0.4.0',
+    version: '0.4.1',
     mode: 'adult-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
@@ -77,4 +77,4 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`AURA V0.4.0 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`AURA V0.4.1 running on http://localhost:${PORT}`));

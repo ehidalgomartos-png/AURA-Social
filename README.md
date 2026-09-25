@@ -1,4 +1,4 @@
-# AURA V0.4.0 — Discovery & Community
+# AURA V0.4.1 — Comments & Reports
 
 AURA es una comunidad social +18 en la que la desnudez adulta consentida puede existir como una categoría de contenido, con controles de edad, privacidad, consentimiento y moderación.
 
@@ -247,3 +247,15 @@ Esta versión está centrada en que AURA se sienta viva incluso durante las prim
 los tipos permitidos en `notifications`.
 
 No borra cuentas, publicaciones, mensajes, consentimientos ni datos existentes.
+
+
+## V0.4.1 — Comentarios y denuncias
+
+- El botón `◯` abre un panel real de comentarios.
+- Se cargan los comentarios existentes.
+- Se pueden publicar comentarios desde el mismo panel.
+- Los nombres y avatares de quienes comentan son clicables.
+- El contador se actualiza al comentar.
+- Los tres puntos `⋯` ya no usan `prompt()` del navegador.
+- Nuevo panel visual de denuncia con motivos en español y detalles opcionales.
+- Las denuncias siguen entrando en la cola normal/crítica del panel de moderación.

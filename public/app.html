@@ -111,6 +111,49 @@
   </div>
 </div>
 
+
+<div id="commentsModal" class="modal hidden">
+  <div class="modal-card comments-modal-card">
+    <button id="closeCommentsModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">CONVERSACIÓN</span>
+    <h2>Comentarios</h2>
+    <div id="commentsList" class="comments-list"></div>
+    <form id="commentForm" class="comment-form">
+      <textarea id="commentBody" maxlength="1000" placeholder="Escribe un comentario..." required></textarea>
+      <button class="primary" type="submit">Comentar</button>
+    </form>
+    <p id="commentStatus" class="status"></p>
+  </div>
+</div>
+
+<div id="reportModal" class="modal hidden">
+  <div class="modal-card report-modal-card">
+    <button id="closeReportModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">SEGURIDAD</span>
+    <h2>Denunciar publicación</h2>
+    <p class="muted">Selecciona el motivo que mejor describe el problema.</p>
+    <form id="reportForm">
+      <div class="report-reasons">
+        <label><input type="radio" name="reason" value="minor" required><span><b>Menor de edad</b><small>La publicación podría mostrar a una persona menor en un contexto prohibido.</small></span></label>
+        <label><input type="radio" name="reason" value="non_consensual_intimate_content"><span><b>Contenido íntimo sin consentimiento</b><small>La persona mostrada no autorizó su publicación.</small></span></label>
+        <label><input type="radio" name="reason" value="impersonation"><span><b>Suplantación</b><small>La cuenta o publicación suplanta a otra persona.</small></span></label>
+        <label><input type="radio" name="reason" value="harassment"><span><b>Acoso</b><small>Contenido dirigido a acosar o humillar.</small></span></label>
+        <label><input type="radio" name="reason" value="threats"><span><b>Amenazas</b><small>Amenazas de daño o violencia.</small></span></label>
+        <label><input type="radio" name="reason" value="spam"><span><b>Spam</b><small>Publicidad repetitiva o contenido engañoso.</small></span></label>
+        <label><input type="radio" name="reason" value="copyright"><span><b>Derechos de autor</b><small>Uso no autorizado de contenido protegido.</small></span></label>
+        <label><input type="radio" name="reason" value="sexual_services"><span><b>Servicios sexuales</b><small>Oferta o solicitud de servicios sexuales.</small></span></label>
+        <label><input type="radio" name="reason" value="prohibited_explicit_content"><span><b>Contenido explícito prohibido</b><small>Contenido sexual fuera de las normas actuales de AURA.</small></span></label>
+        <label><input type="radio" name="reason" value="other_illegal"><span><b>Otro contenido ilegal</b><small>Otro posible incumplimiento legal.</small></span></label>
+      </div>
+      <label>Detalles adicionales
+        <textarea id="reportDetails" maxlength="2000" placeholder="Opcional. Explica brevemente qué ocurre."></textarea>
+      </label>
+      <button class="danger full" type="submit">Enviar denuncia</button>
+      <p id="reportStatus" class="status"></p>
+    </form>
+  </div>
+</div>
+
 <div id="newMessageModal" class="modal hidden"><div class="modal-card small-modal"><button id="closeNewMessage" class="modal-close">×</button><span class="eyebrow">NUEVA CONVERSACIÓN</span><h2>Hablar con alguien</h2><form id="newMessageForm"><label>Usuario<input name="username" placeholder="@usuario" required></label><button class="primary full" type="submit">Abrir conversación</button><p id="newMessageStatus" class="status"></p></form></div></div>
 
 <div id="toast" class="toast hidden"></div>

@@ -7,6 +7,8 @@ let activeConversationId = null;
 let activeConversationOther = null;
 let interestCatalog = [];
 let activeExploreInterest = '';
+let activeCommentsPostId = null;
+let activeReportPostId = null;
 
 
 async function api(url, opts = {}) {
@@ -78,7 +80,7 @@ function postHTML(p) {
       </div>
     </div>
     <div class="post-media">${mediaHTML(p)}</div>
-    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button>◯ ${p.comment_count || 0}</button><button data-report="${p.id}">⋯</button></div>
+    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button data-report="${p.id}">⋯</button></div>
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
   </article>`;
 }
@@ -481,15 +483,171 @@ async function loadConsents() {
   });
 }
 
+
+function commentHTML(comment) {
+  return `<article class="comment-item">
+    ${profileLink(
+      comment.username,
+      `<span class="comment-avatar">${comment.avatar_url ? `<img src="${esc(comment.avatar_url)}">` : initials(comment.display_name)}</span>`,
+      'comment-avatar-link'
+    )}
+    <div class="comment-copy">
+      <div class="comment-meta">
+        ${profileLink(
+          comment.username,
+          `<b>${esc(comment.display_name)} ${comment.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,
+          'comment-name-link'
+        )}
+        <small>${new Date(comment.created_at).toLocaleString()}</small>
+      </div>
+      <p>${esc(comment.body)}</p>
+    </div>
+  </article>`;
+}
+
+async function loadComments(postId) {
+  const list = $('#commentsList');
+  list.innerHTML = '<div class="comments-loading">Cargando comentarios...</div>';
+
+  const { r, d } = await api(`/api/posts/${postId}/comments`);
+  if (!r.ok) {
+    list.innerHTML = '<div class="info-card"><b>No se pudieron cargar los comentarios.</b></div>';
+    return;
+  }
+
+  list.innerHTML = d.comments?.length
+    ? d.comments.map(commentHTML).join('')
+    : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
+
+  list.scrollTop = list.scrollHeight;
+}
+
+async function openComments(postId) {
+  activeCommentsPostId = Number(postId);
+  $('#commentBody').value = '';
+  $('#commentStatus').textContent = '';
+  $('#commentsModal').classList.remove('hidden');
+  await loadComments(activeCommentsPostId);
+}
+
+function openReport(postId) {
+  activeReportPostId = Number(postId);
+  $('#reportForm').reset();
+  $('#reportStatus').textContent = '';
+  $('#reportModal').classList.remove('hidden');
+}
+
 function bindPostActions(root) {
-  $$('[data-like]', root).forEach(b => b.onclick = async () => { await api(`/api/posts/${b.dataset.like}/like`, { method: 'POST' }); loadFeed(currentMode); });
-  $$('[data-report]', root).forEach(b => b.onclick = async () => {
-    const reason = prompt('Motivo: minor / non_consensual_intimate_content / impersonation / harassment / threats / spam / copyright / sexual_services / prohibited_explicit_content / other_illegal');
-    if (!reason) return;
-    const { r } = await api('/api/moderation/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetType: 'post', targetId: Number(b.dataset.report), reason, details: '' }) });
-    toast(r.ok ? 'Denuncia enviada' : 'No se pudo enviar');
+  $$('[data-like]', root).forEach(b => {
+    b.onclick = async () => {
+      await api(`/api/posts/${b.dataset.like}/like`, { method: 'POST' });
+      await loadFeed(currentMode);
+    };
+  });
+
+  $$('[data-comments]', root).forEach(b => {
+    b.onclick = () => openComments(b.dataset.comments);
+  });
+
+  $$('[data-report]', root).forEach(b => {
+    b.onclick = () => openReport(b.dataset.report);
   });
 }
+
+
+$('#closeCommentsModal').onclick = () => {
+  $('#commentsModal').classList.add('hidden');
+  activeCommentsPostId = null;
+};
+
+$('#commentForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!activeCommentsPostId) return;
+
+  const body = $('#commentBody').value.trim();
+  if (!body) return;
+
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Publicando...';
+  $('#commentStatus').textContent = '';
+
+  try {
+    const { r, d } = await api(`/api/posts/${activeCommentsPostId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body })
+    });
+
+    if (!r.ok) {
+      throw new Error(d.error === 'invalid_comment'
+        ? 'El comentario no es válido.'
+        : 'No se pudo publicar el comentario.');
+    }
+
+    $('#commentBody').value = '';
+    $('#commentStatus').textContent = 'Comentario publicado.';
+    await loadComments(activeCommentsPostId);
+    await loadFeed(currentMode);
+  } catch (error) {
+    $('#commentStatus').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+});
+
+$('#closeReportModal').onclick = () => {
+  $('#reportModal').classList.add('hidden');
+  activeReportPostId = null;
+};
+
+$('#reportForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!activeReportPostId) return;
+
+  const formData = new FormData(event.currentTarget);
+  const reason = formData.get('reason');
+  const details = $('#reportDetails').value.trim();
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const original = button.textContent;
+
+  button.disabled = true;
+  button.textContent = 'Enviando...';
+  $('#reportStatus').textContent = '';
+
+  try {
+    const { r, d } = await api('/api/moderation/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetType: 'post',
+        targetId: activeReportPostId,
+        reason,
+        details
+      })
+    });
+
+    if (!r.ok) {
+      throw new Error(d.error === 'invalid_report'
+        ? 'Selecciona un motivo válido.'
+        : 'No se pudo enviar la denuncia.');
+    }
+
+    $('#reportStatus').textContent = 'Denuncia enviada. Gracias por avisarnos.';
+    toast('Denuncia enviada');
+    setTimeout(() => {
+      $('#reportModal').classList.add('hidden');
+      activeReportPostId = null;
+    }, 700);
+  } catch (error) {
+    $('#reportStatus').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+});
 
 function updateNotificationBadge(n) {
   const b = $('#notificationBadge');

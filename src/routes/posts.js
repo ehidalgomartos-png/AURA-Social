@@ -220,6 +220,38 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
   res.json({ok:true});
 });
 router.delete('/:id/like', requireAuth, async (req,res)=>{await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);res.json({ok:true});});
+
+router.get('/:id/comments', optionalAuth, async (req,res)=>{
+  const post = await db.query(
+    `SELECT id FROM posts WHERE id=$1 AND moderation_status='published' LIMIT 1`,
+    [req.params.id]
+  );
+
+  if(!post.rowCount){
+    return res.status(404).json({error:'post_not_found'});
+  }
+
+  const result = await db.query(`
+    SELECT
+      c.id,
+      c.body,
+      c.created_at,
+      u.id AS user_id,
+      u.username,
+      u.display_name,
+      u.avatar_url,
+      u.creator_verified
+    FROM comments c
+    JOIN users u ON u.id=c.user_id
+    WHERE c.post_id=$1
+      AND u.status='active'
+    ORDER BY c.created_at ASC
+    LIMIT 250
+  `,[req.params.id]);
+
+  res.json({comments:result.rows});
+});
+
 const commentSchema=z.object({body:z.string().min(1).max(1000)});
 router.post('/:id/comments',requireAuth,async(req,res)=>{
   const parsed=commentSchema.safeParse(req.body);
