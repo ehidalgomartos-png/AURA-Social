@@ -17,6 +17,7 @@ const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
 const notificationRoutes = require('./src/routes/notifications');
+const growthRoutes = require('./src/routes/growth');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -58,6 +59,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/growth', growthRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
