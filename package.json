@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
-  "description": "RedLibertad V1.1.1 Mobile Experience Hotfix - administrador oculto en descubrimiento, compartir compatible con HTTP y pulido móvil.",
+  "description": "RedLibertad V1.1.2 Text Posts - publicaciones de solo texto, multimedia opcional y experiencia mobile-first.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
