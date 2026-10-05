@@ -2401,6 +2401,11 @@ async function navigateNotification(notification) {
     return;
   }
 
+  if (type === 'system' && entityType === 'verification') {
+    await openTrustModal();
+    return;
+  }
+
   if (entityType === 'post' && entityId && ['like','comment','mention','repost'].includes(type)) {
     await openPostFocus(entityId);
     return;
