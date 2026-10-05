@@ -78,7 +78,7 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
-           (SELECT count(*)::int FROM notifications WHERE user_id=users.id AND read_at IS NULL) notification_count,
+           (SELECT count(*)::int FROM notifications n WHERE n.user_id=users.id AND n.read_at IS NULL AND (n.actor_id IS NULL OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=users.id))) notification_count,
            COALESCE(
              (SELECT array_agg(ui.interest ORDER BY ui.interest)
                 FROM user_interests ui
