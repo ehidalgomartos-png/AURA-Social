@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
-  "description": "RedLibertad V1.5 Community & Viral - menciones, republicaciones, listas sociales y compartir dentro de la comunidad.",
+  "description": "RedLibertad V1.6 Profiles & Activity 2.0 - perfiles con pestañas, conexiones en común, deep links y notificaciones navegables.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
