@@ -111,8 +111,19 @@ function inlineCommentsHTML(p) {
   return `<div class="inline-comments-preview">${rows}${more}</div>`;
 }
 
+function tileContentHTML(p) {
+  const media = mediaHTML(p, true);
+  if (media) return media;
+  const text = String(p.caption || '').trim();
+  if (!text) return '<div class="text-tile"><span>Publicación</span></div>';
+  const shortText = text.length > 150 ? text.slice(0, 147) + '…' : text;
+  return `<div class="text-tile"><span>${esc(shortText)}</span></div>`;
+}
+
 function postHTML(p) {
-  return `<article class="post" data-id="${p.id}">
+  const media = mediaHTML(p);
+  const textOnly = !media;
+  return `<article class="post ${textOnly ? 'text-only-post' : ''}" data-id="${p.id}">
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
@@ -121,9 +132,9 @@ function postHTML(p) {
         ${participantsHTML(p)}
       </div>
     </div>
-    <div class="post-media">${mediaHTML(p)}</div>
-    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button><button data-report="${p.id}">⋯</button></div>
+    ${media ? `<div class="post-media">${media}</div>` : ''}
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
+    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button><button data-report="${p.id}">⋯</button></div>
     ${inlineCommentsHTML(p)}
   </article>`;
 }
@@ -283,7 +294,7 @@ async function loadExplore() {
   ]);
 
   $('#exploreGrid').innerHTML = postsData.posts.map(p =>
-    `<button type="button" class="tile tile-button" data-profile="${esc(p.username)}">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}<span class="tile-owner">@${esc(p.username)}</span></button>`
+    `<button type="button" class="tile tile-button" data-profile="${esc(p.username)}">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}<span class="tile-owner">@${esc(p.username)}</span></button>`
   ).join('') || '<div class="info-card discovery-empty"><b>Todavía no hay contenido para explorar.</b><p>Las primeras publicaciones aparecerán aquí.</p></div>';
 }
 async function loadReels() {
@@ -303,7 +314,7 @@ async function loadProfile() {
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<div class="tile">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</div>`;
+    return `<div class="tile">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</div>`;
   }).join('');
   $('#sensitiveToggle').onclick = async () => {
     const { r } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showSensitive: !me.show_sensitive }) });
@@ -385,7 +396,7 @@ async function openPublicProfile(username) {
         </div>
       </div>
       <div class="public-profile-posts explore-grid">
-        ${posts.map(p => `<div class="tile">${mediaHTML(p, true)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('') || '<p class="muted">Todavía no tiene publicaciones visibles.</p>'}
+        ${posts.map(p => `<div class="tile">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('') || '<p class="muted">Todavía no tiene publicaciones visibles.</p>'}
       </div>
     `;
 
@@ -1117,12 +1128,61 @@ async function ensureUpload() {
 $('#createForm').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('#createMessage');
   try {
-    msg.textContent = 'Subiendo archivo...'; const media = await ensureUpload(); const fd = new FormData(e.target); msg.textContent = 'Publicando...';
+    const fd = new FormData(e.target);
+    const file = $('#mediaFile').files[0];
+    const caption = String(fd.get('caption') || '').trim();
+    const kind = String(fd.get('kind') || 'post');
+
+    if (!file && !caption) throw new Error('Escribe algo o selecciona una foto o vídeo.');
+    if (kind === 'reel' && !file) throw new Error('Los Reels necesitan una foto o vídeo.');
+
+    let media = null;
+    if (file) {
+      msg.textContent = 'Subiendo archivo...';
+      media = await ensureUpload();
+    }
+
+    msg.textContent = 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
-    const { r, d } = await api('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caption: fd.get('caption'), kind: fd.get('kind'), contentLevel: fd.get('contentLevel'), participantUsernames: participants, mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl }) });
-    if (!r.ok) throw new Error(d.error === 'verified_creator_required_for_nudity' ? 'Necesitas verificación de creador adulto para publicar desnudez.' : d.error === 'participant_not_found' ? `No encontramos: ${(d.missing || []).join(', ')}` : 'No se pudo publicar.');
+    const payload = {
+      caption,
+      kind,
+      contentLevel: fd.get('contentLevel'),
+      participantUsernames: participants,
+      mediaUrl: media?.url || '',
+      mediaType: media?.mediaType || 'image',
+      mediaProvider: media?.provider || 'local',
+      externalId: media?.externalId || null,
+      playbackUrl: media?.playbackUrl || null
+    };
+
+    const { r, d } = await api('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) throw new Error(
+      d.error === 'verified_creator_required_for_nudity'
+        ? 'Necesitas verificación de creador adulto para publicar desnudez.'
+        : d.error === 'participant_not_found'
+          ? `No encontramos: ${(d.missing || []).join(', ')}`
+          : d.error === 'empty_post'
+            ? 'Escribe algo o selecciona una foto o vídeo.'
+            : d.error === 'reel_media_required'
+              ? 'Los Reels necesitan una foto o vídeo.'
+              : 'No se pudo publicar.'
+    );
+
     toast(d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
-    $('#modal').classList.add('hidden'); e.target.reset(); $('#preview').classList.add('hidden'); $('#uploadText').classList.remove('hidden'); currentFileMedia = null; await loadFeed('latest'); await loadMe();
+    $('#modal').classList.add('hidden');
+    e.target.reset();
+    $('#preview').classList.add('hidden');
+    $('#preview').innerHTML = '';
+    $('#uploadText').classList.remove('hidden');
+    currentFileMedia = null;
+    await loadFeed('latest');
+    await loadMe();
   } catch (err) { msg.textContent = err.message; }
 });
 $('#storyForm').addEventListener('submit', async e => {
