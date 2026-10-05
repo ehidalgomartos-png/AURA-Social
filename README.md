@@ -1,4 +1,4 @@
-# RedLibertad V1.7.0 — Retention & Social Momentum
+# RedLibertad V1.8.0 — Growth & Invites
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -184,3 +184,18 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - El módulo permanece visible aunque el usuario esté al día, evitando una portada vacía.
 - El historial de última visita se guarda en el navegador, sin seguimiento invasivo.
 - No añade migraciones PostgreSQL.
+
+
+## V1.8.0 — Growth & Invites
+
+- Onboarding guiado dentro de Inicio con 5 pasos de activación.
+- Progreso visual en porcentaje.
+- Pasos para foto de perfil, bio/intereses, seguir personas, primera publicación e interacción.
+- Enlace personal de invitación por usuario.
+- Compartir invitación con Web Share, WhatsApp o copia al portapapeles.
+- La landing reconoce ?ref=usuario y muestra quién te ha invitado.
+- El registro conserva la atribución de la invitación.
+- Métricas personales de invitados y usuarios activados.
+- Notificación al invitador cuando alguien se registra con su enlace.
+- Tabla referrals creada automáticamente de forma idempotente.
+- Sin pasos manuales de migración.
