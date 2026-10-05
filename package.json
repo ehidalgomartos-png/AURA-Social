@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
-  "description": "RedLibertad V1.7 Retention & Social Momentum - puesta al día, destacados diarios, personas con actividad reciente y señales de novedad.",
+  "description": "RedLibertad V1.8 Growth & Invites - onboarding guiado, enlaces personales de invitación, atribución y métricas de crecimiento.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
