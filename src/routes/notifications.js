@@ -12,10 +12,14 @@ router.get('/', async (req, res) => {
       FROM notifications n
       LEFT JOIN users u ON u.id=n.actor_id
      WHERE n.user_id=$1
+       AND (
+         n.actor_id IS NULL
+         OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       )
      ORDER BY n.created_at DESC
      LIMIT 100
   `, [req.user.id]);
-  const count = await db.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id=$1 AND read_at IS NULL`, [req.user.id]);
+  const count = await db.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id=$1 AND read_at IS NULL AND (actor_id IS NULL OR actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1))`, [req.user.id]);
   res.json({ notifications: result.rows, unread: count.rows[0].n });
 });
 
