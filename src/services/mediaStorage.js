@@ -15,11 +15,21 @@ function safeExt(originalName, mime) {
   return byMime[mime] || '';
 }
 
+async function moveIntoPersistentStorage(sourcePath, finalPath) {
+  try {
+    await fs.rename(sourcePath, finalPath);
+  } catch (error) {
+    if (error?.code !== 'EXDEV') throw error;
+    await fs.copyFile(sourcePath, finalPath);
+    await fs.unlink(sourcePath).catch(() => {});
+  }
+}
+
 async function uploadLocal(file) {
   await fs.mkdir(UPLOADS, { recursive: true });
   const name = `${Date.now()}-${crypto.randomUUID()}${safeExt(file.originalname, file.mimetype)}`;
   const finalPath = path.join(UPLOADS, name);
-  await fs.rename(file.path, finalPath);
+  await moveIntoPersistentStorage(file.path, finalPath);
   return { provider: 'local', url: `/uploads/${name}`, externalId: name };
 }
 
