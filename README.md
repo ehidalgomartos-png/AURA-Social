@@ -1,4 +1,4 @@
-# RedLibertad V1.3.0 — Discovery & Engagement
+# RedLibertad V1.4.0 — Visual Refresh & Mobile Energy
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -119,3 +119,23 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Feed de descubrimiento completo, con Me gusta, comentarios, compartir, guardar y gestión.
 - Experiencia priorizada para móvil con pestañas y chips desplazables horizontalmente.
 - La tabla saved_posts se crea automáticamente de forma idempotente al usar Guardados.
+
+
+## V1.4.0 — Visual Refresh & Mobile Energy
+
+- Rediseño visual completo sin cambiar la lógica social.
+- Barra inferior móvil flotante con efecto glass, estado activo más visible y botón Crear elevado.
+- Cabecera móvil flotante y translúcida.
+- Cabeceras de sección con más profundidad, color y jerarquía visual.
+- Cards de publicaciones, perfiles, personas, mensajes y notificaciones con sombras, acentos y mejor separación.
+- Stories con anillo degradado animado.
+- Publicaciones de solo texto con identidad visual reforzada.
+- Explorar, tendencias, chips e intereses con más contraste y feedback.
+- Perfil, mensajes, modales y formularios pulidos.
+- Pantallas vacías más atractivas y menos planas.
+- Microinteracciones en Me gusta y Guardados.
+- Transiciones suaves al cambiar de sección.
+- Toasts animados y mejorados.
+- Landing pública actualizada para mantener coherencia de marca.
+- Respeta prefers-reduced-motion.
+- Sin cambios en el esquema de PostgreSQL.
