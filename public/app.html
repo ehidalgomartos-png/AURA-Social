@@ -169,6 +169,44 @@
 <div id="profileModal" class="modal hidden"><div class="modal-card"><button id="closeProfileModal" class="modal-close">×</button><span class="eyebrow">TU PERFIL</span><h2>Editar perfil</h2><form id="profileForm"><label>Nombre visible<input name="displayName" maxlength="80" required></label><label>Biografía<textarea name="bio" maxlength="500"></textarea></label><div class="form-row"><label>Ubicación<input name="locationLabel" maxlength="120" placeholder="Valencia"></label><label>Web<input name="websiteUrl" maxlength="4096" placeholder="https://..."></label></div><fieldset class="interest-fieldset"><legend>Intereses <small>Elige hasta 8</small></legend><div id="profileInterests" class="interest-selector"></div></fieldset><label>Foto de perfil<input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Foto de portada<input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary full" type="submit">Guardar cambios</button><p id="profileMessage" class="status"></p></form></div></div>
 
 
+<div id="privacyModal" class="modal hidden">
+  <div class="modal-card privacy-modal-card">
+    <button id="closePrivacyModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">PRIVACIDAD Y CONTROL</span>
+    <h2>Decide cómo quieres aparecer</h2>
+    <form id="privacyForm">
+      <label>Quién puede iniciar una conversación contigo
+        <select name="messagePrivacy">
+          <option value="everyone">Todo el mundo</option>
+          <option value="following">Solo personas que sigues</option>
+          <option value="no_one">Nadie</option>
+        </select>
+        <small>Las conversaciones ya existentes seguirán disponibles.</small>
+      </label>
+      <label class="privacy-toggle">
+        <input type="checkbox" name="discoverable">
+        <span><b>Aparecer en Explorar y sugerencias</b><small>Si lo desactivas, todavía podrán entrar en tu perfil con tu @usuario o enlace.</small></span>
+      </label>
+      <label class="privacy-toggle">
+        <input type="checkbox" name="showActivity">
+        <span><b>Mostrar actividad reciente</b><small>Controla si puedes aparecer en “Personas con actividad reciente”.</small></span>
+      </label>
+      <button class="primary full" type="submit">Guardar privacidad</button>
+      <p id="privacyStatus" class="status"></p>
+    </form>
+    <div class="privacy-lists">
+      <section>
+        <div class="privacy-list-head"><div><b>Silenciados</b><small>No verás sus publicaciones, Stories ni notificaciones.</small></div><span id="mutedCountBadge">0</span></div>
+        <div id="mutedList" class="privacy-person-list"></div>
+      </section>
+      <section>
+        <div class="privacy-list-head"><div><b>Bloqueados</b><small>No podrán interactuar contigo mientras estén bloqueados.</small></div><span id="blockedCountBadge">0</span></div>
+        <div id="blockedList" class="privacy-person-list"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
 <div id="publicProfileModal" class="modal hidden">
   <div class="modal-card public-profile-modal-card">
     <button id="closePublicProfileModal" class="modal-close">×</button>
