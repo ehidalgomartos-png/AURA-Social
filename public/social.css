@@ -2899,3 +2899,222 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     grid-template-columns:1fr;
   }
 }
+
+
+/* =========================================================
+   RedLibertad V1.10 — Account & Security
+   ========================================================= */
+.account-modal-card{
+  width:min(760px,100%);
+  max-height:92vh;
+  overflow:auto;
+}
+.account-summary{
+  display:grid;
+  gap:14px;
+  margin:14px 0 18px;
+  padding:16px;
+  border:1px solid rgba(13,34,56,.08);
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 92% 8%,rgba(43,183,169,.10),transparent 12rem),
+    linear-gradient(145deg,rgba(255,253,249,.98),rgba(249,246,239,.96));
+}
+.account-identity{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+.account-avatar{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:var(--navy2);
+  color:white;
+  font-weight:900;
+}
+.account-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.account-identity b,
+.account-identity span{
+  display:block;
+}
+.account-identity b{
+  color:var(--navy);
+  font-size:14px;
+}
+.account-identity span{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:11px;
+}
+.account-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.account-summary-grid>div,
+.account-security-note{
+  padding:10px 11px;
+  border-radius:14px;
+  background:rgba(255,255,255,.72);
+  min-width:0;
+}
+.account-summary-grid span,
+.account-summary-grid b,
+.account-security-note span,
+.account-security-note b{
+  display:block;
+}
+.account-summary-grid span,
+.account-security-note span{
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  font-weight:800;
+}
+.account-summary-grid b,
+.account-security-note b{
+  margin-top:4px;
+  color:var(--navy);
+  font-size:11px;
+  overflow-wrap:anywhere;
+}
+.account-security-note{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+.account-security-note b{
+  margin:0;
+  text-align:right;
+}
+.account-section{
+  margin-top:12px;
+  padding:16px;
+  border:1px solid rgba(13,34,56,.08);
+  border-radius:19px;
+  background:rgba(255,253,249,.94);
+}
+.account-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+.account-section-head b,
+.account-section-head small{
+  display:block;
+}
+.account-section-head b{
+  color:var(--navy);
+  font-size:13px;
+}
+.account-section-head small{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+.account-form{
+  display:grid;
+  gap:10px;
+}
+.account-form label{
+  display:grid;
+  gap:6px;
+  color:var(--navy);
+  font-size:10px;
+  font-weight:800;
+}
+.account-form input{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:10px 12px;
+  background:white;
+  color:var(--ink);
+}
+.account-tool-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.account-tool-grid button{
+  min-height:43px;
+}
+.account-danger-zone{
+  border-color:rgba(202,63,63,.16);
+  background:linear-gradient(145deg,rgba(255,250,248,.96),rgba(255,244,242,.88));
+}
+.account-danger-zone .account-section-head b{
+  color:#a83434;
+}
+.account-danger-zone input{
+  border-color:rgba(202,63,63,.16);
+}
+.account-danger-zone .danger:disabled,
+.account-tool-grid button:disabled,
+.account-form button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+#profileView .profile-buttons #accountSettings{
+  border-color:rgba(13,34,56,.10);
+}
+
+@media(max-width:760px){
+  .account-modal-card{
+    width:100%;
+    max-height:92dvh;
+    border-radius:26px 26px 0 0;
+  }
+  .account-summary{
+    padding:14px;
+    border-radius:18px;
+  }
+  .account-summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .account-section{
+    padding:14px;
+    border-radius:17px;
+  }
+  .account-tool-grid{
+    grid-template-columns:1fr;
+  }
+  #profileView .profile-buttons{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #profileView .profile-buttons #sensitiveToggle{
+    grid-column:1/-1;
+  }
+}
+@media(max-width:390px){
+  .account-summary-grid{
+    grid-template-columns:1fr;
+  }
+  .account-security-note{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .account-security-note b{
+    text-align:left;
+  }
+  #profileView .profile-buttons{
+    grid-template-columns:1fr;
+  }
+  #profileView .profile-buttons #sensitiveToggle{
+    grid-column:auto;
+  }
+}
