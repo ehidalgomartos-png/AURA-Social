@@ -68,12 +68,30 @@ function esc(s = '') {
   return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 }
 function captionHTML(value = '') {
-  const safe = esc(value);
-  return safe
-    .replace(/(^|\s)#([\p{L}\p{N}_]{2,40})/gu, (_match, prefix, tag) =>
-      `${prefix}<button type="button" class="hashtag-link" data-hashtag="${tag}">#${tag}</button>`
-    )
-    .replace(/\n/g, '<br>');
+  const source = String(value || '');
+  const token = /(^|\s)(#[\p{L}\p{N}_]{2,40}|@[a-zA-Z0-9_.]{3,30})/gu;
+  let out = '';
+  let last = 0;
+
+  for (const match of source.matchAll(token)) {
+    const start = match.index;
+    out += esc(source.slice(last, start));
+    out += esc(match[1] || '');
+
+    const raw = match[2];
+    if (raw.startsWith('#')) {
+      const tag = raw.slice(1);
+      out += `<button type="button" class="hashtag-link" data-hashtag="${esc(tag)}">#${esc(tag)}</button>`;
+    } else {
+      const username = raw.slice(1);
+      out += `<button type="button" class="mention-link" data-profile="${esc(username)}">@${esc(username)}</button>`;
+    }
+
+    last = start + match[0].length;
+  }
+
+  out += esc(source.slice(last));
+  return out.replace(/\n/g, '<br>');
 }
 function timeAgo(value) {
   const date = new Date(value);
@@ -136,7 +154,7 @@ function inlineCommentsHTML(p) {
           `<b>@${esc(comment.username)}</b>`,
           'inline-comment-user'
         )}
-        <span>${esc(comment.body)}</span>
+        <span>${captionHTML(comment.body)}</span>
       </div>
       ${comment.can_delete ? `
         <button
@@ -171,9 +189,19 @@ function tileContentHTML(p) {
 function postHTML(p) {
   const media = mediaHTML(p);
   const textOnly = !media;
-  const canManage = !!me && (String(me.id) === String(p.user_id) || me.is_admin === true);
+  const ownPost = !!me && String(me.id) === String(p.user_id);
+  const canManage = !!me && (ownPost || me.is_admin === true);
   const liked = p.liked_by_me === true;
+  const reposted = p.reposted_by_me === true;
+  const repostBanner = p.repost_actor_username
+    ? `<div class="repost-banner">⟳ ${profileLink(
+        p.repost_actor_username,
+        `${esc(p.repost_actor_display_name || p.repost_actor_username)} republicó esto`,
+        'repost-profile-link'
+      )}</div>`
+    : '';
   return `<article class="post ${textOnly ? 'text-only-post' : ''}" data-id="${p.id}">
+    ${repostBanner}
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
@@ -187,6 +215,7 @@ function postHTML(p) {
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
+      <button class="${reposted ? 'reposted' : ''}" ${ownPost ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
       <button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button>
       ${canManage
@@ -737,7 +766,7 @@ function commentHTML(comment) {
             title="Eliminar comentario">Eliminar</button>
         ` : ''}
       </div>
-      <p>${esc(comment.body)}</p>
+      <p>${captionHTML(comment.body)}</p>
     </div>
   </article>`;
 }
@@ -879,6 +908,34 @@ function bindPostActions(root) {
 
   all('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
+  });
+
+  all('[data-repost]', root).forEach(b => {
+    b.onclick = async () => {
+      if (b.disabled) return;
+      const reposted = b.dataset.reposted === '1';
+      b.disabled = true;
+      try {
+        const { r, d } = await api(`/api/posts/${b.dataset.repost}/repost`, {
+          method: reposted ? 'DELETE' : 'POST'
+        });
+        if (!r.ok) {
+          if (d.error === 'cannot_repost_own_post') throw new Error('own_repost');
+          throw new Error('repost_failed');
+        }
+        b.dataset.reposted = d.reposted ? '1' : '0';
+        b.classList.toggle('reposted', !!d.reposted);
+        b.innerHTML = `⟳ <span>${d.repostCount || 0}</span>`;
+        b.title = d.reposted ? 'Quitar republicación' : 'Republicar';
+        pulseAction(b);
+        tapFeedback();
+        toast(d.reposted ? 'Publicación republicada' : 'Republicación eliminada');
+      } catch (error) {
+        toast(error.message === 'own_repost' ? 'No puedes republicar tu propia publicación.' : 'No se pudo actualizar la republicación.');
+      } finally {
+        b.disabled = false;
+      }
+    };
   });
 
   all('[data-save-post]', root).forEach(b => {
