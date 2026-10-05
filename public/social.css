@@ -1849,3 +1849,23 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     justify-self:start;
   }
 }
+
+
+@media(max-width:760px){
+  #profileView .profile-stats button,
+  .public-profile-card .profile-stats button{
+    min-width:0;
+    padding:10px 6px;
+    border-radius:13px;
+    background:linear-gradient(180deg,rgba(13,34,56,.045),rgba(13,34,56,.025));
+    text-align:center;
+    font-size:11px;
+    line-height:1.2;
+  }
+  #profileView .profile-stats button b,
+  .public-profile-card .profile-stats button b{
+    display:block;
+    margin-bottom:3px;
+    font-size:16px;
+  }
+}
