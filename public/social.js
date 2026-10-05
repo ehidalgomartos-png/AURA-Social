@@ -16,6 +16,9 @@ let activeContentMode = 'trending';
 let activePostSearch = '';
 let savedPostIds = new Set();
 let toastTimer = null;
+let ownProfileMode = 'posts';
+let activeNotificationFilter = 'all';
+let notificationCache = [];
 
 
 async function api(url, opts = {}) {
@@ -491,26 +494,121 @@ async function loadReels() {
   bindPostActions($('#reelsFeed'));
 }
 
-async function loadProfile() {
-  if (!me) await loadMe();
-  const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}`);
-  const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
-  $('#profilePosts').innerHTML = d.posts.map(p => {
+function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones visibles.') {
+  if (!posts.length) {
+    return `<div class="profile-content-empty"><b>${esc(emptyText)}</b><span>Cuando haya contenido aparecerá aquí.</span></div>`;
+  }
+
+  return posts.map(p => {
     const participants = Array.isArray(p.participants) ? p.participants : [];
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<div class="tile">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</div>`;
+    return `<button type="button" class="tile tile-button profile-content-tile" data-open-post="${p.id}">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
   }).join('');
+}
+
+function setOwnProfileMode(mode) {
+  ownProfileMode = ['posts','reposts','media'].includes(mode) ? mode : 'posts';
+  all('[data-own-profile-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.ownProfileMode === ownProfileMode);
+  });
+}
+
+async function loadProfile(mode = ownProfileMode) {
+  if (!me) await loadMe();
+  setOwnProfileMode(mode);
+
+  const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
+  const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
+
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+
+  const emptyText = ownProfileMode === 'reposts'
+    ? 'Todavía no has republicado nada.'
+    : ownProfileMode === 'media'
+      ? 'Todavía no tienes fotos o vídeos publicados.'
+      : 'Todavía no tienes publicaciones.';
+
+  $('#profilePosts').innerHTML = profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText);
+
   $('#sensitiveToggle').onclick = async () => {
     const { r } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showSensitive: !me.show_sensitive }) });
-    if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(); await loadFeed(currentMode); }
+    if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
   await loadConsents();
 }
 
+
+function mutualContextHTML(profileData) {
+  const mutuals = Array.isArray(profileData.mutuals) ? profileData.mutuals : [];
+  const count = Number(profileData.mutualCount || 0);
+  if (!count) {
+    return profileData.followsYou
+      ? '<div class="profile-relationship-note">Te sigue</div>'
+      : '';
+  }
+
+  const shown = mutuals.map(user =>
+    profileLink(user.username, `<span class="mutual-avatar">${avatarHTML(user)}</span>`, 'mutual-profile-link')
+  ).join('');
+
+  const names = mutuals.map(user => `@${esc(user.username)}`).join(', ');
+  const extra = Math.max(0, count - mutuals.length);
+  const copy = extra
+    ? `También le siguen ${names} y ${extra} más`
+    : `También le siguen ${names}`;
+
+  return `<div class="profile-mutuals"><div class="mutual-avatars">${shown}</div><span>${copy}</span>${profileData.followsYou ? '<b>Te sigue</b>' : ''}</div>`;
+}
+
+async function shareProfile(profile) {
+  const url = `${location.origin}/app?profile=${encodeURIComponent(profile.username)}`;
+  const text = `Mira el perfil de @${profile.username} en RedLibertad.`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: profile.display_name || 'RedLibertad', text, url });
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    await writeClipboardText(`${text} ${url}`);
+    toast('Enlace del perfil copiado');
+  } catch (_) {
+    window.prompt('Copia este enlace:', url);
+  }
+}
+
+async function loadPublicProfileContent(username, mode = 'posts') {
+  const root = $('#publicProfilePosts');
+  if (!root) return;
+
+  const cleanMode = ['posts','reposts','media'].includes(mode) ? mode : 'posts';
+  all('[data-public-profile-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.publicProfileMode === cleanMode);
+  });
+
+  root.innerHTML = '<div class="profile-content-empty"><span>Cargando contenido...</span></div>';
+
+  const { r, d } = await api(`/api/posts/user/${encodeURIComponent(username)}?mode=${encodeURIComponent(cleanMode)}`);
+  if (!r.ok) {
+    root.innerHTML = '<div class="profile-content-empty"><b>No se pudo cargar el contenido.</b></div>';
+    return;
+  }
+
+  const emptyText = cleanMode === 'reposts'
+    ? 'Todavía no ha republicado nada.'
+    : cleanMode === 'media'
+      ? 'Todavía no tiene fotos o vídeos publicados.'
+      : 'Todavía no tiene publicaciones visibles.';
+
+  root.innerHTML = profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText);
+}
 
 async function openPublicProfile(username) {
   const clean = String(username || '').replace(/^@/, '').trim();
@@ -528,10 +626,7 @@ async function openPublicProfile(username) {
   content.innerHTML = '<div class="public-profile-loading">Cargando perfil...</div>';
 
   try {
-    const [{ r: profileResponse, d: profileData }, { d: postsData }] = await Promise.all([
-      api(`/api/profiles/${encodeURIComponent(clean)}`),
-      api(`/api/posts/user/${encodeURIComponent(clean)}`)
-    ]);
+    const { r: profileResponse, d: profileData } = await api(`/api/profiles/${encodeURIComponent(clean)}`);
 
     if (!profileResponse.ok || !profileData.profile) {
       throw new Error('profile_not_found');
@@ -552,10 +647,9 @@ async function openPublicProfile(username) {
           ${profileData.following ? 'Siguiendo' : 'Seguir'}
         </button>
         <button type="button" class="secondary" data-message-profile="${esc(profile.username)}">Mensaje</button>
+        <button type="button" class="secondary" data-share-profile="${esc(profile.username)}">Compartir perfil</button>
       </div>
     `;
-
-    const posts = Array.isArray(postsData.posts) ? postsData.posts : [];
 
     content.innerHTML = `
       <div class="public-profile-card">
@@ -569,6 +663,7 @@ async function openPublicProfile(username) {
             </div>
             ${actions}
           </div>
+          ${mutualContextHTML(profileData)}
           <p class="profile-bio">${esc(profile.bio || 'Todavía no ha escrito una biografía.')}</p>
           ${interestPillsHTML(profile.interests)}
           <div class="profile-meta">
@@ -582,10 +677,17 @@ async function openPublicProfile(username) {
           </div>
         </div>
       </div>
-      <div class="public-profile-posts explore-grid">
-        ${posts.map(p => `<div class="tile">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('') || '<p class="muted">Todavía no tiene publicaciones visibles.</p>'}
+      <div class="profile-content-tabs public-profile-tabs" role="tablist" aria-label="Contenido del perfil">
+        <button type="button" class="active" data-public-profile-mode="posts" data-profile-username="${esc(profile.username)}">Publicaciones</button>
+        <button type="button" data-public-profile-mode="reposts" data-profile-username="${esc(profile.username)}">Republicados</button>
+        <button type="button" data-public-profile-mode="media" data-profile-username="${esc(profile.username)}">Multimedia</button>
+      </div>
+      <div id="publicProfilePosts" class="public-profile-posts explore-grid">
+        <div class="profile-content-empty"><span>Cargando contenido...</span></div>
       </div>
     `;
+
+    await loadPublicProfileContent(profile.username, 'posts');
 
     const followButton = content.querySelector('[data-public-follow]');
     if (followButton) {
@@ -599,6 +701,7 @@ async function openPublicProfile(username) {
         followButton.textContent = following ? 'Seguir' : 'Siguiendo';
         followButton.className = following ? 'primary' : 'secondary';
         toast(following ? 'Has dejado de seguir a esta persona' : 'Ahora sigues a esta persona');
+        await loadMe();
       };
     }
 
@@ -616,12 +719,72 @@ async function openPublicProfile(username) {
         await loadConversations(d.conversationId);
       };
     }
+
+    const shareButton = content.querySelector('[data-share-profile]');
+    if (shareButton) {
+      shareButton.onclick = () => shareProfile(profile);
+    }
   } catch (error) {
     content.innerHTML = '<div class="info-card"><b>No se pudo abrir el perfil.</b><p>Puede que esta cuenta ya no esté disponible.</p></div>';
   }
 }
 
+async function openPostFocus(postId) {
+  const modal = $('#postFocusModal');
+  const root = $('#postFocusContent');
+  if (!modal || !root || !postId) return;
+
+  modal.classList.remove('hidden');
+  root.innerHTML = '<div class="public-profile-loading">Cargando publicación...</div>';
+
+  const { r, d } = await api(`/api/posts/detail/${encodeURIComponent(postId)}`);
+  if (!r.ok || !d.post) {
+    root.innerHTML = '<div class="info-card"><b>La publicación ya no está disponible.</b><p>Puede haberse eliminado o no ser visible para tu cuenta.</p></div>';
+    return;
+  }
+
+  root.innerHTML = postHTML(d.post);
+  bindPostActions(root);
+}
+
+function closePostFocus() {
+  $('#postFocusModal')?.classList.add('hidden');
+  const root = $('#postFocusContent');
+  if (root) root.innerHTML = '';
+}
+
+$('#closePostFocusModal')?.addEventListener('click', closePostFocus);
+$('#postFocusModal')?.addEventListener('click', event => {
+  if (event.target === $('#postFocusModal')) closePostFocus();
+});
+
 document.addEventListener('click', async event => {
+  const openPostButton = event.target.closest('[data-open-post]');
+  if (openPostButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    await openPostFocus(openPostButton.dataset.openPost);
+    return;
+  }
+
+  const ownProfileModeButton = event.target.closest('[data-own-profile-mode]');
+  if (ownProfileModeButton) {
+    event.preventDefault();
+    setOwnProfileMode(ownProfileModeButton.dataset.ownProfileMode);
+    await loadProfile(ownProfileMode);
+    return;
+  }
+
+  const publicProfileModeButton = event.target.closest('[data-public-profile-mode]');
+  if (publicProfileModeButton) {
+    event.preventDefault();
+    await loadPublicProfileContent(
+      publicProfileModeButton.dataset.profileUsername,
+      publicProfileModeButton.dataset.publicProfileMode
+    );
+    return;
+  }
+
   const socialListButton = event.target.closest('[data-social-list]');
   if (socialListButton) {
     event.preventDefault();
@@ -683,6 +846,8 @@ document.addEventListener('click', event => {
   if (!target) return;
   event.preventDefault();
   event.stopPropagation();
+  closePostFocus();
+  closeSocialList();
   openPublicProfile(target.dataset.profile);
 });
 
@@ -1352,13 +1517,114 @@ function updateNotificationBadge(n) {
     b.classList.toggle('hidden', !n);
   });
 }
+
+function notificationIcon(type) {
+  return ({
+    like: '♥',
+    comment: '◯',
+    mention: '@',
+    repost: '⟳',
+    follow: '+',
+    message: '✉',
+    consent_request: '!',
+    consent_approved: '✓',
+    consent_rejected: '×',
+    consent_revoked: '↶',
+    system: 'R'
+  })[type] || '•';
+}
+
+function notificationMatches(notification, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'mentions') return notification.type === 'mention';
+  if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
+  if (filter === 'community') return notification.type === 'follow';
+  if (filter === 'messages') return notification.type === 'message';
+  if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
+  return true;
+}
+
+function renderNotifications() {
+  const root = $('#notificationsList');
+  if (!root) return;
+
+  all('[data-notification-filter]').forEach(button => {
+    button.classList.toggle('active', button.dataset.notificationFilter === activeNotificationFilter);
+  });
+
+  const items = notificationCache.filter(notification => notificationMatches(notification, activeNotificationFilter));
+
+  root.innerHTML = items.length
+    ? items.map(n => `<button type="button" class="notification-item notification-button ${n.read_at ? '' : 'unread'}" data-notification="${n.id}" data-notification-type="${esc(n.type)}" data-entity-type="${esc(n.entity_type || '')}" data-entity-id="${n.entity_id || ''}" data-actor-username="${esc(n.actor_username || '')}"><div class="notification-symbol" aria-hidden="true">${notificationIcon(n.type)}</div><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div class="notification-copy"><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${timeAgo(n.created_at)}</small></div><span class="notification-open">›</span></button>`).join('')
+    : '<div class="info-card"><b>No hay actividad en este filtro.</b><p>Cuando ocurra algo nuevo aparecerá aquí.</p></div>';
+
+  all('[data-notification]', root).forEach(item => {
+    item.onclick = async () => {
+      const id = item.dataset.notification;
+      const notification = notificationCache.find(n => String(n.id) === String(id));
+
+      if (notification && !notification.read_at) {
+        await api(`/api/notifications/${id}/read`, { method: 'POST' });
+        notification.read_at = new Date().toISOString();
+        item.classList.remove('unread');
+        updateNotificationBadge(notificationCache.filter(n => !n.read_at).length);
+      }
+
+      if (notification) await navigateNotification(notification);
+    };
+  });
+}
+
+async function navigateNotification(notification) {
+  const type = String(notification.type || '');
+  const entityType = String(notification.entity_type || '');
+  const entityId = notification.entity_id;
+
+  if (type === 'message' && entityType === 'conversation' && entityId) {
+    showView('messages');
+    await loadConversations(entityId);
+    return;
+  }
+
+  if (type === 'follow' && notification.actor_username) {
+    await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (entityType === 'post' && entityId && ['like','comment','mention','repost'].includes(type)) {
+    await openPostFocus(entityId);
+    return;
+  }
+
+  if (type.startsWith('consent_')) {
+    showView('profile');
+    setTimeout(() => {
+      document.querySelector('#profileView .consent-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+  }
+}
+
 async function loadNotifications() {
   const { d } = await api('/api/notifications');
-  updateNotificationBadge(d.unread);
-  $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
-  all('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
+  notificationCache = Array.isArray(d.notifications) ? d.notifications : [];
+  updateNotificationBadge(Number(d.unread || 0));
+  renderNotifications();
 }
-$('#readAllNotifications').onclick = async () => { await api('/api/notifications/read-all', { method: 'POST' }); toast('Notificaciones marcadas como leídas'); await loadNotifications(); };
+
+all('[data-notification-filter]').forEach(button => {
+  button.onclick = () => {
+    activeNotificationFilter = button.dataset.notificationFilter || 'all';
+    renderNotifications();
+  };
+});
+
+$('#readAllNotifications').onclick = async () => {
+  await api('/api/notifications/read-all', { method: 'POST' });
+  notificationCache = notificationCache.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }));
+  updateNotificationBadge(0);
+  renderNotifications();
+  toast('Notificaciones marcadas como leídas');
+};
 
 async function loadConversations(openId = null) {
   const { d } = await api('/api/messages/conversations');
@@ -1751,10 +2017,26 @@ window.addEventListener('redlibertad-install-ready', e => {
   };
 }, { once: true });
 
+async function handleInitialDeepLink() {
+  const params = new URLSearchParams(location.search);
+  const profile = params.get('profile');
+  const post = params.get('post');
+
+  if (profile) {
+    await openPublicProfile(profile);
+    return;
+  }
+
+  if (post) {
+    await openPostFocus(post);
+  }
+}
+
 (async () => {
   try {
     await loadMe();
     await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions()]);
+    await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();

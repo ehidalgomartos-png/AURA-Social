@@ -94,13 +94,26 @@
 
     <section id="notificationsView" class="view hidden">
       <div class="page-title"><div><span class="eyebrow">ACTIVIDAD</span><h1>Notificaciones</h1></div><button id="readAllNotifications" class="secondary">Marcar todo leído</button></div>
+      <div class="notification-filters" role="tablist" aria-label="Filtrar actividad">
+        <button type="button" class="active" data-notification-filter="all">Todo</button>
+        <button type="button" data-notification-filter="mentions">Menciones</button>
+        <button type="button" data-notification-filter="interactions">Interacciones</button>
+        <button type="button" data-notification-filter="community">Comunidad</button>
+        <button type="button" data-notification-filter="messages">Mensajes</button>
+        <button type="button" data-notification-filter="consent">Consentimiento</button>
+      </div>
       <div id="notificationsList" class="notification-list"></div>
     </section>
 
     <section id="profileView" class="view hidden">
       <div id="profileFull" class="profile-full"></div>
-      <section class="consent-section"><div class="section-row"><div><span class="eyebrow">TU IMAGEN, TU DECISIÓN</span><h2>Consentimientos</h2></div></div><div id="consentRequests" class="consent-grid"></div></section>
+      <div class="profile-content-tabs" role="tablist" aria-label="Contenido del perfil">
+        <button type="button" class="active" data-own-profile-mode="posts">Publicaciones</button>
+        <button type="button" data-own-profile-mode="reposts">Republicados</button>
+        <button type="button" data-own-profile-mode="media">Multimedia</button>
+      </div>
       <div id="profilePosts" class="explore-grid profile-grid"></div>
+      <section class="consent-section"><div class="section-row"><div><span class="eyebrow">TU IMAGEN, TU DECISIÓN</span><h2>Consentimientos</h2></div></div><div id="consentRequests" class="consent-grid"></div></section>
     </section>
   </main>
 
@@ -208,6 +221,15 @@
 
 
 <div id="shareModal" class="modal hidden"><div class="modal-card share-modal-card"><button id="closeShareModal" class="modal-close" type="button">×</button><span class="eyebrow">COMPARTE TU VOZ</span><h2>Compartir publicación</h2><p class="muted share-copy">Mira mi post en RedLibertad, donde la libertad es lo primero.</p><div class="share-grid"><button id="shareNative" class="primary" type="button">↗ Compartir</button><button id="shareFacebook" class="secondary" type="button">Facebook</button><button id="shareWhatsApp" class="secondary" type="button">WhatsApp</button><button id="shareCopy" class="secondary" type="button">Copiar enlace</button></div><div class="internal-share"><b>Enviar dentro de RedLibertad</b><form id="shareInternalForm"><input id="shareInternalUsername" maxlength="30" placeholder="@usuario" autocomplete="off"><button class="secondary" type="submit">Enviar por mensaje</button></form><small>La publicación se enviará como enlace dentro de una conversación privada.</small></div><p id="shareStatus" class="status"></p></div></div>
+<div id="postFocusModal" class="modal hidden">
+  <div class="modal-card post-focus-modal-card">
+    <button id="closePostFocusModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">ACTIVIDAD</span>
+    <h2>Publicación</h2>
+    <div id="postFocusContent" class="post-focus-content"></div>
+  </div>
+</div>
+
 <div id="socialListModal" class="modal hidden">
   <div class="modal-card small-modal social-list-modal-card">
     <button id="closeSocialListModal" class="modal-close" type="button">×</button>
