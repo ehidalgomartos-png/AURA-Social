@@ -1,5 +1,5 @@
 const CACHE='redlibertad-v110-shell';
-const ASSETS=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/assets/logo-wordmark.svg'];
+const ASSETS=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/icons/redlibertad-192.png','/icons/redlibertad-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
