@@ -1,4 +1,4 @@
-# RedLibertad V1.1.2 — Text Posts
+# RedLibertad V1.2.0 — Social Feed 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -90,3 +90,18 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Las publicaciones de texto tienen presentación propia en feed, perfil y Explorar.
 - Compartir una publicación de texto funciona mediante su enlace público.
 - No requiere cambios de esquema en PostgreSQL.
+
+
+## V1.2.0 — Social Feed 2.0
+
+- Me gusta real con estado persistente: tocar de nuevo quita el Me gusta.
+- El contador cambia al instante sin recargar todo el feed.
+- Cada publicación muestra cuándo se publicó: ahora, minutos, horas, días o fecha.
+- El propietario puede editar el texto de su publicación.
+- El propietario puede eliminar su publicación con doble confirmación.
+- El administrador también puede gestionar publicaciones desde el feed.
+- El compositor muestra contador de caracteres hasta 2200.
+- Se puede quitar una foto o vídeo seleccionado antes de publicar.
+- El selector del feed se mantiene sincronizado al cambiar de modo o después de publicar.
+- Conserva publicaciones de solo texto, fotos y vídeos.
+- Sin cambios de esquema en PostgreSQL.
