@@ -231,3 +231,4 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Limpieza de conversaciones huérfanas tras eliminar una cuenta.
 - Compatibilidad con sesiones antiguas: los tokens previos se aceptan mientras auth_token_version siga en 0.
 - Bootstrap idempotente de las nuevas columnas de seguridad.
+- La PWA deja fuera de caché las rutas /api, /uploads y /p para no persistir datos privados ni respuestas dinámicas.
