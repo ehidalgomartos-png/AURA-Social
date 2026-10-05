@@ -1,4 +1,4 @@
-# RedLibertad V1.1.0 — Mobile Experience
+# RedLibertad V1.1.1 — Mobile Experience Hotfix
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -68,3 +68,13 @@ No se cambia el esquema de AURA V0.4.3, por lo que la base existente se puede re
 - Healthcheck y versión actualizados a 1.1.0.
 
 No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada por RedLibertad V1.0/AURA migrada.
+
+
+## V1.1.1 — Hotfix
+
+- El administrador queda fuera de Explorar, sugerencias y búsqueda de personas.
+- "Copiar enlace" funciona también en la URL temporal HTTP mediante fallback compatible.
+- Si el navegador bloquea cualquier copia automática, se muestra el texto listo para copiar manualmente.
+- Ajuste visual del bloque Compartir en la portada móvil.
+- Healthcheck actualizado a 1.1.1.
+- Sin cambios en el esquema de PostgreSQL.
