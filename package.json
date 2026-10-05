@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
-  "description": "RedLibertad V1.4 Visual Refresh & Mobile Energy - nueva identidad visual, navegación flotante, profundidad, microinteracciones y mobile-first.",
+  "description": "RedLibertad V1.4.1 Profile Mobile Hotfix - corrige perfil móvil, botones, estadísticas, consentimientos y solapado con navegación inferior.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
