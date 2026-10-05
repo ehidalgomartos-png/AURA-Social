@@ -1516,9 +1516,17 @@ async function shareInsideRedLibertad(username) {
   });
 
   if (!conversation.r.ok) {
-    if (status) status.textContent = conversation.d.error === 'cannot_message_self'
-      ? 'No puedes enviártelo a ti mismo.'
-      : 'No se pudo abrir la conversación.';
+    if (status) {
+      status.textContent = conversation.d.error === 'cannot_message_self'
+        ? 'No puedes enviártelo a ti mismo.'
+        : conversation.d.error === 'message_privacy_denied'
+          ? 'Esta persona no acepta nuevas conversaciones.'
+          : conversation.d.error === 'message_privacy_following_only'
+            ? 'Solo acepta mensajes de personas que sigue.'
+            : conversation.d.error === 'messaging_blocked'
+              ? 'No puedes iniciar esta conversación.'
+              : 'No se pudo abrir la conversación.';
+    }
     return;
   }
 
