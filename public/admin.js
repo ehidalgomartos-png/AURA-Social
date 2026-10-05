@@ -67,6 +67,7 @@ async function metrics() {
     ['Denuncias abiertas', d.openReports],
     ['Críticas', d.criticalReports],
     ['Verificados', d.verifiedCreators],
+    ['Verificaciones pendientes', d.pendingVerifications],
     ['Avisos · 30 días', d.warnings30d]
   ];
   $('#metrics').innerHTML = items.map(([label,value]) =>
@@ -147,6 +148,99 @@ async function decide(id, status, action) {
   }
   setAdminNotice('Decisión guardada.');
   await Promise.all([reports(), metrics(), users($('#search').value)]);
+}
+
+function verificationStateLabel(status) {
+  return ({
+    pending:'Pendiente',
+    approved:'Aprobada',
+    rejected:'No aprobada',
+    cancelled:'Cancelada'
+  })[status] || status;
+}
+
+function verificationCard(item) {
+  const typeLabel = item.type === 'age' ? 'Verificación +18' : 'Verificación de creador';
+  const verifiedAlready = item.type === 'age' ? item.age_verified : item.creator_verified;
+  const avatar = item.avatar_url
+    ? `<img src="${esc(item.avatar_url)}" alt="">`
+    : esc((item.display_name || item.username || 'R').slice(0,1).toUpperCase());
+
+  return `<article class="verification-card ${item.status}">
+    <div class="verification-main">
+      <span class="verification-avatar">${avatar}</span>
+      <div>
+        <div class="verification-title"><b>${esc(item.display_name)} · @${esc(item.username)}</b><span class="state">${esc(typeLabel)}</span></div>
+        <small>${esc(item.email)} · ${timeLabel(item.created_at)}</small>
+      </div>
+    </div>
+    <div class="verification-state-row">
+      <span class="state ${item.status === 'rejected' ? 'danger-state' : item.status === 'pending' ? 'warning-state' : ''}">${verificationStateLabel(item.status)}</span>
+      ${verifiedAlready ? '<span class="state">Ya figura verificado</span>' : ''}
+    </div>
+    ${item.request_note ? `<div class="verification-note"><b>Nota del usuario</b><p>${esc(item.request_note)}</p></div>` : ''}
+    ${item.review_note ? `<div class="verification-note review"><b>Revisión</b><p>${esc(item.review_note)}</p></div>` : ''}
+    ${item.status === 'pending' ? `
+      <div class="actions">
+        <button class="alt" data-admin-action="verification-decision" data-id="${item.id}" data-decision="approve">Aprobar</button>
+        <button class="soft" data-admin-action="verification-decision" data-id="${item.id}" data-decision="reject">No aprobar</button>
+      </div>
+    ` : `<small>Revisada ${item.reviewed_at ? timeLabel(item.reviewed_at) : '—'}${item.admin_username ? ' · por @' + esc(item.admin_username) : ''}</small>`}
+  </article>`;
+}
+
+async function verifications() {
+  const root = $('#verifications');
+  if (!root) return;
+  root.innerHTML = '<div class="empty-admin">Cargando solicitudes...</div>';
+
+  const filter = $('#verificationFilter')?.value || 'pending';
+  const { r, d } = await api('/api/admin/verifications?status=' + encodeURIComponent(filter));
+  if (!r.ok) {
+    root.innerHTML = '<div class="empty-admin">No se pudieron cargar las verificaciones.</div>';
+    return;
+  }
+
+  const rows = Array.isArray(d.requests) ? d.requests : [];
+  root.innerHTML = rows.length
+    ? rows.map(verificationCard).join('')
+    : '<div class="empty-admin">No hay solicitudes en este filtro.</div>';
+}
+
+async function decideVerification(id, decision, button) {
+  const note = prompt(
+    decision === 'approve'
+      ? 'Nota de revisión (opcional)'
+      : 'Motivo de no aprobación (recomendado)'
+  ) || '';
+
+  if (button) button.disabled = true;
+  try {
+    const { r, d } = await api(`/api/admin/verifications/${id}/decision`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({decision,note})
+    });
+
+    if (!r.ok) {
+      setAdminNotice(
+        d.error === 'verification_request_not_pending'
+          ? 'La solicitud ya no está pendiente.'
+          : 'No se pudo guardar la revisión.',
+        true
+      );
+      return;
+    }
+
+    setAdminNotice(decision === 'approve' ? 'Verificación aprobada.' : 'Solicitud revisada.');
+    await Promise.all([
+      verifications(),
+      metrics(),
+      users($('#search').value)
+    ]);
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function userCard(u) {
@@ -344,6 +438,7 @@ document.addEventListener('click', async event => {
   if (!button) return;
   const action = button.dataset.adminAction;
 
+  if (action === 'verification-decision') return decideVerification(button.dataset.id, button.dataset.decision, button);
   if (action === 'verify-age') return verifyAge(button.dataset.userId, button);
   if (action === 'verify-creator') return verifyCreator(button.dataset.userId, button);
   if (action === 'open-moderation') return openModeration(button.dataset.userId, button.dataset.userLabel);
@@ -359,7 +454,9 @@ $('#searchForm').addEventListener('submit', event => {
 });
 $('#reloadReports').addEventListener('click', reports);
 $('#reportFilter').addEventListener('change', renderReports);
+$('#reloadVerifications')?.addEventListener('click', verifications);
+$('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), reports(), users()]);
+  await Promise.all([metrics(), reports(), users(), verifications()]);
 })();
