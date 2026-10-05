@@ -3118,3 +3118,219 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     grid-column:auto;
   }
 }
+
+
+/* =========================================================
+   RedLibertad V1.12 — Verification & Trust Center
+   ========================================================= */
+.trust-modal-card{
+  width:min(760px,100%);
+  max-height:92vh;
+  overflow:auto;
+}
+.trust-intro{
+  margin:4px 0 16px;
+  line-height:1.5;
+}
+.trust-status-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.trust-status-card{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  padding:14px;
+  border:1px solid rgba(13,34,56,.08);
+  border-radius:17px;
+  background:rgba(255,255,255,.72);
+}
+.trust-status-card.verified{
+  border-color:rgba(43,183,169,.18);
+  background:linear-gradient(145deg,rgba(43,183,169,.09),rgba(255,255,255,.85));
+}
+.trust-status-card.pending{
+  border-color:rgba(239,122,93,.18);
+  background:linear-gradient(145deg,rgba(239,122,93,.08),rgba(255,255,255,.85));
+}
+.trust-status-icon{
+  width:40px;height:40px;
+  display:grid;place-items:center;
+  border-radius:50%;
+  background:var(--navy-soft);
+  color:var(--navy);
+  font-weight:900;
+  font-size:17px;
+}
+.trust-status-card.verified .trust-status-icon{
+  background:var(--teal-soft);
+  color:var(--teal);
+}
+.trust-status-card.pending .trust-status-icon{
+  background:var(--coral-soft);
+  color:var(--coral);
+}
+.trust-status-card span,
+.trust-status-card b,
+.trust-status-card small{display:block}
+.trust-status-card span{
+  color:var(--muted);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:800;
+}
+.trust-status-card b{
+  margin-top:3px;
+  color:var(--navy);
+  font-size:13px;
+}
+.trust-status-card small{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+.trust-request-section,
+.trust-history-section{
+  margin-top:14px;
+  padding:15px;
+  border:1px solid rgba(13,34,56,.08);
+  border-radius:18px;
+  background:rgba(255,253,249,.94);
+}
+.trust-section-head{
+  margin-bottom:11px;
+}
+.trust-section-head b,
+.trust-section-head small{
+  display:block;
+}
+.trust-section-head b{
+  color:var(--navy);
+  font-size:13px;
+}
+.trust-section-head small{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+#trustRequestForm{
+  display:grid;
+  gap:10px;
+}
+#trustRequestForm label{
+  display:grid;
+  gap:6px;
+  color:var(--navy);
+  font-size:10px;
+  font-weight:800;
+}
+#trustRequestForm select,
+#trustRequestForm textarea{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:10px 12px;
+  background:white;
+  color:var(--ink);
+}
+#trustRequestForm textarea{
+  min-height:90px;
+  resize:vertical;
+}
+.trust-history{
+  display:grid;
+  gap:8px;
+}
+.trust-history-item{
+  padding:11px;
+  border:1px solid rgba(13,34,56,.07);
+  border-radius:14px;
+  background:rgba(255,255,255,.72);
+}
+.trust-history-item>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.trust-history-item>small{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px;
+}
+.trust-history-item p{
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+.trust-history-item .secondary{
+  margin-top:9px;
+  min-height:34px;
+  padding:7px 10px;
+  font-size:9px;
+}
+.trust-history-state{
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--navy-soft);
+  color:var(--navy);
+  font-size:9px;
+  font-weight:800;
+}
+.trust-history-state.pending{background:var(--coral-soft);color:var(--coral)}
+.trust-history-state.approved{background:var(--teal-soft);color:var(--teal)}
+.trust-history-state.rejected{background:rgba(202,63,63,.09);color:#a83434}
+.trust-history-state.cancelled{background:rgba(13,34,56,.06);color:var(--muted)}
+.trust-review-note{
+  padding:8px;
+  border-radius:10px;
+  background:rgba(13,34,56,.04);
+}
+.trust-empty{
+  padding:18px 8px;
+  color:var(--muted);
+  font-size:10px;
+  text-align:center;
+}
+.public-trust-badges{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin:11px 0 2px;
+}
+.public-trust-badges span{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:var(--teal-soft);
+  color:var(--teal);
+  font-size:9px;
+  font-weight:800;
+}
+#profileView .profile-buttons #trustSettings{
+  border-color:rgba(43,183,169,.16);
+}
+
+@media(max-width:760px){
+  .trust-modal-card{
+    width:100%;
+    max-height:92dvh;
+    border-radius:26px 26px 0 0;
+  }
+  .trust-status-grid{
+    grid-template-columns:1fr;
+  }
+  .trust-request-section,
+  .trust-history-section{
+    padding:13px;
+  }
+}

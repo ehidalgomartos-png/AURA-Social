@@ -376,7 +376,7 @@ router.get('/me/blocked',requireAuth,async(req,res)=>{
 
 router.get('/:username', optionalAuth, async (req,res)=>{
   const result=await db.query(`
-    SELECT id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,creator_verified,created_at,
+    SELECT id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,age_verified,creator_verified,created_at,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,

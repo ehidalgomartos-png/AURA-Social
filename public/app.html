@@ -169,6 +169,41 @@
 <div id="profileModal" class="modal hidden"><div class="modal-card"><button id="closeProfileModal" class="modal-close">×</button><span class="eyebrow">TU PERFIL</span><h2>Editar perfil</h2><form id="profileForm"><label>Nombre visible<input name="displayName" maxlength="80" required></label><label>Biografía<textarea name="bio" maxlength="500"></textarea></label><div class="form-row"><label>Ubicación<input name="locationLabel" maxlength="120" placeholder="Valencia"></label><label>Web<input name="websiteUrl" maxlength="4096" placeholder="https://..."></label></div><fieldset class="interest-fieldset"><legend>Intereses <small>Elige hasta 8</small></legend><div id="profileInterests" class="interest-selector"></div></fieldset><label>Foto de perfil<input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Foto de portada<input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary full" type="submit">Guardar cambios</button><p id="profileMessage" class="status"></p></form></div></div>
 
 
+<div id="trustModal" class="modal hidden">
+  <div class="modal-card trust-modal-card">
+    <button id="closeTrustModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">CONFIANZA Y VERIFICACIÓN</span>
+    <h2>Tu estado de confianza</h2>
+    <p class="muted trust-intro">Solicita una revisión cuando quieras verificar tu mayoría de edad o tu perfil de creador. RedLibertad no almacena documentos de identidad en este formulario.</p>
+
+    <div id="trustStatusCards" class="trust-status-grid"></div>
+
+    <section class="trust-request-section">
+      <div class="trust-section-head">
+        <div><b>Solicitar revisión</b><small>El equipo revisará la solicitud manualmente. Si necesita información adicional, se gestionará por un canal adecuado.</small></div>
+      </div>
+      <form id="trustRequestForm">
+        <label>Tipo de verificación
+          <select name="type">
+            <option value="age">Verificación +18</option>
+            <option value="creator">Verificación de creador</option>
+          </select>
+        </label>
+        <label>Nota opcional
+          <textarea name="note" maxlength="1000" placeholder="Añade contexto útil para la revisión. No incluyas DNI, pasaporte ni otros documentos sensibles."></textarea>
+        </label>
+        <button class="primary full" type="submit">Enviar solicitud</button>
+        <p id="trustRequestStatus" class="status"></p>
+      </form>
+    </section>
+
+    <section class="trust-history-section">
+      <div class="trust-section-head"><div><b>Historial de solicitudes</b><small>Revisa solicitudes pendientes, aprobadas, rechazadas o canceladas.</small></div></div>
+      <div id="trustHistory" class="trust-history"></div>
+    </section>
+  </div>
+</div>
+
 <div id="accountModal" class="modal hidden">
   <div class="modal-card account-modal-card">
     <button id="closeAccountModal" class="modal-close" type="button">×</button>

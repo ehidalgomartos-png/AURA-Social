@@ -26,6 +26,25 @@ async function ensureModerationV11() {
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_user_moderation_actions_user_created ON user_moderation_actions(user_id,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS verification_requests (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          type VARCHAR(20) NOT NULL CHECK(type IN ('age','creator')),
+          status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','cancelled')),
+          request_note VARCHAR(1000) NOT NULL DEFAULT '',
+          review_note VARCHAR(1000) NOT NULL DEFAULT '',
+          admin_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          reviewed_at TIMESTAMPTZ
+        )
+      `);
+      await db.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_verification_requests_one_pending
+          ON verification_requests(user_id,type)
+         WHERE status='pending'
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_verification_requests_queue ON verification_requests(status,type,created_at)');
     })().catch(error => {
       moderationV11Ready = null;
       throw error;
@@ -85,7 +104,7 @@ async function notifyUser(userId,text){
 
 router.get('/dashboard', async (_req,res)=>{
   await autoReleaseExpiredSuspensions();
-  const [users,active,suspended,banned,posts,reports,critical,verified,warnings]=await Promise.all([
+  const [users,active,suspended,banned,posts,reports,critical,verified,warnings,pendingVerifications]=await Promise.all([
     db.query('SELECT count(*)::int n FROM users'),
     db.query("SELECT count(*)::int n FROM users WHERE status='active'"),
     db.query("SELECT count(*)::int n FROM users WHERE status='suspended'"),
@@ -94,7 +113,8 @@ router.get('/dashboard', async (_req,res)=>{
     db.query("SELECT count(*)::int n FROM reports WHERE status='open'"),
     db.query("SELECT count(*)::int n FROM reports WHERE status='open' AND priority='critical'"),
     db.query('SELECT count(*)::int n FROM users WHERE creator_verified=true'),
-    db.query("SELECT count(*)::int n FROM user_moderation_actions WHERE action='warn' AND created_at>=now()-interval '30 days'")
+    db.query("SELECT count(*)::int n FROM user_moderation_actions WHERE action='warn' AND created_at>=now()-interval '30 days'"),
+    db.query("SELECT count(*)::int n FROM verification_requests WHERE status='pending'")
   ]);
 
   res.json({
@@ -106,7 +126,8 @@ router.get('/dashboard', async (_req,res)=>{
     openReports:reports.rows[0].n,
     criticalReports:critical.rows[0].n,
     verifiedCreators:verified.rows[0].n,
-    warnings30d:warnings.rows[0].n
+    warnings30d:warnings.rows[0].n,
+    pendingVerifications:pendingVerifications.rows[0].n
   });
 });
 
@@ -364,14 +385,163 @@ router.post('/reports/:id/decision',async(req,res)=>{
   res.json({ok:true});
 });
 
+router.get('/verifications',async(req,res)=>{
+  const status=String(req.query.status||'pending');
+  const allowed=new Set(['pending','approved','rejected','cancelled','all']);
+  const filter=allowed.has(status) ? status : 'pending';
+  const params=[];
+  let where='';
+  if(filter!=='all'){
+    params.push(filter);
+    where='WHERE vr.status=$1';
+  }
+
+  const result=await db.query(`
+    SELECT
+      vr.id,vr.type,vr.status,vr.request_note,vr.review_note,vr.created_at,vr.reviewed_at,
+      u.id user_id,u.username,u.display_name,u.email,u.avatar_url,u.age_verified,u.creator_verified,
+      admin.username admin_username,admin.display_name admin_display_name
+      FROM verification_requests vr
+      JOIN users u ON u.id=vr.user_id
+      LEFT JOIN users admin ON admin.id=vr.admin_id
+      ${where}
+     ORDER BY
+       CASE WHEN vr.status='pending' THEN 0 ELSE 1 END,
+       vr.created_at ASC
+     LIMIT 250
+  `,params);
+
+  res.json({requests:result.rows,filter});
+});
+
+const verificationDecisionSchema=z.object({
+  decision:z.enum(['approve','reject']),
+  note:z.string().max(1000).optional().default('')
+});
+
+router.post('/verifications/:id/decision',async(req,res)=>{
+  const parsed=verificationDecisionSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_verification_decision'});
+
+  const request=await db.query(`
+    SELECT vr.*,u.is_admin,u.age_verified,u.creator_verified
+      FROM verification_requests vr
+      JOIN users u ON u.id=vr.user_id
+     WHERE vr.id=$1
+     LIMIT 1
+  `,[req.params.id]);
+
+  if(!request.rowCount)return res.status(404).json({error:'verification_request_not_found'});
+  const item=request.rows[0];
+  if(item.status!=='pending')return res.status(409).json({error:'verification_request_not_pending'});
+
+  const d=parsed.data;
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+
+    await client.query(`
+      UPDATE verification_requests
+         SET status=$2,
+             review_note=$3,
+             admin_id=$4,
+             reviewed_at=now()
+       WHERE id=$1
+    `,[
+      item.id,
+      d.decision==='approve' ? 'approved' : 'rejected',
+      String(d.note||'').trim(),
+      req.user.id
+    ]);
+
+    if(d.decision==='approve'){
+      if(item.type==='age'){
+        await client.query(
+          'UPDATE users SET age_verified=true,updated_at=now() WHERE id=$1',
+          [item.user_id]
+        );
+        await client.query(`
+          INSERT INTO age_verifications (user_id,provider,result,created_at,verified_at)
+          VALUES ($1,'manual','verified',now(),now())
+        `,[item.user_id]);
+      }else{
+        await client.query(
+          'UPDATE users SET creator_verified=true,age_verified=true,updated_at=now() WHERE id=$1',
+          [item.user_id]
+        );
+        await client.query(`
+          INSERT INTO creator_verifications (user_id,provider,result,created_at,verified_at)
+          VALUES ($1,'manual','verified',now(),now())
+        `,[item.user_id]);
+        await client.query(`
+          INSERT INTO age_verifications (user_id,provider,result,created_at,verified_at)
+          VALUES ($1,'manual','verified',now(),now())
+        `,[item.user_id]);
+        await client.query(`
+          UPDATE verification_requests
+             SET status='approved',
+                 review_note=CASE WHEN review_note='' THEN 'Aprobada junto con la verificación de creador.' ELSE review_note END,
+                 admin_id=$2,
+                 reviewed_at=now()
+           WHERE user_id=$1
+             AND type='age'
+             AND status='pending'
+        `,[item.user_id,req.user.id]);
+      }
+    }
+
+    await client.query(`
+      INSERT INTO user_moderation_actions
+        (user_id,admin_id,action,duration_label,reason)
+      VALUES ($1,$2,$3,'',$4)
+    `,[
+      item.user_id,
+      req.user.id,
+      d.decision==='approve' ? `verify_${item.type}_request` : `reject_${item.type}_request`,
+      String(d.note||'').trim()
+    ]);
+
+    await client.query(`
+      INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES ($1,NULL,'system','verification',$2,$3)
+    `,[
+      item.user_id,
+      item.id,
+      d.decision==='approve'
+        ? (item.type==='age' ? 'Tu verificación +18 ha sido aprobada.' : 'Tu verificación de creador ha sido aprobada.')
+        : (item.type==='age' ? 'Tu solicitud de verificación +18 ha sido revisada y no se ha aprobado.' : 'Tu solicitud de verificación de creador ha sido revisada y no se ha aprobado.')
+    ]);
+
+    await client.query('COMMIT');
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad verification decision failed:',error);
+    return res.status(500).json({error:'verification_decision_failed'});
+  }finally{
+    client.release();
+  }
+
+  res.json({ok:true,status:d.decision==='approve'?'approved':'rejected'});
+});
+
 router.post('/users/:id/verify-creator',async(req,res)=>{
   await db.query('UPDATE users SET creator_verified=true,age_verified=true,updated_at=now() WHERE id=$1',[req.params.id]);
+  await db.query(`
+    UPDATE verification_requests
+       SET status='approved',review_note='Aprobada desde la ficha de usuario.',admin_id=$2,reviewed_at=now()
+     WHERE user_id=$1 AND type IN ('creator','age') AND status='pending'
+  `,[req.params.id,req.user.id]);
   await recordUserAction({userId:req.params.id,adminId:req.user.id,action:'verify_creator'});
   res.json({ok:true});
 });
 
 router.post('/users/:id/verify-age',async(req,res)=>{
   await db.query('UPDATE users SET age_verified=true,updated_at=now() WHERE id=$1',[req.params.id]);
+  await db.query(`
+    UPDATE verification_requests
+       SET status='approved',review_note='Aprobada desde la ficha de usuario.',admin_id=$2,reviewed_at=now()
+     WHERE user_id=$1 AND type='age' AND status='pending'
+  `,[req.params.id,req.user.id]);
   await recordUserAction({userId:req.params.id,adminId:req.user.id,action:'verify_age'});
   res.json({ok:true});
 });

@@ -1,4 +1,4 @@
-# RedLibertad V1.11.0 — Trust & Moderation 2.0
+# RedLibertad V1.12.0 — Verification & Trust
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -249,3 +249,21 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Las cuentas administradoras están protegidas frente a suspensión o bloqueo desde el panel.
 - Verificación +18 y creador quedan registradas en el historial.
 - Esquema y tablas nuevas se crean de forma idempotente.
+
+
+## V1.12.0 — Verification & Trust
+
+- Nuevo centro Confianza accesible desde el perfil.
+- Solicitudes de verificación +18 y de creador.
+- Historial de solicitudes pendientes, aprobadas, rechazadas o canceladas.
+- Cancelación de solicitudes pendientes por parte del usuario.
+- No se almacenan documentos de identidad en el formulario de solicitud.
+- Cola administrativa específica de verificaciones.
+- Aprobación o rechazo con nota de revisión.
+- Al aprobar +18 se actualiza users.age_verified.
+- Al aprobar creador se actualizan users.creator_verified y users.age_verified.
+- Las decisiones generan una notificación al usuario.
+- Las decisiones quedan auditadas en user_moderation_actions.
+- Perfiles públicos muestran badges de confianza cuando corresponde.
+- Las verificaciones manuales desde la ficha de usuario resuelven también solicitudes pendientes.
+- Tabla verification_requests creada de forma idempotente.

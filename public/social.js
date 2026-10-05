@@ -757,7 +757,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -772,6 +772,7 @@ async function loadProfile(mode = ownProfileMode) {
     if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
+  $('#trustSettings').onclick = openTrustModal;
   $('#privacySettings').onclick = openPrivacyModal;
   $('#accountSettings').onclick = openAccountModal;
   await loadConsents();
@@ -904,6 +905,7 @@ async function openPublicProfile(username) {
             ${actions}
           </div>
           ${mutualContextHTML(profileData)}
+          ${profile.age_verified || profile.creator_verified ? `<div class="public-trust-badges">${profile.age_verified ? '<span>+18 verificado</span>' : ''}${profile.creator_verified ? '<span>✓ Creador verificado</span>' : ''}</div>` : ''}
           <p class="profile-bio">${esc(profile.bio || 'Todavía no ha escrito una biografía.')}</p>
           ${interestPillsHTML(profile.interests)}
           <div class="profile-meta">
@@ -1235,6 +1237,157 @@ async function loadPrivacyLists() {
     ? blocked.map(user => privacyPersonHTML(user,'blocked')).join('')
     : '<div class="privacy-list-empty">No has bloqueado a nadie.</div>';
 }
+
+function trustStatusLabel(value) {
+  return ({
+    pending:'Pendiente',
+    approved:'Aprobada',
+    rejected:'No aprobada',
+    cancelled:'Cancelada'
+  })[value] || 'Sin solicitud';
+}
+
+function trustStatusCard(type, verified, latest) {
+  const isAge = type === 'age';
+  const title = isAge ? 'Mayoría de edad' : 'Perfil de creador';
+  const verifiedText = isAge ? '+18 verificado' : 'Creador verificado';
+  const pending = latest?.status === 'pending';
+  const state = verified ? 'verified' : pending ? 'pending' : latest?.status || 'none';
+  const detail = verified
+    ? (isAge ? 'Tu mayoría de edad figura como verificada.' : 'Tu perfil figura como creador verificado.')
+    : pending
+      ? 'Tu solicitud está en revisión.'
+      : latest?.status === 'rejected'
+        ? (latest.review_note || 'La última solicitud no fue aprobada.')
+        : 'Todavía no tienes esta verificación.';
+
+  return `<article class="trust-status-card ${state}">
+    <div class="trust-status-icon">${verified ? '✓' : pending ? '…' : '○'}</div>
+    <div><span>${title}</span><b>${verified ? verifiedText : trustStatusLabel(latest?.status)}</b><small>${esc(detail)}</small></div>
+  </article>`;
+}
+
+function trustHistoryHTML(items = []) {
+  if (!items.length) return '<div class="trust-empty">Todavía no has enviado solicitudes de verificación.</div>';
+  return items.map(item => `<article class="trust-history-item">
+    <div><b>${item.type === 'age' ? 'Verificación +18' : 'Verificación de creador'}</b><span class="trust-history-state ${esc(item.status)}">${trustStatusLabel(item.status)}</span></div>
+    <small>${timeAgo(item.created_at)}</small>
+    ${item.request_note ? `<p>${esc(item.request_note)}</p>` : ''}
+    ${item.review_note ? `<p class="trust-review-note"><b>Revisión:</b> ${esc(item.review_note)}</p>` : ''}
+    ${item.status === 'pending' ? `<button type="button" class="secondary" data-cancel-verification="${item.id}">Cancelar solicitud</button>` : ''}
+  </article>`).join('');
+}
+
+async function loadTrustCenter() {
+  const { r, d } = await api('/api/trust/me');
+  if (!r.ok) return false;
+
+  const user = d.user || {};
+  $('#trustStatusCards').innerHTML = [
+    trustStatusCard('age', !!user.age_verified, d.latest?.age),
+    trustStatusCard('creator', !!user.creator_verified, d.latest?.creator)
+  ].join('');
+  $('#trustHistory').innerHTML = trustHistoryHTML(Array.isArray(d.history) ? d.history : []);
+
+  const form = $('#trustRequestForm');
+  if (form) {
+    const agePending = d.latest?.age?.status === 'pending';
+    const creatorPending = d.latest?.creator?.status === 'pending';
+    const type = form.type.value;
+    const blocked = type === 'age'
+      ? !!user.age_verified || agePending
+      : !!user.creator_verified || creatorPending;
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) {
+      submit.disabled = blocked;
+      submit.textContent = blocked
+        ? (type === 'age' ? 'Verificación +18 no disponible' : 'Verificación de creador no disponible')
+        : 'Enviar solicitud';
+    }
+  }
+
+  me = {
+    ...me,
+    age_verified:!!user.age_verified,
+    creator_verified:!!user.creator_verified
+  };
+  return true;
+}
+
+async function openTrustModal() {
+  const modal = $('#trustModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  $('#trustRequestStatus').textContent = '';
+  $('#trustStatusCards').innerHTML = '<div class="mini-loading">Cargando estado...</div>';
+  $('#trustHistory').innerHTML = '';
+  await loadTrustCenter();
+}
+
+function closeTrustModal() {
+  $('#trustModal')?.classList.add('hidden');
+}
+
+$('#closeTrustModal')?.addEventListener('click', closeTrustModal);
+$('#trustModal')?.addEventListener('click', event => {
+  if (event.target === $('#trustModal')) closeTrustModal();
+});
+
+$('#trustRequestForm')?.addEventListener('change', event => {
+  if (event.target.name === 'type') loadTrustCenter();
+});
+
+$('#trustRequestForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const fd = new FormData(form);
+  const status = $('#trustRequestStatus');
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  status.textContent = 'Enviando solicitud...';
+
+  try {
+    const { r, d } = await api('/api/trust/request', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:fd.get('type'),
+        note:String(fd.get('note') || '').trim()
+      })
+    });
+
+    if (!r.ok) {
+      status.textContent = d.error === 'request_already_pending'
+        ? 'Ya tienes una solicitud de este tipo pendiente.'
+        : d.error === 'already_verified'
+          ? 'Esta verificación ya está aprobada.'
+          : 'No se pudo enviar la solicitud.';
+      return;
+    }
+
+    form.note.value = '';
+    status.textContent = 'Solicitud enviada para revisión.';
+    toast('Solicitud de verificación enviada');
+    await loadTrustCenter();
+  } finally {
+    if (!submit.disabled || status.textContent.startsWith('Solicitud')) return;
+    submit.disabled = false;
+  }
+});
+
+document.addEventListener('click', async event => {
+  const button = event.target.closest('[data-cancel-verification]');
+  if (!button) return;
+  event.preventDefault();
+  button.disabled = true;
+  const { r } = await api(`/api/trust/request/${button.dataset.cancelVerification}`, { method:'DELETE' });
+  if (!r.ok) {
+    button.disabled = false;
+    return toast('No se pudo cancelar la solicitud.');
+  }
+  toast('Solicitud cancelada');
+  await loadTrustCenter();
+});
 
 function accountDate(value) {
   if (!value) return 'No registrado';
@@ -2245,6 +2398,11 @@ async function navigateNotification(notification) {
 
   if (type === 'system' && entityType === 'user' && notification.actor_username) {
     await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (type === 'system' && entityType === 'verification') {
+    await openTrustModal();
     return;
   }
 

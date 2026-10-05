@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "private": true,
-  "description": "RedLibertad V1.11 Trust & Moderation 2.0 - avisos, suspensiones temporales, historial, contexto de denuncias y control avanzado de cuentas.",
+  "description": "RedLibertad V1.12 Verification & Trust - solicitudes de verificación, centro de confianza, revisión administrativa y badges públicos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
