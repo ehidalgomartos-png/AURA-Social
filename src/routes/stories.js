@@ -29,7 +29,7 @@ router.get('/', optionalAuth, async (req,res) => {
     const vr=await db.query('SELECT age_verified,show_sensitive FROM users WHERE id=$1',[req.user.id]);
     viewer={ageVerified:vr.rows[0]?.age_verified,showSensitive:vr.rows[0]?.show_sensitive};
     params.push(req.user.id);
-    block=`AND s.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;
+    block=`AND s.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND s.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
   }
   const r=await db.query(`SELECT s.*,u.username,u.display_name,u.avatar_url,u.creator_verified FROM stories s JOIN users u ON u.id=s.user_id WHERE s.expires_at>now() AND s.moderation_status='published' AND u.status='active' ${block} ORDER BY s.created_at DESC LIMIT 100`,params);
   const stories=r.rows.map(s=>{const g=canViewerSee({postLevel:s.content_level,viewer}); return {...s,media_url:g.allowed?s.media_url:null,playback_url:g.allowed?s.playback_url:null,gated:!g.allowed,gate_reason:g.reason||null};});
