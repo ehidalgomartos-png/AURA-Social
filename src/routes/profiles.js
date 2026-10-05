@@ -139,6 +139,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
         UNION
         SELECT blocker_id FROM blocks WHERE blocked_id=$1
       )
+      AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
       AND (
         $2::text IS NULL
         OR EXISTS (
@@ -196,6 +197,7 @@ router.get('/search/users', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
        AND (
          lower(u.username) LIKE lower($2)
          OR lower(u.display_name) LIKE lower($2)
@@ -263,6 +265,7 @@ router.get('/active', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
        AND activity.last_activity_at >= now() - interval '7 days'
      ORDER BY
        EXISTS(
