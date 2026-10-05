@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "private": true,
-  "description": "RedLibertad V1.9 Privacy & Control - privacidad de mensajes, descubrimiento, actividad, silencios y bloqueos gestionables.",
+  "description": "RedLibertad V1.10 Account & Security - sesiones revocables, cambio de contraseña, exportación de datos y eliminación segura de cuenta.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
