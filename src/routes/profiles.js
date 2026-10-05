@@ -89,6 +89,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
       ) interests
     FROM users u
     WHERE u.status='active'
+      AND u.is_admin=false
       AND u.id<>$1
       AND u.id NOT IN (
         SELECT blocked_id FROM blocks WHERE blocker_id=$1
@@ -146,7 +147,7 @@ router.get('/search/users', requireAuth, async (req,res)=>{
         ARRAY[]::text[]
       ) interests
       FROM users u
-     WHERE u.status='active' AND u.id<>$1
+     WHERE u.status='active' AND u.is_admin=false AND u.id<>$1
        AND u.id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION

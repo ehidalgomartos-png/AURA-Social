@@ -27,7 +27,7 @@ footer{padding:28px 18px;background:var(--paper);border-top:1px solid var(--line
   .phone-bar{padding-bottom:8px}.phone-bar img{width:26px;height:26px}.phone-bar b{font-size:13px}
   .preview-user{padding:10px}.preview-avatar{width:36px;height:36px}
   .preview-art{min-height:205px;padding:22px;font-size:23px}
-  .preview-actions{padding:10px;font-size:12px;justify-content:space-between;gap:8px}
+  .preview-actions{padding:10px;font-size:12px;justify-content:space-between;gap:7px;flex-wrap:wrap}.preview-actions span:last-child{margin-left:auto}
   .share-note{margin:10px 4px 2px;font-size:12px}
   .section,.split-section,.auth-duo{padding:54px 16px}
   .section h2,.split-section h2,.card-form h2{font-size:clamp(31px,9vw,42px)}
