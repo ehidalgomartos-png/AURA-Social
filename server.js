@@ -62,14 +62,14 @@ app.use('/api/notifications', notificationRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '1.0.0',
+    version: '1.1.0',
     mode: 'redlibertad-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
       'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
-      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding'
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges'
     ]
   });
 });
@@ -116,4 +116,4 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`RedLibertad V1.0.0 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`RedLibertad V1.1.0 running on http://localhost:${PORT}`));

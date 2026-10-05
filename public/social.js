@@ -28,6 +28,9 @@ function toast(t) {
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 2600);
 }
+function tapFeedback() {
+  if (navigator.vibrate) navigator.vibrate(8);
+}
 function initials(n = 'R') {
   return n.trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
 }
@@ -119,7 +122,7 @@ function postHTML(p) {
       </div>
     </div>
     <div class="post-media">${mediaHTML(p)}</div>
-    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button data-share="${p.id}">↗ <span class="share-label">Compartir</span></button><button data-report="${p.id}">⋯</button></div>
+    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button><button data-report="${p.id}">⋯</button></div>
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
     ${inlineCommentsHTML(p)}
   </article>`;
@@ -241,6 +244,8 @@ async function uploadFile(file) {
 async function loadMe() {
   const { d } = await api('/api/profiles/me/summary');
   me = d.profile;
+  const quickAvatar = $('#quickAvatar');
+  if (quickAvatar) quickAvatar.innerHTML = avatarHTML(me);
   if (me.is_admin) $('#adminLink').classList.remove('hidden');
   $('#meCard').classList.remove('skeleton');
   $('#meCard').innerHTML = `<div class="mini-head"><div class="avatar">${avatarHTML(me)}</div><div><h3>${esc(me.display_name)}</h3><p>@${esc(me.username)} ${me.creator_verified ? '· ✓ Creador' : ''}</p></div></div><div class="mini-stats"><div><b>${me.post_count}</b><span>posts</span></div><div><b>${me.follower_count}</b><span>seguidores</span></div><div><b>${me.following_count}</b><span>siguiendo</span></div></div>`;
@@ -814,10 +819,13 @@ $('#reportForm').addEventListener('submit', async event => {
 });
 
 function updateNotificationBadge(n) {
-  const b = $('#notificationBadge');
-  if (!b) return;
-  b.textContent = n > 99 ? '99+' : String(n);
-  b.classList.toggle('hidden', !n);
+  const value = n > 99 ? '99+' : String(n);
+  ['#notificationBadge', '#notificationBadgeMobile'].forEach(selector => {
+    const b = $(selector);
+    if (!b) return;
+    b.textContent = value;
+    b.classList.toggle('hidden', !n);
+  });
 }
 async function loadNotifications() {
   const { d } = await api('/api/notifications');
@@ -830,18 +838,33 @@ $('#readAllNotifications').onclick = async () => { await api('/api/notifications
 async function loadConversations(openId = null) {
   const { d } = await api('/api/messages/conversations');
   const total = d.conversations.reduce((a, x) => a + Number(x.unread_count || 0), 0);
-  const badge = $('#messageBadge'); badge.textContent = total > 99 ? '99+' : String(total); badge.classList.toggle('hidden', !total);
+  const badgeValue = total > 99 ? '99+' : String(total);
+  ['#messageBadge', '#messageBadgeMobile'].forEach(selector => {
+    const badge = $(selector);
+    if (!badge) return;
+    badge.textContent = badgeValue;
+    badge.classList.toggle('hidden', !total);
+  });
   $('#conversationList').innerHTML = d.conversations.length ? d.conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''}" data-conversation="${c.id}"><div class="avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}</div><div class="conversation-copy"><b>${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small></div>${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}</button>`).join('') : '<div class="empty-list">Todavía no tienes conversaciones.</div>';
   $$('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
   if (openId) await openConversation(openId);
 }
 async function openConversation(id) {
   activeConversationId = id;
+  const layout = $('.messages-layout');
+  if (layout) layout.classList.add('chat-open');
   const { d } = await api(`/api/messages/conversations/${id}/messages`);
   activeConversationOther = d.other;
   const messages = d.messages.map(m => messageHTML(m, d.other)).join('');
   $('#chatPanel').className = 'chat-panel';
-  $('#chatPanel').innerHTML = `<header class="chat-head"><div class="avatar">${avatarHTML(d.other)}</div><div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}</header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
+  $('#chatPanel').innerHTML = `<header class="chat-head"><button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Volver a conversaciones">‹</button><div class="avatar">${avatarHTML(d.other)}</div><div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}</header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
+  const mobileBack = $('#mobileChatBack');
+  if (mobileBack) mobileBack.onclick = () => {
+    const messagesLayout = $('.messages-layout');
+    if (messagesLayout) messagesLayout.classList.remove('chat-open');
+    activeConversationId = null;
+    loadConversations();
+  };
   $('#messageForm').onsubmit = sendMessage;
   $('#messageFile').addEventListener('change', renderMessagePreview);
   $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
@@ -1041,13 +1064,13 @@ function showView(name) {
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
-  if (name === 'messages') loadConversations();
+  if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
   if (name === 'notifications') loadNotifications();
 }
-$$('[data-view]').forEach(b => b.onclick = () => showView(b.dataset.view));
+$$('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
 $$('[data-mode]').forEach(b => b.onclick = () => { $$('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
-function openModal() { $('#modal').classList.remove('hidden'); }
+function openModal() { tapFeedback(); $('#modal').classList.remove('hidden'); setTimeout(() => $('#createForm textarea')?.focus(), 120); }
 function bindCreateButtons() { $$('[data-action="create"]').forEach(b => b.onclick = openModal); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');

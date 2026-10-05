@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "RedLibertad V1.0 - comunidad social mobile-first con privacidad, consentimiento, contenido sensible bajo control y compartición social.",
+  "description": "RedLibertad V1.1 Mobile Experience - comunidad social mobile-first con navegación tipo app, compartir social, mensajería móvil y privacidad.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

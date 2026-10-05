@@ -1,10 +1,10 @@
-# RedLibertad V1.0.0 — Rebranding + Mobile First
+# RedLibertad V1.1.0 — Mobile Experience
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
 **Slogan:** “Donde la libertad es lo primero.”
 
-## Novedades V1.0
+## Base conservada de V1.0
 
 - Rebranding completo AURA → RedLibertad.
 - Identidad azul marino + coral + turquesa + marfil.
@@ -51,3 +51,20 @@ Para pruebas temporales HTTP usa `COOKIE_SECURE=false`.
 ## Base de datos
 
 No se cambia el esquema de AURA V0.4.3, por lo que la base existente se puede reutilizar directamente.
+
+
+## Novedades V1.1 — Mobile Experience
+
+- Portada móvil más compacta: el contenido principal y la publicación de ejemplo aparecen antes.
+- Tarjetas de funciones en carrusel horizontal táctil para reducir scroll vertical.
+- Formularios de registro/login con objetivos táctiles mayores y mejor contraste.
+- Compositor rápido en Inicio: “¿Qué estás pensando?” abre directamente Crear.
+- Navegación inferior móvil reforzada, con botón Crear destacado y safe areas.
+- Badges móviles para mensajes y notificaciones.
+- Compartir es una acción principal visible en cada publicación; mantiene Facebook, WhatsApp, Web Share y copiar enlace.
+- Mensajes en móvil pasan a navegación de una sola pantalla: lista → chat → volver.
+- Cabecera y compositor del chat optimizados para teclado móvil.
+- Microfeedback háptico cuando el dispositivo lo permite.
+- Healthcheck y versión actualizados a 1.1.0.
+
+No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada por RedLibertad V1.0/AURA migrada.
