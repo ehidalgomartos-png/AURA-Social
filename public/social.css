@@ -3097,7 +3097,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
   #profileView .profile-buttons #sensitiveToggle{
-    grid-column:1/-1;
+    grid-column:auto;
   }
 }
 @media(max-width:390px){
