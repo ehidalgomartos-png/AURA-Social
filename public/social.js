@@ -16,6 +16,9 @@ let activeContentMode = 'trending';
 let activePostSearch = '';
 let savedPostIds = new Set();
 let toastTimer = null;
+let ownProfileMode = 'posts';
+let activeNotificationFilter = 'all';
+let notificationCache = [];
 
 
 async function api(url, opts = {}) {
@@ -491,21 +494,47 @@ async function loadReels() {
   bindPostActions($('#reelsFeed'));
 }
 
-async function loadProfile() {
-  if (!me) await loadMe();
-  const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}`);
-  const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
-  $('#profilePosts').innerHTML = d.posts.map(p => {
+function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones visibles.') {
+  if (!posts.length) {
+    return `<div class="profile-content-empty"><b>${esc(emptyText)}</b><span>Cuando haya contenido aparecerá aquí.</span></div>`;
+  }
+
+  return posts.map(p => {
     const participants = Array.isArray(p.participants) ? p.participants : [];
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<div class="tile">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</div>`;
+    return `<button type="button" class="tile tile-button profile-content-tile" data-open-post="${p.id}">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
   }).join('');
+}
+
+function setOwnProfileMode(mode) {
+  ownProfileMode = ['posts','reposts','media'].includes(mode) ? mode : 'posts';
+  all('[data-own-profile-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.ownProfileMode === ownProfileMode);
+  });
+}
+
+async function loadProfile(mode = ownProfileMode) {
+  if (!me) await loadMe();
+  setOwnProfileMode(mode);
+
+  const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
+  const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
+
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+
+  const emptyText = ownProfileMode === 'reposts'
+    ? 'Todavía no has republicado nada.'
+    : ownProfileMode === 'media'
+      ? 'Todavía no tienes fotos o vídeos publicados.'
+      : 'Todavía no tienes publicaciones.';
+
+  $('#profilePosts').innerHTML = profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText);
+
   $('#sensitiveToggle').onclick = async () => {
     const { r } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showSensitive: !me.show_sensitive }) });
-    if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(); await loadFeed(currentMode); }
+    if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
   await loadConsents();
