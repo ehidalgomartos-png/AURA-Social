@@ -1655,3 +1655,197 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     margin-bottom:calc(96px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* =========================================================
+   RedLibertad V1.5 — Community & Viral
+   ========================================================= */
+.mention-link{
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:0;
+  color:var(--coral);
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+.mention-link:hover,
+.mention-link:focus-visible{
+  text-decoration:underline;
+  outline:none;
+}
+.repost-banner{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:9px 15px 0;
+  color:var(--teal);
+  font-size:11px;
+  font-weight:800;
+}
+.repost-profile-link{
+  color:inherit;
+  font-weight:800;
+}
+.post-actions button.reposted{
+  color:var(--teal);
+  background:rgba(43,183,169,.10);
+  border-radius:999px;
+  padding-inline:10px;
+  box-shadow:0 5px 14px rgba(43,183,169,.12);
+}
+.post-actions button:disabled{
+  opacity:.42;
+}
+.profile-stats button{
+  appearance:none;
+  border:0;
+  font:inherit;
+  color:inherit;
+  cursor:pointer;
+}
+.profile-stats button:hover,
+.profile-stats button:focus-visible{
+  background:rgba(43,183,169,.09);
+  color:var(--navy);
+  outline:none;
+}
+.profile-stats button b{color:var(--navy)}
+.internal-share{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--line);
+}
+.internal-share>b{
+  display:block;
+  color:var(--navy);
+  margin-bottom:8px;
+}
+.internal-share form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:9px;
+}
+.internal-share input{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:10px 12px;
+  background:#fff;
+  color:var(--ink);
+  outline:none;
+}
+.internal-share input:focus{
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(43,183,169,.12);
+}
+.internal-share small{
+  display:block;
+  color:var(--muted);
+  margin-top:8px;
+  line-height:1.4;
+}
+.social-list-modal-card{
+  max-height:min(82vh,720px);
+}
+.social-list-content{
+  display:grid;
+  gap:8px;
+  margin-top:10px;
+  max-height:58vh;
+  overflow:auto;
+  padding-right:3px;
+}
+.social-list-person{
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) auto;
+  gap:11px;
+  align-items:center;
+  padding:11px 2px;
+  border-bottom:1px solid var(--line);
+}
+.social-list-person:last-child{border-bottom:0}
+.social-list-person .person-avatar{
+  width:48px;
+  height:48px;
+}
+.social-list-person-copy{
+  min-width:0;
+}
+.social-list-person-copy b,
+.social-list-person-copy small{
+  display:block;
+}
+.social-list-person-copy b{color:var(--navy)}
+.social-list-person-copy small{
+  color:var(--muted);
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.social-list-person-copy p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.4;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.social-self-label{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:var(--ivory);
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+}
+@media(max-width:760px){
+  .repost-banner{
+    padding:9px 13px 0;
+  }
+  .post-actions button[data-repost]{
+    min-width:38px;
+  }
+  .internal-share form{
+    grid-template-columns:1fr;
+  }
+  .internal-share form .secondary{
+    min-height:44px;
+  }
+  .social-list-modal-card{
+    max-height:86dvh;
+  }
+  .social-list-content{
+    max-height:64dvh;
+  }
+  .social-list-person{
+    grid-template-columns:44px minmax(0,1fr) auto;
+    gap:9px;
+  }
+  .social-list-person .person-avatar{
+    width:44px;
+    height:44px;
+  }
+  .social-list-person .person-follow{
+    padding:8px 10px;
+  }
+}
+@media(max-width:390px){
+  .social-list-person{
+    grid-template-columns:42px minmax(0,1fr);
+  }
+  .social-list-person .person-follow,
+  .social-self-label{
+    grid-column:2;
+    justify-self:start;
+  }
+}
