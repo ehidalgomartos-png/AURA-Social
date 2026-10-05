@@ -1,4 +1,4 @@
-# RedLibertad V1.1.1 — Mobile Experience Hotfix
+# RedLibertad V1.1.2 — Text Posts
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -78,3 +78,15 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Ajuste visual del bloque Compartir en la portada móvil.
 - Healthcheck actualizado a 1.1.1.
 - Sin cambios en el esquema de PostgreSQL.
+
+
+## V1.1.2 — Publicaciones de solo texto
+
+- Ya no es obligatorio adjuntar una foto o vídeo para publicar.
+- Se puede compartir únicamente una idea, pensamiento, reflexión u opinión.
+- Las publicaciones vacías siguen bloqueadas: hace falta texto o multimedia.
+- Los Reels siguen necesitando multimedia.
+- Las Stories siguen necesitando una foto o vídeo.
+- Las publicaciones de texto tienen presentación propia en feed, perfil y Explorar.
+- Compartir una publicación de texto funciona mediante su enlace público.
+- No requiere cambios de esquema en PostgreSQL.
