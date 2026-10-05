@@ -165,6 +165,75 @@ router.get('/search/users', requireAuth, async (req,res)=>{
   res.json({users:r.rows});
 });
 
+router.get('/active', requireAuth, async (req,res)=>{
+  const requestedLimit=Number(req.query.limit || 10);
+  const limit=Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 10,1),20);
+
+  const result=await db.query(`
+    SELECT
+      u.id,
+      u.username,
+      u.display_name,
+      u.bio,
+      u.avatar_url,
+      u.location_label,
+      u.creator_verified,
+      activity.last_activity_at,
+      EXISTS(
+        SELECT 1 FROM follows mine
+         WHERE mine.follower_id=$1
+           AND mine.following_id=u.id
+      ) following,
+      (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) follower_count,
+      (
+        SELECT count(*)::int
+          FROM user_interests target_interest
+         WHERE target_interest.user_id=u.id
+           AND target_interest.interest IN (
+             SELECT mine.interest
+               FROM user_interests mine
+              WHERE mine.user_id=$1
+           )
+      ) shared_interest_count,
+      COALESCE(
+        (SELECT array_agg(ui.interest ORDER BY ui.interest)
+           FROM user_interests ui
+          WHERE ui.user_id=u.id),
+        ARRAY[]::text[]
+      ) interests
+      FROM users u
+      CROSS JOIN LATERAL (
+        SELECT GREATEST(
+          COALESCE((SELECT max(p.created_at) FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published'),'epoch'::timestamptz),
+          COALESCE((SELECT max(c.created_at) FROM comments c WHERE c.user_id=u.id),'epoch'::timestamptz),
+          COALESCE((SELECT max(r.created_at) FROM reposts r WHERE r.user_id=u.id),'epoch'::timestamptz),
+          COALESCE((SELECT max(s.created_at) FROM stories s WHERE s.user_id=u.id AND s.moderation_status='published'),'epoch'::timestamptz)
+        ) AS last_activity_at
+      ) activity
+     WHERE u.status='active'
+       AND u.is_admin=false
+       AND u.id<>$1
+       AND u.id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+       AND activity.last_activity_at >= now() - interval '7 days'
+     ORDER BY
+       EXISTS(
+         SELECT 1 FROM follows already_following
+          WHERE already_following.follower_id=$1
+            AND already_following.following_id=u.id
+       ) ASC,
+       shared_interest_count DESC,
+       activity.last_activity_at DESC,
+       follower_count DESC
+     LIMIT $2
+  `,[req.user.id,limit]);
+
+  res.json({users:result.rows});
+});
+
 router.get('/:username', optionalAuth, async (req,res)=>{
   const result=await db.query(`
     SELECT id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,creator_verified,created_at,

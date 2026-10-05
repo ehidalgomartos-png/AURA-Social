@@ -1,4 +1,4 @@
-# RedLibertad V1.6.0 — Profiles & Activity 2.0
+# RedLibertad V1.7.0 — Retention & Social Momentum
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -170,3 +170,17 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Las notificaciones llevan a la publicación, perfil, conversación o consentimiento correspondiente.
 - Estados no leídos sincronizados al abrir una notificación.
 - Sin migraciones PostgreSQL nuevas.
+
+
+## V1.7.0 — Retention & Social Momentum
+
+- Nuevo bloque "Ponte al día" en Inicio.
+- Recupera publicaciones relevantes desde la última visita del usuario.
+- Prioriza contenido de personas seguidas y publicaciones con interacción.
+- Si no hay novedades pendientes, muestra destacados de las últimas 24 horas.
+- Señal de novedad en la pestaña Nuevo.
+- Personas con actividad reciente durante los últimos 7 días.
+- Las personas activas se priorizan por afinidad, actividad e intereses compartidos.
+- El módulo permanece visible aunque el usuario esté al día, evitando una portada vacía.
+- El historial de última visita se guarda en el navegador, sin seguimiento invasivo.
+- No añade migraciones PostgreSQL.

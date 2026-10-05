@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
-  "description": "RedLibertad V1.6 Profiles & Activity 2.0 - perfiles con pestañas, conexiones en común, deep links y notificaciones navegables.",
+  "description": "RedLibertad V1.7 Retention & Social Momentum - puesta al día, destacados diarios, personas con actividad reciente y señales de novedad.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
