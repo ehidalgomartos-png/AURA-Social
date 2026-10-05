@@ -1,4 +1,4 @@
-# RedLibertad V1.2.0 — Social Feed 2.0
+# RedLibertad V1.3.0 — Discovery & Engagement
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -105,3 +105,17 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - El selector del feed se mantiene sincronizado al cambiar de modo o después de publicar.
 - Conserva publicaciones de solo texto, fotos y vídeos.
 - Sin cambios de esquema en PostgreSQL.
+
+
+## V1.3.0 — Discovery & Engagement
+
+- Hashtags clicables dentro de las publicaciones.
+- Búsqueda de publicaciones, ideas, autores y #hashtags.
+- Hashtags en tendencia calculados a partir de la actividad reciente.
+- Nuevos rankings: Tendencias, Más gustado, Más comentado y Nuevo.
+- Guardados/Favoritos persistentes por usuario.
+- Vista Guardados dentro de Explorar.
+- Sugerencias de personas con explicación de afinidad: intereses en común o seguidores.
+- Feed de descubrimiento completo, con Me gusta, comentarios, compartir, guardar y gestión.
+- Experiencia priorizada para móvil con pestañas y chips desplazables horizontalmente.
+- La tabla saved_posts se crea automáticamente de forma idempotente al usar Guardados.

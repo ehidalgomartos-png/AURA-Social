@@ -66,8 +66,20 @@
         <div id="peopleSuggestions" class="people-grid"></div>
       </section>
       <section class="content-discovery">
-        <div class="discovery-heading"><div><span class="eyebrow">CONTENIDO</span><h2>Descubre publicaciones</h2></div></div>
-        <div id="exploreGrid" class="explore-grid"></div>
+        <div class="discovery-heading"><div><span class="eyebrow">CONTENIDO</span><h2 id="contentDiscoveryTitle">Lo que está pasando</h2></div></div>
+        <form id="postSearchForm" class="content-search">
+          <input id="postSearchInput" type="search" minlength="2" maxlength="80" placeholder="Buscar ideas, publicaciones o #hashtags">
+          <button class="secondary" type="submit">Buscar</button>
+        </form>
+        <div id="trendChips" class="trend-chips"></div>
+        <div class="content-tabs" role="tablist" aria-label="Filtros de contenido">
+          <button type="button" class="active" data-content-mode="trending">Tendencias</button>
+          <button type="button" data-content-mode="liked">Más gustado</button>
+          <button type="button" data-content-mode="commented">Más comentado</button>
+          <button type="button" data-content-mode="latest">Nuevo</button>
+          <button type="button" data-content-mode="saved">Guardados</button>
+        </div>
+        <div id="discoveryFeed" class="feed discovery-feed"></div>
       </section>
     </section>
     <section id="reelsView" class="view hidden"><div class="page-title"><div><span class="eyebrow">VÍDEO VERTICAL</span><h1>Reels</h1></div></div><div id="reelsFeed" class="reels-feed"></div></section>

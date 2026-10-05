@@ -552,3 +552,164 @@
   .compose-media-actions{padding:0 2px}
   .post-manage-modal-card .compose-text-wrap textarea{min-height:180px;font-size:16px}
 }
+
+
+/* RedLibertad V1.3 — Discovery & Engagement */
+.content-search{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  margin:14px 0 10px;
+}
+.content-search input{
+  width:100%;
+  min-height:46px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:11px 14px;
+  background:var(--paper);
+  color:var(--ink);
+  outline:none;
+}
+.content-search input:focus{
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(43,183,169,.12);
+}
+.trend-chips{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  padding:2px 0 12px;
+}
+.trend-chips::-webkit-scrollbar{display:none}
+.trend-chips button{
+  flex:0 0 auto;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--navy);
+  border-radius:999px;
+  padding:9px 12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.trend-chips button small{
+  color:var(--muted);
+  font-weight:700;
+  margin-left:4px;
+}
+.trend-chips button:hover,
+.trend-chips button:focus-visible{
+  border-color:var(--teal);
+  color:var(--teal);
+}
+.trend-empty{
+  color:var(--muted);
+  font-size:12px;
+  padding:8px 2px;
+}
+.content-tabs{
+  display:flex;
+  gap:7px;
+  margin:2px 0 18px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.content-tabs::-webkit-scrollbar{display:none}
+.content-tabs button{
+  flex:0 0 auto;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--muted);
+  border-radius:999px;
+  padding:9px 14px;
+  font-weight:800;
+  cursor:pointer;
+}
+.content-tabs button.active{
+  background:var(--navy);
+  color:white;
+  border-color:var(--navy);
+}
+.discovery-feed{
+  max-width:700px;
+}
+.discovery-loading{
+  padding:22px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--paper);
+  color:var(--muted);
+  text-align:center;
+}
+.hashtag-link{
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:0;
+  color:var(--teal);
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+.hashtag-link:hover,
+.hashtag-link:focus-visible{
+  text-decoration:underline;
+  outline:none;
+}
+.post-actions button.saved{
+  color:var(--teal);
+  background:rgba(43,183,169,.10);
+  border-radius:999px;
+  padding-inline:10px;
+}
+.suggestion-reason{
+  display:block;
+  margin-top:3px;
+  color:var(--teal);
+  font-size:10px;
+  font-weight:800;
+}
+.person-card.compact .suggestion-reason{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.content-discovery{
+  margin-top:42px;
+  padding-top:32px;
+  border-top:1px solid var(--line);
+}
+@media(max-width:760px){
+  .content-discovery{
+    margin-top:30px;
+    padding-top:24px;
+  }
+  .content-search{
+    grid-template-columns:1fr;
+  }
+  .content-search button{
+    min-height:44px;
+  }
+  .trend-chips{
+    margin-inline:-10px;
+    padding-inline:10px;
+  }
+  .content-tabs{
+    margin-inline:-10px;
+    padding-inline:10px;
+  }
+  .discovery-feed{
+    max-width:none;
+  }
+  .post-actions button[data-save-post]{
+    min-width:38px;
+  }
+}
+
+
+@media(max-width:430px){
+  .post-actions .share-label{display:none!important}
+  .post-actions{justify-content:space-between}
+  .post-actions .share-action{min-width:38px;padding-inline:8px}
+}
