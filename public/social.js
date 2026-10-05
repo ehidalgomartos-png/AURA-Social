@@ -1,5 +1,4 @@
 const $ = (s, r = document) => r.querySelector(s);
-const $ = (s, r = document) => [...r.querySelectorAll(s)];
 const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let currentMode = 'foryou';
@@ -534,7 +533,7 @@ $('#profileForm').addEventListener('submit', async e => {
     const fd = new FormData(e.target);
     const avatar = await uploadFile($('#avatarFile').files[0]);
     const cover = await uploadFile($('#coverFile').files[0]);
-    const interests = $$('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
+    const interests = all('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
     const payload = {
       displayName: fd.get('displayName'),
       bio: fd.get('bio'),
@@ -558,7 +557,7 @@ async function loadConsents() {
   const root = $('#consentRequests');
   if (!d.requests.length) { root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Cuando alguien indique que apareces en una publicación, podrás revisarla aquí.</p></div>'; return; }
   root.innerHTML = d.requests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
-  $$('[data-consent]', root).forEach(b => b.onclick = async () => {
+  all('[data-consent]', root).forEach(b => b.onclick = async () => {
     if (b.dataset.consent === 'approved' && !d.ageVerified && b.closest('.consent-card').querySelector('.gate')) return toast('Primero necesitas verificar tu mayoría de edad.');
     const { r } = await api(`/api/posts/${b.dataset.post}/consent`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: b.dataset.consent }) });
     if (r.ok) { toast(b.dataset.consent === 'revoked' ? 'Consentimiento retirado' : 'Decisión guardada'); await loadConsents(); }
@@ -1016,7 +1015,7 @@ async function loadNotifications() {
   const { d } = await api('/api/notifications');
   updateNotificationBadge(d.unread);
   $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
-  $$('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
+  all('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
 }
 $('#readAllNotifications').onclick = async () => { await api('/api/notifications/read-all', { method: 'POST' }); toast('Notificaciones marcadas como leídas'); await loadNotifications(); };
 
@@ -1031,7 +1030,7 @@ async function loadConversations(openId = null) {
     badge.classList.toggle('hidden', !total);
   });
   $('#conversationList').innerHTML = d.conversations.length ? d.conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''}" data-conversation="${c.id}"><div class="avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}</div><div class="conversation-copy"><b>${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small></div>${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}</button>`).join('') : '<div class="empty-list">Todavía no tienes conversaciones.</div>';
-  $$('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
+  all('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
   if (openId) await openConversation(openId);
 }
 async function openConversation(id) {
@@ -1053,7 +1052,7 @@ async function openConversation(id) {
   $('#messageForm').onsubmit = sendMessage;
   $('#messageFile').addEventListener('change', renderMessagePreview);
   $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
-  $$('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
+  all('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
   if ($('#revokeSensitive')) $('#revokeSensitive').onclick = async () => {
     await api(`/api/messages/users/${d.other.id}/sensitive-permission`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow: false }) });
     toast('Ya no recibirás contenido sensible visible de esta persona');
@@ -1243,20 +1242,20 @@ $('#clearPeopleSearch').onclick = async () => {
 };
 
 function showView(name) {
-  $$('.view').forEach(v => v.classList.add('hidden'));
+  all('.view').forEach(v => v.classList.add('hidden'));
   $(`#${name}View`).classList.remove('hidden');
-  $$('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
   if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
   if (name === 'notifications') loadNotifications();
 }
-$$('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
-$$('[data-mode]').forEach(b => b.onclick = () => { $$('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
+all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
+all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
 function openModal() { tapFeedback(); $('#modal').classList.remove('hidden'); setTimeout(() => $('#createForm textarea')?.focus(), 120); }
-function bindCreateButtons() { $$('[data-action="create"]').forEach(b => b.onclick = openModal); }
+function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = openModal); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');
 function clearPostMedia() {
