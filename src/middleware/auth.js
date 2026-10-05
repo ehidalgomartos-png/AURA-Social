@@ -4,9 +4,11 @@ const db = require('../db');
 let authSecurityReady = null;
 async function ensureAuthSecurity() {
   if (!authSecurityReady) {
-    authSecurityReady = db.query(
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0'
-    ).catch(error => {
+    authSecurityReady = (async () => {
+      await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0');
+      await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ');
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS suspension_reason VARCHAR(500) NOT NULL DEFAULT ''");
+    })().catch(error => {
       authSecurityReady = null;
       throw error;
     });
@@ -26,7 +28,8 @@ async function sessionUserFromToken(token) {
 
   const payload = jwt.verify(token, process.env.JWT_SECRET);
   const result = await db.query(
-    `SELECT id,username,is_admin,age_verified,show_sensitive,status,auth_token_version
+    `SELECT id,username,is_admin,age_verified,show_sensitive,status,auth_token_version,
+              suspended_until,suspension_reason
        FROM users
       WHERE id=$1
       LIMIT 1`,
@@ -35,6 +38,17 @@ async function sessionUserFromToken(token) {
 
   if (!result.rowCount) return null;
   const row = result.rows[0];
+
+  if (row.status === 'suspended' && row.suspended_until && new Date(row.suspended_until).getTime() <= Date.now()) {
+    await db.query(
+      "UPDATE users SET status='active',suspended_until=NULL,suspension_reason='',updated_at=now() WHERE id=$1 AND status='suspended'",
+      [row.id]
+    );
+    row.status = 'active';
+    row.suspended_until = null;
+    row.suspension_reason = '';
+  }
+
   if (row.status !== 'active') return null;
 
   const tokenVersion = Number(payload.authVersion ?? 0);
