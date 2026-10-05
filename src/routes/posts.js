@@ -8,9 +8,9 @@ const router = express.Router();
 
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
-  mediaUrl: z.string().min(1).max(4096),
-  mediaType: z.enum(['image', 'video']),
-  mediaProvider: z.string().max(40).default('local'),
+  mediaUrl: z.string().max(4096).optional().default(''),
+  mediaType: z.enum(['image', 'video']).optional().default('image'),
+  mediaProvider: z.string().max(40).optional().default('local'),
   externalId: z.string().max(255).optional().nullable(),
   playbackUrl: z.string().max(4096).optional().nullable(),
   contentLevel: z.enum(['normal', 'sensitive', 'nudity']),
@@ -22,6 +22,17 @@ router.post('/', requireAuth, async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid_data', details: parsed.error.flatten() });
   const data = parsed.data;
+  const hasText = Boolean(String(data.caption || '').trim());
+  const hasMedia = Boolean(String(data.mediaUrl || '').trim());
+
+  if (!hasText && !hasMedia) {
+    return res.status(400).json({ error: 'empty_post' });
+  }
+
+  if (data.kind === 'reel' && !hasMedia) {
+    return res.status(400).json({ error: 'reel_media_required' });
+  }
+
   if (!validateContentLevel(data.contentLevel)) return res.status(400).json({ error: 'invalid_content_level' });
 
   if (data.contentLevel === 'nudity') {
