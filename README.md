@@ -1,4 +1,4 @@
-# RedLibertad V1.5.0 — Community & Viral
+# RedLibertad V1.6.0 — Profiles & Activity 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -155,3 +155,18 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Tabla reposts creada automáticamente de forma idempotente.
 - Nuevos tipos de notificación: mention y repost.
 - Sin pasos manuales de migración para la versión desplegada.
+
+
+## V1.6.0 — Profiles & Activity 2.0
+
+- Perfiles con pestañas Publicaciones, Republicados y Multimedia.
+- Las miniaturas del perfil abren la publicación completa.
+- Contexto social en perfiles públicos: personas en común y señal "Te sigue".
+- Botón Compartir perfil con Web Share o copia de enlace.
+- Deep links de perfil mediante /app?profile=usuario.
+- Deep links internos de publicación mediante /app?post=id.
+- Visor de publicación centrado para navegación desde actividad.
+- Notificaciones filtrables por Todo, Menciones, Interacciones, Comunidad, Mensajes y Consentimiento.
+- Las notificaciones llevan a la publicación, perfil, conversación o consentimiento correspondiente.
+- Estados no leídos sincronizados al abrir una notificación.
+- Sin migraciones PostgreSQL nuevas.
