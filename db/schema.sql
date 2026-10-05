@@ -156,3 +156,24 @@ CREATE TABLE IF NOT EXISTS referrals (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_user_id,created_at DESC);
+
+
+-- RedLibertad V1.9: privacidad y control
+ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE;
+
+DO $$ BEGIN
+  ALTER TABLE users
+    ADD CONSTRAINT users_message_privacy_check
+    CHECK(message_privacy IN ('everyone','following','no_one'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS mutes (
+  muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(muter_id,muted_id),
+  CHECK(muter_id<>muted_id)
+);
+CREATE INDEX IF NOT EXISTS idx_mutes_muter ON mutes(muter_id,created_at DESC);

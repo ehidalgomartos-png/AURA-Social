@@ -1,4 +1,4 @@
-# RedLibertad V1.8.0 — Growth & Invites
+# RedLibertad V1.9.0 — Privacy & Control
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -199,3 +199,18 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Notificación al invitador cuando alguien se registra con su enlace.
 - Tabla referrals creada automáticamente de forma idempotente.
 - Sin pasos manuales de migración.
+
+
+## V1.9.0 — Privacy & Control
+
+- Nuevo centro de Privacidad accesible desde el perfil.
+- Control de quién puede iniciar una conversación: todo el mundo, solo personas que sigues o nadie.
+- Opción para aparecer o no en Explorar y sugerencias.
+- Opción para mostrar u ocultar la actividad reciente.
+- Silenciar usuarios sin bloquearlos.
+- Las cuentas silenciadas desaparecen del feed, Stories, tendencias, sugerencias y notificaciones.
+- Bloquear y desbloquear usuarios desde perfiles y desde el centro de privacidad.
+- Gestión visual de listas de silenciados y bloqueados.
+- Los bloqueos siguen rompiendo relaciones de seguimiento.
+- Las conversaciones existentes se mantienen aunque cambies la privacidad de mensajes.
+- Esquema creado de forma idempotente, sin pasos manuales.

@@ -4,7 +4,30 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+let messagePrivacyReady = null;
+async function ensureMessagePrivacy() {
+  if (!messagePrivacyReady) {
+    messagePrivacyReady = (async () => {
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
+    })().catch(error => {
+      messagePrivacyReady = null;
+      throw error;
+    });
+  }
+  return messagePrivacyReady;
+}
+
 router.use(requireAuth);
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureMessagePrivacy();
+    next();
+  }catch(error){
+    console.error('RedLibertad message privacy bootstrap failed:',error);
+    res.status(500).json({error:'message_privacy_bootstrap_failed'});
+  }
+});
 
 async function userRow(id) {
   const r = await db.query(`SELECT id,username,display_name,avatar_url,age_verified,creator_verified,status FROM users WHERE id=$1`, [id]);
@@ -59,7 +82,7 @@ const createConversationSchema = z.object({ username: z.string().min(1).max(30) 
 router.post('/conversations', async (req, res) => {
   const parsed = createConversationSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'invalid_data' });
-  const target = await db.query(`SELECT id,username,display_name,avatar_url,status FROM users WHERE lower(username)=lower($1) LIMIT 1`, [parsed.data.username]);
+  const target = await db.query(`SELECT id,username,display_name,avatar_url,status,message_privacy FROM users WHERE lower(username)=lower($1) LIMIT 1`, [parsed.data.username]);
   if (!target.rowCount || target.rows[0].status !== 'active') return res.status(404).json({ error: 'user_not_found' });
   const targetId = target.rows[0].id;
   if (String(targetId) === String(req.user.id)) return res.status(400).json({ error: 'cannot_message_self' });
@@ -76,6 +99,20 @@ router.post('/conversations', async (req, res) => {
      LIMIT 1
   `, [req.user.id, targetId]);
   if (existing.rowCount) return res.json({ ok: true, conversationId: existing.rows[0].id, existing: true });
+
+  if (target.rows[0].message_privacy === 'no_one') {
+    return res.status(403).json({ error: 'message_privacy_denied' });
+  }
+
+  if (target.rows[0].message_privacy === 'following') {
+    const targetFollowsSender = await db.query(
+      'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2 LIMIT 1',
+      [targetId,req.user.id]
+    );
+    if (!targetFollowsSender.rowCount) {
+      return res.status(403).json({ error: 'message_privacy_following_only' });
+    }
+  }
 
   const client = await db.pool.connect();
   try {

@@ -6,6 +6,39 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let mutePrivacyReady = null;
+async function ensureMutePrivacy() {
+  if (!mutePrivacyReady) {
+    mutePrivacyReady = (async () => {
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS mutes (
+          muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(muter_id,muted_id),
+          CHECK(muter_id<>muted_id)
+        )
+      `);
+    })().catch(error => {
+      mutePrivacyReady = null;
+      throw error;
+    });
+  }
+  return mutePrivacyReady;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureMutePrivacy();
+    next();
+  }catch(error){
+    console.error('RedLibertad mute privacy bootstrap failed:',error);
+    res.status(500).json({error:'privacy_bootstrap_failed'});
+  }
+});
+
+
 let communityV15Ready = null;
 async function ensureCommunityV15() {
   if (!communityV15Ready) {
@@ -393,6 +426,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
   if (req.user) {
     params.push(req.user.id);
     where.push(`p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`);
+    where.push(`p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`);
     if (mode === 'following') where.push(`(
       p.user_id=$1
       OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
@@ -454,7 +488,8 @@ router.get('/momentum', requireAuth, async (req,res)=>{
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
-       )`;
+       )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
 
   const catchupResult=await db.query(`
     ${commonSelect}
@@ -514,7 +549,7 @@ router.get('/discover', optionalAuth, async (req, res) => {
   let likedByMe='false';
   if(req.user){
     params.push(req.user.id);
-    block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;
+    block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)';
   }
   const result=await db.query(`
@@ -527,6 +562,7 @@ router.get('/discover', optionalAuth, async (req, res) => {
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        ${block}
      ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC
      LIMIT 60
@@ -553,11 +589,13 @@ router.get('/search', requireAuth, async (req,res)=>{
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
        AND (
          p.caption ILIKE $2
          OR u.username ILIKE $2
@@ -593,12 +631,14 @@ router.get('/trending', requireAuth, async (req,res)=>{
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        AND p.created_at >= now() - interval '30 days'
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
      ORDER BY ${orderBy}, p.created_at DESC
      LIMIT 40
   `,[req.user.id]);
@@ -616,6 +656,7 @@ router.get('/trends', requireAuth, async (req,res)=>{
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        AND p.created_at >= now() - interval '30 days'
        AND p.caption <> ''
        AND p.user_id NOT IN (
@@ -623,6 +664,7 @@ router.get('/trends', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
      ORDER BY p.created_at DESC
      LIMIT 500
   `,[req.user.id]);
@@ -679,6 +721,7 @@ router.get('/saved', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
      ORDER BY sp.created_at DESC
      LIMIT 100
   `,[req.user.id]);

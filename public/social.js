@@ -757,7 +757,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="privacySettings" class="secondary">Privacidad</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -772,6 +772,7 @@ async function loadProfile(mode = ownProfileMode) {
     if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
+  $('#privacySettings').onclick = openPrivacyModal;
   await loadConsents();
 }
 
@@ -878,11 +879,14 @@ async function openPublicProfile(username) {
           type="button"
           class="${profileData.following ? 'secondary' : 'primary'}"
           data-public-follow="${profile.id}"
-          data-following="${profileData.following ? '1' : '0'}">
+          data-following="${profileData.following ? '1' : '0'}"
+          ${profileData.blockedByMe ? 'disabled' : ''}>
           ${profileData.following ? 'Siguiendo' : 'Seguir'}
         </button>
-        <button type="button" class="secondary" data-message-profile="${esc(profile.username)}">Mensaje</button>
+        <button type="button" class="secondary" data-message-profile="${esc(profile.username)}" ${profileData.blockedByMe ? 'disabled' : ''}>Mensaje</button>
         <button type="button" class="secondary" data-share-profile="${esc(profile.username)}">Compartir perfil</button>
+        <button type="button" class="secondary ${profileData.mutedByMe ? 'active-control' : ''}" data-mute-profile="${profile.id}" data-muted="${profileData.mutedByMe ? '1' : '0'}">${profileData.mutedByMe ? 'Silenciado' : 'Silenciar'}</button>
+        <button type="button" class="danger-outline" data-block-profile="${profile.id}" data-blocked="${profileData.blockedByMe ? '1' : '0'}">${profileData.blockedByMe ? 'Desbloquear' : 'Bloquear'}</button>
       </div>
     `;
 
@@ -948,7 +952,16 @@ async function openPublicProfile(username) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: profile.username })
         });
-        if (!r.ok) return toast('No se pudo abrir la conversación.');
+        if (!r.ok) {
+          const message = d.error === 'message_privacy_denied'
+            ? 'Esta persona no acepta nuevas conversaciones.'
+            : d.error === 'message_privacy_following_only'
+              ? 'Solo acepta mensajes de personas que sigue.'
+              : d.error === 'messaging_blocked'
+                ? 'No puedes iniciar esta conversación.'
+                : 'No se pudo abrir la conversación.';
+          return toast(message);
+        }
         modal.classList.add('hidden');
         showView('messages');
         await loadConversations(d.conversationId);
@@ -958,6 +971,45 @@ async function openPublicProfile(username) {
     const shareButton = content.querySelector('[data-share-profile]');
     if (shareButton) {
       shareButton.onclick = () => shareProfile(profile);
+    }
+
+    const muteButton = content.querySelector('[data-mute-profile]');
+    if (muteButton) {
+      muteButton.onclick = async () => {
+        const muted = muteButton.dataset.muted === '1';
+        const { r } = await api(`/api/profiles/${profile.id}/mute`, {
+          method: muted ? 'DELETE' : 'POST'
+        });
+        if (!r.ok) return toast('No se pudo actualizar el silencio.');
+
+        muteButton.dataset.muted = muted ? '0' : '1';
+        muteButton.textContent = muted ? 'Silenciar' : 'Silenciado';
+        muteButton.classList.toggle('active-control', !muted);
+        toast(muted ? 'Volverás a ver su actividad' : 'Has silenciado a esta persona');
+        await Promise.all([loadFeed(currentMode),loadStories(),loadNotifications(),loadHomeMomentum()]);
+      };
+    }
+
+    const blockButton = content.querySelector('[data-block-profile]');
+    if (blockButton) {
+      blockButton.onclick = async () => {
+        const blocked = blockButton.dataset.blocked === '1';
+
+        if (!blocked && !window.confirm('¿Bloquear a esta persona? Dejaréis de seguiros y no podréis interactuar mientras siga bloqueada.')) {
+          return;
+        }
+
+        const { r } = await api(`/api/profiles/${profile.id}/block`, {
+          method: blocked ? 'DELETE' : 'POST'
+        });
+        if (!r.ok) return toast('No se pudo actualizar el bloqueo.');
+
+        toast(blocked ? 'Usuario desbloqueado' : 'Usuario bloqueado');
+        if (!blocked) modal.classList.add('hidden');
+        await loadMe();
+        await Promise.all([loadFeed(currentMode),loadStories(),loadNotifications(),loadHomeSuggestions(),loadActivePeople(),loadHomeMomentum()]);
+        if (blocked) await openPublicProfile(profile.username);
+      };
     }
   } catch (error) {
     content.innerHTML = '<div class="info-card"><b>No se pudo abrir el perfil.</b><p>Puede que esta cuenta ya no esté disponible.</p></div>';
@@ -1152,6 +1204,127 @@ $('#socialListModal')?.addEventListener('click', event => {
   if (event.target === $('#socialListModal')) closeSocialList();
 });
 
+function privacyPersonHTML(user, kind) {
+  const action = kind === 'muted' ? 'Dejar de silenciar' : 'Desbloquear';
+  return `<article class="privacy-person">
+    ${profileLink(user.username, `<span class="privacy-person-avatar">${avatarHTML(user)}</span>`, 'privacy-profile-link')}
+    <div>
+      ${profileLink(user.username, `<b>${esc(user.display_name)}</b>`, 'privacy-profile-link')}
+      <small>@${esc(user.username)}</small>
+    </div>
+    <button type="button" class="secondary" data-privacy-remove="${kind}" data-user-id="${user.id}">${action}</button>
+  </article>`;
+}
+
+async function loadPrivacyLists() {
+  const [mutedResponse,blockedResponse] = await Promise.all([
+    api('/api/profiles/me/muted'),
+    api('/api/profiles/me/blocked')
+  ]);
+
+  const muted = mutedResponse.r.ok && Array.isArray(mutedResponse.d.users) ? mutedResponse.d.users : [];
+  const blocked = blockedResponse.r.ok && Array.isArray(blockedResponse.d.users) ? blockedResponse.d.users : [];
+
+  $('#mutedCountBadge').textContent = muted.length;
+  $('#blockedCountBadge').textContent = blocked.length;
+  $('#mutedList').innerHTML = muted.length
+    ? muted.map(user => privacyPersonHTML(user,'muted')).join('')
+    : '<div class="privacy-list-empty">No has silenciado a nadie.</div>';
+  $('#blockedList').innerHTML = blocked.length
+    ? blocked.map(user => privacyPersonHTML(user,'blocked')).join('')
+    : '<div class="privacy-list-empty">No has bloqueado a nadie.</div>';
+}
+
+async function openPrivacyModal() {
+  const modal = $('#privacyModal');
+  const status = $('#privacyStatus');
+  if (!modal) return;
+
+  status.textContent = 'Cargando...';
+  modal.classList.remove('hidden');
+
+  const { r, d } = await api('/api/profiles/me/privacy');
+  if (!r.ok) {
+    status.textContent = 'No se pudieron cargar tus ajustes.';
+    return;
+  }
+
+  const form = $('#privacyForm');
+  form.messagePrivacy.value = d.settings?.messagePrivacy || 'everyone';
+  form.discoverable.checked = d.settings?.discoverable !== false;
+  form.showActivity.checked = d.settings?.showActivity !== false;
+  $('#mutedCountBadge').textContent = Number(d.mutedCount || 0);
+  $('#blockedCountBadge').textContent = Number(d.blockedCount || 0);
+  status.textContent = '';
+  await loadPrivacyLists();
+}
+
+function closePrivacyModal() {
+  $('#privacyModal')?.classList.add('hidden');
+}
+
+$('#closePrivacyModal')?.addEventListener('click', closePrivacyModal);
+$('#privacyModal')?.addEventListener('click', event => {
+  if (event.target === $('#privacyModal')) closePrivacyModal();
+});
+
+$('#privacyForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const status = $('#privacyStatus');
+  status.textContent = 'Guardando...';
+
+  const { r, d } = await api('/api/profiles/me/privacy', {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      messagePrivacy:form.messagePrivacy.value,
+      discoverable:form.discoverable.checked,
+      showActivity:form.showActivity.checked
+    })
+  });
+
+  if (!r.ok) {
+    status.textContent = 'No se pudieron guardar los ajustes.';
+    return;
+  }
+
+  me = {
+    ...me,
+    message_privacy:d.settings.messagePrivacy,
+    discoverable:d.settings.discoverable,
+    show_activity:d.settings.showActivity
+  };
+  status.textContent = 'Privacidad actualizada.';
+  toast('Privacidad actualizada');
+  await Promise.all([loadHomeSuggestions(),loadActivePeople()]);
+});
+
+document.addEventListener('click', async event => {
+  const button = event.target.closest('[data-privacy-remove]');
+  if (!button) return;
+  event.preventDefault();
+
+  const kind = button.dataset.privacyRemove;
+  const userId = button.dataset.userId;
+  button.disabled = true;
+
+  try {
+    const endpoint = kind === 'muted'
+      ? `/api/profiles/${userId}/mute`
+      : `/api/profiles/${userId}/block`;
+    const { r } = await api(endpoint,{method:'DELETE'});
+    if (!r.ok) throw new Error('privacy_remove_failed');
+    toast(kind === 'muted' ? 'Usuario visible de nuevo' : 'Usuario desbloqueado');
+    await loadPrivacyLists();
+    await Promise.all([loadFeed(currentMode),loadStories(),loadNotifications(),loadHomeSuggestions(),loadActivePeople()]);
+  } catch (_) {
+    toast('No se pudo actualizar este ajuste.');
+  } finally {
+    button.disabled = false;
+  }
+});
+
 async function openProfileModal() {
   const form = $('#profileForm');
   form.displayName.value = me.display_name || '';
@@ -1343,9 +1516,17 @@ async function shareInsideRedLibertad(username) {
   });
 
   if (!conversation.r.ok) {
-    if (status) status.textContent = conversation.d.error === 'cannot_message_self'
-      ? 'No puedes enviártelo a ti mismo.'
-      : 'No se pudo abrir la conversación.';
+    if (status) {
+      status.textContent = conversation.d.error === 'cannot_message_self'
+        ? 'No puedes enviártelo a ti mismo.'
+        : conversation.d.error === 'message_privacy_denied'
+          ? 'Esta persona no acepta nuevas conversaciones.'
+          : conversation.d.error === 'message_privacy_following_only'
+            ? 'Solo acepta mensajes de personas que sigue.'
+            : conversation.d.error === 'messaging_blocked'
+              ? 'No puedes iniciar esta conversación.'
+              : 'No se pudo abrir la conversación.';
+    }
     return;
   }
 
@@ -2088,7 +2269,18 @@ $('#newMessageForm').addEventListener('submit', async e => {
   const fd = new FormData(e.target); const status = $('#newMessageStatus'); status.textContent = 'Abriendo...';
   const username = String(fd.get('username') || '').replace(/^@/, '');
   const { r, d } = await api('/api/messages/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
-  if (!r.ok) { status.textContent = d.error === 'user_not_found' ? 'No encuentro ese usuario.' : 'No se pudo abrir la conversación.'; return; }
+  if (!r.ok) {
+    status.textContent = d.error === 'user_not_found'
+      ? 'No encuentro ese usuario.'
+      : d.error === 'message_privacy_denied'
+        ? 'Esta persona no acepta nuevas conversaciones.'
+        : d.error === 'message_privacy_following_only'
+          ? 'Solo acepta mensajes de personas que sigue.'
+          : d.error === 'messaging_blocked'
+            ? 'No puedes iniciar esta conversación.'
+            : 'No se pudo abrir la conversación.';
+    return;
+  }
   $('#newMessageModal').classList.add('hidden'); e.target.reset(); showView('messages'); await loadConversations(d.conversationId);
 });
 

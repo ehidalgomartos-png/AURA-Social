@@ -2677,3 +2677,225 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     grid-column:auto;
   }
 }
+
+
+/* =========================================================
+   RedLibertad V1.9 — Privacy & Control
+   ========================================================= */
+.privacy-modal-card{
+  width:min(720px,100%);
+  max-height:90vh;
+  overflow:auto;
+}
+#privacyForm{
+  display:grid;
+  gap:13px;
+}
+#privacyForm>label:first-child{
+  display:grid;
+  gap:7px;
+}
+#privacyForm select{
+  width:100%;
+  min-height:46px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px 12px;
+  background:var(--paper);
+  color:var(--ink);
+}
+#privacyForm label>small{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+.privacy-toggle{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  padding:12px;
+  border:1px solid rgba(13,34,56,.07);
+  border-radius:15px;
+  background:rgba(255,255,255,.68);
+  cursor:pointer;
+}
+.privacy-toggle input{
+  width:20px;
+  height:20px;
+  margin:1px 0 0;
+  accent-color:var(--teal);
+}
+.privacy-toggle b,
+.privacy-toggle small{
+  display:block;
+}
+.privacy-toggle b{
+  color:var(--navy);
+  font-size:12px;
+}
+.privacy-toggle small{
+  margin-top:3px;
+}
+.privacy-lists{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:20px;
+  padding-top:18px;
+  border-top:1px solid var(--line);
+}
+.privacy-lists>section{
+  min-width:0;
+  border:1px solid rgba(13,34,56,.07);
+  border-radius:17px;
+  padding:12px;
+  background:linear-gradient(180deg,rgba(255,253,249,.96),rgba(248,245,239,.96));
+}
+.privacy-list-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:9px;
+}
+.privacy-list-head b,
+.privacy-list-head small{
+  display:block;
+}
+.privacy-list-head b{
+  color:var(--navy);
+  font-size:12px;
+}
+.privacy-list-head small{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+}
+.privacy-list-head>span{
+  min-width:26px;
+  height:26px;
+  padding:0 7px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:var(--navy-soft);
+  color:var(--navy);
+  font-size:10px;
+  font-weight:900;
+}
+.privacy-person-list{
+  display:grid;
+  gap:6px;
+  max-height:250px;
+  overflow:auto;
+}
+.privacy-person{
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border-radius:13px;
+  background:rgba(255,255,255,.72);
+}
+.privacy-person-avatar{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:var(--navy2);
+  color:white;
+  font-size:10px;
+  font-weight:800;
+}
+.privacy-person-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.privacy-person b,
+.privacy-person small{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.privacy-person b{
+  color:var(--navy);
+  font-size:11px;
+}
+.privacy-person small{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+}
+.privacy-person .secondary{
+  min-height:34px;
+  padding:7px 9px;
+  font-size:9px;
+}
+.privacy-list-empty{
+  padding:12px 4px;
+  color:var(--muted);
+  font-size:10px;
+  text-align:center;
+}
+.public-profile-actions{
+  flex-wrap:wrap;
+}
+.public-profile-actions .active-control{
+  color:var(--teal);
+  border-color:rgba(43,183,169,.24);
+  background:var(--teal-soft);
+}
+.public-profile-actions button:disabled{
+  opacity:.46;
+  cursor:not-allowed;
+}
+#profileView .profile-buttons{
+  align-items:stretch;
+}
+
+@media(max-width:760px){
+  .privacy-modal-card{
+    width:100%;
+    max-height:90dvh;
+    border-radius:26px 26px 0 0;
+  }
+  .privacy-lists{
+    grid-template-columns:1fr;
+  }
+  .privacy-person-list{
+    max-height:210px;
+  }
+  #profileView .profile-buttons{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #profileView .profile-buttons #sensitiveToggle{
+    grid-column:1/-1;
+  }
+  .public-profile-actions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+  }
+  .public-profile-actions button{
+    width:100%;
+  }
+}
+@media(max-width:390px){
+  #profileView .profile-buttons{
+    grid-template-columns:1fr;
+  }
+  #profileView .profile-buttons #sensitiveToggle{
+    grid-column:auto;
+  }
+  .public-profile-actions{
+    grid-template-columns:1fr;
+  }
+}

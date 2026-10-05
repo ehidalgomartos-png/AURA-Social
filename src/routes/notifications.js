@@ -5,6 +5,36 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
+let mutePrivacyReady = null;
+async function ensureMutePrivacy() {
+  if (!mutePrivacyReady) {
+    mutePrivacyReady = db.query(`
+      CREATE TABLE IF NOT EXISTS mutes (
+        muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY(muter_id,muted_id),
+        CHECK(muter_id<>muted_id)
+      )
+    `).catch(error => {
+      mutePrivacyReady = null;
+      throw error;
+    });
+  }
+  return mutePrivacyReady;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureMutePrivacy();
+    next();
+  }catch(error){
+    console.error('RedLibertad mute privacy bootstrap failed:',error);
+    res.status(500).json({error:'privacy_bootstrap_failed'});
+  }
+});
+
+
 router.get('/', async (req, res) => {
   const result = await db.query(`
     SELECT n.id,n.type,n.entity_type,n.entity_id,n.text,n.read_at,n.created_at,
@@ -12,10 +42,14 @@ router.get('/', async (req, res) => {
       FROM notifications n
       LEFT JOIN users u ON u.id=n.actor_id
      WHERE n.user_id=$1
+       AND (
+         n.actor_id IS NULL
+         OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       )
      ORDER BY n.created_at DESC
      LIMIT 100
   `, [req.user.id]);
-  const count = await db.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id=$1 AND read_at IS NULL`, [req.user.id]);
+  const count = await db.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id=$1 AND read_at IS NULL AND (actor_id IS NULL OR actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1))`, [req.user.id]);
   res.json({ notifications: result.rows, unread: count.rows[0].n });
 });
 

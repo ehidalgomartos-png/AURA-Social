@@ -5,6 +5,36 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { canViewerSee } = require('../services/contentPolicy');
 
 const router = express.Router();
+
+let mutePrivacyReady = null;
+async function ensureMutePrivacy() {
+  if (!mutePrivacyReady) {
+    mutePrivacyReady = db.query(`
+      CREATE TABLE IF NOT EXISTS mutes (
+        muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY(muter_id,muted_id),
+        CHECK(muter_id<>muted_id)
+      )
+    `).catch(error => {
+      mutePrivacyReady = null;
+      throw error;
+    });
+  }
+  return mutePrivacyReady;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureMutePrivacy();
+    next();
+  }catch(error){
+    console.error('RedLibertad mute privacy bootstrap failed:',error);
+    res.status(500).json({error:'privacy_bootstrap_failed'});
+  }
+});
+
 const schema = z.object({
   mediaUrl: z.string().min(1).max(4096), mediaType: z.enum(['image','video']),
   mediaProvider: z.string().max(40).default('local'), externalId: z.string().max(255).optional().nullable(),
@@ -29,7 +59,7 @@ router.get('/', optionalAuth, async (req,res) => {
     const vr=await db.query('SELECT age_verified,show_sensitive FROM users WHERE id=$1',[req.user.id]);
     viewer={ageVerified:vr.rows[0]?.age_verified,showSensitive:vr.rows[0]?.show_sensitive};
     params.push(req.user.id);
-    block=`AND s.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;
+    block=`AND s.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND s.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
   }
   const r=await db.query(`SELECT s.*,u.username,u.display_name,u.avatar_url,u.creator_verified FROM stories s JOIN users u ON u.id=s.user_id WHERE s.expires_at>now() AND s.moderation_status='published' AND u.status='active' ${block} ORDER BY s.created_at DESC LIMIT 100`,params);
   const stories=r.rows.map(s=>{const g=canViewerSee({postLevel:s.content_level,viewer}); return {...s,media_url:g.allowed?s.media_url:null,playback_url:g.allowed?s.playback_url:null,gated:!g.allowed,gate_reason:g.reason||null};});
