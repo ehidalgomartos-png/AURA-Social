@@ -5,6 +5,36 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { canViewerSee } = require('../services/contentPolicy');
 
 const router = express.Router();
+
+let mutePrivacyReady = null;
+async function ensureMutePrivacy() {
+  if (!mutePrivacyReady) {
+    mutePrivacyReady = db.query(`
+      CREATE TABLE IF NOT EXISTS mutes (
+        muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY(muter_id,muted_id),
+        CHECK(muter_id<>muted_id)
+      )
+    `).catch(error => {
+      mutePrivacyReady = null;
+      throw error;
+    });
+  }
+  return mutePrivacyReady;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureMutePrivacy();
+    next();
+  }catch(error){
+    console.error('RedLibertad mute privacy bootstrap failed:',error);
+    res.status(500).json({error:'privacy_bootstrap_failed'});
+  }
+});
+
 const schema = z.object({
   mediaUrl: z.string().min(1).max(4096), mediaType: z.enum(['image','video']),
   mediaProvider: z.string().max(40).default('local'), externalId: z.string().max(255).optional().nullable(),
