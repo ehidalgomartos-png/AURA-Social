@@ -48,3 +48,11 @@ Base estable: RedLibertad V1.9.0.
 ## Compatibilidad
 - /api/health actualizado a 1.10.0.
 - Cache PWA actualizado a V1.10.
+
+
+## PWA y caché
+- /api/ nunca se guarda en Cache Storage.
+- /uploads/ se sirve siempre desde red para evitar respuestas multimedia obsoletas.
+- /p/ se mantiene dinámico para compartir publicaciones actuales.
+- Solo se cachean respuestas estáticas correctas del mismo origen.
+- Las respuestas de Cuenta y Exportación usan Cache-Control: no-store.
