@@ -118,3 +118,31 @@ CREATE TABLE IF NOT EXISTS saved_posts (
   PRIMARY KEY(user_id,post_id)
 );
 CREATE INDEX IF NOT EXISTS idx_saved_posts_user_created ON saved_posts(user_id,created_at DESC);
+
+
+-- RedLibertad V1.5: comunidad y viralidad
+CREATE TABLE IF NOT EXISTS reposts (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,post_id)
+);
+CREATE INDEX IF NOT EXISTS idx_reposts_post_created ON reposts(post_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reposts_user_created ON reposts(user_id,created_at DESC);
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK(type IN (
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'mention',
+    'repost',
+    'system'
+  ));
