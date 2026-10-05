@@ -10,12 +10,11 @@ async function ensureMessagePrivacy() {
   if (!messagePrivacyReady) {
     messagePrivacyReady = (async () => {
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
+      await db.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_message_privacy_check');
       await db.query(`
-        DO $ BEGIN
-          ALTER TABLE users
-            ADD CONSTRAINT users_message_privacy_check
-            CHECK(message_privacy IN ('everyone','following','no_one'));
-        EXCEPTION WHEN duplicate_object THEN NULL; END $
+        ALTER TABLE users
+          ADD CONSTRAINT users_message_privacy_check
+          CHECK(message_privacy IN ('everyone','following','no_one'))
       `);
     })().catch(error => {
       messagePrivacyReady = null;
