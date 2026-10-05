@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
-  "description": "RedLibertad V1.10 Account & Security - sesiones revocables, cambio de contraseña, exportación de datos y eliminación segura de cuenta.",
+  "description": "RedLibertad V1.11 Trust & Moderation 2.0 - avisos, suspensiones temporales, historial, contexto de denuncias y control avanzado de cuentas.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
