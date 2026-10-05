@@ -686,6 +686,11 @@ router.post('/:id/mute',requireAuth,async(req,res)=>{
     ON CONFLICT DO NOTHING
   `,[req.user.id,req.params.id]);
 
+  await db.query(
+    'UPDATE notifications SET read_at=COALESCE(read_at,now()) WHERE user_id=$1 AND actor_id=$2',
+    [req.user.id,req.params.id]
+  );
+
   res.json({ok:true,muted:true});
 });
 
