@@ -1515,13 +1515,114 @@ function updateNotificationBadge(n) {
     b.classList.toggle('hidden', !n);
   });
 }
+
+function notificationIcon(type) {
+  return ({
+    like: '♥',
+    comment: '◯',
+    mention: '@',
+    repost: '⟳',
+    follow: '+',
+    message: '✉',
+    consent_request: '!',
+    consent_approved: '✓',
+    consent_rejected: '×',
+    consent_revoked: '↶',
+    system: 'R'
+  })[type] || '•';
+}
+
+function notificationMatches(notification, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'mentions') return notification.type === 'mention';
+  if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
+  if (filter === 'community') return notification.type === 'follow';
+  if (filter === 'messages') return notification.type === 'message';
+  if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
+  return true;
+}
+
+function renderNotifications() {
+  const root = $('#notificationsList');
+  if (!root) return;
+
+  all('[data-notification-filter]').forEach(button => {
+    button.classList.toggle('active', button.dataset.notificationFilter === activeNotificationFilter);
+  });
+
+  const items = notificationCache.filter(notification => notificationMatches(notification, activeNotificationFilter));
+
+  root.innerHTML = items.length
+    ? items.map(n => `<button type="button" class="notification-item notification-button ${n.read_at ? '' : 'unread'}" data-notification="${n.id}" data-notification-type="${esc(n.type)}" data-entity-type="${esc(n.entity_type || '')}" data-entity-id="${n.entity_id || ''}" data-actor-username="${esc(n.actor_username || '')}"><div class="notification-symbol" aria-hidden="true">${notificationIcon(n.type)}</div><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div class="notification-copy"><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${timeAgo(n.created_at)}</small></div><span class="notification-open">›</span></button>`).join('')
+    : '<div class="info-card"><b>No hay actividad en este filtro.</b><p>Cuando ocurra algo nuevo aparecerá aquí.</p></div>';
+
+  all('[data-notification]', root).forEach(item => {
+    item.onclick = async () => {
+      const id = item.dataset.notification;
+      const notification = notificationCache.find(n => String(n.id) === String(id));
+
+      if (notification && !notification.read_at) {
+        await api(`/api/notifications/${id}/read`, { method: 'POST' });
+        notification.read_at = new Date().toISOString();
+        item.classList.remove('unread');
+        updateNotificationBadge(notificationCache.filter(n => !n.read_at).length);
+      }
+
+      if (notification) await navigateNotification(notification);
+    };
+  });
+}
+
+async function navigateNotification(notification) {
+  const type = String(notification.type || '');
+  const entityType = String(notification.entity_type || '');
+  const entityId = notification.entity_id;
+
+  if (type === 'message' && entityType === 'conversation' && entityId) {
+    showView('messages');
+    await loadConversations(entityId);
+    return;
+  }
+
+  if (type === 'follow' && notification.actor_username) {
+    await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (entityType === 'post' && entityId && ['like','comment','mention','repost'].includes(type)) {
+    await openPostFocus(entityId);
+    return;
+  }
+
+  if (type.startsWith('consent_')) {
+    showView('profile');
+    setTimeout(() => {
+      document.querySelector('#profileView .consent-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 250);
+  }
+}
+
 async function loadNotifications() {
   const { d } = await api('/api/notifications');
-  updateNotificationBadge(d.unread);
-  $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
-  all('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
+  notificationCache = Array.isArray(d.notifications) ? d.notifications : [];
+  updateNotificationBadge(Number(d.unread || 0));
+  renderNotifications();
 }
-$('#readAllNotifications').onclick = async () => { await api('/api/notifications/read-all', { method: 'POST' }); toast('Notificaciones marcadas como leídas'); await loadNotifications(); };
+
+all('[data-notification-filter]').forEach(button => {
+  button.onclick = () => {
+    activeNotificationFilter = button.dataset.notificationFilter || 'all';
+    renderNotifications();
+  };
+});
+
+$('#readAllNotifications').onclick = async () => {
+  await api('/api/notifications/read-all', { method: 'POST' });
+  notificationCache = notificationCache.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }));
+  updateNotificationBadge(0);
+  renderNotifications();
+  toast('Notificaciones marcadas como leídas');
+};
 
 async function loadConversations(openId = null) {
   const { d } = await api('/api/messages/conversations');
