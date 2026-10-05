@@ -9,15 +9,18 @@ const router = express.Router();
 let mutePrivacyReady = null;
 async function ensureMutePrivacy() {
   if (!mutePrivacyReady) {
-    mutePrivacyReady = db.query(`
-      CREATE TABLE IF NOT EXISTS mutes (
-        muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        PRIMARY KEY(muter_id,muted_id),
-        CHECK(muter_id<>muted_id)
-      )
-    `).catch(error => {
+    mutePrivacyReady = (async () => {
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS mutes (
+          muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(muter_id,muted_id),
+          CHECK(muter_id<>muted_id)
+        )
+      `);
+    })().catch(error => {
       mutePrivacyReady = null;
       throw error;
     });
