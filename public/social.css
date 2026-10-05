@@ -706,3 +706,10 @@
     min-width:38px;
   }
 }
+
+
+@media(max-width:430px){
+  .post-actions .share-label{display:none!important}
+  .post-actions{justify-content:space-between}
+  .post-actions .share-action{min-width:38px;padding-inline:8px}
+}
