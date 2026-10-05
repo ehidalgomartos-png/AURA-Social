@@ -182,3 +182,21 @@ CREATE INDEX IF NOT EXISTS idx_mutes_muter ON mutes(muter_id,created_at DESC);
 -- RedLibertad V1.10: cuenta y seguridad
 ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+
+
+-- RedLibertad V1.11: confianza y moderación 2.0
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspension_reason VARCHAR(500) NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS user_moderation_actions (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  admin_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  action VARCHAR(40) NOT NULL,
+  duration_label VARCHAR(40) NOT NULL DEFAULT '',
+  reason VARCHAR(1000) NOT NULL DEFAULT '',
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_user_moderation_actions_user_created
+  ON user_moderation_actions(user_id,created_at DESC);
