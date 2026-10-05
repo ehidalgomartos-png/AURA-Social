@@ -1704,6 +1704,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   font:inherit;
   color:inherit;
   cursor:pointer;
+  padding:9px 12px;
+  border-radius:14px;
+  background:rgba(13,34,56,.035);
 }
 .profile-stats button:hover,
 .profile-stats button:focus-visible{
