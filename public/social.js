@@ -1446,13 +1446,6 @@ function showView(name) {
   if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
   if (name === 'notifications') loadNotifications();
 }
-all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  if (name === 'explore') loadExplore();
-  if (name === 'reels') loadReels();
-  if (name === 'profile') loadProfile();
-  if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
-  if (name === 'notifications') loadNotifications();
-}
 all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
 all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
