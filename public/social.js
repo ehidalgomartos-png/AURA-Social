@@ -288,6 +288,7 @@ async function loadMe() {
 }
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
+  $('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
   const { d } = await api(`/api/posts/feed?mode=${mode}`);
 
   $('#feed').innerHTML = d.posts.length
