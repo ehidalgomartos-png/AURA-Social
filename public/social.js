@@ -12,6 +12,9 @@ let activeReportPostId = null;
 let pendingDeleteComment = null;
 let activeManagePost = null;
 let deletePostArmed = false;
+let activeContentMode = 'trending';
+let activePostSearch = '';
+let savedPostIds = new Set();
 
 
 async function api(url, opts = {}) {
@@ -41,6 +44,14 @@ function avatarHTML(p) {
 }
 function esc(s = '') {
   return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+}
+function captionHTML(value = '') {
+  const safe = esc(value);
+  return safe
+    .replace(/(^|\s)#([\p{L}\p{N}_]{2,40})/gu, (_match, prefix, tag) =>
+      `${prefix}<button type="button" class="hashtag-link" data-hashtag="${tag}">#${tag}</button>`
+    )
+    .replace(/\n/g, '<br>');
 }
 function timeAgo(value) {
   const date = new Date(value);
@@ -150,10 +161,11 @@ function postHTML(p) {
       </div>
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
-    ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
+    ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
+      <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
       <button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button>
       ${canManage
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
@@ -171,11 +183,20 @@ function interestPillsHTML(interests = [], compact = false) {
 }
 
 function personCardHTML(user, compact = false) {
+  const shared = Number(user.shared_interest_count || 0);
+  const followers = Number(user.follower_count || 0);
+  const reason = shared > 0
+    ? `${shared} ${shared === 1 ? 'interés' : 'intereses'} en común`
+    : followers > 0
+      ? `${followers} ${followers === 1 ? 'seguidor' : 'seguidores'}`
+      : 'Nuevo por aquí';
+
   return `<article class="person-card ${compact ? 'compact' : ''}" data-person-card="${user.id}">
     ${profileLink(user.username, `<span class="person-avatar">${avatarHTML(user)}</span>`, 'person-avatar-link')}
     <div class="person-copy">
       ${profileLink(user.username, `<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'person-name-link')}
       <small>${profileLink(user.username, `@${esc(user.username)}`, 'post-username-link')}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small>
+      <span class="suggestion-reason">${reason}</span>
       ${!compact && user.bio ? `<p>${esc(user.bio)}</p>` : ''}
       ${interestPillsHTML(user.interests, compact)}
     </div>
@@ -276,6 +297,16 @@ async function uploadFile(file) {
   return d.media;
 }
 
+async function loadSavedPostIds() {
+  const { r, d } = await api('/api/posts/saved/ids');
+  if (!r.ok) {
+    savedPostIds = new Set();
+    return savedPostIds;
+  }
+  savedPostIds = new Set((d.ids || []).map(String));
+  return savedPostIds;
+}
+
 async function loadMe() {
   const { d } = await api('/api/profiles/me/summary');
   me = d.profile;
@@ -312,15 +343,80 @@ async function loadStories() {
   $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + users.map(s => `<div class="story" title="${s.gated ? gateText(s.gate_reason) : 'Story activa'}"><div class="story-ring"><div>${s.avatar_url ? `<img src="${esc(s.avatar_url)}">` : initials(s.display_name)}</div></div><small>${esc(s.username)}</small></div>`).join('');
   bindCreateButtons();
 }
-async function loadExplore() {
-  const [{ d: postsData }] = await Promise.all([
-    api('/api/posts/discover'),
-    loadPeopleSuggestions(activeExploreInterest)
-  ]);
+function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenido aquí.', emptyCopy = 'Vuelve pronto o publica algo para poner RedLibertad en movimiento.') {
+  const root = $('#discoveryFeed');
+  if (!root) return;
+  root.innerHTML = posts.length
+    ? posts.map(postHTML).join('')
+    : `<div class="info-card discovery-empty"><b>${emptyTitle}</b><p>${emptyCopy}</p></div>`;
+  bindPostActions(root);
+}
 
-  $('#exploreGrid').innerHTML = postsData.posts.map(p =>
-    `<button type="button" class="tile tile-button" data-profile="${esc(p.username)}">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}<span class="tile-owner">@${esc(p.username)}</span></button>`
-  ).join('') || '<div class="info-card discovery-empty"><b>Todavía no hay contenido para explorar.</b><p>Las primeras publicaciones aparecerán aquí.</p></div>';
+async function loadTrendChips() {
+  const root = $('#trendChips');
+  if (!root) return;
+  const { d } = await api('/api/posts/trends');
+  const trends = Array.isArray(d.trends) ? d.trends : [];
+  root.innerHTML = trends.length
+    ? trends.map(item => `<button type="button" data-hashtag="${esc(item.tag)}">#${esc(item.tag)} <small>${item.count}</small></button>`).join('')
+    : '<span class="trend-empty">Los hashtags aparecerán aquí cuando empiece la conversación.</span>';
+}
+
+async function loadDiscoveryContent(mode = activeContentMode) {
+  activeContentMode = mode;
+  activePostSearch = '';
+  all('[data-content-mode]').forEach(button => button.classList.toggle('active', button.dataset.contentMode === mode));
+
+  const title = $('#contentDiscoveryTitle');
+  const endpoint = mode === 'saved'
+    ? '/api/posts/saved'
+    : mode === 'latest'
+      ? '/api/posts/feed?mode=latest'
+      : '/api/posts/trending';
+
+  if (title) title.textContent = mode === 'saved' ? 'Tus guardados' : mode === 'latest' ? 'Lo más nuevo' : 'Tendencias';
+  const root = $('#discoveryFeed');
+  if (root) root.innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
+
+  const { r, d } = await api(endpoint);
+  if (!r.ok) {
+    return renderDiscoveryPosts([], 'No se pudo cargar el contenido.', 'Inténtalo de nuevo dentro de unos segundos.');
+  }
+
+  const posts = Array.isArray(d.posts) ? d.posts : [];
+  const emptyTitle = mode === 'saved' ? 'Todavía no has guardado nada.' : 'Todavía no hay publicaciones en esta sección.';
+  const emptyCopy = mode === 'saved'
+    ? 'Pulsa ☆ en cualquier publicación para guardarla y volver a ella después.'
+    : 'Las primeras publicaciones aparecerán aquí.';
+  renderDiscoveryPosts(posts, emptyTitle, emptyCopy);
+}
+
+async function searchPosts(query) {
+  const clean = String(query || '').trim();
+  if (clean.length < 2) return loadDiscoveryContent(activeContentMode);
+
+  activePostSearch = clean;
+  all('[data-content-mode]').forEach(button => button.classList.remove('active'));
+  $('#contentDiscoveryTitle').textContent = `Resultados para “${clean}”`;
+  $('#discoveryFeed').innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
+
+  const { r, d } = await api(`/api/posts/search?q=${encodeURIComponent(clean)}`);
+  if (!r.ok) {
+    return renderDiscoveryPosts([], 'No se pudo completar la búsqueda.', 'Prueba de nuevo.');
+  }
+  renderDiscoveryPosts(
+    Array.isArray(d.posts) ? d.posts : [],
+    'No encontramos publicaciones.',
+    'Prueba otras palabras o un #hashtag.'
+  );
+}
+
+async function loadExplore() {
+  await Promise.all([
+    loadPeopleSuggestions(activeExploreInterest),
+    loadTrendChips(),
+    loadDiscoveryContent(activeContentMode)
+  ]);
 }
 async function loadReels() {
   const { d } = await api('/api/posts/feed?mode=latest');
@@ -460,6 +556,18 @@ async function openPublicProfile(username) {
 }
 
 document.addEventListener('click', async event => {
+  const hashtagButton = event.target.closest('[data-hashtag]');
+  if (hashtagButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    const tag = String(hashtagButton.dataset.hashtag || '').replace(/^#/, '');
+    if (!tag) return;
+    showView('explore');
+    $('#postSearchInput').value = `#${tag}`;
+    await searchPosts(`#${tag}`);
+    return;
+  }
+
   const followButton = event.target.closest('[data-suggest-follow]');
   if (followButton) {
     event.preventDefault();
@@ -733,6 +841,39 @@ function bindPostActions(root) {
 
   all('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
+  });
+
+  all('[data-save-post]', root).forEach(b => {
+    b.onclick = async () => {
+      if (b.disabled) return;
+      const postId = String(b.dataset.savePost);
+      const saved = b.dataset.saved === '1';
+      b.disabled = true;
+      try {
+        const { r, d } = await api(`/api/posts/${postId}/save`, {
+          method: saved ? 'DELETE' : 'POST'
+        });
+        if (!r.ok) throw new Error('save_failed');
+
+        if (d.saved) savedPostIds.add(postId);
+        else savedPostIds.delete(postId);
+
+        b.dataset.saved = d.saved ? '1' : '0';
+        b.classList.toggle('saved', !!d.saved);
+        b.textContent = d.saved ? '★' : '☆';
+        b.title = d.saved ? 'Quitar de guardados' : 'Guardar publicación';
+        b.setAttribute('aria-label', b.title);
+        toast(d.saved ? 'Publicación guardada' : 'Eliminada de guardados');
+
+        if (!d.saved && activeContentMode === 'saved' && !$('#exploreView').classList.contains('hidden')) {
+          await loadDiscoveryContent('saved');
+        }
+      } catch (_) {
+        toast('No se pudo actualizar Guardados.');
+      } finally {
+        b.disabled = false;
+      }
+    };
   });
 
   all('[data-share]', root).forEach(b => {
@@ -1227,6 +1368,18 @@ $('#newMessageForm').addEventListener('submit', async e => {
 });
 
 
+$('#postSearchForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  await searchPosts($('#postSearchInput').value);
+});
+
+all('[data-content-mode]').forEach(button => {
+  button.onclick = async () => {
+    $('#postSearchInput').value = '';
+    await loadDiscoveryContent(button.dataset.contentMode);
+  };
+});
+
 $('#peopleSearchForm').addEventListener('submit', async event => {
   event.preventDefault();
   await searchPeople($('#peopleSearchInput').value);
@@ -1394,6 +1547,7 @@ window.addEventListener('redlibertad-install-ready', e => {
 (async () => {
   try {
     await loadMe();
+    await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions()]);
   } catch (e) { console.error(e); }
 })();
