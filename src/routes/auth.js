@@ -16,6 +16,26 @@ async function ensureAccountSecurity() {
     accountSecurityReady = (async () => {
       await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0');
       await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ');
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
+      await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE');
+      await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS mutes (
+          muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(muter_id,muted_id),
+          CHECK(muter_id<>muted_id)
+        )
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS referrals (
+          id BIGSERIAL PRIMARY KEY,
+          inviter_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          invited_user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
     })().catch(error => {
       accountSecurityReady = null;
       throw error;
@@ -391,6 +411,7 @@ router.get('/account/export',requireAuth,async(req,res)=>{
     followers,
     blocks,
     muted,
+    messages,
     referrals
   ]=await Promise.all([
     db.query(`
@@ -428,6 +449,15 @@ router.get('/account/export',requireAuth,async(req,res)=>{
        WHERE m.muter_id=$1 ORDER BY m.created_at DESC
     `,[userId]),
     db.query(`
+      SELECT m.id,m.conversation_id,m.body,m.media_url,m.media_type,m.content_level,m.created_at,
+             sender.username AS sender_username,sender.display_name AS sender_display_name
+        FROM conversation_members mine
+        JOIN messages m ON m.conversation_id=mine.conversation_id
+        JOIN users sender ON sender.id=m.sender_id
+       WHERE mine.user_id=$1
+       ORDER BY m.created_at DESC
+    `,[userId]),
+    db.query(`
       SELECT u.username,u.display_name,r.created_at
         FROM referrals r JOIN users u ON u.id=r.invited_user_id
        WHERE r.inviter_user_id=$1 ORDER BY r.created_at DESC
@@ -447,6 +477,7 @@ router.get('/account/export',requireAuth,async(req,res)=>{
     followers:followers.rows,
     blocked:blocks.rows,
     muted:muted.rows,
+    messages:messages.rows,
     invitedUsers:referrals.rows
   });
 });
@@ -459,11 +490,15 @@ const deleteAccountSchema=z.object({
 function localUploadPath(value=''){
   const url=String(value||'');
   if(!url.startsWith('/uploads/'))return null;
-  const uploadRoot=path.resolve(process.env.UPLOAD_DIR || path.join(__dirname,'..','..','uploads'));
-  const fileName=path.basename(decodeURIComponent(url.split('?')[0]));
-  const fullPath=path.resolve(uploadRoot,fileName);
-  if(!fullPath.startsWith(uploadRoot+path.sep))return null;
-  return fullPath;
+  try{
+    const uploadRoot=path.resolve(process.env.UPLOAD_DIR || path.join(__dirname,'..','..','uploads'));
+    const fileName=path.basename(decodeURIComponent(url.split('?')[0]));
+    const fullPath=path.resolve(uploadRoot,fileName);
+    if(!fullPath.startsWith(uploadRoot+path.sep))return null;
+    return fullPath;
+  }catch(_){
+    return null;
+  }
 }
 
 async function cleanupLocalMedia(paths){
