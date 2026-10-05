@@ -637,12 +637,34 @@ router.delete('/:id/save', requireAuth, async (req,res)=>{
 
 router.get('/user/:username', optionalAuth, async (req, res) => {
   const viewer=await viewerFrom(req);
+  const mode=['posts','reposts','media'].includes(String(req.query.mode||'')) ? String(req.query.mode) : 'posts';
   const params=[req.params.username];
   let likedByMe='false';
   if(req.user){
     params.push(req.user.id);
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$2)';
   }
+
+  const source = mode === 'reposts'
+    ? `FROM reposts profile_reposts
+       JOIN users profile_owner ON profile_owner.id=profile_reposts.user_id
+       JOIN posts p ON p.id=profile_reposts.post_id
+       JOIN users u ON u.id=p.user_id`
+    : `FROM posts p
+       JOIN users u ON u.id=p.user_id`;
+
+  const ownerFilter = mode === 'reposts'
+    ? `lower(profile_owner.username)=lower($1)`
+    : `lower(u.username)=lower($1)`;
+
+  const mediaFilter = mode === 'media'
+    ? `AND (COALESCE(p.media_url,'')<>'' OR COALESCE(p.playback_url,'')<>'')`
+    : '';
+
+  const orderBy = mode === 'reposts'
+    ? 'profile_reposts.created_at DESC'
+    : 'p.created_at DESC';
+
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
            p.content_level,p.post_kind,p.consent_state,p.created_at,
@@ -650,17 +672,49 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            ${likedByMe} AS liked_by_me,
            (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
-      FROM posts p
-      JOIN users u ON u.id=p.user_id
-     WHERE lower(u.username)=lower($1)
+      ${source}
+     WHERE ${ownerFilter}
        AND p.moderation_status='published'
-     ORDER BY p.created_at DESC
+       AND u.status='active'
+       ${mediaFilter}
+     ORDER BY ${orderBy}
      LIMIT 60
   `,params);
+
   const participantPosts=await attachApprovedParticipants(result.rows);
   const posts=await attachCommentPreviews(participantPosts, viewer);
   const repostPosts=await attachRepostMeta(posts,req.user?.id || null);
-  res.json({posts:gateRows(repostPosts,viewer)});
+  res.json({posts:gateRows(repostPosts,viewer),mode});
+});
+
+router.get('/detail/:id', requireAuth, async (req,res)=>{
+  const viewer=await viewerFrom(req);
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.id=$2
+       AND p.moderation_status='published'
+       AND u.status='active'
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+     LIMIT 1
+  `,[req.user.id,req.params.id]);
+
+  if(!result.rowCount)return res.status(404).json({error:'post_not_found'});
+
+  const participantPosts=await attachApprovedParticipants(result.rows);
+  const posts=await attachCommentPreviews(participantPosts,viewer);
+  const repostPosts=await attachRepostMeta(posts,req.user.id);
+  res.json({post:gateRows(repostPosts,viewer)[0]});
 });
 
 router.post('/:id/repost',requireAuth,async(req,res)=>{
