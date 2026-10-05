@@ -666,6 +666,11 @@ router.post('/:id/block',requireAuth,async(req,res)=>{
         OR (follower_id=$2 AND following_id=$1)
   `,[req.user.id,req.params.id]);
 
+  await db.query(
+    'DELETE FROM mutes WHERE muter_id=$1 AND muted_id=$2',
+    [req.user.id,req.params.id]
+  );
+
   res.json({ok:true});
 });
 
