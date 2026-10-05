@@ -729,7 +729,62 @@ async function openPublicProfile(username) {
   }
 }
 
+async function openPostFocus(postId) {
+  const modal = $('#postFocusModal');
+  const root = $('#postFocusContent');
+  if (!modal || !root || !postId) return;
+
+  modal.classList.remove('hidden');
+  root.innerHTML = '<div class="public-profile-loading">Cargando publicación...</div>';
+
+  const { r, d } = await api(`/api/posts/detail/${encodeURIComponent(postId)}`);
+  if (!r.ok || !d.post) {
+    root.innerHTML = '<div class="info-card"><b>La publicación ya no está disponible.</b><p>Puede haberse eliminado o no ser visible para tu cuenta.</p></div>';
+    return;
+  }
+
+  root.innerHTML = postHTML(d.post);
+  bindPostActions(root);
+}
+
+function closePostFocus() {
+  $('#postFocusModal')?.classList.add('hidden');
+  const root = $('#postFocusContent');
+  if (root) root.innerHTML = '';
+}
+
+$('#closePostFocusModal')?.addEventListener('click', closePostFocus);
+$('#postFocusModal')?.addEventListener('click', event => {
+  if (event.target === $('#postFocusModal')) closePostFocus();
+});
+
 document.addEventListener('click', async event => {
+  const openPostButton = event.target.closest('[data-open-post]');
+  if (openPostButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    await openPostFocus(openPostButton.dataset.openPost);
+    return;
+  }
+
+  const ownProfileModeButton = event.target.closest('[data-own-profile-mode]');
+  if (ownProfileModeButton) {
+    event.preventDefault();
+    setOwnProfileMode(ownProfileModeButton.dataset.ownProfileMode);
+    await loadProfile(ownProfileMode);
+    return;
+  }
+
+  const publicProfileModeButton = event.target.closest('[data-public-profile-mode]');
+  if (publicProfileModeButton) {
+    event.preventDefault();
+    await loadPublicProfileContent(
+      publicProfileModeButton.dataset.profileUsername,
+      publicProfileModeButton.dataset.publicProfileMode
+    );
+    return;
+  }
+
   const socialListButton = event.target.closest('[data-social-list]');
   if (socialListButton) {
     event.preventDefault();
