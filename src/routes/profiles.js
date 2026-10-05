@@ -198,6 +198,80 @@ router.get('/:username', optionalAuth, async (req,res)=>{
   res.json({profile,following});
 });
 
+router.get('/:username/followers',optionalAuth,async(req,res)=>{
+  const owner=await db.query(
+    `SELECT id,username FROM users WHERE lower(username)=lower($1) AND status='active' LIMIT 1`,
+    [req.params.username]
+  );
+  if(!owner.rowCount)return res.status(404).json({error:'profile_not_found'});
+
+  const viewerId=req.user?.id || null;
+  const params=[owner.rows[0].id];
+  let followingSelect='false';
+  let blockFilter='';
+  if(viewerId){
+    params.push(viewerId);
+    followingSelect='EXISTS(SELECT 1 FROM follows mine WHERE mine.follower_id=$2 AND mine.following_id=u.id)';
+    blockFilter=`AND u.id NOT IN (
+      SELECT blocked_id FROM blocks WHERE blocker_id=$2
+      UNION
+      SELECT blocker_id FROM blocks WHERE blocked_id=$2
+    )`;
+  }
+
+  const result=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.bio,u.avatar_url,u.location_label,u.creator_verified,
+           ${followingSelect} AS following,
+           (SELECT count(*)::int FROM follows f2 WHERE f2.following_id=u.id) follower_count
+      FROM follows f
+      JOIN users u ON u.id=f.follower_id
+     WHERE f.following_id=$1
+       AND u.status='active'
+       ${blockFilter}
+     ORDER BY f.created_at DESC
+     LIMIT 250
+  `,params);
+
+  res.json({users:result.rows,kind:'followers',profile:owner.rows[0]});
+});
+
+router.get('/:username/following',optionalAuth,async(req,res)=>{
+  const owner=await db.query(
+    `SELECT id,username FROM users WHERE lower(username)=lower($1) AND status='active' LIMIT 1`,
+    [req.params.username]
+  );
+  if(!owner.rowCount)return res.status(404).json({error:'profile_not_found'});
+
+  const viewerId=req.user?.id || null;
+  const params=[owner.rows[0].id];
+  let followingSelect='false';
+  let blockFilter='';
+  if(viewerId){
+    params.push(viewerId);
+    followingSelect='EXISTS(SELECT 1 FROM follows mine WHERE mine.follower_id=$2 AND mine.following_id=u.id)';
+    blockFilter=`AND u.id NOT IN (
+      SELECT blocked_id FROM blocks WHERE blocker_id=$2
+      UNION
+      SELECT blocker_id FROM blocks WHERE blocked_id=$2
+    )`;
+  }
+
+  const result=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.bio,u.avatar_url,u.location_label,u.creator_verified,
+           ${followingSelect} AS following,
+           (SELECT count(*)::int FROM follows f2 WHERE f2.following_id=u.id) follower_count
+      FROM follows f
+      JOIN users u ON u.id=f.following_id
+     WHERE f.follower_id=$1
+       AND u.status='active'
+       ${blockFilter}
+     ORDER BY f.created_at DESC
+     LIMIT 250
+  `,params);
+
+  res.json({users:result.rows,kind:'following',profile:owner.rows[0]});
+});
+
 const updateSchema=z.object({
   displayName:z.string().min(1).max(80).optional(),
   bio:z.string().max(500).optional(),
