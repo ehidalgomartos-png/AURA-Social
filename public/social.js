@@ -541,6 +541,75 @@ async function loadProfile(mode = ownProfileMode) {
 }
 
 
+function mutualContextHTML(profileData) {
+  const mutuals = Array.isArray(profileData.mutuals) ? profileData.mutuals : [];
+  const count = Number(profileData.mutualCount || 0);
+  if (!count) {
+    return profileData.followsYou
+      ? '<div class="profile-relationship-note">Te sigue</div>'
+      : '';
+  }
+
+  const shown = mutuals.map(user =>
+    profileLink(user.username, `<span class="mutual-avatar">${avatarHTML(user)}</span>`, 'mutual-profile-link')
+  ).join('');
+
+  const names = mutuals.map(user => `@${esc(user.username)}`).join(', ');
+  const extra = Math.max(0, count - mutuals.length);
+  const copy = extra
+    ? `También le siguen ${names} y ${extra} más`
+    : `También le siguen ${names}`;
+
+  return `<div class="profile-mutuals"><div class="mutual-avatars">${shown}</div><span>${copy}</span>${profileData.followsYou ? '<b>Te sigue</b>' : ''}</div>`;
+}
+
+async function shareProfile(profile) {
+  const url = `${location.origin}/app?profile=${encodeURIComponent(profile.username)}`;
+  const text = `Mira el perfil de @${profile.username} en RedLibertad.`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: profile.display_name || 'RedLibertad', text, url });
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    await writeClipboardText(`${text} ${url}`);
+    toast('Enlace del perfil copiado');
+  } catch (_) {
+    window.prompt('Copia este enlace:', url);
+  }
+}
+
+async function loadPublicProfileContent(username, mode = 'posts') {
+  const root = $('#publicProfilePosts');
+  if (!root) return;
+
+  const cleanMode = ['posts','reposts','media'].includes(mode) ? mode : 'posts';
+  all('[data-public-profile-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.publicProfileMode === cleanMode);
+  });
+
+  root.innerHTML = '<div class="profile-content-empty"><span>Cargando contenido...</span></div>';
+
+  const { r, d } = await api(`/api/posts/user/${encodeURIComponent(username)}?mode=${encodeURIComponent(cleanMode)}`);
+  if (!r.ok) {
+    root.innerHTML = '<div class="profile-content-empty"><b>No se pudo cargar el contenido.</b></div>';
+    return;
+  }
+
+  const emptyText = cleanMode === 'reposts'
+    ? 'Todavía no ha republicado nada.'
+    : cleanMode === 'media'
+      ? 'Todavía no tiene fotos o vídeos publicados.'
+      : 'Todavía no tiene publicaciones visibles.';
+
+  root.innerHTML = profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText);
+}
+
 async function openPublicProfile(username) {
   const clean = String(username || '').replace(/^@/, '').trim();
   if (!clean) return;
@@ -557,10 +626,7 @@ async function openPublicProfile(username) {
   content.innerHTML = '<div class="public-profile-loading">Cargando perfil...</div>';
 
   try {
-    const [{ r: profileResponse, d: profileData }, { d: postsData }] = await Promise.all([
-      api(`/api/profiles/${encodeURIComponent(clean)}`),
-      api(`/api/posts/user/${encodeURIComponent(clean)}`)
-    ]);
+    const { r: profileResponse, d: profileData } = await api(`/api/profiles/${encodeURIComponent(clean)}`);
 
     if (!profileResponse.ok || !profileData.profile) {
       throw new Error('profile_not_found');
@@ -581,10 +647,9 @@ async function openPublicProfile(username) {
           ${profileData.following ? 'Siguiendo' : 'Seguir'}
         </button>
         <button type="button" class="secondary" data-message-profile="${esc(profile.username)}">Mensaje</button>
+        <button type="button" class="secondary" data-share-profile="${esc(profile.username)}">Compartir perfil</button>
       </div>
     `;
-
-    const posts = Array.isArray(postsData.posts) ? postsData.posts : [];
 
     content.innerHTML = `
       <div class="public-profile-card">
@@ -598,6 +663,7 @@ async function openPublicProfile(username) {
             </div>
             ${actions}
           </div>
+          ${mutualContextHTML(profileData)}
           <p class="profile-bio">${esc(profile.bio || 'Todavía no ha escrito una biografía.')}</p>
           ${interestPillsHTML(profile.interests)}
           <div class="profile-meta">
@@ -611,10 +677,17 @@ async function openPublicProfile(username) {
           </div>
         </div>
       </div>
-      <div class="public-profile-posts explore-grid">
-        ${posts.map(p => `<div class="tile">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}</div>`).join('') || '<p class="muted">Todavía no tiene publicaciones visibles.</p>'}
+      <div class="profile-content-tabs public-profile-tabs" role="tablist" aria-label="Contenido del perfil">
+        <button type="button" class="active" data-public-profile-mode="posts" data-profile-username="${esc(profile.username)}">Publicaciones</button>
+        <button type="button" data-public-profile-mode="reposts" data-profile-username="${esc(profile.username)}">Republicados</button>
+        <button type="button" data-public-profile-mode="media" data-profile-username="${esc(profile.username)}">Multimedia</button>
+      </div>
+      <div id="publicProfilePosts" class="public-profile-posts explore-grid">
+        <div class="profile-content-empty"><span>Cargando contenido...</span></div>
       </div>
     `;
+
+    await loadPublicProfileContent(profile.username, 'posts');
 
     const followButton = content.querySelector('[data-public-follow]');
     if (followButton) {
@@ -628,6 +701,7 @@ async function openPublicProfile(username) {
         followButton.textContent = following ? 'Seguir' : 'Siguiendo';
         followButton.className = following ? 'primary' : 'secondary';
         toast(following ? 'Has dejado de seguir a esta persona' : 'Ahora sigues a esta persona');
+        await loadMe();
       };
     }
 
@@ -644,6 +718,11 @@ async function openPublicProfile(username) {
         showView('messages');
         await loadConversations(d.conversationId);
       };
+    }
+
+    const shareButton = content.querySelector('[data-share-profile]');
+    if (shareButton) {
+      shareButton.onclick = () => shareProfile(profile);
     }
   } catch (error) {
     content.innerHTML = '<div class="info-card"><b>No se pudo abrir el perfil.</b><p>Puede que esta cuenta ya no esté disponible.</p></div>';
