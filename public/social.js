@@ -2015,10 +2015,26 @@ window.addEventListener('redlibertad-install-ready', e => {
   };
 }, { once: true });
 
+async function handleInitialDeepLink() {
+  const params = new URLSearchParams(location.search);
+  const profile = params.get('profile');
+  const post = params.get('post');
+
+  if (profile) {
+    await openPublicProfile(profile);
+    return;
+  }
+
+  if (post) {
+    await openPostFocus(post);
+  }
+}
+
 (async () => {
   try {
     await loadMe();
     await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions()]);
+    await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
