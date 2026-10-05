@@ -473,6 +473,20 @@ router.post('/verifications/:id/decision',async(req,res)=>{
           INSERT INTO creator_verifications (user_id,provider,result,created_at,verified_at)
           VALUES ($1,'manual','verified',now(),now())
         `,[item.user_id]);
+        await client.query(`
+          INSERT INTO age_verifications (user_id,provider,result,created_at,verified_at)
+          VALUES ($1,'manual','verified',now(),now())
+        `,[item.user_id]);
+        await client.query(`
+          UPDATE verification_requests
+             SET status='approved',
+                 review_note=CASE WHEN review_note='' THEN 'Aprobada junto con la verificación de creador.' ELSE review_note END,
+                 admin_id=$2,
+                 reviewed_at=now()
+           WHERE user_id=$1
+             AND type='age'
+             AND status='pending'
+        `,[item.user_id,req.user.id]);
       }
     }
 
@@ -515,7 +529,7 @@ router.post('/users/:id/verify-creator',async(req,res)=>{
   await db.query(`
     UPDATE verification_requests
        SET status='approved',review_note='Aprobada desde la ficha de usuario.',admin_id=$2,reviewed_at=now()
-     WHERE user_id=$1 AND type='creator' AND status='pending'
+     WHERE user_id=$1 AND type IN ('creator','age') AND status='pending'
   `,[req.params.id,req.user.id]);
   await recordUserAction({userId:req.params.id,adminId:req.user.id,action:'verify_creator'});
   res.json({ok:true});
