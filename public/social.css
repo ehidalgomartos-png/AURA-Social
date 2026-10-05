@@ -1439,3 +1439,185 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     scroll-behavior:auto!important;
   }
 }
+
+
+/* RedLibertad V1.4.1 — Profile Mobile Hotfix */
+@media(max-width:760px){
+  #profileView{
+    padding-bottom:calc(110px + env(safe-area-inset-bottom));
+  }
+
+  #profileView .profile-full{
+    margin:0 4px 20px;
+    overflow:hidden;
+  }
+
+  #profileView .cover{
+    height:150px;
+  }
+
+  #profileView .profile-body{
+    padding:0 14px 22px;
+  }
+
+  #profileView .profile-avatar{
+    width:88px;
+    height:88px;
+    margin-top:-44px;
+    border-width:4px;
+    font-size:26px;
+    box-shadow:0 12px 24px rgba(13,34,56,.16);
+  }
+
+  #profileView .profile-title{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+    margin-top:12px;
+  }
+
+  #profileView .profile-title h2{
+    font-size:26px;
+    line-height:1.06;
+    overflow-wrap:anywhere;
+  }
+
+  #profileView .profile-title p{
+    margin:5px 0 0;
+  }
+
+  #profileView .profile-buttons{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:9px;
+    width:100%;
+    margin:0;
+  }
+
+  #profileView .profile-buttons .secondary{
+    width:100%;
+    min-height:52px;
+    padding:10px 8px;
+    display:grid;
+    place-items:center;
+    text-align:center;
+    line-height:1.2;
+    border-radius:14px;
+    background:linear-gradient(180deg,#fff,var(--ivory));
+  }
+
+  #profileView .profile-bio{
+    margin:18px 0 14px;
+    font-size:14px;
+    line-height:1.5;
+  }
+
+  #profileView .interest-pills{
+    margin-bottom:12px;
+  }
+
+  #profileView .profile-meta{
+    margin:10px 0 14px;
+    font-size:12px;
+    gap:10px;
+  }
+
+  #profileView .profile-stats{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+    margin:14px 0 0;
+  }
+
+  #profileView .profile-stats span{
+    min-width:0;
+    padding:10px 6px;
+    border-radius:13px;
+    background:linear-gradient(180deg,rgba(13,34,56,.045),rgba(13,34,56,.025));
+    text-align:center;
+    font-size:11px;
+    line-height:1.2;
+  }
+
+  #profileView .profile-stats b{
+    display:block;
+    margin-bottom:3px;
+    font-size:16px;
+  }
+
+  #profileView .profile-body > .muted{
+    display:block;
+    margin:16px 0 0;
+    padding-top:13px;
+    border-top:1px solid var(--line);
+    font-size:12px;
+    line-height:1.45;
+  }
+
+  #profileView .consent-section{
+    margin:0 4px 26px;
+    padding:18px 14px;
+    border:1px solid var(--line);
+    border-radius:22px;
+    background:linear-gradient(145deg,rgba(255,253,249,.98),rgba(250,247,240,.96));
+    box-shadow:var(--shadow-soft);
+    scroll-margin-top:88px;
+  }
+
+  #profileView .consent-section .section-row{
+    display:block;
+  }
+
+  #profileView .consent-section h2{
+    font-size:24px;
+  }
+
+  #profileView .consent-grid{
+    grid-template-columns:1fr;
+    margin-top:14px;
+  }
+
+  #profileView .profile-grid{
+    margin:0 4px;
+    padding-bottom:24px;
+  }
+
+  #profileView .profile-grid:empty::before{
+    content:"Todavía no tienes publicaciones.";
+    display:block;
+    grid-column:1 / -1;
+    padding:22px;
+    border:1px dashed var(--line);
+    border-radius:18px;
+    background:rgba(255,253,249,.72);
+    color:var(--muted);
+    text-align:center;
+    font-size:13px;
+  }
+
+  /* The fixed bottom bar no longer visually collides with profile sections */
+  #profileView::after{
+    content:"";
+    display:block;
+    height:24px;
+  }
+}
+
+@media(max-width:390px){
+  #profileView .profile-buttons{
+    grid-template-columns:1fr;
+  }
+
+  #profileView .profile-stats{
+    gap:5px;
+  }
+
+  #profileView .profile-stats span{
+    padding:9px 4px;
+    font-size:10px;
+  }
+
+  #profileView .profile-stats b{
+    font-size:15px;
+  }
+}
