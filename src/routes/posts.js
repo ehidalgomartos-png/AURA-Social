@@ -393,6 +393,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
   if (req.user) {
     params.push(req.user.id);
     where.push(`p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`);
+    where.push(`p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`);
     if (mode === 'following') where.push(`(
       p.user_id=$1
       OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
@@ -454,7 +455,8 @@ router.get('/momentum', requireAuth, async (req,res)=>{
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
-       )`;
+       )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
 
   const catchupResult=await db.query(`
     ${commonSelect}
@@ -514,7 +516,7 @@ router.get('/discover', optionalAuth, async (req, res) => {
   let likedByMe='false';
   if(req.user){
     params.push(req.user.id);
-    block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;
+    block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)';
   }
   const result=await db.query(`
@@ -558,6 +560,7 @@ router.get('/search', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
        AND (
          p.caption ILIKE $2
          OR u.username ILIKE $2
@@ -599,6 +602,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
      ORDER BY ${orderBy}, p.created_at DESC
      LIMIT 40
   `,[req.user.id]);
@@ -623,6 +627,7 @@ router.get('/trends', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
      ORDER BY p.created_at DESC
      LIMIT 500
   `,[req.user.id]);
@@ -679,6 +684,7 @@ router.get('/saved', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
      ORDER BY sp.created_at DESC
      LIMIT 100
   `,[req.user.id]);
