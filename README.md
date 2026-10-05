@@ -1,4 +1,4 @@
-# RedLibertad V1.10.0 — Account & Security
+# RedLibertad V1.11.0 — Trust & Moderation 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -232,3 +232,20 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Compatibilidad con sesiones antiguas: los tokens previos se aceptan mientras auth_token_version siga en 0.
 - Bootstrap idempotente de las nuevas columnas de seguridad.
 - La PWA deja fuera de caché las rutas /api, /uploads y /p para no persistir datos privados ni respuestas dinámicas.
+
+
+## V1.11.0 — Trust & Moderation 2.0
+
+- Panel de moderación rediseñado y mobile-first.
+- Métricas de usuarios activos, suspendidos, bloqueados, denuncias críticas y avisos recientes.
+- Denuncias con contexto del contenido y autor afectado.
+- Avisos formales de moderación.
+- Suspensiones de 24 h, 7 días, 30 días o indefinidas.
+- Expiración automática de suspensiones temporales.
+- Bloqueo y reactivación de cuentas desde administración.
+- Historial completo de acciones por usuario.
+- Las suspensiones y bloqueos invalidan inmediatamente las sesiones abiertas.
+- El login informa de suspensión activa y fecha de finalización cuando existe.
+- Las cuentas administradoras están protegidas frente a suspensión o bloqueo desde el panel.
+- Verificación +18 y creador quedan registradas en el historial.
+- Esquema y tablas nuevas se crean de forma idempotente.

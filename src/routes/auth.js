@@ -16,6 +16,8 @@ async function ensureAccountSecurity() {
     accountSecurityReady = (async () => {
       await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0');
       await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ');
+      await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ');
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS suspension_reason VARCHAR(500) NOT NULL DEFAULT ''");
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
       await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE');
       await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE');
@@ -216,7 +218,7 @@ router.post('/login', async (req, res) => {
 
   const result = await db.query(`
     SELECT id,email,username,display_name,password_hash,is_admin,
-           age_verified,show_sensitive,status,auth_token_version
+           age_verified,show_sensitive,status,auth_token_version,suspended_until,suspension_reason
     FROM users
     WHERE lower(email)=lower($1)
     LIMIT 1
@@ -227,8 +229,29 @@ router.post('/login', async (req, res) => {
   }
 
   const user = result.rows[0];
+
+  if (user.status === 'suspended' && user.suspended_until && new Date(user.suspended_until).getTime() <= Date.now()) {
+    await db.query(
+      "UPDATE users SET status='active',suspended_until=NULL,suspension_reason='',updated_at=now() WHERE id=$1 AND status='suspended'",
+      [user.id]
+    );
+    user.status = 'active';
+    user.suspended_until = null;
+    user.suspension_reason = '';
+  }
+
+  if (user.status === 'suspended') {
+    return res.status(403).json({
+      error:'account_suspended',
+      suspendedUntil:user.suspended_until,
+      reason:user.suspension_reason || ''
+    });
+  }
+  if (user.status === 'banned') {
+    return res.status(403).json({ error:'account_banned' });
+  }
   if (user.status !== 'active') {
-    return res.status(403).json({ error: 'account_unavailable' });
+    return res.status(403).json({ error:'account_unavailable' });
   }
 
   const ok = await bcrypt.compare(password, user.password_hash);
