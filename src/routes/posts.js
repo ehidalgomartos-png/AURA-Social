@@ -313,7 +313,7 @@ router.get('/search', requireAuth, async (req,res)=>{
   if(q.length<2) return res.json({posts:[],query:q});
 
   const viewer=await viewerFrom(req);
-  const likePattern=`%${q.replace(/[\\%_]/g,'\\router.get('/user/:username', optionalAuth, async (req, res) => {')}%`;
+  const likePattern=`%${q}%`;
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
            p.content_level,p.post_kind,p.consent_state,p.created_at,
@@ -331,9 +331,9 @@ router.get('/search', requireAuth, async (req,res)=>{
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND (
-         p.caption ILIKE $2 ESCAPE '\\'
-         OR u.username ILIKE $2 ESCAPE '\\'
-         OR u.display_name ILIKE $2 ESCAPE '\\'
+         p.caption ILIKE $2
+         OR u.username ILIKE $2
+         OR u.display_name ILIKE $2
        )
      ORDER BY p.created_at DESC
      LIMIT 50
