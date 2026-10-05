@@ -330,6 +330,7 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 router.get('/account', requireAuth, async (req,res)=>{
+  res.setHeader('Cache-Control','no-store');
   const result=await db.query(`
     SELECT
       id,email,username,display_name,is_admin,status,created_at,password_changed_at,
@@ -401,6 +402,7 @@ router.post('/account/logout-all',requireAuth,async(req,res)=>{
 });
 
 router.get('/account/export',requireAuth,async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
   const userId=req.user.id;
   const [
     account,
