@@ -45,7 +45,7 @@ const registerSchema = z.object({
   password: z.string().min(10).max(128),
   birthDate: z.string(),
   acceptTerms: z.literal(true),
-  referralUsername: z.string().max(30).regex(/^[a-zA-Z0-9_.]+$/).optional().default('')
+  referralUsername: z.string().max(30).optional().default('')
 });
 
 function signUser(user) {
@@ -102,7 +102,7 @@ router.post('/register', async (req, res) => {
 
   let inviter = null;
   const cleanReferral = String(referralUsername || '').trim().replace(/^@/,'');
-  if (cleanReferral) {
+  if (/^[a-zA-Z0-9_.]{3,30}$/.test(cleanReferral)) {
     const inviterResult = await db.query(
       `SELECT id,username FROM users WHERE lower(username)=lower($1) AND status='active' LIMIT 1`,
       [cleanReferral]
