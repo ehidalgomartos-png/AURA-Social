@@ -13,7 +13,7 @@ async function ensurePrivacyV19() {
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE");
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE");
       const privacyConstraint=await db.query(
-        "SELECT 1 FROM pg_constraint WHERE conname='users_message_privacy_check' LIMIT 1"
+        "SELECT 1 FROM pg_constraint WHERE conname='users_message_privacy_check' AND conrelid='users'::regclass LIMIT 1"
       );
       if(!privacyConstraint.rowCount){
         await db.query(`
