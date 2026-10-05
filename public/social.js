@@ -19,6 +19,7 @@ let toastTimer = null;
 let ownProfileMode = 'posts';
 let activeNotificationFilter = 'all';
 let notificationCache = [];
+const HOME_LAST_VISIT_KEY = 'redlibertad:last-home-visit';
 
 
 async function api(url, opts = {}) {
@@ -281,6 +282,7 @@ async function toggleSuggestedFollow(button) {
 
     await loadMe();
     if ($('#homeSuggestions')) await loadHomeSuggestions();
+    if ($('#activePeople')) await loadActivePeople();
   } catch (_) {
     toast('No se pudo actualizar el seguimiento.');
   } finally {
@@ -293,6 +295,131 @@ async function loadInterestCatalog() {
   const { d } = await api('/api/profiles/interests');
   interestCatalog = Array.isArray(d.interests) ? d.interests : [];
   return interestCatalog;
+}
+
+function compactTimeAgo(value) {
+  const date = new Date(value);
+  const diff = Math.max(0, Date.now() - date.getTime());
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'ahora';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `${days} d`;
+}
+
+function momentumCardHTML(post) {
+  const media = mediaHTML(post, true);
+  const copy = String(post.caption || '').trim();
+  const shortCopy = copy.length > 115 ? copy.slice(0, 112) + '…' : copy;
+  const engagement = Number(post.like_count || 0) + Number(post.comment_count || 0) + Number(post.repost_count || 0);
+
+  return `<button type="button" class="momentum-card" data-open-post="${post.id}">
+    <div class="momentum-card-media">
+      ${media || `<div class="momentum-text-preview">${esc(shortCopy || 'Publicación en RedLibertad')}</div>`}
+    </div>
+    <div class="momentum-card-copy">
+      <span class="momentum-author"><span class="momentum-avatar">${avatarHTML(post)}</span><b>${esc(post.display_name)}</b></span>
+      ${media && shortCopy ? `<p>${esc(shortCopy)}</p>` : ''}
+      <small>${post.from_following ? 'Siguiendo · ' : ''}${compactTimeAgo(post.created_at)}${engagement ? ` · ${engagement} interacciones` : ''}</small>
+    </div>
+  </button>`;
+}
+
+function activePersonHTML(user) {
+  const shared = Number(user.shared_interest_count || 0);
+  const activity = compactTimeAgo(user.last_activity_at);
+  const reason = shared
+    ? `${shared} ${shared === 1 ? 'interés' : 'intereses'} en común`
+    : user.following
+      ? 'Ya le sigues'
+      : 'Actividad reciente';
+
+  return `<article class="active-person-card">
+    ${profileLink(user.username, `<span class="active-person-avatar">${avatarHTML(user)}<i></i></span>`, 'active-person-profile')}
+    <div class="active-person-copy">
+      ${profileLink(user.username, `<b>${esc(user.display_name)}</b>`, 'active-person-name')}
+      <small>@${esc(user.username)} · ${activity}</small>
+      <span>${reason}</span>
+    </div>
+    <button type="button" class="person-follow ${user.following ? 'following' : ''}" data-suggest-follow="${user.id}" data-following="${user.following ? '1' : '0'}">${user.following ? 'Siguiendo' : 'Seguir'}</button>
+  </article>`;
+}
+
+function readLastHomeVisit() {
+  try {
+    const value = localStorage.getItem(HOME_LAST_VISIT_KEY);
+    const parsed = Date.parse(value || '');
+    if (Number.isFinite(parsed)) return new Date(parsed);
+  } catch (_) {}
+  return new Date(Date.now() - 24 * 60 * 60 * 1000);
+}
+
+function storeHomeVisit(date = new Date()) {
+  try { localStorage.setItem(HOME_LAST_VISIT_KEY, date.toISOString()); } catch (_) {}
+}
+
+function updateLatestModeBadge(count = 0) {
+  const button = document.querySelector('[data-mode="latest"]');
+  if (!button) return;
+  const safeCount = Math.max(0,Number(count || 0));
+  button.innerHTML = safeCount
+    ? `Nuevo <span class="mode-new-count">${safeCount > 99 ? '99+' : safeCount}</span>`
+    : 'Nuevo';
+}
+
+async function loadActivePeople() {
+  const root = $('#activePeople');
+  if (!root) return [];
+
+  const { r, d } = await api('/api/profiles/active?limit=10');
+  const users = r.ok && Array.isArray(d.users) ? d.users : [];
+
+  root.innerHTML = users.length
+    ? users.map(activePersonHTML).join('')
+    : '<div class="active-people-empty">Cuando haya más actividad reciente aparecerán personas aquí.</div>';
+
+  return users;
+}
+
+async function loadHomeMomentum() {
+  const section = $('#homeMomentum');
+  const root = $('#momentumPosts');
+  if (!section || !root) return;
+
+  const lastVisit = readLastHomeVisit();
+  const since = lastVisit.toISOString();
+
+  const [momentumResponse, activeUsers] = await Promise.all([
+    api(`/api/posts/momentum?since=${encodeURIComponent(since)}`),
+    loadActivePeople()
+  ]);
+
+  if (!momentumResponse.r.ok) {
+    if (!activeUsers.length) section.classList.add('hidden');
+    return;
+  }
+
+  const data = momentumResponse.d;
+  const catchup = Array.isArray(data.catchup) ? data.catchup : [];
+  const highlights = Array.isArray(data.highlights) ? data.highlights : [];
+  const posts = catchup.length ? catchup : highlights;
+
+  $('#momentumTitle').textContent = catchup.length ? 'Desde tu última visita' : 'Destacados de hoy';
+  $('#momentumSubtitle').textContent = catchup.length
+    ? `${catchup.length} ${catchup.length === 1 ? 'publicación puede' : 'publicaciones pueden'} interesarte desde la última vez.`
+    : highlights.length
+      ? 'Lo que más está moviendo la conversación hoy.'
+      : 'Todavía no hay novedades destacadas.';
+
+  root.innerHTML = posts.length
+    ? posts.map(momentumCardHTML).join('')
+    : '<div class="momentum-empty"><b>Estás al día.</b><span>Las próximas novedades aparecerán aquí.</span></div>';
+
+  updateLatestModeBadge(catchup.length);
+  section.classList.toggle('hidden', !posts.length && !activeUsers.length);
+  storeHomeVisit(new Date());
 }
 
 async function loadHomeSuggestions() {
@@ -823,6 +950,15 @@ document.addEventListener('click', async event => {
       : 'Personas que podrías conocer';
     $('#clearPeopleSearch').classList.add('hidden');
     await loadPeopleSuggestions(activeExploreInterest);
+    return;
+  }
+
+  const modeJump = event.target.closest('[data-mode-jump]');
+  if (modeJump) {
+    event.preventDefault();
+    showView('feed');
+    await loadFeed(modeJump.dataset.modeJump || 'latest');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
@@ -1867,6 +2003,7 @@ function showView(name) {
   view.classList.remove('hidden');
   animateView(view);
   all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  if (name === 'feed') loadHomeMomentum();
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
@@ -2036,7 +2173,7 @@ async function handleInitialDeepLink() {
   try {
     await loadMe();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions()]);
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadHomeMomentum()]);
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
