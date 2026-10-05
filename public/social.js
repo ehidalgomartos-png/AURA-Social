@@ -846,6 +846,8 @@ document.addEventListener('click', event => {
   if (!target) return;
   event.preventDefault();
   event.stopPropagation();
+  closePostFocus();
+  closeSocialList();
   openPublicProfile(target.dataset.profile);
 });
 
