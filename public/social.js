@@ -1,5 +1,6 @@
 const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const $ = (s, r = document) => [...r.querySelectorAll(s)];
+const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let currentMode = 'foryou';
 let currentFileMedia = null;
@@ -288,7 +289,7 @@ async function loadMe() {
 }
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
-  $('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
+  all('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
   const { d } = await api(`/api/posts/feed?mode=${mode}`);
 
   $('#feed').innerHTML = d.posts.length
@@ -709,7 +710,7 @@ function openPostManage(postId, caption = '') {
 }
 
 function bindPostActions(root) {
-  $('[data-like]', root).forEach(b => {
+  all('[data-like]', root).forEach(b => {
     b.onclick = async () => {
       if (b.disabled) return;
       const liked = b.dataset.liked === '1';
@@ -731,19 +732,19 @@ function bindPostActions(root) {
     };
   });
 
-  $('[data-comments]', root).forEach(b => {
+  all('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
   });
 
-  $('[data-share]', root).forEach(b => {
+  all('[data-share]', root).forEach(b => {
     b.onclick = () => openShare(b.dataset.share);
   });
 
-  $('[data-manage-post]', root).forEach(b => {
+  all('[data-manage-post]', root).forEach(b => {
     b.onclick = () => openPostManage(b.dataset.managePost, decodeURIComponent(b.dataset.caption || ''));
   });
 
-  $('[data-report]', root).forEach(b => {
+  all('[data-report]', root).forEach(b => {
     b.onclick = () => openReport(b.dataset.report);
   });
 }
