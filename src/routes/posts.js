@@ -346,6 +346,13 @@ router.get('/search', requireAuth, async (req,res)=>{
 
 router.get('/trending', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
+  const sort=['score','likes','comments'].includes(String(req.query.sort||'')) ? String(req.query.sort) : 'score';
+  const orderBy=sort==='likes'
+    ? 'like_count DESC, comment_count DESC'
+    : sort==='comments'
+      ? 'comment_count DESC, like_count DESC'
+      : '((SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) * 2 + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id) * 3) DESC';
+
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
            p.content_level,p.post_kind,p.consent_state,p.created_at,
@@ -363,17 +370,13 @@ router.get('/trending', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
-     ORDER BY (
-       (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) * 2
-       + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id) * 3
-     ) DESC,
-     p.created_at DESC
+     ORDER BY ${orderBy}, p.created_at DESC
      LIMIT 40
   `,[req.user.id]);
 
   const participantPosts=await attachApprovedParticipants(result.rows);
   const posts=await attachCommentPreviews(participantPosts,viewer);
-  res.json({posts:gateRows(posts,viewer)});
+  res.json({posts:gateRows(posts,viewer),sort});
 });
 
 router.get('/trends', requireAuth, async (req,res)=>{
