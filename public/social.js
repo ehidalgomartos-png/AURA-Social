@@ -372,13 +372,28 @@ async function loadDiscoveryContent(mode = activeContentMode) {
     ? '/api/posts/saved'
     : mode === 'latest'
       ? '/api/posts/feed?mode=latest'
-      : '/api/posts/trending';
+      : mode === 'liked'
+        ? '/api/posts/trending?sort=likes'
+        : mode === 'commented'
+          ? '/api/posts/trending?sort=comments'
+          : '/api/posts/trending?sort=score';
 
-  if (title) title.textContent = mode === 'saved' ? 'Tus guardados' : mode === 'latest' ? 'Lo más nuevo' : 'Tendencias';
+  if (title) {
+    title.textContent = mode === 'saved'
+      ? 'Tus guardados'
+      : mode === 'latest'
+        ? 'Lo más nuevo'
+        : mode === 'liked'
+          ? 'Lo más gustado'
+          : mode === 'commented'
+            ? 'Lo más comentado'
+            : 'Tendencias';
+  }
   const root = $('#discoveryFeed');
   if (root) root.innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
 
   const { r, d } = await api(endpoint);
+  if (activePostSearch) return;
   if (!r.ok) {
     return renderDiscoveryPosts([], 'No se pudo cargar el contenido.', 'Inténtalo de nuevo dentro de unos segundos.');
   }
