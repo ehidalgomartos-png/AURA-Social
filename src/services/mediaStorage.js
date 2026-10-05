@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..', '..');
-const UPLOADS = path.join(ROOT, 'uploads');
+const UPLOADS = process.env.UPLOAD_DIR || path.join(ROOT, 'uploads');
 
 function safeExt(originalName, mime) {
   const ext = path.extname(originalName || '').toLowerCase().replace(/[^.a-z0-9]/g, '');
@@ -30,7 +30,7 @@ async function uploadBunnyImage(file) {
   if (!zone || !key || !publicBase) throw new Error('bunny_storage_not_configured');
 
   const date = new Date();
-  const rel = `aura/${date.getUTCFullYear()}/${String(date.getUTCMonth()+1).padStart(2,'0')}/${crypto.randomUUID()}${safeExt(file.originalname, file.mimetype)}`;
+  const rel = `redlibertad/${date.getUTCFullYear()}/${String(date.getUTCMonth()+1).padStart(2,'0')}/${crypto.randomUUID()}${safeExt(file.originalname, file.mimetype)}`;
   const bytes = await fs.readFile(file.path);
   const response = await fetch(`https://storage.bunnycdn.com/${zone}/${rel}`, {
     method: 'PUT', headers: { AccessKey: key, 'Content-Type': 'application/octet-stream' }, body: bytes
@@ -49,7 +49,7 @@ async function uploadBunnyVideo(file) {
   const create = await fetch(`https://video.bunnycdn.com/library/${libraryId}/videos`, {
     method: 'POST',
     headers: { AccessKey: key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: file.originalname || `AURA-${Date.now()}` })
+    body: JSON.stringify({ title: file.originalname || `RedLibertad-${Date.now()}` })
   });
   if (!create.ok) throw new Error(`bunny_stream_create_failed_${create.status}`);
   const meta = await create.json();

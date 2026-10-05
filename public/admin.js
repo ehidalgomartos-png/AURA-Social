@@ -170,7 +170,7 @@ async function verifyCreator(id, button) {
 
 /*
   Event delegation instead of inline onclick.
-  This is compatible with AURA's Content Security Policy:
+  This is compatible with RedLibertad's Content Security Policy:
   script-src 'self'
 */
 document.addEventListener('click', async event => {

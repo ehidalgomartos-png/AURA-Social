@@ -247,7 +247,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
       ]);
     } catch (notificationError) {
       console.warn(
-        'AURA message notification failed after message was stored:',
+        'RedLibertad message notification failed after message was stored:',
         notificationError?.message || notificationError
       );
     }
@@ -257,7 +257,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
       message: savedMessage
     });
   } catch (error) {
-    console.error('AURA message send failed:', error);
+    console.error('RedLibertad message send failed:', error);
     return res.status(500).json({ error: 'message_send_failed' });
   }
 });

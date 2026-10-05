@@ -1,8 +1,8 @@
 {
-  "name": "aura-social",
-  "version": "0.4.3",
+  "name": "redlibertad-social",
+  "version": "1.0.0",
   "private": true,
-  "description": "AURA V0.3 - adult social network with consent workflows, private messaging, notifications and PWA.",
+  "description": "RedLibertad V1.0 - comunidad social mobile-first con privacidad, consentimiento, contenido sensible bajo control y compartición social.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

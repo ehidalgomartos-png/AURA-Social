@@ -28,7 +28,7 @@ function toast(t) {
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 2600);
 }
-function initials(n = 'A') {
+function initials(n = 'R') {
   return n.trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
 }
 function avatarHTML(p) {
@@ -119,7 +119,7 @@ function postHTML(p) {
       </div>
     </div>
     <div class="post-media">${mediaHTML(p)}</div>
-    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button data-report="${p.id}">⋯</button></div>
+    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button data-share="${p.id}">↗ <span class="share-label">Compartir</span></button><button data-report="${p.id}">⋯</button></div>
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
     ${inlineCommentsHTML(p)}
   </article>`;
@@ -255,7 +255,7 @@ async function loadFeed(mode = currentMode) {
     : `<div class="empty-feed-card">
         <span class="empty-feed-icon">A</span>
         <h2>${mode === 'following' ? 'Tu feed de Siguiendo empieza aquí.' : 'Todavía hay poco por aquí.'}</h2>
-        <p>${mode === 'following' ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.' : 'Descubre personas, sigue perfiles o publica algo para poner AURA en movimiento.'}</p>
+        <p>${mode === 'following' ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.' : 'Descubre personas, sigue perfiles o publica algo para poner RedLibertad en movimiento.'}</p>
         <div class="empty-feed-actions">
           <button type="button" class="primary" data-view-jump="explore">Descubrir personas</button>
           <button type="button" class="secondary" data-open-create="1">Crear publicación</button>
@@ -588,6 +588,29 @@ function openReport(postId) {
   $('#reportModal').classList.remove('hidden');
 }
 
+let activeSharePostId = null;
+function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
+function shareText() { return 'Mira mi post en RedLibertad, donde la libertad es lo primero.'; }
+function openShare(postId) {
+  activeSharePostId = Number(postId);
+  const modal = $('#shareModal');
+  if (modal) modal.classList.remove('hidden');
+  const status = $('#shareStatus'); if (status) status.textContent = '';
+}
+function closeShare() { const modal=$('#shareModal'); if(modal) modal.classList.add('hidden'); activeSharePostId=null; }
+async function copyShareLink() {
+  if (!activeSharePostId) return;
+  const value = `${shareText()} ${shareUrl(activeSharePostId)}`;
+  try { await navigator.clipboard.writeText(value); toast('Texto y enlace copiados'); }
+  catch (_) { toast('No se pudo copiar el enlace'); }
+}
+async function nativeShare() {
+  if (!activeSharePostId) return;
+  const url=shareUrl(activeSharePostId), text=shareText();
+  if (navigator.share) { try { await navigator.share({title:'RedLibertad',text,url}); closeShare(); return; } catch(e){ if(e?.name==='AbortError') return; } }
+  await copyShareLink();
+}
+
 function bindPostActions(root) {
   $$('[data-like]', root).forEach(b => {
     b.onclick = async () => {
@@ -598,6 +621,10 @@ function bindPostActions(root) {
 
   $$('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
+  });
+
+  $$('[data-share]', root).forEach(b => {
+    b.onclick = () => openShare(b.dataset.share);
   });
 
   $$('[data-report]', root).forEach(b => {
@@ -795,7 +822,7 @@ function updateNotificationBadge(n) {
 async function loadNotifications() {
   const { d } = await api('/api/notifications');
   updateNotificationBadge(d.unread);
-  $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'AURA')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'AURA'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
+  $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
   $$('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
 }
 $('#readAllNotifications').onclick = async () => { await api('/api/notifications/read-all', { method: 'POST' }); toast('Notificaciones marcadas como leídas'); await loadNotifications(); };
@@ -1055,9 +1082,22 @@ $('#storyForm').addEventListener('submit', async e => {
     toast('Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
   } catch (err) { msg.textContent = err.message; }
 });
+if ($('#closeShareModal')) $('#closeShareModal').onclick = closeShare;
+if ($('#shareNative')) $('#shareNative').onclick = nativeShare;
+if ($('#shareCopy')) $('#shareCopy').onclick = copyShareLink;
+if ($('#shareFacebook')) $('#shareFacebook').onclick = () => {
+  if (!activeSharePostId) return;
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl(activeSharePostId))}`, '_blank', 'noopener,noreferrer');
+};
+if ($('#shareWhatsApp')) $('#shareWhatsApp').onclick = () => {
+  if (!activeSharePostId) return;
+  window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl(activeSharePostId)}`)}`, '_blank', 'noopener,noreferrer');
+};
+$('#shareModal')?.addEventListener('click', e => { if (e.target === $('#shareModal')) closeShare(); });
+
 $('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/'; };
 
-window.addEventListener('aura-install-ready', e => {
+window.addEventListener('redlibertad-install-ready', e => {
   const button = $('#installApp');
   if (!button) return;
   button.classList.remove('hidden');

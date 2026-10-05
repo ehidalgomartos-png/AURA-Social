@@ -6,6 +6,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const db = require('./src/db');
 
 const authRoutes = require('./src/routes/auth');
 const profileRoutes = require('./src/routes/profiles');
@@ -19,6 +20,7 @@ const notificationRoutes = require('./src/routes/notifications');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 
 app.set('trust proxy', 1);
 app.use(helmet({
@@ -42,7 +44,7 @@ app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+app.use('/uploads', express.static(UPLOAD_DIR, {
   fallthrough: false,
   maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0
 }));
@@ -60,16 +62,52 @@ app.use('/api/notifications', notificationRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '0.4.3',
-    mode: 'adult-social',
+    version: '1.0.0',
+    mode: 'redlibertad-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
       'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
-      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa'
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding'
     ]
   });
+});
+
+
+function escapeHtml(value='') {
+  return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+function absoluteUrl(req, value='') {
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  const configured = String(process.env.APP_ORIGIN || '').replace(/\/$/, '');
+  const base = configured || `${req.protocol}://${req.get('host')}`;
+  return `${base}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+app.get('/p/:id', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT p.id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
+             u.username,u.display_name
+        FROM posts p JOIN users u ON u.id=p.user_id
+       WHERE p.id=$1 AND p.moderation_status='published' AND u.status='active'
+       LIMIT 1
+    `,[req.params.id]);
+    if (!result.rowCount) return res.status(404).send('Publicación no encontrada.');
+    const post=result.rows[0];
+    const origin=String(process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`).replace(/\/$/,'');
+    const publicUrl=`${origin}/p/${encodeURIComponent(post.id)}`;
+    const title='Mira mi post en RedLibertad';
+    const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
+    const ogImage=`${origin}/assets/og-redlibertad.png`;
+    const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
+    const media=mediaAllowed ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">` : `<div class="shared-lock"><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div>`;
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div><b>${escapeHtml(post.display_name)}</b><small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a></div></article></main></body></html>`);
+  } catch (error) {
+    console.error('RedLibertad public post error:', error);
+    res.status(500).send('No se pudo cargar la publicación.');
+  }
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -78,4 +116,4 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`AURA V0.4.3 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`RedLibertad V1.0.0 running on http://localhost:${PORT}`));

@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS post_participants (post_id BIGINT NOT NULL REFERENCES
 CREATE TABLE IF NOT EXISTS stories (id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,media_url TEXT NOT NULL,media_type TEXT NOT NULL CHECK(media_type IN ('image','video')),media_provider TEXT NOT NULL DEFAULT 'local',external_id TEXT,playback_url TEXT,content_level TEXT NOT NULL CHECK(content_level IN ('normal','sensitive','nudity')),moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','under_review','rejected')),created_at TIMESTAMPTZ NOT NULL DEFAULT now(),expires_at TIMESTAMPTZ NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_stories_active ON stories(expires_at DESC);
 
--- AURA V0.3: richer profiles, notifications, consent and private messaging
+-- RedLibertad base heredada de AURA V0.3: richer profiles, notifications, consent and private messaging
 ALTER TABLE users ADD COLUMN IF NOT EXISTS location_label VARCHAR(120) NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url TEXT;
 
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
--- AURA V0.4: interests, discovery and richer social activity
+-- RedLibertad base heredada de AURA V0.4: interests, discovery and richer social activity
 CREATE TABLE IF NOT EXISTS user_interests (
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   interest VARCHAR(40) NOT NULL,
