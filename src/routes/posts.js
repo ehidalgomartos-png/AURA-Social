@@ -80,7 +80,7 @@ async function notifyMentions({ actorId, text, entityType='post', entityId }) {
   }
 }
 
-async function attachRepostMeta(rows, viewerId=null) {
+async function attachRepostMeta(rows, viewerId=null, includeActor=false) {
   if (!rows.length) return rows;
   const ids = rows.map(row => row.id);
   const params = [ids];
@@ -107,7 +107,7 @@ async function attachRepostMeta(rows, viewerId=null) {
   const countMap = new Map(counts.rows.map(row => [String(row.post_id),row]));
 
   let actorMap = new Map();
-  if (viewerId) {
+  if (viewerId && includeActor) {
     const actors = await db.query(`
       SELECT DISTINCT ON (r.post_id)
              r.post_id,
@@ -420,7 +420,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
   `, params);
   const participantPosts = await attachApprovedParticipants(result.rows);
   const posts = await attachCommentPreviews(participantPosts, viewer);
-  const repostPosts = await attachRepostMeta(posts, req.user?.id || null);
+  const repostPosts = await attachRepostMeta(posts, req.user?.id || null, mode === 'following');
   res.json({ posts: gateRows(repostPosts, viewer), mode });
 });
 
