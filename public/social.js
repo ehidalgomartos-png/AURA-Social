@@ -603,11 +603,40 @@ function openShare(postId) {
   const status = $('#shareStatus'); if (status) status.textContent = '';
 }
 function closeShare() { const modal=$('#shareModal'); if(modal) modal.classList.add('hidden'); activeSharePostId=null; }
+async function writeClipboardText(value) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return true;
+  }
+
+  const area = document.createElement('textarea');
+  area.value = value;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.left = '-9999px';
+  area.style.top = '0';
+  document.body.appendChild(area);
+  area.focus();
+  area.select();
+  area.setSelectionRange(0, area.value.length);
+
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch (_) {}
+  area.remove();
+
+  if (!copied) throw new Error('clipboard_unavailable');
+  return true;
+}
+
 async function copyShareLink() {
   if (!activeSharePostId) return;
   const value = `${shareText()} ${shareUrl(activeSharePostId)}`;
-  try { await navigator.clipboard.writeText(value); toast('Texto y enlace copiados'); }
-  catch (_) { toast('No se pudo copiar el enlace'); }
+  try {
+    await writeClipboardText(value);
+    toast('Texto y enlace copiados');
+  } catch (_) {
+    window.prompt('Copia este texto y enlace:', value);
+  }
 }
 async function nativeShare() {
   if (!activeSharePostId) return;
