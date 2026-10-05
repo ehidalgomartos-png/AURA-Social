@@ -200,3 +200,25 @@ CREATE TABLE IF NOT EXISTS user_moderation_actions (
 );
 CREATE INDEX IF NOT EXISTS idx_user_moderation_actions_user_created
   ON user_moderation_actions(user_id,created_at DESC);
+
+
+-- RedLibertad V1.12: centro de confianza y verificación
+CREATE TABLE IF NOT EXISTS verification_requests (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK(type IN ('age','creator')),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending'
+    CHECK(status IN ('pending','approved','rejected','cancelled')),
+  request_note VARCHAR(1000) NOT NULL DEFAULT '',
+  review_note VARCHAR(1000) NOT NULL DEFAULT '',
+  admin_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reviewed_at TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_verification_requests_one_pending
+  ON verification_requests(user_id,type)
+  WHERE status='pending';
+
+CREATE INDEX IF NOT EXISTS idx_verification_requests_queue
+  ON verification_requests(status,type,created_at);
