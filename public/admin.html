@@ -1,1 +1,102 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RedLibertad — Moderación</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/admin.css"></head><body><header><a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a><div><b>Moderación</b><small>V1.0</small></div></header><main><section><span class="eyebrow">PANEL</span><h1>Seguridad y moderación</h1><div id="metrics" class="metrics"></div></section><section class="grid"><div class="panel"><div class="panel-head"><h2>Denuncias</h2><button id="reloadReports">Actualizar</button></div><div id="reports"></div></div><div class="panel"><div class="panel-head"><h2>Usuarios</h2></div><form id="searchForm"><input id="search" placeholder="Usuario, email o nombre"><button>Buscar</button></form><div id="users"></div></div></section></main><script src="/admin.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>RedLibertad — Moderación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+<header>
+  <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
+  <div><b>Moderación</b><small>V1.11 · Trust & Safety</small></div>
+</header>
+
+<main>
+  <section class="admin-hero">
+    <span class="eyebrow">PANEL</span>
+    <h1>Seguridad y moderación</h1>
+    <p>Revisa denuncias, contexto, cuentas y acciones de moderación desde un solo lugar.</p>
+    <div id="metrics" class="metrics"></div>
+  </section>
+
+  <section class="grid">
+    <div class="panel reports-panel">
+      <div class="panel-head">
+        <div><span class="eyebrow">COLA</span><h2>Denuncias</h2></div>
+        <div class="panel-tools">
+          <select id="reportFilter" aria-label="Filtrar denuncias">
+            <option value="open">Abiertas</option>
+            <option value="all">Todas</option>
+            <option value="critical">Críticas</option>
+            <option value="resolved">Resueltas</option>
+          </select>
+          <button id="reloadReports">Actualizar</button>
+        </div>
+      </div>
+      <div id="reports" class="report-list"></div>
+    </div>
+
+    <div class="panel users-panel">
+      <div class="panel-head">
+        <div><span class="eyebrow">COMUNIDAD</span><h2>Usuarios</h2></div>
+      </div>
+      <form id="searchForm" class="search-form">
+        <input id="search" placeholder="Usuario, email o nombre" autocomplete="off">
+        <button>Buscar</button>
+      </form>
+      <div id="users" class="user-list"></div>
+    </div>
+  </section>
+</main>
+
+<div id="moderationModal" class="admin-modal hidden">
+  <div class="admin-modal-card">
+    <button id="closeModerationModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">ACCIÓN SOBRE CUENTA</span>
+    <h2 id="moderationTarget">Moderar usuario</h2>
+    <form id="moderationForm">
+      <input type="hidden" name="userId">
+      <label>Acción
+        <select name="action">
+          <option value="warn">Enviar aviso</option>
+          <option value="suspend">Suspender temporalmente</option>
+          <option value="reactivate">Reactivar cuenta</option>
+          <option value="ban">Bloquear cuenta</option>
+        </select>
+      </label>
+      <label id="moderationDurationRow">Duración de suspensión
+        <select name="duration">
+          <option value="24h">24 horas</option>
+          <option value="7d" selected>7 días</option>
+          <option value="30d">30 días</option>
+          <option value="indefinite">Indefinida</option>
+        </select>
+      </label>
+      <label>Motivo / nota
+        <textarea name="reason" maxlength="1000" placeholder="Explica brevemente el motivo. Se mostrará al usuario en avisos o suspensión."></textarea>
+      </label>
+      <div class="modal-actions">
+        <button id="cancelModeration" class="soft" type="button">Cancelar</button>
+        <button class="primary" type="submit">Aplicar acción</button>
+      </div>
+      <p id="moderationStatus" class="status"></p>
+    </form>
+  </div>
+</div>
+
+<div id="historyModal" class="admin-modal hidden">
+  <div class="admin-modal-card history-card">
+    <button id="closeHistoryModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">HISTORIAL</span>
+    <h2 id="historyTitle">Moderación</h2>
+    <div id="historyContent"></div>
+  </div>
+</div>
+
+<script src="/admin.js"></script>
+</body>
+</html>
