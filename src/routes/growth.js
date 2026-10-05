@@ -96,7 +96,7 @@ router.get('/me', requireAuth, async (req,res)=>{
     },
     {
       id:'interact',
-      label:'Participa en una conversación',
+      label:'Interactúa: Me gusta, comentario o republicación',
       done:Number(user.interaction_count||0)>=1,
       action:'feed'
     }
