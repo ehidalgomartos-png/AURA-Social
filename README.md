@@ -1,4 +1,4 @@
-# RedLibertad V1.4.0 — Visual Refresh & Mobile Energy
+# RedLibertad V1.5.0 — Community & Viral
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -139,3 +139,19 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Landing pública actualizada para mantener coherencia de marca.
 - Respeta prefers-reduced-motion.
 - Sin cambios en el esquema de PostgreSQL.
+
+
+## V1.5.0 — Community & Viral
+
+- Menciones @usuario clicables dentro de publicaciones y comentarios.
+- Notificaciones automáticas cuando alguien te menciona.
+- Republicar / quitar republicación con contador persistente.
+- Las republicaciones pueden hacer reaparecer contenido en el feed Siguiendo de tus seguidores.
+- Aviso visual "X republicó esto" en el feed Siguiendo.
+- Listas de Seguidores y Siguiendo accesibles desde los perfiles.
+- Botones de estadísticas de perfil convertidos en elementos interactivos.
+- Compartir una publicación dentro de RedLibertad enviándola por mensaje privado a @usuario.
+- Notificación al autor cuando alguien republica su publicación.
+- Tabla reposts creada automáticamente de forma idempotente.
+- Nuevos tipos de notificación: mention y repost.
+- Sin pasos manuales de migración para la versión desplegada.
