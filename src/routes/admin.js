@@ -154,6 +154,8 @@ router.get('/users',async(req,res)=>{
       (SELECT count(*)::int FROM reports rp WHERE
         (rp.target_type='user' AND rp.target_id=u.id)
         OR (rp.target_type='post' AND rp.target_id IN (SELECT p2.id FROM posts p2 WHERE p2.user_id=u.id))
+        OR (rp.target_type='comment' AND rp.target_id IN (SELECT c2.id FROM comments c2 WHERE c2.user_id=u.id))
+        OR (rp.target_type='message' AND rp.target_id IN (SELECT m2.id FROM messages m2 WHERE m2.sender_id=u.id))
       ) report_count,
       (SELECT count(*)::int FROM user_moderation_actions ma WHERE ma.user_id=u.id) moderation_count,
       GREATEST(
