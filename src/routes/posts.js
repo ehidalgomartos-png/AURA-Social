@@ -6,6 +6,27 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let savedPostsReady = null;
+async function ensureSavedPostsTable() {
+  if (!savedPostsReady) {
+    savedPostsReady = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS saved_posts (
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(user_id,post_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_saved_posts_user_created ON saved_posts(user_id,created_at DESC)');
+    })().catch(error => {
+      savedPostsReady = null;
+      throw error;
+    });
+  }
+  return savedPostsReady;
+}
+
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
   mediaUrl: z.string().max(4096).optional().default(''),
@@ -285,6 +306,182 @@ router.get('/discover', optionalAuth, async (req, res) => {
   `,params);
   const posts=await attachApprovedParticipants(result.rows);
   res.json({posts:gateRows(posts,viewer)});
+});
+
+router.get('/search', requireAuth, async (req,res)=>{
+  const q=String(req.query.q||'').trim().slice(0,80);
+  if(q.length<2) return res.json({posts:[],query:q});
+
+  const viewer=await viewerFrom(req);
+  const likePattern=`%${q.replace(/[\\%_]/g,'\\router.get('/user/:username', optionalAuth, async (req, res) => {')}%`;
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND u.status='active'
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+       AND (
+         p.caption ILIKE $2 ESCAPE '\\'
+         OR u.username ILIKE $2 ESCAPE '\\'
+         OR u.display_name ILIKE $2 ESCAPE '\\'
+       )
+     ORDER BY p.created_at DESC
+     LIMIT 50
+  `,[req.user.id,likePattern]);
+
+  const participantPosts=await attachApprovedParticipants(result.rows);
+  const posts=await attachCommentPreviews(participantPosts,viewer);
+  res.json({posts:gateRows(posts,viewer),query:q});
+});
+
+router.get('/trending', requireAuth, async (req,res)=>{
+  const viewer=await viewerFrom(req);
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND u.status='active'
+       AND p.created_at >= now() - interval '30 days'
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+     ORDER BY (
+       (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) * 2
+       + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id) * 3
+     ) DESC,
+     p.created_at DESC
+     LIMIT 40
+  `,[req.user.id]);
+
+  const participantPosts=await attachApprovedParticipants(result.rows);
+  const posts=await attachCommentPreviews(participantPosts,viewer);
+  res.json({posts:gateRows(posts,viewer)});
+});
+
+router.get('/trends', requireAuth, async (req,res)=>{
+  const result=await db.query(`
+    SELECT p.caption
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND u.status='active'
+       AND p.created_at >= now() - interval '30 days'
+       AND p.caption <> ''
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+     ORDER BY p.created_at DESC
+     LIMIT 500
+  `,[req.user.id]);
+
+  const counts=new Map();
+  const hashtag=/#([\p{L}\p{N}_]{2,40})/gu;
+  for(const row of result.rows){
+    const text=String(row.caption||'');
+    const seen=new Set();
+    for(const match of text.matchAll(hashtag)){
+      const tag=match[1].normalize('NFKC').toLowerCase();
+      if(seen.has(tag)) continue;
+      seen.add(tag);
+      counts.set(tag,(counts.get(tag)||0)+1);
+    }
+  }
+
+  const trends=[...counts.entries()]
+    .sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]))
+    .slice(0,12)
+    .map(([tag,count])=>({tag,count}));
+
+  res.json({trends});
+});
+
+router.get('/saved/ids', requireAuth, async (req,res)=>{
+  await ensureSavedPostsTable();
+  const result=await db.query(
+    'SELECT post_id FROM saved_posts WHERE user_id=$1 ORDER BY created_at DESC LIMIT 500',
+    [req.user.id]
+  );
+  res.json({ids:result.rows.map(row=>String(row.post_id))});
+});
+
+router.get('/saved', requireAuth, async (req,res)=>{
+  await ensureSavedPostsTable();
+  const viewer=await viewerFrom(req);
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count,
+           sp.created_at saved_at
+      FROM saved_posts sp
+      JOIN posts p ON p.id=sp.post_id
+      JOIN users u ON u.id=p.user_id
+     WHERE sp.user_id=$1
+       AND p.moderation_status='published'
+       AND u.status='active'
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+     ORDER BY sp.created_at DESC
+     LIMIT 100
+  `,[req.user.id]);
+
+  const participantPosts=await attachApprovedParticipants(result.rows);
+  const posts=await attachCommentPreviews(participantPosts,viewer);
+  res.json({posts:gateRows(posts,viewer)});
+});
+
+router.post('/:id/save', requireAuth, async (req,res)=>{
+  await ensureSavedPostsTable();
+  const inserted=await db.query(`
+    INSERT INTO saved_posts (user_id,post_id)
+    SELECT $1,p.id
+      FROM posts p
+     WHERE p.id=$2
+       AND p.moderation_status='published'
+    ON CONFLICT DO NOTHING
+    RETURNING post_id
+  `,[req.user.id,req.params.id]);
+
+  if(!inserted.rowCount){
+    const exists=await db.query('SELECT 1 FROM posts WHERE id=$1 AND moderation_status=\'published\'',[req.params.id]);
+    if(!exists.rowCount) return res.status(404).json({error:'post_not_found'});
+  }
+
+  res.json({ok:true,saved:true});
+});
+
+router.delete('/:id/save', requireAuth, async (req,res)=>{
+  await ensureSavedPostsTable();
+  await db.query(
+    'DELETE FROM saved_posts WHERE user_id=$1 AND post_id=$2',
+    [req.user.id,req.params.id]
+  );
+  res.json({ok:true,saved:false});
 });
 
 router.get('/user/:username', optionalAuth, async (req, res) => {
