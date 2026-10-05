@@ -177,3 +177,8 @@ CREATE TABLE IF NOT EXISTS mutes (
   CHECK(muter_id<>muted_id)
 );
 CREATE INDEX IF NOT EXISTS idx_mutes_muter ON mutes(muter_id,created_at DESC);
+
+
+-- RedLibertad V1.10: cuenta y seguridad
+ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
