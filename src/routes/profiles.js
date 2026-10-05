@@ -5,6 +5,48 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let privacyV19Ready = null;
+async function ensurePrivacyV19() {
+  if (!privacyV19Ready) {
+    privacyV19Ready = (async () => {
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query(`
+        DO $ BEGIN
+          ALTER TABLE users
+            ADD CONSTRAINT users_message_privacy_check
+            CHECK(message_privacy IN ('everyone','following','no_one'));
+        EXCEPTION WHEN duplicate_object THEN NULL; END $
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS mutes (
+          muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          muted_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(muter_id,muted_id),
+          CHECK(muter_id<>muted_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_mutes_muter ON mutes(muter_id,created_at DESC)');
+    })().catch(error => {
+      privacyV19Ready = null;
+      throw error;
+    });
+  }
+  return privacyV19Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensurePrivacyV19();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.9 privacy bootstrap failed:',error);
+    res.status(500).json({error:'privacy_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
@@ -32,7 +74,7 @@ router.get('/interests', requireAuth, async (_req, res) => {
 router.get('/me/summary', requireAuth, async (req,res)=>{
   const r=await db.query(`
     SELECT id,email,username,display_name,bio,avatar_url,cover_url,location_label,website_url,
-           is_admin,age_verified,creator_verified,show_sensitive,status,
+           is_admin,age_verified,creator_verified,show_sensitive,status,message_privacy,discoverable,show_activity,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
@@ -90,6 +132,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
     FROM users u
     WHERE u.status='active'
       AND u.is_admin=false
+      AND u.discoverable=true
       AND u.id<>$1
       AND u.id NOT IN (
         SELECT blocked_id FROM blocks WHERE blocker_id=$1
@@ -147,7 +190,7 @@ router.get('/search/users', requireAuth, async (req,res)=>{
         ARRAY[]::text[]
       ) interests
       FROM users u
-     WHERE u.status='active' AND u.is_admin=false AND u.id<>$1
+     WHERE u.status='active' AND u.is_admin=false AND u.discoverable=true AND u.id<>$1
        AND u.id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -212,6 +255,8 @@ router.get('/active', requireAuth, async (req,res)=>{
       ) activity
      WHERE u.status='active'
        AND u.is_admin=false
+       AND u.discoverable=true
+       AND u.show_activity=true
        AND u.id<>$1
        AND u.id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
@@ -231,6 +276,95 @@ router.get('/active', requireAuth, async (req,res)=>{
      LIMIT $2
   `,[req.user.id,limit]);
 
+  res.json({users:result.rows});
+});
+
+const privacySchema=z.object({
+  messagePrivacy:z.enum(['everyone','following','no_one']).optional(),
+  discoverable:z.boolean().optional(),
+  showActivity:z.boolean().optional()
+});
+
+router.get('/me/privacy',requireAuth,async(req,res)=>{
+  const [settings,muted,blocked]=await Promise.all([
+    db.query(
+      `SELECT message_privacy,discoverable,show_activity
+         FROM users WHERE id=$1 LIMIT 1`,
+      [req.user.id]
+    ),
+    db.query('SELECT count(*)::int AS n FROM mutes WHERE muter_id=$1',[req.user.id]),
+    db.query('SELECT count(*)::int AS n FROM blocks WHERE blocker_id=$1',[req.user.id])
+  ]);
+
+  if(!settings.rowCount)return res.status(404).json({error:'user_not_found'});
+  res.json({
+    settings:{
+      messagePrivacy:settings.rows[0].message_privacy,
+      discoverable:settings.rows[0].discoverable,
+      showActivity:settings.rows[0].show_activity
+    },
+    mutedCount:muted.rows[0]?.n || 0,
+    blockedCount:blocked.rows[0]?.n || 0
+  });
+});
+
+router.patch('/me/privacy',requireAuth,async(req,res)=>{
+  const parsed=privacySchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_data'});
+
+  const current=await db.query(
+    'SELECT message_privacy,discoverable,show_activity FROM users WHERE id=$1',
+    [req.user.id]
+  );
+  if(!current.rowCount)return res.status(404).json({error:'user_not_found'});
+
+  const d=parsed.data;
+  const row=await db.query(`
+    UPDATE users
+       SET message_privacy=$2,
+           discoverable=$3,
+           show_activity=$4,
+           updated_at=now()
+     WHERE id=$1
+     RETURNING message_privacy,discoverable,show_activity
+  `,[
+    req.user.id,
+    d.messagePrivacy ?? current.rows[0].message_privacy,
+    d.discoverable ?? current.rows[0].discoverable,
+    d.showActivity ?? current.rows[0].show_activity
+  ]);
+
+  res.json({
+    ok:true,
+    settings:{
+      messagePrivacy:row.rows[0].message_privacy,
+      discoverable:row.rows[0].discoverable,
+      showActivity:row.rows[0].show_activity
+    }
+  });
+});
+
+router.get('/me/muted',requireAuth,async(req,res)=>{
+  const result=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,m.created_at
+      FROM mutes m
+      JOIN users u ON u.id=m.muted_id
+     WHERE m.muter_id=$1
+     ORDER BY m.created_at DESC
+     LIMIT 250
+  `,[req.user.id]);
+  res.json({users:result.rows});
+});
+
+router.get('/me/blocked',requireAuth,async(req,res)=>{
+  const result=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,b.created_at
+      FROM blocks b
+      JOIN users u ON u.id=b.blocked_id
+     WHERE b.blocker_id=$1
+     ORDER BY b.created_at DESC
+     LIMIT 250
+  `,[req.user.id]);
   res.json({users:result.rows});
 });
 
@@ -258,9 +392,11 @@ router.get('/:username', optionalAuth, async (req,res)=>{
   let followsYou=false;
   let mutuals=[];
   let mutualCount=0;
+  let mutedByMe=false;
+  let blockedByMe=false;
 
   if(req.user){
-    const [followingResult,followsYouResult,mutualResult,mutualCountResult]=await Promise.all([
+    const [followingResult,followsYouResult,mutualResult,mutualCountResult,mutedResult,blockedResult]=await Promise.all([
       db.query(
         'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2',
         [req.user.id,profile.id]
@@ -292,15 +428,19 @@ router.get('/:username', optionalAuth, async (req,res)=>{
          WHERE target_followers.following_id=$2
            AND u.status='active'
            AND u.id<>$1
-      `,[req.user.id,profile.id])
+      `,[req.user.id,profile.id]),
+      db.query('SELECT 1 FROM mutes WHERE muter_id=$1 AND muted_id=$2',[req.user.id,profile.id]),
+      db.query('SELECT 1 FROM blocks WHERE blocker_id=$1 AND blocked_id=$2',[req.user.id,profile.id])
     ]);
     following=!!followingResult.rowCount;
     followsYou=!!followsYouResult.rowCount;
     mutuals=mutualResult.rows;
     mutualCount=mutualCountResult.rows[0]?.n || 0;
+    mutedByMe=!!mutedResult.rowCount;
+    blockedByMe=!!blockedResult.rowCount;
   }
 
-  res.json({profile,following,followsYou,mutuals,mutualCount});
+  res.json({profile,following,followsYou,mutuals,mutualCount,mutedByMe,blockedByMe});
 });
 
 router.get('/:username/followers',optionalAuth,async(req,res)=>{
@@ -521,6 +661,42 @@ router.post('/:id/block',requireAuth,async(req,res)=>{
   `,[req.user.id,req.params.id]);
 
   res.json({ok:true});
+});
+
+router.post('/:id/mute',requireAuth,async(req,res)=>{
+  if(req.params.id===String(req.user.id)){
+    return res.status(400).json({error:'cannot_mute_self'});
+  }
+
+  const target=await db.query(
+    "SELECT id FROM users WHERE id=$1 AND status='active' LIMIT 1",
+    [req.params.id]
+  );
+  if(!target.rowCount)return res.status(404).json({error:'user_not_found'});
+
+  await db.query(`
+    INSERT INTO mutes (muter_id,muted_id)
+    VALUES ($1,$2)
+    ON CONFLICT DO NOTHING
+  `,[req.user.id,req.params.id]);
+
+  res.json({ok:true,muted:true});
+});
+
+router.delete('/:id/mute',requireAuth,async(req,res)=>{
+  await db.query(
+    'DELETE FROM mutes WHERE muter_id=$1 AND muted_id=$2',
+    [req.user.id,req.params.id]
+  );
+  res.json({ok:true,muted:false});
+});
+
+router.delete('/:id/block',requireAuth,async(req,res)=>{
+  await db.query(
+    'DELETE FROM blocks WHERE blocker_id=$1 AND blocked_id=$2',
+    [req.user.id,req.params.id]
+  );
+  res.json({ok:true,blocked:false});
 });
 
 module.exports=router;
