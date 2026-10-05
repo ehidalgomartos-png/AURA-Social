@@ -186,16 +186,52 @@ router.get('/:username', optionalAuth, async (req,res)=>{
 
   const profile=result.rows[0];
   let following=false;
+  let followsYou=false;
+  let mutuals=[];
+  let mutualCount=0;
 
   if(req.user){
-    const f=await db.query(
-      'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2',
-      [req.user.id,profile.id]
-    );
-    following=!!f.rowCount;
+    const [followingResult,followsYouResult,mutualResult,mutualCountResult]=await Promise.all([
+      db.query(
+        'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2',
+        [req.user.id,profile.id]
+      ),
+      db.query(
+        'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2',
+        [profile.id,req.user.id]
+      ),
+      db.query(`
+        SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+          FROM follows target_followers
+          JOIN follows viewer_follows
+            ON viewer_follows.following_id=target_followers.follower_id
+           AND viewer_follows.follower_id=$1
+          JOIN users u ON u.id=target_followers.follower_id
+         WHERE target_followers.following_id=$2
+           AND u.status='active'
+           AND u.id<>$1
+         ORDER BY u.creator_verified DESC,u.display_name ASC
+         LIMIT 3
+      `,[req.user.id,profile.id]),
+      db.query(`
+        SELECT count(*)::int AS n
+          FROM follows target_followers
+          JOIN follows viewer_follows
+            ON viewer_follows.following_id=target_followers.follower_id
+           AND viewer_follows.follower_id=$1
+          JOIN users u ON u.id=target_followers.follower_id
+         WHERE target_followers.following_id=$2
+           AND u.status='active'
+           AND u.id<>$1
+      `,[req.user.id,profile.id])
+    ]);
+    following=!!followingResult.rowCount;
+    followsYou=!!followsYouResult.rowCount;
+    mutuals=mutualResult.rows;
+    mutualCount=mutualCountResult.rows[0]?.n || 0;
   }
 
-  res.json({profile,following});
+  res.json({profile,following,followsYou,mutuals,mutualCount});
 });
 
 router.get('/:username/followers',optionalAuth,async(req,res)=>{
