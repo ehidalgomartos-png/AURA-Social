@@ -31,7 +31,8 @@ app.use(helmet({
       mediaSrc: ["'self'", 'blob:', 'https:'],
       frameSrc: ["'self'", 'https://iframe.mediadelivery.net'],
       scriptSrc: ["'self'"],
-      connectSrc: ["'self'"]
+      connectSrc: ["'self'"],
+      upgradeInsecureRequests: null
     }
   }
 }));
