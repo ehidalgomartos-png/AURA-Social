@@ -1451,6 +1451,7 @@ function bindPostActions(root) {
         pulseAction(b);
         tapFeedback();
         toast(d.reposted ? 'Publicación republicada' : 'Republicación eliminada');
+        if ($('#growthPanel')) loadGrowthPanel();
       } catch (error) {
         toast(error.message === 'own_repost' ? 'No puedes republicar tu propia publicación.' : 'No se pudo actualizar la republicación.');
       } finally {
@@ -1701,6 +1702,7 @@ $('#commentForm').addEventListener('submit', async event => {
     $('#commentStatus').textContent = 'Comentario publicado.';
     await loadComments(activeCommentsPostId);
     await loadFeed(currentMode);
+    if ($('#growthPanel')) await loadGrowthPanel();
   } catch (error) {
     $('#commentStatus').textContent = error.message;
   } finally {
