@@ -51,6 +51,23 @@
       <div id="users" class="user-list"></div>
     </div>
   </section>
+
+  <section class="panel verification-panel">
+    <div class="panel-head">
+      <div><span class="eyebrow">CONFIANZA</span><h2>Solicitudes de verificación</h2></div>
+      <div class="panel-tools">
+        <select id="verificationFilter" aria-label="Filtrar verificaciones">
+          <option value="pending">Pendientes</option>
+          <option value="all">Todas</option>
+          <option value="approved">Aprobadas</option>
+          <option value="rejected">No aprobadas</option>
+          <option value="cancelled">Canceladas</option>
+        </select>
+        <button id="reloadVerifications">Actualizar</button>
+      </div>
+    </div>
+    <div id="verifications" class="verification-list"></div>
+  </section>
 </main>
 
 <div id="moderationModal" class="admin-modal hidden">
