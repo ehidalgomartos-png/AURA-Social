@@ -247,6 +247,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,
            u.id AS user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) AS like_count,
+           ${req.user ? `EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)` : 'false'} AS liked_by_me,
            (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) AS comment_count
       FROM posts p JOIN users u ON u.id=p.user_id
      WHERE ${where.join(' AND ')}
@@ -259,16 +260,55 @@ router.get('/feed', optionalAuth, async (req, res) => {
 });
 
 router.get('/discover', optionalAuth, async (req, res) => {
-  const viewer = await viewerFrom(req); const params=[]; let block='';
-  if(req.user){params.push(req.user.id);block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;}
-  const result=await db.query(`SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,(SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count FROM posts p JOIN users u ON u.id=p.user_id WHERE p.moderation_status='published' AND u.status='active' ${block} ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC LIMIT 60`,params);
+  const viewer = await viewerFrom(req);
+  const params=[];
+  let block='';
+  let likedByMe='false';
+  if(req.user){
+    params.push(req.user.id);
+    block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`;
+    likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)';
+  }
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           ${likedByMe} AS liked_by_me
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND u.status='active'
+       ${block}
+     ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC
+     LIMIT 60
+  `,params);
   const posts=await attachApprovedParticipants(result.rows);
   res.json({posts:gateRows(posts,viewer)});
 });
 
 router.get('/user/:username', optionalAuth, async (req, res) => {
   const viewer=await viewerFrom(req);
-  const result=await db.query(`SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,(SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,(SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count FROM posts p JOIN users u ON u.id=p.user_id WHERE lower(u.username)=lower($1) AND p.moderation_status='published' ORDER BY p.created_at DESC LIMIT 60`,[req.params.username]);
+  const params=[req.params.username];
+  let likedByMe='false';
+  if(req.user){
+    params.push(req.user.id);
+    likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$2)';
+  }
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           ${likedByMe} AS liked_by_me,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE lower(u.username)=lower($1)
+       AND p.moderation_status='published'
+     ORDER BY p.created_at DESC
+     LIMIT 60
+  `,params);
   const participantPosts=await attachApprovedParticipants(result.rows);
   const posts=await attachCommentPreviews(participantPosts, viewer);
   res.json({posts:gateRows(posts,viewer)});
@@ -299,9 +339,63 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
     }
   }
 
+  const count=await db.query('SELECT count(*)::int AS n FROM likes WHERE post_id=$1',[req.params.id]);
+  res.json({ok:true,liked:true,likeCount:count.rows[0]?.n || 0});
+});
+router.delete('/:id/like', requireAuth, async (req,res)=>{
+  await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);
+  const count=await db.query('SELECT count(*)::int AS n FROM likes WHERE post_id=$1',[req.params.id]);
+  res.json({ok:true,liked:false,likeCount:count.rows[0]?.n || 0});
+});
+
+const editPostSchema=z.object({
+  caption:z.string().max(2200)
+});
+
+router.patch('/:id',requireAuth,async(req,res)=>{
+  const parsed=editPostSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_data'});
+
+  const found=await db.query(
+    'SELECT id,user_id,media_url,moderation_status FROM posts WHERE id=$1 LIMIT 1',
+    [req.params.id]
+  );
+  if(!found.rowCount)return res.status(404).json({error:'post_not_found'});
+
+  const post=found.rows[0];
+  const allowed=String(post.user_id)===String(req.user.id) || req.user.isAdmin===true;
+  if(!allowed)return res.status(403).json({error:'post_edit_not_allowed'});
+
+  const caption=String(parsed.data.caption || '').trim();
+  if(!caption && !String(post.media_url || '').trim()){
+    return res.status(400).json({error:'empty_post'});
+  }
+
+  const updated=await db.query(
+    `UPDATE posts
+        SET caption=$2,updated_at=now()
+      WHERE id=$1
+      RETURNING id,caption,updated_at`,
+    [req.params.id,caption]
+  );
+
+  res.json({ok:true,post:updated.rows[0]});
+});
+
+router.delete('/:id',requireAuth,async(req,res)=>{
+  const found=await db.query(
+    'SELECT id,user_id FROM posts WHERE id=$1 LIMIT 1',
+    [req.params.id]
+  );
+  if(!found.rowCount)return res.status(404).json({error:'post_not_found'});
+
+  const post=found.rows[0];
+  const allowed=String(post.user_id)===String(req.user.id) || req.user.isAdmin===true;
+  if(!allowed)return res.status(403).json({error:'post_delete_not_allowed'});
+
+  await db.query('DELETE FROM posts WHERE id=$1',[req.params.id]);
   res.json({ok:true});
 });
-router.delete('/:id/like', requireAuth, async (req,res)=>{await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);res.json({ok:true});});
 
 router.get('/:id/comments', requireAuth, async (req,res)=>{
   const post = await db.query(

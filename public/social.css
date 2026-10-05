@@ -521,3 +521,34 @@
   .people-grid{gap:10px}.person-card{border-radius:16px}.person-follow{min-height:40px}
   .notification-item{border-radius:0;border-left:0;border-right:0}
 }
+
+
+/* RedLibertad V1.2 — Social Feed 2.0 */
+.post-user small{display:block}
+.post-time{color:var(--muted)}
+.post-actions button{cursor:pointer;transition:transform .12s ease,background .12s ease,color .12s ease}
+.post-actions button:active{transform:scale(.94)}
+.post-actions button.liked{color:var(--coral);background:rgba(239,94,85,.10);border-radius:999px;padding-inline:10px}
+.post-actions button:disabled{opacity:.55;cursor:default}
+.post-more{margin-left:auto;font-size:18px;line-height:1}
+.compose-text-wrap{position:relative}
+.compose-text-wrap textarea{padding-bottom:34px}
+.char-counter{position:absolute;right:12px;bottom:10px;color:var(--muted);font-size:11px;font-weight:700;pointer-events:none}
+.compose-media-actions{display:flex;justify-content:flex-end;margin-top:8px}
+.compose-media-actions .tiny-action{min-height:36px}
+.post-manage-modal-card form{display:grid;gap:12px}
+.post-manage-modal-card .compose-text-wrap textarea{min-height:150px;margin-top:0}
+.post-danger-zone{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.post-danger-zone>b{color:var(--coral);display:block;margin-bottom:6px}
+.post-danger-zone p{font-size:13px;line-height:1.5}
+.text-only-post .post-actions{border-top:1px solid var(--line);padding-top:10px}
+.text-only-post .post-caption{font-size:clamp(20px,3vw,30px)}
+@media(max-width:760px){
+  .post-user small{font-size:11px}
+  .post-actions{gap:3px}
+  .post-actions button{min-height:38px;padding:7px 9px}
+  .post-actions .post-more{margin-left:auto;min-width:38px}
+  .text-only-post .post-caption{padding:18px 14px 20px;font-size:clamp(19px,5.3vw,25px)}
+  .compose-media-actions{padding:0 2px}
+  .post-manage-modal-card .compose-text-wrap textarea{min-height:180px;font-size:16px}
+}

@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "private": true,
-  "description": "RedLibertad V1.1.2 Text Posts - publicaciones de solo texto, multimedia opcional y experiencia mobile-first.",
+  "description": "RedLibertad V1.2 Social Feed 2.0 - Me gusta real, edición y borrado de posts, tiempos relativos y compositor móvil mejorado.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

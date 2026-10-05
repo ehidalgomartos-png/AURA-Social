@@ -1,5 +1,5 @@
 const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let currentMode = 'foryou';
 let currentFileMedia = null;
@@ -10,6 +10,8 @@ let activeExploreInterest = '';
 let activeCommentsPostId = null;
 let activeReportPostId = null;
 let pendingDeleteComment = null;
+let activeManagePost = null;
+let deletePostArmed = false;
 
 
 async function api(url, opts = {}) {
@@ -39,6 +41,19 @@ function avatarHTML(p) {
 }
 function esc(s = '') {
   return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+}
+function timeAgo(value) {
+  const date = new Date(value);
+  const diff = Math.max(0, Date.now() - date.getTime());
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 45) return 'ahora';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `hace ${days} d`;
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 function gateText(reason) {
   return ({
@@ -123,18 +138,27 @@ function tileContentHTML(p) {
 function postHTML(p) {
   const media = mediaHTML(p);
   const textOnly = !media;
+  const canManage = !!me && (String(me.id) === String(p.user_id) || me.is_admin === true);
+  const liked = p.liked_by_me === true;
   return `<article class="post ${textOnly ? 'text-only-post' : ''}" data-id="${p.id}">
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
-        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'}</small>
+        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
         ${participantsHTML(p)}
       </div>
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} ${esc(p.caption)}</div>` : ''}
-    <div class="post-actions"><button data-like="${p.id}">♡ ${p.like_count || 0}</button><button data-comments="${p.id}">◯ ${p.comment_count || 0}</button><button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button><button data-report="${p.id}">⋯</button></div>
+    <div class="post-actions">
+      <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
+      <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
+      <button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button>
+      ${canManage
+        ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
+        : `<button class="post-more" data-report="${p.id}" aria-label="Denunciar publicación">⋯</button>`}
+    </div>
     ${inlineCommentsHTML(p)}
   </article>`;
 }
@@ -264,6 +288,7 @@ async function loadMe() {
 }
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
+  all('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
   const { d } = await api(`/api/posts/feed?mode=${mode}`);
 
   $('#feed').innerHTML = d.posts.length
@@ -508,7 +533,7 @@ $('#profileForm').addEventListener('submit', async e => {
     const fd = new FormData(e.target);
     const avatar = await uploadFile($('#avatarFile').files[0]);
     const cover = await uploadFile($('#coverFile').files[0]);
-    const interests = $$('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
+    const interests = all('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
     const payload = {
       displayName: fd.get('displayName'),
       bio: fd.get('bio'),
@@ -532,7 +557,7 @@ async function loadConsents() {
   const root = $('#consentRequests');
   if (!d.requests.length) { root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Cuando alguien indique que apareces en una publicación, podrás revisarla aquí.</p></div>'; return; }
   root.innerHTML = d.requests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
-  $$('[data-consent]', root).forEach(b => b.onclick = async () => {
+  all('[data-consent]', root).forEach(b => b.onclick = async () => {
     if (b.dataset.consent === 'approved' && !d.ageVerified && b.closest('.consent-card').querySelector('.gate')) return toast('Primero necesitas verificar tu mayoría de edad.');
     const { r } = await api(`/api/posts/${b.dataset.post}/consent`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: b.dataset.consent }) });
     if (r.ok) { toast(b.dataset.consent === 'revoked' ? 'Consentimiento retirado' : 'Decisión guardada'); await loadConsents(); }
@@ -656,28 +681,147 @@ async function nativeShare() {
   await copyShareLink();
 }
 
+function updatePostEditCounter() {
+  const field = $('#postEditCaption');
+  const counter = $('#postEditCharCount');
+  if (field && counter) counter.textContent = `${field.value.length} / 2200`;
+}
+
+function closePostManage() {
+  $('#postManageModal')?.classList.add('hidden');
+  activeManagePost = null;
+  deletePostArmed = false;
+  const button = $('#deletePostButton');
+  if (button) button.textContent = 'Eliminar publicación';
+  const status = $('#postEditStatus');
+  if (status) status.textContent = '';
+}
+
+function openPostManage(postId, caption = '') {
+  activeManagePost = Number(postId);
+  deletePostArmed = false;
+  $('#postEditCaption').value = caption;
+  $('#postEditStatus').textContent = '';
+  $('#deletePostButton').textContent = 'Eliminar publicación';
+  updatePostEditCounter();
+  $('#postManageModal').classList.remove('hidden');
+  setTimeout(() => $('#postEditCaption')?.focus(), 100);
+}
+
 function bindPostActions(root) {
-  $$('[data-like]', root).forEach(b => {
+  all('[data-like]', root).forEach(b => {
     b.onclick = async () => {
-      await api(`/api/posts/${b.dataset.like}/like`, { method: 'POST' });
-      await loadFeed(currentMode);
+      if (b.disabled) return;
+      const liked = b.dataset.liked === '1';
+      b.disabled = true;
+      try {
+        const { r, d } = await api(`/api/posts/${b.dataset.like}/like`, {
+          method: liked ? 'DELETE' : 'POST'
+        });
+        if (!r.ok) throw new Error('like_failed');
+        b.dataset.liked = d.liked ? '1' : '0';
+        b.classList.toggle('liked', !!d.liked);
+        b.innerHTML = `${d.liked ? '♥' : '♡'} <span>${d.likeCount || 0}</span>`;
+        tapFeedback();
+      } catch (_) {
+        toast('No se pudo actualizar el Me gusta.');
+      } finally {
+        b.disabled = false;
+      }
     };
   });
 
-  $$('[data-comments]', root).forEach(b => {
+  all('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
   });
 
-  $$('[data-share]', root).forEach(b => {
+  all('[data-share]', root).forEach(b => {
     b.onclick = () => openShare(b.dataset.share);
   });
 
-  $$('[data-report]', root).forEach(b => {
+  all('[data-manage-post]', root).forEach(b => {
+    b.onclick = () => openPostManage(b.dataset.managePost, decodeURIComponent(b.dataset.caption || ''));
+  });
+
+  all('[data-report]', root).forEach(b => {
     b.onclick = () => openReport(b.dataset.report);
   });
 }
 
 
+
+if ($('#closePostManageModal')) $('#closePostManageModal').onclick = closePostManage;
+if ($('#postEditCaption')) $('#postEditCaption').addEventListener('input', updatePostEditCounter);
+if ($('#postManageModal')) $('#postManageModal').addEventListener('click', event => {
+  if (event.target === $('#postManageModal')) closePostManage();
+});
+
+if ($('#postEditForm')) $('#postEditForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!activeManagePost) return;
+
+  const caption = $('#postEditCaption').value.trim();
+  const status = $('#postEditStatus');
+  status.textContent = 'Guardando...';
+
+  const { r, d } = await api(`/api/posts/${activeManagePost}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ caption })
+  });
+
+  if (!r.ok) {
+    status.textContent = d.error === 'empty_post'
+      ? 'Una publicación sin multimedia necesita texto.'
+      : d.error === 'post_edit_not_allowed'
+        ? 'No tienes permiso para editar esta publicación.'
+        : 'No se pudo guardar la publicación.';
+    return;
+  }
+
+  closePostManage();
+  toast('Publicación actualizada');
+  await loadFeed(currentMode);
+  if (!$('#profileView').classList.contains('hidden')) await loadProfile();
+  if (!$('#reelsView').classList.contains('hidden')) await loadReels();
+});
+
+if ($('#deletePostButton')) $('#deletePostButton').onclick = async () => {
+  if (!activeManagePost) return;
+  const button = $('#deletePostButton');
+
+  if (!deletePostArmed) {
+    deletePostArmed = true;
+    button.textContent = 'Confirmar eliminación';
+    $('#postEditStatus').textContent = 'Pulsa de nuevo para eliminar definitivamente.';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Eliminando...';
+
+  try {
+    const { r, d } = await api(`/api/posts/${activeManagePost}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error(
+      d.error === 'post_delete_not_allowed'
+        ? 'No tienes permiso para eliminar esta publicación.'
+        : 'No se pudo eliminar la publicación.'
+    );
+
+    closePostManage();
+    toast('Publicación eliminada');
+    await loadFeed(currentMode);
+    await loadMe();
+    if (!$('#profileView').classList.contains('hidden')) await loadProfile();
+    if (!$('#reelsView').classList.contains('hidden')) await loadReels();
+  } catch (error) {
+    $('#postEditStatus').textContent = error.message;
+    deletePostArmed = false;
+    button.textContent = 'Eliminar publicación';
+  } finally {
+    button.disabled = false;
+  }
+};
 
 function openDeleteCommentDialog(commentId, postId) {
   pendingDeleteComment = {
@@ -871,7 +1015,7 @@ async function loadNotifications() {
   const { d } = await api('/api/notifications');
   updateNotificationBadge(d.unread);
   $('#notificationsList').innerHTML = d.notifications.length ? d.notifications.map(n => `<article class="notification-item ${n.read_at ? '' : 'unread'}" data-notification="${n.id}"><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${new Date(n.created_at).toLocaleString()}</small></div></article>`).join('') : '<div class="info-card"><b>Todo al día.</b><p>Aquí aparecerán mensajes, follows, likes, comentarios y solicitudes de consentimiento.</p></div>';
-  $$('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
+  all('[data-notification]').forEach(x => x.onclick = async () => { await api(`/api/notifications/${x.dataset.notification}/read`, { method: 'POST' }); x.classList.remove('unread'); });
 }
 $('#readAllNotifications').onclick = async () => { await api('/api/notifications/read-all', { method: 'POST' }); toast('Notificaciones marcadas como leídas'); await loadNotifications(); };
 
@@ -886,7 +1030,7 @@ async function loadConversations(openId = null) {
     badge.classList.toggle('hidden', !total);
   });
   $('#conversationList').innerHTML = d.conversations.length ? d.conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''}" data-conversation="${c.id}"><div class="avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}</div><div class="conversation-copy"><b>${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small></div>${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}</button>`).join('') : '<div class="empty-list">Todavía no tienes conversaciones.</div>';
-  $$('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
+  all('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
   if (openId) await openConversation(openId);
 }
 async function openConversation(id) {
@@ -908,7 +1052,7 @@ async function openConversation(id) {
   $('#messageForm').onsubmit = sendMessage;
   $('#messageFile').addEventListener('change', renderMessagePreview);
   $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
-  $$('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
+  all('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
   if ($('#revokeSensitive')) $('#revokeSensitive').onclick = async () => {
     await api(`/api/messages/users/${d.other.id}/sensitive-permission`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow: false }) });
     toast('Ya no recibirás contenido sensible visible de esta persona');
@@ -1098,28 +1242,56 @@ $('#clearPeopleSearch').onclick = async () => {
 };
 
 function showView(name) {
-  $$('.view').forEach(v => v.classList.add('hidden'));
+  all('.view').forEach(v => v.classList.add('hidden'));
   $(`#${name}View`).classList.remove('hidden');
-  $$('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
   if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
   if (name === 'notifications') loadNotifications();
 }
-$$('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
-$$('[data-mode]').forEach(b => b.onclick = () => { $$('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
+all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
+all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
 function openModal() { tapFeedback(); $('#modal').classList.remove('hidden'); setTimeout(() => $('#createForm textarea')?.focus(), 120); }
-function bindCreateButtons() { $$('[data-action="create"]').forEach(b => b.onclick = openModal); }
+function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = openModal); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');
-$('#mediaFile').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
+function clearPostMedia() {
+  const file = $('#mediaFile');
+  if (file) file.value = '';
   currentFileMedia = null;
-  const u = URL.createObjectURL(f); $('#uploadText').classList.add('hidden');
-  const p = $('#preview'); p.classList.remove('hidden'); p.innerHTML = f.type.startsWith('image/') ? `<img src="${u}">` : `<video src="${u}" controls></video>`;
+  const preview = $('#preview');
+  if (preview) {
+    preview.innerHTML = '';
+    preview.classList.add('hidden');
+  }
+  $('#uploadText')?.classList.remove('hidden');
+  $('#removePostMedia')?.classList.add('hidden');
+}
+
+$('#mediaFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return clearPostMedia();
+  currentFileMedia = null;
+  const u = URL.createObjectURL(f);
+  $('#uploadText').classList.add('hidden');
+  $('#removePostMedia')?.classList.remove('hidden');
+  const p = $('#preview');
+  p.classList.remove('hidden');
+  p.innerHTML = f.type.startsWith('image/') ? `<img src="${u}">` : `<video src="${u}" controls></video>`;
 });
+$('#removePostMedia')?.addEventListener('click', clearPostMedia);
+
+const createCaption = $('#createForm [name="caption"]');
+function updateCreateCounter() {
+  if (createCaption && $('#createCharCount')) {
+    $('#createCharCount').textContent = `${createCaption.value.length} / 2200`;
+  }
+}
+createCaption?.addEventListener('input', updateCreateCounter);
+updateCreateCounter();
 async function ensureUpload() {
   if (currentFileMedia) return currentFileMedia;
   const f = $('#mediaFile').files[0]; if (!f) throw new Error('Selecciona un archivo.');
@@ -1177,10 +1349,8 @@ $('#createForm').addEventListener('submit', async e => {
     toast(d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
     $('#modal').classList.add('hidden');
     e.target.reset();
-    $('#preview').classList.add('hidden');
-    $('#preview').innerHTML = '';
-    $('#uploadText').classList.remove('hidden');
-    currentFileMedia = null;
+    clearPostMedia();
+    updateCreateCounter();
     await loadFeed('latest');
     await loadMe();
   } catch (err) { msg.textContent = err.message; }
