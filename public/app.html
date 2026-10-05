@@ -169,6 +169,52 @@
 <div id="profileModal" class="modal hidden"><div class="modal-card"><button id="closeProfileModal" class="modal-close">×</button><span class="eyebrow">TU PERFIL</span><h2>Editar perfil</h2><form id="profileForm"><label>Nombre visible<input name="displayName" maxlength="80" required></label><label>Biografía<textarea name="bio" maxlength="500"></textarea></label><div class="form-row"><label>Ubicación<input name="locationLabel" maxlength="120" placeholder="Valencia"></label><label>Web<input name="websiteUrl" maxlength="4096" placeholder="https://..."></label></div><fieldset class="interest-fieldset"><legend>Intereses <small>Elige hasta 8</small></legend><div id="profileInterests" class="interest-selector"></div></fieldset><label>Foto de perfil<input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Foto de portada<input id="coverFile" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary full" type="submit">Guardar cambios</button><p id="profileMessage" class="status"></p></form></div></div>
 
 
+<div id="accountModal" class="modal hidden">
+  <div class="modal-card account-modal-card">
+    <button id="closeAccountModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">CUENTA Y SEGURIDAD</span>
+    <h2>Protege y gestiona tu cuenta</h2>
+
+    <div id="accountSummary" class="account-summary skeleton"></div>
+
+    <section class="account-section">
+      <div class="account-section-head">
+        <div><b>Cambiar contraseña</b><small>Al cambiarla, las demás sesiones abiertas dejarán de ser válidas.</small></div>
+      </div>
+      <form id="changePasswordForm" class="account-form">
+        <label>Contraseña actual<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <label>Nueva contraseña<input name="newPassword" type="password" autocomplete="new-password" required minlength="10" maxlength="128"></label>
+        <label>Repite la nueva contraseña<input name="repeatPassword" type="password" autocomplete="new-password" required minlength="10" maxlength="128"></label>
+        <button class="primary full" type="submit">Cambiar contraseña</button>
+        <p id="changePasswordStatus" class="status"></p>
+      </form>
+    </section>
+
+    <section class="account-section account-tools">
+      <div class="account-section-head">
+        <div><b>Tus datos y sesiones</b><small>Descarga una copia de tus datos o cierra todas las sesiones abiertas.</small></div>
+      </div>
+      <div class="account-tool-grid">
+        <button id="exportAccountData" class="secondary" type="button">↓ Descargar mis datos</button>
+        <button id="logoutAllSessions" class="secondary" type="button">Cerrar todas las sesiones</button>
+      </div>
+      <p id="accountToolsStatus" class="status"></p>
+    </section>
+
+    <section id="deleteAccountSection" class="account-section account-danger-zone">
+      <div class="account-section-head">
+        <div><b>Eliminar cuenta</b><small>Se eliminarán tu perfil, publicaciones, Stories, comentarios y conversaciones asociadas. Esta acción no se puede deshacer.</small></div>
+      </div>
+      <form id="deleteAccountForm" class="account-form">
+        <label>Escribe tu @usuario para confirmar<input id="deleteAccountUsername" name="confirmUsername" autocomplete="off" required maxlength="30"></label>
+        <label>Contraseña actual<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <button id="deleteAccountButton" class="danger full" type="submit">Eliminar mi cuenta definitivamente</button>
+        <p id="deleteAccountStatus" class="status"></p>
+      </form>
+    </section>
+  </div>
+</div>
+
 <div id="privacyModal" class="modal hidden">
   <div class="modal-card privacy-modal-card">
     <button id="closePrivacyModal" class="modal-close" type="button">×</button>

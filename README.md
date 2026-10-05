@@ -1,4 +1,4 @@
-# RedLibertad V1.9.0 — Privacy & Control
+# RedLibertad V1.10.0 — Account & Security
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -214,3 +214,21 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Los bloqueos siguen rompiendo relaciones de seguimiento.
 - Las conversaciones existentes se mantienen aunque cambies la privacidad de mensajes.
 - Esquema creado de forma idempotente, sin pasos manuales.
+
+
+## V1.10.0 — Account & Security
+
+- Nuevo centro Cuenta desde el perfil.
+- Cambio de contraseña con verificación de contraseña actual.
+- Las sesiones pasan a ser revocables mediante auth_token_version.
+- Cambiar la contraseña invalida las demás sesiones y mantiene la actual con un token renovado.
+- Opción para cerrar todas las sesiones abiertas, incluida la actual.
+- Descarga de una copia JSON de los datos de la cuenta.
+- La exportación incluye perfil, intereses, publicaciones, comentarios, relaciones, bloqueos, silenciados, mensajes e invitaciones.
+- Eliminación definitiva de cuenta con doble confirmación: @usuario + contraseña actual.
+- La cuenta administradora queda protegida frente al borrado desde la app.
+- Limpieza de multimedia local asociada a una cuenta eliminada.
+- Limpieza de conversaciones huérfanas tras eliminar una cuenta.
+- Compatibilidad con sesiones antiguas: los tokens previos se aceptan mientras auth_token_version siga en 0.
+- Bootstrap idempotente de las nuevas columnas de seguridad.
+- La PWA deja fuera de caché las rutas /api, /uploads y /p para no persistir datos privados ni respuestas dinámicas.

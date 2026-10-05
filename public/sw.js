@@ -1,5 +1,46 @@
-const CACHE='redlibertad-v19-shell';
-const SHELL=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/icons/redlibertad-192.png','/icons/redlibertad-512.png'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy)).catch(()=>{});return r;}).catch(()=>caches.match(e.request)));});
+const CACHE='redlibertad-v110-shell';
+const ASSETS=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/icons/redlibertad-192.png','/icons/redlibertad-512.png'];
+
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(()=>self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+
+  const url=new URL(event.request.url);
+  const privateOrDynamic=
+    url.origin!==self.location.origin ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/uploads/') ||
+    url.pathname.startsWith('/p/');
+
+  if(privateOrDynamic)return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then(response=>{
+        if(response.ok && response.type==='basic'){
+          const copy=response.clone();
+          caches.open(CACHE).then(cache=>cache.put(event.request,copy)).catch(()=>{});
+        }
+        return response;
+      })
+      .catch(async()=>{
+        const cached=await caches.match(event.request);
+        if(cached)return cached;
+        if(event.request.mode==='navigate'){
+          return (await caches.match('/app')) || (await caches.match('/'));
+        }
+        return Response.error();
+      })
+  );
+});
