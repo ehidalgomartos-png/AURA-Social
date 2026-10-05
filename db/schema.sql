@@ -146,3 +146,13 @@ ALTER TABLE notifications
     'repost',
     'system'
   ));
+
+
+-- RedLibertad V1.8: crecimiento e invitaciones
+CREATE TABLE IF NOT EXISTS referrals (
+  id BIGSERIAL PRIMARY KEY,
+  inviter_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  invited_user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_user_id,created_at DESC);
