@@ -17,6 +17,7 @@ const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
 const notificationRoutes = require('./src/routes/notifications');
+const growthRoutes = require('./src/routes/growth');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -58,18 +59,19 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/growth', growthRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '1.7.0',
+    version: '1.8.0',
     mode: 'redlibertad-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
       'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
-      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge'
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics'
     ]
   });
 });
@@ -116,4 +118,4 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`RedLibertad V1.7.0 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`RedLibertad V1.8.0 running on http://localhost:${PORT}`));

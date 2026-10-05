@@ -8,6 +8,27 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let referralsReady = null;
+async function ensureReferralsTable() {
+  if (!referralsReady) {
+    referralsReady = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS referrals (
+          id BIGSERIAL PRIMARY KEY,
+          inviter_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          invited_user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_user_id,created_at DESC)');
+    })().catch(error => {
+      referralsReady = null;
+      throw error;
+    });
+  }
+  return referralsReady;
+}
+
 
 function safeEqualText(a, b) {
   const aa = Buffer.from(String(a || ''));
@@ -23,7 +44,8 @@ const registerSchema = z.object({
   displayName: z.string().min(1).max(80),
   password: z.string().min(10).max(128),
   birthDate: z.string(),
-  acceptTerms: z.literal(true)
+  acceptTerms: z.literal(true),
+  referralUsername: z.string().max(30).optional().default('')
 });
 
 function signUser(user) {
@@ -46,7 +68,7 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'invalid_data', details: parsed.error.flatten() });
   }
 
-  const { email, username, displayName, password, birthDate } = parsed.data;
+  const { email, username, displayName, password, birthDate, referralUsername } = parsed.data;
   const dob = new Date(`${birthDate}T00:00:00Z`);
   if (Number.isNaN(dob.getTime())) {
     return res.status(400).json({ error: 'invalid_birth_date' });
@@ -76,16 +98,59 @@ router.post('/register', async (req, res) => {
   const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   const isAdmin = email.trim().toLowerCase() === adminEmail;
 
-  const result = await db.query(`
-    INSERT INTO users (
-      email, username, display_name, password_hash, birth_date,
-      is_admin, age_verified, show_sensitive, terms_accepted_at
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,false,false,now())
-    RETURNING id,email,username,display_name,is_admin,age_verified,show_sensitive
-  `, [email, username, displayName, passwordHash, birthDate, isAdmin]);
+  await ensureReferralsTable();
 
-  const user = result.rows[0];
+  let inviter = null;
+  const cleanReferral = String(referralUsername || '').trim().replace(/^@/,'');
+  if (/^[a-zA-Z0-9_.]{3,30}$/.test(cleanReferral)) {
+    const inviterResult = await db.query(
+      `SELECT id,username FROM users WHERE lower(username)=lower($1) AND status='active' LIMIT 1`,
+      [cleanReferral]
+    );
+    inviter = inviterResult.rows[0] || null;
+  }
+
+  const client = await db.pool.connect();
+  let user;
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(`
+      INSERT INTO users (
+        email, username, display_name, password_hash, birth_date,
+        is_admin, age_verified, show_sensitive, terms_accepted_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,false,false,now())
+      RETURNING id,email,username,display_name,is_admin,age_verified,show_sensitive
+    `, [email, username, displayName, passwordHash, birthDate, isAdmin]);
+
+    user = result.rows[0];
+
+    if (inviter && String(inviter.id) !== String(user.id)) {
+      const referralInsert = await client.query(`
+        INSERT INTO referrals (inviter_user_id,invited_user_id)
+        VALUES ($1,$2)
+        ON CONFLICT (invited_user_id) DO NOTHING
+        RETURNING id
+      `,[inviter.id,user.id]);
+
+      if (referralInsert.rowCount) {
+        await client.query(`
+          INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+          VALUES ($1,$2,'system','user',$2,'Se ha unido a RedLibertad con tu invitación.')
+        `,[inviter.id,user.id]);
+      }
+    }
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('RedLibertad registration failed:', error);
+    return res.status(500).json({ error: 'registration_failed' });
+  } finally {
+    client.release();
+  }
+
   const token = signUser(user);
 
   res.cookie('aura_token', token, {

@@ -147,3 +147,41 @@ body{
   .hero-card{transform:none}
   .feature-grid article:hover{transform:none}
 }
+
+
+/* RedLibertad V1.8 — Referral landing */
+.invite-notice{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 14px;
+  padding:11px 12px;
+  border:1px solid rgba(43,183,169,.18);
+  border-radius:15px;
+  background:linear-gradient(135deg,rgba(43,183,169,.10),rgba(239,94,85,.06));
+  color:var(--muted);
+}
+.invite-notice.hidden{display:none}
+.invite-notice-avatar{
+  width:40px;height:40px;
+  flex:0 0 40px;
+  display:grid;place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--navy),var(--teal));
+  color:white;
+  font-weight:800;
+  box-shadow:0 7px 16px rgba(13,34,56,.12);
+}
+.invite-notice-avatar img{
+  width:100%;height:100%;object-fit:cover;
+}
+.invite-notice b{
+  display:block;
+  color:var(--navy);
+}
+.invite-notice small{
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+}

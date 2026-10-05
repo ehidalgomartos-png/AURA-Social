@@ -283,6 +283,7 @@ async function toggleSuggestedFollow(button) {
     await loadMe();
     if ($('#homeSuggestions')) await loadHomeSuggestions();
     if ($('#activePeople')) await loadActivePeople();
+    if ($('#growthPanel')) await loadGrowthPanel();
   } catch (_) {
     toast('No se pudo actualizar el seguimiento.');
   } finally {
@@ -420,6 +421,113 @@ async function loadHomeMomentum() {
   updateLatestModeBadge(catchup.length);
   section.classList.remove('hidden');
   storeHomeVisit(new Date());
+}
+
+function growthInviteUrl(code) {
+  return `${location.origin}/?ref=${encodeURIComponent(code)}#registro`;
+}
+
+function growthInviteText() {
+  return 'Te invito a RedLibertad, una comunidad donde la libertad es lo primero.';
+}
+
+function growthStepHTML(step) {
+  return `<button type="button" class="growth-step ${step.done ? 'done' : ''}" data-growth-action="${esc(step.action)}" ${step.done ? 'disabled' : ''}>
+    <span class="growth-step-check">${step.done ? '✓' : '○'}</span>
+    <span><b>${esc(step.label)}</b><small>${step.done ? 'Completado' : 'Continuar'}</small></span>
+    <i>›</i>
+  </button>`;
+}
+
+let growthInviteCode = '';
+
+async function loadGrowthPanel() {
+  const panel = $('#growthPanel');
+  if (!panel) return;
+
+  const { r, d } = await api('/api/growth/me');
+  if (!r.ok) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  growthInviteCode = String(d.inviteCode || me?.username || '');
+  $('#growthProgressValue').textContent = `${Number(d.progress || 0)}%`;
+  const ring = panel.querySelector('.growth-progress-ring');
+  if (ring) ring.style.setProperty('--progress', `${Number(d.progress || 0) * 3.6}deg`);
+
+  $('#growthReferralTotal').textContent = Number(d.referrals?.total || 0);
+  $('#growthReferralActivated').textContent = Number(d.referrals?.activated || 0);
+  $('#growthSteps').innerHTML = Array.isArray(d.steps) ? d.steps.map(growthStepHTML).join('') : '';
+
+  const hint = $('#growthInviteHint');
+  if (hint && growthInviteCode) {
+    hint.textContent = `Tu enlace personal: ${growthInviteUrl(growthInviteCode)}`;
+  }
+
+  panel.classList.remove('hidden');
+
+  if (Number(d.progress || 0) >= 100) {
+    panel.classList.add('growth-complete');
+    const heading = panel.querySelector('.growth-onboarding h2');
+    const copy = panel.querySelector('.growth-onboarding .growth-heading p');
+    if (heading) heading.textContent = 'Tu perfil ya está en marcha';
+    if (copy) copy.textContent = 'Has completado los pasos principales. Sigue participando y haciendo crecer tu comunidad.';
+  } else {
+    panel.classList.remove('growth-complete');
+  }
+}
+
+async function shareGrowthInvite(kind = 'native') {
+  const code = growthInviteCode || me?.username;
+  if (!code) return;
+
+  const url = growthInviteUrl(code);
+  const text = growthInviteText();
+
+  if (kind === 'whatsapp') {
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  if (kind === 'copy') {
+    try {
+      await writeClipboardText(`${text} ${url}`);
+      toast('Invitación copiada');
+    } catch (_) {
+      window.prompt('Copia esta invitación:', `${text} ${url}`);
+    }
+    return;
+  }
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'RedLibertad', text, url });
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+  }
+
+  await shareGrowthInvite('copy');
+}
+
+async function handleGrowthAction(action) {
+  if (action === 'profile') {
+    showView('profile');
+    setTimeout(() => $('#editProfile')?.click(), 220);
+    return;
+  }
+  if (action === 'explore') {
+    showView('explore');
+    return;
+  }
+  if (action === 'create') {
+    openModal();
+    return;
+  }
+  showView('feed');
+  await loadFeed('latest');
 }
 
 async function loadHomeSuggestions() {
@@ -886,6 +994,13 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const growthStep = event.target.closest('[data-growth-action]');
+  if (growthStep) {
+    event.preventDefault();
+    if (!growthStep.disabled) await handleGrowthAction(growthStep.dataset.growthAction);
+    return;
+  }
+
   const openPostButton = event.target.closest('[data-open-post]');
   if (openPostButton) {
     event.preventDefault();
@@ -1081,7 +1196,7 @@ $('#profileForm').addEventListener('submit', async e => {
     me = { ...me, ...d.profile };
     $('#profileModal').classList.add('hidden');
     toast('Perfil actualizado');
-    await loadMe(); await loadProfile();
+    await loadMe(); await loadProfile(); await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
 });
 
@@ -1303,6 +1418,7 @@ function bindPostActions(root) {
         b.innerHTML = `${d.liked ? '♥' : '♡'} <span>${d.likeCount || 0}</span>`;
         pulseAction(b);
         tapFeedback();
+        if ($('#growthPanel')) loadGrowthPanel();
       } catch (_) {
         toast('No se pudo actualizar el Me gusta.');
       } finally {
@@ -1335,6 +1451,7 @@ function bindPostActions(root) {
         pulseAction(b);
         tapFeedback();
         toast(d.reposted ? 'Publicación republicada' : 'Republicación eliminada');
+        if ($('#growthPanel')) loadGrowthPanel();
       } catch (error) {
         toast(error.message === 'own_repost' ? 'No puedes republicar tu propia publicación.' : 'No se pudo actualizar la republicación.');
       } finally {
@@ -1585,6 +1702,7 @@ $('#commentForm').addEventListener('submit', async event => {
     $('#commentStatus').textContent = 'Comentario publicado.';
     await loadComments(activeCommentsPostId);
     await loadFeed(currentMode);
+    if ($('#growthPanel')) await loadGrowthPanel();
   } catch (error) {
     $('#commentStatus').textContent = error.message;
   } finally {
@@ -1723,6 +1841,11 @@ async function navigateNotification(notification) {
   }
 
   if (type === 'follow' && notification.actor_username) {
+    await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (type === 'system' && entityType === 'user' && notification.actor_username) {
     await openPublicProfile(notification.actor_username);
     return;
   }
@@ -2003,7 +2126,7 @@ function showView(name) {
   view.classList.remove('hidden');
   animateView(view);
   all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  if (name === 'feed') loadHomeMomentum();
+  if (name === 'feed') { loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
@@ -2112,6 +2235,7 @@ $('#createForm').addEventListener('submit', async e => {
     updateCreateCounter();
     await loadFeed('latest');
     await loadMe();
+    await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
 });
 $('#storyForm').addEventListener('submit', async e => {
@@ -2139,6 +2263,10 @@ if ($('#shareWhatsApp')) $('#shareWhatsApp').onclick = () => {
   window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl(activeSharePostId)}`)}`, '_blank', 'noopener,noreferrer');
 };
 $('#shareModal')?.addEventListener('click', e => { if (e.target === $('#shareModal')) closeShare(); });
+
+$('#growthInviteNative')?.addEventListener('click', () => shareGrowthInvite('native'));
+$('#growthInviteWhatsApp')?.addEventListener('click', () => shareGrowthInvite('whatsapp'));
+$('#growthInviteCopy')?.addEventListener('click', () => shareGrowthInvite('copy'));
 
 $('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/'; };
 
@@ -2173,7 +2301,7 @@ async function handleInitialDeepLink() {
   try {
     await loadMe();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadHomeMomentum()]);
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadHomeMomentum(), loadGrowthPanel()]);
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
