@@ -757,7 +757,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="privacySettings" class="secondary">Privacidad</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -773,6 +773,7 @@ async function loadProfile(mode = ownProfileMode) {
   };
   $('#editProfile').onclick = openProfileModal;
   $('#privacySettings').onclick = openPrivacyModal;
+  $('#accountSettings').onclick = openAccountModal;
   await loadConsents();
 }
 
@@ -1234,6 +1235,222 @@ async function loadPrivacyLists() {
     ? blocked.map(user => privacyPersonHTML(user,'blocked')).join('')
     : '<div class="privacy-list-empty">No has bloqueado a nadie.</div>';
 }
+
+function accountDate(value) {
+  if (!value) return 'No registrado';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No registrado';
+  return date.toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function accountSummaryHTML(account) {
+  return `<div class="account-identity">
+    <span class="account-avatar">${avatarHTML(me)}</span>
+    <div><b>${esc(account.display_name || me?.display_name || account.username)}</b><span>@${esc(account.username)}</span></div>
+  </div>
+  <div class="account-summary-grid">
+    <div><span>Email</span><b>${esc(account.email)}</b></div>
+    <div><span>Miembro desde</span><b>${accountDate(account.created_at)}</b></div>
+    <div><span>Publicaciones</span><b>${Number(account.post_count || 0)}</b></div>
+    <div><span>Comentarios</span><b>${Number(account.comment_count || 0)}</b></div>
+    <div><span>Seguidores</span><b>${Number(account.follower_count || 0)}</b></div>
+    <div><span>Siguiendo</span><b>${Number(account.following_count || 0)}</b></div>
+  </div>
+  <div class="account-security-note">
+    <span>Contraseña</span>
+    <b>${account.password_changed_at ? 'Actualizada ' + accountDate(account.password_changed_at) : 'Sin cambios recientes registrados'}</b>
+  </div>`;
+}
+
+async function openAccountModal() {
+  const modal = $('#accountModal');
+  if (!modal) return;
+
+  modal.classList.remove('hidden');
+  $('#accountSummary').classList.add('skeleton');
+  $('#accountSummary').innerHTML = '<div class="mini-loading">Cargando cuenta...</div>';
+  $('#changePasswordStatus').textContent = '';
+  $('#accountToolsStatus').textContent = '';
+  $('#deleteAccountStatus').textContent = '';
+  $('#changePasswordForm')?.reset();
+  $('#deleteAccountForm')?.reset();
+
+  const { r, d } = await api('/api/auth/account');
+  if (!r.ok || !d.account) {
+    $('#accountSummary').classList.remove('skeleton');
+    $('#accountSummary').innerHTML = '<div class="info-card"><b>No se pudo cargar la cuenta.</b></div>';
+    return;
+  }
+
+  const account = d.account;
+  $('#accountSummary').classList.remove('skeleton');
+  $('#accountSummary').innerHTML = accountSummaryHTML(account);
+
+  const usernameInput = $('#deleteAccountUsername');
+  if (usernameInput) usernameInput.placeholder = `@${account.username}`;
+
+  const deleteForm = $('#deleteAccountForm');
+  const deleteButton = $('#deleteAccountButton');
+  const deleteStatus = $('#deleteAccountStatus');
+  if (account.is_admin) {
+    all('input', deleteForm).forEach(input => input.disabled = true);
+    deleteButton.disabled = true;
+    deleteStatus.textContent = 'La cuenta administradora principal está protegida frente al borrado desde la app.';
+  } else {
+    all('input', deleteForm).forEach(input => input.disabled = false);
+    deleteButton.disabled = false;
+  }
+}
+
+function closeAccountModal() {
+  $('#accountModal')?.classList.add('hidden');
+}
+
+$('#closeAccountModal')?.addEventListener('click', closeAccountModal);
+$('#accountModal')?.addEventListener('click', event => {
+  if (event.target === $('#accountModal')) closeAccountModal();
+});
+
+$('#changePasswordForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const status = $('#changePasswordStatus');
+  const fd = new FormData(form);
+  const currentPassword = String(fd.get('currentPassword') || '');
+  const newPassword = String(fd.get('newPassword') || '');
+  const repeatPassword = String(fd.get('repeatPassword') || '');
+
+  if (newPassword !== repeatPassword) {
+    status.textContent = 'Las nuevas contraseñas no coinciden.';
+    return;
+  }
+
+  status.textContent = 'Actualizando contraseña...';
+  const submit = form.querySelector('button[type="submit"]');
+  if (submit) submit.disabled = true;
+
+  try {
+    const { r, d } = await api('/api/auth/account/change-password', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({currentPassword,newPassword})
+    });
+
+    if (!r.ok) {
+      status.textContent = d.error === 'current_password_incorrect'
+        ? 'La contraseña actual no es correcta.'
+        : d.error === 'password_unchanged'
+          ? 'La nueva contraseña debe ser diferente.'
+          : 'No se pudo cambiar la contraseña.';
+      return;
+    }
+
+    form.reset();
+    status.textContent = 'Contraseña actualizada. Las demás sesiones han quedado cerradas.';
+    toast('Contraseña actualizada');
+    await openAccountModal();
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+});
+
+$('#exportAccountData')?.addEventListener('click', async () => {
+  const button = $('#exportAccountData');
+  const status = $('#accountToolsStatus');
+  button.disabled = true;
+  status.textContent = 'Preparando tu archivo...';
+
+  try {
+    const response = await fetch('/api/auth/account/export');
+    if (response.status === 401) {
+      location.href = '/';
+      return;
+    }
+    if (!response.ok) throw new Error('export_failed');
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="([^"]+)"/i);
+    const filename = match?.[1] || `redlibertad-${me?.username || 'cuenta'}-datos.json`;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = 'Copia de tus datos descargada.';
+    toast('Datos preparados');
+  } catch (_) {
+    status.textContent = 'No se pudo preparar la descarga.';
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$('#logoutAllSessions')?.addEventListener('click', async () => {
+  if (!window.confirm('¿Cerrar todas las sesiones de RedLibertad, incluida esta? Tendrás que volver a iniciar sesión.')) return;
+
+  const button = $('#logoutAllSessions');
+  const status = $('#accountToolsStatus');
+  button.disabled = true;
+  status.textContent = 'Cerrando sesiones...';
+
+  const { r } = await api('/api/auth/account/logout-all', { method:'POST' });
+  if (!r.ok) {
+    button.disabled = false;
+    status.textContent = 'No se pudieron cerrar las sesiones.';
+    return;
+  }
+
+  location.href = '/';
+});
+
+$('#deleteAccountForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const status = $('#deleteAccountStatus');
+  const fd = new FormData(form);
+  const confirmUsername = String(fd.get('confirmUsername') || '').trim().replace(/^@/,'');
+  const password = String(fd.get('password') || '');
+
+  if (confirmUsername.toLowerCase() !== String(me?.username || '').toLowerCase()) {
+    status.textContent = `Escribe exactamente @${me?.username || 'usuario'} para confirmar.`;
+    return;
+  }
+
+  if (!window.confirm('Esta acción eliminará definitivamente tu cuenta y su contenido. ¿Quieres continuar?')) return;
+
+  const button = $('#deleteAccountButton');
+  button.disabled = true;
+  status.textContent = 'Eliminando cuenta...';
+
+  try {
+    const { r, d } = await api('/api/auth/account', {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password,confirmUsername})
+    });
+
+    if (!r.ok) {
+      status.textContent = d.error === 'current_password_incorrect'
+        ? 'La contraseña actual no es correcta.'
+        : d.error === 'username_confirmation_mismatch'
+          ? 'El @usuario de confirmación no coincide.'
+          : d.error === 'admin_account_protected'
+            ? 'La cuenta administradora está protegida.'
+            : 'No se pudo eliminar la cuenta.';
+      button.disabled = false;
+      return;
+    }
+
+    location.href = '/';
+  } catch (_) {
+    button.disabled = false;
+    status.textContent = 'No se pudo eliminar la cuenta.';
+  }
+});
 
 async function openPrivacyModal() {
   const modal = $('#privacyModal');
