@@ -559,6 +559,7 @@ router.get('/discover', optionalAuth, async (req, res) => {
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        ${block}
      ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC
      LIMIT 60
@@ -585,6 +586,7 @@ router.get('/search', requireAuth, async (req,res)=>{
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -626,6 +628,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        AND p.created_at >= now() - interval '30 days'
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
@@ -650,6 +653,7 @@ router.get('/trends', requireAuth, async (req,res)=>{
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
+       AND u.discoverable=true
        AND p.created_at >= now() - interval '30 days'
        AND p.caption <> ''
        AND p.user_id NOT IN (
