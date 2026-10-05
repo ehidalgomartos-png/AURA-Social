@@ -207,7 +207,16 @@
 <div id="newMessageModal" class="modal hidden"><div class="modal-card small-modal"><button id="closeNewMessage" class="modal-close">×</button><span class="eyebrow">NUEVA CONVERSACIÓN</span><h2>Hablar con alguien</h2><form id="newMessageForm"><label>Usuario<input name="username" placeholder="@usuario" required></label><button class="primary full" type="submit">Abrir conversación</button><p id="newMessageStatus" class="status"></p></form></div></div>
 
 
-<div id="shareModal" class="modal hidden"><div class="modal-card share-modal-card"><button id="closeShareModal" class="modal-close" type="button">×</button><span class="eyebrow">COMPARTE TU VOZ</span><h2>Compartir publicación</h2><p class="muted share-copy">Mira mi post en RedLibertad, donde la libertad es lo primero.</p><div class="share-grid"><button id="shareNative" class="primary" type="button">↗ Compartir</button><button id="shareFacebook" class="secondary" type="button">Facebook</button><button id="shareWhatsApp" class="secondary" type="button">WhatsApp</button><button id="shareCopy" class="secondary" type="button">Copiar enlace</button></div><p id="shareStatus" class="status"></p></div></div>
+<div id="shareModal" class="modal hidden"><div class="modal-card share-modal-card"><button id="closeShareModal" class="modal-close" type="button">×</button><span class="eyebrow">COMPARTE TU VOZ</span><h2>Compartir publicación</h2><p class="muted share-copy">Mira mi post en RedLibertad, donde la libertad es lo primero.</p><div class="share-grid"><button id="shareNative" class="primary" type="button">↗ Compartir</button><button id="shareFacebook" class="secondary" type="button">Facebook</button><button id="shareWhatsApp" class="secondary" type="button">WhatsApp</button><button id="shareCopy" class="secondary" type="button">Copiar enlace</button></div><div class="internal-share"><b>Enviar dentro de RedLibertad</b><form id="shareInternalForm"><input id="shareInternalUsername" maxlength="30" placeholder="@usuario" autocomplete="off"><button class="secondary" type="submit">Enviar por mensaje</button></form><small>La publicación se enviará como enlace dentro de una conversación privada.</small></div><p id="shareStatus" class="status"></p></div></div>
+<div id="socialListModal" class="modal hidden">
+  <div class="modal-card small-modal social-list-modal-card">
+    <button id="closeSocialListModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">COMUNIDAD</span>
+    <h2 id="socialListTitle">Personas</h2>
+    <div id="socialListContent" class="social-list-content"></div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 <script src="/pwa.js"></script><script src="/social.js"></script>
 </body></html>
