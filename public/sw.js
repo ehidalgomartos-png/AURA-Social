@@ -1,4 +1,4 @@
-const CACHE='redlibertad-v15-shell';
+const CACHE='redlibertad-v16-shell';
 const SHELL=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/icons/redlibertad-192.png','/icons/redlibertad-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
