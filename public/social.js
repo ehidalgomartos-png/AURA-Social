@@ -418,7 +418,7 @@ async function loadHomeMomentum() {
     : '<div class="momentum-empty"><b>Estás al día.</b><span>Las próximas novedades aparecerán aquí.</span></div>';
 
   updateLatestModeBadge(catchup.length);
-  section.classList.toggle('hidden', !posts.length && !activeUsers.length);
+  section.classList.remove('hidden');
   storeHomeVisit(new Date());
 }
 
