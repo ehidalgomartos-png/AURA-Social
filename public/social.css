@@ -2050,13 +2050,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   margin:0;
   box-shadow:none;
 }
-#postFocusModal{z-index:65}
+#publicProfileModal{z-index:70}
+#postFocusModal{z-index:80}
+#socialListModal{z-index:85}
 #commentsModal,
 #reportModal,
 #postManageModal,
-#shareModal,
-#publicProfileModal,
-#socialListModal{z-index:75}
+#shareModal{z-index:95}
 
 @media(max-width:760px){
   .profile-content-tabs{
