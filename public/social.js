@@ -15,6 +15,7 @@ let deletePostArmed = false;
 let activeContentMode = 'trending';
 let activePostSearch = '';
 let savedPostIds = new Set();
+let toastTimer = null;
 
 
 async function api(url, opts = {}) {
@@ -29,12 +30,33 @@ async function api(url, opts = {}) {
 }
 function toast(t) {
   const el = $('#toast');
+  if (!el) return;
+  if (toastTimer) clearTimeout(toastTimer);
   el.textContent = t;
-  el.classList.remove('hidden');
-  setTimeout(() => el.classList.add('hidden'), 2600);
+  el.classList.remove('hidden', 'toast-enter');
+  void el.offsetWidth;
+  el.classList.add('toast-enter');
+  toastTimer = setTimeout(() => {
+    el.classList.add('hidden');
+    el.classList.remove('toast-enter');
+  }, 2600);
 }
 function tapFeedback() {
   if (navigator.vibrate) navigator.vibrate(8);
+}
+function pulseAction(button) {
+  if (!button) return;
+  button.classList.remove('action-pop');
+  void button.offsetWidth;
+  button.classList.add('action-pop');
+  setTimeout(() => button.classList.remove('action-pop'), 340);
+}
+function animateView(view) {
+  if (!view) return;
+  view.classList.remove('view-enter');
+  void view.offsetWidth;
+  view.classList.add('view-enter');
+  setTimeout(() => view.classList.remove('view-enter'), 340);
 }
 function initials(n = 'R') {
   return n.trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
@@ -845,6 +867,7 @@ function bindPostActions(root) {
         b.dataset.liked = d.liked ? '1' : '0';
         b.classList.toggle('liked', !!d.liked);
         b.innerHTML = `${d.liked ? '♥' : '♡'} <span>${d.likeCount || 0}</span>`;
+        pulseAction(b);
         tapFeedback();
       } catch (_) {
         toast('No se pudo actualizar el Me gusta.');
@@ -876,6 +899,7 @@ function bindPostActions(root) {
         b.dataset.saved = d.saved ? '1' : '0';
         b.classList.toggle('saved', !!d.saved);
         b.textContent = d.saved ? '★' : '☆';
+        pulseAction(b);
         b.title = d.saved ? 'Quitar de guardados' : 'Guardar publicación';
         b.setAttribute('aria-label', b.title);
         toast(d.saved ? 'Publicación guardada' : 'Eliminada de guardados');
@@ -1411,7 +1435,10 @@ $('#clearPeopleSearch').onclick = async () => {
 
 function showView(name) {
   all('.view').forEach(v => v.classList.add('hidden'));
-  $(`#${name}View`).classList.remove('hidden');
+  const view = document.querySelector('#' + name + 'View');
+  if (!view) return;
+  view.classList.remove('hidden');
+  animateView(view);
   all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
