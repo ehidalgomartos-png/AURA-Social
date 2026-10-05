@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
-  "description": "RedLibertad V1.8 Growth & Invites - onboarding guiado, enlaces personales de invitación, atribución y métricas de crecimiento.",
+  "description": "RedLibertad V1.9 Privacy & Control - privacidad de mensajes, descubrimiento, actividad, silencios y bloqueos gestionables.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
