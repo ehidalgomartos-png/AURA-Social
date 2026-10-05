@@ -1621,3 +1621,37 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     font-size:15px;
   }
 }
+
+
+/* RedLibertad V1.4.3 — Profile Layer Hotfix */
+@media(max-width:760px){
+  #profileView .profile-full{
+    position:relative;
+    isolation:isolate;
+  }
+
+  #profileView .cover{
+    position:relative;
+    z-index:1;
+  }
+
+  #profileView .profile-body{
+    position:relative;
+    z-index:2;
+  }
+
+  #profileView .profile-avatar{
+    position:relative;
+    z-index:4;
+    background:var(--navy2);
+    box-shadow:
+      0 0 0 4px rgba(255,253,249,.98),
+      0 14px 30px rgba(13,34,56,.18);
+  }
+
+  #profileView .consent-section{
+    position:relative;
+    z-index:1;
+    margin-bottom:calc(96px + env(safe-area-inset-bottom));
+  }
+}

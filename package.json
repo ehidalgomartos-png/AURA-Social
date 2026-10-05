@@ -1,6 +1,6 @@
 {
   "name": "redlibertad-social",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "private": true,
   "description": "RedLibertad V1.4.2 Persistent Media Hotfix - corrige subidas al volumen persistente local en Coolify.",
   "main": "server.js",
