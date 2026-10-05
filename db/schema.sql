@@ -108,3 +108,13 @@ ALTER TABLE notifications
     'comment',
     'system'
   ));
+
+
+-- RedLibertad V1.3: guardados
+CREATE TABLE IF NOT EXISTS saved_posts (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,post_id)
+);
+CREATE INDEX IF NOT EXISTS idx_saved_posts_user_created ON saved_posts(user_id,created_at DESC);
