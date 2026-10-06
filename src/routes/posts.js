@@ -1915,7 +1915,7 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
         WHEN meta.completed_at IS NOT NULL AND meta.follow_up=false THEN 'completed'
         WHEN meta.follow_up_at IS NULL THEN 'undated'
         WHEN meta.follow_up_at < now() THEN 'overdue'
-        WHEN meta.follow_up_at < $5::timestamptz THEN 'today'
+        WHEN meta.follow_up_at < $6::timestamptz THEN 'today'
         WHEN meta.follow_up_at < now() + interval '7 days' THEN 'week'
         ELSE 'later'
       END follow_up_window
