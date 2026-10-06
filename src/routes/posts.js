@@ -297,17 +297,22 @@ async function publishDueScheduledPosts(){
   try{
     await ensureCreatorPublishingV20();
     const result=await db.query(`
-      UPDATE posts
+      UPDATE posts p
          SET creator_state='live',
              moderation_status='published',
              created_at=now(),
              updated_at=now()
-       WHERE creator_state='scheduled'
-         AND scheduled_for IS NOT NULL
-         AND scheduled_for<=now()
-         AND moderation_status<>'rejected'
-         AND consent_state IN ('none','approved')
-      RETURNING id,user_id,caption,audience
+        FROM users u
+       WHERE p.creator_state='scheduled'
+         AND p.scheduled_for IS NOT NULL
+         AND p.scheduled_for<=now()
+         AND p.moderation_status<>'rejected'
+         AND p.consent_state IN ('none','approved')
+         AND u.id=p.user_id
+         AND u.status='active'
+         AND (p.audience<>'vip' OR u.creator_verified=true)
+         AND (p.content_level<>'nudity' OR (u.creator_verified=true AND u.age_verified=true))
+      RETURNING p.id,p.user_id,p.caption,p.audience
     `);
 
     for(const post of result.rows){
@@ -625,10 +630,12 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
   try{
     await client.query('BEGIN');
     const found=await client.query(`
-      SELECT id,user_id,caption,audience,creator_state,consent_state,moderation_status
-      FROM posts
-      WHERE id=$1 AND user_id=$2
-      FOR UPDATE
+      SELECT p.id,p.user_id,p.caption,p.audience,p.content_level,p.creator_state,p.consent_state,p.moderation_status,
+             u.creator_verified,u.age_verified
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+      WHERE p.id=$1 AND p.user_id=$2
+      FOR UPDATE OF p
     `,[req.params.id,req.user.id]);
 
     if(!found.rowCount){
@@ -644,6 +651,14 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
     if(post.moderation_status==='rejected'){
       await client.query('ROLLBACK');
       return res.status(409).json({error:'post_rejected'});
+    }
+    if(post.audience==='vip' && !post.creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required_for_vip_content'});
+    }
+    if(post.content_level==='nudity' && (!post.creator_verified || !post.age_verified)){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required_for_nudity'});
     }
 
     await sendPendingConsentRequests(post.id,req.user.id,client);
@@ -922,7 +937,12 @@ router.get('/consents/pending', requireAuth, async (req,res)=>{
 const consentSchema=z.object({decision:z.enum(['approved','rejected','revoked'])});
 router.post('/:id/consent', requireAuth, async (req,res)=>{
   const parsed=consentSchema.safeParse(req.body); if(!parsed.success)return res.status(400).json({error:'invalid_decision'});
-  const post=await db.query(`SELECT p.*,u.id owner_id FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=$1`,[req.params.id]);
+  const post=await db.query(`
+    SELECT p.*,u.id owner_id,u.creator_verified owner_creator_verified,u.age_verified owner_age_verified
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.id=$1
+  `,[req.params.id]);
   if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
   const part=await db.query(`SELECT * FROM post_participants WHERE post_id=$1 AND user_id=$2`,[req.params.id,req.user.id]);
   if(!part.rowCount)return res.status(403).json({error:'not_a_participant'});
@@ -949,7 +969,11 @@ router.post('/:id/consent', requireAuth, async (req,res)=>{
         source.creator_state==='scheduled' &&
         source.scheduled_for &&
         new Date(source.scheduled_for).getTime()<=Date.now();
-      const shouldPublish=source.creator_state==='live' || scheduledDue;
+      const eligibleForAudience=source.audience!=='vip' || source.owner_creator_verified===true;
+      const eligibleForContent=source.content_level!=='nudity' || (
+        source.owner_creator_verified===true && source.owner_age_verified===true
+      );
+      const shouldPublish=(source.creator_state==='live' || scheduledDue) && eligibleForAudience && eligibleForContent;
 
       const updated=await db.query(`
         UPDATE posts
