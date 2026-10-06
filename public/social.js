@@ -5155,18 +5155,57 @@ $('#readAllNotifications').onclick = async () => {
   toast('Notificaciones marcadas como leídas');
 };
 
+function conversationListIdentity(conversation){
+  const isGroup=conversation.is_group===true || conversation.conversation_type==='group';
+  if(isGroup){
+    const title=String(conversation.title || 'Grupo');
+    const participants=Array.isArray(conversation.participants) ? conversation.participants : [];
+    return {
+      isGroup:true,
+      title,
+      subtitle:`${Number(conversation.member_count || participants.length || 0)} miembros`,
+      avatar:`<span class="group-avatar-mark">${esc(initials(title))}</span>`,
+      verified:false
+    };
+  }
+  return {
+    isGroup:false,
+    title:String(conversation.display_name || conversation.username || 'Conversación'),
+    subtitle:conversation.username ? `@${conversation.username}` : '',
+    avatar:conversation.avatar_url
+      ? `<img src="${esc(conversation.avatar_url)}" alt="" decoding="async">`
+      : esc(initials(conversation.display_name || conversation.username || 'R')),
+    verified:conversation.creator_verified===true
+  };
+}
+
+function conversationPreviewText(conversation){
+  if(conversation.last_content_level && conversation.last_content_level!=='normal'){
+    return conversation.is_group && conversation.last_sender_display_name
+      ? `${conversation.last_sender_display_name}: Contenido sensible`
+      : 'Contenido sensible';
+  }
+  const body=String(conversation.last_body || '').trim();
+  if(!body)return 'Conversación nueva';
+  if(conversation.is_group && conversation.last_sender_display_name){
+    return `${conversation.last_sender_display_name}: ${body}`;
+  }
+  return body;
+}
+
 async function loadConversations(openId = null) {
   const params=new URLSearchParams({filter:messageConversationFilter,q:messageConversationSearch});
-  const { d } = await api('/api/messages/conversations?'+params.toString());
+  const {r,d}=await api('/api/messages/conversations?'+params.toString());
+  if(!r.ok)return;
   const conversations=Array.isArray(d.conversations)?d.conversations:[];
-  const total = conversations.reduce((a, x) => a + Number(x.unread_count || 0), 0);
+  const total=conversations.reduce((a,x)=>a+Number(x.unread_count || 0),0);
   updateMessageBadge(total);
   liveActivityState.messageUnread=total;
 
   all('[data-message-filter]').forEach(button=>{
     button.classList.toggle('active',button.dataset.messageFilter===messageConversationFilter);
   });
-  const summary=d.summary||{};
+  const summary=d.summary || {};
   if($('#messageInboxSummary')){
     $('#messageInboxSummary').textContent=`${Number(summary.unread||0)} no leídas · ${Number(summary.pinned||0)} fijadas · ${Number(summary.archived||0)} archivadas`;
   }
@@ -5174,62 +5213,157 @@ async function loadConversations(openId = null) {
     $('#messageConversationSearch').value=messageConversationSearch;
   }
 
-  $('#conversationList').innerHTML = conversations.length ? conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''} ${c.is_pinned?'pinned':''}" data-conversation="${c.id}">
-    <div class="avatar conversation-avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}<i class="conversation-presence-dot ${c.other_online?'online':''}"></i></div>
-    <div class="conversation-copy">
-      <b>${c.is_pinned?'★ ':''}${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
-      <small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small>
-      <span class="conversation-presence-label">${c.other_online?'En línea':''}</span>
-      ${c.notifications_muted?'<em class="conversation-muted">Silenciada</em>':''}
-    </div>
-    ${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}
-  </button>`).join('') : '<div class="empty-list">No hay conversaciones en este filtro.</div>';
-  all('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
-  if (openId) await openConversation(openId);
+  $('#conversationList').innerHTML=conversations.length
+    ? conversations.map(conversation=>{
+        const identity=conversationListIdentity(conversation);
+        const liveState=conversationPresence(conversation.id);
+        const serverOnline=identity.isGroup
+          ? (Array.isArray(conversation.participants) ? conversation.participants.filter(member=>member.online).length : 0)
+          : (conversation.other_online ? 1 : 0);
+        const presenceText=liveState
+          ? presenceLabel(liveState)
+          : identity.isGroup
+            ? (serverOnline ? `${serverOnline} ${serverOnline===1 ? 'persona en línea' : 'personas en línea'}` : '')
+            : conversation.other_online ? 'En línea' : '';
+
+        return `<button class="conversation-row ${String(conversation.id)===String(activeConversationId) ? 'active' : ''} ${conversation.is_pinned?'pinned':''} ${identity.isGroup?'group-conversation-row':''}" data-conversation="${conversation.id}">
+          <div class="avatar conversation-avatar ${identity.isGroup?'group-avatar':''}">
+            ${identity.avatar}
+            <i class="conversation-presence-dot ${(liveState?.online || serverOnline>0)?'online':''}"></i>
+          </div>
+          <div class="conversation-copy">
+            <b>${conversation.is_pinned?'★ ':''}${esc(identity.title)} ${identity.verified ? '<span class="verified">✓</span>' : ''}${identity.isGroup ? '<span class="group-chip">Grupo</span>' : ''}</b>
+            <small>${esc(conversationPreviewText(conversation))}</small>
+            <span class="conversation-presence-label">${esc(presenceText)}</span>
+            ${conversation.notifications_muted?'<em class="conversation-muted">Silenciada</em>':''}
+          </div>
+          ${Number(conversation.unread_count) ? `<i class="count-badge">${conversation.unread_count}</i>` : ''}
+        </button>`;
+      }).join('')
+    : '<div class="empty-list">No hay conversaciones en este filtro.</div>';
+
+  all('[data-conversation]').forEach(button=>{
+    button.onclick=()=>openConversation(button.dataset.conversation);
+  });
+  updateConversationPresenceBadges();
+  if(openId)await openConversation(openId);
 }
+
+function groupParticipantsSummary(group){
+  const participants=Array.isArray(group?.participants) ? group.participants : [];
+  const visible=participants
+    .filter(member=>String(member.id)!==String(me?.id))
+    .slice(0,3)
+    .map(member=>member.display_name || member.username);
+  if(!visible.length)return '';
+  const extra=Math.max(0,participants.length-1-visible.length);
+  return extra ? `${visible.join(', ')} y ${extra} más` : visible.join(', ');
+}
+
 async function openConversation(id) {
-  activeConversationId = id;
+  activeConversationId=id;
   clearMessageReply();
-  const layout = $('.messages-layout');
-  if (layout) layout.classList.add('chat-open');
-  const { d } = await api(`/api/messages/conversations/${id}/messages`);
-  activeConversationOther = d.other;
-  activeConversationSettings=d.settings || {is_pinned:false,is_archived:false,notifications_muted:false};
-  const messages = d.messages.map(m => messageHTML(m, d.other)).join('');
-  $('#chatPanel').className = 'chat-panel';
-  $('#chatPanel').innerHTML = `<header class="chat-head">
+  const layout=$('.messages-layout');
+  if(layout)layout.classList.add('chat-open');
+
+  const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(id)}/messages`);
+  if(!r.ok){
+    toast(
+      d.error==='messaging_blocked'
+        ? 'Esta conversación ya no está disponible.'
+        : 'No se pudo abrir la conversación.'
+    );
+    return;
+  }
+
+  activeConversationOther=d.other || null;
+  activeConversationMeta=d.conversation || null;
+  activeConversationSettings=d.settings || {
+    member_role:activeConversationMeta?.member_role || 'member',
+    is_pinned:false,
+    is_archived:false,
+    notifications_muted:false
+  };
+
+  const isGroup=activeConversationMeta?.is_group===true;
+  const title=isGroup
+    ? String(activeConversationMeta.title || 'Grupo')
+    : String(d.other?.display_name || d.other?.username || 'Conversación');
+  const subtitle=isGroup
+    ? `${Number(activeConversationMeta.member_count || 0)} miembros${groupParticipantsSummary(activeConversationMeta) ? ` · ${groupParticipantsSummary(activeConversationMeta)}` : ''}`
+    : `@${esc(d.other?.username || '')}`;
+  const headerAvatar=isGroup
+    ? `<span class="group-avatar-mark">${esc(initials(title))}</span>`
+    : avatarHTML(d.other);
+  const liveLabel=presenceLabel(
+    conversationPresence(id),
+    isGroup ? null : d.other
+  );
+  const messages=(Array.isArray(d.messages)?d.messages:[])
+    .map(message=>messageHTML(message,d.other,activeConversationMeta))
+    .join('');
+
+  $('#chatPanel').className='chat-panel';
+  $('#chatPanel').innerHTML=`<header class="chat-head">
     <button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Volver a conversaciones">‹</button>
-    <div class="avatar">${avatarHTML(d.other)}</div>
-    <div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)} · <span id="chatPresence" class="chat-presence">${esc(presenceLabel(conversationPresence(id),d.other))}</span></small></div>
+    <div class="avatar ${isGroup?'group-avatar':''}">${headerAvatar}</div>
+    <div class="chat-person">
+      <b>${esc(title)} ${isGroup?'<span class="group-chip">Grupo</span>':''}</b>
+      <small>${subtitle}${liveLabel ? ` · <span id="chatPresence" class="chat-presence">${esc(liveLabel)}</span>` : ' · <span id="chatPresence" class="chat-presence"></span>'}</small>
+    </div>
     <div class="chat-conversation-actions">
       <button type="button" class="tiny-action" data-conversation-setting="pinned">${activeConversationSettings.is_pinned?'★ Fijada':'☆ Fijar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="muted">${activeConversationSettings.notifications_muted?'Activar avisos':'Silenciar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="archived">${activeConversationSettings.is_archived?'Desarchivar':'Archivar'}</button>
-      ${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}
+      ${isGroup ? '<button id="manageGroup" type="button" class="tiny-action">Participantes</button>' : ''}
+      ${!isGroup && d.sensitiveAllowed ? '<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>' : ''}
     </div>
-  </header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div id="messageReplyComposer" class="message-reply-composer hidden"></div><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
-  const mobileBack = $('#mobileChatBack');
-  if (mobileBack) mobileBack.onclick = () => {
-    const messagesLayout = $('.messages-layout');
-    if (messagesLayout) messagesLayout.classList.remove('chat-open');
+  </header>
+  <div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div>
+  <form id="messageForm" class="message-form">
+    <div id="messageReplyComposer" class="message-reply-composer hidden"></div>
+    <div class="message-options">
+      <label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label>
+      <label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label>
+    </div>
+    <div id="messagePreview" class="message-preview hidden"></div>
+    <div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="${isGroup ? 'Escribe al grupo…' : 'Escribe un mensaje…'}"></textarea><button class="primary" type="submit">Enviar</button></div>
+    <small class="message-hint">${isGroup ? 'Cada persona decide si acepta el contenido sensible de cada remitente.' : 'El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.'}</small>
+  </form>`;
+
+  const mobileBack=$('#mobileChatBack');
+  if(mobileBack)mobileBack.onclick=()=>{
+    $('.messages-layout')?.classList.remove('chat-open');
     sendChatPresence({typing:false,conversationId:null});
-    activeConversationId = null;
+    activeConversationId=null;
+    activeConversationMeta=null;
+    activeConversationOther=null;
     loadConversations();
   };
-  $('#messageForm').onsubmit = sendMessage;
+
+  $('#messageForm').onsubmit=sendMessage;
   bindMessageActions($('#messageThread'));
   bindTypingPresence();
   autosizeMessageBody();
   sendChatPresence({typing:false,conversationId:id});
   updateActiveChatPresence();
-  $('#messageFile').addEventListener('change', renderMessagePreview);
-  $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
-  all('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
-  if ($('#revokeSensitive')) $('#revokeSensitive').onclick = async () => {
-    await api(`/api/messages/users/${d.other.id}/sensitive-permission`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow: false }) });
-    toast('Ya no recibirás contenido sensible visible de esta persona');
-    await openConversation(activeConversationId);
-  };
+
+  $('#messageFile').addEventListener('change',renderMessagePreview);
+  $('#messageLevel').addEventListener('change',updateMessagePreviewLevel);
+  if($('#manageGroup'))$('#manageGroup').onclick=openGroupManage;
+
+  if($('#revokeSensitive') && d.other){
+    $('#revokeSensitive').onclick=async()=>{
+      await api(`/api/messages/users/${d.other.id}/sensitive-permission`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({allow:false})
+      });
+      toast('Ya no recibirás contenido sensible visible de esta persona');
+      await openConversation(activeConversationId);
+    };
+  }
+
   all('[data-conversation-setting]',$('#chatPanel')).forEach(button=>{
     button.onclick=async()=>{
       const key=button.dataset.conversationSetting;
@@ -5238,17 +5372,34 @@ async function openConversation(id) {
         : key==='archived'
           ? {archived:!activeConversationSettings.is_archived}
           : {muted:!activeConversationSettings.notifications_muted};
+
       button.disabled=true;
-      const {r,d:settingsData}=await api(`/api/messages/conversations/${activeConversationId}/settings`,{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      });
-      if(!r.ok){button.disabled=false;return toast('No se pudo actualizar la conversación.');}
+      const {r:settingsResponse,d:settingsData}=await api(
+        `/api/messages/conversations/${activeConversationId}/settings`,
+        {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload)
+        }
+      );
+      if(!settingsResponse.ok){
+        button.disabled=false;
+        return toast('No se pudo actualizar la conversación.');
+      }
+
       activeConversationSettings=settingsData.settings || activeConversationSettings;
-      toast(key==='pinned'?(activeConversationSettings.is_pinned?'Conversación fijada':'Conversación desfijada'):key==='archived'?(activeConversationSettings.is_archived?'Conversación archivada':'Conversación recuperada'):(activeConversationSettings.notifications_muted?'Avisos silenciados':'Avisos activados'));
+      toast(
+        key==='pinned'
+          ? (activeConversationSettings.is_pinned?'Conversación fijada':'Conversación desfijada')
+          : key==='archived'
+            ? (activeConversationSettings.is_archived?'Conversación archivada':'Conversación recuperada')
+            : (activeConversationSettings.notifications_muted?'Avisos silenciados':'Avisos activados')
+      );
+
       if(key==='archived' && activeConversationSettings.is_archived){
         activeConversationId=null;
+        activeConversationMeta=null;
+        activeConversationOther=null;
         $('.messages-layout')?.classList.remove('chat-open');
         $('#chatPanel').className='chat-panel empty-chat';
         $('#chatPanel').innerHTML='<div class="empty-state"><b>Conversación archivada</b><p>Puedes recuperarla desde la pestaña Archivadas.</p></div>';
@@ -5258,17 +5409,27 @@ async function openConversation(id) {
       }
     };
   });
-  const thread = $('#messageThread'); thread.scrollTop = thread.scrollHeight;
+
+  const thread=$('#messageThread');
+  thread.scrollTop=thread.scrollHeight;
   await loadConversations();
 }
-function messageHTML(m, other) {
-  const mine = String(m.sender_id) === String(me.id);
-  let body = m.body ? `<p>${esc(m.body)}</p>` : '';
-  let media = '';
-  if (m.gated) {
-    media = `<div class="message-gate"><b>Contenido sensible oculto</b><span>${gateText(m.gate_reason)}</span>${m.gate_reason === 'permission_required' ? `<button class="secondary" data-accept-sensitive="${other.id}">Aceptar contenido sensible de @${esc(other.username)}</button>` : ''}</div>`;
-  } else if (m.media_url || m.playback_url) {
-    media = `<div class="message-media">${mediaHTML(m)}</div>`;
+
+function messageHTML(m,other,conversation=activeConversationMeta) {
+  const mine=String(m.sender_id)===String(me.id);
+  const isGroup=conversation?.is_group===true;
+  const senderName=String(m.display_name || m.username || 'Persona');
+  const senderLabel=isGroup && !mine
+    ? `<button type="button" class="message-sender-link" data-profile="${esc(m.username || '')}">${esc(senderName)}</button>`
+    : '';
+
+  let body=m.body ? `<p>${esc(m.body)}</p>` : '';
+  let media='';
+  if(m.gated){
+    const canAccept=m.gate_reason==='permission_required' && m.sender_id;
+    media=`<div class="message-gate"><b>Contenido sensible oculto</b><span>${gateText(m.gate_reason)}</span>${canAccept ? `<button class="secondary" data-accept-sensitive="${m.sender_id}">Aceptar contenido sensible de @${esc(m.username || '')}</button>` : ''}</div>`;
+  }else if(m.media_url || m.playback_url){
+    media=`<div class="message-media">${mediaHTML(m)}</div>`;
   }
 
   const reply=m.reply_preview
@@ -5282,19 +5443,32 @@ function messageHTML(m, other) {
     return `<button type="button" class="${item?.reacted_by_me ? 'active' : ''}" data-message-react="${m.id}" data-reaction="${key}" data-reacted="${item?.reacted_by_me ? '1' : '0'}" aria-label="Reaccionar ${emoji}">${emoji}${item?.count ? ` <span>${item.count}</span>` : ''}</button>`;
   }).join('')}</div>`;
 
-  const receipt=mine ? (m.seen_by_other ? 'Visto' : 'Enviado') : '';
-  const replyLabel=mine ? 'Tú' : (m.display_name || m.username || 'Mensaje');
+  const receipt=mine
+    ? isGroup
+      ? m.seen_by_all
+        ? 'Visto por todos'
+        : Number(m.seen_count || 0)>0
+          ? `Visto por ${Number(m.seen_count)}`
+          : 'Enviado'
+      : (m.seen_by_other ? 'Visto' : 'Enviado')
+    : '';
+
+  const replyLabel=mine ? 'Tú' : senderName;
   const replyText=m.gated
     ? 'Contenido sensible'
     : String(m.body || '').trim()
       ? String(m.body).trim().slice(0,160)
       : m.media_type==='image' ? 'Foto' : m.media_type==='video' ? 'Vídeo' : 'Mensaje';
 
-  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
+  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'} ${isGroup?'group-message':''}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
+    ${senderLabel}
     ${reply}
     ${body}
     ${media}
-    <div class="message-bubble-meta"><small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${m.content_level !== 'normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small><button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button></div>
+    <div class="message-bubble-meta">
+      <small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${m.content_level!=='normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small>
+      <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
+    </div>
     ${reactionBar}
   </div>`;
 }
