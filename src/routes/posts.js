@@ -586,6 +586,9 @@ const createSchema = z.object({
   scheduledFor: z.string().datetime({offset:true}).optional().nullable(),
   editorialDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   editorialLabel: z.string().trim().max(40).optional().default(''),
+  communityType: z.enum(['none','poll','question']).optional().default('none'),
+  communityPrompt: z.string().trim().max(300).optional().default(''),
+  pollOptions: z.array(z.string().trim().min(1).max(120)).max(4).optional().default([]),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
 });
 
@@ -660,6 +663,21 @@ router.post('/', requireAuth, async (req, res) => {
   if ((data.editorialDate || String(data.editorialLabel || '').trim()) && !user.creator_verified) {
     return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
   }
+  if (data.communityType !== 'none' && !user.creator_verified) {
+    return res.status(403).json({ error: 'verified_creator_required_for_community_tools' });
+  }
+
+  if(data.communityType==='poll'){
+    const options=[...new Set(data.pollOptions.map(value=>String(value || '').trim()).filter(Boolean))];
+    if(String(data.communityPrompt || '').trim().length<3 || options.length<2 || options.length>4){
+      return res.status(400).json({error:'invalid_creator_poll'});
+    }
+    data.pollOptions=options;
+  }else if(data.communityType==='question'){
+    if(String(data.communityPrompt || '').trim().length<3){
+      return res.status(400).json({error:'invalid_creator_question'});
+    }
+  }
 
   let scheduledFor=null;
   if(data.publishMode==='scheduled'){
@@ -710,6 +728,25 @@ router.post('/', requireAuth, async (req, res) => {
     ]);
     const post=result.rows[0];
 
+    if(data.communityType==='poll'){
+      const poll=await client.query(`
+        INSERT INTO creator_polls (post_id,question)
+        VALUES ($1,$2)
+        RETURNING id
+      `,[post.id,String(data.communityPrompt || '').trim()]);
+      for(let i=0;i<data.pollOptions.length;i++){
+        await client.query(`
+          INSERT INTO creator_poll_options (poll_id,position,label)
+          VALUES ($1,$2,$3)
+        `,[poll.rows[0].id,i,data.pollOptions[i]]);
+      }
+    }else if(data.communityType==='question'){
+      await client.query(`
+        INSERT INTO creator_questions (post_id,prompt)
+        VALUES ($1,$2)
+      `,[post.id,String(data.communityPrompt || '').trim()]);
+    }
+
     for(const participant of participants){
       await client.query(`
         INSERT INTO post_participants (post_id,user_id,consent_status)
@@ -743,7 +780,8 @@ router.post('/', requireAuth, async (req, res) => {
       post,
       consentRequired:needsConsent,
       participants,
-      publishMode:data.publishMode
+      publishMode:data.publishMode,
+      communityType:data.communityType
     });
   }catch(e){
     await client.query('ROLLBACK');
