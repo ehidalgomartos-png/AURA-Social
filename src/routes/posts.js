@@ -913,13 +913,23 @@ async function ensureCollaborativeV161(){
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status ON post_collaborators(user_id,status,requested_at DESC)');
       await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status ON post_collaborators(post_id,status,requested_at)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_circle_mentions (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(post_id,circle_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_circle_mentions_circle ON post_circle_mentions(circle_id,post_id)');
       await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
       await db.query(`
         ALTER TABLE notifications ADD CONSTRAINT notifications_type_check CHECK(type IN (
           'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
           'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
           'creator_poll_vote','creator_question_response','event_reminder',
-          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked','system'
+          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked',
+          'circle_mention','system'
         ))
       `);
     })().catch(error=>{collaborativeV161Ready=null;throw error;});
@@ -930,6 +940,33 @@ router.use(async(_req,res,next)=>{
   try{await ensureCollaborativeV161();next();}
   catch(error){console.error('RedLibertad V1.61 collaboration bootstrap failed:',error);res.status(500).json({error:'collaboration_bootstrap_failed'});}
 });
+
+async function notifyCircleMentions(postId,actorId){
+  const members=await db.query(`
+    SELECT DISTINCT member.connection_user_id AS user_id
+      FROM post_circle_mentions mention
+      JOIN connection_circles circle ON circle.id=mention.circle_id AND circle.user_id=$2
+      JOIN connection_circle_members member ON member.circle_id=circle.id
+      JOIN users u ON u.id=member.connection_user_id AND u.status='active'
+     WHERE mention.post_id=$1
+       AND member.connection_user_id<>$2
+  `,[postId,actorId]);
+
+  for(const row of members.rows){
+    const recipientId=row.user_id;
+    const visible=await accessiblePublishedPost(postId,recipientId);
+    if(!visible)continue;
+    await db.query(`
+      INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+      SELECT $1,$2,'circle_mention','post',$3,'Te ha mencionado en una publicación para un círculo privado.'
+      WHERE NOT EXISTS(
+        SELECT 1 FROM notifications
+         WHERE user_id=$1 AND actor_id=$2 AND type='circle_mention'
+           AND entity_type='post' AND entity_id=$3
+      )
+    `,[recipientId,actorId,postId]);
+  }
+}
 
 async function sendPendingCollaborationRequests(postId,actorId,client=db){
   const result=await client.query(`
@@ -1035,7 +1072,8 @@ const createSchema = z.object({
   communityPrompt: z.string().trim().max(300).optional().default(''),
   pollOptions: z.array(z.string().trim().min(1).max(120)).max(4).optional().default([]),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([]),
-  collaboratorUsernames: z.array(z.string().min(1).max(30)).max(5).optional().default([])
+  collaboratorUsernames: z.array(z.string().min(1).max(30)).max(5).optional().default([]),
+  mentionCircleIds: z.array(z.coerce.number().int().positive()).max(5).optional().default([])
 });
 
 function parseScheduledFor(value){
@@ -1115,6 +1153,18 @@ router.post('/', requireAuth, async (req, res) => {
     audienceCircleIds=ownedCircles.rows.map(row=>Number(row.id));
     if(audienceCircleIds.length!==requestedCircleIds.length){
       return res.status(400).json({error:'invalid_circle_audience'});
+    }
+  }
+  const requestedMentionCircleIds=[...new Set(data.mentionCircleIds.map(Number).filter(Number.isInteger))];
+  let mentionCircleIds=[];
+  if(requestedMentionCircleIds.length){
+    const ownedMentionCircles=await db.query(
+      'SELECT id FROM connection_circles WHERE user_id=$1 AND id=ANY($2::bigint[])',
+      [req.user.id,requestedMentionCircleIds]
+    );
+    mentionCircleIds=ownedMentionCircles.rows.map(row=>Number(row.id));
+    if(mentionCircleIds.length!==requestedMentionCircleIds.length){
+      return res.status(400).json({error:'invalid_mention_circle'});
     }
   }
   if (data.publishMode !== 'now' && !user.creator_verified) {
@@ -1201,6 +1251,12 @@ router.post('/', requireAuth, async (req, res) => {
         );
       }
     }
+    for(const circleId of mentionCircleIds){
+      await client.query(
+        'INSERT INTO post_circle_mentions(post_id,circle_id) VALUES($1,$2) ON CONFLICT DO NOTHING',
+        [post.id,circleId]
+      );
+    }
 
     if(data.communityType==='poll'){
       const poll=await client.query(`
@@ -1269,7 +1325,8 @@ router.post('/', requireAuth, async (req, res) => {
       collaborators,
       publishMode:data.publishMode,
       communityType:data.communityType,
-      audienceCircleIds
+      audienceCircleIds,
+      mentionCircleIds
     });
   }catch(e){
     await client.query('ROLLBACK');
