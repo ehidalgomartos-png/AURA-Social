@@ -1840,7 +1840,7 @@ function creatorActivityItemHTML(group,item) {
             Dejar en seguimiento
           </label>
           <label>Recordar para
-            <input type="datetime-local" data-activity-followup-at="${item.notification_id}" value="${esc(followUpValue)}">
+            <input type="datetime-local" data-activity-followup-at="${item.notification_id}" value="${esc(followUpValue)}" ${followUp ? '' : 'disabled'}>
           </label>
           <label>Nota privada
             <textarea maxlength="1000" data-activity-note="${item.notification_id}" placeholder="Solo tú puedes ver esta nota...">${esc(management.note || '')}</textarea>
