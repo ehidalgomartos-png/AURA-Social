@@ -130,6 +130,16 @@ function storyAudienceWhere(viewerParam=null, alias='s') {
             ON story_circle_member.circle_id=story_circle.id
            AND story_circle_member.connection_user_id=${viewerParam}
          WHERE story_circle_audience.story_id=${alias}.id
+           AND EXISTS(
+             SELECT 1 FROM follows story_circle_connection_out
+              WHERE story_circle_connection_out.follower_id=${alias}.user_id
+                AND story_circle_connection_out.following_id=${viewerParam}
+           )
+           AND EXISTS(
+             SELECT 1 FROM follows story_circle_connection_in
+              WHERE story_circle_connection_in.follower_id=${viewerParam}
+                AND story_circle_connection_in.following_id=${alias}.user_id
+           )
       )
     )
   )`;
