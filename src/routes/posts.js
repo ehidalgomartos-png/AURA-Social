@@ -186,6 +186,28 @@ async function ensureSavedPostsTable() {
   return savedPostsReady;
 }
 
+
+let creatorFeaturedV13Ready = null;
+async function ensureCreatorFeaturedV13() {
+  if (!creatorFeaturedV13Ready) {
+    creatorFeaturedV13Ready = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_featured_posts (
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          featured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(user_id,post_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_featured_posts_user ON creator_featured_posts(user_id,featured_at DESC)');
+    })().catch(error => {
+      creatorFeaturedV13Ready = null;
+      throw error;
+    });
+  }
+  return creatorFeaturedV13Ready;
+}
+
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
   mediaUrl: z.string().max(4096).optional().default(''),
@@ -762,6 +784,7 @@ router.delete('/:id/save', requireAuth, async (req,res)=>{
 });
 
 router.get('/user/:username', optionalAuth, async (req, res) => {
+  await ensureCreatorFeaturedV13();
   const viewer=await viewerFrom(req);
   const mode=['posts','reposts','media'].includes(String(req.query.mode||'')) ? String(req.query.mode) : 'posts';
   const params=[req.params.username];
@@ -787,9 +810,12 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
     ? `AND (COALESCE(p.media_url,'')<>'' OR COALESCE(p.playback_url,'')<>'')`
     : '';
 
+  const featuredSelect = mode === 'reposts'
+    ? 'false'
+    : 'EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id)';
   const orderBy = mode === 'reposts'
     ? 'profile_reposts.created_at DESC'
-    : 'p.created_at DESC';
+    : 'EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id) DESC, COALESCE((SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id),p.created_at) DESC';
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
@@ -797,7 +823,8 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            ${likedByMe} AS liked_by_me,
-           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count,
+           ${featuredSelect} AS featured
       ${source}
      WHERE ${ownerFilter}
        AND p.moderation_status='published'

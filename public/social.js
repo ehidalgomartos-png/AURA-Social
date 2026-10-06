@@ -739,7 +739,7 @@ function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<button type="button" class="tile tile-button profile-content-tile" data-open-post="${p.id}">${tileContentHTML(p)}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
+    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
   }).join('');
 }
 
@@ -757,7 +757,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -772,6 +772,7 @@ async function loadProfile(mode = ownProfileMode) {
     if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
+  if ($('#creatorCenter')) $('#creatorCenter').onclick = openCreatorModal;
   $('#trustSettings').onclick = openTrustModal;
   $('#privacySettings').onclick = openPrivacyModal;
   $('#accountSettings').onclick = openAccountModal;
@@ -1237,6 +1238,98 @@ async function loadPrivacyLists() {
     ? blocked.map(user => privacyPersonHTML(user,'blocked')).join('')
     : '<div class="privacy-list-empty">No has bloqueado a nadie.</div>';
 }
+
+function creatorMetric(label,total,recent=null) {
+  return `<article class="creator-metric"><span>${esc(label)}</span><b>${Number(total || 0)}</b>${recent === null ? '' : `<small>+${Number(recent || 0)} · últimos 30 días</small>`}</article>`;
+}
+
+function creatorPostHTML(post) {
+  const interactions = Number(post.like_count || 0) + Number(post.comment_count || 0) + Number(post.repost_count || 0);
+  return `<article class="creator-post-item ${post.featured ? 'featured' : ''}">
+    <button type="button" class="creator-post-preview" data-open-post="${post.id}">
+      <span class="creator-post-media">${tileContentHTML(post)}</span>
+      <span class="creator-post-copy">
+        <b>${post.featured ? '★ Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
+        <small>${compactTimeAgo(post.created_at)} · ${interactions} interacciones · ${Number(post.save_count || 0)} guardados</small>
+      </span>
+    </button>
+    <button type="button" class="${post.featured ? 'secondary' : 'primary'} creator-feature-action" data-creator-feature="${post.id}" data-featured="${post.featured ? '1' : '0'}">
+      ${post.featured ? 'Quitar destacado' : 'Destacar'}
+    </button>
+  </article>`;
+}
+
+async function loadCreatorCenter() {
+  const metricsRoot = $('#creatorMetrics');
+  const postsRoot = $('#creatorPosts');
+  if (!metricsRoot || !postsRoot) return false;
+
+  const { r, d } = await api('/api/profiles/me/creator-center');
+  if (!r.ok) {
+    metricsRoot.innerHTML = '<div class="creator-empty">El Centro de creador requiere una cuenta de creador verificada.</div>';
+    postsRoot.innerHTML = '';
+    return false;
+  }
+
+  const creator = d.creator || {};
+  metricsRoot.innerHTML = [
+    creatorMetric('Seguidores',creator.follower_count,creator.followers_30d),
+    creatorMetric('Publicaciones',creator.post_count),
+    creatorMetric('Reels',creator.reel_count),
+    creatorMetric('Me gusta',creator.like_count,creator.likes_30d),
+    creatorMetric('Comentarios',creator.comment_count,creator.comments_30d),
+    creatorMetric('Republicaciones',creator.repost_count,creator.reposts_30d),
+    creatorMetric('Guardados',creator.save_count,creator.saves_30d),
+    creatorMetric('Destacadas',creator.featured_count)
+  ].join('');
+
+  const posts = Array.isArray(d.posts) ? d.posts : [];
+  postsRoot.innerHTML = posts.length
+    ? posts.map(creatorPostHTML).join('')
+    : '<div class="creator-empty">Publica contenido para empezar a usar tu Centro de creador.</div>';
+
+  const hint = $('#creatorFeaturedHint');
+  if (hint) hint.textContent = `${Number(creator.featured_count || 0)} de ${Number(d.featuredLimit || 3)} publicaciones destacadas.`;
+  return true;
+}
+
+async function openCreatorModal() {
+  const modal = $('#creatorModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  $('#creatorMetrics').innerHTML = '<div class="mini-loading">Cargando métricas...</div>';
+  $('#creatorPosts').innerHTML = '';
+  await loadCreatorCenter();
+}
+
+function closeCreatorModal() {
+  $('#creatorModal')?.classList.add('hidden');
+}
+
+$('#closeCreatorModal')?.addEventListener('click',closeCreatorModal);
+$('#creatorModal')?.addEventListener('click',event=>{
+  if(event.target === $('#creatorModal')) closeCreatorModal();
+});
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-creator-feature]');
+  if(!button)return;
+  event.preventDefault();
+  event.stopPropagation();
+  const featured=button.dataset.featured==='1';
+  button.disabled=true;
+  const { r, d }=await api(`/api/profiles/me/creator/featured/${button.dataset.creatorFeature}`,{
+    method:featured ? 'DELETE' : 'POST'
+  });
+  if(!r.ok){
+    button.disabled=false;
+    return toast(d.error==='featured_limit_reached'
+      ? 'Solo puedes destacar 3 publicaciones.'
+      : 'No se pudo actualizar el contenido destacado.');
+  }
+  toast(featured ? 'Publicación retirada de destacados' : 'Publicación destacada');
+  await Promise.all([loadCreatorCenter(),loadProfile(ownProfileMode)]);
+});
 
 function trustStatusLabel(value) {
   return ({

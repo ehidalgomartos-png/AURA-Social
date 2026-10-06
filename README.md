@@ -1,4 +1,4 @@
-# RedLibertad V1.12.0 — Verification & Trust
+# RedLibertad V1.13.0 — Creator Hub & Featured Content
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -267,3 +267,17 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Perfiles públicos muestran badges de confianza cuando corresponde.
 - Las verificaciones manuales desde la ficha de usuario resuelven también solicitudes pendientes.
 - Tabla verification_requests creada de forma idempotente.
+
+
+## V1.13.0 — Creator Hub & Featured Content
+
+- Nuevo Centro de creador disponible para cuentas con creator_verified.
+- Métricas de seguidores, publicaciones, Reels, Me gusta, comentarios, republicaciones y guardados.
+- Las métricas de interacción muestran también la actividad de los últimos 30 días.
+- Los creadores pueden destacar hasta 3 publicaciones propias y publicadas.
+- Las publicaciones destacadas aparecen primero en el perfil.
+- Badge visual “★ DESTACADO” en el grid del perfil.
+- Gestión para destacar y retirar destacados desde el Centro de creador.
+- Control transaccional del límite de 3 publicaciones destacadas.
+- Nueva tabla creator_featured_posts con creación idempotente.
+- Healthcheck actualizado a 1.13.0 y caché PWA V1.13.
