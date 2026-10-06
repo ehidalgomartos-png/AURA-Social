@@ -27,6 +27,9 @@ let activeStoryGroup = [];
 let activeStoryIndex = 0;
 let creatorCalendarMonth = new Date(new Date().getFullYear(),new Date().getMonth(),1);
 let creatorCalendarPosts = [];
+let creatorCommunityStatus = 'active';
+let creatorCommunityStarredOnly = false;
+let creatorCommunityData = null;
 
 
 async function api(url, opts = {}) {
@@ -202,9 +205,10 @@ function communityPollHTML(postId,poll) {
   if(!poll)return '';
   const total=Number(poll.total_votes || 0);
   const selected=poll.options?.find(option=>option.voted_by_me);
-  return `<section class="community-tool community-poll" data-community-poll-container="${postId}">
+  const closed=poll.is_open===false;
+  return `<section class="community-tool community-poll ${closed ? 'closed' : ''}" data-community-poll-container="${postId}">
     <div class="community-tool-head">
-      <span>ENCUESTA</span>
+      <span>ENCUESTA${closed ? ' · CERRADA' : ''}</span>
       <small>${total} ${total===1 ? 'voto' : 'votos'} · resultados agregados</small>
     </div>
     <h4>${esc(poll.question)}</h4>
@@ -212,7 +216,7 @@ function communityPollHTML(postId,poll) {
       ${(poll.options || []).map(option=>{
         const count=Number(option.vote_count || 0);
         const pct=total ? Math.round((count/total)*100) : 0;
-        return `<button type="button" class="community-poll-option ${option.voted_by_me ? 'selected' : ''}" data-poll-vote="${postId}" data-poll-option="${option.id}">
+        return `<button type="button" class="community-poll-option ${option.voted_by_me ? 'selected' : ''}" ${closed ? 'disabled title="Encuesta cerrada"' : `data-poll-vote="${postId}" data-poll-option="${option.id}"`}>
           <span class="community-poll-option-bar" style="width:${pct}%"></span>
           <span class="community-poll-option-copy"><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span>
         </button>`;
@@ -225,16 +229,17 @@ function communityPollHTML(postId,poll) {
 function communityQuestionHTML(postId,question) {
   if(!question)return '';
   const response=String(question.my_response || '');
-  return `<section class="community-tool community-question" data-community-question-container="${postId}">
+  const closed=question.is_open===false;
+  return `<section class="community-tool community-question ${closed ? 'closed' : ''}" data-community-question-container="${postId}">
     <div class="community-tool-head">
-      <span>PREGUNTA ABIERTA</span>
+      <span>PREGUNTA ABIERTA${closed ? ' · CERRADA' : ''}</span>
       <small>${Number(question.response_count || 0)} ${Number(question.response_count || 0)===1 ? 'respuesta' : 'respuestas'} · privadas para el creador</small>
     </div>
     <h4>${esc(question.prompt)}</h4>
     <form class="community-question-form" data-question-response="${postId}">
-      <textarea maxlength="1000" placeholder="Escribe tu respuesta...">${esc(response)}</textarea>
+      <textarea maxlength="1000" placeholder="${closed ? 'Pregunta cerrada' : 'Escribe tu respuesta...'}" ${closed ? 'disabled' : ''}>${esc(response)}</textarea>
       <div class="community-question-actions">
-        <button class="secondary" type="submit">${response ? 'Actualizar respuesta' : 'Responder'}</button>
+        <button class="secondary" type="submit" ${closed ? 'disabled' : ''}>${response ? 'Actualizar respuesta' : 'Responder'}</button>
         ${response ? `<button class="tiny-action" type="button" data-question-remove="${postId}">Retirar mi respuesta</button>` : ''}
       </div>
     </form>
