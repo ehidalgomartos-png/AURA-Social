@@ -1955,9 +1955,17 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
       count(*) FILTER (WHERE follow_up_at IS NULL)::int undated,
       count(*) FILTER (WHERE priority='high')::int high_priority
-    FROM creator_community_activity_meta
-    WHERE creator_id=$1
-      AND follow_up=true
+    FROM creator_community_activity_meta meta
+    JOIN notifications n
+      ON n.id=meta.notification_id
+     AND n.user_id=$1
+     AND n.entity_type='creator_community'
+     AND n.type IN ('creator_poll_vote','creator_question_response')
+    JOIN posts p
+      ON p.id=n.entity_id
+     AND p.user_id=$1
+    WHERE meta.creator_id=$1
+      AND meta.follow_up=true
   `,[req.user.id]);
 
   res.json({
