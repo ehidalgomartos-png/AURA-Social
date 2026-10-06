@@ -4843,6 +4843,9 @@ function bindMessageActions(root=$('#messageThread')){
     button.onclick=()=>toggleMessageReaction(button);
   });
   all('[data-accept-sensitive]',root).forEach(button=>button.onclick=acceptSensitiveMessages);
+  all('[data-open-shared-post]',root).forEach(button=>{
+    button.onclick=()=>openPostFocus(button.dataset.openSharedPost);
+  });
 }
 
 function conversationPresence(id) {
@@ -5485,6 +5488,34 @@ async function openConversation(id) {
   await loadConversations();
 }
 
+function sharedPostMessageHTML(post){
+  if(!post)return '';
+  if(post.unavailable){
+    return `<div class="shared-post-message unavailable"><b>Publicación no disponible</b><span>Puede haberse eliminado, cambiado de audiencia o ya no ser accesible para ti.</span></div>`;
+  }
+
+  if(post.gated){
+    return `<div class="shared-post-message gated"><div class="shared-post-message-head"><span class="shared-post-kind">18+</span><b>Contenido sensible compartido</b></div><p>${esc(gateText(post.gate_reason))}</p></div>`;
+  }
+
+  const kind=post.post_kind==='reel' ? 'Reel' : 'Publicación';
+  const media=(post.media_url || post.playback_url)
+    ? `<div class="shared-post-message-media">${mediaHTML(post)}</div>`
+    : '';
+  const caption=String(post.caption || '').trim();
+
+  return `<article class="shared-post-message">
+    <div class="shared-post-message-head">
+      <span class="shared-post-author-avatar">${avatarHTML(post)}</span>
+      <div><b>${esc(post.display_name || post.username || 'RedLibertad')}</b><small>@${esc(post.username || '')}</small></div>
+      <span class="shared-post-kind">${kind}</span>
+    </div>
+    ${media}
+    ${caption ? `<p class="shared-post-message-caption">${esc(caption)}</p>` : ''}
+    <button type="button" class="shared-post-open" data-open-shared-post="${post.id}">Ver ${kind.toLowerCase()}</button>
+  </article>`;
+}
+
 function messageHTML(m,other,conversation=activeConversationMeta) {
   const mine=String(m.sender_id)===String(me.id);
   const isGroup=conversation?.is_group===true;
@@ -5501,6 +5532,8 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
   }else if(m.media_url || m.playback_url){
     media=`<div class="message-media">${mediaHTML(m)}</div>`;
   }
+
+  const sharedCard=sharedPostMessageHTML(m.shared_post);
 
   const reply=m.reply_preview
     ? `<div class="message-reply-preview ${m.reply_preview.gated ? 'gated' : ''}"><small>↩ ${esc(m.reply_preview.display_name || m.reply_preview.username || 'Mensaje')}</small><p>${esc(m.reply_preview.text || 'Mensaje')}</p></div>`
@@ -5528,13 +5561,20 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     ? 'Contenido sensible'
     : String(m.body || '').trim()
       ? String(m.body).trim().slice(0,160)
-      : m.media_type==='image' ? 'Foto' : m.media_type==='video' ? 'Vídeo' : 'Mensaje';
+      : m.media_type==='image'
+        ? 'Foto'
+        : m.media_type==='video'
+          ? 'Vídeo'
+          : m.shared_post
+            ? 'Publicación compartida'
+            : 'Mensaje';
 
   return `<div class="message-bubble ${mine ? 'mine' : 'theirs'} ${isGroup?'group-message':''}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
     ${senderLabel}
     ${reply}
     ${body}
     ${media}
+    ${sharedCard}
     <div class="message-bubble-meta">
       <small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${m.content_level!=='normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small>
       <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
