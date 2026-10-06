@@ -1,4 +1,4 @@
-# RedLibertad V1.42.0 — Live Activity 2.0
+# RedLibertad V1.43.0 — Reels Immersive 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1022,4 +1022,18 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Heartbeat y reconexión automática del navegador.
 - Funciona entre varias instancias porque la señal se calcula desde PostgreSQL, sin memoria compartida.
 - Sin dependencias nuevas.
+- Sin monetización activa.
+
+
+## V1.43.0 — Reels Immersive 2.0
+
+- Reels se convierte en un scroll vertical propio con una tarjeta por pantalla.
+- Scroll snap y stop obligatorio para evitar saltos entre varios Reels.
+- Autoplay silenciado únicamente cuando un vídeo local ocupa al menos el 72% de la vista.
+- Pausa automática al pasar al siguiente Reel o abandonar la sección.
+- Respeta prefers-reduced-motion: en ese caso no fuerza autoplay.
+- Mantiene controles nativos del vídeo para que el usuario pueda activar sonido y controlar reproducción.
+- Los iframes externos se mantienen manuales para no forzar APIs de terceros.
+- El registro de vista sigue siendo único y se activa con visibilidad suficiente.
+- Oculta la previsualización inline de comentarios dentro del carrusel inmersivo para reducir ruido; el botón Comentarios sigue disponible.
 - Sin monetización activa.
