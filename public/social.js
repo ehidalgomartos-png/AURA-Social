@@ -195,6 +195,7 @@ function postHTML(p) {
   const textOnly = !media;
   const ownPost = !!me && String(me.id) === String(p.user_id);
   const canManage = !!me && (ownPost || me.is_admin === true);
+  const vipOnly = p.audience === 'vip';
   const liked = p.liked_by_me === true;
   const reposted = p.reposted_by_me === true;
   const repostBanner = p.repost_actor_username
@@ -204,13 +205,14 @@ function postHTML(p) {
         'repost-profile-link'
       )}</div>`
     : '';
-  return `<article class="post ${textOnly ? 'text-only-post' : ''}" data-id="${p.id}">
+  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''}" data-id="${p.id}">
     ${repostBanner}
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
         <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
+        ${vipOnly ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
         ${participantsHTML(p)}
       </div>
     </div>
@@ -219,9 +221,9 @@ function postHTML(p) {
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
-      <button class="${reposted ? 'reposted' : ''}" ${ownPost ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
+      <button class="${reposted ? 'reposted' : ''}" ${ownPost || vipOnly ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${vipOnly ? 'El contenido VIP no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
-      <button class="share-action" data-share="${p.id}">↗ <span class="share-label">Compartir</span></button>
+      <button class="share-action" ${vipOnly ? 'disabled title="El contenido VIP no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${vipOnly ? 'VIP' : 'Compartir'}</span></button>
       ${canManage
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
         : `<button class="post-more" data-report="${p.id}" aria-label="Denunciar publicación">⋯</button>`}
@@ -739,7 +741,7 @@ function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
+    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''} ${p.audience === 'vip' ? 'is-vip-exclusive' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.audience === 'vip' ? '<span class="tile-vip">★ VIP</span>' : ''}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
   }).join('');
 }
 
@@ -1371,7 +1373,7 @@ function creatorPostHTML(post) {
     <button type="button" class="creator-post-preview" data-open-post="${post.id}">
       <span class="creator-post-media">${tileContentHTML(post)}</span>
       <span class="creator-post-copy">
-        <b>${post.featured ? '★ Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
+        <b>${post.audience === 'vip' ? '★ Solo VIP · ' : ''}${post.featured ? 'Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
         <small>${compactTimeAgo(post.created_at)} · ${interactions} interacciones · ${Number(post.save_count || 0)} guardados</small>
       </span>
     </button>
@@ -1406,7 +1408,8 @@ async function loadCreatorCenter() {
     creatorMetric('Clics en enlaces',creator.link_click_count),
     creatorMetric('Avisos enviados',creator.broadcast_count),
     creatorMetric('Miembros VIP',creator.vip_count),
-    creatorMetric('Avisos VIP',creator.vip_broadcast_count)
+    creatorMetric('Avisos VIP',creator.vip_broadcast_count),
+    creatorMetric('Contenido VIP',creator.vip_post_count)
   ].join('');
 
   const creatorForm=$('#creatorProfileForm');
@@ -3212,6 +3215,7 @@ $('#createForm').addEventListener('submit', async e => {
       caption,
       kind,
       contentLevel: fd.get('contentLevel'),
+      audience: fd.get('audience') || 'public',
       participantUsernames: participants,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
@@ -3229,6 +3233,8 @@ $('#createForm').addEventListener('submit', async e => {
     if (!r.ok) throw new Error(
       d.error === 'verified_creator_required_for_nudity'
         ? 'Necesitas verificación de creador adulto para publicar desnudez.'
+        : d.error === 'verified_creator_required_for_vip_content'
+          ? 'Solo los creadores verificados pueden publicar contenido Solo VIP.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
           : d.error === 'empty_post'
