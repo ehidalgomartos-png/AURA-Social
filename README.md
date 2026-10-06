@@ -1,4 +1,4 @@
-# RedLibertad V1.43.0 — Reels Immersive 2.0
+# RedLibertad V1.44.0 — Connections 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1036,4 +1036,18 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Los iframes externos se mantienen manuales para no forzar APIs de terceros.
 - El registro de vista sigue siendo único y se activa con visibilidad suficiente.
 - Oculta la previsualización inline de comentarios dentro del carrusel inmersivo para reducir ruido; el botón Comentarios sigue disponible.
+- Sin monetización activa.
+
+
+## V1.44.0 — Connections 2.0
+
+- Una Conexión se detecta automáticamente cuando dos personas se siguen mutuamente.
+- No crea una relación paralela ni duplica datos: reutiliza la tabla follows existente.
+- Nuevo bloque “Tus conexiones” en Explorar.
+- Ordena conexiones por actividad reciente visible, intereses en común y antigüedad de la conexión.
+- Muestra estado breve, ubicación y contexto de intereses cuando existen.
+- Botón Mensaje abre directamente la conversación existente o crea una nueva respetando privacidad y bloqueos.
+- Perfil propio muestra el número de conexiones.
+- Perfil público distingue claramente “✓ Conexión” de “Te sigue”.
+- Mantiene bloqueos y silencios fuera del listado de conexiones recomendado.
 - Sin monetización activa.
