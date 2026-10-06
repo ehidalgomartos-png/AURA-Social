@@ -33,6 +33,10 @@ let creatorCommunityData = null;
 let creatorCommunityActivityStatus = 'pending';
 let creatorCommunityActivityFocus = 'all';
 let creatorCommunityActivityData = null;
+let creatorFollowUpWindow = 'all';
+let creatorFollowUpSearch = '';
+let creatorFollowUpData = null;
+let creatorFollowUpSearchTimer = null;
 
 
 async function api(url, opts = {}) {
@@ -1929,6 +1933,112 @@ async function loadCreatorCommunityActivity() {
   return true;
 }
 
+function creatorFollowUpWindowLabel(value) {
+  return ({
+    overdue:'Vencido',
+    today:'Hoy',
+    week:'Próximos 7 días',
+    later:'Más adelante',
+    undated:'Sin fecha'
+  })[value] || 'Seguimiento';
+}
+
+function creatorFollowUpItemHTML(item) {
+  const due=item.follow_up_at ? new Date(item.follow_up_at) : null;
+  const dueLabel=due && Number.isFinite(due.getTime())
+    ? due.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    : 'Sin fecha';
+  return `<article class="creator-followup-item ${item.priority==='high' ? 'high-priority' : ''} ${item.follow_up_window==='overdue' ? 'overdue' : ''}">
+    <label class="creator-followup-check">
+      <input type="checkbox" data-followup-select="${item.notification_id}">
+    </label>
+    <div class="creator-followup-main">
+      <div class="creator-followup-item-head">
+        <div>
+          <span class="eyebrow">${item.type==='creator_poll_vote' ? 'ENCUESTA' : 'PREGUNTA'} · ${item.audience==='vip' ? '★ VIP' : 'PÚBLICO'}</span>
+          <b>${esc(item.prompt || 'Actividad de comunidad')}</b>
+        </div>
+        <div class="creator-followup-badges">
+          ${item.priority==='high' ? '<span class="creator-activity-priority-badge">Prioridad alta</span>' : ''}
+          <span class="creator-followup-window-badge ${esc(item.follow_up_window || 'undated')}">${esc(creatorFollowUpWindowLabel(item.follow_up_window))}</span>
+        </div>
+      </div>
+      <div class="creator-followup-actor-row">
+        ${creatorActivityActorHTML(item.actor)}
+        <span class="creator-followup-due">${esc(dueLabel)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}</span>
+      </div>
+      <div class="creator-followup-note">
+        <small>Nota privada</small>
+        <p>${item.private_note ? esc(item.private_note) : '<span class="creator-followup-note-empty">Sin nota privada</span>'}</p>
+      </div>
+      <div class="creator-followup-item-actions">
+        <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+        <button type="button" class="tiny-action" data-followup-open-activity="${item.notification_id}">Abrir en actividad</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function updateCreatorFollowUpBulkState() {
+  const selected=all('[data-followup-select]:checked','#creatorFollowUpList');
+  const count=selected.length;
+  if($('#creatorFollowUpSelectedCount'))$('#creatorFollowUpSelectedCount').textContent=`${count} ${count===1 ? 'seleccionado' : 'seleccionados'}`;
+  const action=$('#creatorFollowUpBulkAction')?.value || '';
+  const apply=$('#creatorFollowUpBulkApply');
+  if(apply)apply.disabled=!count || !action;
+  const allBoxes=all('[data-followup-select]','#creatorFollowUpList');
+  const selectAll=$('#creatorFollowUpSelectAll');
+  if(selectAll){
+    selectAll.checked=Boolean(allBoxes.length && count===allBoxes.length);
+    selectAll.indeterminate=Boolean(count && count<allBoxes.length);
+  }
+}
+
+function renderCreatorFollowUps(data = {}) {
+  creatorFollowUpData=data;
+  const summary=data.summary || {};
+  if($('#creatorFollowUpSummary')){
+    $('#creatorFollowUpSummary').innerHTML=[
+      creatorMetric('Seguimientos',summary.total || 0),
+      creatorMetric('Vencidos',summary.overdue || 0),
+      creatorMetric('Hoy',summary.today || 0),
+      creatorMetric('Próximos 7 días',summary.week || 0),
+      creatorMetric('Prioridad alta',summary.high_priority || 0)
+    ].join('');
+  }
+
+  all('[data-followup-window]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.followupWindow===creatorFollowUpWindow);
+  });
+  if($('#creatorFollowUpSearch') && $('#creatorFollowUpSearch').value!==creatorFollowUpSearch){
+    $('#creatorFollowUpSearch').value=creatorFollowUpSearch;
+  }
+
+  const root=$('#creatorFollowUpList');
+  if(!root)return;
+  const items=Array.isArray(data.items) ? data.items : [];
+  root.innerHTML=items.length
+    ? items.map(creatorFollowUpItemHTML).join('')
+    : '<div class="creator-empty compact">No hay seguimientos para este filtro.</div>';
+  updateCreatorFollowUpBulkState();
+}
+
+async function loadCreatorFollowUps() {
+  const root=$('#creatorFollowUpList');
+  if(root)root.innerHTML='<div class="mini-loading">Cargando seguimientos...</div>';
+  const qs=new URLSearchParams({
+    window:creatorFollowUpWindow,
+    q:creatorFollowUpSearch
+  });
+  const { r,d }=await api(`/api/posts/creator/community-follow-ups?${qs.toString()}`);
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="creator-empty compact">No se pudo cargar el dashboard de seguimiento.</div>';
+    return false;
+  }
+  renderCreatorFollowUps(d);
+  return true;
+}
+
 function communityStateBadge(status,isOpen) {
   if(status==='archived')return '<span class="creator-community-state archived">Archivada</span>';
   return isOpen
@@ -2217,7 +2327,7 @@ async function loadCreatorCenter() {
     if($('#creatorCommunityTopTools'))$('#creatorCommunityTopTools').innerHTML='';
   }
 
-  await Promise.all([loadCreatorCommunityActivity(),loadCreatorCalendar()]);
+  await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity(),loadCreatorCalendar()]);
   return true;
 }
 
@@ -2239,6 +2349,7 @@ async function openCreatorModal() {
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
   if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
+  if($('#creatorFollowUpList'))$('#creatorFollowUpList').innerHTML='<div class="mini-loading">Cargando seguimientos...</div>';
   if($('#creatorActivityGroups'))$('#creatorActivityGroups').innerHTML='<div class="mini-loading">Cargando actividad...</div>';
   if($('#creatorCommunityInsights'))$('#creatorCommunityInsights').innerHTML='<div class="mini-loading">Calculando insights...</div>';
   if($('#creatorCommunityTrend'))$('#creatorCommunityTrend').innerHTML='';
