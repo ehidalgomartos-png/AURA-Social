@@ -17,11 +17,13 @@
   <link rel="stylesheet" href="/creator-ops.css">
 </head>
 <body>
+<a class="skip-link" href="#appMain">Saltar al contenido principal</a>
+<div id="a11yLive" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 <div id="connectivityBanner" class="connectivity-banner hidden" role="status" aria-live="polite"></div>
 <div class="social-shell">
   <aside class="side">
     <a class="brand" href="/app"><img class="brand-logo" src="/assets/logo-mark.svg" fetchpriority="high" decoding="async" alt=""><span>RedLibertad</span></a>
-    <nav class="side-nav">
+    <nav class="side-nav" aria-label="Navegación principal">
       <button data-view="feed" class="active">⌂ <span>Inicio</span></button>
       <button data-view="explore">⌕ <span>Explorar</span></button>
       <button data-view="connections">◎ <span>Conexiones</span></button>
@@ -40,7 +42,7 @@
     </div>
   </aside>
 
-  <main class="social-main">
+  <main id="appMain" class="social-main" tabindex="-1">
     <header class="mobile-head">
       <a class="brand" href="/app"><img class="brand-logo" src="/assets/logo-mark.svg" fetchpriority="high" decoding="async" alt=""><span>RedLibertad</span></a>
       <div class="mobile-actions"><button data-view="notifications" class="round-btn mobile-notification-button" aria-label="Notificaciones"><span>♢</span><i id="notificationBadgeMobile" class="mobile-nav-badge hidden"></i></button><button data-action="create" class="round-btn" aria-label="Crear publicación">＋</button></div>
@@ -417,7 +419,7 @@
     </section>
   </main>
 
-  <nav class="bottom-nav">
+  <nav class="bottom-nav" aria-label="Navegación principal móvil">
     <button data-view="feed" class="active"><b>⌂</b><small>Inicio</small></button>
     <button data-view="explore"><b>⌕</b><small>Explorar</small></button>
     <button data-action="create" class="create-mobile"><b>＋</b><small>Crear</small></button>
@@ -1358,6 +1360,6 @@
   </div>
 </div>
 
-<div id="toast" class="toast hidden"></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="/pwa.js"></script><script src="/social.js"></script><script src="/creator-ops.js"></script>
 </body></html>
