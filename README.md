@@ -1,4 +1,4 @@
-# RedLibertad V1.25.0 — Community Activity Center
+# RedLibertad V1.26.0 — Creator Follow-up & Private Notes
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -667,3 +667,62 @@ V1.24 continúa sin monetización activa: sin pagos, suscripciones, precios, che
 ### Monetización
 
 V1.25 continúa completamente sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
+
+
+## V1.26.0 — Creator Follow-up & Private Notes
+
+- Nueva capa privada de trabajo sobre el Centro de actividad V1.25.
+- Cada participación puede tener:
+  - prioridad Normal / Alta,
+  - nota privada de hasta 1000 caracteres,
+  - estado Seguimiento,
+  - fecha/hora opcional de seguimiento.
+- Estos datos nunca se muestran al participante ni al público.
+- Prioridad, nota y seguimiento son independientes del estado Revisado.
+- Una actividad puede:
+  - estar revisada y seguir en seguimiento,
+  - tener prioridad alta sin estar revisada,
+  - conservar una nota aunque ya se haya marcado como revisada.
+
+### Centro de actividad
+- Nuevo filtro Enfoque:
+  - Todas.
+  - Prioridad alta.
+  - Seguimiento.
+- Contadores privados de:
+  - actividades con prioridad alta,
+  - actividades en seguimiento.
+- Las actividades prioritarias reciben un indicador visual.
+- Las actividades en seguimiento muestran un distintivo y, si existe, su fecha.
+- Editor privado compacto por participación.
+- En móvil el editor se adapta a ancho completo.
+
+### API
+- PATCH /api/posts/creator/community-activity/:notificationId/meta.
+- Solo el creador verificado propietario puede escribir o leer estos datos.
+- GET /api/posts/creator/community-activity admite focus=all|high|followup.
+- La respuesta incluye los metadatos privados únicamente dentro del endpoint del creador.
+
+### Base de datos
+- Nueva tabla creator_community_activity_meta.
+- Campos:
+  - notification_id.
+  - creator_id.
+  - priority.
+  - private_note.
+  - follow_up.
+  - follow_up_at.
+  - updated_at.
+- Constraint priority normal/high.
+- ON DELETE CASCADE desde notifications.
+- Índice por creador, seguimiento, prioridad y actualización.
+- Bootstrap idempotente.
+
+### Privacidad
+- Notas y prioridades no alteran la publicación, voto, respuesta ni notificación.
+- No se exponen en feeds, perfiles ni APIs públicas.
+- No se añade tracking externo.
+
+### Monetización
+
+V1.26 continúa completamente sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
