@@ -569,7 +569,8 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       (SELECT COALESCE(sum(cl.click_count),0)::bigint FROM creator_links cl WHERE cl.user_id=u.id) link_click_count,
       (SELECT count(*)::int FROM creator_broadcasts cb WHERE cb.user_id=u.id) broadcast_count,
       (SELECT count(*)::int FROM creator_vips cv WHERE cv.creator_id=u.id) vip_count,
-      (SELECT count(*)::int FROM creator_vip_broadcasts cvb WHERE cvb.creator_id=u.id) vip_broadcast_count
+      (SELECT count(*)::int FROM creator_vip_broadcasts cvb WHERE cvb.creator_id=u.id) vip_broadcast_count,
+      (SELECT count(*)::int FROM posts vp WHERE vp.user_id=u.id AND vp.moderation_status='published' AND vp.audience='vip') vip_post_count
     FROM users u
     WHERE u.id=$1
     LIMIT 1
@@ -581,7 +582,7 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
 
   const posts=await db.query(`
     SELECT
-      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.created_at,
       EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) featured,
       (SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) featured_at,
       (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
@@ -744,7 +745,7 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       )
       ,post_stats AS (
         SELECT
-          p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+          p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.created_at,
           COALESCE(ls.n,0)::int AS like_count_30d,
           COALESCE(cs.n,0)::int AS comment_count_30d,
           COALESCE(rs.n,0)::int AS repost_count_30d,
