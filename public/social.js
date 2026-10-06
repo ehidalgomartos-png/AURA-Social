@@ -234,6 +234,47 @@ function captionHTML(value = '') {
   out += esc(source.slice(last));
   return out.replace(/\n/g, '<br>');
 }
+
+const mentionAutocompleteTimers=new WeakMap();
+function mentionQueryAtCursor(field){
+  const cursor=field.selectionStart ?? field.value.length;
+  const left=field.value.slice(0,cursor);
+  const match=left.match(/(?:^|\s)@([a-zA-Z0-9_.]{1,30})$/);
+  if(!match)return null;
+  return {query:match[1],start:cursor-match[1].length-1,end:cursor};
+}
+async function refreshMentionSuggestions(field,root){
+  if(!field||!root)return;
+  const token=mentionQueryAtCursor(field);
+  if(!token){root.classList.add('hidden');root.innerHTML='';return;}
+  const {r,d}=await api('/api/profiles/mentions/suggestions?'+new URLSearchParams({q:token.query}).toString());
+  if(!r.ok)return;
+  const users=Array.isArray(d.users)?d.users:[];
+  root.innerHTML=users.map(user=>`<button type="button" data-mention-suggestion="${esc(user.username)}"><span class="mention-suggestion-avatar">${avatarHTML(user)}</span><span><b>@${esc(user.username)}</b><small>${esc(user.display_name)}</small></span></button>`).join('');
+  root.classList.toggle('hidden',!users.length);
+  all('[data-mention-suggestion]',root).forEach(button=>{
+    button.onmousedown=event=>event.preventDefault();
+    button.onclick=()=>{
+      const current=mentionQueryAtCursor(field);if(!current)return;
+      field.setRangeText(`@${button.dataset.mentionSuggestion} `,current.start,current.end,'end');
+      root.classList.add('hidden');root.innerHTML='';
+      field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();
+    };
+  });
+}
+function bindMentionAutocomplete(field,root){
+  if(!field||!root)return;
+  field.addEventListener('input',()=>{
+    clearTimeout(mentionAutocompleteTimers.get(field));
+    const timer=setTimeout(()=>refreshMentionSuggestions(field,root),140);
+    mentionAutocompleteTimers.set(field,timer);
+  });
+  field.addEventListener('keyup',event=>{
+    if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refreshMentionSuggestions(field,root);
+  });
+  field.addEventListener('blur',()=>setTimeout(()=>root.classList.add('hidden'),120));
+}
+
 function timeAgo(value) {
   const date = new Date(value);
   const diff = Math.max(0, Date.now() - date.getTime());
@@ -4473,6 +4514,7 @@ async function openPrivacyModal() {
 
   const form = $('#privacyForm');
   form.messagePrivacy.value = d.settings?.messagePrivacy || 'everyone';
+  if(form.mentionPrivacy)form.mentionPrivacy.value = d.settings?.mentionPrivacy || 'everyone';
   form.discoverable.checked = d.settings?.discoverable !== false;
   form.showActivity.checked = d.settings?.showActivity !== false;
   $('#mutedCountBadge').textContent = Number(d.mutedCount || 0);
@@ -4484,6 +4526,10 @@ async function openPrivacyModal() {
 function closePrivacyModal() {
   $('#privacyModal')?.classList.add('hidden');
 }
+
+bindMentionAutocomplete($('#createForm textarea[name="caption"]'),$('#createMentionSuggestions'));
+bindMentionAutocomplete($('#commentBody'),$('#commentMentionSuggestions'));
+bindMentionAutocomplete($('#communityPostForm textarea[name="body"]'),$('#communityMentionSuggestions'));
 
 $('#closePrivacyModal')?.addEventListener('click', closePrivacyModal);
 $('#privacyModal')?.addEventListener('click', event => {
@@ -4501,6 +4547,7 @@ $('#privacyForm')?.addEventListener('submit', async event => {
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       messagePrivacy:form.messagePrivacy.value,
+      mentionPrivacy:form.mentionPrivacy?.value || 'everyone',
       discoverable:form.discoverable.checked,
       showActivity:form.showActivity.checked
     })
@@ -4514,6 +4561,7 @@ $('#privacyForm')?.addEventListener('submit', async event => {
   me = {
     ...me,
     message_privacy:d.settings.messagePrivacy,
+    mention_privacy:d.settings.mentionPrivacy,
     discoverable:d.settings.discoverable,
     show_activity:d.settings.showActivity
   };
@@ -4738,12 +4786,18 @@ function shareUrl(){
   if(activeShareEntity.type==='story')return `${location.origin}/app?story=${encodeURIComponent(activeShareEntity.id)}`;
   return location.origin+'/app';
 }
+function shareContextText(){return String($('#shareContext')?.value||'').trim().slice(0,500);}
 function shareText(){
   if(!activeShareEntity)return 'Mira esto en RedLibertad.';
-  if(activeShareEntity.type==='profile')return `Mira el perfil de @${activeShareEntity.username||''} en RedLibertad.`;
-  if(activeShareEntity.type==='story')return `Mira esta Story de @${activeShareEntity.username||''} en RedLibertad.`;
-  if(activeShareEntity.type==='reel')return 'Mira este Reel en RedLibertad, donde la libertad es lo primero.';
-  return 'Mira este post en RedLibertad, donde la libertad es lo primero.';
+  const base=activeShareEntity.type==='profile'
+    ? `Mira el perfil de @${activeShareEntity.username||''} en RedLibertad.`
+    : activeShareEntity.type==='story'
+      ? `Mira esta Story de @${activeShareEntity.username||''} en RedLibertad.`
+      : activeShareEntity.type==='reel'
+        ? 'Mira este Reel en RedLibertad, donde la libertad es lo primero.'
+        : 'Mira este post en RedLibertad, donde la libertad es lo primero.';
+  const context=shareContextText();
+  return context ? `${context}\n\n${base}` : base;
 }
 function shareEntityLabel(){
   return activeShareEntity?.type==='profile'?'perfil':activeShareEntity?.type==='story'?'Story':activeShareEntity?.type==='reel'?'Reel':'publicación';
@@ -4800,7 +4854,7 @@ async function loadShareCommunities(){
   all('[data-share-community]',root).forEach(button=>button.onclick=async()=>{
     const status=$('#shareStatus');if(status)status.textContent='Compartiendo en la comunidad…';
     const {r,d}=await api(`/api/communities/${button.dataset.shareCommunity}/share-post`,{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({postId:activeShareEntity.id})
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({postId:activeShareEntity.id,context:shareContextText()})
     });
     if(!r.ok){if(status)status.textContent=d.error==='post_not_shareable_to_community'?'Solo se pueden compartir aquí posts/Reels públicos.':'No se pudo compartir en la comunidad.';return;}
     toast(`${shareEntityLabel()} compartido en ${button.dataset.shareLabel}`);
@@ -4837,6 +4891,7 @@ function openShare(entityId,type='post',meta={}){
   $('#shareExternalActions')?.classList.toggle('hidden',!canShareExternally());
   if($('#shareStatus'))$('#shareStatus').textContent='';
   if($('#shareInternalUsername'))$('#shareInternalUsername').value='';
+  if($('#shareContext'))$('#shareContext').value='';
   Promise.all([loadShareConversations(),loadShareCommunities(),loadShareHistory()]).catch(()=>{});
 }
 function closeShare(){
@@ -4861,7 +4916,7 @@ async function copyShareLink(){
 async function sendSharedEntityToConversation(conversationId,label='chat'){
   if(!activeShareEntity)return;
   const status=$('#shareStatus');if(status)status.textContent=`Enviando ${shareEntityLabel()}…`;
-  const payload={body:'',contentLevel:'normal'};
+  const payload={body:shareContextText(),contentLevel:'normal'};
   if(['post','reel'].includes(activeShareEntity.type))payload.sharedPostId=activeShareEntity.id;
   else if(activeShareEntity.type==='story')payload.sharedStoryId=activeShareEntity.id;
   else if(activeShareEntity.type==='profile')payload.sharedProfileId=activeShareEntity.id;
