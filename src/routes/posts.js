@@ -2878,13 +2878,28 @@ router.get('/consents/pending', requireAuth, async (req,res)=>{
      ORDER BY pp.requested_at DESC
      LIMIT 100
   `,[req.user.id]);
-  const viewer=await db.query('SELECT age_verified FROM users WHERE id=$1',[req.user.id]);
+  const collaborationResult=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.created_at,
+           pc.status AS collaboration_status,
+           u.id AS owner_id,u.username,u.display_name,u.avatar_url
+      FROM post_collaborators pc
+      JOIN posts p ON p.id=pc.post_id
+      JOIN users u ON u.id=p.user_id
+     WHERE pc.user_id=$1 AND pc.status IN ('pending','approved')
+     ORDER BY pc.requested_at DESC
+     LIMIT 100
+  `,[req.user.id]);
+  const viewer=await db.query('SELECT age_verified,creator_verified FROM users WHERE id=$1',[req.user.id]);
   const ageVerified=!!viewer.rows[0]?.age_verified;
   const requests=r.rows.map(x=>{
     const gated=x.content_level!=='normal'&&!ageVerified;
     return {...x,media_url:gated?null:x.media_url,playback_url:gated?null:x.playback_url,gated,gate_reason:gated?'age_verification_required':null};
   });
-  res.json({requests,ageVerified});
+  const collaborations=collaborationResult.rows.map(x=>{
+    const gated=x.content_level!=='normal'&&!ageVerified;
+    return {...x,media_url:gated?null:x.media_url,playback_url:gated?null:x.playback_url,gated,gate_reason:gated?'age_verification_required':null};
+  });
+  res.json({requests,collaborations,ageVerified,creatorVerified:!!viewer.rows[0]?.creator_verified});
 });
 
 const consentSchema=z.object({decision:z.enum(['approved','rejected','revoked'])});
@@ -2914,51 +2929,10 @@ router.post('/:id/consent', requireAuth, async (req,res)=>{
       `SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'`,
       [req.params.id]
     );
-
-    let publishedNow=false;
     if(Number(remaining.rows[0]?.n || 0)===0){
-      const source=post.rows[0];
-      const scheduledDue=
-        source.creator_state==='scheduled' &&
-        source.scheduled_for &&
-        new Date(source.scheduled_for).getTime()<=Date.now();
-      const eligibleForAudience=source.audience!=='vip' || source.owner_creator_verified===true;
-      const eligibleForContent=source.content_level!=='nudity' || (
-        source.owner_creator_verified===true && source.owner_age_verified===true
-      );
-      const shouldPublish=(source.creator_state==='live' || scheduledDue) && eligibleForAudience && eligibleForContent;
-
-      const updated=await db.query(`
-        UPDATE posts
-           SET consent_state='approved',
-               moderation_status=$2,
-               creator_state=CASE WHEN $3::boolean THEN 'live' ELSE creator_state END,
-               created_at=CASE WHEN $2='published' THEN now() ELSE created_at END,
-               updated_at=now()
-         WHERE id=$1
-         RETURNING id,user_id,caption,audience,creator_state,moderation_status
-      `,[
-        req.params.id,
-        shouldPublish ? 'published' : 'under_review',
-        scheduledDue
-      ]);
-
-      publishedNow=updated.rows[0]?.moderation_status==='published';
-      if(publishedNow){
-        try{
-          await notifyMentions({
-            actorId:updated.rows[0].user_id,
-            text:updated.rows[0].caption,
-            entityType:'post',
-            entityId:updated.rows[0].id,
-            audience:updated.rows[0].audience
-          });
-        }catch(error){
-          console.warn('RedLibertad consent publish mention notification failed:',error?.message || error);
-        }
-      }
+      await db.query("UPDATE posts SET consent_state='approved',updated_at=now() WHERE id=$1",[req.params.id]);
+      await maybePublishAfterApprovals(req.params.id);
     }
-
     await db.query(`INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text) VALUES ($1,$2,'consent_approved','post',$3,'Ha aprobado aparecer en tu publicación.')`,[ownerId,req.user.id,req.params.id]);
   }
   res.json({ok:true,decision});
