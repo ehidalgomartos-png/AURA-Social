@@ -456,4 +456,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_creator_community_once
   WHERE type IN ('creator_poll_vote','creator_question_response');
 
 
+-- RedLibertad V1.25: centro de actividad de comunidad
+CREATE TABLE IF NOT EXISTS creator_community_notification_reviews (
+  notification_id BIGINT PRIMARY KEY REFERENCES notifications(id) ON DELETE CASCADE,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_creator_community_reviews_creator
+  ON creator_community_notification_reviews(creator_id,reviewed_at DESC);
+
+
 

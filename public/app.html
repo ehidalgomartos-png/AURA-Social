@@ -272,6 +272,25 @@
           <small>Cierra o archiva participación sin borrar datos. Las respuestas destacadas siguen siendo privadas para ti.</small>
         </div>
       </div>
+      <section class="creator-activity-center">
+        <div class="creator-activity-head">
+          <div>
+            <span class="eyebrow">CENTRO DE ACTIVIDAD</span>
+            <b>Nueva participación por revisar</b>
+            <small>Se agrupa por encuesta o pregunta para evitar una lista interminable de avisos.</small>
+          </div>
+          <div class="creator-activity-head-actions">
+            <span id="creatorActivityPendingBadge" class="creator-activity-pending-badge hidden">0 pendientes</span>
+            <button id="creatorActivityReviewAll" type="button" class="tiny-action">Marcar todo revisado</button>
+          </div>
+        </div>
+        <div class="creator-activity-toolbar">
+          <button type="button" class="active" data-creator-activity-status="pending">Pendiente</button>
+          <button type="button" data-creator-activity-status="reviewed">Revisado</button>
+          <button type="button" data-creator-activity-status="all">Todo</button>
+        </div>
+        <div id="creatorActivityGroups" class="creator-activity-groups"></div>
+      </section>
       <div id="creatorCommunitySummary" class="creator-community-summary"></div>
       <section class="creator-community-insights-block">
         <div class="creator-community-insights-head">
