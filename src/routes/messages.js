@@ -376,7 +376,14 @@ router.post('/conversations/:id/messages', async (req, res) => {
         INSERT INTO notifications (
           user_id, actor_id, type, entity_type, entity_id, text
         )
-        VALUES ($1,$2,'message','conversation',$3,$4)
+        SELECT $1,$2,'message','conversation',$3,$4
+         WHERE NOT EXISTS(
+           SELECT 1
+             FROM conversation_members cm
+            WHERE cm.conversation_id=$3
+              AND cm.user_id=$1
+              AND cm.notifications_muted=true
+         )
       `, [
         recipient.id,
         req.user.id,
