@@ -1,4 +1,4 @@
-# RedLibertad V1.65.0 — Relationship Intelligence
+# RedLibertad V1.66.0 — Growth & Onboarding 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1396,5 +1396,19 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Ocultar sugerencias de forma privada.
 - Bloqueos y silencios respetados.
 - Sin rachas, FOMO, urgencia ni presión artificial.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.66.0 — Growth & Onboarding 2.0
+
+- Enlaces personales de invitación con token opaco, manteniendo compatibilidad con `?ref=usuario`.
+- Vista segura del invitador en la landing de registro.
+- Métricas de aperturas y altas atribuidas por enlace.
+- Registro atribuido por token nuevo o referencia legacy.
+- Onboarding social ampliado con una comunidad como paso recomendado.
+- Personas sugeridas para empezar a construir red, respetando bloqueos, silencios y discoverability.
+- Límites específicos anti-abuso para registro e inicio de sesión.
+- Sin mensajes automáticos, presión, rachas ni incentivos artificiales.
 - Mobile-first.
 - Sin monetización.

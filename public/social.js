@@ -1239,6 +1239,7 @@ async function handleReturnPulseAction(action) {
 }
 
 function growthInviteUrl(code) {
+  if(growthInviteToken)return `${location.origin}/?invite=${encodeURIComponent(growthInviteToken)}#registro`;
   return `${location.origin}/?ref=${encodeURIComponent(code)}#registro`;
 }
 
@@ -1255,6 +1256,7 @@ function growthStepHTML(step) {
 }
 
 let growthInviteCode = '';
+let growthInviteToken = '';
 
 async function loadGrowthPanel() {
   const panel = $('#growthPanel');
@@ -1267,6 +1269,7 @@ async function loadGrowthPanel() {
   }
 
   growthInviteCode = String(d.inviteCode || me?.username || '');
+  growthInviteToken = String(d.inviteLink?.token || '');
   $('#growthProgressValue').textContent = `${Number(d.progress || 0)}%`;
   const ring = panel.querySelector('.growth-progress-ring');
   if (ring) ring.style.setProperty('--progress', `${Number(d.progress || 0) * 3.6}deg`);
@@ -1274,6 +1277,13 @@ async function loadGrowthPanel() {
   $('#growthReferralTotal').textContent = Number(d.referrals?.total || 0);
   $('#growthReferralActivated').textContent = Number(d.referrals?.activated || 0);
   $('#growthSteps').innerHTML = Array.isArray(d.steps) ? d.steps.map(growthStepHTML).join('') : '';
+  const starterRoot=$('#growthStarterPeople');
+  if(starterRoot){
+    const starters=Array.isArray(d.starterProfiles)?d.starterProfiles:[];
+    starterRoot.innerHTML=starters.length
+      ? starters.map(user=>personCardHTML(user,true)).join('')
+      : '<div class="mini-empty"><b>Tu red ya está en marcha.</b><small>Explora para descubrir más personas.</small></div>';
+  }
 
   const hint = $('#growthInviteHint');
   if (hint && growthInviteCode) {
@@ -1335,6 +1345,10 @@ async function handleGrowthAction(action) {
   }
   if (action === 'explore') {
     showView('explore');
+    return;
+  }
+  if (action === 'communities') {
+    showView('communities');
     return;
   }
   if (action === 'create') {
