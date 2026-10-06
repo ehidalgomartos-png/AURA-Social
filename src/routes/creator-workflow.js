@@ -67,6 +67,47 @@ router.use(async(_req,res,next)=>{
   }
 });
 
+let creatorCrmV130Ready=null;
+async function ensureCreatorCrmV130(){
+  if(!creatorCrmV130Ready){
+    creatorCrmV130Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_contact_meta (
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          contact_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          private_note VARCHAR(1000) NOT NULL DEFAULT '',
+          priority TEXT NOT NULL DEFAULT 'normal',
+          labels JSONB NOT NULL DEFAULT '[]'::jsonb,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(creator_id,contact_id),
+          CHECK(creator_id<>contact_id)
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_creator_contact_meta_creator_priority ON creator_contact_meta(creator_id,priority,updated_at DESC)");
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_contact_meta_priority_check' AND conrelid='creator_contact_meta'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE creator_contact_meta ADD CONSTRAINT creator_contact_meta_priority_check CHECK(priority IN ('normal','high'))");
+      }
+    })().catch(error=>{
+      creatorCrmV130Ready=null;
+      throw error;
+    });
+  }
+  return creatorCrmV130Ready;
+}
+
+router.use(async(_req,res,next)=>{
+  try{
+    await ensureCreatorCrmV130();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.30 creator CRM bootstrap failed:',error);
+    res.status(500).json({error:'creator_crm_bootstrap_failed'});
+  }
+});
+
 router.use(requireAuth);
 router.use(async(req,res,next)=>{
   if(!await requireVerifiedCreator(req.user.id)){
@@ -252,6 +293,133 @@ router.patch('/tasks/bulk',async(req,res)=>{
      RETURNING id
   `,[ids,req.user.id,action,dueAt ? dueAt.toISOString() : null]);
   res.json({ok:true,updated:result.rows.map(row=>row.id)});
+});
+
+
+const contactMetaSchema=z.object({
+  privateNote:z.string().trim().max(1000).optional().default(''),
+  priority:z.enum(['normal','high']).optional().default('normal'),
+  labels:z.array(z.string().trim().min(1).max(30)).max(10).optional().default([])
+});
+
+router.get('/contacts',async(req,res)=>{
+  const priority=String(req.query.priority || 'all');
+  const q=String(req.query.q || '').trim().slice(0,120);
+  if(!['all','normal','high'].includes(priority))return res.status(400).json({error:'invalid_contact_priority'});
+
+  const result=await db.query(`
+    WITH contact_ids AS (
+      SELECT follower_id AS user_id
+        FROM follows
+       WHERE following_id=$1
+      UNION
+      SELECT v.user_id
+        FROM creator_poll_votes v
+        JOIN creator_polls cp ON cp.id=v.poll_id
+        JOIN posts p ON p.id=cp.post_id
+       WHERE p.user_id=$1
+      UNION
+      SELECT qr.user_id
+        FROM creator_question_responses qr
+        JOIN creator_questions cq ON cq.id=qr.question_id
+        JOIN posts p ON p.id=cq.post_id
+       WHERE p.user_id=$1
+    ),
+    activity AS (
+      SELECT user_id,count(*)::int interaction_count_30d,max(created_at) last_interaction_at
+      FROM (
+        SELECT l.user_id,l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1 AND l.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT c.user_id,c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1 AND c.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT r.user_id,r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1 AND r.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT v.user_id,v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1 AND v.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT qr.user_id,qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1 AND qr.created_at>=now()-interval '30 days'
+      ) events
+      GROUP BY user_id
+    )
+    SELECT
+      u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+      f.created_at followed_at,
+      (f.follower_id IS NOT NULL) is_follower,
+      (cv.fan_id IS NOT NULL) is_vip,
+      COALESCE(meta.priority,'normal') priority,
+      COALESCE(meta.private_note,'') private_note,
+      COALESCE(meta.labels,'[]'::jsonb) labels,
+      meta.updated_at meta_updated_at,
+      COALESCE(activity.interaction_count_30d,0)::int interaction_count_30d,
+      activity.last_interaction_at,
+      (SELECT count(*)::int FROM creator_tasks t WHERE t.creator_id=$1 AND t.related_user_id=u.id AND t.status='open') open_task_count
+    FROM contact_ids ids
+    JOIN users u ON u.id=ids.user_id AND u.status='active'
+    LEFT JOIN follows f ON f.following_id=$1 AND f.follower_id=u.id
+    LEFT JOIN creator_vips cv ON cv.creator_id=$1 AND cv.fan_id=u.id
+    LEFT JOIN creator_contact_meta meta ON meta.creator_id=$1 AND meta.contact_id=u.id
+    LEFT JOIN activity ON activity.user_id=u.id
+    WHERE u.id<>$1
+      AND ($2='all' OR COALESCE(meta.priority,'normal')=$2)
+      AND (
+        $3=''
+        OR u.username ILIKE '%' || $3 || '%'
+        OR COALESCE(u.display_name,'') ILIKE '%' || $3 || '%'
+        OR COALESCE(meta.private_note,'') ILIKE '%' || $3 || '%'
+        OR COALESCE(meta.labels,'[]'::jsonb)::text ILIKE '%' || $3 || '%'
+      )
+    ORDER BY
+      COALESCE(meta.priority,'normal')='high' DESC,
+      COALESCE(activity.interaction_count_30d,0) DESC,
+      activity.last_interaction_at DESC NULLS LAST,
+      f.created_at DESC NULLS LAST,
+      u.id DESC
+    LIMIT 200
+  `,[req.user.id,priority,q]);
+
+  const summary=await db.query(`
+    WITH contacts AS (
+      SELECT follower_id user_id FROM follows WHERE following_id=$1
+      UNION
+      SELECT v.user_id FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1
+      UNION
+      SELECT qr.user_id FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1
+    )
+    SELECT
+      count(*)::int total,
+      count(*) FILTER (WHERE meta.priority='high')::int high_priority,
+      count(*) FILTER (WHERE cv.fan_id IS NOT NULL)::int vip,
+      count(*) FILTER (WHERE f.follower_id IS NOT NULL)::int followers
+    FROM contacts c
+    JOIN users u ON u.id=c.user_id AND u.status='active'
+    LEFT JOIN creator_contact_meta meta ON meta.creator_id=$1 AND meta.contact_id=c.user_id
+    LEFT JOIN creator_vips cv ON cv.creator_id=$1 AND cv.fan_id=c.user_id
+    LEFT JOIN follows f ON f.following_id=$1 AND f.follower_id=c.user_id
+    WHERE c.user_id<>$1
+  `,[req.user.id]);
+
+  res.json({priority,q,summary:summary.rows[0] || {},contacts:result.rows});
+});
+
+router.patch('/contacts/:id',async(req,res)=>{
+  const parsed=contactMetaSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_contact_meta'});
+  const contact=await db.query(
+    "SELECT id FROM users WHERE id=$1 AND id<>$2 AND status='active' LIMIT 1",
+    [req.params.id,req.user.id]
+  );
+  if(!contact.rowCount)return res.status(404).json({error:'contact_not_found'});
+  const labels=[...new Set(parsed.data.labels.map(value=>value.trim()).filter(Boolean))];
+  const result=await db.query(`
+    INSERT INTO creator_contact_meta (creator_id,contact_id,private_note,priority,labels,updated_at)
+    VALUES ($1,$2,$3,$4,$5::jsonb,now())
+    ON CONFLICT(creator_id,contact_id) DO UPDATE
+      SET private_note=excluded.private_note,
+          priority=excluded.priority,
+          labels=excluded.labels,
+          updated_at=now()
+    RETURNING *
+  `,[req.user.id,req.params.id,parsed.data.privateNote,parsed.data.priority,JSON.stringify(labels)]);
+  res.json({ok:true,meta:result.rows[0]});
 });
 
 module.exports = router;
