@@ -80,6 +80,22 @@ async function ensureCommunitiesV158(){
       await db.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS external_id TEXT");
       await db.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS playback_url TEXT");
       await db.query('CREATE INDEX IF NOT EXISTS idx_community_posts_community_created ON community_posts(community_id,created_at DESC)');
+      await db.query('ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS shared_post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL');
+      await db.query('ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS shared_post_ref_id BIGINT');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_community_posts_shared_post ON community_posts(shared_post_id)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS social_share_history (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          entity_type TEXT NOT NULL CHECK(entity_type IN ('post','reel','story','profile')),
+          entity_id BIGINT NOT NULL,
+          target_type TEXT NOT NULL CHECK(target_type IN ('conversation','community','external','copy')),
+          target_id BIGINT,
+          target_label VARCHAR(160) NOT NULL DEFAULT '',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_social_share_history_user_created ON social_share_history(user_id,created_at DESC)');
       await db.query(`
         CREATE TABLE IF NOT EXISTS community_comments (
           id BIGSERIAL PRIMARY KEY,
@@ -779,10 +795,19 @@ router.get('/:id/posts',async(req,res)=>{
   const result=await db.query(`
     SELECT
       cp.id,cp.community_id,cp.user_id,cp.body,cp.media_url,cp.media_type,cp.media_provider,cp.external_id,cp.playback_url,cp.content_level,cp.created_at,cp.updated_at,
+      cp.shared_post_id,cp.shared_post_ref_id,
       u.username,u.display_name,u.avatar_url,u.creator_verified,
+      shared.id AS shared_post_actual_id,shared.caption AS shared_post_caption,shared.media_url AS shared_post_media_url,
+      shared.media_type AS shared_post_media_type,shared.media_provider AS shared_post_media_provider,shared.playback_url AS shared_post_playback_url,
+      shared.content_level AS shared_post_content_level,shared.post_kind AS shared_post_kind,shared.audience AS shared_post_audience,
+      shared.moderation_status AS shared_post_moderation_status,
+      shared_author.username AS shared_post_author_username,shared_author.display_name AS shared_post_author_display_name,
+      shared_author.avatar_url AS shared_post_author_avatar_url,shared_author.status AS shared_post_author_status,
       (SELECT count(*)::int FROM community_comments cc WHERE cc.community_post_id=cp.id) AS comment_count
     FROM community_posts cp
     JOIN users u ON u.id=cp.user_id
+    LEFT JOIN posts shared ON shared.id=cp.shared_post_id
+    LEFT JOIN users shared_author ON shared_author.id=shared.user_id
     WHERE cp.community_id=$1
       AND cp.moderation_status='published'
       AND u.status='active'
@@ -844,8 +869,32 @@ router.get('/:id/posts',async(req,res)=>{
         isAdmin:viewer?.is_admin
       }
     });
+    const sharedReference=post.shared_post_ref_id||post.shared_post_id;
+    let shared_post=null;
+    if(sharedReference){
+      const unavailable=!post.shared_post_actual_id||post.shared_post_moderation_status!=='published'||post.shared_post_audience!=='public'||post.shared_post_author_status!=='active';
+      if(unavailable){
+        shared_post={id:sharedReference,unavailable:true,gated:false};
+      }else{
+        const sharedGate=canViewerSee({
+          postLevel:post.shared_post_content_level,
+          viewer:{id:viewer?.id,ageVerified:viewer?.age_verified,showSensitive:viewer?.show_sensitive,isAdmin:viewer?.is_admin}
+        });
+        shared_post={
+          id:post.shared_post_actual_id,unavailable:false,gated:!sharedGate.allowed,gate_reason:sharedGate.reason||null,
+          post_kind:post.shared_post_kind,content_level:post.shared_post_content_level,
+          caption:sharedGate.allowed?(post.shared_post_caption||''):'',
+          media_url:sharedGate.allowed?post.shared_post_media_url:null,
+          media_type:sharedGate.allowed?post.shared_post_media_type:null,
+          media_provider:sharedGate.allowed?post.shared_post_media_provider:null,
+          playback_url:sharedGate.allowed?post.shared_post_playback_url:null,
+          username:post.shared_post_author_username,display_name:post.shared_post_author_display_name,avatar_url:post.shared_post_author_avatar_url
+        };
+      }
+    }
     return {
       ...post,
+      shared_post,
       media_url:gate.allowed ? post.media_url : null,
       playback_url:gate.allowed ? post.playback_url : null,
       gated:!gate.allowed,
@@ -896,6 +945,49 @@ router.post('/:id/posts',async(req,res)=>{
   ]);
   await db.query('UPDATE communities SET updated_at=now() WHERE id=$1',[state.id]);
   res.status(201).json({ok:true,post:result.rows[0]});
+});
+
+router.post('/:id/share-post',async(req,res)=>{
+  const sharedPostId=Number(req.body?.postId);
+  if(!Number.isInteger(sharedPostId)||sharedPostId<=0)return res.status(400).json({error:'invalid_post'});
+  const state=await communityState(req.params.id,req.user.id);
+  if(!state)return res.status(404).json({error:'community_not_found'});
+  if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
+  if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
+  const source=await db.query(`
+    SELECT p.id,p.user_id,p.post_kind
+      FROM posts p JOIN users u ON u.id=p.user_id
+     WHERE p.id=$1 AND p.moderation_status='published' AND p.audience='public' AND u.status='active'
+       AND (
+         p.user_id=$2 OR NOT EXISTS(
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id=$2 AND b.blocked_id=p.user_id)
+               OR (b.blocker_id=p.user_id AND b.blocked_id=$2)
+         )
+       )
+     LIMIT 1
+  `,[sharedPostId,req.user.id]);
+  if(!source.rowCount)return res.status(403).json({error:'post_not_shareable_to_community'});
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const created=await client.query(`
+      INSERT INTO community_posts(community_id,user_id,body,content_level,shared_post_id,shared_post_ref_id)
+      VALUES($1,$2,'Publicación compartida','normal',$3,$3)
+      RETURNING *
+    `,[state.id,req.user.id,sharedPostId]);
+    await client.query(`
+      INSERT INTO social_share_history(user_id,entity_type,entity_id,target_type,target_id,target_label)
+      VALUES($1,$2,$3,'community',$4,$5)
+    `,[req.user.id,source.rows[0].post_kind==='reel'?'reel':'post',sharedPostId,state.id,state.name]);
+    await client.query('UPDATE communities SET updated_at=now() WHERE id=$1',[state.id]);
+    await client.query('COMMIT');
+    res.status(201).json({ok:true,post:created.rows[0]});
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad V1.62 community share failed:',error);
+    res.status(500).json({error:'community_share_failed'});
+  }finally{client.release();}
 });
 
 router.delete('/:id/posts/:postId',async(req,res)=>{
