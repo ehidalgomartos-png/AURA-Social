@@ -20,6 +20,11 @@ let ownProfileMode = 'posts';
 let activeNotificationFilter = 'all';
 let notificationCache = [];
 const HOME_LAST_VISIT_KEY = 'redlibertad:last-home-visit';
+const VIP_LAST_VISIT_KEY = 'redlibertad:last-vip-visit';
+let visibleStories = [];
+let storyGroups = new Map();
+let activeStoryGroup = [];
+let activeStoryIndex = 0;
 
 
 async function api(url, opts = {}) {
@@ -609,17 +614,78 @@ async function loadMe() {
   $('#meCard').innerHTML = `<div class="mini-head"><div class="avatar">${avatarHTML(me)}</div><div><h3>${esc(me.display_name)}</h3><p>@${esc(me.username)} ${me.creator_verified ? '· ✓ Creador' : ''}</p></div></div><div class="mini-stats"><div><b>${me.post_count}</b><span>posts</span></div><div><b>${me.follower_count}</b><span>seguidores</span></div><div><b>${me.following_count}</b><span>siguiendo</span></div></div>`;
   updateNotificationBadge(me.notification_count || 0);
 }
+function readVipLastVisit() {
+  try {
+    const value=localStorage.getItem(VIP_LAST_VISIT_KEY);
+    const parsed=Date.parse(value || '');
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function markVipSeen() {
+  try { localStorage.setItem(VIP_LAST_VISIT_KEY,new Date().toISOString()); } catch (_) {}
+  const badge=$('#vipFeedBadge');
+  if(badge){
+    badge.textContent='';
+    badge.classList.add('hidden');
+  }
+}
+
+function updateVipBadge(count=0) {
+  const badge=$('#vipFeedBadge');
+  if(!badge)return;
+  const safe=Math.max(0,Number(count || 0));
+  badge.textContent=safe>9 ? '9+' : String(safe || '');
+  badge.classList.toggle('hidden',safe===0);
+}
+
+async function refreshVipSignal(stories=visibleStories) {
+  if(!me)return;
+  const lastSeen=readVipLastVisit();
+  let newCount=(Array.isArray(stories) ? stories : []).filter(item =>
+    item.audience==='vip' &&
+    String(item.user_id)!==String(me.id) &&
+    new Date(item.created_at).getTime()>lastSeen
+  ).length;
+
+  try{
+    const { r,d }=await api('/api/posts/feed?mode=vip');
+    if(r.ok){
+      newCount+=(Array.isArray(d.posts) ? d.posts : []).filter(item =>
+        String(item.user_id)!==String(me.id) &&
+        new Date(item.created_at).getTime()>lastSeen
+      ).length;
+    }
+  }catch(_){}
+
+  updateVipBadge(newCount);
+}
+
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
   all('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
   const { d } = await api(`/api/posts/feed?mode=${mode}`);
+  const posts=Array.isArray(d.posts) ? d.posts : [];
 
-  $('#feed').innerHTML = d.posts.length
-    ? d.posts.map(postHTML).join('')
-    : `<div class="empty-feed-card">
-        <span class="empty-feed-icon">A</span>
-        <h2>${mode === 'following' ? 'Tu feed de Siguiendo empieza aquí.' : 'Todavía hay poco por aquí.'}</h2>
-        <p>${mode === 'following' ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.' : 'Descubre personas, sigue perfiles o publica algo para poner RedLibertad en movimiento.'}</p>
+  const emptyTitle=mode==='vip'
+    ? 'Todavía no tienes contenido VIP disponible.'
+    : mode==='following'
+      ? 'Tu feed de Siguiendo empieza aquí.'
+      : 'Todavía hay poco por aquí.';
+  const emptyCopy=mode==='vip'
+    ? 'Cuando un creador te añada a su círculo VIP y publique contenido exclusivo, aparecerá aquí.'
+    : mode==='following'
+      ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.'
+      : 'Descubre personas, sigue perfiles o publica algo para poner RedLibertad en movimiento.';
+
+  $('#feed').innerHTML = posts.length
+    ? posts.map(postHTML).join('')
+    : `<div class="empty-feed-card ${mode==='vip' ? 'vip-empty-feed' : ''}">
+        <span class="empty-feed-icon">${mode==='vip' ? '★' : 'A'}</span>
+        <h2>${emptyTitle}</h2>
+        <p>${emptyCopy}</p>
         <div class="empty-feed-actions">
           <button type="button" class="primary" data-view-jump="explore">Descubrir personas</button>
           <button type="button" class="secondary" data-open-create="1">Crear publicación</button>
@@ -627,14 +693,80 @@ async function loadFeed(mode = currentMode) {
       </div>`;
 
   bindPostActions($('#feed'));
+  if(mode==='vip')markVipSeen();
 }
+
+function renderStoryViewer() {
+  const story=activeStoryGroup[activeStoryIndex];
+  const root=$('#storyViewerContent');
+  if(!story || !root)return;
+
+  const media=mediaHTML(story);
+  root.innerHTML=`<article class="story-viewer-story ${story.audience==='vip' ? 'vip-story' : ''}">
+    <header>
+      <span class="story-viewer-avatar">${avatarHTML(story)}</span>
+      <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}</small></div>
+      ${story.audience==='vip' ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
+    </header>
+    <div class="story-viewer-media">${media || '<div class="gate"><b>Story no disponible</b></div>'}</div>
+  </article>`;
+
+  if($('#storyPrev'))$('#storyPrev').disabled=activeStoryIndex<=0;
+  if($('#storyNext'))$('#storyNext').disabled=activeStoryIndex>=activeStoryGroup.length-1;
+  if(story.audience==='vip')markVipSeen();
+}
+
+function openStoryViewer(userId,index=0) {
+  activeStoryGroup=storyGroups.get(String(userId)) || [];
+  if(!activeStoryGroup.length)return;
+  activeStoryIndex=Math.max(0,Math.min(Number(index || 0),activeStoryGroup.length-1));
+  $('#storyViewerModal')?.classList.remove('hidden');
+  renderStoryViewer();
+}
+
+function closeStoryViewer() {
+  $('#storyViewerModal')?.classList.add('hidden');
+  const root=$('#storyViewerContent');
+  if(root)root.innerHTML='';
+  activeStoryGroup=[];
+  activeStoryIndex=0;
+}
+
 async function loadStories() {
   const { d } = await api('/api/stories');
-  const users = [], seen = new Set();
-  for (const s of d.stories) if (!seen.has(s.user_id)) { seen.add(s.user_id); users.push(s); }
-  $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + users.map(s => `<div class="story" title="${s.gated ? gateText(s.gate_reason) : 'Story activa'}"><div class="story-ring"><div>${s.avatar_url ? `<img src="${esc(s.avatar_url)}">` : initials(s.display_name)}</div></div><small>${esc(s.username)}</small></div>`).join('');
+  visibleStories=Array.isArray(d.stories) ? d.stories : [];
+  storyGroups=new Map();
+
+  for(const story of visibleStories){
+    const key=String(story.user_id);
+    if(!storyGroups.has(key))storyGroups.set(key,[]);
+    storyGroups.get(key).push(story);
+  }
+
+  const representatives=[...storyGroups.values()].map(group=>group[0]);
+  $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + representatives.map(story => {
+    const group=storyGroups.get(String(story.user_id)) || [];
+    const hasVip=group.some(item=>item.audience==='vip');
+    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''}" data-story-user="${story.user_id}" title="${story.gated ? gateText(story.gate_reason) : hasVip ? 'Story VIP disponible' : 'Story activa'}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
+  }).join('');
+
   bindCreateButtons();
+  all('[data-story-user]',$('#stories')).forEach(button=>{
+    button.onclick=()=>openStoryViewer(button.dataset.storyUser,0);
+  });
+  await refreshVipSignal(visibleStories);
 }
+
+$('#closeStoryViewer')?.addEventListener('click',closeStoryViewer);
+$('#storyViewerModal')?.addEventListener('click',event=>{
+  if(event.target===$('#storyViewerModal'))closeStoryViewer();
+});
+$('#storyPrev')?.addEventListener('click',()=>{
+  if(activeStoryIndex>0){activeStoryIndex--;renderStoryViewer();}
+});
+$('#storyNext')?.addEventListener('click',()=>{
+  if(activeStoryIndex<activeStoryGroup.length-1){activeStoryIndex++;renderStoryViewer();}
+});
 function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenido aquí.', emptyCopy = 'Vuelve pronto o publica algo para poner RedLibertad en movimiento.') {
   const root = $('#discoveryFeed');
   if (!root) return;
@@ -1410,7 +1542,8 @@ async function loadCreatorCenter() {
     creatorMetric('Avisos enviados',creator.broadcast_count),
     creatorMetric('Miembros VIP',creator.vip_count),
     creatorMetric('Avisos VIP',creator.vip_broadcast_count),
-    creatorMetric('Contenido VIP',creator.vip_post_count)
+    creatorMetric('Contenido VIP',creator.vip_post_count),
+    creatorMetric('Stories VIP activas',creator.vip_story_count)
   ].join('');
 
   const creatorForm=$('#creatorProfileForm');
@@ -3153,12 +3286,14 @@ all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x
 function openModal() {
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
-  if(audience){
-    const vipOption=audience.querySelector('option[value="vip"]');
+  const storyAudience=$('#storyForm [name="audience"]');
+  for(const field of [audience,storyAudience]){
+    if(!field)continue;
+    const vipOption=field.querySelector('option[value="vip"]');
     if(vipOption)vipOption.disabled=!me?.creator_verified;
-    if(!me?.creator_verified && audience.value==='vip')audience.value='public';
-    audience.title=me?.creator_verified
-      ? 'Elige quién puede ver esta publicación.'
+    if(!me?.creator_verified && field.value==='vip')field.value='public';
+    field.title=me?.creator_verified
+      ? 'Elige quién puede ver este contenido.'
       : 'El contenido Solo VIP requiere una cuenta de creador verificada.';
   }
   $('#modal').classList.remove('hidden');
@@ -3272,9 +3407,16 @@ $('#storyForm').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('#storyMessage');
   try {
     msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#createForm [name="contentLevel"]').value;
-    const { r, d } = await api('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentLevel: level, mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl }) });
-    if (!r.ok) throw new Error(d.error === 'verified_creator_required_for_nudity' ? 'Necesitas verificación de creador adulto para esta Story.' : 'No se pudo publicar.');
-    toast('Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
+    const audience=$('#storyForm [name="audience"]')?.value || 'public';
+    const { r, d } = await api('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentLevel: level, audience, mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl }) });
+    if (!r.ok) throw new Error(
+      d.error === 'verified_creator_required_for_nudity'
+        ? 'Necesitas verificación de creador adulto para esta Story.'
+        : d.error === 'verified_creator_required_for_vip_content'
+          ? 'Solo los creadores verificados pueden publicar Stories Solo VIP.'
+          : 'No se pudo publicar.'
+    );
+    toast(audience==='vip' ? 'Story VIP publicada durante 24 h' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
   } catch (err) { msg.textContent = err.message; }
 });
 $('#shareInternalForm')?.addEventListener('submit', async event => {

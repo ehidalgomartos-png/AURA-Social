@@ -3483,3 +3483,30 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 @media (max-width:760px){
   .vip-content-badge{font-size:8px}
 }
+
+
+/* RedLibertad V1.19 — VIP Stories & Exclusive Feed */
+.vip-feed-tab{position:relative}
+.vip-feed-badge{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;display:grid;place-items:center;background:#f59e0b;color:#fff;font-size:9px;font-style:normal;font-weight:900;box-shadow:0 3px 10px rgba(0,0,0,.16)}
+.story.has-vip-story .story-ring{position:relative;box-shadow:0 0 0 2px #f59e0b}
+.story-vip-star{position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#f59e0b;color:#fff;font-size:9px;font-weight:900;border:2px solid var(--paper)}
+.story-viewer-card{width:min(520px,calc(100vw - 24px));padding:14px}
+.story-viewer-content{min-height:420px;display:grid}
+.story-viewer-story{display:grid;gap:12px}
+.story-viewer-story header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.story-viewer-story header b,.story-viewer-story header small{display:block}
+.story-viewer-story header small{color:var(--muted);margin-top:2px}
+.story-viewer-avatar{width:42px;height:42px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--soft);font-weight:800}
+.story-viewer-avatar img{width:100%;height:100%;object-fit:cover}
+.story-viewer-media{min-height:360px;border-radius:18px;overflow:hidden;background:#101923;display:grid;place-items:center}
+.story-viewer-media img,.story-viewer-media video{width:100%;height:100%;max-height:68vh;object-fit:contain;background:#101923}
+.story-viewer-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.story-viewer-story.vip-story{padding:10px;border-radius:18px;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(255,255,255,.02))}
+.vip-content-badge.compact{margin-top:5px;padding:3px 6px;font-size:8px}
+.vip-empty-feed .empty-feed-icon{background:#f59e0b;color:#fff}
+@media (max-width:760px){
+  .story-viewer-card{width:calc(100vw - 12px);max-height:92vh;padding:10px}
+  .story-viewer-content{min-height:360px}
+  .story-viewer-media{min-height:320px}
+  .story-viewer-media img,.story-viewer-media video{max-height:66vh}
+}

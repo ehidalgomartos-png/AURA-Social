@@ -1,4 +1,4 @@
-# RedLibertad V1.18.0 — Exclusive Creator Content
+# RedLibertad V1.19.0 — VIP Stories & Exclusive Feed
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -378,3 +378,36 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Nueva columna posts.audience con valores public/vip.
 - Bootstrap idempotente desde posts, profiles y la ruta pública de compartición.
 - Healthcheck actualizado a 1.18.0 y caché PWA V1.18.
+
+
+## V1.19.0 — VIP Stories & Exclusive Feed
+
+- Stories con audiencia Público o Solo VIP.
+- Solo creadores verificados pueden publicar Stories VIP.
+- Control de acceso VIP equivalente al de publicaciones exclusivas.
+- Las Stories VIP respetan además +18, contenido sensible, bloqueos y silencios.
+- Nuevo visor de Stories dentro de la app.
+- Navegación anterior/siguiente entre Stories visibles del mismo creador.
+- Distintivo visual de Story VIP.
+- Nueva pestaña VIP en Inicio.
+- El feed VIP muestra únicamente publicaciones exclusivas a las que el usuario tiene acceso.
+- Badge de contenido VIP nuevo combinando publicaciones y Stories autorizadas.
+- El badge se limpia al abrir el feed VIP o una Story VIP.
+- Creator Hub añade la métrica de Stories VIP activas.
+- Nueva columna stories.audience con valores public/vip.
+- Bootstrap idempotente para stories.audience y creator_vips.
+- Se corrige el bloque DO de posts_audience_check en db/schema.sql para instalaciones nuevas.
+- /api/health actualizado a 1.19.0.
+- Caché PWA actualizada a V1.19.
+
+### Monetización
+
+V1.19 no incorpora monetización activa:
+- Sin precios.
+- Sin suscripciones.
+- Sin pagos.
+- Sin checkout.
+- Sin saldo ni créditos.
+- Sin paywalls de pago.
+
+La arquitectura public/vip queda reutilizable para una futura capa comercial, pero el acceso VIP actual depende exclusivamente del Círculo VIP gratuito gestionado por el creador.
