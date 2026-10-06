@@ -107,10 +107,15 @@ async function notifyMentions({ actorId, text, entityType='post', entityId, audi
          $3::text='public'
          OR EXISTS(
            SELECT 1
-             FROM creator_vips cv
-             JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
-            WHERE cv.creator_id=$2
+             FROM posts mention_post
+             JOIN creator_vips cv
+               ON cv.creator_id=mention_post.user_id
               AND cv.fan_id=u.id
+             JOIN follows f
+               ON f.follower_id=cv.fan_id
+              AND f.following_id=cv.creator_id
+            WHERE mention_post.id=$4
+              AND mention_post.audience='vip'
          )
          OR EXISTS(
            SELECT 1 FROM post_participants pp
@@ -294,6 +299,15 @@ async function accessiblePublishedPost(postId, viewerId) {
      WHERE p.id=$1
        AND p.moderation_status='published'
        AND ${postAudienceWhere('$2','p')}
+       AND (
+         p.user_id=$2
+         OR EXISTS(SELECT 1 FROM users access_admin WHERE access_admin.id=$2 AND access_admin.is_admin=true)
+         OR p.user_id NOT IN (
+           SELECT blocked_id FROM blocks WHERE blocker_id=$2
+           UNION
+           SELECT blocker_id FROM blocks WHERE blocked_id=$2
+         )
+       )
      LIMIT 1
   `,[postId,viewerId]);
   return result.rows[0] || null;
