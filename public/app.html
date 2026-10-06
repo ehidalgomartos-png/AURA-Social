@@ -272,6 +272,47 @@
           <small>Cierra o archiva participación sin borrar datos. Las respuestas destacadas siguen siendo privadas para ti.</small>
         </div>
       </div>
+      <section class="creator-followup-dashboard">
+        <div class="creator-followup-head">
+          <div>
+            <span class="eyebrow">FOLLOW-UP DASHBOARD</span>
+            <b>Seguimientos y prioridades</b>
+            <small>Busca en tus notas privadas y gestiona varios seguimientos a la vez.</small>
+          </div>
+        </div>
+        <div id="creatorFollowUpSummary" class="creator-followup-summary"></div>
+        <div class="creator-followup-toolbar">
+          <div class="creator-followup-window-tabs">
+            <button type="button" class="active" data-followup-window="all">Todos</button>
+            <button type="button" data-followup-window="overdue">Vencidos</button>
+            <button type="button" data-followup-window="today">Hoy</button>
+            <button type="button" data-followup-window="week">7 días</button>
+            <button type="button" data-followup-window="later">Más adelante</button>
+            <button type="button" data-followup-window="undated">Sin fecha</button>
+          </div>
+          <label class="creator-followup-search">
+            <span>Buscar en notas privadas</span>
+            <input id="creatorFollowUpSearch" type="search" maxlength="120" placeholder="Ej. responder mañana, cliente VIP...">
+          </label>
+        </div>
+        <div class="creator-followup-bulkbar">
+          <label class="creator-followup-select-all">
+            <input id="creatorFollowUpSelectAll" type="checkbox">
+            Seleccionar visibles
+          </label>
+          <select id="creatorFollowUpBulkAction">
+            <option value="">Acción masiva…</option>
+            <option value="priority_high">Prioridad alta</option>
+            <option value="priority_normal">Prioridad normal</option>
+            <option value="mark_reviewed">Marcar revisado</option>
+            <option value="close_follow_up">Cerrar seguimiento</option>
+          </select>
+          <button id="creatorFollowUpBulkApply" type="button" class="tiny-action primary-soft" disabled>Aplicar</button>
+          <span id="creatorFollowUpSelectedCount" class="creator-followup-selected-count">0 seleccionados</span>
+        </div>
+        <div id="creatorFollowUpList" class="creator-followup-list"></div>
+      </section>
+
       <section class="creator-activity-center">
         <div class="creator-activity-head">
           <div>
