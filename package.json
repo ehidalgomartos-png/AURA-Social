@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "private": true,
-  "description": "RedLibertad V1.21 Creator Content Calendar - calendario editorial privado y organización interna de contenido, sin monetización.",
+  "description": "RedLibertad V1.22 Creator Community Tools - encuestas, preguntas abiertas y bandeja privada de respuestas, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

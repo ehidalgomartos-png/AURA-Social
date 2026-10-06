@@ -191,10 +191,60 @@ function inlineCommentsHTML(p) {
 function tileContentHTML(p) {
   const media = mediaHTML(p, true);
   if (media) return media;
-  const text = String(p.caption || '').trim();
+  const communityText=String(p.community_poll?.question || p.community_question?.prompt || p.community_prompt || '').trim();
+  const text = String(p.caption || communityText || '').trim();
   if (!text) return '<div class="text-tile"><span>Publicación</span></div>';
   const shortText = text.length > 150 ? text.slice(0, 147) + '…' : text;
   return `<div class="text-tile"><span>${esc(shortText)}</span></div>`;
+}
+
+function communityPollHTML(postId,poll) {
+  if(!poll)return '';
+  const total=Number(poll.total_votes || 0);
+  const selected=poll.options?.find(option=>option.voted_by_me);
+  return `<section class="community-tool community-poll" data-community-poll-container="${postId}">
+    <div class="community-tool-head">
+      <span>ENCUESTA</span>
+      <small>${total} ${total===1 ? 'voto' : 'votos'} · resultados agregados</small>
+    </div>
+    <h4>${esc(poll.question)}</h4>
+    <div class="community-poll-options">
+      ${(poll.options || []).map(option=>{
+        const count=Number(option.vote_count || 0);
+        const pct=total ? Math.round((count/total)*100) : 0;
+        return `<button type="button" class="community-poll-option ${option.voted_by_me ? 'selected' : ''}" data-poll-vote="${postId}" data-poll-option="${option.id}">
+          <span class="community-poll-option-bar" style="width:${pct}%"></span>
+          <span class="community-poll-option-copy"><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span>
+        </button>`;
+      }).join('')}
+    </div>
+    ${selected ? `<button type="button" class="tiny-action community-remove-vote" data-poll-remove="${postId}">Quitar mi voto</button>` : ''}
+  </section>`;
+}
+
+function communityQuestionHTML(postId,question) {
+  if(!question)return '';
+  const response=String(question.my_response || '');
+  return `<section class="community-tool community-question" data-community-question-container="${postId}">
+    <div class="community-tool-head">
+      <span>PREGUNTA ABIERTA</span>
+      <small>${Number(question.response_count || 0)} ${Number(question.response_count || 0)===1 ? 'respuesta' : 'respuestas'} · privadas para el creador</small>
+    </div>
+    <h4>${esc(question.prompt)}</h4>
+    <form class="community-question-form" data-question-response="${postId}">
+      <textarea maxlength="1000" placeholder="Escribe tu respuesta...">${esc(response)}</textarea>
+      <div class="community-question-actions">
+        <button class="secondary" type="submit">${response ? 'Actualizar respuesta' : 'Responder'}</button>
+        ${response ? `<button class="tiny-action" type="button" data-question-remove="${postId}">Retirar mi respuesta</button>` : ''}
+      </div>
+    </form>
+  </section>`;
+}
+
+function communityToolHTML(p) {
+  if(p.community_poll)return communityPollHTML(p.id,p.community_poll);
+  if(p.community_question)return communityQuestionHTML(p.id,p.community_question);
+  return '';
 }
 
 function postHTML(p) {
@@ -218,13 +268,14 @@ function postHTML(p) {
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
-        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
+        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
         ${vipOnly ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
         ${participantsHTML(p)}
       </div>
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
+    ${communityToolHTML(p)}
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
@@ -1549,8 +1600,8 @@ function creatorPublishingHTML(posts = []) {
         <b>${creatorPublishingStateLabel(post)}</b>
         <span>${post.audience==='vip' ? '★ VIP' : 'Público'}</span>
       </div>
-      <p>${esc(String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel sin texto' : 'Publicación sin texto'))}</p>
-      <small>${post.content_level==='normal' ? 'Normal' : post.content_level==='sensitive' ? 'Sensible' : 'Desnudez'}${Number(post.pending_consent_count || 0)>0 ? ` · ${Number(post.pending_consent_count)} consentimientos pendientes` : ''}</small>
+      <p>${esc(String(post.caption || post.community_prompt || '').trim() || (post.post_kind==='reel' ? 'Reel sin texto' : 'Publicación sin texto'))}</p>
+      <small>${post.community_type==='poll' ? 'Encuesta · ' : post.community_type==='question' ? 'Pregunta · ' : ''}${post.content_level==='normal' ? 'Normal' : post.content_level==='sensitive' ? 'Sensible' : 'Desnudez'}${Number(post.pending_consent_count || 0)>0 ? ` · ${Number(post.pending_consent_count)} consentimientos pendientes` : ''}</small>
       <div class="creator-editorial-fields">
         <input type="date" data-editorial-date="${post.id}" value="${esc(post.editorial_date || '')}" title="Fecha editorial privada">
         <input type="text" maxlength="40" data-editorial-label="${post.id}" value="${esc(post.editorial_label || '')}" placeholder="Etiqueta interna">
@@ -1668,7 +1719,7 @@ function renderCreatorCalendar() {
         ${visible.map(post=>{
           const state=creatorCalendarState(post);
           const labelText=String(post.editorial_label || '').trim();
-          const title=String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel' : 'Publicación');
+          const title=String(post.caption || post.community_prompt || '').trim() || (post.post_kind==='reel' ? 'Reel' : 'Publicación');
           return `<button type="button" class="creator-calendar-event ${state} ${post.audience==='vip' ? 'vip' : ''}" data-calendar-post="${post.id}" data-calendar-state="${state}" title="${esc(title)}">
             <b>${post.audience==='vip' ? '★ ' : ''}${esc(title.slice(0,34))}</b>
             ${labelText ? `<small>${esc(labelText)}</small>` : ''}
@@ -1724,14 +1775,72 @@ async function loadCreatorCalendar() {
   renderCreatorCalendar();
 }
 
+function creatorQuestionResponsesHTML(items = []) {
+  if(!items.length)return '<div class="creator-empty compact">Todavía no tienes respuestas abiertas.</div>';
+  return items.map(item=>`<article class="creator-community-response">
+    <div class="creator-community-response-head">
+      ${profileLink(item.username,`<span class="creator-audience-avatar">${avatarHTML(item)}</span>`,'creator-audience-profile')}
+      <div>
+        ${profileLink(item.username,`<b>${esc(item.display_name)} ${item.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+        <small>@${esc(item.username)} · ${timeAgo(item.updated_at || item.created_at)}</small>
+      </div>
+      <span class="creator-community-audience">${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
+    </div>
+    <strong>${esc(item.prompt)}</strong>
+    <p>${esc(item.body)}</p>
+    <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+  </article>`).join('');
+}
+
+function creatorPollSummariesHTML(items = []) {
+  if(!items.length)return '<div class="creator-empty compact">Todavía no has creado encuestas.</div>';
+  return items.map(item=>{
+    const total=Number(item.total_votes || 0);
+    return `<article class="creator-poll-summary">
+      <div class="creator-poll-summary-head">
+        <b>${esc(item.question)}</b>
+        <span>${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
+      </div>
+      <small>${total} ${total===1 ? 'voto' : 'votos'} · ${timeAgo(item.created_at)}</small>
+      <div class="creator-poll-summary-options">
+        ${(item.options || []).map(option=>{
+          const count=Number(option.vote_count || 0);
+          const pct=total ? Math.round((count/total)*100) : 0;
+          return `<div><span><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span><i><em style="width:${pct}%"></em></i></div>`;
+        }).join('')}
+      </div>
+      <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+    </article>`;
+  }).join('');
+}
+
+function renderCreatorCommunity(data = {}) {
+  const summary=data.summary || {};
+  if($('#creatorCommunitySummary')){
+    $('#creatorCommunitySummary').innerHTML=[
+      creatorMetric('Encuestas',summary.poll_count || 0),
+      creatorMetric('Votos recibidos',summary.vote_count || 0),
+      creatorMetric('Preguntas',summary.question_count || 0),
+      creatorMetric('Respuestas',summary.response_count || 0)
+    ].join('');
+  }
+  if($('#creatorQuestionResponses')){
+    $('#creatorQuestionResponses').innerHTML=creatorQuestionResponsesHTML(Array.isArray(data.responses) ? data.responses : []);
+  }
+  if($('#creatorPollSummaries')){
+    $('#creatorPollSummaries').innerHTML=creatorPollSummariesHTML(Array.isArray(data.polls) ? data.polls : []);
+  }
+}
+
 async function loadCreatorCenter() {
   const metricsRoot = $('#creatorMetrics');
   const postsRoot = $('#creatorPosts');
   if (!metricsRoot || !postsRoot) return false;
 
-  const [centerResponse,publishingResponse]=await Promise.all([
+  const [centerResponse,publishingResponse,communityResponse]=await Promise.all([
     api('/api/profiles/me/creator-center'),
-    api('/api/posts/creator/publishing')
+    api('/api/posts/creator/publishing'),
+    api('/api/posts/creator/community-inbox')
   ]);
   const { r, d }=centerResponse;
   if (!r.ok) {
@@ -1818,6 +1927,14 @@ async function loadCreatorCenter() {
   }else{
     if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='<div class="creator-empty compact">No se pudo cargar la cola de publicación.</div>';
   }
+
+  if(communityResponse.r.ok){
+    renderCreatorCommunity(communityResponse.d);
+  }else{
+    if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='<div class="creator-empty compact">No se pudo cargar la bandeja de comunidad.</div>';
+    if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
+  }
+
   await loadCreatorCalendar();
   return true;
 }
@@ -1839,6 +1956,9 @@ async function openCreatorModal() {
   if($('#creatorVipBroadcastStatus'))$('#creatorVipBroadcastStatus').textContent='';
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
+  if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
+  if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='';
+  if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
   if($('#creatorCalendarGrid'))$('#creatorCalendarGrid').innerHTML='<div class="mini-loading creator-calendar-loading">Cargando calendario...</div>';
   await loadCreatorCenter();
 }
@@ -2827,6 +2947,22 @@ function openPostManage(postId, caption = '') {
   setTimeout(() => $('#postEditCaption')?.focus(), 100);
 }
 
+async function refreshPostArticle(postId) {
+  const { r,d }=await api(`/api/posts/detail/${encodeURIComponent(postId)}`);
+  if(!r.ok || !d.post)return false;
+  const selector=`article.post[data-id="${CSS.escape(String(postId))}"]`;
+  const matches=[...document.querySelectorAll(selector)];
+  for(const current of matches){
+    const holder=document.createElement('div');
+    holder.innerHTML=postHTML(d.post);
+    const next=holder.firstElementChild;
+    if(!next)continue;
+    current.replaceWith(next);
+    bindPostActions(next);
+  }
+  return true;
+}
+
 function bindPostActions(root) {
   all('[data-like]', root).forEach(b => {
     b.onclick = async () => {
@@ -2854,6 +2990,87 @@ function bindPostActions(root) {
 
   all('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
+  });
+
+
+  all('[data-poll-vote]',root).forEach(button=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        const { r,d }=await api(`/api/posts/${encodeURIComponent(button.dataset.pollVote)}/poll-vote`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({optionId:button.dataset.pollOption})
+        });
+        if(!r.ok)throw new Error(d.error==='poll_vote_locked' ? 'Esta encuesta no permite cambiar el voto.' : 'No se pudo registrar el voto.');
+        await refreshPostArticle(button.dataset.pollVote);
+        tapFeedback();
+      }catch(error){
+        toast(error.message || 'No se pudo registrar el voto.');
+      }finally{
+        button.disabled=false;
+      }
+    };
+  });
+
+  all('[data-poll-remove]',root).forEach(button=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        const { r }=await api(`/api/posts/${encodeURIComponent(button.dataset.pollRemove)}/poll-vote`,{method:'DELETE'});
+        if(!r.ok)throw new Error('No se pudo retirar el voto.');
+        await refreshPostArticle(button.dataset.pollRemove);
+        toast('Voto retirado');
+      }catch(error){
+        toast(error.message || 'No se pudo retirar el voto.');
+      }finally{
+        button.disabled=false;
+      }
+    };
+  });
+
+  all('[data-question-response]',root).forEach(form=>{
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      const textarea=form.querySelector('textarea');
+      const body=String(textarea?.value || '').trim();
+      if(!body)return toast('Escribe una respuesta.');
+      const submit=form.querySelector('button[type="submit"]');
+      if(submit)submit.disabled=true;
+      try{
+        const { r,d }=await api(`/api/posts/${encodeURIComponent(form.dataset.questionResponse)}/question-response`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({body})
+        });
+        if(!r.ok)throw new Error(d.error==='invalid_question_response' ? 'La respuesta debe tener entre 1 y 1000 caracteres.' : 'No se pudo guardar la respuesta.');
+        await refreshPostArticle(form.dataset.questionResponse);
+        toast('Respuesta guardada para el creador');
+      }catch(error){
+        toast(error.message || 'No se pudo guardar la respuesta.');
+      }finally{
+        if(submit)submit.disabled=false;
+      }
+    };
+  });
+
+  all('[data-question-remove]',root).forEach(button=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        const { r }=await api(`/api/posts/${encodeURIComponent(button.dataset.questionRemove)}/question-response`,{method:'DELETE'});
+        if(!r.ok)throw new Error('No se pudo retirar la respuesta.');
+        await refreshPostArticle(button.dataset.questionRemove);
+        toast('Respuesta retirada');
+      }catch(error){
+        toast(error.message || 'No se pudo retirar la respuesta.');
+      }finally{
+        button.disabled=false;
+      }
+    };
   });
 
   all('[data-repost]', root).forEach(b => {
@@ -3589,6 +3806,29 @@ function showView(name) {
 all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
 all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
+function updateCommunityComposeFields() {
+  const type=$('#communityType')?.value || 'none';
+  const fields=$('#communityPromptFields');
+  const options=$('#communityPollOptions');
+  const label=$('#communityPromptLabel');
+  const hint=$('#communityComposeHint');
+  if(fields)fields.classList.toggle('hidden',type==='none');
+  if(options)options.classList.toggle('hidden',type!=='poll');
+  if(label){
+    const input=label.querySelector('input');
+    if(input)input.placeholder=type==='poll'
+      ? '¿Qué quieres preguntar en la encuesta?'
+      : '¿Qué quieres preguntar a tu comunidad?';
+  }
+  if(hint){
+    hint.textContent=type==='poll'
+      ? 'Los votos se muestran solo como resultados agregados.'
+      : 'Cada persona verá su respuesta; el listado completo será privado para ti.';
+  }
+}
+
+$('#communityType')?.addEventListener('change',updateCommunityComposeFields);
+
 function openModal() {
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
@@ -3615,6 +3855,7 @@ function openModal() {
       scheduledInput.max=toLocalDateTimeInput(max);
     }
   }
+  updateCommunityComposeFields();
   $('#modal').classList.remove('hidden');
   setTimeout(() => $('#createForm textarea')?.focus(), 120);
 }
@@ -3668,9 +3909,22 @@ $('#createForm').addEventListener('submit', async e => {
     const caption = String(fd.get('caption') || '').trim();
     const kind = String(fd.get('kind') || 'post');
     const publishMode=String(e.submitter?.dataset?.publishMode || 'now');
+    const communityType=String(fd.get('communityType') || 'none');
+    const communityPrompt=String(fd.get('communityPrompt') || '').trim();
+    const pollOptions=[1,2,3,4].map(index=>String(fd.get(`pollOption${index}`) || '').trim()).filter(Boolean);
 
-    if (!file && !caption) throw new Error('Escribe algo o selecciona una foto o vídeo.');
+    if (!file && !caption && communityType==='none') throw new Error('Escribe algo, selecciona una foto o añade una herramienta de comunidad.');
     if (kind === 'reel' && !file) throw new Error('Los Reels necesitan una foto o vídeo.');
+    if(communityType!=='none' && !me?.creator_verified){
+      throw new Error('Las herramientas de comunidad requieren una cuenta de creador verificada.');
+    }
+    if(communityType==='poll'){
+      const unique=[...new Set(pollOptions)];
+      if(communityPrompt.length<3 || unique.length<2)throw new Error('La encuesta necesita una pregunta y al menos 2 opciones distintas.');
+    }
+    if(communityType==='question' && communityPrompt.length<3){
+      throw new Error('Escribe la pregunta abierta para tu comunidad.');
+    }
 
     if(publishMode!=='now' && !me?.creator_verified){
       throw new Error('Los borradores y la programación requieren una cuenta de creador verificada.');
@@ -3706,6 +3960,9 @@ $('#createForm').addEventListener('submit', async e => {
       scheduledFor,
       editorialDate: fd.get('editorialDate') || null,
       editorialLabel: String(fd.get('editorialLabel') || '').trim(),
+      communityType,
+      communityPrompt,
+      pollOptions,
       participantUsernames: participants,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
@@ -3729,6 +3986,12 @@ $('#createForm').addEventListener('submit', async e => {
           ? 'Los borradores y la programación requieren una cuenta de creador verificada.'
         : d.error === 'invalid_scheduled_time'
           ? 'La programación debe estar entre 5 minutos y 90 días.'
+        : d.error === 'verified_creator_required_for_community_tools'
+          ? 'Las encuestas y preguntas abiertas requieren una cuenta de creador verificada.'
+        : d.error === 'invalid_creator_poll'
+          ? 'La encuesta necesita una pregunta y entre 2 y 4 opciones distintas.'
+        : d.error === 'invalid_creator_question'
+          ? 'La pregunta abierta necesita un enunciado.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
           : d.error === 'empty_post'
@@ -3749,6 +4012,7 @@ $('#createForm').addEventListener('submit', async e => {
     e.target.reset();
     clearPostMedia();
     updateCreateCounter();
+    updateCommunityComposeFields();
     await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
