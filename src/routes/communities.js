@@ -601,10 +601,16 @@ router.get('/:id/posts',async(req,res)=>{
       AND u.status='active'
       AND (
         cp.user_id=$2
-        OR NOT EXISTS(
-          SELECT 1 FROM blocks b
-           WHERE (b.blocker_id=$2 AND b.blocked_id=cp.user_id)
-              OR (b.blocker_id=cp.user_id AND b.blocked_id=$2)
+        OR (
+          NOT EXISTS(
+            SELECT 1 FROM blocks b
+             WHERE (b.blocker_id=$2 AND b.blocked_id=cp.user_id)
+                OR (b.blocker_id=cp.user_id AND b.blocked_id=$2)
+          )
+          AND NOT EXISTS(
+            SELECT 1 FROM mutes muted_post
+             WHERE muted_post.muter_id=$2 AND muted_post.muted_id=cp.user_id
+          )
         )
       )
     ORDER BY cp.created_at DESC,cp.id DESC
@@ -621,10 +627,16 @@ router.get('/:id/posts',async(req,res)=>{
        AND u.status='active'
        AND (
          cc.user_id=$2
-         OR NOT EXISTS(
-           SELECT 1 FROM blocks b
-            WHERE (b.blocker_id=$2 AND b.blocked_id=cc.user_id)
-               OR (b.blocker_id=cc.user_id AND b.blocked_id=$2)
+         OR (
+           NOT EXISTS(
+             SELECT 1 FROM blocks b
+              WHERE (b.blocker_id=$2 AND b.blocked_id=cc.user_id)
+                 OR (b.blocker_id=cc.user_id AND b.blocked_id=$2)
+           )
+           AND NOT EXISTS(
+             SELECT 1 FROM mutes muted_comment
+              WHERE muted_comment.muter_id=$2 AND muted_comment.muted_id=cc.user_id
+           )
          )
        )
      ORDER BY cc.created_at ASC,cc.id ASC
