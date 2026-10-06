@@ -14,6 +14,16 @@ async function ensureMessagePrivacy() {
       await db.query("ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE");
       await db.query("ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS notifications_muted BOOLEAN NOT NULL DEFAULT FALSE");
       await db.query("CREATE INDEX IF NOT EXISTS idx_conversation_members_inbox ON conversation_members(user_id,is_archived,is_pinned,conversation_id)");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_chat_presence (
+          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          active_conversation_id BIGINT REFERENCES conversations(id) ON DELETE SET NULL,
+          typing_until TIMESTAMPTZ,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_user_chat_presence_active ON user_chat_presence(active_conversation_id,typing_until)");
     })().catch(error => {
       messagePrivacyReady = null;
       throw error;
@@ -45,8 +55,14 @@ async function conversationForUser(conversationId, userId) {
 
 async function otherMember(conversationId, userId) {
   const r = await db.query(`
-    SELECT u.id,u.username,u.display_name,u.avatar_url,u.age_verified,u.creator_verified
-      FROM conversation_members cm JOIN users u ON u.id=cm.user_id
+    SELECT
+      u.id,u.username,u.display_name,u.avatar_url,u.age_verified,u.creator_verified,
+      p.last_seen_at,
+      (p.last_seen_at>now()-interval '45 seconds') AS online,
+      (p.active_conversation_id=$1 AND p.typing_until>now()) AS typing
+      FROM conversation_members cm
+      JOIN users u ON u.id=cm.user_id
+      LEFT JOIN user_chat_presence p ON p.user_id=u.id
      WHERE cm.conversation_id=$1 AND cm.user_id<>$2
      LIMIT 1
   `, [conversationId, userId]);
@@ -64,6 +80,8 @@ router.get('/conversations', async (req, res) => {
     SELECT c.id,c.updated_at,
            cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at,
            u.id AS other_user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           presence.last_seen_at AS other_last_seen_at,
+           (presence.last_seen_at>now()-interval '45 seconds') AS other_online,
            m.body AS last_body,m.content_level AS last_content_level,m.created_at AS last_message_at,
            (SELECT count(*)::int FROM messages mu
               WHERE mu.conversation_id=c.id
@@ -73,6 +91,7 @@ router.get('/conversations', async (req, res) => {
       JOIN conversations c ON c.id=cm.conversation_id
       JOIN conversation_members om ON om.conversation_id=c.id AND om.user_id<>$1
       JOIN users u ON u.id=om.user_id
+      LEFT JOIN user_chat_presence presence ON presence.user_id=u.id
       LEFT JOIN LATERAL (
         SELECT body,content_level,created_at
           FROM messages
@@ -216,6 +235,40 @@ router.patch('/conversations/:id/settings',async(req,res)=>{
   res.json({ok:true,settings:updated.rows[0]});
 });
 
+const presenceSchema=z.object({
+  conversationId:z.coerce.number().int().positive().nullable().optional(),
+  typing:z.boolean().optional().default(false)
+});
+
+router.post('/presence',async(req,res)=>{
+  const parsed=presenceSchema.safeParse(req.body || {});
+  if(!parsed.success)return res.status(400).json({error:'invalid_presence'});
+
+  const conversationId=parsed.data.conversationId || null;
+  if(conversationId && !(await conversationForUser(conversationId,req.user.id))){
+    return res.status(404).json({error:'conversation_not_found'});
+  }
+
+  const result=await db.query(`
+    INSERT INTO user_chat_presence(
+      user_id,last_seen_at,active_conversation_id,typing_until,updated_at
+    )
+    VALUES(
+      $1,now(),$2,
+      CASE WHEN $3::boolean THEN now()+interval '7 seconds' ELSE NULL END,
+      now()
+    )
+    ON CONFLICT(user_id) DO UPDATE
+      SET last_seen_at=now(),
+          active_conversation_id=excluded.active_conversation_id,
+          typing_until=excluded.typing_until,
+          updated_at=now()
+    RETURNING last_seen_at,active_conversation_id,typing_until
+  `,[req.user.id,conversationId,parsed.data.typing===true]);
+
+  res.json({ok:true,presence:result.rows[0]});
+});
+
 router.get('/conversations/:id/messages', async (req, res) => {
   const id = req.params.id;
   if (!(await conversationForUser(id, req.user.id))) return res.status(404).json({ error: 'conversation_not_found' });
@@ -233,11 +286,22 @@ router.get('/conversations/:id/messages', async (req, res) => {
      LIMIT 300
   `, [id]);
 
+  const otherReadState=await db.query(
+    'SELECT last_read_at FROM conversation_members WHERE conversation_id=$1 AND user_id<>$2 LIMIT 1',
+    [id,req.user.id]
+  );
+  const otherLastReadAt=otherReadState.rows[0]?.last_read_at || null;
+
   const messages = r.rows.map(m => {
     const isOwn = String(m.sender_id) === String(req.user.id);
     const gated = !isOwn && m.content_level !== 'normal' && !allowedFromOther;
     return {
       ...m,
+      seen_by_other:!!(
+        isOwn &&
+        otherLastReadAt &&
+        new Date(m.created_at).getTime()<=new Date(otherLastReadAt).getTime()
+      ),
       media_url: gated ? null : m.media_url,
       playback_url: gated ? null : m.playback_url,
       body: gated && m.media_url ? '' : m.body,
@@ -253,6 +317,15 @@ router.get('/conversations/:id/messages', async (req, res) => {
       RETURNING is_pinned,is_archived,notifications_muted,last_read_at`,
     [id, req.user.id]
   );
+  await db.query(`
+    INSERT INTO user_chat_presence(user_id,last_seen_at,active_conversation_id,typing_until,updated_at)
+    VALUES ($1,now(),$2,NULL,now())
+    ON CONFLICT(user_id) DO UPDATE
+      SET last_seen_at=now(),
+          active_conversation_id=excluded.active_conversation_id,
+          typing_until=NULL,
+          updated_at=now()
+  `,[req.user.id,id]);
   res.json({
     messages,
     other,

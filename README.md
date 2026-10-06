@@ -1,4 +1,4 @@
-# RedLibertad V1.45.0 — PWA & Performance 2.0
+# RedLibertad V1.46.0 — Chat Presence & Read Receipts
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1066,4 +1066,18 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Imágenes de contenido usan loading=lazy + decoding=async; avatares usan decoding=async.
 - Precarga el logo crítico de la aplicación.
 - No cachea mensajes privados ni multimedia subida por usuarios.
+- Sin monetización activa.
+
+
+## V1.46.0 — Chat Presence & Read Receipts
+
+- Presencia privada únicamente entre miembros de conversaciones existentes.
+- Estado En línea con caducidad automática tras 45 segundos sin heartbeat.
+- Indicador Escribiendo… con ventana efímera de 7 segundos.
+- Última actividad de chat visible cuando la otra persona no está en línea.
+- Recibos Enviado / Visto derivados de conversation_members.last_read_at, sin tabla de tracking por mensaje.
+- Punto de presencia en la lista de conversaciones.
+- SSE amplía la señal en vivo con presencia y lectura del interlocutor.
+- Heartbeat del cliente cada 20 segundos mientras la app está visible.
+- Bootstrap y migración idempotentes mediante user_chat_presence.
 - Sin monetización activa.
