@@ -2,6 +2,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let currentMode = 'foryou';
+let feedRequestSequence = 0;
 let activeViewName='feed';
 const viewScrollPositions=new Map();
 let connectivityHideTimer=null;
@@ -166,15 +167,88 @@ window.addEventListener('online',()=>setConnectivityStatus(true));
 window.addEventListener('offline',()=>setConnectivityStatus(false));
 setConnectivityStatus(navigator.onLine,{initial:true});
 
-async function api(url, opts = {}) {
-  const r = await fetch(url, opts);
-  let d = {};
-  try { d = await r.json(); } catch (_) {}
-  if (r.status === 401) {
-    location.href = '/';
-    throw new Error('unauthorized');
+const apiInFlightGets=new Map();
+const API_TIMEOUT_MS=15000;
+const API_RETRYABLE_STATUSES=new Set([502,503,504]);
+
+function apiSleep(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function apiFetchOnce(url,opts,timeoutMs){
+  const controller=new AbortController();
+  let externalAbort=null;
+  if(opts.signal){
+    if(opts.signal.aborted)controller.abort(opts.signal.reason);
+    else{
+      externalAbort=()=>controller.abort(opts.signal.reason);
+      opts.signal.addEventListener('abort',externalAbort,{once:true});
+    }
   }
-  return { r, d };
+  const timer=setTimeout(()=>controller.abort(new DOMException('Request timed out','AbortError')),timeoutMs);
+  try{
+    return await fetch(url,{...opts,signal:controller.signal});
+  }finally{
+    clearTimeout(timer);
+    if(externalAbort)opts.signal.removeEventListener('abort',externalAbort);
+  }
+}
+
+async function performApi(url,opts={}){
+  const method=String(opts.method||'GET').toUpperCase();
+  const timeoutMs=Math.max(3000,Number(opts.timeoutMs||API_TIMEOUT_MS));
+  const requestOpts={...opts};
+  delete requestOpts.timeoutMs;
+  delete requestOpts.dedupe;
+  const attempts=method==='GET' ? 2 : 1;
+
+  for(let attempt=0;attempt<attempts;attempt+=1){
+    let r;
+    try{
+      r=await apiFetchOnce(url,requestOpts,timeoutMs);
+    }catch(error){
+      if(attempt+1<attempts && navigator.onLine!==false){
+        await apiSleep(250);
+        continue;
+      }
+      return {
+        r:{ok:false,status:0,statusText:error?.name==='AbortError'?'request_timeout':'network_error'},
+        d:{error:error?.name==='AbortError'?'request_timeout':'network_error'}
+      };
+    }
+
+    let d={};
+    try{d=await r.json();}catch(_){}
+    if(r.status===401){
+      location.href='/';
+      throw new Error('unauthorized');
+    }
+    if(API_RETRYABLE_STATUSES.has(r.status) && attempt+1<attempts){
+      await apiSleep(250);
+      continue;
+    }
+    return {r,d};
+  }
+
+  return {r:{ok:false,status:0,statusText:'network_error'},d:{error:'network_error'}};
+}
+
+async function api(url,opts={}){
+  const method=String(opts.method||'GET').toUpperCase();
+  const dedupe=method==='GET' && opts.dedupe!==false && !opts.body && !opts.signal;
+  if(!dedupe)return performApi(url,opts);
+
+  const key=method+' '+url;
+  const existing=apiInFlightGets.get(key);
+  if(existing)return existing;
+
+  const task=performApi(url,opts);
+  apiInFlightGets.set(key,task);
+  try{
+    return await task;
+  }finally{
+    if(apiInFlightGets.get(key)===task)apiInFlightGets.delete(key);
+  }
 }
 function toast(t) {
   const el = $('#toast');
@@ -210,7 +284,7 @@ function initials(n = 'R') {
   return n.trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
 }
 function avatarHTML(p) {
-  return p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" decoding="async">` : initials(p?.display_name || p?.username || 'A');
+  return p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" loading="lazy" decoding="async">` : initials(p?.display_name || p?.username || 'A');
 }
 function esc(s = '') {
   return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
@@ -1486,8 +1560,17 @@ async function refreshVipSignal(stories=visibleStories) {
 
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
+  const requestId=++feedRequestSequence;
+  const feedRoot=$('#feed');
+  feedRoot?.setAttribute('aria-busy','true');
   all('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
-  const { d } = await api(`/api/posts/feed?mode=${mode}`);
+  const { r,d } = await api(`/api/posts/feed?mode=${mode}`);
+  if(requestId!==feedRequestSequence)return;
+  feedRoot?.setAttribute('aria-busy','false');
+  if(!r.ok){
+    toast(d.error==='request_timeout' ? 'El feed está tardando demasiado. Inténtalo de nuevo.' : 'No se pudo actualizar el feed.');
+    return;
+  }
   const posts=Array.isArray(d.posts) ? d.posts : [];
 
   const emptyTitle=mode==='vip'
@@ -1505,7 +1588,8 @@ async function loadFeed(mode = currentMode) {
       ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.'
       : 'Descubre personas, sigue perfiles o publica algo para poner RedLibertad en movimiento.';
 
-  $('#feed').innerHTML = posts.length
+  if(!feedRoot)return;
+  feedRoot.innerHTML = posts.length
     ? posts.map(postHTML).join('')
     : `<div class="empty-feed-card ${mode==='vip' ? 'vip-empty-feed' : ''}">
         <span class="empty-feed-icon">${mode==='vip' ? '★' : 'A'}</span>
@@ -1517,7 +1601,7 @@ async function loadFeed(mode = currentMode) {
         </div>
       </div>`;
 
-  bindPostActions($('#feed'));
+  bindPostActions(feedRoot);
   if(mode==='vip')markVipSeen();
 }
 
@@ -6271,7 +6355,7 @@ function communityConversationIdentity(item){
     title:String(item.display_name || item.username || 'Conexión'),
     subtitle:item.username ? `@${item.username}` : '',
     avatar:item.avatar_url
-      ? `<img src="${esc(item.avatar_url)}" alt="" decoding="async">`
+      ? `<img src="${esc(item.avatar_url)}" alt="" loading="lazy" decoding="async">`
       : esc(initials(item.display_name || item.username || 'R'))
   };
 }
