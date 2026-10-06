@@ -307,8 +307,22 @@ async function publishDueScheduledPosts(){
          AND scheduled_for<=now()
          AND moderation_status<>'rejected'
          AND consent_state IN ('none','approved')
-      RETURNING id
+      RETURNING id,user_id,caption,audience
     `);
+
+    for(const post of result.rows){
+      try{
+        await notifyMentions({
+          actorId:post.user_id,
+          text:post.caption,
+          entityType:'post',
+          entityId:post.id,
+          audience:post.audience
+        });
+      }catch(error){
+        console.warn('RedLibertad scheduled mention notification failed:',error?.message || error);
+      }
+    }
     return result.rowCount;
   }finally{
     schedulerRunning=false;
@@ -384,8 +398,46 @@ const createSchema = z.object({
   contentLevel: z.enum(['normal', 'sensitive', 'nudity']),
   kind: z.enum(['post', 'reel']).default('post'),
   audience: z.enum(['public','vip']).default('public'),
+  publishMode: z.enum(['now','draft','scheduled']).default('now'),
+  scheduledFor: z.string().datetime({offset:true}).optional().nullable(),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
 });
+
+function parseScheduledFor(value){
+  if(!value)return null;
+  const date=new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function validScheduleDate(date){
+  if(!date)return false;
+  const now=Date.now();
+  return date.getTime()>=now+5*60*1000 && date.getTime()<=now+90*24*60*60*1000;
+}
+
+async function sendPendingConsentRequests(postId,actorId,client=db){
+  const result=await client.query(`
+    SELECT pp.user_id
+      FROM post_participants pp
+     WHERE pp.post_id=$1
+       AND pp.consent_status='pending'
+       AND NOT EXISTS(
+         SELECT 1 FROM notifications n
+          WHERE n.user_id=pp.user_id
+            AND n.actor_id=$2
+            AND n.type='consent_request'
+            AND n.entity_type='post'
+            AND n.entity_id=$1
+       )
+  `,[postId,actorId]);
+
+  for(const participant of result.rows){
+    await client.query(`
+      INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES ($1,$2,'consent_request','post',$3,'Solicita tu consentimiento para publicar contenido en el que apareces.')
+    `,[participant.user_id,actorId,postId]);
+  }
+}
 
 router.post('/', requireAuth, async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
@@ -397,27 +449,44 @@ router.post('/', requireAuth, async (req, res) => {
   if (!hasText && !hasMedia) {
     return res.status(400).json({ error: 'empty_post' });
   }
-
   if (data.kind === 'reel' && !hasMedia) {
     return res.status(400).json({ error: 'reel_media_required' });
   }
-
-  if (!validateContentLevel(data.contentLevel)) return res.status(400).json({ error: 'invalid_content_level' });
-
-  if (data.contentLevel === 'nudity') {
-    const user = await db.query('SELECT creator_verified,age_verified FROM users WHERE id=$1', [req.user.id]);
-    if (!user.rows[0]?.creator_verified || !user.rows[0]?.age_verified) return res.status(403).json({ error: 'verified_creator_required_for_nudity' });
+  if (!validateContentLevel(data.contentLevel)) {
+    return res.status(400).json({ error: 'invalid_content_level' });
   }
 
-  if (data.audience === 'vip') {
-    const user = await db.query('SELECT creator_verified FROM users WHERE id=$1', [req.user.id]);
-    if (!user.rows[0]?.creator_verified) return res.status(403).json({ error: 'verified_creator_required_for_vip_content' });
+  const account=await db.query(
+    'SELECT creator_verified,age_verified FROM users WHERE id=$1 LIMIT 1',
+    [req.user.id]
+  );
+  const user=account.rows[0] || {};
+
+  if (data.contentLevel === 'nudity' && (!user.creator_verified || !user.age_verified)) {
+    return res.status(403).json({ error: 'verified_creator_required_for_nudity' });
+  }
+  if (data.audience === 'vip' && !user.creator_verified) {
+    return res.status(403).json({ error: 'verified_creator_required_for_vip_content' });
+  }
+  if (data.publishMode !== 'now' && !user.creator_verified) {
+    return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
+  }
+
+  let scheduledFor=null;
+  if(data.publishMode==='scheduled'){
+    scheduledFor=parseScheduledFor(data.scheduledFor);
+    if(!validScheduleDate(scheduledFor)){
+      return res.status(400).json({error:'invalid_scheduled_time'});
+    }
   }
 
   const names=[...new Set(data.participantUsernames.map(x=>x.trim().replace(/^@/,'').toLowerCase()).filter(Boolean))];
   let participants=[];
   if(names.length){
-    const found=await db.query(`SELECT id,username FROM users WHERE lower(username)=ANY($1::text[]) AND status='active'`,[names]);
+    const found=await db.query(
+      `SELECT id,username FROM users WHERE lower(username)=ANY($1::text[]) AND status='active'`,
+      [names]
+    );
     participants=found.rows.filter(u=>String(u.id)!==String(req.user.id));
     if(participants.length!==names.filter(n=>n!==String(req.user.username||'').toLowerCase()).length){
       const foundNames=new Set(found.rows.map(x=>x.username.toLowerCase()));
@@ -427,30 +496,72 @@ router.post('/', requireAuth, async (req, res) => {
   }
 
   const needsConsent=participants.length>0;
+  const creatorState=data.publishMode==='draft'
+    ? 'draft'
+    : data.publishMode==='scheduled'
+      ? 'scheduled'
+      : 'live';
+  const shouldPublishNow=creatorState==='live' && !needsConsent;
+  const moderationStatus=shouldPublishNow ? 'published' : 'under_review';
+
   const client=await db.pool.connect();
   try{
     await client.query('BEGIN');
     const result = await client.query(`
       INSERT INTO posts
-        (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,audience,moderation_status,consent_state)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,audience,
+         creator_state,scheduled_for,moderation_status,consent_state)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING *
-    `, [req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,data.contentLevel,data.kind,data.audience,needsConsent?'under_review':'published',needsConsent?'pending':'none']);
+    `,[
+      req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,
+      data.contentLevel,data.kind,data.audience,creatorState,scheduledFor?.toISOString() || null,
+      moderationStatus,needsConsent?'pending':'none'
+    ]);
     const post=result.rows[0];
-    for(const p of participants){
-      await client.query(`INSERT INTO post_participants (post_id,user_id,consent_status) VALUES ($1,$2,'pending') ON CONFLICT(post_id,user_id) DO NOTHING`,[post.id,p.id]);
-      await client.query(`INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text) VALUES ($1,$2,'consent_request','post',$3,'Solicita tu consentimiento para publicar contenido en el que apareces.')`,[p.id,req.user.id,post.id]);
+
+    for(const participant of participants){
+      await client.query(`
+        INSERT INTO post_participants (post_id,user_id,consent_status)
+        VALUES ($1,$2,'pending')
+        ON CONFLICT(post_id,user_id) DO NOTHING
+      `,[post.id,participant.id]);
     }
+
+    if(creatorState!=='draft' && needsConsent){
+      await sendPendingConsentRequests(post.id,req.user.id,client);
+    }
+
     await client.query('COMMIT');
-    try {
-      await notifyMentions({actorId:req.user.id,text:data.caption,entityType:'post',entityId:post.id,audience:data.audience});
-    } catch (mentionError) {
-      console.warn('RedLibertad mention notification failed:',mentionError?.message || mentionError);
+
+    if(shouldPublishNow){
+      try{
+        await notifyMentions({
+          actorId:req.user.id,
+          text:data.caption,
+          entityType:'post',
+          entityId:post.id,
+          audience:data.audience
+        });
+      }catch(mentionError){
+        console.warn('RedLibertad mention notification failed:',mentionError?.message || mentionError);
+      }
     }
-    res.status(201).json({ ok: true, post, consentRequired:needsConsent, participants });
+
+    res.status(201).json({
+      ok:true,
+      post,
+      consentRequired:needsConsent,
+      participants,
+      publishMode:data.publishMode
+    });
   }catch(e){
-    await client.query('ROLLBACK'); console.error(e); res.status(500).json({error:'post_create_failed'});
-  }finally{client.release();}
+    await client.query('ROLLBACK');
+    console.error(e);
+    res.status(500).json({error:'post_create_failed'});
+  }finally{
+    client.release();
+  }
 });
 
 async function viewerFrom(req) {
