@@ -37,6 +37,8 @@ async function ensureMessagePrivacy() {
         )
       `);
       await db.query("CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id,updated_at DESC)");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post ON messages(shared_post_id)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct'");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
@@ -62,7 +64,7 @@ router.use(async (_req,res,next)=>{
 });
 
 async function userRow(id) {
-  const r = await db.query(`SELECT id,username,display_name,avatar_url,age_verified,creator_verified,status FROM users WHERE id=$1`, [id]);
+  const r = await db.query(`SELECT id,username,display_name,avatar_url,age_verified,creator_verified,show_sensitive,status FROM users WHERE id=$1`, [id]);
   return r.rows[0] || null;
 }
 
