@@ -6,6 +6,29 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let reelsV139Ready=null;
+async function ensureReelsV139(){
+  if(!reelsV139Ready){
+    reelsV139Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS reel_views (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          viewer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(post_id,viewer_id)
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_reel_views_post ON reel_views(post_id,viewed_at DESC)");
+    })().catch(error=>{reelsV139Ready=null;throw error;});
+  }
+  return reelsV139Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureReelsV139();next();}
+  catch(error){console.error('RedLibertad V1.39 reels bootstrap failed:',error);res.status(500).json({error:'reels_bootstrap_failed'});}
+});
+
+
 let discoveryV137Ready=null;
 async function ensureDiscoveryV137(){
   if(!discoveryV137Ready){
@@ -2772,6 +2795,68 @@ router.get('/momentum', requireAuth, async (req,res)=>{
     catchupCount:catchup.length,
     highlightCount:highlights.length
   });
+});
+
+router.get('/reels',requireAuth,async(req,res)=>{
+  const viewer=await viewerFrom(req);
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
+           u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+           (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count,
+           (SELECT count(*)::int FROM reposts r WHERE r.post_id=p.id) repost_count,
+           (SELECT count(*)::int FROM reel_views rv WHERE rv.post_id=p.id) view_count,
+           EXISTS(SELECT 1 FROM reel_views mine WHERE mine.post_id=p.id AND mine.viewer_id=$1) viewed_by_me,
+           EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND p.post_kind='reel'
+       AND u.status='active'
+       AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND NOT EXISTS(
+         SELECT 1 FROM discovery_hidden_items hidden
+          WHERE hidden.user_id=$1
+            AND ((hidden.item_type='post' AND hidden.item_id=p.id) OR (hidden.item_type='user' AND hidden.item_id=p.user_id))
+       )
+     ORDER BY
+       viewed_by_me ASC,
+       ((SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id)*2
+        +(SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id)*3
+        +(SELECT count(*) FROM reposts r2 WHERE r2.post_id=p.id)*3) DESC,
+       p.created_at DESC
+     LIMIT 80
+  `,[req.user.id]);
+  const participantPosts=await attachApprovedParticipants(result.rows);
+  const posts=await attachCommentPreviews(participantPosts,viewer);
+  const repostPosts=await attachRepostMeta(posts,req.user.id);
+  res.json({posts:gateRows(repostPosts,viewer)});
+});
+
+router.post('/:id/reel-view',requireAuth,async(req,res)=>{
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post || post.post_kind!=='reel'){
+    const reel=await db.query(
+      "SELECT id,user_id,post_kind FROM posts WHERE id=$1 AND moderation_status='published' LIMIT 1",
+      [req.params.id]
+    );
+    if(!reel.rowCount || reel.rows[0].post_kind!=='reel')return res.status(404).json({error:'reel_not_found'});
+    if(String(reel.rows[0].user_id)===String(req.user.id))return res.json({ok:true,viewed:false,own:true});
+  }
+  if(String(post?.user_id || '')===String(req.user.id))return res.json({ok:true,viewed:false,own:true});
+  await db.query(`
+    INSERT INTO reel_views(post_id,viewer_id)
+    VALUES ($1,$2)
+    ON CONFLICT(post_id,viewer_id) DO UPDATE SET viewed_at=now()
+  `,[req.params.id,req.user.id]);
+  res.json({ok:true,viewed:true});
 });
 
 router.get('/discover', optionalAuth, async (req, res) => {
