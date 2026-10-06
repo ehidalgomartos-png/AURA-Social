@@ -115,6 +115,50 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
+-- RedLibertad V1.48: notificaciones Web Push opcionales
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  user_agent VARCHAR(500) NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user
+  ON push_subscriptions(user_id,enabled);
+
+CREATE TABLE IF NOT EXISTS push_jobs (
+  id BIGSERIAL PRIMARY KEY,
+  notification_id BIGINT NOT NULL UNIQUE REFERENCES notifications(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','sent','failed','expired')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  processed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_push_jobs_queue
+  ON push_jobs(status,next_attempt_at,created_at);
+
+CREATE OR REPLACE FUNCTION redlibertad_enqueue_push_notification()
+RETURNS TRIGGER AS $
+BEGIN
+  INSERT INTO push_jobs(notification_id,user_id)
+  VALUES (NEW.id,NEW.user_id)
+  ON CONFLICT(notification_id) DO NOTHING;
+  RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_redlibertad_push_notification ON notifications;
+CREATE TRIGGER trg_redlibertad_push_notification
+AFTER INSERT ON notifications
+FOR EACH ROW
+EXECUTE FUNCTION redlibertad_enqueue_push_notification();
+
 -- RedLibertad V1.46: presencia privada de chat
 CREATE TABLE IF NOT EXISTS user_chat_presence (
   user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
