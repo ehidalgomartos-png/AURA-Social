@@ -1542,7 +1542,8 @@ async function loadCreatorCenter() {
     creatorMetric('Avisos enviados',creator.broadcast_count),
     creatorMetric('Miembros VIP',creator.vip_count),
     creatorMetric('Avisos VIP',creator.vip_broadcast_count),
-    creatorMetric('Contenido VIP',creator.vip_post_count)
+    creatorMetric('Contenido VIP',creator.vip_post_count),
+    creatorMetric('Stories VIP activas',creator.vip_story_count)
   ].join('');
 
   const creatorForm=$('#creatorProfileForm');
