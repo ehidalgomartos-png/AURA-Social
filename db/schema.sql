@@ -90,6 +90,21 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id,created_at);
 
+-- RedLibertad V1.47: respuestas y reacciones en mensajes
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS reply_to_message_id BIGINT REFERENCES messages(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_reply_to ON messages(reply_to_message_id);
+
+CREATE TABLE IF NOT EXISTS message_reactions (
+  message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reaction TEXT NOT NULL CHECK(reaction IN ('heart','like','laugh','fire','wow','sad')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(message_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id,updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
   receiver_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
