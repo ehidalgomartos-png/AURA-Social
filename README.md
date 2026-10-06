@@ -1,4 +1,4 @@
-# RedLibertad V1.28.0 — Follow-up Workflow & History
+# RedLibertad V1.29.0 — Creator Tasks & Reminders
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -838,3 +838,15 @@ V1.27 continúa completamente sin monetización activa: sin pagos, suscripciones
 ### Monetización
 
 V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkout, créditos, saldo ni paywalls.
+
+
+## V1.29.0 — Creator Tasks & Reminders
+
+- Tareas privadas del creador con título, nota, prioridad y vencimiento.
+- Estados Pendiente / Completada.
+- Reapertura y reprogramación rápida.
+- Filtros por estado, prioridad y búsqueda privada.
+- Resumen de pendientes, altas, vencidas y completadas recientes.
+- API preparada para relacionar tareas con actividad, usuario o publicación.
+- Bootstrap idempotente e índice por creador/estado/fecha.
+- Sin monetización activa.

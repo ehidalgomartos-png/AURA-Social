@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.28.0",
+  "version": "1.29.0",
   "private": true,
-  "description": "RedLibertad V1.28 Follow-up Workflow & History - historial privado, reapertura y reprogramación de seguimientos, sin monetización.",
+  "description": "RedLibertad V1.29 Creator Tasks & Reminders - tareas privadas, prioridades y recordatorios para creadores, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

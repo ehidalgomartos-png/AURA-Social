@@ -1,0 +1,44 @@
+/* RedLibertad Creator Ops — V1.29+ */
+.creator-ops-section{position:relative}
+.creator-ops-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+.creator-ops-metric{padding:10px 11px;border:1px solid var(--line);border-radius:13px;background:var(--paper)}
+.creator-ops-metric b,.creator-ops-metric small{display:block}
+.creator-ops-metric b{font-size:18px;color:var(--navy)}
+.creator-ops-metric small{margin-top:2px;font-size:9px;color:var(--muted);font-weight:800}
+.creator-ops-form{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(140px,.5fr) minmax(190px,.7fr) auto;gap:8px;align-items:start;margin:10px 0}
+.creator-ops-form input,.creator-ops-form select,.creator-ops-form textarea,.creator-ops-toolbar input,.creator-ops-toolbar select{width:100%;border:1px solid var(--line);border-radius:11px;padding:9px 10px;background:var(--paper);color:var(--ink)}
+.creator-ops-form textarea{grid-column:1/-1;min-height:72px;resize:vertical}
+.creator-ops-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.creator-ops-toolbar button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 10px;font-size:9px;font-weight:900;color:var(--muted)}
+.creator-ops-toolbar button.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.creator-ops-toolbar select{width:auto;min-width:150px}
+.creator-ops-toolbar input{min-width:190px;flex:1}
+.creator-ops-list{display:grid;gap:8px}
+.creator-task-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:11px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.creator-task-card.high{box-shadow:inset 3px 0 0 #d69b24}
+.creator-task-card.overdue{border-color:rgba(171,62,62,.28)}
+.creator-task-card.completed{opacity:.78}
+.creator-task-card h4{margin:0;color:var(--navy);font-size:12px}
+.creator-task-card p{margin:6px 0 0;white-space:pre-wrap;font-size:10px;color:var(--muted);line-height:1.45}
+.creator-task-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.creator-task-meta span{display:inline-flex;padding:3px 6px;border-radius:999px;background:var(--soft);font-size:8px;font-weight:900;color:var(--muted)}
+.creator-task-meta .danger{background:#fdeaea;color:#9b3e3e}
+.creator-task-actions{display:flex;gap:5px;flex-wrap:wrap;align-items:flex-start;justify-content:flex-end}
+.creator-task-actions button,.creator-task-actions select{border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:6px 8px;font-size:9px;font-weight:800;color:var(--ink)}
+.creator-ops-empty{padding:16px;border:1px dashed var(--line);border-radius:13px;text-align:center;color:var(--muted);font-size:10px}
+@media(max-width:900px){
+  .creator-ops-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .creator-ops-form{grid-template-columns:1fr 1fr}
+  .creator-ops-form textarea{grid-column:1/-1}
+}
+@media(max-width:760px){
+  .creator-ops-metrics{grid-template-columns:1fr 1fr}
+  .creator-ops-form{grid-template-columns:1fr}
+  .creator-ops-form textarea{grid-column:auto}
+  .creator-ops-form button{width:100%}
+  .creator-ops-toolbar{display:grid;grid-template-columns:1fr 1fr}
+  .creator-ops-toolbar select,.creator-ops-toolbar input{width:100%;min-width:0;grid-column:1/-1}
+  .creator-task-card{grid-template-columns:1fr}
+  .creator-task-actions{justify-content:flex-start}
+  .creator-task-actions button,.creator-task-actions select{flex:1 1 auto}
+}
