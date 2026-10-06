@@ -919,4 +919,126 @@ const creatorCommunicationTimer=setInterval(()=>{
 },60*1000);
 if(typeof creatorCommunicationTimer.unref==='function')creatorCommunicationTimer.unref();
 
+
+router.get('/analytics/advanced',async(req,res)=>{
+  const days=Number(req.query.days || 30);
+  if(![7,30,90].includes(days))return res.status(400).json({error:'invalid_analytics_period'});
+
+  const [overview,interactions,community,trend,topContent]=await Promise.all([
+    db.query(`
+      SELECT
+        (SELECT count(*)::int FROM follows WHERE following_id=$1) total_followers,
+        (SELECT count(*)::int FROM follows WHERE following_id=$1 AND created_at>=now()-$2*interval '1 day') followers_current,
+        (SELECT count(*)::int FROM follows WHERE following_id=$1 AND created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day') followers_previous,
+        (SELECT count(*)::int FROM posts WHERE user_id=$1 AND moderation_status='published' AND created_at>=now()-$2*interval '1 day') posts_current,
+        (SELECT count(*)::int FROM posts WHERE user_id=$1 AND moderation_status='published' AND created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day') posts_previous,
+        (SELECT count(*)::int FROM creator_tasks WHERE creator_id=$1 AND status='completed' AND completed_at>=now()-$2*interval '1 day') tasks_current,
+        (SELECT count(*)::int FROM creator_tasks WHERE creator_id=$1 AND status='completed' AND completed_at>=now()-($2*2)*interval '1 day' AND completed_at<now()-$2*interval '1 day') tasks_previous,
+        (SELECT count(*)::int FROM creator_communications WHERE creator_id=$1 AND status='sent' AND sent_at>=now()-$2*interval '1 day') communications_current,
+        (SELECT count(*)::int FROM creator_communications WHERE creator_id=$1 AND status='sent' AND sent_at>=now()-($2*2)*interval '1 day' AND sent_at<now()-$2*interval '1 day') communications_previous,
+        (SELECT COALESCE(sum(recipient_count),0)::int FROM creator_communications WHERE creator_id=$1 AND status='sent' AND sent_at>=now()-$2*interval '1 day') recipients_current,
+        (SELECT COALESCE(sum(recipient_count),0)::int FROM creator_communications WHERE creator_id=$1 AND status='sent' AND sent_at>=now()-($2*2)*interval '1 day' AND sent_at<now()-$2*interval '1 day') recipients_previous
+    `,[req.user.id,days]),
+    db.query(`
+      WITH events AS (
+        SELECT 'like' type,l.user_id,l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1
+        UNION ALL SELECT 'comment',c.user_id,c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1
+        UNION ALL SELECT 'repost',r.user_id,r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1
+        UNION ALL SELECT 'save',sp.user_id,sp.created_at FROM saved_posts sp JOIN posts p ON p.id=sp.post_id WHERE p.user_id=$1
+      )
+      SELECT
+        count(*) FILTER (WHERE created_at>=now()-$2*interval '1 day')::int total_current,
+        count(*) FILTER (WHERE created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day')::int total_previous,
+        count(*) FILTER (WHERE type='like' AND created_at>=now()-$2*interval '1 day')::int likes_current,
+        count(*) FILTER (WHERE type='like' AND created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day')::int likes_previous,
+        count(*) FILTER (WHERE type='comment' AND created_at>=now()-$2*interval '1 day')::int comments_current,
+        count(*) FILTER (WHERE type='comment' AND created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day')::int comments_previous,
+        count(*) FILTER (WHERE type='repost' AND created_at>=now()-$2*interval '1 day')::int reposts_current,
+        count(*) FILTER (WHERE type='repost' AND created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day')::int reposts_previous,
+        count(*) FILTER (WHERE type='save' AND created_at>=now()-$2*interval '1 day')::int saves_current,
+        count(*) FILTER (WHERE type='save' AND created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day')::int saves_previous,
+        count(DISTINCT user_id) FILTER (WHERE created_at>=now()-$2*interval '1 day')::int unique_current,
+        count(DISTINCT user_id) FILTER (WHERE created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day')::int unique_previous
+      FROM events
+    `,[req.user.id,days]),
+    db.query(`
+      WITH activity AS (
+        SELECT v.user_id,v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1
+        UNION ALL
+        SELECT qr.user_id,qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1
+      ),
+      current_users AS (
+        SELECT user_id,count(*) n FROM activity WHERE created_at>=now()-$2*interval '1 day' GROUP BY user_id
+      ),
+      previous_users AS (
+        SELECT user_id,count(*) n FROM activity WHERE created_at>=now()-($2*2)*interval '1 day' AND created_at<now()-$2*interval '1 day' GROUP BY user_id
+      )
+      SELECT
+        (SELECT COALESCE(sum(n),0)::int FROM current_users) participations_current,
+        (SELECT COALESCE(sum(n),0)::int FROM previous_users) participations_previous,
+        (SELECT count(*)::int FROM current_users) participants_current,
+        (SELECT count(*)::int FROM previous_users) participants_previous,
+        (SELECT count(*)::int FROM current_users WHERE n>=2) recurring_current,
+        (SELECT count(*)::int FROM previous_users WHERE n>=2) recurring_previous,
+        (SELECT count(*)::int FROM current_users cu WHERE EXISTS(SELECT 1 FROM follows f WHERE f.following_id=$1 AND f.follower_id=cu.user_id)) follower_participants_current,
+        (SELECT count(*)::int FROM previous_users pu WHERE EXISTS(SELECT 1 FROM follows f WHERE f.following_id=$1 AND f.follower_id=pu.user_id)) follower_participants_previous
+    `,[req.user.id,days]),
+    db.query(`
+      WITH dates AS (
+        SELECT generate_series((current_date-13)::date,current_date::date,interval '1 day')::date day
+      ),
+      events AS (
+        SELECT l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1 AND l.created_at>=current_date-13
+        UNION ALL SELECT c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1 AND c.created_at>=current_date-13
+        UNION ALL SELECT r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1 AND r.created_at>=current_date-13
+        UNION ALL SELECT sp.created_at FROM saved_posts sp JOIN posts p ON p.id=sp.post_id WHERE p.user_id=$1 AND sp.created_at>=current_date-13
+        UNION ALL SELECT v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1 AND v.created_at>=current_date-13
+        UNION ALL SELECT qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1 AND qr.created_at>=current_date-13
+      )
+      SELECT d.day,count(e.created_at)::int activity
+        FROM dates d LEFT JOIN events e ON e.created_at::date=d.day
+       GROUP BY d.day ORDER BY d.day
+    `,[req.user.id]),
+    db.query(`
+      SELECT p.id,p.caption,p.media_url,p.media_type,p.post_kind,p.audience,p.created_at,
+        (
+          (SELECT count(*) FROM likes l WHERE l.post_id=p.id AND l.created_at>=now()-$2*interval '1 day')+
+          (SELECT count(*) FROM comments c WHERE c.post_id=p.id AND c.created_at>=now()-$2*interval '1 day')+
+          (SELECT count(*) FROM reposts r WHERE r.post_id=p.id AND r.created_at>=now()-$2*interval '1 day')+
+          (SELECT count(*) FROM saved_posts sp WHERE sp.post_id=p.id AND sp.created_at>=now()-$2*interval '1 day')
+        )::int engagement
+      FROM posts p
+      WHERE p.user_id=$1 AND p.moderation_status='published'
+      ORDER BY engagement DESC,p.created_at DESC
+      LIMIT 5
+    `,[req.user.id,days])
+  ]);
+
+  const o=overview.rows[0] || {};
+  const i=interactions.rows[0] || {};
+  const c=community.rows[0] || {};
+  res.json({
+    periodDays:days,
+    totalFollowers:Number(o.total_followers||0),
+    current:{
+      followers:Number(o.followers_current||0),posts:Number(o.posts_current||0),
+      interactions:Number(i.total_current||0),likes:Number(i.likes_current||0),comments:Number(i.comments_current||0),
+      reposts:Number(i.reposts_current||0),saves:Number(i.saves_current||0),uniqueInteractors:Number(i.unique_current||0),
+      communityParticipations:Number(c.participations_current||0),communityParticipants:Number(c.participants_current||0),
+      recurringParticipants:Number(c.recurring_current||0),followerParticipants:Number(c.follower_participants_current||0),
+      tasksCompleted:Number(o.tasks_current||0),communications:Number(o.communications_current||0),communicationRecipients:Number(o.recipients_current||0)
+    },
+    previous:{
+      followers:Number(o.followers_previous||0),posts:Number(o.posts_previous||0),
+      interactions:Number(i.total_previous||0),likes:Number(i.likes_previous||0),comments:Number(i.comments_previous||0),
+      reposts:Number(i.reposts_previous||0),saves:Number(i.saves_previous||0),uniqueInteractors:Number(i.unique_previous||0),
+      communityParticipations:Number(c.participations_previous||0),communityParticipants:Number(c.participants_previous||0),
+      recurringParticipants:Number(c.recurring_previous||0),followerParticipants:Number(c.follower_participants_previous||0),
+      tasksCompleted:Number(o.tasks_previous||0),communications:Number(o.communications_previous||0),communicationRecipients:Number(o.recipients_previous||0)
+    },
+    trend:trend.rows,
+    topContent:topContent.rows
+  });
+});
+
 module.exports = router;
