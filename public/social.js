@@ -757,7 +757,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -800,6 +800,21 @@ function mutualContextHTML(profileData) {
     : `También le siguen ${names}`;
 
   return `<div class="profile-mutuals"><div class="mutual-avatars">${shown}</div><span>${copy}</span>${profileData.followsYou ? '<b>Te sigue</b>' : ''}</div>`;
+}
+
+function creatorLinksHTML(profileData) {
+  const profile = profileData?.profile || {};
+  if (!profile.creator_verified) return '';
+  const links = Array.isArray(profileData.creatorLinks) ? profileData.creatorLinks : [];
+  const headline = String(profile.creator_headline || '').trim();
+  if (!headline && !links.length) return '';
+
+  return `<section class="public-creator-showcase">
+    <div class="public-creator-showcase-head"><span>CREADOR</span>${headline ? `<b>${esc(headline)}</b>` : ''}</div>
+    ${links.length ? `<div class="public-creator-links">${links.map(link =>
+      `<a href="${esc(link.url)}" target="_blank" rel="noopener noreferrer" data-creator-link-click="${link.id}">${esc(link.label)} <span>↗</span></a>`
+    ).join('')}</div>` : ''}
+  </section>`;
 }
 
 async function shareProfile(profile) {
@@ -907,6 +922,7 @@ async function openPublicProfile(username) {
           </div>
           ${mutualContextHTML(profileData)}
           ${profile.age_verified || profile.creator_verified ? `<div class="public-trust-badges">${profile.age_verified ? '<span>+18 verificado</span>' : ''}${profile.creator_verified ? '<span>✓ Creador verificado</span>' : ''}</div>` : ''}
+          ${creatorLinksHTML(profileData)}
           <p class="profile-bio">${esc(profile.bio || 'Todavía no ha escrito una biografía.')}</p>
           ${interestPillsHTML(profile.interests)}
           <div class="profile-meta">
@@ -1239,6 +1255,32 @@ async function loadPrivacyLists() {
     : '<div class="privacy-list-empty">No has bloqueado a nadie.</div>';
 }
 
+function creatorLinkFieldsHTML(links = [], limit = 5) {
+  const items = Array.from({length:limit},(_,index)=>links[index] || null);
+  return items.map((link,index)=>`<div class="creator-link-row" data-creator-link-row>
+    <input type="hidden" name="linkId" value="${link?.id ? esc(link.id) : ''}">
+    <label>Texto ${index + 1}<input name="linkLabel" maxlength="40" value="${esc(link?.label || '')}" placeholder="Mi web"></label>
+    <label>URL ${index + 1}<input name="linkUrl" type="url" maxlength="2048" value="${esc(link?.url || '')}" placeholder="https://..."></label>
+    <small>${link ? `${Number(link.click_count || 0)} clics` : 'Opcional'}</small>
+  </div>`).join('');
+}
+
+function creatorProfilePayload(form) {
+  const links=[];
+  for (const row of form.querySelectorAll('[data-creator-link-row]')) {
+    const id=Number(row.querySelector('[name="linkId"]')?.value || 0);
+    const label=String(row.querySelector('[name="linkLabel"]')?.value || '').trim();
+    const url=String(row.querySelector('[name="linkUrl"]')?.value || '').trim();
+    if(!label && !url) continue;
+    if(!label || !url) return {error:'Completa el texto y la URL de cada enlace.'};
+    links.push({...(id ? {id} : {}),label,url});
+  }
+  return {
+    headline:String(form.headline?.value || '').trim(),
+    links
+  };
+}
+
 function creatorMetric(label,total,recent=null) {
   return `<article class="creator-metric"><span>${esc(label)}</span><b>${Number(total || 0)}</b>${recent === null ? '' : `<small>+${Number(recent || 0)} · últimos 30 días</small>`}</article>`;
 }
@@ -1280,8 +1322,16 @@ async function loadCreatorCenter() {
     creatorMetric('Comentarios',creator.comment_count,creator.comments_30d),
     creatorMetric('Republicaciones',creator.repost_count,creator.reposts_30d),
     creatorMetric('Guardados',creator.save_count,creator.saves_30d),
-    creatorMetric('Destacadas',creator.featured_count)
+    creatorMetric('Destacadas',creator.featured_count),
+    creatorMetric('Clics en enlaces',creator.link_click_count)
   ].join('');
+
+  const creatorForm=$('#creatorProfileForm');
+  if(creatorForm){
+    creatorForm.headline.value=creator.creator_headline || '';
+    $('#creatorLinksFields').innerHTML=creatorLinkFieldsHTML(Array.isArray(d.links) ? d.links : [],Number(d.linkLimit || 5));
+    $('#creatorProfileStatus').textContent='';
+  }
 
   const posts = Array.isArray(d.posts) ? d.posts : [];
   postsRoot.innerHTML = posts.length
@@ -1306,6 +1356,40 @@ function closeCreatorModal() {
   $('#creatorModal')?.classList.add('hidden');
 }
 
+$('#creatorProfileForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const status=$('#creatorProfileStatus');
+  const payload=creatorProfilePayload(form);
+  if(payload.error){
+    status.textContent=payload.error;
+    return;
+  }
+
+  const button=form.querySelector('button[type="submit"]');
+  button.disabled=true;
+  status.textContent='Guardando...';
+  try{
+    const { r, d }=await api('/api/profiles/me/creator-profile',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){
+      status.textContent=d.error==='invalid_creator_profile'
+        ? 'Revisa los enlaces. Deben usar http:// o https://.'
+        : 'No se pudo guardar el perfil de creador.';
+      return;
+    }
+    status.textContent='Perfil de creador actualizado.';
+    toast('Perfil de creador actualizado');
+    me={...me,creator_headline:d.headline || ''};
+    await Promise.all([loadCreatorCenter(),loadProfile(ownProfileMode)]);
+  }finally{
+    button.disabled=false;
+  }
+});
+
 $('#closeCreatorModal')?.addEventListener('click',closeCreatorModal);
 $('#creatorModal')?.addEventListener('click',event=>{
   if(event.target === $('#creatorModal')) closeCreatorModal();
@@ -1329,6 +1413,18 @@ document.addEventListener('click',async event=>{
   }
   toast(featured ? 'Publicación retirada de destacados' : 'Publicación destacada');
   await Promise.all([loadCreatorCenter(),loadProfile(ownProfileMode)]);
+});
+
+document.addEventListener('click',event=>{
+  const link=event.target.closest('[data-creator-link-click]');
+  if(!link)return;
+  const id=link.dataset.creatorLinkClick;
+  if(!id)return;
+  fetch(`/api/profiles/creator-links/${encodeURIComponent(id)}/click`,{
+    method:'POST',
+    credentials:'same-origin',
+    keepalive:true
+  }).catch(()=>{});
 });
 
 function trustStatusLabel(value) {
