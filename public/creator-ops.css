@@ -42,3 +42,27 @@
   .creator-task-actions{justify-content:flex-start}
   .creator-task-actions button,.creator-task-actions select{flex:1 1 auto}
 }
+
+/* V1.30 — Creator CRM Lite */
+.creator-crm-card{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.creator-crm-card.high{box-shadow:inset 3px 0 0 #d69b24}
+.creator-crm-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center}
+.creator-crm-head b,.creator-crm-head small{display:block}
+.creator-crm-head b{font-size:11px;color:var(--navy)}
+.creator-crm-head small{font-size:9px;color:var(--muted);margin-top:2px}
+.creator-crm-head button{border:1px solid var(--line);border-radius:9px;padding:6px 8px;background:var(--paper);font-size:9px;font-weight:900;color:var(--navy)}
+.creator-crm-avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;background:var(--soft);display:grid;place-items:center}
+.creator-crm-avatar-fallback{font-size:13px;font-weight:900;color:var(--navy)}
+.creator-crm-signals{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0}
+.creator-crm-signals span{padding:4px 7px;border-radius:999px;background:var(--soft);font-size:8px;font-weight:800;color:var(--muted)}
+.creator-crm-editor{display:grid;grid-template-columns:minmax(130px,.35fr) minmax(0,1fr) auto;gap:7px}
+.creator-crm-editor select,.creator-crm-editor input,.creator-crm-editor textarea{border:1px solid var(--line);border-radius:10px;padding:8px 9px;background:var(--paper);color:var(--ink);width:100%}
+.creator-crm-editor textarea{grid-column:1/-1;min-height:68px;resize:vertical}
+.creator-crm-editor button{justify-self:start}
+@media(max-width:760px){
+  .creator-crm-head{grid-template-columns:auto 1fr}
+  .creator-crm-head button{grid-column:1/-1;width:100%}
+  .creator-crm-editor{grid-template-columns:1fr}
+  .creator-crm-editor textarea{grid-column:auto}
+  .creator-crm-editor button{width:100%}
+}
