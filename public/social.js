@@ -4899,11 +4899,12 @@ async function refreshActiveConversationLive() {
     const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`);
     if(!r.ok || String(activeConversationId)!==conversationId)return;
     activeConversationOther=d.other;
+    activeConversationMeta=d.conversation || activeConversationMeta;
     activeConversationSettings=d.settings || activeConversationSettings;
     const thread=$('#messageThread');
     if(thread){
       const nearBottom=(thread.scrollHeight-thread.scrollTop-thread.clientHeight)<120;
-      thread.innerHTML=(Array.isArray(d.messages)?d.messages:[]).map(m=>messageHTML(m,d.other)).join('') || '<div class="empty-state"><p>Empieza la conversación.</p></div>';
+      thread.innerHTML=(Array.isArray(d.messages)?d.messages:[]).map(m=>messageHTML(m,d.other,d.conversation)).join('') || '<div class="empty-state"><p>Empieza la conversación.</p></div>';
       bindMessageActions(thread);
       if(nearBottom)thread.scrollTop=thread.scrollHeight;
     }
@@ -4914,6 +4915,10 @@ async function refreshActiveConversationLive() {
 
 async function handleLiveActivity(payload,initial=false) {
   const previous={...liveActivityState};
+  const previousPresence=new Map(
+    (Array.isArray(previous.conversationPresence) ? previous.conversationPresence : [])
+      .map(item=>[String(item.conversationId),item])
+  );
   liveActivityState={
     notificationUnread:Number(payload.notificationUnread || 0),
     latestNotificationId:String(payload.latestNotificationId || '0'),
@@ -4940,10 +4945,21 @@ async function handleLiveActivity(payload,initial=false) {
     previous.messageUnread!==liveActivityState.messageUnread ||
     previous.latestReactionAt!==liveActivityState.latestReactionAt;
 
+  const previousActivePresence=activeConversationId
+    ? previousPresence.get(String(activeConversationId))
+    : null;
+  const nextActivePresence=activeConversationId
+    ? liveConversationPresence.get(String(activeConversationId))
+    : null;
+  const groupReadChanged=!!(
+    activeConversationMeta?.is_group &&
+    String(previousActivePresence?.readSignature || '')!==String(nextActivePresence?.readSignature || '')
+  );
+
   if(notificationChanged && !$('#notificationsView')?.classList.contains('hidden')){
     await loadNotifications();
   }
-  if(messageChanged && !$('#messagesView')?.classList.contains('hidden')){
+  if((messageChanged || groupReadChanged) && !$('#messagesView')?.classList.contains('hidden')){
     if(activeConversationId)await refreshActiveConversationLive();
     else await loadConversations();
   }
