@@ -34,6 +34,7 @@ let creatorCommunityActivityStatus = 'pending';
 let creatorCommunityActivityFocus = 'all';
 let creatorCommunityActivityData = null;
 let creatorFollowUpWindow = 'all';
+let creatorFollowUpPriority = 'all';
 let creatorFollowUpSearch = '';
 let creatorFollowUpData = null;
 let creatorFollowUpSearchTimer = null;
@@ -1876,77 +1877,7 @@ function renderCreatorCommunityActivity(data = {}) {
   }
   if($('#creatorActivityFocus'))$('#creatorActivityFocus').value=creatorCommunityActivityFocus;
 
-  all('[data-followup-window]').forEach(button=>{
-  button.addEventListener('click',async()=>{
-    creatorFollowUpWindow=button.dataset.followupWindow || 'all';
-    await loadCreatorFollowUps();
-  });
-});
-
-$('#creatorFollowUpSearch')?.addEventListener('input',event=>{
-  creatorFollowUpSearch=String(event.currentTarget.value || '').trim();
-  if(creatorFollowUpSearchTimer)clearTimeout(creatorFollowUpSearchTimer);
-  creatorFollowUpSearchTimer=setTimeout(()=>loadCreatorFollowUps(),280);
-});
-
-$('#creatorFollowUpSelectAll')?.addEventListener('change',event=>{
-  all('[data-followup-select]',$('#creatorFollowUpList')).forEach(box=>{
-    box.checked=event.currentTarget.checked;
-  });
-  updateCreatorFollowUpBulkState();
-});
-
-$('#creatorFollowUpBulkAction')?.addEventListener('change',updateCreatorFollowUpBulkState);
-
-document.addEventListener('change',event=>{
-  if(event.target.matches('[data-followup-select]'))updateCreatorFollowUpBulkState();
-});
-
-$('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
-  const button=$('#creatorFollowUpBulkApply');
-  const action=$('#creatorFollowUpBulkAction')?.value || '';
-  const ids=all('[data-followup-select]:checked',$('#creatorFollowUpList')).map(box=>box.dataset.followupSelect);
-  if(!button || !action || !ids.length)return;
-  if(action==='close_follow_up' && !window.confirm(`¿Cerrar ${ids.length} seguimientos seleccionados?`))return;
-
-  button.disabled=true;
-  try{
-    const { r,d }=await api('/api/posts/creator/community-follow-ups/bulk',{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({notificationIds:ids,action})
-    });
-    if(!r.ok)throw new Error(d.error==='invalid_follow_up_bulk_action' ? 'Acción masiva no válida.' : 'No se pudo aplicar la acción.');
-    const labels={
-      priority_high:'Prioridad alta aplicada',
-      priority_normal:'Prioridad normal aplicada',
-      mark_reviewed:'Actividad marcada como revisada',
-      close_follow_up:'Seguimientos cerrados'
-    };
-    toast(labels[action] || 'Seguimientos actualizados');
-    if($('#creatorFollowUpBulkAction'))$('#creatorFollowUpBulkAction').value='';
-    await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
-  }catch(error){
-    toast(error.message || 'No se pudo actualizar el seguimiento.');
-  }finally{
-    button.disabled=false;
-    updateCreatorFollowUpBulkState();
-  }
-});
-
-document.addEventListener('click',async event=>{
-  const button=event.target.closest('[data-followup-open-activity]');
-  if(!button)return;
-  event.preventDefault();
-  event.stopPropagation();
-  creatorCommunityActivityStatus='all';
-  creatorCommunityActivityFocus='followup';
-  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value='followup';
-  await loadCreatorCommunityActivity();
-  document.querySelector('.creator-activity-center')?.scrollIntoView({behavior:'smooth',block:'start'});
-});
-
-all('[data-creator-activity-status]').forEach(button=>{
+  all('[data-creator-activity-status]').forEach(button=>{
     button.classList.toggle('active',button.dataset.creatorActivityStatus===creatorCommunityActivityStatus);
   });
 
@@ -2044,6 +1975,7 @@ function creatorFollowUpItemHTML(item) {
       <div class="creator-followup-item-actions">
         <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
         <button type="button" class="tiny-action" data-followup-open-activity="${item.notification_id}">Abrir en actividad</button>
+        <button type="button" class="tiny-action primary-soft" data-followup-complete="${item.notification_id}">Completar seguimiento</button>
       </div>
     </div>
   </article>`;
@@ -2083,6 +2015,7 @@ function renderCreatorFollowUps(data = {}) {
   if($('#creatorFollowUpSearch') && $('#creatorFollowUpSearch').value!==creatorFollowUpSearch){
     $('#creatorFollowUpSearch').value=creatorFollowUpSearch;
   }
+  if($('#creatorFollowUpPriority'))$('#creatorFollowUpPriority').value=creatorFollowUpPriority;
 
   const root=$('#creatorFollowUpList');
   if(!root)return;
@@ -2100,6 +2033,7 @@ async function loadCreatorFollowUps() {
   dayEnd.setHours(24,0,0,0);
   const qs=new URLSearchParams({
     window:creatorFollowUpWindow,
+    priority:creatorFollowUpPriority,
     q:creatorFollowUpSearch,
     dayEnd:dayEnd.toISOString()
   });
@@ -2111,6 +2045,103 @@ async function loadCreatorFollowUps() {
   renderCreatorFollowUps(d);
   return true;
 }
+
+all('[data-followup-window]').forEach(button=>{
+  button.addEventListener('click',async()=>{
+    creatorFollowUpWindow=button.dataset.followupWindow || 'all';
+    await loadCreatorFollowUps();
+  });
+});
+
+$('#creatorFollowUpPriority')?.addEventListener('change',async event=>{
+  creatorFollowUpPriority=event.currentTarget.value || 'all';
+  await loadCreatorFollowUps();
+});
+
+$('#creatorFollowUpSearch')?.addEventListener('input',event=>{
+  creatorFollowUpSearch=String(event.currentTarget.value || '').trim();
+  if(creatorFollowUpSearchTimer)clearTimeout(creatorFollowUpSearchTimer);
+  creatorFollowUpSearchTimer=setTimeout(()=>loadCreatorFollowUps(),280);
+});
+
+$('#creatorFollowUpSelectAll')?.addEventListener('change',event=>{
+  all('[data-followup-select]',$('#creatorFollowUpList')).forEach(box=>{
+    box.checked=event.currentTarget.checked;
+  });
+  updateCreatorFollowUpBulkState();
+});
+
+$('#creatorFollowUpBulkAction')?.addEventListener('change',updateCreatorFollowUpBulkState);
+
+document.addEventListener('change',event=>{
+  if(event.target.matches('[data-followup-select]'))updateCreatorFollowUpBulkState();
+});
+
+$('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
+  const button=$('#creatorFollowUpBulkApply');
+  const action=$('#creatorFollowUpBulkAction')?.value || '';
+  const ids=all('[data-followup-select]:checked',$('#creatorFollowUpList')).map(box=>box.dataset.followupSelect);
+  if(!button || !action || !ids.length)return;
+  if(action==='close_follow_up' && !window.confirm(`¿Cerrar ${ids.length} seguimientos seleccionados?`))return;
+
+  button.disabled=true;
+  try{
+    const { r,d }=await api('/api/posts/creator/community-follow-ups/bulk',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({notificationIds:ids,action})
+    });
+    if(!r.ok)throw new Error(d.error==='invalid_follow_up_bulk_action' ? 'Acción masiva no válida.' : 'No se pudo aplicar la acción.');
+    const labels={
+      priority_high:'Prioridad alta aplicada',
+      priority_normal:'Prioridad normal aplicada',
+      mark_reviewed:'Actividad marcada como revisada',
+      close_follow_up:'Seguimientos cerrados'
+    };
+    toast(labels[action] || 'Seguimientos actualizados');
+    if($('#creatorFollowUpBulkAction'))$('#creatorFollowUpBulkAction').value='';
+    await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar el seguimiento.');
+  }finally{
+    button.disabled=false;
+    updateCreatorFollowUpBulkState();
+  }
+});
+
+document.addEventListener('click',async event=>{
+  const complete=event.target.closest('[data-followup-complete]');
+  if(complete){
+    event.preventDefault();
+    event.stopPropagation();
+    const notificationId=complete.dataset.followupComplete;
+    complete.disabled=true;
+    try{
+      const { r }=await api('/api/posts/creator/community-follow-ups/bulk',{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({notificationIds:[notificationId],action:'close_follow_up'})
+      });
+      if(!r.ok)throw new Error('No se pudo completar el seguimiento.');
+      toast('Seguimiento completado');
+      await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
+    }catch(error){
+      toast(error.message || 'No se pudo completar el seguimiento.');
+      complete.disabled=false;
+    }
+    return;
+  }
+
+  const button=event.target.closest('[data-followup-open-activity]');
+  if(!button)return;
+  event.preventDefault();
+  event.stopPropagation();
+  creatorCommunityActivityStatus='all';
+  creatorCommunityActivityFocus='followup';
+  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value='followup';
+  await loadCreatorCommunityActivity();
+  document.querySelector('.creator-activity-center')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
 
 function communityStateBadge(status,isOpen) {
   if(status==='archived')return '<span class="creator-community-state archived">Archivada</span>';

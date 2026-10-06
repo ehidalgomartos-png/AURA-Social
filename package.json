@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.27.0",
+  "version": "1.27.1",
   "private": true,
-  "description": "RedLibertad V1.27 Follow-up Dashboard - vencimientos, búsqueda en notas privadas y acciones masivas de seguimiento, sin monetización.",
+  "description": "RedLibertad V1.27.1 Follow-up Dashboard Hotfix - fechas locales coherentes, filtros combinables y cierre rápido, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
