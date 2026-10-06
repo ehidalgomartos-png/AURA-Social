@@ -69,6 +69,21 @@ async function ensureReferralsTable() {
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_user_id,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS growth_invite_links (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token VARCHAR(64) NOT NULL UNIQUE,
+          open_count INTEGER NOT NULL DEFAULT 0,
+          join_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          last_used_at TIMESTAMPTZ,
+          disabled_at TIMESTAMPTZ
+        )
+      `);
+      await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_growth_invite_links_active_user ON growth_invite_links(user_id) WHERE disabled_at IS NULL');
+      await db.query('ALTER TABLE referrals ADD COLUMN IF NOT EXISTS invite_link_id BIGINT REFERENCES growth_invite_links(id) ON DELETE SET NULL');
+      await db.query("ALTER TABLE referrals ADD COLUMN IF NOT EXISTS attribution TEXT NOT NULL DEFAULT 'legacy_username'");
     })().catch(error => {
       referralsReady = null;
       throw error;
@@ -93,7 +108,8 @@ const registerSchema = z.object({
   password: z.string().min(10).max(128),
   birthDate: z.string(),
   acceptTerms: z.literal(true),
-  referralUsername: z.string().max(30).optional().default('')
+  referralUsername: z.string().max(30).optional().default(''),
+  referralToken: z.string().max(64).optional().default('')
 });
 
 function signUser(user) {
@@ -117,7 +133,7 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'invalid_data', details: parsed.error.flatten() });
   }
 
-  const { email, username, displayName, password, birthDate, referralUsername } = parsed.data;
+  const { email, username, displayName, password, birthDate, referralUsername, referralToken } = parsed.data;
   const dob = new Date(`${birthDate}T00:00:00Z`);
   if (Number.isNaN(dob.getTime())) {
     return res.status(400).json({ error: 'invalid_birth_date' });
@@ -150,13 +166,26 @@ router.post('/register', async (req, res) => {
   await ensureReferralsTable();
 
   let inviter = null;
-  const cleanReferral = String(referralUsername || '').trim().replace(/^@/,'');
-  if (/^[a-zA-Z0-9_.]{3,30}$/.test(cleanReferral)) {
-    const inviterResult = await db.query(
-      `SELECT id,username FROM users WHERE lower(username)=lower($1) AND status='active' LIMIT 1`,
-      [cleanReferral]
-    );
-    inviter = inviterResult.rows[0] || null;
+  let inviteLink = null;
+  const cleanInviteToken=String(referralToken||'').trim();
+  if(/^[A-Za-z0-9_-]{16,64}$/.test(cleanInviteToken)){
+    const inviteResult=await db.query(`
+      SELECT l.id,l.user_id,u.username FROM growth_invite_links l
+      JOIN users u ON u.id=l.user_id
+      WHERE l.token=$1 AND l.disabled_at IS NULL AND u.status='active' AND u.is_admin=false
+      LIMIT 1
+    `,[cleanInviteToken]);
+    if(inviteResult.rowCount){inviteLink=inviteResult.rows[0];inviter={id:inviteLink.user_id,username:inviteLink.username};}
+  }
+  if(!inviter){
+    const cleanReferral=String(referralUsername||'').trim().replace(/^@/,'');
+    if(/^[a-zA-Z0-9_.]{3,30}$/.test(cleanReferral)){
+      const inviterResult=await db.query(
+        `SELECT id,username FROM users WHERE lower(username)=lower($1) AND status='active' AND is_admin=false LIMIT 1`,
+        [cleanReferral]
+      );
+      inviter=inviterResult.rows[0]||null;
+    }
   }
 
   const client = await db.pool.connect();
@@ -177,13 +206,14 @@ router.post('/register', async (req, res) => {
 
     if (inviter && String(inviter.id) !== String(user.id)) {
       const referralInsert = await client.query(`
-        INSERT INTO referrals (inviter_user_id,invited_user_id)
-        VALUES ($1,$2)
+        INSERT INTO referrals (inviter_user_id,invited_user_id,invite_link_id,attribution)
+        VALUES ($1,$2,$3,$4)
         ON CONFLICT (invited_user_id) DO NOTHING
         RETURNING id
-      `,[inviter.id,user.id]);
+      `,[inviter.id,user.id,inviteLink?.id||null,inviteLink?'invite_token':'legacy_username']);
 
       if (referralInsert.rowCount) {
+        if(inviteLink)await client.query('UPDATE growth_invite_links SET join_count=join_count+1,last_used_at=now() WHERE id=$1',[inviteLink.id]);
         await client.query(`
           INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
           VALUES ($1,$2,'system','user',$2,'Se ha unido a RedLibertad con tu invitación.')
