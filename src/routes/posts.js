@@ -174,17 +174,35 @@ async function notifyMentions({ actorId, text, entityType='post', entityId, audi
        )
        AND (
          $3::text='public'
-         OR EXISTS(
-           SELECT 1
-             FROM posts mention_post
-             JOIN creator_vips cv
-               ON cv.creator_id=mention_post.user_id
-              AND cv.fan_id=u.id
-             JOIN follows f
-               ON f.follower_id=cv.fan_id
-              AND f.following_id=cv.creator_id
-            WHERE mention_post.id=$4
-              AND mention_post.audience='vip'
+         OR (
+           $3::text='vip'
+           AND EXISTS(
+             SELECT 1
+               FROM posts mention_post
+               JOIN creator_vips cv
+                 ON cv.creator_id=mention_post.user_id
+                AND cv.fan_id=u.id
+               JOIN follows f
+                 ON f.follower_id=cv.fan_id
+                AND f.following_id=cv.creator_id
+              WHERE mention_post.id=$4
+                AND mention_post.audience='vip'
+           )
+         )
+         OR (
+           $3::text='connections'
+           AND EXISTS(SELECT 1 FROM follows mf1 WHERE mf1.follower_id=$2 AND mf1.following_id=u.id)
+           AND EXISTS(SELECT 1 FROM follows mf2 WHERE mf2.follower_id=u.id AND mf2.following_id=$2)
+         )
+         OR (
+           $3::text='circles'
+           AND EXISTS(
+             SELECT 1
+               FROM post_circle_audiences pca
+               JOIN connection_circles cc ON cc.id=pca.circle_id AND cc.user_id=$2
+               JOIN connection_circle_members ccm ON ccm.circle_id=cc.id AND ccm.connection_user_id=u.id
+              WHERE pca.post_id=$4
+           )
          )
          OR EXISTS(
            SELECT 1 FROM post_participants pp
