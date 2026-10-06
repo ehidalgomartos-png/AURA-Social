@@ -5897,6 +5897,12 @@ async function navigateNotification(notification) {
     return;
   }
 
+  if(type==='system' && entityType==='community' && entityId){
+    showView('communities');
+    await openCommunityDetail(entityId);
+    return;
+  }
+
   if (type === 'collaboration_request') {
     showView('profile');
     setTimeout(() => document.querySelector('.consent-section')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
@@ -7643,8 +7649,10 @@ $('#communityPostForm')?.addEventListener('submit',async event=>{
       throw new Error(
         d.error==='verified_creator_required_for_nudity'
           ? 'La desnudez requiere una cuenta de creador adulto verificado.'
-          : d.error==='empty_post' ? 'Escribe algo o selecciona una foto o vídeo.'
-          : 'No se pudo publicar.'
+          : d.error==='community_posting_restricted'
+            ? `Tu participación está limitada temporalmente${d.expiresAt?` hasta ${eventDateLabel(d.expiresAt)}`:''}.`
+            : d.error==='empty_post' ? 'Escribe algo o selecciona una foto o vídeo.'
+            : 'No se pudo publicar.'
       );
     }
     form.reset();
@@ -7653,6 +7661,25 @@ $('#communityPostForm')?.addEventListener('submit',async event=>{
     await refreshActiveCommunity();
   }catch(error){status.textContent=error.message;}
   finally{submit.disabled=false;}
+});
+
+$('#closeCommunityReport')?.addEventListener('click',()=>$('#communityReportModal')?.classList.add('hidden'));
+$('#communityReportModal')?.addEventListener('click',event=>{if(event.target===$('#communityReportModal'))$('#communityReportModal')?.classList.add('hidden');});
+$('#communityReportForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeCommunityId||!activeCommunityReportTarget)return;
+  const form=event.currentTarget,status=$('#communityReportStatus'),fd=new FormData(form);
+  status.textContent='Enviando…';
+  const {r,d}=await api(`/api/communities/${activeCommunityId}/reports`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({targetType:activeCommunityReportTarget.type,targetId:activeCommunityReportTarget.id,reason:String(fd.get('reason')||'rules'),details:String(fd.get('details')||'')})});
+  if(!r.ok){status.textContent=d.error==='report_already_open'?'Ya tienes una incidencia abierta sobre este elemento.':d.error==='community_report_rate_limited'?'Has alcanzado el límite de incidencias de hoy.':'No se pudo enviar la incidencia.';return;}
+  $('#communityReportModal')?.classList.add('hidden');activeCommunityReportTarget=null;toast('Incidencia enviada al equipo de moderación');
+});
+document.addEventListener('change',async event=>{
+  const select=event.target.closest('[data-community-role-select-user]');
+  if(!select||!activeCommunityId)return;
+  const {r}=await api(`/api/communities/${activeCommunityId}/members/${select.dataset.communityRoleSelectUser}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:select.value})});
+  if(!r.ok){toast('No se pudo cambiar el rol.');await refreshActiveCommunity();return;}
+  toast('Rol actualizado');await refreshActiveCommunity();
 });
 
 $('#deleteCommunity')?.addEventListener('click',async()=>{
@@ -7674,16 +7701,58 @@ document.addEventListener('submit',async event=>{
   if(!body)return;
   const button=form.querySelector('button[type="submit"]');
   button.disabled=true;
-  const {r}=await api(`/api/communities/${activeCommunityId}/posts/${postId}/comments`,{
+  const {r,d}=await api(`/api/communities/${activeCommunityId}/posts/${postId}/comments`,{
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body})
   });
   button.disabled=false;
-  if(!r.ok)return toast('No se pudo comentar.');
+  if(!r.ok)return toast(d.error==='community_posting_restricted'?`Tu participación está limitada temporalmente${d.expiresAt?` hasta ${eventDateLabel(d.expiresAt)}`:''}.`:'No se pudo comentar.');
   form.reset();
   await loadCommunityPosts();
 });
 
 document.addEventListener('click',async event=>{
+  const reportTarget=event.target.closest('[data-community-report-type]');
+  if(reportTarget){
+    event.preventDefault();
+    activeCommunityReportTarget={type:reportTarget.dataset.communityReportType,id:Number(reportTarget.dataset.communityReportId),label:reportTarget.dataset.communityReportLabel||'contenido'};
+    $('#communityReportTargetLabel').textContent=`Informar sobre ${activeCommunityReportTarget.label}.`;
+    $('#communityReportStatus').textContent='';
+    $('#communityReportForm')?.reset();
+    $('#communityReportModal')?.classList.remove('hidden');
+    return;
+  }
+  const reportReview=event.target.closest('[data-community-report-review]');
+  if(reportReview){
+    event.preventDefault();
+    const {r}=await api(`/api/communities/${activeCommunityId}/moderation/reports/${reportReview.dataset.communityReportReview}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:reportReview.dataset.communityReportDecision})});
+    if(!r.ok)return toast('No se pudo revisar la incidencia.');
+    toast(reportReview.dataset.communityReportDecision==='resolved'?'Incidencia resuelta':'Incidencia descartada');
+    await loadCommunityAdminData();
+    return;
+  }
+  const sanctionButton=event.target.closest('[data-community-sanction-user]');
+  if(sanctionButton){
+    event.preventDefault();
+    const action=sanctionButton.dataset.communitySanctionAction;
+    const note=window.prompt(action==='warning'?'Motivo del aviso (opcional):':'Motivo de la limitación (opcional):','') ?? null;
+    if(note===null)return;
+    const payload={userId:Number(sanctionButton.dataset.communitySanctionUser),action,note};
+    if(action!=='warning')payload.durationHours=24;
+    const {r}=await api(`/api/communities/${activeCommunityId}/moderation/sanctions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok)return toast('No se pudo aplicar la medida.');
+    toast(action==='warning'?'Aviso registrado':'Limitación aplicada durante 24 h');
+    await loadCommunityAdminData();
+    return;
+  }
+  const sanctionRevoke=event.target.closest('[data-community-sanction-revoke]');
+  if(sanctionRevoke){
+    event.preventDefault();
+    const {r}=await api(`/api/communities/${activeCommunityId}/moderation/sanctions/${sanctionRevoke.dataset.communitySanctionRevoke}`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo revocar la sanción.');
+    toast('Sanción revocada');
+    await loadCommunityAdminData();
+    return;
+  }
   const scopeButton=event.target.closest('[data-community-scope]');
   if(scopeButton){
     event.preventDefault();
@@ -7739,19 +7808,7 @@ document.addEventListener('click',async event=>{
     await refreshActiveCommunity();
     return;
   }
-  const roleButton=event.target.closest('[data-community-role-user]');
-  if(roleButton){
-    event.preventDefault();
-    const {r}=await api(`/api/communities/${activeCommunityId}/members/${roleButton.dataset.communityRoleUser}`,{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({role:roleButton.dataset.communityRole})
-    });
-    if(!r.ok)return toast('No se pudo cambiar el rol.');
-    toast('Rol actualizado');
-    await refreshActiveCommunity();
-    return;
-  }
+
   const removeMember=event.target.closest('[data-community-remove-member]');
   if(removeMember){
     event.preventDefault();
