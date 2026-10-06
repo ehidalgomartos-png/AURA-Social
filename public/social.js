@@ -7272,8 +7272,9 @@ function communityPostHTML(post,community){
       </div>
       ${post.can_delete?`<button type="button" class="tiny-action danger-outline" data-community-delete-post="${post.id}">Eliminar</button>`:''}
     </header>
-    ${post.body?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
+    ${post.body&&!post.shared_post?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
     ${media?`<div class="community-post-media">${media}</div>`:''}
+    ${post.shared_post?sharedPostMessageHTML(post.shared_post):''}
     <div class="community-post-comments">
       <div class="community-comment-count">${Number(post.comment_count||comments.length)} comentarios</div>
       ${comments.length ? comments.map(comment=>`<div class="community-comment" data-community-comment="${comment.id}">
@@ -7307,6 +7308,7 @@ async function loadCommunityPosts(){
     ? posts.map(post=>communityPostHTML(post,activeCommunityData.community)).join('')
     : '<div class="community-posts-empty"><b>Todavía no hay publicaciones.</b><p>Los miembros pueden iniciar la conversación.</p></div>';
   if($('#communityPostCount'))$('#communityPostCount').textContent=`${posts.length} publicaciones`;
+  all('[data-open-shared-post]',root).forEach(button=>button.onclick=()=>openPostFocus(button.dataset.openSharedPost));
 }
 
 async function loadCommunityAdminData(){
