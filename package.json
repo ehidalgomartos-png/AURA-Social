@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.54.0",
+  "version": "1.55.0",
   "private": true,
-  "description": "RedLibertad V1.54 Community Conversations - continuidad social respetuosa, conversaciones pendientes y conexiones relevantes, sin monetización.",
+  "description": "RedLibertad V1.55 Connection Context & Starters - contexto privado de conexiones e ideas de conversación como borradores, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
