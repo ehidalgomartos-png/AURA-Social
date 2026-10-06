@@ -501,6 +501,49 @@ async function loadAdvancedAnalytics(){
 }
 q('#creatorAnalyticsPeriod')?.addEventListener('change',loadAdvancedAnalytics);
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments(),loadCommunications(),loadAdvancedAnalytics()]),150));
-window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,loadAdvancedAnalytics,opsApi,notify,esc,metric};
+function automationRuleCard(rule){
+  const last=rule.last_run_at?new Date(rule.last_run_at):null;
+  const affected=Number(rule.last_result?.affected||0);
+  return `<article class="creator-automation-rule" data-automation-key="${esc(rule.rule_key)}">
+    <label class="creator-automation-toggle">
+      <input type="checkbox" data-automation-enabled ${rule.enabled?'checked':''}>
+      <span><b>${esc(rule.name)}</b><small>${esc(rule.description)}</small></span>
+    </label>
+    ${rule.rule_key==='repeat_participant_task'?`<label class="creator-automation-threshold">Umbral <input type="number" min="2" max="20" value="${Number(rule.threshold||3)}" data-automation-threshold></label>`:''}
+    <div class="creator-automation-last">${last?`Última ejecución: ${last.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})} · ${affected} cambios`:'Todavía no se ha ejecutado'}</div>
+  </article>`;
+}
+async function loadAutomations(){
+  const root=q('#creatorAutomationRules');
+  if(!root)return;
+  root.innerHTML='<div class="creator-ops-empty">Cargando automatizaciones…</div>';
+  const {response,data}=await opsApi('/api/creator/automations');
+  if(response.status===403){q('#creatorAutomationSection')?.classList.add('hidden');return;}
+  if(!response.ok){root.innerHTML='<div class="creator-ops-empty">No se pudieron cargar las automatizaciones.</div>';return;}
+  root.innerHTML=(data.rules||[]).map(automationRuleCard).join('');
+}
+q('#creatorAutomationRules')?.addEventListener('change',async event=>{
+  const card=event.target.closest('[data-automation-key]');
+  if(!card)return;
+  const enabled=q('[data-automation-enabled]',card)?.checked===true;
+  const threshold=Number(q('[data-automation-threshold]',card)?.value||3);
+  const {response}=await opsApi('/api/creator/automations/'+encodeURIComponent(card.dataset.automationKey),{
+    method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled,threshold})
+  });
+  if(!response.ok){notify('No se pudo guardar la automatización');await loadAutomations();return;}
+  notify(enabled?'Automatización activada':'Automatización desactivada');
+  await loadAutomations();
+});
+q('#creatorAutomationRun')?.addEventListener('click',async event=>{
+  const button=event.currentTarget;button.disabled=true;
+  const {response,data}=await opsApi('/api/creator/automations/run',{method:'POST'});
+  button.disabled=false;
+  if(!response.ok){notify('No se pudieron ejecutar las automatizaciones');return;}
+  const affected=Object.values(data.results||{}).reduce((sum,item)=>sum+Number(item?.affected||0),0);
+  notify('Automatizaciones ejecutadas · '+affected+' cambios');
+  await Promise.all([loadAutomations(),loadTasks(),loadCrm()]);
+});
+
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments(),loadCommunications(),loadAdvancedAnalytics(),loadAutomations()]),150));
+window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,loadAdvancedAnalytics,loadAutomations,opsApi,notify,esc,metric};
 })();
