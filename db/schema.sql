@@ -474,6 +474,7 @@ CREATE TABLE IF NOT EXISTS creator_community_activity_meta (
   private_note VARCHAR(1000) NOT NULL DEFAULT '',
   follow_up BOOLEAN NOT NULL DEFAULT FALSE,
   follow_up_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -487,6 +488,10 @@ CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator
 
 CREATE INDEX IF NOT EXISTS idx_creator_community_activity_follow_up_at
   ON creator_community_activity_meta(creator_id,follow_up,follow_up_at,priority);
+
+CREATE INDEX IF NOT EXISTS idx_creator_community_activity_completed_at
+  ON creator_community_activity_meta(creator_id,completed_at DESC)
+  WHERE completed_at IS NOT NULL;
 
 
 
