@@ -93,6 +93,35 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+let circleV152Ready=null;
+async function ensureCircleV152(){
+  if(!circleV152Ready){
+    circleV152Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_circle_members (
+          owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          member_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(owner_id,member_id),
+          CHECK(owner_id<>member_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_user_circle_members_owner ON user_circle_members(owner_id,created_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_user_circle_members_member ON user_circle_members(member_id,owner_id)');
+    })().catch(error=>{circleV152Ready=null;throw error;});
+  }
+  return circleV152Ready;
+}
+
+router.use(async(_req,res,next)=>{
+  try{await ensureCircleV152();next();}
+  catch(error){
+    console.error('RedLibertad V1.52 circle bootstrap failed:',error);
+    res.status(500).json({error:'circle_bootstrap_failed'});
+  }
+});
+
+
 
 let creatorV13Ready = null;
 async function ensureCreatorV13() {
@@ -371,6 +400,7 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
                 AND back.following_id=mine.follower_id
               WHERE mine.follower_id=users.id
            ) connection_count,
+           (SELECT count(*)::int FROM user_circle_members WHERE owner_id=users.id) circle_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
            (SELECT count(*)::int FROM notifications n WHERE n.user_id=users.id AND n.read_at IS NULL AND (n.actor_id IS NULL OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=users.id))) notification_count,
            COALESCE(
@@ -383,6 +413,109 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
   `,[req.user.id]);
   if(!r.rowCount) return res.status(404).json({error:'user_not_found'});
   res.json({profile:r.rows[0]});
+});
+
+router.get('/me/circle',requireAuth,async(req,res)=>{
+  // Remove stale memberships automatically if the owner no longer follows
+  // the person or either side has blocked the other.
+  await db.query(`
+    DELETE FROM user_circle_members circle
+     WHERE circle.owner_id=$1
+       AND (
+         NOT EXISTS(
+           SELECT 1 FROM follows f
+            WHERE f.follower_id=circle.owner_id
+              AND f.following_id=circle.member_id
+         )
+         OR EXISTS(
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id=circle.owner_id AND b.blocked_id=circle.member_id)
+               OR (b.blocker_id=circle.member_id AND b.blocked_id=circle.owner_id)
+         )
+       )
+  `,[req.user.id]);
+
+  const result=await db.query(`
+    SELECT
+      u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,u.profile_status,
+      circle.created_at AS circle_since
+    FROM user_circle_members circle
+    JOIN users u ON u.id=circle.member_id
+    WHERE circle.owner_id=$1
+      AND u.status='active'
+    ORDER BY circle.created_at DESC,u.id DESC
+    LIMIT 100
+  `,[req.user.id]);
+
+  res.json({members:result.rows,count:result.rows.length,max:100});
+});
+
+const circleMemberSchema=z.object({
+  username:z.string().trim().min(1).max(30)
+});
+
+router.post('/me/circle',requireAuth,async(req,res)=>{
+  const parsed=circleMemberSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_circle_member'});
+
+  const username=parsed.data.username.replace(/^@/,'');
+  const target=await db.query(
+    "SELECT id,username,display_name,avatar_url,creator_verified,status FROM users WHERE lower(username)=lower($1) LIMIT 1",
+    [username]
+  );
+  if(!target.rowCount || target.rows[0].status!=='active'){
+    return res.status(404).json({error:'user_not_found'});
+  }
+
+  const targetId=target.rows[0].id;
+  if(String(targetId)===String(req.user.id)){
+    return res.status(400).json({error:'cannot_add_self_to_circle'});
+  }
+
+  const blocked=await db.query(`
+    SELECT 1 FROM blocks
+     WHERE (blocker_id=$1 AND blocked_id=$2)
+        OR (blocker_id=$2 AND blocked_id=$1)
+     LIMIT 1
+  `,[req.user.id,targetId]);
+  if(blocked.rowCount)return res.status(403).json({error:'circle_blocked'});
+
+  const follows=await db.query(
+    'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2 LIMIT 1',
+    [req.user.id,targetId]
+  );
+  if(!follows.rowCount){
+    return res.status(409).json({error:'circle_requires_following'});
+  }
+
+  const count=await db.query(
+    'SELECT count(*)::int AS n FROM user_circle_members WHERE owner_id=$1',
+    [req.user.id]
+  );
+  if(Number(count.rows[0]?.n || 0)>=100){
+    return res.status(409).json({error:'circle_limit_reached'});
+  }
+
+  const inserted=await db.query(`
+    INSERT INTO user_circle_members(owner_id,member_id)
+    VALUES ($1,$2)
+    ON CONFLICT(owner_id,member_id) DO NOTHING
+    RETURNING member_id,created_at
+  `,[req.user.id,targetId]);
+
+  res.status(inserted.rowCount ? 201 : 200).json({
+    ok:true,
+    existing:!inserted.rowCount,
+    member:target.rows[0]
+  });
+});
+
+router.delete('/me/circle/:userId',requireAuth,async(req,res)=>{
+  await db.query(
+    'DELETE FROM user_circle_members WHERE owner_id=$1 AND member_id=$2',
+    [req.user.id,req.params.userId]
+  );
+  res.json({ok:true});
 });
 
 router.get('/suggestions', requireAuth, async (req, res) => {
@@ -1817,6 +1950,10 @@ router.delete('/:id/follow',requireAuth,async(req,res)=>{
     'DELETE FROM follows WHERE follower_id=$1 AND following_id=$2',
     [req.user.id,req.params.id]
   );
+  await db.query(
+    'DELETE FROM user_circle_members WHERE owner_id=$1 AND member_id=$2',
+    [req.user.id,req.params.id]
+  );
   res.json({ok:true});
 });
 
@@ -1841,6 +1978,12 @@ router.post('/:id/block',requireAuth,async(req,res)=>{
     'DELETE FROM mutes WHERE muter_id=$1 AND muted_id=$2',
     [req.user.id,req.params.id]
   );
+
+  await db.query(`
+    DELETE FROM user_circle_members
+     WHERE (owner_id=$1 AND member_id=$2)
+        OR (owner_id=$2 AND member_id=$1)
+  `,[req.user.id,req.params.id]);
 
   res.json({ok:true});
 });
