@@ -1346,7 +1346,9 @@ function creatorBroadcastAvailability(nextBroadcastAt) {
 }
 
 function creatorMetric(label,total,recent=null) {
-  return `<article class="creator-metric"><span>${esc(label)}</span><b>${Number(total || 0)}</b>${recent === null ? '' : `<small>+${Number(recent || 0)} · últimos 30 días</small>`}</article>`;
+  const numeric=typeof total==='number' || (typeof total==='string' && total.trim()!=='' && Number.isFinite(Number(total)));
+  const value=numeric ? Number(total || 0).toLocaleString('es-ES') : esc(total || '0');
+  return `<article class="creator-metric"><span>${esc(label)}</span><b>${value}</b>${recent === null ? '' : `<small>+${Number(recent || 0).toLocaleString('es-ES')} · últimos 30 días</small>`}</article>`;
 }
 
 function creatorPostHTML(post) {
