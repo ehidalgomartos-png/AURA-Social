@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.47.0",
+  "version": "1.48.0",
   "private": true,
-  "description": "RedLibertad V1.47 Message Replies & Reactions - citas protegidas y reacciones rápidas en chat, sin monetización.",
+  "description": "RedLibertad V1.48 Push Notifications PWA - Web Push opcional por dispositivo, seguro y sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
