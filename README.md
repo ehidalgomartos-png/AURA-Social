@@ -1443,6 +1443,7 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Avatares dinámicos con carga diferida y decodificación asíncrona.
 - Service Worker con timeout de red antes de usar el fallback cacheado.
 - Pool PostgreSQL endurecido con máximo de conexiones, timeout de conexión e idle timeout configurables.
+- Índices idempotentes para likes por publicación, seguidores inversos, bloqueos inversos y posts publicados recientes.
 - Nuevo endpoint `/api/ready` que verifica disponibilidad real de PostgreSQL.
 - Registro de peticiones API lentas a partir de 1,5 segundos, sin guardar cuerpos ni datos privados.
 - Apagado limpio del servidor HTTP y del pool PostgreSQL ante SIGTERM/SIGINT.
