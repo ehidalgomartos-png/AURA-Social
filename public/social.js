@@ -1281,6 +1281,40 @@ function creatorProfilePayload(form) {
   };
 }
 
+function creatorEngagementSummaryHTML(engagement = {}) {
+  return [
+    creatorMetric('Seguidores activos',engagement.activeFollowers30d || 0),
+    creatorMetric('% audiencia activa',`${Number(engagement.activeFollowerRate30d || 0).toLocaleString('es-ES')}%`),
+    creatorMetric('Interacciones 30d',engagement.interactions30d || 0)
+  ].join('');
+}
+
+function creatorTopFansHTML(fans = []) {
+  if (!fans.length) return '<div class="creator-empty compact">Todavía no hay interacciones de seguidores en los últimos 30 días.</div>';
+  return fans.map((fan,index)=>`<article class="creator-fan-row">
+    <span class="creator-fan-rank">${index + 1}</span>
+    ${profileLink(fan.username,`<span class="creator-audience-avatar">${avatarHTML(fan)}</span>`,'creator-audience-profile')}
+    <div class="creator-fan-copy">
+      ${profileLink(fan.username,`<b>${esc(fan.display_name)} ${fan.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+      <small>@${esc(fan.username)}</small>
+      <span>♥ ${Number(fan.like_count || 0)} · ◯ ${Number(fan.comment_count || 0)} · ⟳ ${Number(fan.repost_count || 0)}</span>
+    </div>
+    <strong>${Number(fan.interaction_count || 0)}</strong>
+  </article>`).join('');
+}
+
+function creatorTopContentHTML(posts = []) {
+  if (!posts.length) return '<div class="creator-empty compact">Todavía no hay contenido con actividad reciente.</div>';
+  return posts.map((post,index)=>`<button type="button" class="creator-top-content-row" data-open-post="${post.id}">
+    <span class="creator-top-content-rank">${index + 1}</span>
+    <span class="creator-top-content-media">${tileContentHTML(post)}</span>
+    <span class="creator-top-content-copy">
+      <b>${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
+      <small>♥ ${Number(post.like_count_30d || 0)} · ◯ ${Number(post.comment_count_30d || 0)} · ⟳ ${Number(post.repost_count_30d || 0)} · ★ ${Number(post.save_count_30d || 0)} guardados</small>
+    </span>
+  </button>`).join('');
+}
+
 function creatorAudienceHTML(users = []) {
   if (!users.length) return '<div class="creator-empty">Todavía no tienes seguidores.</div>';
   return users.map(user=>`<article class="creator-audience-person">
@@ -1312,7 +1346,9 @@ function creatorBroadcastAvailability(nextBroadcastAt) {
 }
 
 function creatorMetric(label,total,recent=null) {
-  return `<article class="creator-metric"><span>${esc(label)}</span><b>${Number(total || 0)}</b>${recent === null ? '' : `<small>+${Number(recent || 0)} · últimos 30 días</small>`}</article>`;
+  const numeric=typeof total==='number' || (typeof total==='string' && total.trim()!=='' && Number.isFinite(Number(total)));
+  const value=numeric ? Number(total || 0).toLocaleString('es-ES') : esc(total || '0');
+  return `<article class="creator-metric"><span>${esc(label)}</span><b>${value}</b>${recent === null ? '' : `<small>+${Number(recent || 0).toLocaleString('es-ES')} · últimos 30 días</small>`}</article>`;
 }
 
 function creatorPostHTML(post) {
@@ -1377,6 +1413,17 @@ async function loadCreatorCenter() {
     audienceRoot.innerHTML=creatorAudienceHTML(Array.isArray(d.audience) ? d.audience : []);
   }
 
+  const engagement=d.engagement || {};
+  if($('#creatorEngagementSummary')){
+    $('#creatorEngagementSummary').innerHTML=creatorEngagementSummaryHTML(engagement);
+  }
+  if($('#creatorTopFans')){
+    $('#creatorTopFans').innerHTML=creatorTopFansHTML(Array.isArray(engagement.topFans) ? engagement.topFans : []);
+  }
+  if($('#creatorTopContent')){
+    $('#creatorTopContent').innerHTML=creatorTopContentHTML(Array.isArray(engagement.topContent) ? engagement.topContent : []);
+  }
+
   const historyRoot=$('#creatorBroadcastHistory');
   if(historyRoot){
     historyRoot.innerHTML=creatorBroadcastHistoryHTML(Array.isArray(d.broadcasts) ? d.broadcasts : []);
@@ -1399,6 +1446,9 @@ async function openCreatorModal() {
   $('#creatorMetrics').innerHTML = '<div class="mini-loading">Cargando métricas...</div>';
   $('#creatorPosts').innerHTML = '';
   if($('#creatorAudience'))$('#creatorAudience').innerHTML='<div class="mini-loading">Cargando audiencia...</div>';
+  if($('#creatorEngagementSummary'))$('#creatorEngagementSummary').innerHTML='<div class="mini-loading">Calculando engagement...</div>';
+  if($('#creatorTopFans'))$('#creatorTopFans').innerHTML='';
+  if($('#creatorTopContent'))$('#creatorTopContent').innerHTML='';
   if($('#creatorBroadcastHistory'))$('#creatorBroadcastHistory').innerHTML='';
   if($('#creatorBroadcastStatus'))$('#creatorBroadcastStatus').textContent='';
   await loadCreatorCenter();
