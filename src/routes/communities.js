@@ -1248,14 +1248,19 @@ router.patch('/:id/moderation/reports/:reportId',async(req,res)=>{
   const parsed=reportReviewSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_decision'});
   const state=await communityState(req.params.id,req.user.id);if(!state)return res.status(404).json({error:'community_not_found'});
   if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
+  const target=await db.query(
+    "SELECT target_type,target_id FROM community_reports WHERE id=$1 AND community_id=$2 AND status='open' LIMIT 1",
+    [req.params.reportId,state.id]
+  );
+  if(!target.rowCount)return res.status(404).json({error:'report_not_found'});
+  const item=target.rows[0];
   const updated=await db.query(`
-    UPDATE community_reports SET status=$3,reviewed_by=$4,reviewed_at=now()
-     WHERE id=$1 AND community_id=$2 AND status='open'
-     RETURNING id,target_type,target_id
-  `,[req.params.reportId,state.id,parsed.data.decision,req.user.id]);
-  if(!updated.rowCount)return res.status(404).json({error:'report_not_found'});
-  await logModeration(db,state.id,req.user.id,'report_'+parsed.data.decision,updated.rows[0].target_type,Number(updated.rows[0].target_id),parsed.data.note);
-  res.json({ok:true});
+    UPDATE community_reports SET status=$4,reviewed_by=$5,reviewed_at=now()
+     WHERE community_id=$1 AND target_type=$2 AND target_id=$3 AND status='open'
+     RETURNING id
+  `,[state.id,item.target_type,item.target_id,parsed.data.decision,req.user.id]);
+  await logModeration(db,state.id,req.user.id,'report_'+parsed.data.decision,item.target_type,Number(item.target_id),parsed.data.note);
+  res.json({ok:true,closed_reports:updated.rowCount});
 });
 
 const sanctionSchema=z.object({
