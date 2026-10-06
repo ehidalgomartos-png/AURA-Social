@@ -6,6 +6,22 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let commentsV141Ready=null;
+async function ensureCommentsV141(){
+  if(!commentsV141Ready){
+    commentsV141Ready=(async()=>{
+      await db.query("ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_comment_id BIGINT REFERENCES comments(id) ON DELETE CASCADE");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_comments_post_parent_created ON comments(post_id,parent_comment_id,created_at,id)");
+    })().catch(error=>{commentsV141Ready=null;throw error;});
+  }
+  return commentsV141Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureCommentsV141();next();}
+  catch(error){console.error('RedLibertad V1.41 comments bootstrap failed:',error);res.status(500).json({error:'comments_bootstrap_failed'});}
+});
+
+
 let reelsV139Ready=null;
 async function ensureReelsV139(){
   if(!reelsV139Ready){
@@ -2533,6 +2549,7 @@ async function attachCommentPreviews(rows, viewer = null) {
         FROM comments c
         JOIN users u ON u.id=c.user_id
         WHERE c.post_id = ANY($1::bigint[])
+          AND c.parent_comment_id IS NULL
           AND u.status='active'
       ) latest
      WHERE rn <= 2
@@ -3356,17 +3373,27 @@ router.get('/:id/comments', requireAuth, async (req,res)=>{
       c.id,
       c.body,
       c.created_at,
+      c.parent_comment_id,
       u.id AS user_id,
       u.username,
       u.display_name,
       u.avatar_url,
-      u.creator_verified
+      u.creator_verified,
+      parent_user.username AS parent_username,
+      parent_user.display_name AS parent_display_name,
+      (SELECT count(*)::int FROM comments child WHERE child.parent_comment_id=c.id) AS reply_count
     FROM comments c
     JOIN users u ON u.id=c.user_id
+    LEFT JOIN comments parent_comment ON parent_comment.id=c.parent_comment_id
+    LEFT JOIN users parent_user ON parent_user.id=parent_comment.user_id
     WHERE c.post_id=$1
       AND u.status='active'
-    ORDER BY c.created_at ASC
-    LIMIT 250
+    ORDER BY
+      COALESCE(c.parent_comment_id,c.id) ASC,
+      CASE WHEN c.parent_comment_id IS NULL THEN 0 ELSE 1 END,
+      c.created_at ASC,
+      c.id ASC
+    LIMIT 500
   `,[req.params.id]);
 
   const postOwnerId = post.user_id;
@@ -3381,7 +3408,6 @@ router.get('/:id/comments', requireAuth, async (req,res)=>{
 
   res.json({comments});
 });
-
 
 router.delete('/:postId/comments/:commentId', requireAuth, async (req,res)=>{
   const found = await db.query(`
@@ -3419,37 +3445,88 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req,res)=>{
   res.json({ok:true});
 });
 
-const commentSchema=z.object({body:z.string().min(1).max(1000)});
+const commentSchema=z.object({
+  body:z.string().trim().min(1).max(1000),
+  parentCommentId:z.coerce.number().int().positive().optional().nullable()
+});
 router.post('/:id/comments',requireAuth,async(req,res)=>{
   const parsed=commentSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_comment'});
   const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
   if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
+  let parentComment=null;
+  let rootParentId=null;
+  if(parsed.data.parentCommentId){
+    const parent=await db.query(`
+      SELECT c.id,c.user_id,c.parent_comment_id,u.username,u.display_name
+        FROM comments c
+        JOIN users u ON u.id=c.user_id
+       WHERE c.id=$1
+         AND c.post_id=$2
+         AND u.status='active'
+       LIMIT 1
+    `,[parsed.data.parentCommentId,req.params.id]);
+    if(!parent.rowCount)return res.status(400).json({error:'invalid_parent_comment'});
+    parentComment=parent.rows[0];
+    rootParentId=parentComment.parent_comment_id || parentComment.id;
+  }
+
   const result=await db.query(`
-    INSERT INTO comments (user_id,post_id,body)
-    VALUES ($1,$2,$3)
-    RETURNING id,user_id,post_id,body,created_at
-  `,[req.user.id,req.params.id,parsed.data.body]);
+    INSERT INTO comments (user_id,post_id,parent_comment_id,body)
+    VALUES ($1,$2,$3,$4)
+    RETURNING id,user_id,post_id,parent_comment_id,body,created_at
+  `,[req.user.id,req.params.id,rootParentId,parsed.data.body]);
 
   const ownerId=visiblePost.user_id;
+  const replyTargetId=parentComment?.user_id || null;
 
-  if(String(ownerId)!==String(req.user.id)){
+  if(replyTargetId && String(replyTargetId)!==String(req.user.id)){
     await db.query(`
       INSERT INTO notifications (
         user_id,actor_id,type,entity_type,entity_id,text
       )
-      VALUES ($1,$2,'comment','post',$3,'Ha comentado tu publicación.')
-    `,[ownerId,req.user.id,req.params.id]);
+      VALUES ($1,$2,'comment','post',$3,'Ha respondido a tu comentario.')
+    `,[replyTargetId,req.user.id,req.params.id]);
+  }
+
+  if(
+    String(ownerId)!==String(req.user.id) &&
+    (!replyTargetId || String(ownerId)!==String(replyTargetId))
+  ){
+    await db.query(`
+      INSERT INTO notifications (
+        user_id,actor_id,type,entity_type,entity_id,text
+      )
+      VALUES ($1,$2,'comment','post',$3,$4)
+    `,[
+      ownerId,
+      req.user.id,
+      req.params.id,
+      rootParentId ? 'Ha respondido en los comentarios de tu publicación.' : 'Ha comentado tu publicación.'
+    ]);
   }
 
   try {
-    await notifyMentions({actorId:req.user.id,text:parsed.data.body,entityType:'post',entityId:req.params.id,audience:visiblePost.audience});
+    await notifyMentions({
+      actorId:req.user.id,
+      text:parsed.data.body,
+      entityType:'post',
+      entityId:req.params.id,
+      audience:visiblePost.audience
+    });
   } catch (mentionError) {
     console.warn('RedLibertad comment mention notification failed:',mentionError?.message || mentionError);
   }
 
-  res.status(201).json({ok:true,comment:result.rows[0]});
+  res.status(201).json({
+    ok:true,
+    comment:{
+      ...result.rows[0],
+      parent_username:parentComment?.username || null,
+      parent_display_name:parentComment?.display_name || null
+    }
+  });
 });
 
 module.exports = router;
