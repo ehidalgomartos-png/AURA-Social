@@ -2274,7 +2274,7 @@ document.addEventListener('click',async event=>{
       ids=[single.dataset.creatorActivityReviewId];
     }else{
       const group=(creatorCommunityActivityData?.groups || []).find(item=>item.key===groupButton.dataset.creatorActivityReviewGroup);
-      ids=group ? group.notification_ids : [];
+      ids=group ? group.pending_notification_ids : [];
     }
     if(!ids.length)throw new Error('No hay actividad pendiente en este grupo.');
 
