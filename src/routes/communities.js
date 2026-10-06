@@ -133,7 +133,12 @@ async function communityState(communityId,userId){
       request.status AS request_status,
       (SELECT count(*)::int FROM community_members cm WHERE cm.community_id=c.id) AS member_count,
       (SELECT count(*)::int FROM community_join_requests jr WHERE jr.community_id=c.id AND jr.status='pending') AS pending_request_count,
-      (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published') AS post_count
+      (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published') AS post_count,
+      EXISTS(
+        SELECT 1 FROM blocks owner_block
+         WHERE (owner_block.blocker_id=$2 AND owner_block.blocked_id=c.owner_id)
+            OR (owner_block.blocker_id=c.owner_id AND owner_block.blocked_id=$2)
+      ) AS blocked_with_owner
     FROM communities c
     JOIN users owner ON owner.id=c.owner_id
     LEFT JOIN community_members member
@@ -147,9 +152,9 @@ async function communityState(communityId,userId){
   if(!result.rowCount)return null;
   const row=result.rows[0];
   row.is_member=!!row.viewer_role;
-  row.can_manage=['owner','admin'].includes(row.viewer_role);
-  row.can_manage_roles=row.viewer_role==='owner';
-  row.can_view_content=row.privacy==='public' || row.is_member;
+  row.can_manage=!row.blocked_with_owner && ['owner','admin'].includes(row.viewer_role);
+  row.can_manage_roles=!row.blocked_with_owner && row.viewer_role==='owner';
+  row.can_view_content=!row.blocked_with_owner && (row.privacy==='public' || row.is_member);
   return row;
 }
 
