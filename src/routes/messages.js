@@ -41,6 +41,25 @@ async function ensureMessagePrivacy() {
       await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_post_ref_id BIGINT");
       await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post ON messages(shared_post_id)");
       await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post_ref ON messages(shared_post_ref_id)");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_story_id BIGINT REFERENCES stories(id) ON DELETE SET NULL");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_story_ref_id BIGINT");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_profile_id BIGINT REFERENCES users(id) ON DELETE SET NULL");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_profile_ref_id BIGINT");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_story ON messages(shared_story_id)");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_profile ON messages(shared_profile_id)");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS social_share_history (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          entity_type TEXT NOT NULL CHECK(entity_type IN ('post','reel','story','profile')),
+          entity_id BIGINT NOT NULL,
+          target_type TEXT NOT NULL CHECK(target_type IN ('conversation','community','external','copy')),
+          target_id BIGINT,
+          target_label VARCHAR(160) NOT NULL DEFAULT '',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_social_share_history_user_created ON social_share_history(user_id,created_at DESC)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct'");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
@@ -136,6 +155,116 @@ async function conversationDetails(conversationId,userId){
     community_id:communityId,
     community_managed:!!communityId
   };
+}
+
+async function postShareAccess(postId,userId){
+  const result=await db.query(`
+    SELECT p.id,p.user_id,p.post_kind,p.audience,p.content_level
+      FROM posts p JOIN users author ON author.id=p.user_id
+     WHERE p.id=$1 AND p.moderation_status='published' AND author.status='active'
+       AND (
+         p.user_id=$2
+         OR EXISTS(SELECT 1 FROM users a WHERE a.id=$2 AND a.is_admin=true)
+         OR p.audience='public'
+         OR (
+           p.audience='vip' AND EXISTS(
+             SELECT 1 FROM creator_vips cv JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+              WHERE cv.creator_id=p.user_id AND cv.fan_id=$2
+           )
+         )
+         OR (
+           p.audience='connections'
+           AND EXISTS(SELECT 1 FROM follows f1 WHERE f1.follower_id=p.user_id AND f1.following_id=$2)
+           AND EXISTS(SELECT 1 FROM follows f2 WHERE f2.follower_id=$2 AND f2.following_id=p.user_id)
+         )
+         OR (
+           p.audience='circles' AND EXISTS(
+             SELECT 1 FROM post_circle_audiences pca
+             JOIN connection_circles cc ON cc.id=pca.circle_id AND cc.user_id=p.user_id
+             JOIN connection_circle_members cm ON cm.circle_id=cc.id AND cm.connection_user_id=$2
+             WHERE pca.post_id=p.id
+           )
+         )
+         OR EXISTS(SELECT 1 FROM post_participants pp WHERE pp.post_id=p.id AND pp.user_id=$2 AND pp.consent_status='approved')
+         OR EXISTS(SELECT 1 FROM post_collaborators pc WHERE pc.post_id=p.id AND pc.user_id=$2 AND pc.status='approved')
+       )
+       AND (
+         p.user_id=$2 OR NOT EXISTS(
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id=$2 AND b.blocked_id=p.user_id)
+               OR (b.blocker_id=p.user_id AND b.blocked_id=$2)
+         )
+       )
+     LIMIT 1
+  `,[postId,userId]);
+  return result.rows[0]||null;
+}
+
+async function storyShareAccess(storyId,userId){
+  const result=await db.query(`
+    SELECT s.id,s.user_id,s.audience,s.content_level,s.media_url,s.media_type,s.media_provider,s.playback_url,
+           u.username,u.display_name,u.avatar_url
+      FROM stories s JOIN users u ON u.id=s.user_id
+     WHERE s.id=$1 AND s.expires_at>now() AND s.moderation_status='published' AND u.status='active'
+       AND (
+         s.user_id=$2
+         OR EXISTS(SELECT 1 FROM users a WHERE a.id=$2 AND a.is_admin=true)
+         OR s.audience='public'
+         OR (
+           s.audience='vip' AND EXISTS(
+             SELECT 1 FROM creator_vips cv JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+              WHERE cv.creator_id=s.user_id AND cv.fan_id=$2
+           )
+         )
+         OR (
+           s.audience='connections'
+           AND EXISTS(SELECT 1 FROM follows f1 WHERE f1.follower_id=s.user_id AND f1.following_id=$2)
+           AND EXISTS(SELECT 1 FROM follows f2 WHERE f2.follower_id=$2 AND f2.following_id=s.user_id)
+         )
+         OR (
+           s.audience='circles' AND EXISTS(
+             SELECT 1 FROM story_circle_audiences sca
+             JOIN connection_circles cc ON cc.id=sca.circle_id AND cc.user_id=s.user_id
+             JOIN connection_circle_members cm ON cm.circle_id=cc.id AND cm.connection_user_id=$2
+             WHERE sca.story_id=s.id
+           )
+         )
+       )
+       AND (
+         s.user_id=$2 OR NOT EXISTS(
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id=$2 AND b.blocked_id=s.user_id)
+               OR (b.blocker_id=s.user_id AND b.blocked_id=$2)
+         )
+       )
+     LIMIT 1
+  `,[storyId,userId]);
+  return result.rows[0]||null;
+}
+
+async function profileShareAccess(profileId,userId){
+  const result=await db.query(`
+    SELECT id,username,display_name,avatar_url,creator_verified,bio
+      FROM users
+     WHERE id=$1 AND status='active'
+       AND (
+         id=$2 OR NOT EXISTS(
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id=$2 AND b.blocked_id=id)
+               OR (b.blocker_id=id AND b.blocked_id=$2)
+         )
+       )
+     LIMIT 1
+  `,[profileId,userId]);
+  return result.rows[0]||null;
+}
+
+async function allConversationMembersCan(details,checker,entityId){
+  for(const member of details.participants){
+    if(member.status!=='active')return false;
+    if(!await checker(entityId,member.id))return false;
+  }
+  return true;
 }
 
 async function otherMember(conversationId,userId){
