@@ -288,7 +288,7 @@ async function runReminderSweep(){
         )
         RETURNING id
       `,[row.user_id,row.event_id,`Recordatorio: “${row.title}” empieza pronto.`]);
-      if(inserted.rowCount||true)await db.query('UPDATE event_reminders SET sent_at=now() WHERE event_id=$1 AND user_id=$2',[row.event_id,row.user_id]);
+      await db.query('UPDATE event_reminders SET sent_at=now() WHERE event_id=$1 AND user_id=$2',[row.event_id,row.user_id]);
     }
   }catch(error){console.error('RedLibertad event reminder sweep failed:',error);}finally{reminderRunning=false;}
 }
