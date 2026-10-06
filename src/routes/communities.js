@@ -1073,6 +1073,8 @@ router.post('/:id/share-post',async(req,res)=>{
   if(!state)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
   if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
+  const restriction=await activeCommunityRestriction(state.id,req.user.id);
+  if(restriction)return res.status(403).json({error:'community_posting_restricted',restriction:restriction.action,expiresAt:restriction.expires_at});
   const source=await db.query(`
     SELECT p.id,p.user_id,p.post_kind
       FROM posts p JOIN users u ON u.id=p.user_id
