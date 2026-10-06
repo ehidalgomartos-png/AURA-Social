@@ -772,7 +772,7 @@ function postAudienceWhere(viewerParam=null, alias='p') {
 
 async function accessiblePublishedPost(postId, viewerId) {
   const result=await db.query(`
-    SELECT p.id,p.user_id,p.audience,p.content_level
+    SELECT p.id,p.user_id,p.audience,p.content_level,p.post_kind
       FROM posts p
      WHERE p.id=$1
        AND p.moderation_status='published'
@@ -2842,15 +2842,8 @@ router.get('/reels',requireAuth,async(req,res)=>{
 
 router.post('/:id/reel-view',requireAuth,async(req,res)=>{
   const post=await accessiblePublishedPost(req.params.id,req.user.id);
-  if(!post || post.post_kind!=='reel'){
-    const reel=await db.query(
-      "SELECT id,user_id,post_kind FROM posts WHERE id=$1 AND moderation_status='published' LIMIT 1",
-      [req.params.id]
-    );
-    if(!reel.rowCount || reel.rows[0].post_kind!=='reel')return res.status(404).json({error:'reel_not_found'});
-    if(String(reel.rows[0].user_id)===String(req.user.id))return res.json({ok:true,viewed:false,own:true});
-  }
-  if(String(post?.user_id || '')===String(req.user.id))return res.json({ok:true,viewed:false,own:true});
+  if(!post || post.post_kind!=='reel')return res.status(404).json({error:'reel_not_found'});
+  if(String(post.user_id)===String(req.user.id))return res.json({ok:true,viewed:false,own:true});
   await db.query(`
     INSERT INTO reel_views(post_id,viewer_id)
     VALUES ($1,$2)
