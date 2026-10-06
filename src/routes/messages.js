@@ -333,7 +333,9 @@ router.post('/conversations', async (req, res) => {
     SELECT cm1.conversation_id AS id
       FROM conversation_members cm1
       JOIN conversation_members cm2 ON cm2.conversation_id=cm1.conversation_id
+     JOIN conversations direct_conversation ON direct_conversation.id=cm1.conversation_id
      WHERE cm1.user_id=$1 AND cm2.user_id=$2
+       AND direct_conversation.conversation_type='direct'
        AND (SELECT count(*) FROM conversation_members z WHERE z.conversation_id=cm1.conversation_id)=2
      LIMIT 1
   `, [req.user.id, targetId]);
@@ -356,9 +358,16 @@ router.post('/conversations', async (req, res) => {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
-    const c = await client.query(`INSERT INTO conversations DEFAULT VALUES RETURNING id`);
+    const c = await client.query(`
+      INSERT INTO conversations(conversation_type,created_by)
+      VALUES ('direct',$1)
+      RETURNING id
+    `,[req.user.id]);
     const id = c.rows[0].id;
-    await client.query(`INSERT INTO conversation_members (conversation_id,user_id) VALUES ($1,$2),($1,$3)`, [id, req.user.id, targetId]);
+    await client.query(`
+      INSERT INTO conversation_members (conversation_id,user_id,member_role)
+      VALUES ($1,$2,'owner'),($1,$3,'member')
+    `, [id, req.user.id, targetId]);
     await client.query('COMMIT');
     res.status(201).json({ ok: true, conversationId: id, existing: false });
   } catch (e) {
@@ -368,6 +377,220 @@ router.post('/conversations', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+
+const createGroupSchema=z.object({
+  title:z.string().trim().min(1).max(120),
+  usernames:z.array(z.string().trim().min(1).max(30)).min(2).max(19)
+});
+
+router.post('/groups',async(req,res)=>{
+  const parsed=createGroupSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_group'});
+
+  const normalized=[...new Set(
+    parsed.data.usernames
+      .map(value=>String(value).replace(/^@/,'').trim().toLowerCase())
+      .filter(Boolean)
+  )];
+  if(normalized.length<2)return res.status(400).json({error:'group_requires_two_invitees'});
+
+  const targets=await db.query(`
+    SELECT id,username,display_name,avatar_url,status,message_privacy
+      FROM users
+     WHERE lower(username)=ANY($1::text[])
+  `,[normalized]);
+
+  if(targets.rowCount!==normalized.length){
+    return res.status(404).json({error:'group_user_not_found'});
+  }
+
+  const eligible=[];
+  for(const target of targets.rows){
+    const check=await inviteEligibility(req.user.id,target.id);
+    if(!check.ok){
+      return res.status(
+        check.error==='user_not_found' ? 404 :
+        check.error==='cannot_message_self' || check.error==='invalid_data' ? 400 : 403
+      ).json({error:check.error,username:target.username});
+    }
+    eligible.push(check.user);
+  }
+
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const created=await client.query(`
+      INSERT INTO conversations(conversation_type,title,created_by)
+      VALUES ('group',$1,$2)
+      RETURNING id,title,created_by
+    `,[parsed.data.title,req.user.id]);
+    const conversationId=created.rows[0].id;
+
+    await client.query(`
+      INSERT INTO conversation_members(conversation_id,user_id,member_role)
+      VALUES ($1,$2,'owner')
+    `,[conversationId,req.user.id]);
+
+    for(const target of eligible){
+      await client.query(`
+        INSERT INTO conversation_members(conversation_id,user_id,member_role)
+        VALUES ($1,$2,'member')
+      `,[conversationId,target.id]);
+    }
+
+    await client.query(`
+      INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+      SELECT member.user_id,$2,'message','conversation',$1,$3
+        FROM conversation_members member
+       WHERE member.conversation_id=$1
+         AND member.user_id<>$2
+    `,[
+      conversationId,
+      req.user.id,
+      `Te han añadido al grupo “${parsed.data.title}”.`
+    ]);
+
+    await client.query('COMMIT');
+    res.status(201).json({
+      ok:true,
+      conversationId,
+      group:{
+        id:conversationId,
+        title:parsed.data.title,
+        memberCount:eligible.length+1
+      }
+    });
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad group create failed:',error);
+    res.status(500).json({error:'group_create_failed'});
+  }finally{
+    client.release();
+  }
+});
+
+const groupTitleSchema=z.object({
+  title:z.string().trim().min(1).max(120)
+});
+
+router.patch('/conversations/:id/group',async(req,res)=>{
+  const parsed=groupTitleSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_group_title'});
+  const details=await conversationDetails(req.params.id,req.user.id);
+  if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(!['owner','admin'].includes(details.member_role)){
+    return res.status(403).json({error:'group_admin_required'});
+  }
+
+  const updated=await db.query(`
+    UPDATE conversations
+       SET title=$2,updated_at=now()
+     WHERE id=$1 AND conversation_type='group'
+     RETURNING id,title,updated_at
+  `,[req.params.id,parsed.data.title]);
+  res.json({ok:true,group:updated.rows[0]});
+});
+
+const addGroupMemberSchema=z.object({
+  username:z.string().trim().min(1).max(30)
+});
+
+router.post('/conversations/:id/group/members',async(req,res)=>{
+  const parsed=addGroupMemberSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_group_member'});
+  const details=await conversationDetails(req.params.id,req.user.id);
+  if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(!['owner','admin'].includes(details.member_role)){
+    return res.status(403).json({error:'group_admin_required'});
+  }
+  if(details.member_count>=20)return res.status(409).json({error:'group_member_limit'});
+
+  const username=parsed.data.username.replace(/^@/,'');
+  const target=await db.query(
+    'SELECT id,username FROM users WHERE lower(username)=lower($1) LIMIT 1',
+    [username]
+  );
+  if(!target.rowCount)return res.status(404).json({error:'user_not_found'});
+
+  const targetId=target.rows[0].id;
+  if(details.participants.some(member=>String(member.id)===String(targetId))){
+    return res.status(409).json({error:'already_group_member'});
+  }
+
+  const check=await inviteEligibility(req.user.id,targetId);
+  if(!check.ok){
+    return res.status(check.error==='user_not_found' ? 404 : 403).json({error:check.error});
+  }
+
+  await db.query(`
+    INSERT INTO conversation_members(conversation_id,user_id,member_role)
+    VALUES ($1,$2,'member')
+  `,[req.params.id,targetId]);
+
+  await db.query(`
+    UPDATE conversations SET updated_at=now() WHERE id=$1
+  `,[req.params.id]);
+
+  await db.query(`
+    INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+    VALUES ($1,$2,'message','conversation',$3,$4)
+  `,[
+    targetId,
+    req.user.id,
+    req.params.id,
+    `Te han añadido al grupo “${details.title || 'Grupo'}”.`
+  ]);
+
+  res.status(201).json({ok:true,member:check.user});
+});
+
+router.delete('/conversations/:id/group/members/:userId',async(req,res)=>{
+  const details=await conversationDetails(req.params.id,req.user.id);
+  if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(!['owner','admin'].includes(details.member_role)){
+    return res.status(403).json({error:'group_admin_required'});
+  }
+
+  const target=details.participants.find(member=>String(member.id)===String(req.params.userId));
+  if(!target)return res.status(404).json({error:'group_member_not_found'});
+  if(target.member_role==='owner')return res.status(409).json({error:'cannot_remove_group_owner'});
+  if(details.member_role==='admin' && target.member_role==='admin'){
+    return res.status(403).json({error:'owner_required'});
+  }
+
+  await db.query(
+    'DELETE FROM conversation_members WHERE conversation_id=$1 AND user_id=$2',
+    [req.params.id,req.params.userId]
+  );
+  await db.query('UPDATE conversations SET updated_at=now() WHERE id=$1',[req.params.id]);
+  res.json({ok:true});
+});
+
+router.post('/conversations/:id/group/leave',async(req,res)=>{
+  const details=await conversationDetails(req.params.id,req.user.id);
+  if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.member_role==='owner'){
+    return res.status(409).json({error:'group_owner_cannot_leave'});
+  }
+
+  await db.query(
+    'DELETE FROM conversation_members WHERE conversation_id=$1 AND user_id=$2',
+    [req.params.id,req.user.id]
+  );
+  await db.query('UPDATE conversations SET updated_at=now() WHERE id=$1',[req.params.id]);
+  res.json({ok:true});
+});
+
+router.delete('/conversations/:id/group',async(req,res)=>{
+  const details=await conversationDetails(req.params.id,req.user.id);
+  if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.member_role!=='owner'){
+    return res.status(403).json({error:'group_owner_required'});
+  }
+  await db.query('DELETE FROM conversations WHERE id=$1',[req.params.id]);
+  res.json({ok:true});
 });
 
 const conversationSettingsSchema=z.object({
