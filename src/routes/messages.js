@@ -1030,6 +1030,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
     SELECT
       m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
       m.content_level,m.created_at,m.reply_to_message_id,m.shared_post_id,m.shared_post_ref_id,
+      m.shared_story_id,m.shared_story_ref_id,m.shared_profile_id,m.shared_profile_ref_id,
       u.username,u.display_name,u.avatar_url,
       shared_post.id AS shared_post_actual_id,
       shared_post.user_id AS shared_post_user_id,
@@ -1124,6 +1125,18 @@ router.get('/conversations/:id/messages', async (req, res) => {
     joinedAt:row.joined_at ? new Date(row.joined_at).getTime() : 0
   }));
 
+  const postAccessMap=new Map();
+  const storyAccessMap=new Map();
+  const profileAccessMap=new Map();
+  for(const row of r.rows){
+    const postRef=row.shared_post_ref_id||row.shared_post_id;
+    const storyRef=row.shared_story_ref_id||row.shared_story_id;
+    const profileRef=row.shared_profile_ref_id||row.shared_profile_id;
+    if(postRef&&!postAccessMap.has(String(postRef)))postAccessMap.set(String(postRef),await postShareAccess(postRef,req.user.id));
+    if(storyRef&&!storyAccessMap.has(String(storyRef)))storyAccessMap.set(String(storyRef),await storyShareAccess(storyRef,req.user.id));
+    if(profileRef&&!profileAccessMap.has(String(profileRef)))profileAccessMap.set(String(profileRef),await profileShareAccess(profileRef,req.user.id));
+  }
+
   const messages=r.rows.map(m=>{
     const isOwn=String(m.sender_id)===String(req.user.id);
     const senderAllowed=isOwn || allowedSenders.has(String(m.sender_id));
@@ -1193,12 +1206,8 @@ router.get('/conversations/:id/messages', async (req, res) => {
 
     const sharedReference=m.shared_post_ref_id || m.shared_post_id;
     const sharedPost=sharedReference ? (() => {
-      const unavailable=
-        !m.shared_post_actual_id ||
-        m.shared_post_moderation_status!=='published' ||
-        m.shared_post_audience!=='public' ||
-        m.shared_post_author_status!=='active' ||
-        m.shared_post_blocked===true;
+      const access=postAccessMap.get(String(sharedReference));
+      const unavailable=!access || !m.shared_post_actual_id || m.shared_post_author_status!=='active';
 
       if(unavailable){
         return {
@@ -1235,9 +1244,40 @@ router.get('/conversations/:id/messages', async (req, res) => {
       };
     })() : null;
 
+    const sharedStoryReference=m.shared_story_ref_id||m.shared_story_id;
+    const storyAccess=sharedStoryReference?storyAccessMap.get(String(sharedStoryReference)):null;
+    const sharedStory=sharedStoryReference
+      ? storyAccess
+        ? (() => {
+            const sharedIsOwn=String(storyAccess.user_id)===String(req.user.id);
+            const sharedGated=!sharedIsOwn&&storyAccess.content_level!=='normal'&&(!viewer?.age_verified||!viewer?.show_sensitive);
+            return {
+              id:storyAccess.id,unavailable:false,gated:sharedGated,
+              gate_reason:sharedGated?(!viewer?.age_verified?'age_verification_required':'sensitive_content_disabled'):null,
+              content_level:storyAccess.content_level,
+              media_url:sharedGated?null:storyAccess.media_url,
+              media_type:sharedGated?null:storyAccess.media_type,
+              media_provider:sharedGated?null:storyAccess.media_provider,
+              playback_url:sharedGated?null:storyAccess.playback_url,
+              username:storyAccess.username,display_name:storyAccess.display_name,avatar_url:storyAccess.avatar_url
+            };
+          })()
+        : {id:sharedStoryReference,unavailable:true,gated:false}
+      : null;
+
+    const sharedProfileReference=m.shared_profile_ref_id||m.shared_profile_id;
+    const profileAccess=sharedProfileReference?profileAccessMap.get(String(sharedProfileReference)):null;
+    const sharedProfile=sharedProfileReference
+      ? profileAccess
+        ? {...profileAccess,unavailable:false}
+        : {id:sharedProfileReference,unavailable:true}
+      : null;
+
     return {
       ...m,
       shared_post:sharedPost,
+      shared_story:sharedStory,
+      shared_profile:sharedProfile,
       seen_count:seenCount,
       seen_by_other:!details.is_group && seenCount>0,
       seen_by_all:details.is_group && eligibleReaders.length>0 && seenCount>=eligibleReaders.length,
@@ -1323,8 +1363,12 @@ const messageSchema = z.object({
   playbackUrl: z.string().max(4096).optional().nullable(),
   replyToMessageId:z.coerce.number().int().positive().optional().nullable(),
   sharedPostId:z.coerce.number().int().positive().optional().nullable(),
+  sharedStoryId:z.coerce.number().int().positive().optional().nullable(),
+  sharedProfileId:z.coerce.number().int().positive().optional().nullable(),
   contentLevel: z.enum(['normal','sensitive','nudity']).default('normal')
-}).refine(v => v.body.trim() || v.mediaUrl || v.sharedPostId, { message: 'message_empty' });
+})
+.refine(v => v.body.trim() || v.mediaUrl || v.sharedPostId || v.sharedStoryId || v.sharedProfileId, { message: 'message_empty' })
+.refine(v => [v.sharedPostId,v.sharedStoryId,v.sharedProfileId].filter(Boolean).length<=1, { message:'one_shared_entity_only' });
 
 router.post('/conversations/:id/messages', async (req, res) => {
   const id=req.params.id;
@@ -1356,30 +1400,33 @@ router.post('/conversations/:id/messages', async (req, res) => {
       replyToMessageId=replyTarget.rows[0].id;
     }
 
-    let sharedPostId=null;
+    let sharedPostId=null,sharedStoryId=null,sharedProfileId=null,sharedEntityType=null,sharedEntityId=null;
     if(d.sharedPostId){
-      const shareable=await db.query(`
-        SELECT p.id
-          FROM posts p
-          JOIN users author ON author.id=p.user_id
-         WHERE p.id=$1
-           AND p.moderation_status='published'
-           AND p.audience='public'
-           AND author.status='active'
-           AND (
-             p.user_id=$2
-             OR NOT EXISTS(
-               SELECT 1 FROM blocks b
-                WHERE (b.blocker_id=$2 AND b.blocked_id=p.user_id)
-                   OR (b.blocker_id=p.user_id AND b.blocked_id=$2)
-             )
-           )
-         LIMIT 1
-      `,[d.sharedPostId,req.user.id]);
-      if(!shareable.rowCount){
-        return res.status(400).json({error:'post_not_shareable'});
+      const senderAccess=await postShareAccess(d.sharedPostId,req.user.id);
+      if(!senderAccess||!await allConversationMembersCan(details,postShareAccess,d.sharedPostId)){
+        return res.status(400).json({error:'post_not_shareable_with_conversation'});
       }
-      sharedPostId=shareable.rows[0].id;
+      sharedPostId=senderAccess.id;
+      sharedEntityType=senderAccess.post_kind==='reel'?'reel':'post';
+      sharedEntityId=senderAccess.id;
+    }
+    if(d.sharedStoryId){
+      const senderAccess=await storyShareAccess(d.sharedStoryId,req.user.id);
+      if(!senderAccess||!await allConversationMembersCan(details,storyShareAccess,d.sharedStoryId)){
+        return res.status(400).json({error:'story_not_shareable_with_conversation'});
+      }
+      sharedStoryId=senderAccess.id;
+      sharedEntityType='story';
+      sharedEntityId=senderAccess.id;
+    }
+    if(d.sharedProfileId){
+      const senderAccess=await profileShareAccess(d.sharedProfileId,req.user.id);
+      if(!senderAccess||!await allConversationMembersCan(details,profileShareAccess,d.sharedProfileId)){
+        return res.status(400).json({error:'profile_not_shareable_with_conversation'});
+      }
+      sharedProfileId=senderAccess.id;
+      sharedEntityType='profile';
+      sharedEntityId=senderAccess.id;
     }
 
     const sender=await userRow(req.user.id);
@@ -1411,9 +1458,13 @@ router.post('/conversations/:id/messages', async (req, res) => {
           content_level,
           reply_to_message_id,
           shared_post_id,
-          shared_post_ref_id
+          shared_post_ref_id,
+          shared_story_id,
+          shared_story_ref_id,
+          shared_profile_id,
+          shared_profile_ref_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
         RETURNING *
       `,[
         id,
@@ -1427,8 +1478,22 @@ router.post('/conversations/:id/messages', async (req, res) => {
         d.contentLevel,
         replyToMessageId,
         sharedPostId,
-        sharedPostId
+        sharedPostId,
+        sharedStoryId,
+        sharedStoryId,
+        sharedProfileId,
+        sharedProfileId
       ]);
+
+      if(sharedEntityType&&sharedEntityId){
+        await client.query(`
+          INSERT INTO social_share_history(user_id,entity_type,entity_id,target_type,target_id,target_label)
+          VALUES($1,$2,$3,'conversation',$4,$5)
+        `,[
+          req.user.id,sharedEntityType,sharedEntityId,id,
+          details.is_group?(details.title||'Grupo'):(details.other?.display_name||details.other?.username||'Chat')
+        ]);
+      }
 
       await client.query(
         'UPDATE conversations SET updated_at=now() WHERE id=$1',
@@ -1453,11 +1518,12 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }
 
     try{
-      const text=sharedPostId
+      const sharedLabel=sharedPostId?'una publicación':sharedStoryId?'una Story':sharedProfileId?'un perfil':'';
+      const text=sharedLabel
         ? (
             details.is_group
-              ? `${sender?.display_name || sender?.username || 'Alguien'} ha compartido una publicación en “${details.title || 'Grupo'}”.`
-              : 'Te ha compartido una publicación.'
+              ? `${sender?.display_name || sender?.username || 'Alguien'} ha compartido ${sharedLabel} en “${details.title || 'Grupo'}”.`
+              : `Te ha compartido ${sharedLabel}.`
           )
         : details.is_group
           ? (
