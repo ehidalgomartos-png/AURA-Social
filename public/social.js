@@ -25,6 +25,8 @@ let visibleStories = [];
 let storyGroups = new Map();
 let activeStoryGroup = [];
 let activeStoryIndex = 0;
+let creatorCalendarMonth = new Date(new Date().getFullYear(),new Date().getMonth(),1);
+let creatorCalendarPosts = [];
 
 
 async function api(url, opts = {}) {
@@ -1544,6 +1546,11 @@ function creatorPublishingHTML(posts = []) {
       </div>
       <p>${esc(String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel sin texto' : 'Publicación sin texto'))}</p>
       <small>${post.content_level==='normal' ? 'Normal' : post.content_level==='sensitive' ? 'Sensible' : 'Desnudez'}${Number(post.pending_consent_count || 0)>0 ? ` · ${Number(post.pending_consent_count)} consentimientos pendientes` : ''}</small>
+      <div class="creator-editorial-fields">
+        <input type="date" data-editorial-date="${post.id}" value="${esc(post.editorial_date || '')}" title="Fecha editorial privada">
+        <input type="text" maxlength="40" data-editorial-label="${post.id}" value="${esc(post.editorial_label || '')}" placeholder="Etiqueta interna">
+        <button type="button" class="tiny-action" data-editorial-save="${post.id}">Guardar organización</button>
+      </div>
       <div class="creator-publishing-schedule">
         <input type="datetime-local" data-publishing-date="${post.id}" value="${toLocalDateTimeInput(post.scheduled_for)}">
         <button type="button" class="secondary" data-publishing-schedule="${post.id}">${post.creator_state==='scheduled' ? 'Reprogramar' : 'Programar'}</button>
@@ -1571,6 +1578,145 @@ function renderCreatorPublishing(data = {}) {
   if($('#creatorPublishingHint')){
     $('#creatorPublishingHint').textContent='Guarda borradores o programa publicaciones entre 5 minutos y 90 días.';
   }
+}
+
+
+function localYmd(value) {
+  if(value instanceof Date){
+    const y=value.getFullYear();
+    const m=String(value.getMonth()+1).padStart(2,'0');
+    const d=String(value.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  const date=value ? new Date(value) : null;
+  return date && Number.isFinite(date.getTime()) ? localYmd(date) : '';
+}
+
+function creatorCalendarRange() {
+  const start=new Date(creatorCalendarMonth.getFullYear(),creatorCalendarMonth.getMonth(),1);
+  const end=new Date(creatorCalendarMonth.getFullYear(),creatorCalendarMonth.getMonth()+1,1);
+  return {
+    start,
+    end,
+    from:start.toISOString(),
+    to:end.toISOString(),
+    dateFrom:localYmd(start),
+    dateTo:localYmd(end)
+  };
+}
+
+function creatorCalendarEffectiveDate(post) {
+  if(post.editorial_date)return String(post.editorial_date).slice(0,10);
+  if(post.creator_state==='scheduled' && post.scheduled_for)return localYmd(post.scheduled_for);
+  if(post.creator_state==='live' && post.created_at)return localYmd(post.created_at);
+  return '';
+}
+
+function creatorCalendarState(post) {
+  return post.creator_state==='draft'
+    ? 'draft'
+    : post.creator_state==='scheduled'
+      ? 'scheduled'
+      : 'live';
+}
+
+function renderCreatorCalendar() {
+  const grid=$('#creatorCalendarGrid');
+  if(!grid)return;
+
+  const range=creatorCalendarRange();
+  const audience=$('#creatorCalendarAudience')?.value || 'all';
+  const label=$('#creatorCalendarLabel')?.value || '';
+  const filtered=creatorCalendarPosts.filter(post=>
+    (audience==='all' || post.audience===audience) &&
+    (!label || String(post.editorial_label || '')===label)
+  );
+
+  const byDate=new Map();
+  for(const post of filtered){
+    const date=creatorCalendarEffectiveDate(post);
+    if(!date)continue;
+    if(!byDate.has(date))byDate.set(date,[]);
+    byDate.get(date).push(post);
+  }
+
+  if($('#creatorCalendarMonth')){
+    $('#creatorCalendarMonth').textContent=range.start.toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+  }
+
+  const firstOffset=(range.start.getDay()+6)%7;
+  const gridStart=new Date(range.start);
+  gridStart.setDate(gridStart.getDate()-firstOffset);
+
+  const today=localYmd(new Date());
+  const cells=[];
+  for(let i=0;i<42;i++){
+    const day=new Date(gridStart);
+    day.setDate(gridStart.getDate()+i);
+    const key=localYmd(day);
+    const posts=byDate.get(key) || [];
+    const inMonth=day.getMonth()===range.start.getMonth();
+    const visible=posts.slice(0,3);
+    cells.push(`<div class="creator-calendar-day ${inMonth ? '' : 'outside'} ${key===today ? 'today' : ''}">
+      <span class="creator-calendar-day-number">${day.getDate()}</span>
+      <div class="creator-calendar-events">
+        ${visible.map(post=>{
+          const state=creatorCalendarState(post);
+          const labelText=String(post.editorial_label || '').trim();
+          const title=String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel' : 'Publicación');
+          return `<button type="button" class="creator-calendar-event ${state} ${post.audience==='vip' ? 'vip' : ''}" data-calendar-post="${post.id}" data-calendar-state="${state}" title="${esc(title)}">
+            <b>${post.audience==='vip' ? '★ ' : ''}${esc(title.slice(0,34))}</b>
+            ${labelText ? `<small>${esc(labelText)}</small>` : ''}
+          </button>`;
+        }).join('')}
+        ${posts.length>3 ? `<small class="creator-calendar-more">+${posts.length-3} más</small>` : ''}
+      </div>
+    </div>`);
+  }
+  grid.innerHTML=cells.join('');
+
+  all('[data-calendar-post]',grid).forEach(button=>{
+    button.onclick=async()=>{
+      const id=button.dataset.calendarPost;
+      if(button.dataset.calendarState==='live'){
+        await openPostFocus(id);
+        return;
+      }
+      const item=document.querySelector(`[data-publishing-now="${CSS.escape(String(id))}"]`)?.closest('.creator-publishing-item');
+      item?.scrollIntoView({behavior:'smooth',block:'center'});
+      item?.classList.add('calendar-focus');
+      setTimeout(()=>item?.classList.remove('calendar-focus'),1200);
+    };
+  });
+}
+
+async function loadCreatorCalendar() {
+  const grid=$('#creatorCalendarGrid');
+  if(!grid)return;
+  grid.innerHTML='<div class="mini-loading creator-calendar-loading">Cargando calendario...</div>';
+
+  const range=creatorCalendarRange();
+  const qs=new URLSearchParams({
+    from:range.from,
+    to:range.to,
+    dateFrom:range.dateFrom,
+    dateTo:range.dateTo
+  });
+  const { r,d }=await api(`/api/posts/creator/calendar?${qs.toString()}`);
+  if(!r.ok){
+    grid.innerHTML='<div class="creator-empty compact">No se pudo cargar el calendario editorial.</div>';
+    return;
+  }
+
+  creatorCalendarPosts=Array.isArray(d.posts) ? d.posts : [];
+  const select=$('#creatorCalendarLabel');
+  if(select){
+    const current=select.value;
+    select.innerHTML='<option value="">Todas las etiquetas</option>' +
+      (Array.isArray(d.labels) ? d.labels : []).map(value=>`<option value="${esc(value)}">${esc(value)}</option>`).join('');
+    if([...select.options].some(option=>option.value===current))select.value=current;
+  }
+  renderCreatorCalendar();
 }
 
 async function loadCreatorCenter() {
