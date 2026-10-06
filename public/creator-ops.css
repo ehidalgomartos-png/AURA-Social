@@ -113,3 +113,28 @@
   .creator-communication-form button{width:100%}
   .creator-communication-head,.creator-communication-foot{align-items:flex-start;flex-direction:column}
 }
+
+/* V1.33 — Advanced Creator Analytics */
+.creator-advanced-analytics .creator-section-head select{border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:var(--paper);color:var(--ink)}
+.creator-advanced-analytics .creator-ops-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.creator-analytics-comparison{display:grid;gap:5px;margin:10px 0}
+.creator-analytics-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:9px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:11px;background:var(--paper);font-size:9px}
+.creator-analytics-row span{font-weight:800;color:var(--ink)}
+.creator-analytics-row b{color:var(--navy)}.creator-analytics-row small{color:var(--muted)}
+.creator-analytics-row em{font-style:normal;font-weight:900;color:var(--muted)}
+.creator-analytics-row em.positive{color:var(--teal)}
+.creator-analytics-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.creator-analytics-columns h3{font-size:10px;color:var(--navy);margin:0 0 8px}
+.creator-advanced-trend{height:180px;display:flex;gap:4px;align-items:flex-end;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.creator-advanced-bar{height:100%;flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;min-width:0}
+.creator-advanced-bar i{display:block;width:70%;min-height:4px;border-radius:5px 5px 2px 2px;background:var(--teal)}
+.creator-advanced-bar small{font-size:6px;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg);max-height:45px}
+.creator-analytics-content{display:grid;text-align:left;border:1px solid var(--line);border-radius:11px;padding:9px;background:var(--paper);color:var(--ink)}
+.creator-analytics-content b{font-size:9px}.creator-analytics-content small{margin-top:3px;font-size:8px;color:var(--muted)}
+@media(max-width:900px){.creator-advanced-analytics .creator-ops-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){
+  .creator-analytics-columns{grid-template-columns:1fr}
+  .creator-analytics-row{grid-template-columns:1fr auto}
+  .creator-analytics-row small,.creator-analytics-row em{text-align:right}
+  .creator-advanced-trend{height:150px}
+}

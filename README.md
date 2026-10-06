@@ -1,4 +1,4 @@
-# RedLibertad V1.32.0 — Creator Communication Center
+# RedLibertad V1.33.0 — Advanced Creator Analytics
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -878,4 +878,17 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Historial con estado, fecha y destinatarios.
 - Programador interno para comunicaciones vencidas.
 - Respeta bloqueos, silencios y el límite anti-spam de 24 horas.
+- Sin monetización activa.
+
+
+## V1.33.0 — Advanced Creator Analytics
+
+- Comparación 7/30/90 días con el periodo anterior equivalente.
+- Crecimiento de seguidores, publicaciones e interacciones.
+- Likes, comentarios, republicaciones y guardados.
+- Personas únicas, participación de comunidad y recurrencia.
+- Conversión aproximada de seguidores a participantes.
+- Tareas completadas y alcance de comunicaciones.
+- Tendencia diaria de 14 días y top contenido.
+- Cálculo sobre datos reales, sin tracking externo ni tabla duplicada de métricas.
 - Sin monetización activa.

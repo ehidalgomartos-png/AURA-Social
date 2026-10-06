@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.32.0",
+  "version": "1.33.0",
   "private": true,
-  "description": "RedLibertad V1.32 Creator Communication Center - borradores, programación, segmentos e historial de comunicaciones, sin monetización.",
+  "description": "RedLibertad V1.33 Advanced Creator Analytics - comparativas, crecimiento, recurrencia y rendimiento del creador, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
