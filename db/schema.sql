@@ -312,6 +312,19 @@ CREATE INDEX IF NOT EXISTS idx_posts_audience_created
   ON posts(audience,created_at DESC);
 
 
+-- RedLibertad V1.19: Stories VIP y feed exclusivo
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public';
+
+DO $ BEGIN
+  ALTER TABLE stories
+    ADD CONSTRAINT stories_audience_check
+    CHECK(audience IN ('public','vip'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+CREATE INDEX IF NOT EXISTS idx_stories_audience_active
+  ON stories(audience,expires_at DESC,created_at DESC);
+
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
