@@ -1775,14 +1775,72 @@ async function loadCreatorCalendar() {
   renderCreatorCalendar();
 }
 
+function creatorQuestionResponsesHTML(items = []) {
+  if(!items.length)return '<div class="creator-empty compact">Todavía no tienes respuestas abiertas.</div>';
+  return items.map(item=>`<article class="creator-community-response">
+    <div class="creator-community-response-head">
+      ${profileLink(item.username,`<span class="creator-audience-avatar">${avatarHTML(item)}</span>`,'creator-audience-profile')}
+      <div>
+        ${profileLink(item.username,`<b>${esc(item.display_name)} ${item.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+        <small>@${esc(item.username)} · ${timeAgo(item.updated_at || item.created_at)}</small>
+      </div>
+      <span class="creator-community-audience">${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
+    </div>
+    <strong>${esc(item.prompt)}</strong>
+    <p>${esc(item.body)}</p>
+    <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+  </article>`).join('');
+}
+
+function creatorPollSummariesHTML(items = []) {
+  if(!items.length)return '<div class="creator-empty compact">Todavía no has creado encuestas.</div>';
+  return items.map(item=>{
+    const total=Number(item.total_votes || 0);
+    return `<article class="creator-poll-summary">
+      <div class="creator-poll-summary-head">
+        <b>${esc(item.question)}</b>
+        <span>${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
+      </div>
+      <small>${total} ${total===1 ? 'voto' : 'votos'} · ${timeAgo(item.created_at)}</small>
+      <div class="creator-poll-summary-options">
+        ${(item.options || []).map(option=>{
+          const count=Number(option.vote_count || 0);
+          const pct=total ? Math.round((count/total)*100) : 0;
+          return `<div><span><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span><i><em style="width:${pct}%"></em></i></div>`;
+        }).join('')}
+      </div>
+      <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+    </article>`;
+  }).join('');
+}
+
+function renderCreatorCommunity(data = {}) {
+  const summary=data.summary || {};
+  if($('#creatorCommunitySummary')){
+    $('#creatorCommunitySummary').innerHTML=[
+      creatorMetric('Encuestas',summary.poll_count || 0),
+      creatorMetric('Votos recibidos',summary.vote_count || 0),
+      creatorMetric('Preguntas',summary.question_count || 0),
+      creatorMetric('Respuestas',summary.response_count || 0)
+    ].join('');
+  }
+  if($('#creatorQuestionResponses')){
+    $('#creatorQuestionResponses').innerHTML=creatorQuestionResponsesHTML(Array.isArray(data.responses) ? data.responses : []);
+  }
+  if($('#creatorPollSummaries')){
+    $('#creatorPollSummaries').innerHTML=creatorPollSummariesHTML(Array.isArray(data.polls) ? data.polls : []);
+  }
+}
+
 async function loadCreatorCenter() {
   const metricsRoot = $('#creatorMetrics');
   const postsRoot = $('#creatorPosts');
   if (!metricsRoot || !postsRoot) return false;
 
-  const [centerResponse,publishingResponse]=await Promise.all([
+  const [centerResponse,publishingResponse,communityResponse]=await Promise.all([
     api('/api/profiles/me/creator-center'),
-    api('/api/posts/creator/publishing')
+    api('/api/posts/creator/publishing'),
+    api('/api/posts/creator/community-inbox')
   ]);
   const { r, d }=centerResponse;
   if (!r.ok) {
@@ -1869,6 +1927,14 @@ async function loadCreatorCenter() {
   }else{
     if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='<div class="creator-empty compact">No se pudo cargar la cola de publicación.</div>';
   }
+
+  if(communityResponse.r.ok){
+    renderCreatorCommunity(communityResponse.d);
+  }else{
+    if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='<div class="creator-empty compact">No se pudo cargar la bandeja de comunidad.</div>';
+    if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
+  }
+
   await loadCreatorCalendar();
   return true;
 }
@@ -1890,6 +1956,9 @@ async function openCreatorModal() {
   if($('#creatorVipBroadcastStatus'))$('#creatorVipBroadcastStatus').textContent='';
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
+  if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
+  if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='';
+  if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
   if($('#creatorCalendarGrid'))$('#creatorCalendarGrid').innerHTML='<div class="mini-loading creator-calendar-loading">Cargando calendario...</div>';
   await loadCreatorCenter();
 }
