@@ -1,4 +1,4 @@
-# RedLibertad V1.60.0 — Events & Meetups
+# RedLibertad V1.61.0 — Collaborative Posts
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1311,5 +1311,23 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Privacidad de asistentes: visible / solo quienes responden / solo creador.
 - Cancelación por creador.
 - Bloqueos y silencios respetados.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.61.0 — Collaborative Posts
+
+- Publicaciones y Reels con hasta 5 colaboradores.
+- Invitaciones separadas del consentimiento de imagen.
+- Aprobación previa antes de coautoría inicial.
+- Colaboraciones aprobadas aparecen en el perfil de cada coautor.
+- El feed Siguiendo reconoce también a los colaboradores.
+- Gestión posterior: invitar, reinvitar o quitar colaboradores.
+- El colaborador puede dejar una colaboración sin borrar ni ocultar el post original.
+- El consentimiento de imagen mantiene su protección independiente.
+- Posts privados conservan sus reglas de audiencia; ser colaborador no hace pública la publicación.
+- Un colaborador no puede republicar como repost un contenido que ya aparece en su perfil como coautor.
+- Notificaciones y centro de Consentimientos/Colaboraciones integrados.
+- Compatible con publicaciones programadas y Reels.
 - Mobile-first.
 - Sin monetización.
