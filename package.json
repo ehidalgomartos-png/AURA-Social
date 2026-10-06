@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.63.0",
+  "version": "1.64.0",
   "private": true,
-  "description": "RedLibertad V1.63 Community Moderation 3.0 - moderadores, incidencias, sanciones temporales y señales antiabuso, sin monetización.",
+  "description": "RedLibertad V1.64 Social Search 2.0 - búsqueda global privada y filtrable de personas, contenido, hashtags, comunidades y eventos, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
