@@ -33,6 +33,10 @@ let creatorCommunityData = null;
 let creatorCommunityActivityStatus = 'pending';
 let creatorCommunityActivityFocus = 'all';
 let creatorCommunityActivityData = null;
+let creatorFollowUpWindow = 'all';
+let creatorFollowUpSearch = '';
+let creatorFollowUpData = null;
+let creatorFollowUpSearchTimer = null;
 
 
 async function api(url, opts = {}) {
@@ -1872,7 +1876,77 @@ function renderCreatorCommunityActivity(data = {}) {
   }
   if($('#creatorActivityFocus'))$('#creatorActivityFocus').value=creatorCommunityActivityFocus;
 
-  all('[data-creator-activity-status]').forEach(button=>{
+  all('[data-followup-window]').forEach(button=>{
+  button.addEventListener('click',async()=>{
+    creatorFollowUpWindow=button.dataset.followupWindow || 'all';
+    await loadCreatorFollowUps();
+  });
+});
+
+$('#creatorFollowUpSearch')?.addEventListener('input',event=>{
+  creatorFollowUpSearch=String(event.currentTarget.value || '').trim();
+  if(creatorFollowUpSearchTimer)clearTimeout(creatorFollowUpSearchTimer);
+  creatorFollowUpSearchTimer=setTimeout(()=>loadCreatorFollowUps(),280);
+});
+
+$('#creatorFollowUpSelectAll')?.addEventListener('change',event=>{
+  all('[data-followup-select]',$('#creatorFollowUpList')).forEach(box=>{
+    box.checked=event.currentTarget.checked;
+  });
+  updateCreatorFollowUpBulkState();
+});
+
+$('#creatorFollowUpBulkAction')?.addEventListener('change',updateCreatorFollowUpBulkState);
+
+document.addEventListener('change',event=>{
+  if(event.target.matches('[data-followup-select]'))updateCreatorFollowUpBulkState();
+});
+
+$('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
+  const button=$('#creatorFollowUpBulkApply');
+  const action=$('#creatorFollowUpBulkAction')?.value || '';
+  const ids=all('[data-followup-select]:checked',$('#creatorFollowUpList')).map(box=>box.dataset.followupSelect);
+  if(!button || !action || !ids.length)return;
+  if(action==='close_follow_up' && !window.confirm(`¿Cerrar ${ids.length} seguimientos seleccionados?`))return;
+
+  button.disabled=true;
+  try{
+    const { r,d }=await api('/api/posts/creator/community-follow-ups/bulk',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({notificationIds:ids,action})
+    });
+    if(!r.ok)throw new Error(d.error==='invalid_follow_up_bulk_action' ? 'Acción masiva no válida.' : 'No se pudo aplicar la acción.');
+    const labels={
+      priority_high:'Prioridad alta aplicada',
+      priority_normal:'Prioridad normal aplicada',
+      mark_reviewed:'Actividad marcada como revisada',
+      close_follow_up:'Seguimientos cerrados'
+    };
+    toast(labels[action] || 'Seguimientos actualizados');
+    if($('#creatorFollowUpBulkAction'))$('#creatorFollowUpBulkAction').value='';
+    await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar el seguimiento.');
+  }finally{
+    button.disabled=false;
+    updateCreatorFollowUpBulkState();
+  }
+});
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-followup-open-activity]');
+  if(!button)return;
+  event.preventDefault();
+  event.stopPropagation();
+  creatorCommunityActivityStatus='all';
+  creatorCommunityActivityFocus='followup';
+  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value='followup';
+  await loadCreatorCommunityActivity();
+  document.querySelector('.creator-activity-center')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+all('[data-creator-activity-status]').forEach(button=>{
     button.classList.toggle('active',button.dataset.creatorActivityStatus===creatorCommunityActivityStatus);
   });
 
@@ -1926,6 +2000,115 @@ async function loadCreatorCommunityActivity() {
     return false;
   }
   renderCreatorCommunityActivity(d);
+  return true;
+}
+
+function creatorFollowUpWindowLabel(value) {
+  return ({
+    overdue:'Vencido',
+    today:'Hoy',
+    week:'Próximos 7 días',
+    later:'Más adelante',
+    undated:'Sin fecha'
+  })[value] || 'Seguimiento';
+}
+
+function creatorFollowUpItemHTML(item) {
+  const due=item.follow_up_at ? new Date(item.follow_up_at) : null;
+  const dueLabel=due && Number.isFinite(due.getTime())
+    ? due.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    : 'Sin fecha';
+  return `<article class="creator-followup-item ${item.priority==='high' ? 'high-priority' : ''} ${item.follow_up_window==='overdue' ? 'overdue' : ''}">
+    <label class="creator-followup-check">
+      <input type="checkbox" data-followup-select="${item.notification_id}">
+    </label>
+    <div class="creator-followup-main">
+      <div class="creator-followup-item-head">
+        <div>
+          <span class="eyebrow">${item.type==='creator_poll_vote' ? 'ENCUESTA' : 'PREGUNTA'} · ${item.audience==='vip' ? '★ VIP' : 'PÚBLICO'}</span>
+          <b>${esc(item.prompt || 'Actividad de comunidad')}</b>
+        </div>
+        <div class="creator-followup-badges">
+          ${item.priority==='high' ? '<span class="creator-activity-priority-badge">Prioridad alta</span>' : ''}
+          <span class="creator-followup-window-badge ${esc(item.follow_up_window || 'undated')}">${esc(creatorFollowUpWindowLabel(item.follow_up_window))}</span>
+        </div>
+      </div>
+      <div class="creator-followup-actor-row">
+        ${creatorActivityActorHTML(item.actor)}
+        <span class="creator-followup-due">${esc(dueLabel)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}</span>
+      </div>
+      <div class="creator-followup-note">
+        <small>Nota privada</small>
+        <p>${item.private_note ? esc(item.private_note) : '<span class="creator-followup-note-empty">Sin nota privada</span>'}</p>
+      </div>
+      <div class="creator-followup-item-actions">
+        <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+        <button type="button" class="tiny-action" data-followup-open-activity="${item.notification_id}">Abrir en actividad</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function updateCreatorFollowUpBulkState() {
+  const selected=all('[data-followup-select]:checked',$('#creatorFollowUpList'));
+  const count=selected.length;
+  if($('#creatorFollowUpSelectedCount'))$('#creatorFollowUpSelectedCount').textContent=`${count} ${count===1 ? 'seleccionado' : 'seleccionados'}`;
+  const action=$('#creatorFollowUpBulkAction')?.value || '';
+  const apply=$('#creatorFollowUpBulkApply');
+  if(apply)apply.disabled=!count || !action;
+  const allBoxes=all('[data-followup-select]',$('#creatorFollowUpList'));
+  const selectAll=$('#creatorFollowUpSelectAll');
+  if(selectAll){
+    selectAll.checked=Boolean(allBoxes.length && count===allBoxes.length);
+    selectAll.indeterminate=Boolean(count && count<allBoxes.length);
+  }
+}
+
+function renderCreatorFollowUps(data = {}) {
+  creatorFollowUpData=data;
+  const summary=data.summary || {};
+  if($('#creatorFollowUpSummary')){
+    $('#creatorFollowUpSummary').innerHTML=[
+      creatorMetric('Seguimientos',summary.total || 0),
+      creatorMetric('Vencidos',summary.overdue || 0),
+      creatorMetric('Hoy',summary.today || 0),
+      creatorMetric('Próximos 7 días',summary.week || 0),
+      creatorMetric('Prioridad alta',summary.high_priority || 0)
+    ].join('');
+  }
+
+  all('[data-followup-window]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.followupWindow===creatorFollowUpWindow);
+  });
+  if($('#creatorFollowUpSearch') && $('#creatorFollowUpSearch').value!==creatorFollowUpSearch){
+    $('#creatorFollowUpSearch').value=creatorFollowUpSearch;
+  }
+
+  const root=$('#creatorFollowUpList');
+  if(!root)return;
+  const items=Array.isArray(data.items) ? data.items : [];
+  root.innerHTML=items.length
+    ? items.map(creatorFollowUpItemHTML).join('')
+    : '<div class="creator-empty compact">No hay seguimientos para este filtro.</div>';
+  updateCreatorFollowUpBulkState();
+}
+
+async function loadCreatorFollowUps() {
+  const root=$('#creatorFollowUpList');
+  if(root)root.innerHTML='<div class="mini-loading">Cargando seguimientos...</div>';
+  const dayEnd=new Date();
+  dayEnd.setHours(24,0,0,0);
+  const qs=new URLSearchParams({
+    window:creatorFollowUpWindow,
+    q:creatorFollowUpSearch,
+    dayEnd:dayEnd.toISOString()
+  });
+  const { r,d }=await api(`/api/posts/creator/community-follow-ups?${qs.toString()}`);
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="creator-empty compact">No se pudo cargar el dashboard de seguimiento.</div>';
+    return false;
+  }
+  renderCreatorFollowUps(d);
   return true;
 }
 
@@ -2217,7 +2400,7 @@ async function loadCreatorCenter() {
     if($('#creatorCommunityTopTools'))$('#creatorCommunityTopTools').innerHTML='';
   }
 
-  await Promise.all([loadCreatorCommunityActivity(),loadCreatorCalendar()]);
+  await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity(),loadCreatorCalendar()]);
   return true;
 }
 
@@ -2239,6 +2422,7 @@ async function openCreatorModal() {
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
   if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
+  if($('#creatorFollowUpList'))$('#creatorFollowUpList').innerHTML='<div class="mini-loading">Cargando seguimientos...</div>';
   if($('#creatorActivityGroups'))$('#creatorActivityGroups').innerHTML='<div class="mini-loading">Cargando actividad...</div>';
   if($('#creatorCommunityInsights'))$('#creatorCommunityInsights').innerHTML='<div class="mini-loading">Calculando insights...</div>';
   if($('#creatorCommunityTrend'))$('#creatorCommunityTrend').innerHTML='';
@@ -2307,7 +2491,7 @@ $('#creatorActivityReviewAll')?.addEventListener('click',async()=>{
     const { r }=await api('/api/posts/creator/community-activity/review-all',{method:'POST'});
     if(!r.ok)throw new Error('No se pudo marcar la actividad.');
     toast('Actividad marcada como revisada');
-    await loadCreatorCommunityActivity();
+    await Promise.all([loadCreatorCommunityActivity(),loadCreatorFollowUps()]);
   }catch(error){
     toast(error.message || 'No se pudo actualizar la actividad.');
   }finally{
@@ -2343,7 +2527,7 @@ document.addEventListener('click',async event=>{
     });
     if(!r.ok)throw new Error('No se pudo marcar la actividad como revisada.');
     toast(ids.length===1 ? 'Actividad revisada' : 'Grupo revisado');
-    await loadCreatorCommunityActivity();
+    await Promise.all([loadCreatorCommunityActivity(),loadCreatorFollowUps()]);
   }catch(error){
     toast(error.message || 'No se pudo actualizar la actividad.');
   }finally{
@@ -2394,7 +2578,7 @@ document.addEventListener('click',async event=>{
     }
 
     toast('Seguimiento privado guardado');
-    await loadCreatorCommunityActivity();
+    await Promise.all([loadCreatorCommunityActivity(),loadCreatorFollowUps()]);
   }catch(error){
     toast(error.message || 'No se pudo guardar el seguimiento.');
   }finally{

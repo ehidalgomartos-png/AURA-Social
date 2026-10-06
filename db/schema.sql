@@ -485,5 +485,8 @@ ALTER TABLE creator_community_activity_meta
 CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator
   ON creator_community_activity_meta(creator_id,follow_up,priority,updated_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_creator_community_activity_follow_up_at
+  ON creator_community_activity_meta(creator_id,follow_up,follow_up_at,priority);
+
 
 

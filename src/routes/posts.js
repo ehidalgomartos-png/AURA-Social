@@ -671,6 +671,7 @@ async function ensureCreatorCommunityV26(){
         await db.query("ALTER TABLE creator_community_activity_meta ADD CONSTRAINT creator_community_activity_priority_check CHECK(priority IN ('normal','high'))");
       }
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator ON creator_community_activity_meta(creator_id,follow_up,priority,updated_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_follow_up_at ON creator_community_activity_meta(creator_id,follow_up,follow_up_at,priority)');
     })().catch(error=>{
       creatorCommunityV26Ready=null;
       throw error;
@@ -1863,6 +1864,186 @@ router.patch('/creator/community-activity/:notificationId/meta',requireAuth,asyn
 
   if(!result.rowCount)return res.status(404).json({error:'activity_not_found'});
   res.json({ok:true,meta:result.rows[0]});
+});
+
+const creatorFollowUpBulkSchema=z.object({
+  notificationIds:z.array(
+    z.union([z.string().regex(/^\d+$/),z.number().int().positive()]).transform(value=>String(value))
+  ).min(1).max(100),
+  action:z.enum(['priority_high','priority_normal','close_follow_up','mark_reviewed'])
+});
+
+router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+
+  const window=String(req.query.window || 'all');
+  const q=String(req.query.q || '').trim().slice(0,120);
+  const localDayEnd=new Date(String(req.query.dayEnd || ''));
+  if(!['all','overdue','today','week','later','undated'].includes(window)){
+    return res.status(400).json({error:'invalid_follow_up_window'});
+  }
+  if(!Number.isFinite(localDayEnd.getTime())){
+    return res.status(400).json({error:'invalid_follow_up_day_end'});
+  }
+
+  const result=await db.query(`
+    SELECT
+      n.id notification_id,n.type,n.created_at,
+      review.reviewed_at,
+      meta.priority,meta.private_note,meta.follow_up,meta.follow_up_at,meta.updated_at meta_updated_at,
+      actor.id actor_id,actor.username actor_username,actor.display_name actor_display_name,
+      actor.avatar_url actor_avatar_url,actor.creator_verified actor_creator_verified,
+      p.id post_id,p.caption,p.audience,
+      cp.question poll_question,
+      cq.prompt question_prompt,
+      CASE
+        WHEN meta.follow_up_at IS NULL THEN 'undated'
+        WHEN meta.follow_up_at < now() THEN 'overdue'
+        WHEN meta.follow_up_at < $4::timestamptz THEN 'today'
+        WHEN meta.follow_up_at < now() + interval '7 days' THEN 'week'
+        ELSE 'later'
+      END follow_up_window
+    FROM creator_community_activity_meta meta
+    JOIN notifications n
+      ON n.id=meta.notification_id
+     AND n.user_id=$1
+     AND n.entity_type='creator_community'
+     AND n.type IN ('creator_poll_vote','creator_question_response')
+    JOIN posts p
+      ON p.id=n.entity_id
+     AND p.user_id=$1
+    LEFT JOIN users actor ON actor.id=n.actor_id
+    LEFT JOIN creator_community_notification_reviews review
+      ON review.notification_id=n.id
+     AND review.creator_id=$1
+    LEFT JOIN creator_polls cp
+      ON cp.post_id=p.id
+     AND n.type='creator_poll_vote'
+    LEFT JOIN creator_questions cq
+      ON cq.post_id=p.id
+     AND n.type='creator_question_response'
+    WHERE meta.creator_id=$1
+      AND meta.follow_up=true
+      AND (
+        $2='all'
+        OR ($2='overdue' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at<now())
+        OR ($2='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<$4::timestamptz)
+        OR ($2='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=$4::timestamptz AND meta.follow_up_at<now()+interval '7 days')
+        OR ($2='later' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now()+interval '7 days')
+        OR ($2='undated' AND meta.follow_up_at IS NULL)
+      )
+      AND ($3='' OR meta.private_note ILIKE '%' || $3 || '%')
+    ORDER BY
+      meta.priority='high' DESC,
+      meta.follow_up_at ASC NULLS LAST,
+      meta.updated_at DESC
+    LIMIT 250
+  `,[req.user.id,window,q,localDayEnd.toISOString()]);
+
+  const summary=await db.query(`
+    SELECT
+      count(*)::int total,
+      count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at<now())::int overdue,
+      count(*) FILTER (
+        WHERE follow_up_at IS NOT NULL
+          AND follow_up_at>=now()
+          AND follow_up_at<date_trunc('day',now())+interval '1 day'
+      )::int today,
+      count(*) FILTER (
+        WHERE follow_up_at IS NOT NULL
+          AND follow_up_at>=date_trunc('day',now())+interval '1 day'
+          AND follow_up_at<now()+interval '7 days'
+      )::int week,
+      count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
+      count(*) FILTER (WHERE follow_up_at IS NULL)::int undated,
+      count(*) FILTER (WHERE priority='high')::int high_priority
+    FROM creator_community_activity_meta meta
+    JOIN notifications n
+      ON n.id=meta.notification_id
+     AND n.user_id=$1
+     AND n.entity_type='creator_community'
+     AND n.type IN ('creator_poll_vote','creator_question_response')
+    JOIN posts p
+      ON p.id=n.entity_id
+     AND p.user_id=$1
+    WHERE meta.creator_id=$1
+      AND meta.follow_up=true
+  `,[req.user.id]);
+
+  res.json({
+    window,
+    q,
+    summary:summary.rows[0] || {total:0,overdue:0,today:0,week:0,later:0,undated:0,high_priority:0},
+    items:result.rows.map(row=>({
+      notification_id:row.notification_id,
+      type:row.type,
+      reviewed_at:row.reviewed_at,
+      priority:row.priority,
+      private_note:row.private_note || '',
+      follow_up_at:row.follow_up_at,
+      follow_up_window:row.follow_up_window,
+      meta_updated_at:row.meta_updated_at,
+      post_id:row.post_id,
+      audience:row.audience,
+      prompt:row.type==='creator_poll_vote' ? row.poll_question : row.question_prompt,
+      actor:{
+        id:row.actor_id,
+        username:row.actor_username,
+        display_name:row.actor_display_name || row.actor_username || 'Cuenta eliminada',
+        avatar_url:row.actor_avatar_url,
+        creator_verified:row.actor_creator_verified===true
+      }
+    }))
+  });
+});
+
+router.patch('/creator/community-follow-ups/bulk',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=creatorFollowUpBulkSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_follow_up_bulk_action'});
+
+  const ids=[...new Set(parsed.data.notificationIds)];
+  const action=parsed.data.action;
+  let result;
+
+  if(action==='mark_reviewed'){
+    result=await db.query(`
+      INSERT INTO creator_community_notification_reviews (notification_id,creator_id,reviewed_at)
+      SELECT n.id,$2,now()
+        FROM notifications n
+       WHERE n.id=ANY($1::bigint[])
+         AND n.user_id=$2
+         AND n.entity_type='creator_community'
+         AND n.type IN ('creator_poll_vote','creator_question_response')
+      ON CONFLICT(notification_id) DO UPDATE
+        SET creator_id=excluded.creator_id,
+            reviewed_at=excluded.reviewed_at
+      RETURNING notification_id
+    `,[ids,req.user.id]);
+  }else{
+    const priority=action==='priority_high' ? 'high' : action==='priority_normal' ? 'normal' : null;
+    result=await db.query(`
+      UPDATE creator_community_activity_meta meta
+         SET priority=CASE WHEN $3::text IS NULL THEN priority ELSE $3 END,
+             follow_up=CASE WHEN $4 THEN false ELSE follow_up END,
+             follow_up_at=CASE WHEN $4 THEN NULL ELSE follow_up_at END,
+             updated_at=now()
+        FROM notifications n
+       WHERE meta.notification_id=n.id
+         AND meta.notification_id=ANY($1::bigint[])
+         AND meta.creator_id=$2
+         AND n.user_id=$2
+         AND n.entity_type='creator_community'
+         AND n.type IN ('creator_poll_vote','creator_question_response')
+      RETURNING meta.notification_id
+    `,[ids,req.user.id,priority,action==='close_follow_up']);
+  }
+
+  res.json({ok:true,updated:result.rows.map(row=>row.notification_id || row.notification_id)});
 });
 
 router.get('/creator/community-insights',requireAuth,async(req,res)=>{
