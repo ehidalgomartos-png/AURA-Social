@@ -1,4 +1,4 @@
-# RedLibertad V1.49.0 — Mobile Social Polish
+# RedLibertad V1.50.0 — Group Chats 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1124,4 +1124,23 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Touch targets reforzados para dispositivos táctiles.
 - Estados :focus-visible claros para navegación con teclado.
 - prefers-reduced-motion desactiva animaciones y transiciones no esenciales.
+- Sin monetización activa.
+
+
+## V1.50.0 — Group Chats 2.0
+
+- Conversaciones directas y de grupo comparten la misma bandeja sin romper chats existentes.
+- Grupos de hasta 20 personas con nombre y propietario.
+- Creación de grupos respetando privacidad de mensajes y bloqueos de cada persona invitada.
+- Gestión básica: renombrar, añadir/quitar miembros, salir y eliminar grupo por el propietario.
+- Presencia en vivo agregada: personas en línea y quién está escribiendo.
+- Mensajes de grupo muestran remitente y recibos Enviado / Visto por N / Visto por todos.
+- Reacciones y respuestas V1.47 funcionan también en grupos.
+- Consentimiento sensible se evalúa por remitente y puede revocarse individualmente desde participantes.
+- Mensajes de usuarios bloqueados quedan ocultos dentro de grupos y no generan notificaciones.
+- Nuevos miembros no ven historial anterior a su incorporación ni citas de mensajes previos.
+- Los recibos de lectura solo cuentan a miembros que ya pertenecían al grupo cuando se envió el mensaje.
+- Un mensaje nuevo devuelve la conversación a la bandeja activa de todos los miembros.
+- Migraciones/bootstrap idempotentes.
+- Se corrige el quoting SQL del trigger Web Push en schema.sql detectado durante esta fase.
 - Sin monetización activa.
