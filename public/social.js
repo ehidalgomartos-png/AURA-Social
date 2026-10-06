@@ -5779,13 +5779,14 @@ function notificationIcon(type) {
     collaboration_approved: '✓',
     collaboration_rejected: '×',
     collaboration_revoked: '↶',
+    circle_mention: '◎',
     system: 'R'
   })[type] || '•';
 }
 
 function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
-  if (filter === 'mentions') return notification.type === 'mention';
+  if (filter === 'mentions') return ['mention','circle_mention'].includes(notification.type);
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
@@ -5828,6 +5829,11 @@ async function navigateNotification(notification) {
   const type = String(notification.type || '');
   const entityType = String(notification.entity_type || '');
   const entityId = notification.entity_id;
+
+  if(type==='circle_mention' && entityType==='post' && entityId){
+    await openPostFocus(entityId);
+    return;
+  }
 
   if (type === 'collaboration_request') {
     showView('profile');
