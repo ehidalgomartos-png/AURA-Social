@@ -536,3 +536,21 @@ CREATE TABLE IF NOT EXISTS creator_contact_meta (
 );
 CREATE INDEX IF NOT EXISTS idx_creator_contact_meta_creator_priority
   ON creator_contact_meta(creator_id,priority,updated_at DESC);
+
+
+-- RedLibertad V1.31: segmentos privados de audiencia
+CREATE TABLE IF NOT EXISTS creator_segments (
+  id BIGSERIAL PRIMARY KEY,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(60) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS creator_segment_members (
+  segment_id BIGINT NOT NULL REFERENCES creator_segments(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(segment_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_creator_segments_creator ON creator_segments(creator_id,updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_creator_segment_members_segment ON creator_segment_members(segment_id,created_at DESC);
