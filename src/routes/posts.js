@@ -661,9 +661,11 @@ async function ensureCreatorCommunityV26(){
           private_note VARCHAR(1000) NOT NULL DEFAULT '',
           follow_up BOOLEAN NOT NULL DEFAULT FALSE,
           follow_up_at TIMESTAMPTZ,
+          completed_at TIMESTAMPTZ,
           updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
+      await db.query('ALTER TABLE creator_community_activity_meta ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ');
       const priorityConstraint=await db.query(
         "SELECT 1 FROM pg_constraint WHERE conname='creator_community_activity_priority_check' AND conrelid='creator_community_activity_meta'::regclass LIMIT 1"
       );
@@ -672,6 +674,7 @@ async function ensureCreatorCommunityV26(){
       }
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator ON creator_community_activity_meta(creator_id,follow_up,priority,updated_at DESC)');
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_follow_up_at ON creator_community_activity_meta(creator_id,follow_up,follow_up_at,priority)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_completed_at ON creator_community_activity_meta(creator_id,completed_at DESC) WHERE completed_at IS NOT NULL');
     })().catch(error=>{
       creatorCommunityV26Ready=null;
       throw error;
@@ -1851,8 +1854,9 @@ router.patch('/creator/community-activity/:notificationId/meta',requireAuth,asyn
           private_note=excluded.private_note,
           follow_up=excluded.follow_up,
           follow_up_at=excluded.follow_up_at,
+          completed_at=CASE WHEN excluded.follow_up THEN NULL ELSE creator_community_activity_meta.completed_at END,
           updated_at=now()
-    RETURNING notification_id,priority,private_note,follow_up,follow_up_at,updated_at
+    RETURNING notification_id,priority,private_note,follow_up,follow_up_at,completed_at,updated_at
   `,[
     req.params.notificationId,
     req.user.id,
@@ -1870,7 +1874,8 @@ const creatorFollowUpBulkSchema=z.object({
   notificationIds:z.array(
     z.union([z.string().regex(/^\d+$/),z.number().int().positive()]).transform(value=>String(value))
   ).min(1).max(100),
-  action:z.enum(['priority_high','priority_normal','close_follow_up','mark_reviewed'])
+  action:z.enum(['priority_high','priority_normal','close_follow_up','mark_reviewed','reopen','reschedule']),
+  followUpAt:z.string().datetime({offset:true}).nullable().optional()
 });
 
 router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
@@ -1878,10 +1883,14 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
     return res.status(403).json({error:'verified_creator_required_for_community_tools'});
   }
 
+  const status=String(req.query.status || 'active');
   const window=String(req.query.window || 'all');
   const priority=String(req.query.priority || 'all');
   const q=String(req.query.q || '').trim().slice(0,120);
   const localDayEnd=new Date(String(req.query.dayEnd || ''));
+  if(!['active','completed'].includes(status)){
+    return res.status(400).json({error:'invalid_follow_up_status'});
+  }
   if(!['all','overdue','today','week','later','undated'].includes(window)){
     return res.status(400).json({error:'invalid_follow_up_window'});
   }
@@ -1896,16 +1905,17 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
     SELECT
       n.id notification_id,n.type,n.created_at,
       review.reviewed_at,
-      meta.priority,meta.private_note,meta.follow_up,meta.follow_up_at,meta.updated_at meta_updated_at,
+      meta.priority,meta.private_note,meta.follow_up,meta.follow_up_at,meta.completed_at,meta.updated_at meta_updated_at,
       actor.id actor_id,actor.username actor_username,actor.display_name actor_display_name,
       actor.avatar_url actor_avatar_url,actor.creator_verified actor_creator_verified,
       p.id post_id,p.caption,p.audience,
       cp.question poll_question,
       cq.prompt question_prompt,
       CASE
+        WHEN meta.completed_at IS NOT NULL AND meta.follow_up=false THEN 'completed'
         WHEN meta.follow_up_at IS NULL THEN 'undated'
         WHEN meta.follow_up_at < now() THEN 'overdue'
-        WHEN meta.follow_up_at < $5::timestamptz THEN 'today'
+        WHEN meta.follow_up_at < $6::timestamptz THEN 'today'
         WHEN meta.follow_up_at < now() + interval '7 days' THEN 'week'
         ELSE 'later'
       END follow_up_window
@@ -1929,41 +1939,50 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       ON cq.post_id=p.id
      AND n.type='creator_question_response'
     WHERE meta.creator_id=$1
-      AND meta.follow_up=true
       AND (
-        $2='all'
-        OR ($2='overdue' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at<now())
-        OR ($2='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<$5::timestamptz)
-        OR ($2='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=$5::timestamptz AND meta.follow_up_at<now()+interval '7 days')
-        OR ($2='later' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now()+interval '7 days')
-        OR ($2='undated' AND meta.follow_up_at IS NULL)
+        ($2='active' AND meta.follow_up=true)
+        OR ($2='completed' AND meta.follow_up=false AND meta.completed_at IS NOT NULL)
       )
-      AND ($3='' OR meta.private_note ILIKE '%' || $3 || '%')
-      AND ($4='all' OR meta.priority=$4)
+      AND (
+        $2='completed'
+        OR $3='all'
+        OR ($3='overdue' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at<now())
+        OR ($3='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<$6::timestamptz)
+        OR ($3='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=$6::timestamptz AND meta.follow_up_at<now()+interval '7 days')
+        OR ($3='later' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now()+interval '7 days')
+        OR ($3='undated' AND meta.follow_up_at IS NULL)
+      )
+      AND ($4='' OR meta.private_note ILIKE '%' || $4 || '%')
+      AND ($5='all' OR meta.priority=$5)
     ORDER BY
-      meta.priority='high' DESC,
-      meta.follow_up_at ASC NULLS LAST,
+      CASE WHEN $2='completed' THEN meta.completed_at END DESC NULLS LAST,
+      CASE WHEN $2='active' AND meta.priority='high' THEN 1 ELSE 0 END DESC,
+      CASE WHEN $2='active' THEN meta.follow_up_at END ASC NULLS LAST,
       meta.updated_at DESC
     LIMIT 250
-  `,[req.user.id,window,q,priority,localDayEnd.toISOString()]);
+  `,[req.user.id,status,window,q,priority,localDayEnd.toISOString()]);
 
   const summary=await db.query(`
     SELECT
-      count(*)::int total,
-      count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at<now())::int overdue,
+      count(*) FILTER (WHERE follow_up=true)::int total,
+      count(*) FILTER (WHERE follow_up=true AND follow_up_at IS NOT NULL AND follow_up_at<now())::int overdue,
       count(*) FILTER (
-        WHERE follow_up_at IS NOT NULL
+        WHERE follow_up=true
+          AND follow_up_at IS NOT NULL
           AND follow_up_at>=now()
           AND follow_up_at<$2::timestamptz
       )::int today,
       count(*) FILTER (
-        WHERE follow_up_at IS NOT NULL
+        WHERE follow_up=true
+          AND follow_up_at IS NOT NULL
           AND follow_up_at>=$2::timestamptz
           AND follow_up_at<now()+interval '7 days'
       )::int week,
-      count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
-      count(*) FILTER (WHERE follow_up_at IS NULL)::int undated,
-      count(*) FILTER (WHERE priority='high')::int high_priority
+      count(*) FILTER (WHERE follow_up=true AND follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
+      count(*) FILTER (WHERE follow_up=true AND follow_up_at IS NULL)::int undated,
+      count(*) FILTER (WHERE priority='high' AND follow_up=true)::int high_priority,
+      count(*) FILTER (WHERE completed_at IS NOT NULL AND follow_up=false)::int completed_total,
+      count(*) FILTER (WHERE completed_at IS NOT NULL AND follow_up=false AND completed_at>=now()-interval '30 days')::int completed_30d
     FROM creator_community_activity_meta meta
     JOIN notifications n
       ON n.id=meta.notification_id
@@ -1974,14 +1993,14 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       ON p.id=n.entity_id
      AND p.user_id=$1
     WHERE meta.creator_id=$1
-      AND meta.follow_up=true
   `,[req.user.id,localDayEnd.toISOString()]);
 
   res.json({
+    status,
     window,
     priority,
     q,
-    summary:summary.rows[0] || {total:0,overdue:0,today:0,week:0,later:0,undated:0,high_priority:0},
+    summary:summary.rows[0] || {total:0,overdue:0,today:0,week:0,later:0,undated:0,high_priority:0,completed_total:0,completed_30d:0},
     items:result.rows.map(row=>({
       notification_id:row.notification_id,
       type:row.type,
@@ -1989,6 +2008,7 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       priority:row.priority,
       private_note:row.private_note || '',
       follow_up_at:row.follow_up_at,
+      completed_at:row.completed_at,
       follow_up_window:row.follow_up_window,
       meta_updated_at:row.meta_updated_at,
       post_id:row.post_id,
@@ -2014,8 +2034,16 @@ router.patch('/creator/community-follow-ups/bulk',requireAuth,async(req,res)=>{
 
   const ids=[...new Set(parsed.data.notificationIds)];
   const action=parsed.data.action;
-  let result;
+  const hasFollowUpAt=Object.prototype.hasOwnProperty.call(parsed.data,'followUpAt');
+  const followUpAt=parsed.data.followUpAt ? new Date(parsed.data.followUpAt) : null;
+  if(action==='reschedule' && !hasFollowUpAt){
+    return res.status(400).json({error:'follow_up_date_required'});
+  }
+  if(followUpAt && !Number.isFinite(followUpAt.getTime())){
+    return res.status(400).json({error:'invalid_follow_up_date'});
+  }
 
+  let result;
   if(action==='mark_reviewed'){
     result=await db.query(`
       INSERT INTO creator_community_notification_reviews (notification_id,creator_id,reviewed_at)
@@ -2030,13 +2058,10 @@ router.patch('/creator/community-follow-ups/bulk',requireAuth,async(req,res)=>{
             reviewed_at=excluded.reviewed_at
       RETURNING notification_id
     `,[ids,req.user.id]);
-  }else{
-    const priority=action==='priority_high' ? 'high' : action==='priority_normal' ? 'normal' : null;
+  }else if(action==='priority_high' || action==='priority_normal'){
     result=await db.query(`
       UPDATE creator_community_activity_meta meta
-         SET priority=CASE WHEN $3::text IS NULL THEN priority ELSE $3 END,
-             follow_up=CASE WHEN $4 THEN false ELSE follow_up END,
-             follow_up_at=CASE WHEN $4 THEN NULL ELSE follow_up_at END,
+         SET priority=$3,
              updated_at=now()
         FROM notifications n
        WHERE meta.notification_id=n.id
@@ -2046,10 +2071,60 @@ router.patch('/creator/community-follow-ups/bulk',requireAuth,async(req,res)=>{
          AND n.entity_type='creator_community'
          AND n.type IN ('creator_poll_vote','creator_question_response')
       RETURNING meta.notification_id
-    `,[ids,req.user.id,priority,action==='close_follow_up']);
+    `,[ids,req.user.id,action==='priority_high' ? 'high' : 'normal']);
+  }else if(action==='close_follow_up'){
+    result=await db.query(`
+      UPDATE creator_community_activity_meta meta
+         SET follow_up=false,
+             completed_at=now(),
+             updated_at=now()
+        FROM notifications n
+       WHERE meta.notification_id=n.id
+         AND meta.notification_id=ANY($1::bigint[])
+         AND meta.creator_id=$2
+         AND meta.follow_up=true
+         AND n.user_id=$2
+         AND n.entity_type='creator_community'
+         AND n.type IN ('creator_poll_vote','creator_question_response')
+      RETURNING meta.notification_id
+    `,[ids,req.user.id]);
+  }else if(action==='reopen'){
+    result=await db.query(`
+      UPDATE creator_community_activity_meta meta
+         SET follow_up=true,
+             completed_at=NULL,
+             updated_at=now()
+        FROM notifications n
+       WHERE meta.notification_id=n.id
+         AND meta.notification_id=ANY($1::bigint[])
+         AND meta.creator_id=$2
+         AND meta.follow_up=false
+         AND meta.completed_at IS NOT NULL
+         AND n.user_id=$2
+         AND n.entity_type='creator_community'
+         AND n.type IN ('creator_poll_vote','creator_question_response')
+      RETURNING meta.notification_id
+    `,[ids,req.user.id]);
+  }else{
+    result=await db.query(`
+      UPDATE creator_community_activity_meta meta
+         SET follow_up=true,
+             follow_up_at=$3,
+             completed_at=NULL,
+             updated_at=now()
+        FROM notifications n
+       WHERE meta.notification_id=n.id
+         AND meta.notification_id=ANY($1::bigint[])
+         AND meta.creator_id=$2
+         AND meta.follow_up=true
+         AND n.user_id=$2
+         AND n.entity_type='creator_community'
+         AND n.type IN ('creator_poll_vote','creator_question_response')
+      RETURNING meta.notification_id
+    `,[ids,req.user.id,followUpAt ? followUpAt.toISOString() : null]);
   }
 
-  res.json({ok:true,updated:result.rows.map(row=>row.notification_id || row.notification_id)});
+  res.json({ok:true,updated:result.rows.map(row=>row.notification_id)});
 });
 
 router.get('/creator/community-insights',requireAuth,async(req,res)=>{

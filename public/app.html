@@ -277,12 +277,16 @@
           <div>
             <span class="eyebrow">FOLLOW-UP DASHBOARD</span>
             <b>Seguimientos y prioridades</b>
-            <small>Busca en tus notas privadas y gestiona varios seguimientos a la vez.</small>
+            <small>Gestiona seguimientos activos, historial privado y reprogramaciones sin perder contexto.</small>
           </div>
+        </div>
+        <div class="creator-followup-status-tabs">
+          <button type="button" class="active" data-followup-status="active">Activos</button>
+          <button type="button" data-followup-status="completed">Completados</button>
         </div>
         <div id="creatorFollowUpSummary" class="creator-followup-summary"></div>
         <div class="creator-followup-toolbar">
-          <div class="creator-followup-window-tabs">
+          <div id="creatorFollowUpWindowTabs" class="creator-followup-window-tabs">
             <button type="button" class="active" data-followup-window="all">Todos</button>
             <button type="button" data-followup-window="overdue">Vencidos</button>
             <button type="button" data-followup-window="today">Hoy</button>
@@ -315,7 +319,11 @@
             <option value="priority_high">Prioridad alta</option>
             <option value="priority_normal">Prioridad normal</option>
             <option value="mark_reviewed">Marcar revisado</option>
-            <option value="close_follow_up">Cerrar seguimiento</option>
+            <option value="reschedule_hour">Reprogramar +1 hora</option>
+            <option value="reschedule_tomorrow">Reprogramar mañana 09:00</option>
+            <option value="reschedule_week">Reprogramar +7 días</option>
+            <option value="reschedule_undated">Dejar sin fecha</option>
+            <option value="close_follow_up">Completar seguimiento</option>
           </select>
           <button id="creatorFollowUpBulkApply" type="button" class="tiny-action primary-soft" disabled>Aplicar</button>
           <span id="creatorFollowUpSelectedCount" class="creator-followup-selected-count">0 seleccionados</span>

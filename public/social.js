@@ -33,6 +33,7 @@ let creatorCommunityData = null;
 let creatorCommunityActivityStatus = 'pending';
 let creatorCommunityActivityFocus = 'all';
 let creatorCommunityActivityData = null;
+let creatorFollowUpStatus = 'active';
 let creatorFollowUpWindow = 'all';
 let creatorFollowUpPriority = 'all';
 let creatorFollowUpSearch = '';
@@ -1940,16 +1941,86 @@ function creatorFollowUpWindowLabel(value) {
     today:'Hoy',
     week:'Próximos 7 días',
     later:'Más adelante',
-    undated:'Sin fecha'
+    undated:'Sin fecha',
+    completed:'Completado'
   })[value] || 'Seguimiento';
 }
 
+function creatorFollowUpPresetIso(preset) {
+  const date=new Date();
+  if(preset==='hour'){
+    date.setTime(date.getTime()+60*60*1000);
+    return date.toISOString();
+  }
+  if(preset==='tomorrow'){
+    date.setDate(date.getDate()+1);
+    date.setHours(9,0,0,0);
+    return date.toISOString();
+  }
+  if(preset==='week'){
+    date.setDate(date.getDate()+7);
+    return date.toISOString();
+  }
+  if(preset==='undated')return null;
+  return undefined;
+}
+
+function syncCreatorFollowUpBulkOptions() {
+  const select=$('#creatorFollowUpBulkAction');
+  if(!select)return;
+  const completed=creatorFollowUpStatus==='completed';
+  select.innerHTML=completed
+    ? `<option value="">Acción masiva…</option>
+       <option value="priority_high">Prioridad alta</option>
+       <option value="priority_normal">Prioridad normal</option>
+       <option value="mark_reviewed">Marcar revisado</option>
+       <option value="reopen">Reabrir seguimiento</option>`
+    : `<option value="">Acción masiva…</option>
+       <option value="priority_high">Prioridad alta</option>
+       <option value="priority_normal">Prioridad normal</option>
+       <option value="mark_reviewed">Marcar revisado</option>
+       <option value="reschedule_hour">Reprogramar +1 hora</option>
+       <option value="reschedule_tomorrow">Reprogramar mañana 09:00</option>
+       <option value="reschedule_week">Reprogramar +7 días</option>
+       <option value="reschedule_undated">Dejar sin fecha</option>
+       <option value="close_follow_up">Completar seguimiento</option>`;
+}
+
+async function patchCreatorFollowUps(notificationIds,action,followUpAt=undefined) {
+  const body={notificationIds,action};
+  if(action==='reschedule')body.followUpAt=followUpAt;
+  return api('/api/posts/creator/community-follow-ups/bulk',{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+}
+
 function creatorFollowUpItemHTML(item) {
+  const completed=Boolean(item.completed_at);
   const due=item.follow_up_at ? new Date(item.follow_up_at) : null;
+  const completedAt=item.completed_at ? new Date(item.completed_at) : null;
   const dueLabel=due && Number.isFinite(due.getTime())
     ? due.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
     : 'Sin fecha';
-  return `<article class="creator-followup-item ${item.priority==='high' ? 'high-priority' : ''} ${item.follow_up_window==='overdue' ? 'overdue' : ''}">
+  const completedLabel=completedAt && Number.isFinite(completedAt.getTime())
+    ? completedAt.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    : '';
+  const timing=completed
+    ? `Programado: ${esc(dueLabel)} · Completado: ${esc(completedLabel)}`
+    : `${esc(dueLabel)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}`;
+  const workflowActions=completed
+    ? `<button type="button" class="tiny-action primary-soft" data-followup-reopen="${item.notification_id}">Reabrir seguimiento</button>`
+    : `<select class="creator-followup-reschedule" data-followup-reschedule="${item.notification_id}" aria-label="Reprogramar seguimiento">
+         <option value="">Reprogramar…</option>
+         <option value="hour">+1 hora</option>
+         <option value="tomorrow">Mañana 09:00</option>
+         <option value="week">+7 días</option>
+         <option value="undated">Sin fecha</option>
+       </select>
+       <button type="button" class="tiny-action primary-soft" data-followup-complete="${item.notification_id}">Completar seguimiento</button>`;
+
+  return `<article class="creator-followup-item ${item.priority==='high' ? 'high-priority' : ''} ${item.follow_up_window==='overdue' ? 'overdue' : ''} ${completed ? 'completed' : ''}">
     <label class="creator-followup-check">
       <input type="checkbox" data-followup-select="${item.notification_id}">
     </label>
@@ -1966,7 +2037,7 @@ function creatorFollowUpItemHTML(item) {
       </div>
       <div class="creator-followup-actor-row">
         ${creatorActivityActorHTML(item.actor)}
-        <span class="creator-followup-due">${esc(dueLabel)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}</span>
+        <span class="creator-followup-due">${timing}</span>
       </div>
       <div class="creator-followup-note">
         <small>Nota privada</small>
@@ -1975,7 +2046,7 @@ function creatorFollowUpItemHTML(item) {
       <div class="creator-followup-item-actions">
         <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
         <button type="button" class="tiny-action" data-followup-open-activity="${item.notification_id}">Abrir en actividad</button>
-        <button type="button" class="tiny-action primary-soft" data-followup-complete="${item.notification_id}">Completar seguimiento</button>
+        ${workflowActions}
       </div>
     </div>
   </article>`;
@@ -2000,29 +2071,43 @@ function renderCreatorFollowUps(data = {}) {
   creatorFollowUpData=data;
   const summary=data.summary || {};
   if($('#creatorFollowUpSummary')){
-    $('#creatorFollowUpSummary').innerHTML=[
-      creatorMetric('Seguimientos',summary.total || 0),
-      creatorMetric('Vencidos',summary.overdue || 0),
-      creatorMetric('Hoy',summary.today || 0),
-      creatorMetric('Próximos 7 días',summary.week || 0),
-      creatorMetric('Prioridad alta',summary.high_priority || 0)
-    ].join('');
+    $('#creatorFollowUpSummary').innerHTML=(creatorFollowUpStatus==='completed'
+      ? [
+          creatorMetric('Completados',summary.completed_total || 0),
+          creatorMetric('Últimos 30 días',summary.completed_30d || 0),
+          creatorMetric('Activos',summary.total || 0),
+          creatorMetric('Vencidos',summary.overdue || 0),
+          creatorMetric('Hoy',summary.today || 0)
+        ]
+      : [
+          creatorMetric('Seguimientos',summary.total || 0),
+          creatorMetric('Vencidos',summary.overdue || 0),
+          creatorMetric('Hoy',summary.today || 0),
+          creatorMetric('Próximos 7 días',summary.week || 0),
+          creatorMetric('Prioridad alta',summary.high_priority || 0)
+        ]).join('');
   }
 
-  all('[data-followup-window]').forEach(button=>{
-    button.classList.toggle('active',button.dataset.followupWindow===creatorFollowUpWindow);
+  all('[data-followup-status]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.followupStatus===creatorFollowUpStatus);
   });
+  all('[data-followup-window]').forEach(button=>{
+    button.classList.toggle('active',creatorFollowUpStatus==='active' && button.dataset.followupWindow===creatorFollowUpWindow);
+    button.disabled=creatorFollowUpStatus==='completed';
+  });
+  $('#creatorFollowUpWindowTabs')?.classList.toggle('is-disabled',creatorFollowUpStatus==='completed');
   if($('#creatorFollowUpSearch') && $('#creatorFollowUpSearch').value!==creatorFollowUpSearch){
     $('#creatorFollowUpSearch').value=creatorFollowUpSearch;
   }
   if($('#creatorFollowUpPriority'))$('#creatorFollowUpPriority').value=creatorFollowUpPriority;
+  syncCreatorFollowUpBulkOptions();
 
   const root=$('#creatorFollowUpList');
   if(!root)return;
   const items=Array.isArray(data.items) ? data.items : [];
   root.innerHTML=items.length
     ? items.map(creatorFollowUpItemHTML).join('')
-    : '<div class="creator-empty compact">No hay seguimientos para este filtro.</div>';
+    : `<div class="creator-empty compact">${creatorFollowUpStatus==='completed' ? 'Todavía no hay seguimientos completados.' : 'No hay seguimientos para este filtro.'}</div>`;
   updateCreatorFollowUpBulkState();
 }
 
@@ -2032,7 +2117,8 @@ async function loadCreatorFollowUps() {
   const dayEnd=new Date();
   dayEnd.setHours(24,0,0,0);
   const qs=new URLSearchParams({
-    window:creatorFollowUpWindow,
+    status:creatorFollowUpStatus,
+    window:creatorFollowUpStatus==='completed' ? 'all' : creatorFollowUpWindow,
     priority:creatorFollowUpPriority,
     q:creatorFollowUpSearch,
     dayEnd:dayEnd.toISOString()
@@ -2046,8 +2132,17 @@ async function loadCreatorFollowUps() {
   return true;
 }
 
+all('[data-followup-status]').forEach(button=>{
+  button.addEventListener('click',async()=>{
+    creatorFollowUpStatus=button.dataset.followupStatus || 'active';
+    creatorFollowUpWindow='all';
+    await loadCreatorFollowUps();
+  });
+});
+
 all('[data-followup-window]').forEach(button=>{
   button.addEventListener('click',async()=>{
+    if(creatorFollowUpStatus!=='active')return;
     creatorFollowUpWindow=button.dataset.followupWindow || 'all';
     await loadCreatorFollowUps();
   });
@@ -2073,30 +2168,53 @@ $('#creatorFollowUpSelectAll')?.addEventListener('change',event=>{
 
 $('#creatorFollowUpBulkAction')?.addEventListener('change',updateCreatorFollowUpBulkState);
 
-document.addEventListener('change',event=>{
-  if(event.target.matches('[data-followup-select]'))updateCreatorFollowUpBulkState();
+document.addEventListener('change',async event=>{
+  if(event.target.matches('[data-followup-select]')){
+    updateCreatorFollowUpBulkState();
+    return;
+  }
+  const reschedule=event.target.closest('[data-followup-reschedule]');
+  if(!reschedule || !reschedule.value)return;
+  const preset=reschedule.value;
+  const followUpAt=creatorFollowUpPresetIso(preset);
+  reschedule.disabled=true;
+  try{
+    const { r }=await patchCreatorFollowUps([reschedule.dataset.followupReschedule],'reschedule',followUpAt);
+    if(!r.ok)throw new Error('No se pudo reprogramar el seguimiento.');
+    toast(preset==='undated' ? 'Seguimiento sin fecha' : 'Seguimiento reprogramado');
+    await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
+  }catch(error){
+    toast(error.message || 'No se pudo reprogramar el seguimiento.');
+    reschedule.disabled=false;
+    reschedule.value='';
+  }
 });
 
 $('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
   const button=$('#creatorFollowUpBulkApply');
-  const action=$('#creatorFollowUpBulkAction')?.value || '';
+  const selectedAction=$('#creatorFollowUpBulkAction')?.value || '';
   const ids=all('[data-followup-select]:checked',$('#creatorFollowUpList')).map(box=>box.dataset.followupSelect);
-  if(!button || !action || !ids.length)return;
-  if(action==='close_follow_up' && !window.confirm(`¿Cerrar ${ids.length} seguimientos seleccionados?`))return;
+  if(!button || !selectedAction || !ids.length)return;
+  if(selectedAction==='close_follow_up' && !window.confirm(`¿Completar ${ids.length} seguimientos seleccionados?`))return;
+
+  let action=selectedAction;
+  let followUpAt;
+  if(selectedAction.startsWith('reschedule_')){
+    action='reschedule';
+    followUpAt=creatorFollowUpPresetIso(selectedAction.replace('reschedule_',''));
+  }
 
   button.disabled=true;
   try{
-    const { r,d }=await api('/api/posts/creator/community-follow-ups/bulk',{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({notificationIds:ids,action})
-    });
+    const { r,d }=await patchCreatorFollowUps(ids,action,followUpAt);
     if(!r.ok)throw new Error(d.error==='invalid_follow_up_bulk_action' ? 'Acción masiva no válida.' : 'No se pudo aplicar la acción.');
     const labels={
       priority_high:'Prioridad alta aplicada',
       priority_normal:'Prioridad normal aplicada',
       mark_reviewed:'Actividad marcada como revisada',
-      close_follow_up:'Seguimientos cerrados'
+      close_follow_up:'Seguimientos completados',
+      reopen:'Seguimientos reabiertos',
+      reschedule:'Seguimientos reprogramados'
     };
     toast(labels[action] || 'Seguimientos actualizados');
     if($('#creatorFollowUpBulkAction'))$('#creatorFollowUpBulkAction').value='';
@@ -2110,24 +2228,21 @@ $('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
 });
 
 document.addEventListener('click',async event=>{
-  const complete=event.target.closest('[data-followup-complete]');
-  if(complete){
+  const workflowButton=event.target.closest('[data-followup-complete],[data-followup-reopen]');
+  if(workflowButton){
     event.preventDefault();
     event.stopPropagation();
-    const notificationId=complete.dataset.followupComplete;
-    complete.disabled=true;
+    const reopening=workflowButton.hasAttribute('data-followup-reopen');
+    const notificationId=reopening ? workflowButton.dataset.followupReopen : workflowButton.dataset.followupComplete;
+    workflowButton.disabled=true;
     try{
-      const { r }=await api('/api/posts/creator/community-follow-ups/bulk',{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({notificationIds:[notificationId],action:'close_follow_up'})
-      });
-      if(!r.ok)throw new Error('No se pudo completar el seguimiento.');
-      toast('Seguimiento completado');
+      const { r }=await patchCreatorFollowUps([notificationId],reopening ? 'reopen' : 'close_follow_up');
+      if(!r.ok)throw new Error(reopening ? 'No se pudo reabrir el seguimiento.' : 'No se pudo completar el seguimiento.');
+      toast(reopening ? 'Seguimiento reabierto' : 'Seguimiento completado');
       await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
     }catch(error){
-      toast(error.message || 'No se pudo completar el seguimiento.');
-      complete.disabled=false;
+      toast(error.message || 'No se pudo actualizar el seguimiento.');
+      workflowButton.disabled=false;
     }
     return;
   }
@@ -2137,8 +2252,8 @@ document.addEventListener('click',async event=>{
   event.preventDefault();
   event.stopPropagation();
   creatorCommunityActivityStatus='all';
-  creatorCommunityActivityFocus='followup';
-  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value='followup';
+  creatorCommunityActivityFocus=creatorFollowUpStatus==='completed' ? 'all' : 'followup';
+  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value=creatorCommunityActivityFocus;
   await loadCreatorCommunityActivity();
   document.querySelector('.creator-activity-center')?.scrollIntoView({behavior:'smooth',block:'start'});
 });
