@@ -291,7 +291,7 @@ function postHTML(p, options = {}) {
         'repost-profile-link'
       )}</div>`
     : '';
-  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
+  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''} ${options.immersive ? 'immersive-reel-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
     ${repostBanner}
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
@@ -316,7 +316,7 @@ function postHTML(p, options = {}) {
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
         : `<button class="post-more" data-report="${p.id}" aria-label="Denunciar publicación">⋯</button>`}
     </div>
-    ${inlineCommentsHTML(p)}
+    ${options.immersive ? '' : inlineCommentsHTML(p)}
   </article>`;
 }
 
@@ -1045,25 +1045,62 @@ async function loadExplore() {
 async function loadReels() {
   const { r,d } = await api('/api/posts/reels');
   const reels = r.ok && Array.isArray(d.posts) ? d.posts : [];
-  $('#reelsFeed').innerHTML = reels.map(postHTML).join('') || '<div class="info-card"><b>Todavía no hay Reels.</b><p>Publica el primero usando Crear → Reel.</p></div>';
-  bindPostActions($('#reelsFeed'));
-  observeReelViews();
+  const root=$('#reelsFeed');
+  root.innerHTML = reels.map(reel=>postHTML(reel,{immersive:true})).join('') || '<div class="info-card"><b>Todavía no hay Reels.</b><p>Publica el primero usando Crear → Reel.</p></div>';
+  root.scrollTop=0;
+  bindPostActions(root);
+  observeReelExperience();
 }
 
-function observeReelViews(){
+function pauseReelVideos(except=null){
+  all('#reelsFeed video').forEach(video=>{
+    if(video!==except && !video.paused)video.pause();
+  });
+}
+
+function observeReelExperience(){
   const root=$('#reelsFeed');
   if(!root || !('IntersectionObserver' in window))return;
-  const observer=new IntersectionObserver(entries=>{
+
+  const cards=all('[data-reel-observe]',root);
+  const viewObserver=new IntersectionObserver(entries=>{
     entries.forEach(entry=>{
-      if(!entry.isIntersecting || entry.intersectionRatio<0.6)return;
+      if(!entry.isIntersecting || entry.intersectionRatio<0.65)return;
       const id=entry.target.dataset.reelObserve;
       if(!id || recordedReelViews.has(String(id)))return;
       recordedReelViews.add(String(id));
-      api(`/api/posts/${encodeURIComponent(id)}/reel-view`,{method:'POST'}).catch(()=>{recordedReelViews.delete(String(id));});
-      observer.unobserve(entry.target);
+      api(`/api/posts/${encodeURIComponent(id)}/reel-view`,{method:'POST'})
+        .catch(()=>{recordedReelViews.delete(String(id));});
+      viewObserver.unobserve(entry.target);
     });
-  },{threshold:[0.6]});
-  all('[data-reel-observe]',root).forEach(article=>observer.observe(article));
+  },{root,threshold:[0.65]});
+
+  const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
+  const playbackObserver=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      const card=entry.target;
+      const video=card.querySelector('.post-media video');
+      if(!video)return;
+
+      if(entry.isIntersecting && entry.intersectionRatio>=0.72){
+        card.classList.add('is-active-reel');
+        pauseReelVideos(video);
+        video.muted=true;
+        video.playsInline=true;
+        if(!reducedMotion){
+          video.play().catch(()=>{});
+        }
+      }else{
+        card.classList.remove('is-active-reel');
+        if(!video.paused)video.pause();
+      }
+    });
+  },{root,threshold:[0,0.35,0.72]});
+
+  cards.forEach(card=>{
+    viewObserver.observe(card);
+    playbackObserver.observe(card);
+  });
 }
 
 function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones visibles.') {
@@ -4960,6 +4997,7 @@ $('#returnPulseRefresh')?.addEventListener('click',async()=>{
 });
 
 function showView(name) {
+  if(name!=='reels')pauseReelVideos();
   all('.view').forEach(v => v.classList.add('hidden'));
   const view = document.querySelector('#' + name + 'View');
   if (!view) return;
