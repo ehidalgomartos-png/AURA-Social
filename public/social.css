@@ -3371,3 +3371,28 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .creator-post-item{grid-template-columns:1fr}
   .creator-feature-action{width:100%}
 }
+
+
+/* RedLibertad V1.14 — Creator Profile & Links */
+.creator-profile-section{margin-top:8px;padding:16px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--paper),rgba(255,255,255,.68))}
+.creator-profile-form{display:grid;gap:12px}
+.creator-links-fields{display:grid;gap:10px}
+.creator-link-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.creator-link-row label{margin:0}
+.creator-link-row small{padding:0 4px 10px;color:var(--muted);white-space:nowrap}
+.public-creator-showcase{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,rgba(20,184,166,.08),rgba(255,107,91,.06))}
+.public-creator-showcase-head span,.public-creator-showcase-head b{display:block}
+.public-creator-showcase-head span{font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--teal)}
+.public-creator-showcase-head b{margin-top:4px;color:var(--navy)}
+.public-creator-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.public-creator-links a{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--navy);font-weight:800;text-decoration:none}
+.public-creator-links a:hover{transform:translateY(-1px)}
+.own-creator-headline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.own-creator-headline span{font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--teal)}
+.own-creator-headline b{color:var(--navy)}
+@media (max-width:760px){
+  .creator-link-row{grid-template-columns:1fr}
+  .creator-link-row small{padding:0 2px 2px}
+  .public-creator-links{display:grid}
+  .public-creator-links a{justify-content:space-between;border-radius:12px}
+}
