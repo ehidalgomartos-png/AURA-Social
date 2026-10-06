@@ -631,7 +631,7 @@ function renderConnectionsCenterCircleFilters(){
     <button type="button" class="${activeConnectionCircleId===null ? 'active' : ''}" data-connection-center-circle="">Todas</button>
     ${connectionCircles.map(circle=>`
       <button type="button" class="${String(activeConnectionCircleId)===String(circle.id) ? 'active' : ''}" data-connection-center-circle="${circle.id}">
-        ${circle.is_favorites ? '★ ' : ''}${esc(circle.name)} <span>${Number(circle.member_count || 0)}</span>
+        ${circle.is_favorites ? '★ ' : circle.is_close ? '♥ ' : ''}${esc(circle.name)} <span>${Number(circle.member_count || 0)}</span>
       </button>
     `).join('')}
   `;
