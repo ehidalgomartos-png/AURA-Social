@@ -327,6 +327,67 @@ function interestPillsHTML(interests = [], compact = false) {
   return `<div class="interest-pills ${compact ? 'compact' : ''}">${shown.map(i => `<span>${esc(i)}</span>`).join('')}</div>`;
 }
 
+function connectionCardHTML(user) {
+  const shared=Number(user.shared_interest_count || 0);
+  const activity=user.last_activity_at && new Date(user.last_activity_at).getFullYear()>1971
+    ? `Activo ${timeAgo(user.last_activity_at)}`
+    : '';
+  const reason=shared
+    ? `${shared} ${shared===1 ? 'interés' : 'intereses'} en común`
+    : activity || 'Seguimiento mutuo';
+
+  return `<article class="connection-card">
+    ${profileLink(user.username,`<span class="connection-avatar">${avatarHTML(user)}</span>`,'connection-profile')}
+    <div class="connection-copy">
+      ${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'connection-name')}
+      <small>@${esc(user.username)}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small>
+      ${user.profile_status ? `<p>${esc(user.profile_status)}</p>` : ''}
+      <span>${esc(reason)}</span>
+    </div>
+    <button type="button" class="connection-message" data-connection-message="${esc(user.username)}">Mensaje</button>
+  </article>`;
+}
+
+async function loadConnections() {
+  const section=$('#connectionsSection');
+  const list=$('#connectionsList');
+  if(!section || !list)return [];
+
+  const {r,d}=await api('/api/profiles/connections?limit=20');
+  const connections=r.ok && Array.isArray(d.connections) ? d.connections : [];
+  if(!connections.length){
+    section.classList.add('hidden');
+    list.innerHTML='';
+    if($('#connectionsCount'))$('#connectionsCount').textContent='0';
+    return [];
+  }
+
+  list.innerHTML=connections.map(connectionCardHTML).join('');
+  if($('#connectionsCount'))$('#connectionsCount').textContent=String(connections.length);
+  section.classList.remove('hidden');
+  return connections;
+}
+
+async function openConnectionMessage(username) {
+  const clean=String(username || '').replace(/^@/,'').trim();
+  if(!clean)return;
+  const {r,d}=await api('/api/messages/conversations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:clean})
+  });
+  if(!r.ok){
+    return toast(
+      d.error==='message_privacy_denied' ? 'Esta persona no acepta nuevas conversaciones.' :
+      d.error==='message_privacy_following_only' ? 'Esta persona solo acepta mensajes de personas que sigue.' :
+      d.error==='messaging_blocked' ? 'No puedes iniciar esta conversación.' :
+      'No se pudo abrir la conversación.'
+    );
+  }
+  showView('messages');
+  await loadConversations(d.conversationId);
+}
+
 function personCardHTML(user, compact = false) {
   const shared = Number(user.shared_interest_count || 0);
   const followers = Number(user.follower_count || 0);
@@ -1037,6 +1098,7 @@ async function searchPosts(query) {
 
 async function loadExplore() {
   await Promise.all([
+    loadConnections(),
     loadPeopleSuggestions(activeExploreInterest),
     loadTrendChips(),
     loadDiscoveryContent(activeContentMode)
@@ -1131,7 +1193,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -1158,9 +1220,11 @@ function mutualContextHTML(profileData) {
   const mutuals = Array.isArray(profileData.mutuals) ? profileData.mutuals : [];
   const count = Number(profileData.mutualCount || 0);
   if (!count) {
-    return profileData.followsYou
-      ? '<div class="profile-relationship-note">Te sigue</div>'
-      : '';
+    return profileData.connected
+      ? '<div class="profile-relationship-note connected">✓ Conexión · os seguís mutuamente</div>'
+      : profileData.followsYou
+        ? '<div class="profile-relationship-note">Te sigue</div>'
+        : '';
   }
 
   const shown = mutuals.map(user =>
@@ -1173,7 +1237,7 @@ function mutualContextHTML(profileData) {
     ? `También le siguen ${names} y ${extra} más`
     : `También le siguen ${names}`;
 
-  return `<div class="profile-mutuals"><div class="mutual-avatars">${shown}</div><span>${copy}</span>${profileData.followsYou ? '<b>Te sigue</b>' : ''}</div>`;
+  return `<div class="profile-mutuals"><div class="mutual-avatars">${shown}</div><span>${copy}</span>${profileData.connected ? '<b>✓ Conexión</b>' : profileData.followsYou ? '<b>Te sigue</b>' : ''}</div>`;
 }
 
 function creatorLinksHTML(profileData) {
@@ -1292,7 +1356,7 @@ async function openPublicProfile(username) {
               <h2>${esc(profile.display_name)} ${profile.creator_verified ? '<span class="verified">✓</span>' : ''}</h2>
               <p>@${esc(profile.username)}</p>
               ${profile.profile_status ? `<span class="profile-status-line">${esc(profile.profile_status)}</span>` : ''}
-              ${profileData.followsYou ? '<span class="profile-relationship-signal">Te sigue</span>' : ''}
+              ${profileData.connected ? '<span class="profile-relationship-signal">✓ Conexión</span>' : profileData.followsYou ? '<span class="profile-relationship-signal">Te sigue</span>' : ''}
             </div>
             ${actions}
           </div>
@@ -1444,6 +1508,9 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const connectionMessage=event.target.closest('[data-connection-message]');
+  if(connectionMessage){event.preventDefault();event.stopPropagation();await openConnectionMessage(connectionMessage.dataset.connectionMessage);return;}
+
   const pulseAction=event.target.closest('[data-return-pulse-action]');
   if(pulseAction){event.preventDefault();await handleReturnPulseAction(pulseAction.dataset.returnPulseAction);return;}
 

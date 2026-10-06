@@ -363,6 +363,14 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
            is_admin,age_verified,creator_verified,show_sensitive,status,message_privacy,discoverable,show_activity,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
+           (
+             SELECT count(*)::int
+               FROM follows mine
+               JOIN follows back
+                 ON back.follower_id=mine.following_id
+                AND back.following_id=mine.follower_id
+              WHERE mine.follower_id=users.id
+           ) connection_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
            (SELECT count(*)::int FROM notifications n WHERE n.user_id=users.id AND n.read_at IS NULL AND (n.actor_id IS NULL OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=users.id))) notification_count,
            COALESCE(
@@ -454,6 +462,79 @@ router.get('/suggestions', requireAuth, async (req, res) => {
   `, [req.user.id, interest, limit]);
 
   res.json({ users: r.rows, interest, interests: INTERESTS });
+});
+
+router.get('/connections', requireAuth, async (req,res)=>{
+  const requestedLimit=Number(req.query.limit || 20);
+  const limit=Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 20,1),50);
+
+  const result=await db.query(`
+    SELECT
+      u.id,
+      u.username,
+      u.display_name,
+      u.bio,
+      u.profile_status,
+      u.avatar_url,
+      u.location_label,
+      u.creator_verified,
+      GREATEST(mine.created_at,theirs.created_at) AS connection_since,
+      CASE WHEN u.show_activity THEN activity.last_activity_at ELSE NULL END AS last_activity_at,
+      (
+        SELECT count(*)::int
+          FROM user_interests target_interest
+         WHERE target_interest.user_id=u.id
+           AND target_interest.interest IN (
+             SELECT own_interest.interest
+               FROM user_interests own_interest
+              WHERE own_interest.user_id=$1
+           )
+      ) AS shared_interest_count,
+      COALESCE(
+        (SELECT array_agg(ui.interest ORDER BY ui.interest)
+           FROM user_interests ui
+          WHERE ui.user_id=u.id),
+        ARRAY[]::text[]
+      ) interests
+    FROM follows mine
+    JOIN follows theirs
+      ON theirs.follower_id=mine.following_id
+     AND theirs.following_id=mine.follower_id
+    JOIN users u ON u.id=mine.following_id
+    CROSS JOIN LATERAL (
+      SELECT GREATEST(
+        COALESCE((SELECT max(p.created_at) FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published'),'epoch'::timestamptz),
+        COALESCE((SELECT max(c.created_at) FROM comments c WHERE c.user_id=u.id),'epoch'::timestamptz),
+        COALESCE((SELECT max(r.created_at) FROM reposts r WHERE r.user_id=u.id),'epoch'::timestamptz),
+        COALESCE((SELECT max(st.created_at) FROM stories st WHERE st.user_id=u.id AND st.moderation_status='published'),'epoch'::timestamptz)
+      ) AS last_activity_at
+    ) activity
+    WHERE mine.follower_id=$1
+      AND u.status='active'
+      AND u.is_admin=false
+      AND u.id NOT IN (
+        SELECT blocked_id FROM blocks WHERE blocker_id=$1
+        UNION
+        SELECT blocker_id FROM blocks WHERE blocked_id=$1
+      )
+      AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+    ORDER BY
+      CASE WHEN u.show_activity THEN activity.last_activity_at ELSE NULL END DESC NULLS LAST,
+      shared_interest_count DESC,
+      connection_since DESC
+    LIMIT $2
+  `,[req.user.id,limit]);
+
+  const connections=result.rows.map(row=>{
+    const lastActivity=row.last_activity_at ? new Date(row.last_activity_at) : null;
+    return {
+      ...row,
+      last_activity_at:lastActivity && Number.isFinite(lastActivity.getTime()) && lastActivity.getTime()>0
+        ? row.last_activity_at
+        : null
+    };
+  });
+  res.json({connections,count:connections.length});
 });
 
 router.get('/search/users', requireAuth, async (req,res)=>{
@@ -1533,7 +1614,7 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     creatorLinks=links.rows;
   }
 
-  res.json({profile,following,followsYou,mutuals,mutualCount,mutedByMe,blockedByMe,creatorLinks});
+  res.json({profile,following,followsYou,connected:following&&followsYou,mutuals,mutualCount,mutedByMe,blockedByMe,creatorLinks});
 });
 
 router.get('/:username/followers',optionalAuth,async(req,res)=>{

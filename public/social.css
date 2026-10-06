@@ -234,6 +234,56 @@
 .mini-empty b,.mini-empty small{display:block}
 .mini-empty b{color:var(--navy);margin-bottom:4px}
 
+.connections-section{
+  background:linear-gradient(145deg,var(--navy),var(--navy2));
+  color:white;
+  border-radius:24px;
+  padding:18px;
+  margin-bottom:18px;
+  overflow:hidden;
+}
+.connections-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.connections-head h2{margin:2px 0 4px;font:800 23px/1.1 Manrope,sans-serif;color:white}
+.connections-head p{margin:0;color:rgba(255,255,255,.72);font-size:11px}
+.connections-head .eyebrow{color:#93e5dc}
+.connections-count{min-width:34px;height:34px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-weight:900}
+.connections-strip{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(245px,310px);
+  gap:10px;
+  overflow-x:auto;
+  scroll-snap-type:x proximity;
+  scrollbar-width:none;
+  padding-bottom:2px;
+}
+.connections-strip::-webkit-scrollbar{display:none}
+.connection-card{
+  scroll-snap-align:start;
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr);
+  gap:9px;
+  padding:11px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:17px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(7px);
+}
+.connection-avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--teal);color:white;font-weight:900}
+.connection-avatar img{width:100%;height:100%;object-fit:cover}
+.connection-copy{min-width:0}
+.connection-copy b,.connection-copy small,.connection-copy p,.connection-copy span{display:block}
+.connection-copy b{color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.connection-copy small{margin-top:2px;color:rgba(255,255,255,.65);font-size:9px}
+.connection-copy p{margin:5px 0 0;color:rgba(255,255,255,.82);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.connection-copy span{margin-top:4px;color:#93e5dc;font-size:9px;font-weight:800}
+.connection-message{grid-column:1/-1;border:0;border-radius:11px;padding:9px;background:white;color:var(--navy);font-weight:900}
+.profile-relationship-note.connected{background:#eaf7f5;color:#176c64}
+@media(max-width:620px){
+  .connections-section{margin:0 -4px 16px;border-radius:20px;padding:15px 12px}
+  .connections-strip{grid-auto-columns:82%}
+}
+
 .people-discovery{
   background:var(--paper);
   border:1px solid var(--line);

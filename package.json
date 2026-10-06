@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.43.0",
+  "version": "1.44.0",
   "private": true,
-  "description": "RedLibertad V1.43 Reels Immersive 2.0 - navegación vertical, snap y autoplay accesible sin monetización.",
+  "description": "RedLibertad V1.44 Connections 2.0 - conexiones por seguimiento mutuo, contexto social y acceso directo a mensajes, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
