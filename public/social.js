@@ -581,6 +581,11 @@ function renderConnectionsCenter(){
   renderConnectionsCenterCircleFilters();
 }
 
+async function refreshConnectionSurfaces(){
+  await loadConnections();
+  if(activeViewName==='connections')await loadConnectionsCenter();
+}
+
 async function loadConnectionsCenter(){
   await loadConnectionCircles();
   const query=new URLSearchParams({limit:'100'});
@@ -654,7 +659,7 @@ async function loadConnectionMemberships(){
       }else{
         await loadConnectionCircles();
         renderConnectionCircleManageList();
-        await loadConnections();
+        await refreshConnectionSurfaces();
       }
       input.disabled=false;
     };
@@ -684,6 +689,7 @@ async function createConnectionCircle(name){
   }
   await loadConnectionCircles();
   await loadConnectionMemberships();
+  if(activeViewName==='connections')await loadConnectionsCenter();
   return {ok:true};
 }
 
@@ -701,7 +707,7 @@ async function toggleFavoriteConnection(userId){
     return toast('No se pudo actualizar Favoritas.');
   }
   toast(active ? 'Quitada de Favoritas' : 'Añadida a Favoritas');
-  await loadConnections();
+  await refreshConnectionSurfaces();
 }
 
 async function openConnectionMessage(username) {
@@ -1860,7 +1866,7 @@ $('#newCircleForm')?.addEventListener('submit',async event=>{
   if(!result.ok){status.textContent=result.message;return;}
   form.reset();
   status.textContent='Círculo creado.';
-  await loadConnections();
+  await refreshConnectionSurfaces();
 });
 
 $('#closePostFocusModal')?.addEventListener('click', closePostFocus);
@@ -1928,7 +1934,7 @@ document.addEventListener('click', async event => {
     if(!r.ok)return toast(d.error==='circle_name_exists' ? 'Ya existe un círculo con ese nombre.' : 'No se pudo renombrar.');
     await loadConnectionCircles();
     await loadConnectionMemberships();
-    await loadConnections();
+    await refreshConnectionSurfaces();
     toast('Círculo renombrado');
     return;
   }
@@ -1942,7 +1948,7 @@ document.addEventListener('click', async event => {
     if(String(activeConnectionCircleId)===String(deleteCircle.dataset.circleDelete))activeConnectionCircleId=null;
     await loadConnectionCircles();
     await loadConnectionMemberships();
-    await loadConnections();
+    await refreshConnectionSurfaces();
     toast('Círculo eliminado');
     return;
   }
