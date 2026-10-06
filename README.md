@@ -1,4 +1,4 @@
-# RedLibertad V1.61.0 — Collaborative Posts
+# RedLibertad V1.62.0 — Advanced Mentions & Sharing
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1329,5 +1329,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Un colaborador no puede republicar como repost un contenido que ya aparece en su perfil como coautor.
 - Notificaciones y centro de Consentimientos/Colaboraciones integrados.
 - Compatible con publicaciones programadas y Reels.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.62.0 — Advanced Mentions & Sharing
+
+- Privacidad de menciones: todos / solo conexiones / nadie.
+- Autocompletado de @usuario respetando privacidad, bloqueos y descubribilidad.
+- Menciones a círculos privados sin exponer el nombre del círculo.
+- Menciones dentro de comunidades y comentarios de comunidad.
+- Compartir posts, Reels, Stories y perfiles en chats/grupos con validación de acceso de todos los miembros.
+- Compartir posts/Reels públicos dentro de comunidades.
+- Contexto opcional al compartir.
+- Historial de compartidos privado para el usuario.
+- Compartido externo solo para contenido público.
+- Audiencias privadas protegidas de fugas.
 - Mobile-first.
 - Sin monetización.
