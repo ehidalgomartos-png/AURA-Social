@@ -100,6 +100,18 @@ CREATE TABLE IF NOT EXISTS user_interests (
 );
 CREATE INDEX IF NOT EXISTS idx_user_interests_interest ON user_interests(interest, user_id);
 
+-- RedLibertad V1.37: feedback privado de descubrimiento
+CREATE TABLE IF NOT EXISTS discovery_hidden_items (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_type TEXT NOT NULL,
+  item_id BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,item_type,item_id),
+  CONSTRAINT discovery_hidden_items_type_check CHECK(item_type IN ('post','user'))
+);
+CREATE INDEX IF NOT EXISTS idx_discovery_hidden_items_user
+  ON discovery_hidden_items(user_id,item_type,created_at DESC);
+
 -- Expand notification types to include social interactions.
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
