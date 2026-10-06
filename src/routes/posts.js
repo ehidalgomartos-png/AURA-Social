@@ -1449,13 +1449,21 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
     return res.status(403).json({error:'verified_creator_required_for_community_tools'});
   }
 
-  const [summary,responses,polls]=await Promise.all([
+  const [summary,responses,polls,questions]=await Promise.all([
     db.query(`
       SELECT
         (SELECT count(*)::int
            FROM creator_polls cp
            JOIN posts p ON p.id=cp.post_id
           WHERE p.user_id=$1 AND p.moderation_status='published') poll_count,
+        (SELECT count(*)::int
+           FROM creator_polls cp
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cp.status='active') active_poll_count,
+        (SELECT count(*)::int
+           FROM creator_polls cp
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cp.status='archived') archived_poll_count,
         (SELECT count(*)::int
            FROM creator_poll_votes v
            JOIN creator_polls cp ON cp.id=v.poll_id
@@ -1466,15 +1474,28 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
            JOIN posts p ON p.id=cq.post_id
           WHERE p.user_id=$1 AND p.moderation_status='published') question_count,
         (SELECT count(*)::int
+           FROM creator_questions cq
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cq.status='active') active_question_count,
+        (SELECT count(*)::int
+           FROM creator_questions cq
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cq.status='archived') archived_question_count,
+        (SELECT count(*)::int
            FROM creator_question_responses qr
            JOIN creator_questions cq ON cq.id=qr.question_id
            JOIN posts p ON p.id=cq.post_id
-          WHERE p.user_id=$1 AND p.moderation_status='published') response_count
+          WHERE p.user_id=$1 AND p.moderation_status='published') response_count,
+        (SELECT count(*)::int
+           FROM creator_question_responses qr
+           JOIN creator_questions cq ON cq.id=qr.question_id
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND qr.creator_starred=true) starred_response_count
     `,[req.user.id]),
     db.query(`
       SELECT
-        qr.id,qr.body,qr.created_at,qr.updated_at,
-        cq.id question_id,cq.prompt,
+        qr.id,qr.body,qr.created_at,qr.updated_at,qr.creator_starred,qr.starred_at,
+        cq.id question_id,cq.prompt,cq.status question_status,cq.is_open question_is_open,
         p.id post_id,p.caption,p.audience,
         u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified
       FROM creator_question_responses qr
@@ -1484,12 +1505,13 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
       WHERE p.user_id=$1
         AND p.moderation_status='published'
         AND u.status='active'
-      ORDER BY qr.updated_at DESC
-      LIMIT 100
+      ORDER BY qr.creator_starred DESC,qr.starred_at DESC NULLS LAST,qr.updated_at DESC
+      LIMIT 150
     `,[req.user.id]),
     db.query(`
       SELECT
-        cp.id poll_id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,
+        cp.id poll_id,cp.question,cp.post_id,cp.status,cp.is_open,cp.archived_at,
+        p.caption,p.audience,p.created_at,
         o.id option_id,o.position,o.label,
         count(v.user_id)::int vote_count
       FROM creator_polls cp
@@ -1498,9 +1520,24 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
       LEFT JOIN creator_poll_votes v ON v.option_id=o.id
       WHERE p.user_id=$1
         AND p.moderation_status='published'
-      GROUP BY cp.id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,o.id,o.position,o.label
-      ORDER BY p.created_at DESC,o.position
-      LIMIT 160
+      GROUP BY cp.id,cp.question,cp.post_id,cp.status,cp.is_open,cp.archived_at,p.caption,p.audience,p.created_at,o.id,o.position,o.label
+      ORDER BY (cp.status='active') DESC,p.created_at DESC,o.position
+      LIMIT 240
+    `,[req.user.id]),
+    db.query(`
+      SELECT
+        cq.id question_id,cq.prompt,cq.post_id,cq.status,cq.is_open,cq.archived_at,
+        p.caption,p.audience,p.created_at,
+        count(qr.id)::int response_count,
+        count(qr.id) FILTER (WHERE qr.creator_starred=true)::int starred_count
+      FROM creator_questions cq
+      JOIN posts p ON p.id=cq.post_id
+      LEFT JOIN creator_question_responses qr ON qr.question_id=cq.id
+      WHERE p.user_id=$1
+        AND p.moderation_status='published'
+      GROUP BY cq.id,cq.prompt,cq.post_id,cq.status,cq.is_open,cq.archived_at,p.caption,p.audience,p.created_at
+      ORDER BY (cq.status='active') DESC,p.created_at DESC
+      LIMIT 100
     `,[req.user.id])
   ]);
 
@@ -1515,6 +1552,9 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
         caption:row.caption,
         audience:row.audience,
         created_at:row.created_at,
+        status:row.status,
+        is_open:row.is_open===true,
+        archived_at:row.archived_at,
         total_votes:0,
         options:[]
       });
@@ -1531,12 +1571,16 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
   }
 
   res.json({
-    summary:summary.rows[0] || {poll_count:0,vote_count:0,question_count:0,response_count:0},
+    summary:summary.rows[0] || {
+      poll_count:0,active_poll_count:0,archived_poll_count:0,vote_count:0,
+      question_count:0,active_question_count:0,archived_question_count:0,
+      response_count:0,starred_response_count:0
+    },
     responses:responses.rows,
-    polls:[...pollMap.values()].slice(0,20)
+    polls:[...pollMap.values()].slice(0,40),
+    questions:questions.rows
   });
 });
-
 async function viewerFrom(req) {
   if (!req.user) return null;
   const vr = await db.query(
