@@ -657,33 +657,67 @@ router.post('/presence',async(req,res)=>{
 });
 
 router.get('/conversations/:id/messages', async (req, res) => {
-  const id = req.params.id;
-  if (!(await conversationForUser(id, req.user.id))) return res.status(404).json({ error: 'conversation_not_found' });
-  const other = await otherMember(id, req.user.id);
-  const viewer = await userRow(req.user.id);
-  const permission = other ? await db.query(`SELECT allowed FROM sensitive_message_permissions WHERE receiver_id=$1 AND sender_id=$2`, [req.user.id, other.id]) : { rowCount: 0 };
-  const allowedFromOther = !!permission.rows?.[0]?.allowed && !!viewer?.age_verified;
+  const id=req.params.id;
+  const details=await conversationDetails(id,req.user.id);
+  if(!details)return res.status(404).json({error:'conversation_not_found'});
+  if(!details.is_group && details.other?.blocked_with_viewer){
+    return res.status(403).json({error:'messaging_blocked'});
+  }
 
-  const r = await db.query(`
+  const viewer=await userRow(req.user.id);
+  const participantIds=details.participants
+    .filter(member=>String(member.id)!==String(req.user.id))
+    .map(member=>String(member.id));
+
+  const permissionResult=(viewer?.age_verified && participantIds.length)
+    ? await db.query(`
+        SELECT sender_id
+          FROM sensitive_message_permissions
+         WHERE receiver_id=$1
+           AND sender_id=ANY($2::bigint[])
+           AND allowed=true
+      `,[req.user.id,participantIds])
+    : {rows:[]};
+  const allowedSenders=new Set(permissionResult.rows.map(row=>String(row.sender_id)));
+
+  const blockedResult=participantIds.length
+    ? await db.query(`
+        SELECT CASE WHEN blocker_id=$1 THEN blocked_id ELSE blocker_id END AS user_id
+          FROM blocks
+         WHERE (blocker_id=$1 AND blocked_id=ANY($2::bigint[]))
+            OR (blocked_id=$1 AND blocker_id=ANY($2::bigint[]))
+      `,[req.user.id,participantIds])
+    : {rows:[]};
+  const blockedSenders=new Set(blockedResult.rows.map(row=>String(row.user_id)));
+
+  const r=await db.query(`
     SELECT
-           m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
-           m.content_level,m.created_at,m.reply_to_message_id,
-           u.username,u.display_name,u.avatar_url,
-           reply.id AS reply_id,
-           reply.sender_id AS reply_sender_id,
-           reply.body AS reply_body,
-           reply.media_type AS reply_media_type,
-           reply.content_level AS reply_content_level,
-           reply_user.username AS reply_username,
-           reply_user.display_name AS reply_display_name
-      FROM messages m
-      JOIN users u ON u.id=m.sender_id
-      LEFT JOIN messages reply ON reply.id=m.reply_to_message_id AND reply.conversation_id=m.conversation_id
-      LEFT JOIN users reply_user ON reply_user.id=reply.sender_id
-     WHERE m.conversation_id=$1
-     ORDER BY m.created_at ASC
-     LIMIT 300
-  `, [id]);
+      m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
+      m.content_level,m.created_at,m.reply_to_message_id,
+      u.username,u.display_name,u.avatar_url,
+      reply.id AS reply_id,
+      reply.sender_id AS reply_sender_id,
+      reply.body AS reply_body,
+      reply.media_type AS reply_media_type,
+      reply.content_level AS reply_content_level,
+      reply_user.username AS reply_username,
+      reply_user.display_name AS reply_display_name
+    FROM messages m
+    JOIN users u ON u.id=m.sender_id
+    LEFT JOIN messages reply ON reply.id=m.reply_to_message_id AND reply.conversation_id=m.conversation_id
+    LEFT JOIN users reply_user ON reply_user.id=reply.sender_id
+    WHERE m.conversation_id=$1
+      AND (
+        m.sender_id=$2
+        OR NOT EXISTS(
+          SELECT 1 FROM blocks b
+           WHERE (b.blocker_id=$2 AND b.blocked_id=m.sender_id)
+              OR (b.blocker_id=m.sender_id AND b.blocked_id=$2)
+        )
+      )
+    ORDER BY m.created_at ASC,m.id ASC
+    LIMIT 300
+  `,[id,req.user.id]);
 
   const messageIds=r.rows.map(row=>String(row.id));
   const reactionResult=messageIds.length
@@ -699,6 +733,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
         ORDER BY message_id,reaction
       `,[messageIds,req.user.id])
     : {rows:[]};
+
   const reactionsByMessage=new Map();
   for(const row of reactionResult.rows){
     const key=String(row.message_id);
@@ -710,63 +745,92 @@ router.get('/conversations/:id/messages', async (req, res) => {
     });
   }
 
-  const otherReadState=await db.query(
-    'SELECT last_read_at FROM conversation_members WHERE conversation_id=$1 AND user_id<>$2 LIMIT 1',
-    [id,req.user.id]
-  );
-  const otherLastReadAt=otherReadState.rows[0]?.last_read_at || null;
+  const readStateResult=await db.query(`
+    SELECT user_id,last_read_at
+      FROM conversation_members
+     WHERE conversation_id=$1
+       AND user_id<>$2
+  `,[id,req.user.id]);
+  const readStates=readStateResult.rows.map(row=>({
+    userId:String(row.user_id),
+    at:row.last_read_at ? new Date(row.last_read_at).getTime() : 0
+  }));
+  const otherMemberCount=details.participants.filter(member=>
+    member.status==='active' && String(member.id)!==String(req.user.id)
+  ).length;
 
-  const messages = r.rows.map(m => {
-    const isOwn = String(m.sender_id) === String(req.user.id);
-    const gated = !isOwn && m.content_level !== 'normal' && !allowedFromOther;
-    return {
-      ...m,
-      seen_by_other:!!(
-        isOwn &&
-        otherLastReadAt &&
-        new Date(m.created_at).getTime()<=new Date(otherLastReadAt).getTime()
-      ),
-      reactions:reactionsByMessage.get(String(m.id)) || [],
-      reply_preview:m.reply_id ? (() => {
-        const replyIsOwn=String(m.reply_sender_id)===String(req.user.id);
-        const replyGated=!replyIsOwn && m.reply_content_level!=='normal' && !allowedFromOther;
-        let text='';
-        if(replyGated){
-          text='Contenido sensible';
-        }else if(String(m.reply_body || '').trim()){
-          const raw=String(m.reply_body).trim();
-          text=raw.length>160 ? raw.slice(0,157)+'…' : raw;
-        }else if(m.reply_media_type==='image'){
-          text='Foto';
-        }else if(m.reply_media_type==='video'){
-          text='Vídeo';
-        }else{
-          text='Mensaje';
-        }
+  const messages=r.rows.map(m=>{
+    const isOwn=String(m.sender_id)===String(req.user.id);
+    const senderAllowed=isOwn || allowedSenders.has(String(m.sender_id));
+    const gated=!isOwn && m.content_level!=='normal' && !senderAllowed;
+    const createdAt=new Date(m.created_at).getTime();
+    const seenCount=isOwn
+      ? readStates.filter(state=>state.at && state.at>=createdAt).length
+      : 0;
+
+    const replyPreview=m.reply_id ? (() => {
+      const replyBlocked=blockedSenders.has(String(m.reply_sender_id));
+      if(replyBlocked){
         return {
           id:m.reply_id,
           sender_id:m.reply_sender_id,
-          username:m.reply_username,
-          display_name:m.reply_display_name,
-          text,
-          gated:replyGated
+          username:null,
+          display_name:null,
+          text:'Mensaje no disponible',
+          gated:true
         };
-      })() : null,
-      media_url: gated ? null : m.media_url,
-      playback_url: gated ? null : m.playback_url,
-      body: gated && m.media_url ? '' : m.body,
+      }
+
+      const replyIsOwn=String(m.reply_sender_id)===String(req.user.id);
+      const replyAllowed=replyIsOwn || allowedSenders.has(String(m.reply_sender_id));
+      const replyGated=!replyIsOwn && m.reply_content_level!=='normal' && !replyAllowed;
+      let text='';
+      if(replyGated){
+        text='Contenido sensible';
+      }else if(String(m.reply_body || '').trim()){
+        const raw=String(m.reply_body).trim();
+        text=raw.length>160 ? raw.slice(0,157)+'…' : raw;
+      }else if(m.reply_media_type==='image'){
+        text='Foto';
+      }else if(m.reply_media_type==='video'){
+        text='Vídeo';
+      }else{
+        text='Mensaje';
+      }
+      return {
+        id:m.reply_id,
+        sender_id:m.reply_sender_id,
+        username:m.reply_username,
+        display_name:m.reply_display_name,
+        text,
+        gated:replyGated
+      };
+    })() : null;
+
+    return {
+      ...m,
+      seen_count:seenCount,
+      seen_by_other:!details.is_group && seenCount>0,
+      seen_by_all:details.is_group && otherMemberCount>0 && seenCount>=otherMemberCount,
+      reactions:reactionsByMessage.get(String(m.id)) || [],
+      reply_preview:replyPreview,
+      media_url:gated ? null : m.media_url,
+      playback_url:gated ? null : m.playback_url,
+      body:gated ? '' : m.body,
       gated,
-      gate_reason: gated ? (viewer?.age_verified ? 'permission_required' : 'age_verification_required') : null
+      gate_reason:gated
+        ? (viewer?.age_verified ? 'permission_required' : 'age_verification_required')
+        : null
     };
   });
 
-  const memberState=await db.query(
-    `UPDATE conversation_members
-        SET last_read_at=now()
-      WHERE conversation_id=$1 AND user_id=$2
-      RETURNING is_pinned,is_archived,notifications_muted,last_read_at`,
-    [id, req.user.id]
-  );
+  const memberState=await db.query(`
+    UPDATE conversation_members
+       SET last_read_at=now()
+     WHERE conversation_id=$1 AND user_id=$2
+     RETURNING member_role,is_pinned,is_archived,notifications_muted,last_read_at
+  `,[id,req.user.id]);
+
   await db.query(`
     INSERT INTO user_chat_presence(user_id,last_seen_at,active_conversation_id,typing_until,updated_at)
     VALUES ($1,now(),$2,NULL,now())
@@ -776,15 +840,48 @@ router.get('/conversations/:id/messages', async (req, res) => {
           typing_until=NULL,
           updated_at=now()
   `,[req.user.id,id]);
+
+  const directSensitiveAllowed=!!(
+    !details.is_group &&
+    details.other &&
+    allowedSenders.has(String(details.other.id))
+  );
+
   res.json({
     messages,
-    other,
-    sensitiveAllowed: allowedFromOther,
-    viewerAgeVerified: !!viewer?.age_verified,
-    settings:memberState.rows[0] || {is_pinned:false,is_archived:false,notifications_muted:false}
+    other:details.other,
+    conversation:{
+      id:details.id,
+      conversation_type:details.conversation_type,
+      is_group:details.is_group,
+      title:details.title,
+      created_by:details.created_by,
+      member_role:details.member_role,
+      member_count:details.member_count,
+      participants:details.participants.map(member=>({
+        id:member.id,
+        username:member.username,
+        display_name:member.display_name,
+        avatar_url:member.avatar_url,
+        creator_verified:member.creator_verified,
+        member_role:member.member_role,
+        online:member.online===true,
+        typing:member.typing===true,
+        blocked_with_viewer:member.blocked_with_viewer===true
+      })),
+      can_manage_group:details.is_group && ['owner','admin'].includes(details.member_role),
+      can_delete_group:details.is_group && details.member_role==='owner'
+    },
+    sensitiveAllowed:directSensitiveAllowed,
+    viewerAgeVerified:!!viewer?.age_verified,
+    settings:memberState.rows[0] || {
+      member_role:details.member_role,
+      is_pinned:false,
+      is_archived:false,
+      notifications_muted:false
+    }
   });
 });
-
 const messageSchema = z.object({
   body: z.string().max(4000).optional().default(''),
   mediaUrl: z.string().max(4096).optional().nullable(),
