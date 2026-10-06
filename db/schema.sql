@@ -554,3 +554,23 @@ CREATE TABLE IF NOT EXISTS creator_segment_members (
 );
 CREATE INDEX IF NOT EXISTS idx_creator_segments_creator ON creator_segments(creator_id,updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_creator_segment_members_segment ON creator_segment_members(segment_id,created_at DESC);
+
+
+-- RedLibertad V1.32: centro de comunicaciones del creador
+CREATE TABLE IF NOT EXISTS creator_communications (
+  id BIGSERIAL PRIMARY KEY,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(280) NOT NULL,
+  audience_type TEXT NOT NULL DEFAULT 'all',
+  segment_id BIGINT REFERENCES creator_segments(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  scheduled_for TIMESTAMPTZ,
+  recipient_count INTEGER NOT NULL DEFAULT 0,
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT creator_communications_audience_check CHECK(audience_type IN ('all','vip','segment','recent_followers','active_30d','inactive_30d','high_priority')),
+  CONSTRAINT creator_communications_status_check CHECK(status IN ('draft','scheduled','sending','sent','cancelled'))
+);
+CREATE INDEX IF NOT EXISTS idx_creator_communications_creator_status
+  ON creator_communications(creator_id,status,scheduled_for,updated_at DESC);

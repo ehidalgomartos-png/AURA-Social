@@ -1,4 +1,4 @@
-# RedLibertad V1.31.0 — Audience Segments
+# RedLibertad V1.32.0 — Creator Communication Center
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -868,4 +868,14 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Segmentos manuales privados, hasta 20 por creador.
 - Añadir/quitar miembros por @usuario y consultar miembros.
 - Base preparada para comunicaciones segmentadas de V1.32.
+- Sin monetización activa.
+
+
+## V1.32.0 — Creator Communication Center
+
+- Comunicaciones privadas de gestión con borradores, envío inmediato y programación.
+- Audiencias: todos, VIP, segmentos automáticos y segmentos manuales.
+- Historial con estado, fecha y destinatarios.
+- Programador interno para comunicaciones vencidas.
+- Respeta bloqueos, silencios y el límite anti-spam de 24 horas.
 - Sin monetización activa.

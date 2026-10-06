@@ -338,6 +338,112 @@ q('#creatorSegmentMembers')?.addEventListener('click',async event=>{
   remove.closest('.creator-segment-member')?.remove();notify('Persona quitada del segmento');await loadSegments();
 });
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments()]),150));
-window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,opsApi,notify,esc,metric};
+function communicationStatusLabel(status){
+  return ({draft:'Borrador',scheduled:'Programado',sending:'Enviando',sent:'Enviado',cancelled:'Cancelado'})[status]||status;
+}
+function communicationAudienceLabel(item){
+  if(item.audience_type==='all')return 'Todos';
+  if(item.audience_type==='vip')return 'VIP';
+  if(item.audience_type==='segment')return item.segment_name||'Segmento manual';
+  return ({recent_followers:'Seguidores recientes',active_30d:'Más activos · 30 días',inactive_30d:'Sin interacción · 30 días',high_priority:'Prioridad alta CRM'})[item.audience_type]||item.audience_type;
+}
+function communicationCard(item){
+  const when=item.sent_at||item.scheduled_for||item.updated_at;
+  const whenLabel=when?new Date(when).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+  const editable=['draft','scheduled'].includes(item.status);
+  return `<article class="creator-communication-card" data-communication-id="${item.id}">
+    <div class="creator-communication-head">
+      <span class="creator-communication-state ${esc(item.status)}">${esc(communicationStatusLabel(item.status))}</span>
+      <small>${esc(communicationAudienceLabel(item))} · ${esc(whenLabel)}</small>
+    </div>
+    <p>${esc(item.body)}</p>
+    <div class="creator-communication-foot">
+      <span>${item.status==='sent'?Number(item.recipient_count||0)+' destinatarios':'Privado hasta el envío'}</span>
+      ${editable?`<div><button type="button" data-communication-send>Enviar ahora</button><button type="button" data-communication-cancel>Cancelar</button></div>`:''}
+    </div>
+  </article>`;
+}
+async function loadCommunicationAudiences(){
+  const select=q('#creatorCommunicationAudience');
+  if(!select)return;
+  const current=select.value;
+  qa('option[data-manual-segment]',select).forEach(option=>option.remove());
+  const {response,data}=await opsApi('/api/creator/segments');
+  if(response.ok){
+    (data.custom||[]).forEach(segment=>{
+      const option=document.createElement('option');
+      option.value='segment:'+segment.id;
+      option.dataset.manualSegment='1';
+      option.textContent='Segmento: '+segment.name;
+      select.appendChild(option);
+    });
+  }
+  if(qa('option',select).some(option=>option.value===current))select.value=current;
+}
+async function loadCommunications(){
+  const root=q('#creatorCommunicationHistory');
+  if(!root)return;
+  await loadCommunicationAudiences();
+  root.innerHTML='<div class="creator-ops-empty">Cargando comunicaciones…</div>';
+  const {response,data}=await opsApi('/api/creator/communications');
+  if(response.status===403){q('#creatorCommunicationsSection')?.classList.add('hidden');return;}
+  if(!response.ok){root.innerHTML='<div class="creator-ops-empty">No se pudo cargar el centro de comunicaciones.</div>';return;}
+  const next=data.nextSendAt?new Date(data.nextSendAt):null;
+  const hint=q('#creatorCommunicationHint');
+  if(hint)hint.textContent=next&&next.getTime()>Date.now()
+    ? 'Próximo envío disponible: '+next.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    : 'Puedes enviar ahora. Los envíos mantienen una ventana anti-spam de 24 horas.';
+  root.innerHTML=(data.communications||[]).length?(data.communications||[]).map(communicationCard).join(''):'<div class="creator-ops-empty">Todavía no hay comunicaciones nuevas.</div>';
+}
+q('#creatorCommunicationMode')?.addEventListener('change',event=>{
+  const schedule=q('#creatorCommunicationSchedule');
+  if(schedule)schedule.disabled=event.currentTarget.value!=='schedule';
+});
+q('#creatorCommunicationForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const fd=new FormData(form);
+  let audienceType=String(fd.get('audienceType')||'all');
+  let segmentId=null;
+  if(audienceType.startsWith('segment:')){segmentId=audienceType.split(':')[1];audienceType='segment';}
+  const mode=String(fd.get('mode')||'draft');
+  const payload={
+    body:String(fd.get('body')||'').trim(),
+    audienceType,segmentId,mode,
+    scheduledFor:mode==='schedule'?localDateTimeIso(String(fd.get('scheduledFor')||'')):null
+  };
+  const {response,data}=await opsApi('/api/creator/communications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!response.ok){
+    if(response.status===429&&data.nextSendAt){
+      notify('Envío disponible '+new Date(data.nextSendAt).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}));
+    }else notify('No se pudo guardar o enviar la comunicación');
+    return;
+  }
+  form.reset();
+  q('#creatorCommunicationSchedule').disabled=true;
+  notify(mode==='send'?'Comunicación enviada':mode==='schedule'?'Comunicación programada':'Borrador guardado');
+  await loadCommunications();
+});
+q('#creatorCommunicationHistory')?.addEventListener('click',async event=>{
+  const card=event.target.closest('[data-communication-id]');
+  if(!card)return;
+  const id=card.dataset.communicationId;
+  if(event.target.closest('[data-communication-send]')){
+    const {response,data}=await opsApi('/api/creator/communications/'+encodeURIComponent(id)+'/send',{method:'POST'});
+    if(!response.ok){
+      if(response.status===429&&data.nextSendAt)notify('Todavía no puedes enviar: '+new Date(data.nextSendAt).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}));
+      else notify('No se pudo enviar');
+      return;
+    }
+    notify('Comunicación enviada');await loadCommunications();return;
+  }
+  if(event.target.closest('[data-communication-cancel]')){
+    const {response}=await opsApi('/api/creator/communications/'+encodeURIComponent(id)+'/cancel',{method:'POST'});
+    if(!response.ok){notify('No se pudo cancelar');return;}
+    notify('Comunicación cancelada');await loadCommunications();
+  }
+});
+
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments(),loadCommunications()]),150));
+window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,opsApi,notify,esc,metric};
 })();
