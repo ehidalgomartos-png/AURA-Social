@@ -286,6 +286,73 @@ CREATE TABLE IF NOT EXISTS community_hidden_suggestions (
 CREATE INDEX IF NOT EXISTS idx_community_hidden_suggestions_user
   ON community_hidden_suggestions(user_id,hidden_at DESC);
 
+
+-- RedLibertad V1.60: eventos y encuentros
+CREATE TABLE IF NOT EXISTS social_events (
+  id BIGSERIAL PRIMARY KEY,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  community_id BIGINT REFERENCES communities(id) ON DELETE CASCADE,
+  title VARCHAR(120) NOT NULL,
+  description VARCHAR(2000) NOT NULL DEFAULT '',
+  event_type TEXT NOT NULL DEFAULT 'in_person' CHECK(event_type IN ('in_person','online')),
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ,
+  location_label VARCHAR(240),
+  online_url TEXT,
+  visibility TEXT NOT NULL DEFAULT 'public' CHECK(visibility IN ('public','connections','circles','community')),
+  attendee_visibility TEXT NOT NULL DEFAULT 'responders' CHECK(attendee_visibility IN ('public','responders','private')),
+  cancelled_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK(ends_at IS NULL OR ends_at>starts_at)
+);
+CREATE INDEX IF NOT EXISTS idx_social_events_start
+  ON social_events(cancelled_at,starts_at);
+CREATE INDEX IF NOT EXISTS idx_social_events_creator
+  ON social_events(creator_id,starts_at DESC);
+CREATE INDEX IF NOT EXISTS idx_social_events_community
+  ON social_events(community_id,starts_at);
+
+CREATE TABLE IF NOT EXISTS event_circle_audiences (
+  event_id BIGINT NOT NULL REFERENCES social_events(id) ON DELETE CASCADE,
+  circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+  PRIMARY KEY(event_id,circle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_circle_audiences_circle
+  ON event_circle_audiences(circle_id,event_id);
+
+CREATE TABLE IF NOT EXISTS event_responses (
+  event_id BIGINT NOT NULL REFERENCES social_events(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK(status IN ('interested','going')),
+  reminder_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(event_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_responses_user
+  ON event_responses(user_id,status,updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS event_reminders (
+  event_id BIGINT NOT NULL REFERENCES social_events(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  remind_at TIMESTAMPTZ NOT NULL,
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(event_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_event_reminders_due
+  ON event_reminders(sent_at,remind_at);
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK(type IN (
+    'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+    'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
+    'creator_poll_vote','creator_question_response','event_reminder','system'
+  ));
+
 -- RedLibertad V1.48: notificaciones Web Push opcionales
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id BIGSERIAL PRIMARY KEY,
