@@ -256,6 +256,88 @@ q('#creatorCrmList')?.addEventListener('click',async event=>{
   }
 });
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm()]),150));
-window.RedLibertadCreatorOps={loadTasks,loadCrm,opsApi,notify,esc,metric};
+function segmentCard(segment,automatic=false){
+  return `<article class="creator-segment-card" data-segment-id="${automatic?'':segment.id}" data-segment-key="${automatic?esc(segment.key):''}">
+    <div>
+      <b>${esc(segment.name)}</b>
+      <small>${esc(segment.description||'Segmento manual privado')}</small>
+    </div>
+    <strong>${Number(segment.member_count||0)}</strong>
+    <div class="creator-segment-actions">
+      <button type="button" data-segment-view>Ver miembros</button>
+      ${automatic?'':`<button type="button" class="danger-soft" data-segment-delete>Eliminar</button>`}
+    </div>
+    ${automatic?'':`<form data-segment-add class="creator-segment-add"><input name="username" maxlength="30" placeholder="@usuario" required><button type="submit">Añadir</button></form>`}
+  </article>`;
+}
+async function loadSegments(){
+  const auto=q('#creatorAutomaticSegments');
+  const custom=q('#creatorCustomSegments');
+  if(!auto||!custom)return;
+  const {response,data}=await opsApi('/api/creator/segments');
+  if(response.status===403){q('#creatorSegmentsSection')?.classList.add('hidden');return;}
+  if(!response.ok){auto.innerHTML='<div class="creator-ops-empty">No se pudieron cargar los segmentos.</div>';return;}
+  auto.innerHTML=(data.automatic||[]).map(x=>segmentCard(x,true)).join('');
+  custom.innerHTML=(data.custom||[]).length?(data.custom||[]).map(x=>segmentCard(x,false)).join(''):'<div class="creator-ops-empty">Aún no has creado segmentos manuales.</div>';
+}
+function segmentMemberRow(member,segmentId=null){
+  return `<div class="creator-segment-member">
+    ${crmAvatar(member)}
+    <span><b>${esc(member.display_name||member.username)}</b><small>@${esc(member.username)}</small></span>
+    ${segmentId?`<button type="button" data-segment-remove-user="${member.id}" data-segment-remove-from="${segmentId}">Quitar</button>`:''}
+  </div>`;
+}
+async function showSegmentMembers(card){
+  const panel=q('#creatorSegmentMembers');
+  if(!panel)return;
+  const key=card.dataset.segmentKey;
+  const id=card.dataset.segmentId;
+  const url=key?'/api/creator/segments/auto/'+encodeURIComponent(key)+'/members':'/api/creator/segments/'+encodeURIComponent(id)+'/members';
+  panel.classList.remove('hidden');
+  panel.innerHTML='<div class="creator-ops-empty">Cargando miembros…</div>';
+  const {response,data}=await opsApi(url);
+  if(!response.ok){panel.innerHTML='<div class="creator-ops-empty">No se pudieron cargar los miembros.</div>';return;}
+  const members=data.members||[];
+  panel.innerHTML=`<div class="creator-segment-members-head"><b>${esc(data.segment?.name||card.querySelector('b')?.textContent||'Segmento')}</b><button type="button" data-segment-close>×</button></div>
+    ${members.length?members.map(member=>segmentMemberRow(member,key?null:id)).join(''):'<div class="creator-ops-empty">Este segmento está vacío.</div>'}`;
+}
+q('#creatorSegmentForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const name=String(new FormData(form).get('name')||'').trim();
+  const {response}=await opsApi('/api/creator/segments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  if(!response.ok){notify('No se pudo crear el segmento');return;}
+  form.reset();notify('Segmento creado');await loadSegments();
+});
+q('#creatorSegmentsSection')?.addEventListener('submit',async event=>{
+  const form=event.target.closest('[data-segment-add]');
+  if(!form)return;
+  event.preventDefault();
+  const card=form.closest('[data-segment-id]');
+  const username=String(new FormData(form).get('username')||'').trim();
+  const {response}=await opsApi('/api/creator/segments/'+encodeURIComponent(card.dataset.segmentId)+'/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})});
+  if(!response.ok){notify('No se pudo añadir a esa persona');return;}
+  form.reset();notify('Persona añadida al segmento');await loadSegments();await showSegmentMembers(card);
+});
+q('#creatorSegmentsSection')?.addEventListener('click',async event=>{
+  const card=event.target.closest('.creator-segment-card');
+  if(event.target.closest('[data-segment-view]')&&card){await showSegmentMembers(card);return;}
+  if(event.target.closest('[data-segment-delete]')&&card){
+    if(!confirm('¿Eliminar este segmento manual?'))return;
+    const {response}=await opsApi('/api/creator/segments/'+encodeURIComponent(card.dataset.segmentId),{method:'DELETE'});
+    if(!response.ok){notify('No se pudo eliminar el segmento');return;}
+    q('#creatorSegmentMembers')?.classList.add('hidden');notify('Segmento eliminado');await loadSegments();
+  }
+});
+q('#creatorSegmentMembers')?.addEventListener('click',async event=>{
+  if(event.target.closest('[data-segment-close]')){q('#creatorSegmentMembers')?.classList.add('hidden');return;}
+  const remove=event.target.closest('[data-segment-remove-user]');
+  if(!remove)return;
+  const {response}=await opsApi('/api/creator/segments/'+encodeURIComponent(remove.dataset.segmentRemoveFrom)+'/members/'+encodeURIComponent(remove.dataset.segmentRemoveUser),{method:'DELETE'});
+  if(!response.ok){notify('No se pudo quitar del segmento');return;}
+  remove.closest('.creator-segment-member')?.remove();notify('Persona quitada del segmento');await loadSegments();
+});
+
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments()]),150));
+window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,opsApi,notify,esc,metric};
 })();
