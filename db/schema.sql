@@ -11,7 +11,16 @@ ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_kind TEXT NOT NULL DEFAULT 'post
 DO $$ BEGIN ALTER TABLE posts ADD CONSTRAINT posts_kind_check CHECK(post_kind IN ('post','reel')); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC); CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); CREATE INDEX IF NOT EXISTS idx_posts_kind ON posts(post_kind,created_at DESC);
 CREATE TABLE IF NOT EXISTS likes (user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),PRIMARY KEY(user_id,post_id));
-CREATE TABLE IF NOT EXISTS comments (id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,body VARCHAR(1000) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS comments (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  parent_comment_id BIGINT REFERENCES comments(id) ON DELETE CASCADE,
+  body VARCHAR(1000) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_comment_id BIGINT REFERENCES comments(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_comments_post_parent_created ON comments(post_id,parent_comment_id,created_at,id);
 CREATE TABLE IF NOT EXISTS reports (id BIGSERIAL PRIMARY KEY,reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,target_type TEXT NOT NULL CHECK(target_type IN ('post','user','comment','message')),target_id BIGINT NOT NULL,reason TEXT NOT NULL,details VARCHAR(2000) NOT NULL DEFAULT '',priority TEXT NOT NULL DEFAULT 'normal' CHECK(priority IN ('normal','critical')),status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','resolved','dismissed')),moderator_note VARCHAR(2000) NOT NULL DEFAULT '',resolved_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_reports_queue ON reports(status,priority,created_at);
 CREATE TABLE IF NOT EXISTS moderation_audit (id BIGSERIAL PRIMARY KEY,admin_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,report_id BIGINT REFERENCES reports(id) ON DELETE SET NULL,action TEXT NOT NULL,note VARCHAR(2000) NOT NULL DEFAULT '',created_at TIMESTAMPTZ NOT NULL DEFAULT now());
