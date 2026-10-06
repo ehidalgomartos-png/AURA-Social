@@ -3334,3 +3334,40 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     padding:13px;
   }
 }
+
+
+/* RedLibertad V1.13 — Creator Hub */
+.creator-center-button{font-weight:800}
+.creator-modal-card{width:min(920px,calc(100vw - 28px));max-height:min(88vh,920px);overflow:auto}
+.creator-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 24px}
+.creator-metric{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--paper);min-width:0}
+.creator-metric span,.creator-metric small{display:block;color:var(--muted)}
+.creator-metric span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.creator-metric b{display:block;margin-top:6px;font:800 clamp(24px,4vw,34px) Manrope;color:var(--navy)}
+.creator-metric small{margin-top:4px;font-size:11px}
+.creator-section{margin-top:10px}
+.creator-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px}
+.creator-section-head b,.creator-section-head small{display:block}
+.creator-section-head small{margin-top:3px;color:var(--muted)}
+.creator-post-list{display:grid;gap:10px}
+.creator-post-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}
+.creator-post-item.featured{box-shadow:inset 3px 0 0 var(--teal)}
+.creator-post-preview{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:12px;text-align:left;background:none;border:0;padding:0;min-width:0}
+.creator-post-media{width:72px;height:72px;border-radius:12px;overflow:hidden;background:var(--soft);display:block}
+.creator-post-media img,.creator-post-media video{width:100%;height:100%;object-fit:cover}
+.creator-post-media iframe{width:100%;height:100%;border:0}
+.creator-post-media .text-tile,.creator-post-media .tile-gate{min-height:72px;height:72px;border-radius:0}
+.creator-post-copy{min-width:0}
+.creator-post-copy b,.creator-post-copy small{display:block}
+.creator-post-copy small{margin-top:5px;color:var(--muted);white-space:normal}
+.creator-feature-action{white-space:nowrap}
+.creator-empty{padding:20px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center}
+.profile-content-tile.is-featured{outline:2px solid var(--teal);outline-offset:-2px}
+.tile-featured{position:absolute;left:8px;top:8px;z-index:2;padding:5px 7px;border-radius:999px;background:var(--paper);color:var(--navy);font-size:9px;font-weight:900;letter-spacing:.05em;box-shadow:var(--shadow)}
+.profile-content-tile{position:relative}
+@media (max-width:760px){
+  .creator-modal-card{width:min(100%,calc(100vw - 18px));max-height:92vh}
+  .creator-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .creator-post-item{grid-template-columns:1fr}
+  .creator-feature-action{width:100%}
+}
