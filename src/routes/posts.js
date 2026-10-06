@@ -3078,6 +3078,12 @@ router.get('/feed', optionalAuth, async (req, res) => {
       p.user_id=$1
       OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
       OR p.id IN (
+        SELECT pc.post_id
+          FROM post_collaborators pc
+         WHERE pc.status='approved'
+           AND pc.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
+      )
+      OR p.id IN (
         SELECT rp.post_id
           FROM reposts rp
          WHERE rp.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
@@ -3554,7 +3560,17 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 
   const ownerFilter = mode === 'reposts'
     ? `lower(profile_owner.username)=lower($1)`
-    : `lower(u.username)=lower($1)`;
+    : `(
+        lower(u.username)=lower($1)
+        OR EXISTS(
+          SELECT 1
+            FROM post_collaborators profile_collab
+            JOIN users profile_collab_user ON profile_collab_user.id=profile_collab.user_id
+           WHERE profile_collab.post_id=p.id
+             AND profile_collab.status='approved'
+             AND lower(profile_collab_user.username)=lower($1)
+        )
+      )`;
 
   const mediaFilter = mode === 'media'
     ? `AND (COALESCE(p.media_url,'')<>'' OR COALESCE(p.playback_url,'')<>'')`
@@ -3628,6 +3644,13 @@ router.post('/:id/repost',requireAuth,async(req,res)=>{
   if(post.audience!=='public')return res.status(403).json({error:'private_post_cannot_be_reposted'});
   if(String(post.user_id)===String(req.user.id)){
     return res.status(400).json({error:'cannot_repost_own_post'});
+  }
+  const collaborator=await db.query(
+    "SELECT 1 FROM post_collaborators WHERE post_id=$1 AND user_id=$2 AND status='approved' LIMIT 1",
+    [req.params.id,req.user.id]
+  );
+  if(collaborator.rowCount){
+    return res.status(400).json({error:'cannot_repost_collaboration'});
   }
 
   const inserted=await db.query(`
