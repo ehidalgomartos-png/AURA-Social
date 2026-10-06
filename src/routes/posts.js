@@ -648,6 +648,47 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorCommunityV26Ready=null;
+async function ensureCreatorCommunityV26(){
+  if(!creatorCommunityV26Ready){
+    creatorCommunityV26Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_community_activity_meta (
+          notification_id BIGINT PRIMARY KEY REFERENCES notifications(id) ON DELETE CASCADE,
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          priority TEXT NOT NULL DEFAULT 'normal',
+          private_note VARCHAR(1000) NOT NULL DEFAULT '',
+          follow_up BOOLEAN NOT NULL DEFAULT FALSE,
+          follow_up_at TIMESTAMPTZ,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      const priorityConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_community_activity_priority_check' AND conrelid='creator_community_activity_meta'::regclass LIMIT 1"
+      );
+      if(!priorityConstraint.rowCount){
+        await db.query("ALTER TABLE creator_community_activity_meta ADD CONSTRAINT creator_community_activity_priority_check CHECK(priority IN ('normal','high'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator ON creator_community_activity_meta(creator_id,follow_up,priority,updated_at DESC)');
+    })().catch(error=>{
+      creatorCommunityV26Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV26Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV26();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.26 community follow-up bootstrap failed:',error);
+    res.status(500).json({error:'community_follow_up_bootstrap_failed'});
+  }
+});
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
