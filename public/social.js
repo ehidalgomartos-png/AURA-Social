@@ -982,7 +982,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p></div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -1142,6 +1142,8 @@ async function openPublicProfile(username) {
             <div>
               <h2>${esc(profile.display_name)} ${profile.creator_verified ? '<span class="verified">✓</span>' : ''}</h2>
               <p>@${esc(profile.username)}</p>
+              ${profile.profile_status ? `<span class="profile-status-line">${esc(profile.profile_status)}</span>` : ''}
+              ${profileData.followsYou ? '<span class="profile-relationship-signal">Te sigue</span>' : ''}
             </div>
             ${actions}
           </div>
@@ -1152,6 +1154,8 @@ async function openPublicProfile(username) {
           ${interestPillsHTML(profile.interests)}
           <div class="profile-meta">
             ${profile.location_label ? `<span>⌖ ${esc(profile.location_label)}</span>` : ''}
+            ${profile.last_activity_at ? `<span>Activo ${timeAgo(profile.last_activity_at)}</span>` : ''}
+            <span>En RedLibertad desde ${new Date(profile.created_at).toLocaleDateString('es-ES',{month:'short',year:'numeric'})}</span>
             ${website}
           </div>
           <div class="profile-stats">
@@ -3523,6 +3527,7 @@ document.addEventListener('click', async event => {
 async function openProfileModal() {
   const form = $('#profileForm');
   form.displayName.value = me.display_name || '';
+  form.profileStatus.value = me.profile_status || '';
   form.bio.value = me.bio || '';
   form.locationLabel.value = me.location_label || '';
   form.websiteUrl.value = me.website_url || '';
@@ -3552,6 +3557,7 @@ $('#profileForm').addEventListener('submit', async e => {
     const interests = all('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
     const payload = {
       displayName: fd.get('displayName'),
+      profileStatus: fd.get('profileStatus'),
       bio: fd.get('bio'),
       locationLabel: fd.get('locationLabel'),
       websiteUrl: fd.get('websiteUrl'),

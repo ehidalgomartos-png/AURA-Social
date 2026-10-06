@@ -91,6 +91,9 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
+-- RedLibertad V1.38: identidad breve de perfil
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_status VARCHAR(80) NOT NULL DEFAULT '';
+
 -- RedLibertad base heredada de AURA V0.4: interests, discovery and richer social activity
 CREATE TABLE IF NOT EXISTS user_interests (
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

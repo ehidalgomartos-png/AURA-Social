@@ -1,4 +1,4 @@
-# RedLibertad V1.37.0 — Discovery 2.0
+# RedLibertad V1.38.0 — Profiles 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -946,4 +946,17 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - El feedback es privado por usuario y se respeta en recomendaciones, tendencias y búsquedas relevantes.
 - Se mantienen bloqueos, silencios y discoverable.
 - Tabla idempotente discovery_hidden_items.
+- Sin monetización activa.
+
+
+## V1.38.0 — Profiles 2.0
+
+- Estado breve de perfil de hasta 80 caracteres.
+- Visible bajo el @usuario en perfil propio y público.
+- Señal “Te sigue” más clara en perfiles públicos.
+- Fecha de entrada en RedLibertad.
+- Actividad reciente únicamente si el usuario mantiene activado “mostrar actividad”.
+- Mantiene intereses, ubicación, web, conexiones mutuas, badges y Creator Profile.
+- Sin registro de visitas de perfil ni tracking de quién consulta a quién.
+- Bootstrap idempotente.
 - Sin monetización activa.

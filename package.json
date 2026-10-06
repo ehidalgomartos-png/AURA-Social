@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.37.0",
+  "version": "1.38.0",
   "private": true,
-  "description": "RedLibertad V1.37 Discovery 2.0 - Explorar personalizado y feedback privado No me interesa, sin monetización.",
+  "description": "RedLibertad V1.38 Profiles 2.0 - estado breve, contexto social y actividad reciente respetando privacidad, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
