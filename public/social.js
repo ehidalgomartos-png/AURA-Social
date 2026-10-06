@@ -3640,6 +3640,8 @@ function notificationIcon(type) {
     consent_revoked: '↶',
     creator_broadcast: '📣',
     creator_vip_broadcast: '★',
+    creator_poll_vote: '▥',
+    creator_question_response: '?',
     system: 'R'
   })[type] || '•';
 }
@@ -3648,7 +3650,7 @@ function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
   if (filter === 'mentions') return notification.type === 'mention';
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
-  if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast'].includes(notification.type);
+  if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
   if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
   return true;
@@ -3708,6 +3710,14 @@ async function navigateNotification(notification) {
 
   if (type === 'creator_vip_broadcast' && notification.actor_username) {
     await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (['creator_poll_vote','creator_question_response'].includes(type)) {
+    await openCreatorModal();
+    setTimeout(() => {
+      document.querySelector('.creator-community-section')?.scrollIntoView({behavior:'smooth',block:'start'});
+    },120);
     return;
   }
 
