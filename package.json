@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.62.0",
+  "version": "1.63.0",
   "private": true,
-  "description": "RedLibertad V1.62 Advanced Mentions & Sharing - privacidad de menciones, círculos, compartido contextual y protección de audiencias, sin monetización.",
+  "description": "RedLibertad V1.63 Community Moderation 3.0 - moderadores, incidencias, sanciones temporales y señales antiabuso, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
