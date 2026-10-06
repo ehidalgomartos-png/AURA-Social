@@ -8,6 +8,7 @@
   <title>RedLibertad</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/assets/logo-mark.svg" as="image">
   <link rel="apple-touch-icon" href="/icons/redlibertad-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +19,7 @@
 <body>
 <div class="social-shell">
   <aside class="side">
-    <a class="brand" href="/app"><img class="brand-logo" src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
+    <a class="brand" href="/app"><img class="brand-logo" src="/assets/logo-mark.svg" fetchpriority="high" decoding="async" alt=""><span>RedLibertad</span></a>
     <nav class="side-nav">
       <button data-view="feed" class="active">⌂ <span>Inicio</span></button>
       <button data-view="explore">⌕ <span>Explorar</span></button>
@@ -37,7 +38,7 @@
 
   <main class="social-main">
     <header class="mobile-head">
-      <a class="brand" href="/app"><img class="brand-logo" src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
+      <a class="brand" href="/app"><img class="brand-logo" src="/assets/logo-mark.svg" fetchpriority="high" decoding="async" alt=""><span>RedLibertad</span></a>
       <div class="mobile-actions"><button data-view="notifications" class="round-btn mobile-notification-button" aria-label="Notificaciones"><span>♢</span><i id="notificationBadgeMobile" class="mobile-nav-badge hidden"></i></button><button data-action="create" class="round-btn" aria-label="Crear publicación">＋</button></div>
     </header>
 
