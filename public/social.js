@@ -3806,6 +3806,29 @@ function showView(name) {
 all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
 all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
+function updateCommunityComposeFields() {
+  const type=$('#communityType')?.value || 'none';
+  const fields=$('#communityPromptFields');
+  const options=$('#communityPollOptions');
+  const label=$('#communityPromptLabel');
+  const hint=$('#communityComposeHint');
+  if(fields)fields.classList.toggle('hidden',type==='none');
+  if(options)options.classList.toggle('hidden',type!=='poll');
+  if(label){
+    const input=label.querySelector('input');
+    if(input)input.placeholder=type==='poll'
+      ? '¿Qué quieres preguntar en la encuesta?'
+      : '¿Qué quieres preguntar a tu comunidad?';
+  }
+  if(hint){
+    hint.textContent=type==='poll'
+      ? 'Los votos se muestran solo como resultados agregados.'
+      : 'Cada persona verá su respuesta; el listado completo será privado para ti.';
+  }
+}
+
+$('#communityType')?.addEventListener('change',updateCommunityComposeFields);
+
 function openModal() {
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
@@ -3832,6 +3855,7 @@ function openModal() {
       scheduledInput.max=toLocalDateTimeInput(max);
     }
   }
+  updateCommunityComposeFields();
   $('#modal').classList.remove('hidden');
   setTimeout(() => $('#createForm textarea')?.focus(), 120);
 }
@@ -3885,9 +3909,22 @@ $('#createForm').addEventListener('submit', async e => {
     const caption = String(fd.get('caption') || '').trim();
     const kind = String(fd.get('kind') || 'post');
     const publishMode=String(e.submitter?.dataset?.publishMode || 'now');
+    const communityType=String(fd.get('communityType') || 'none');
+    const communityPrompt=String(fd.get('communityPrompt') || '').trim();
+    const pollOptions=[1,2,3,4].map(index=>String(fd.get(`pollOption${index}`) || '').trim()).filter(Boolean);
 
-    if (!file && !caption) throw new Error('Escribe algo o selecciona una foto o vídeo.');
+    if (!file && !caption && communityType==='none') throw new Error('Escribe algo, selecciona una foto o añade una herramienta de comunidad.');
     if (kind === 'reel' && !file) throw new Error('Los Reels necesitan una foto o vídeo.');
+    if(communityType!=='none' && !me?.creator_verified){
+      throw new Error('Las herramientas de comunidad requieren una cuenta de creador verificada.');
+    }
+    if(communityType==='poll'){
+      const unique=[...new Set(pollOptions)];
+      if(communityPrompt.length<3 || unique.length<2)throw new Error('La encuesta necesita una pregunta y al menos 2 opciones distintas.');
+    }
+    if(communityType==='question' && communityPrompt.length<3){
+      throw new Error('Escribe la pregunta abierta para tu comunidad.');
+    }
 
     if(publishMode!=='now' && !me?.creator_verified){
       throw new Error('Los borradores y la programación requieren una cuenta de creador verificada.');
@@ -3923,6 +3960,9 @@ $('#createForm').addEventListener('submit', async e => {
       scheduledFor,
       editorialDate: fd.get('editorialDate') || null,
       editorialLabel: String(fd.get('editorialLabel') || '').trim(),
+      communityType,
+      communityPrompt,
+      pollOptions,
       participantUsernames: participants,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
@@ -3946,6 +3986,12 @@ $('#createForm').addEventListener('submit', async e => {
           ? 'Los borradores y la programación requieren una cuenta de creador verificada.'
         : d.error === 'invalid_scheduled_time'
           ? 'La programación debe estar entre 5 minutos y 90 días.'
+        : d.error === 'verified_creator_required_for_community_tools'
+          ? 'Las encuestas y preguntas abiertas requieren una cuenta de creador verificada.'
+        : d.error === 'invalid_creator_poll'
+          ? 'La encuesta necesita una pregunta y entre 2 y 4 opciones distintas.'
+        : d.error === 'invalid_creator_question'
+          ? 'La pregunta abierta necesita un enunciado.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
           : d.error === 'empty_post'
@@ -3966,6 +4012,7 @@ $('#createForm').addEventListener('submit', async e => {
     e.target.reset();
     clearPostMedia();
     updateCreateCounter();
+    updateCommunityComposeFields();
     await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
