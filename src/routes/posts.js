@@ -827,6 +827,16 @@ function postAudienceWhere(viewerParam=null, alias='p') {
             ON audience_member.circle_id=audience_circle.id
            AND audience_member.connection_user_id=${viewerParam}
          WHERE circle_audience.post_id=${alias}.id
+           AND EXISTS(
+             SELECT 1 FROM follows circle_connection_out
+              WHERE circle_connection_out.follower_id=${alias}.user_id
+                AND circle_connection_out.following_id=${viewerParam}
+           )
+           AND EXISTS(
+             SELECT 1 FROM follows circle_connection_in
+              WHERE circle_connection_in.follower_id=${viewerParam}
+                AND circle_connection_in.following_id=${alias}.user_id
+           )
       )
     )
     OR EXISTS(
