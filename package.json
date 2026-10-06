@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.42.0",
+  "version": "1.43.0",
   "private": true,
-  "description": "RedLibertad V1.42 Live Activity 2.0 - mensajes y notificaciones en vivo con Server-Sent Events, sin monetización.",
+  "description": "RedLibertad V1.43 Reels Immersive 2.0 - navegación vertical, snap y autoplay accesible sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
