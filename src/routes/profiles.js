@@ -225,6 +225,37 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorExclusiveV18Ready = null;
+async function ensureCreatorExclusiveV18() {
+  if (!creatorExclusiveV18Ready) {
+    creatorExclusiveV18Ready = (async () => {
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='posts_audience_check' AND conrelid='posts'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_audience_created ON posts(audience,created_at DESC)');
+    })().catch(error => {
+      creatorExclusiveV18Ready = null;
+      throw error;
+    });
+  }
+  return creatorExclusiveV18Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorExclusiveV18();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.18 creator exclusive bootstrap failed:',error);
+    res.status(500).json({error:'creator_exclusive_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
