@@ -8637,7 +8637,10 @@ document.addEventListener('keydown',event=>{
     return;
   }
   const first=items[0],last=items[items.length-1];
-  if(event.shiftKey && document.activeElement===first){
+  if(!items.includes(document.activeElement)){
+    event.preventDefault();
+    (event.shiftKey?last:first).focus();
+  }else if(event.shiftKey && document.activeElement===first){
     event.preventDefault();
     last.focus();
   }else if(!event.shiftKey && document.activeElement===last){
