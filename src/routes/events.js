@@ -68,7 +68,8 @@ async function ensureEventsV160(){
           'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
           'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
           'creator_poll_vote','creator_question_response','event_reminder',
-          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked','system'
+          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked',
+          'circle_mention','system'
         ))
       `);
     })().catch(error=>{eventsV160Ready=null;throw error;});

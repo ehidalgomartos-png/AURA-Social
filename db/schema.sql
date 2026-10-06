@@ -120,6 +120,16 @@ ALTER TABLE messages
   ADD COLUMN IF NOT EXISTS shared_post_ref_id BIGINT;
 CREATE INDEX IF NOT EXISTS idx_messages_shared_post ON messages(shared_post_id);
 CREATE INDEX IF NOT EXISTS idx_messages_shared_post_ref ON messages(shared_post_ref_id);
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS shared_story_id BIGINT REFERENCES stories(id) ON DELETE SET NULL;
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS shared_story_ref_id BIGINT;
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS shared_profile_id BIGINT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS shared_profile_ref_id BIGINT;
+CREATE INDEX IF NOT EXISTS idx_messages_shared_story ON messages(shared_story_id);
+CREATE INDEX IF NOT EXISTS idx_messages_shared_profile ON messages(shared_profile_id);
 
 CREATE TABLE IF NOT EXISTS message_reactions (
   message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -238,6 +248,12 @@ CREATE TABLE IF NOT EXISTS community_posts (
 );
 CREATE INDEX IF NOT EXISTS idx_community_posts_community_created
   ON community_posts(community_id,created_at DESC);
+ALTER TABLE community_posts
+  ADD COLUMN IF NOT EXISTS shared_post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL;
+ALTER TABLE community_posts
+  ADD COLUMN IF NOT EXISTS shared_post_ref_id BIGINT;
+CREATE INDEX IF NOT EXISTS idx_community_posts_shared_post
+  ON community_posts(shared_post_id);
 
 CREATE TABLE IF NOT EXISTS community_comments (
   id BIGSERIAL PRIMARY KEY,
@@ -358,6 +374,30 @@ CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status
 CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status
   ON post_collaborators(post_id,status,requested_at);
 
+
+-- RedLibertad V1.62: menciones avanzadas e historial privado de compartidos
+CREATE TABLE IF NOT EXISTS post_circle_mentions (
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(post_id,circle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_post_circle_mentions_circle
+  ON post_circle_mentions(circle_id,post_id);
+
+CREATE TABLE IF NOT EXISTS social_share_history (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL CHECK(entity_type IN ('post','reel','story','profile')),
+  entity_id BIGINT NOT NULL,
+  target_type TEXT NOT NULL CHECK(target_type IN ('conversation','community','external','copy')),
+  target_id BIGINT,
+  target_label VARCHAR(160) NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_social_share_history_user_created
+  ON social_share_history(user_id,created_at DESC);
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
@@ -365,7 +405,8 @@ ALTER TABLE notifications
     'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
     'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
     'creator_poll_vote','creator_question_response','event_reminder',
-    'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked','system'
+    'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked',
+    'circle_mention','system'
   ));
 
 -- RedLibertad V1.48: notificaciones Web Push opcionales
@@ -540,12 +581,19 @@ CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_us
 ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mention_privacy TEXT NOT NULL DEFAULT 'everyone';
 
 DO $$ BEGIN
   ALTER TABLE users
     ADD CONSTRAINT users_message_privacy_check
     CHECK(message_privacy IN ('everyone','following','no_one'));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+DO $ BEGIN
+  ALTER TABLE users
+    ADD CONSTRAINT users_mention_privacy_check
+    CHECK(mention_privacy IN ('everyone','connections','no_one'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
 
 CREATE TABLE IF NOT EXISTS mutes (
   muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -842,6 +890,7 @@ ALTER TABLE notifications
     'collaboration_approved',
     'collaboration_rejected',
     'collaboration_revoked',
+    'circle_mention',
     'system'
   ));
 

@@ -5282,3 +5282,30 @@ select:focus-visible{
   .post-collaborator-form{grid-template-columns:1fr}
   .post-collaborator-form button{width:100%}
 }
+
+
+/* =========================================================
+   RedLibertad V1.62 — Advanced Mentions & Sharing
+   ========================================================= */
+.mention-field-wrap,.compose-text-wrap{position:relative}
+.mention-suggestions{
+  position:absolute;z-index:30;left:0;right:0;top:100%;margin-top:5px;
+  border:1px solid var(--line);border-radius:13px;background:var(--paper);
+  box-shadow:0 14px 34px rgba(13,34,56,.12);overflow:hidden;
+}
+.mention-suggestions button{
+  width:100%;display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:center;
+  padding:8px 10px;border:0;border-bottom:1px solid var(--line);background:var(--paper);text-align:left;color:var(--ink);
+}
+.mention-suggestions button:last-child{border-bottom:0}
+.mention-suggestions button:hover,.mention-suggestions button:focus-visible{background:var(--soft)}
+.mention-suggestion-avatar{width:34px;height:34px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--navy-soft);font-size:10px;font-weight:900}
+.mention-suggestion-avatar img{width:100%;height:100%;object-fit:cover}
+.mention-suggestions b,.mention-suggestions small{display:block}
+.mention-suggestions b{font-size:10px}.mention-suggestions small{margin-top:2px;color:var(--muted);font-size:8px}
+.share-context-field{display:grid;gap:5px;margin:12px 0}
+.share-context-field textarea{min-height:76px;resize:vertical}
+@media(max-width:760px){
+  .mention-suggestions{position:relative;top:auto;margin-top:4px}
+  .share-context-field textarea{min-height:68px}
+}

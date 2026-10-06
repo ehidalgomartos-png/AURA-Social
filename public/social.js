@@ -234,6 +234,47 @@ function captionHTML(value = '') {
   out += esc(source.slice(last));
   return out.replace(/\n/g, '<br>');
 }
+
+const mentionAutocompleteTimers=new WeakMap();
+function mentionQueryAtCursor(field){
+  const cursor=field.selectionStart ?? field.value.length;
+  const left=field.value.slice(0,cursor);
+  const match=left.match(/(?:^|\s)@([a-zA-Z0-9_.]{1,30})$/);
+  if(!match)return null;
+  return {query:match[1],start:cursor-match[1].length-1,end:cursor};
+}
+async function refreshMentionSuggestions(field,root){
+  if(!field||!root)return;
+  const token=mentionQueryAtCursor(field);
+  if(!token){root.classList.add('hidden');root.innerHTML='';return;}
+  const {r,d}=await api('/api/profiles/mentions/suggestions?'+new URLSearchParams({q:token.query}).toString());
+  if(!r.ok)return;
+  const users=Array.isArray(d.users)?d.users:[];
+  root.innerHTML=users.map(user=>`<button type="button" data-mention-suggestion="${esc(user.username)}"><span class="mention-suggestion-avatar">${avatarHTML(user)}</span><span><b>@${esc(user.username)}</b><small>${esc(user.display_name)}</small></span></button>`).join('');
+  root.classList.toggle('hidden',!users.length);
+  all('[data-mention-suggestion]',root).forEach(button=>{
+    button.onmousedown=event=>event.preventDefault();
+    button.onclick=()=>{
+      const current=mentionQueryAtCursor(field);if(!current)return;
+      field.setRangeText(`@${button.dataset.mentionSuggestion} `,current.start,current.end,'end');
+      root.classList.add('hidden');root.innerHTML='';
+      field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();
+    };
+  });
+}
+function bindMentionAutocomplete(field,root){
+  if(!field||!root)return;
+  field.addEventListener('input',()=>{
+    clearTimeout(mentionAutocompleteTimers.get(field));
+    const timer=setTimeout(()=>refreshMentionSuggestions(field,root),140);
+    mentionAutocompleteTimers.set(field,timer);
+  });
+  field.addEventListener('keyup',event=>{
+    if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refreshMentionSuggestions(field,root);
+  });
+  field.addEventListener('blur',()=>setTimeout(()=>root.classList.add('hidden'),120));
+}
+
 function timeAgo(value) {
   const date = new Date(value);
   const diff = Math.max(0, Date.now() - date.getTime());
@@ -432,7 +473,7 @@ function postHTML(p, options = {}) {
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
       <button class="${reposted ? 'reposted' : ''}" ${ownPost || collaboratingMe || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : collaboratingMe ? 'Ya apareces como colaborador en esta publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
-      <button class="share-action" ${privateAudience ? 'disabled title="El contenido de audiencia privada no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${privateAudience ? 'Privado' : 'Compartir'}</span></button>
+      <button class="share-action" data-share="${p.id}" data-share-type="${p.post_kind==='reel'?'reel':'post'}" data-share-audience="${esc(p.audience||'public')}" data-share-username="${esc(p.username||'')}">↗ <span class="share-label">Compartir</span></button>
       ${options.discovery && !ownPost ? `<button class="discovery-hide-action" data-discovery-hide-post="${p.id}" title="No me interesa" aria-label="No me interesa">−</button>` : ''}
       ${canManage
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
@@ -1434,9 +1475,11 @@ function renderStoryViewer() {
       <span class="story-viewer-avatar">${avatarHTML(story)}</span>
       <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}${story.view_count!=null ? ` · ${Number(story.view_count||0)} vistas` : ''}</small></div>
       ${storyAudienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(story.audience)}">${esc(storyAudienceBadge)}</span>` : ''}
+      <button type="button" class="story-share-action" data-share-story="${story.id}" aria-label="Compartir Story">↗</button>
     </header>
     <div class="story-viewer-media">${media || '<div class="gate"><b>Story no disponible</b></div>'}</div>
   </article>`;
+  root.querySelector('[data-share-story]')?.addEventListener('click',()=>openShare(story.id,'story',{username:story.username,audience:story.audience||'public'}));
   if(!story.gated && me && String(story.user_id)!==String(me.id) && !story.viewed_by_me){
     markStoryViewed(story);
   }
@@ -1705,7 +1748,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -1720,6 +1763,7 @@ async function loadProfile(mode = ownProfileMode) {
     if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
+  if($('#shareOwnProfile'))$('#shareOwnProfile').onclick=()=>shareProfile(me);
   if ($('#creatorCenter')) $('#creatorCenter').onclick = openCreatorModal;
   $('#trustSettings').onclick = openTrustModal;
   $('#privacySettings').onclick = openPrivacyModal;
@@ -1767,25 +1811,8 @@ function creatorLinksHTML(profileData) {
   </section>`;
 }
 
-async function shareProfile(profile) {
-  const url = `${location.origin}/app?profile=${encodeURIComponent(profile.username)}`;
-  const text = `Mira el perfil de @${profile.username} en RedLibertad.`;
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: profile.display_name || 'RedLibertad', text, url });
-      return;
-    } catch (error) {
-      if (error?.name === 'AbortError') return;
-    }
-  }
-
-  try {
-    await writeClipboardText(`${text} ${url}`);
-    toast('Enlace del perfil copiado');
-  } catch (_) {
-    window.prompt('Copia este enlace:', url);
-  }
+function shareProfile(profile) {
+  openShare(profile.id,'profile',{username:profile.username,audience:'public'});
 }
 
 async function loadPublicProfileContent(username, mode = 'posts') {
@@ -1853,7 +1880,7 @@ async function openPublicProfile(username) {
         </button>
         <button type="button" class="secondary" data-message-profile="${esc(profile.username)}" ${profileData.blockedByMe ? 'disabled' : ''}>Mensaje</button>
         ${profileData.connected ? `<button type="button" class="secondary connection-close-toggle ${profileData.closeConnection ? 'active' : ''}" data-close-connection="${profile.id}" data-close="${profileData.closeConnection ? '1' : '0'}">${profileData.closeConnection ? '♥ Cercana' : '♡ Cercana'}</button>` : ''}
-        <button type="button" class="secondary" data-share-profile="${esc(profile.username)}">Compartir perfil</button>
+        <button type="button" class="secondary" data-share-profile="${esc(profile.username)}" ${profileData.blockedByMe ? 'disabled' : ''}>Compartir perfil</button>
         <button type="button" class="secondary ${profileData.mutedByMe ? 'active-control' : ''}" data-mute-profile="${profile.id}" data-muted="${profileData.mutedByMe ? '1' : '0'}">${profileData.mutedByMe ? 'Silenciado' : 'Silenciar'}</button>
         <button type="button" class="danger-outline" data-block-profile="${profile.id}" data-blocked="${profileData.blockedByMe ? '1' : '0'}">${profileData.blockedByMe ? 'Desbloquear' : 'Bloquear'}</button>
       </div>
@@ -4487,6 +4514,7 @@ async function openPrivacyModal() {
 
   const form = $('#privacyForm');
   form.messagePrivacy.value = d.settings?.messagePrivacy || 'everyone';
+  if(form.mentionPrivacy)form.mentionPrivacy.value = d.settings?.mentionPrivacy || 'everyone';
   form.discoverable.checked = d.settings?.discoverable !== false;
   form.showActivity.checked = d.settings?.showActivity !== false;
   $('#mutedCountBadge').textContent = Number(d.mutedCount || 0);
@@ -4498,6 +4526,10 @@ async function openPrivacyModal() {
 function closePrivacyModal() {
   $('#privacyModal')?.classList.add('hidden');
 }
+
+bindMentionAutocomplete($('#createForm textarea[name="caption"]'),$('#createMentionSuggestions'));
+bindMentionAutocomplete($('#commentBody'),$('#commentMentionSuggestions'));
+bindMentionAutocomplete($('#communityPostForm textarea[name="body"]'),$('#communityMentionSuggestions'));
 
 $('#closePrivacyModal')?.addEventListener('click', closePrivacyModal);
 $('#privacyModal')?.addEventListener('click', event => {
@@ -4515,6 +4547,7 @@ $('#privacyForm')?.addEventListener('submit', async event => {
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       messagePrivacy:form.messagePrivacy.value,
+      mentionPrivacy:form.mentionPrivacy?.value || 'everyone',
       discoverable:form.discoverable.checked,
       showActivity:form.showActivity.checked
     })
@@ -4528,6 +4561,7 @@ $('#privacyForm')?.addEventListener('submit', async event => {
   me = {
     ...me,
     message_privacy:d.settings.messagePrivacy,
+    mention_privacy:d.settings.mentionPrivacy,
     discoverable:d.settings.discoverable,
     show_activity:d.settings.showActivity
   };
@@ -4743,176 +4777,187 @@ function openReport(postId) {
 }
 
 let activeSharePostId = null;
-function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
-function shareText() { return 'Mira este post en RedLibertad, donde la libertad es lo primero.'; }
+let activeShareEntity=null;
+
+function shareUrl(){
+  if(!activeShareEntity)return '';
+  if(['post','reel'].includes(activeShareEntity.type))return `${location.origin}/p/${encodeURIComponent(activeShareEntity.id)}`;
+  if(activeShareEntity.type==='profile')return `${location.origin}/app?profile=${encodeURIComponent(activeShareEntity.username||'')}`;
+  if(activeShareEntity.type==='story')return `${location.origin}/app?story=${encodeURIComponent(activeShareEntity.id)}`;
+  return location.origin+'/app';
+}
+function shareContextText(){return String($('#shareContext')?.value||'').trim().slice(0,500);}
+function shareText(){
+  if(!activeShareEntity)return 'Mira esto en RedLibertad.';
+  const base=activeShareEntity.type==='profile'
+    ? `Mira el perfil de @${activeShareEntity.username||''} en RedLibertad.`
+    : activeShareEntity.type==='story'
+      ? `Mira esta Story de @${activeShareEntity.username||''} en RedLibertad.`
+      : activeShareEntity.type==='reel'
+        ? 'Mira este Reel en RedLibertad, donde la libertad es lo primero.'
+        : 'Mira este post en RedLibertad, donde la libertad es lo primero.';
+  const context=shareContextText();
+  return context ? `${context}\n\n${base}` : base;
+}
+function shareEntityLabel(){
+  return activeShareEntity?.type==='profile'?'perfil':activeShareEntity?.type==='story'?'Story':activeShareEntity?.type==='reel'?'Reel':'publicación';
+}
+function canShareExternally(){
+  return activeShareEntity?.type==='profile'||activeShareEntity?.audience==='public';
+}
+async function recordExternalShare(targetType,targetLabel=''){
+  if(!activeShareEntity||!['external','copy'].includes(targetType))return;
+  await api('/api/shares/record',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      entityType:activeShareEntity.type,entityId:activeShareEntity.id,targetType,targetLabel
+    })
+  }).catch(()=>{});
+}
 
 async function loadShareConversations(){
   const root=$('#shareConversationList');
-  if(!root || !activeSharePostId)return;
+  if(!root || !activeShareEntity)return;
   root.innerHTML='<div class="share-chat-loading">Cargando conversaciones…</div>';
-
   const {r,d}=await api('/api/messages/conversations?filter=all&q=');
-  if(!r.ok){
-    root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus conversaciones.</div>';
-    return;
-  }
-
-  const conversations=(Array.isArray(d.conversations) ? d.conversations : []).slice(0,12);
-  if(!conversations.length){
-    root.innerHTML='<div class="share-chat-empty">Todavía no tienes conversaciones activas.</div>';
-    return;
-  }
-
+  if(!r.ok){root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus conversaciones.</div>';return;}
+  const conversations=(Array.isArray(d.conversations)?d.conversations:[]).slice(0,12);
+  if(!conversations.length){root.innerHTML='<div class="share-chat-empty">Todavía no tienes conversaciones activas.</div>';return;}
   root.innerHTML=conversations.map(conversation=>{
     const identity=conversationListIdentity(conversation);
-    const subtitle=identity.isGroup
-      ? `${Number(conversation.member_count || 0)} miembros`
-      : identity.subtitle;
+    const subtitle=identity.isGroup?`${Number(conversation.member_count||0)} miembros · se comprobará el acceso de todos`:identity.subtitle;
     return `<button type="button" class="share-chat-option" data-share-conversation="${conversation.id}" data-share-label="${esc(identity.title)}">
-      <span class="share-chat-avatar ${identity.isGroup ? 'group-avatar' : ''}">${identity.avatar}</span>
-      <span class="share-chat-copy"><b>${esc(identity.title)}</b><small>${esc(subtitle || '')}</small></span>
+      <span class="share-chat-avatar ${identity.isGroup?'group-avatar':''}">${identity.avatar}</span>
+      <span class="share-chat-copy"><b>${esc(identity.title)}</b><small>${esc(subtitle||'')}</small></span>
       <span class="share-chat-send">Enviar</span>
     </button>`;
   }).join('');
-
   all('[data-share-conversation]',root).forEach(button=>{
-    button.onclick=()=>sendSharedPostToConversation(
-      button.dataset.shareConversation,
-      button.dataset.shareLabel
-    );
+    button.onclick=()=>sendSharedEntityToConversation(button.dataset.shareConversation,button.dataset.shareLabel);
   });
 }
 
-function openShare(postId) {
-  activeSharePostId = Number(postId);
-  const modal = $('#shareModal');
-  if (modal) modal.classList.remove('hidden');
-  const status = $('#shareStatus');
-  if (status) status.textContent = '';
-  const internalUsername = $('#shareInternalUsername');
-  if (internalUsername) internalUsername.value = '';
-  loadShareConversations().catch(()=>{});
+async function loadShareCommunities(){
+  const section=$('#shareCommunitySection'),root=$('#shareCommunityList');
+  const eligible=!!activeShareEntity&&['post','reel'].includes(activeShareEntity.type)&&activeShareEntity.audience==='public';
+  section?.classList.toggle('hidden',!eligible);
+  if(!eligible||!root)return;
+  root.innerHTML='<div class="share-chat-loading">Cargando comunidades…</div>';
+  const {r,d}=await api('/api/communities?scope=joined&q=');
+  if(!r.ok){root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus comunidades.</div>';return;}
+  const communities=(Array.isArray(d.communities)?d.communities:[]).filter(item=>item.is_member).slice(0,12);
+  root.innerHTML=communities.length?communities.map(item=>`<button type="button" class="share-chat-option" data-share-community="${item.id}" data-share-label="${esc(item.name)}">
+    <span class="share-chat-avatar">${communityAvatarHTML(item)}</span>
+    <span class="share-chat-copy"><b>${esc(item.name)}</b><small>${item.privacy==='private'?'Comunidad privada':'Comunidad pública'}</small></span>
+    <span class="share-chat-send">Compartir</span>
+  </button>`).join(''):'<div class="share-chat-empty">No perteneces a ninguna comunidad disponible.</div>';
+  all('[data-share-community]',root).forEach(button=>button.onclick=async()=>{
+    const status=$('#shareStatus');if(status)status.textContent='Compartiendo en la comunidad…';
+    const {r,d}=await api(`/api/communities/${button.dataset.shareCommunity}/share-post`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({postId:activeShareEntity.id,context:shareContextText()})
+    });
+    if(!r.ok){if(status)status.textContent=d.error==='post_not_shareable_to_community'?'Solo se pueden compartir aquí posts/Reels públicos.':'No se pudo compartir en la comunidad.';return;}
+    toast(`${shareEntityLabel()} compartido en ${button.dataset.shareLabel}`);
+    await loadShareHistory();
+  });
 }
 
-function closeShare() {
-  const modal=$('#shareModal');
-  if(modal)modal.classList.add('hidden');
-  const list=$('#shareConversationList');
-  if(list)list.innerHTML='';
-  activeSharePostId=null;
+function shareHistoryLabel(item){
+  const entity=({post:'Post',reel:'Reel',story:'Story',profile:'Perfil'})[item.entity_type]||'Contenido';
+  const target=({conversation:'Chat/grupo',community:'Comunidad',external:'Compartido fuera',copy:'Enlace copiado'})[item.target_type]||item.target_type;
+  return `${entity} · ${target}${item.target_label?` · ${item.target_label}`:''}`;
+}
+async function loadShareHistory(){
+  const root=$('#shareHistoryList');if(!root)return;
+  const {r,d}=await api('/api/shares/history');
+  if(!r.ok){root.innerHTML='<div class="share-chat-empty">No se pudo cargar el historial.</div>';return;}
+  const items=Array.isArray(d.items)?d.items:[];
+  root.innerHTML=items.length?items.slice(0,12).map(item=>`<div class="share-history-row"><span>${esc(shareHistoryLabel(item))}</span><small>${timeAgo(item.created_at)}</small></div>`).join(''):'<div class="share-chat-empty">Aún no has compartido nada desde RedLibertad.</div>';
+}
+
+function openShare(entityId,type='post',meta={}){
+  activeShareEntity={
+    id:Number(entityId),
+    type:['post','reel','story','profile'].includes(type)?type:'post',
+    username:String(meta.username||''),
+    audience:String(meta.audience||'public')
+  };
+  activeSharePostId=['post','reel'].includes(activeShareEntity.type)?activeShareEntity.id:null;
+  const modal=$('#shareModal');if(modal)modal.classList.remove('hidden');
+  if($('#shareModalTitle'))$('#shareModalTitle').textContent=`Compartir ${shareEntityLabel()}`;
+  if($('#shareModalCopy'))$('#shareModalCopy').textContent=canShareExternally()
+    ? 'Puedes compartir fuera o dentro de RedLibertad.'
+    : 'Este contenido tiene audiencia privada: solo se puede enviar a chats o grupos cuyos miembros ya tengan acceso.';
+  $('#shareExternalActions')?.classList.toggle('hidden',!canShareExternally());
+  if($('#shareStatus'))$('#shareStatus').textContent='';
+  if($('#shareInternalUsername'))$('#shareInternalUsername').value='';
+  if($('#shareContext'))$('#shareContext').value='';
+  Promise.all([loadShareConversations(),loadShareCommunities(),loadShareHistory()]).catch(()=>{});
+}
+function closeShare(){
+  $('#shareModal')?.classList.add('hidden');
+  if($('#shareConversationList'))$('#shareConversationList').innerHTML='';
+  if($('#shareCommunityList'))$('#shareCommunityList').innerHTML='';
+  activeSharePostId=null;activeShareEntity=null;
 }
 
 async function writeClipboardText(value) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(value);
-    return true;
-  }
-
-  const area = document.createElement('textarea');
-  area.value = value;
-  area.setAttribute('readonly', '');
-  area.style.position = 'fixed';
-  area.style.left = '-9999px';
-  area.style.top = '0';
-  document.body.appendChild(area);
-  area.focus();
-  area.select();
-  area.setSelectionRange(0, area.value.length);
-
-  let copied = false;
-  try { copied = document.execCommand('copy'); } catch (_) {}
-  area.remove();
-
-  if (!copied) throw new Error('clipboard_unavailable');
-  return true;
+  if (navigator.clipboard && window.isSecureContext) {await navigator.clipboard.writeText(value);return true;}
+  const area=document.createElement('textarea');area.value=value;area.setAttribute('readonly','');area.style.position='fixed';area.style.left='-9999px';area.style.top='0';document.body.appendChild(area);area.focus();area.select();area.setSelectionRange(0,area.value.length);
+  let copied=false;try{copied=document.execCommand('copy');}catch(_){}
+  area.remove();if(!copied)throw new Error('clipboard_unavailable');return true;
 }
-
-async function copyShareLink() {
-  if (!activeSharePostId) return;
-  const value = `${shareText()} ${shareUrl(activeSharePostId)}`;
-  try {
-    await writeClipboardText(value);
-    toast('Texto y enlace copiados');
-  } catch (_) {
-    window.prompt('Copia este texto y enlace:', value);
-  }
+async function copyShareLink(){
+  if(!activeShareEntity||!canShareExternally())return;
+  const value=`${shareText()} ${shareUrl()}`;
+  try{await writeClipboardText(value);await recordExternalShare('copy','Copiado');toast('Texto y enlace copiados');await loadShareHistory();}
+  catch(_){window.prompt('Copia este texto y enlace:',value);}
 }
-async function sendSharedPostToConversation(conversationId,label='chat'){
-  if(!activeSharePostId)return;
-  const status=$('#shareStatus');
-  if(status)status.textContent='Enviando publicación…';
-
-  const message=await api(
-    `/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,
-    {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        body:'',
-        contentLevel:'normal',
-        sharedPostId:activeSharePostId
-      })
-    }
-  );
-
+async function sendSharedEntityToConversation(conversationId,label='chat'){
+  if(!activeShareEntity)return;
+  const status=$('#shareStatus');if(status)status.textContent=`Enviando ${shareEntityLabel()}…`;
+  const payload={body:shareContextText(),contentLevel:'normal'};
+  if(['post','reel'].includes(activeShareEntity.type))payload.sharedPostId=activeShareEntity.id;
+  else if(activeShareEntity.type==='story')payload.sharedStoryId=activeShareEntity.id;
+  else if(activeShareEntity.type==='profile')payload.sharedProfileId=activeShareEntity.id;
+  const message=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+  });
   if(!message.r.ok){
     if(status){
-      status.textContent=message.d.error==='post_not_shareable'
-        ? 'Esta publicación ya no se puede compartir.'
-        : 'No se pudo enviar la publicación.';
+      const errors={
+        post_not_shareable_with_conversation:'No todos los miembros de ese chat pueden ver esta publicación.',
+        story_not_shareable_with_conversation:'No todos los miembros de ese chat pueden ver esta Story.',
+        profile_not_shareable_with_conversation:'Ese perfil no es accesible para todos los miembros del chat.'
+      };
+      status.textContent=errors[message.d.error]||`No se pudo enviar ${shareEntityLabel()}.`;
     }
     return;
   }
-
   const currentId=activeConversationId;
-  closeShare();
-  toast(`Publicación enviada a ${label}`);
-  await loadConversations();
-  if(currentId && String(currentId)===String(conversationId) && !$('#messagesView')?.classList.contains('hidden')){
-    await refreshActiveConversationLive();
-  }
+  toast(`${shareEntityLabel()} enviado a ${label}`);
+  await Promise.all([loadConversations(),loadShareHistory()]);
+  if(currentId&&String(currentId)===String(conversationId)&&!$('#messagesView')?.classList.contains('hidden'))await refreshActiveConversationLive();
 }
-
-async function shareInsideRedLibertad(username) {
-  if (!activeSharePostId) return;
-  const clean=String(username || '').trim().replace(/^@/,'');
-  const status=$('#shareStatus');
-
-  if(!clean){
-    if(status)status.textContent='Escribe un @usuario.';
-    return;
-  }
-
+async function shareInsideRedLibertad(username){
+  if(!activeShareEntity)return;
+  const clean=String(username||'').trim().replace(/^@/,'');const status=$('#shareStatus');
+  if(!clean){if(status)status.textContent='Escribe un @usuario.';return;}
   if(status)status.textContent='Abriendo conversación…';
-
-  const conversation=await api('/api/messages/conversations',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:clean})
-  });
-
+  const conversation=await api('/api/messages/conversations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:clean})});
   if(!conversation.r.ok){
-    if(status){
-      status.textContent=conversation.d.error==='cannot_message_self'
-        ? 'No puedes enviártelo a ti mismo.'
-        : conversation.d.error==='message_privacy_denied'
-          ? 'Esta persona no acepta nuevas conversaciones.'
-          : conversation.d.error==='message_privacy_following_only'
-            ? 'Solo acepta mensajes de personas que sigue.'
-            : conversation.d.error==='messaging_blocked'
-              ? 'No puedes iniciar esta conversación.'
-              : 'No se pudo abrir la conversación.';
-    }
+    if(status)status.textContent=conversation.d.error==='cannot_message_self'?'No puedes enviártelo a ti mismo.':conversation.d.error==='message_privacy_denied'?'Esta persona no acepta nuevas conversaciones.':conversation.d.error==='message_privacy_following_only'?'Solo acepta mensajes de personas que sigue.':conversation.d.error==='messaging_blocked'?'No puedes iniciar esta conversación.':'No se pudo abrir la conversación.';
     return;
   }
-
-  await sendSharedPostToConversation(conversation.d.conversationId,`@${clean}`);
+  await sendSharedEntityToConversation(conversation.d.conversationId,`@${clean}`);
 }
-
-async function nativeShare() {
-  if (!activeSharePostId) return;
-  const url=shareUrl(activeSharePostId), text=shareText();
-  if (navigator.share) { try { await navigator.share({title:'RedLibertad',text,url}); closeShare(); return; } catch(e){ if(e?.name==='AbortError') return; } }
+async function nativeShare(){
+  if(!activeShareEntity||!canShareExternally())return;
+  const url=shareUrl(),text=shareText();
+  if(navigator.share){
+    try{await navigator.share({title:'RedLibertad',text,url});await recordExternalShare('external','Compartir');toast('Compartido');await loadShareHistory();return;}
+    catch(e){if(e?.name==='AbortError')return;}
+  }
   await copyShareLink();
 }
 
@@ -5171,7 +5216,10 @@ function bindPostActions(root) {
   });
 
   all('[data-share]', root).forEach(b => {
-    b.onclick = () => openShare(b.dataset.share);
+    b.onclick = () => openShare(b.dataset.share,b.dataset.shareType||'post',{
+      audience:b.dataset.shareAudience||'public',
+      username:b.dataset.shareUsername||''
+    });
   });
 
   all('[data-manage-post]', root).forEach(b => {
@@ -5536,6 +5584,12 @@ function bindMessageActions(root=$('#messageThread')){
   all('[data-open-shared-post]',root).forEach(button=>{
     button.onclick=()=>openPostFocus(button.dataset.openSharedPost);
   });
+  all('[data-open-shared-story]',root).forEach(button=>{
+    button.onclick=()=>openSharedStory(button.dataset.openSharedStory);
+  });
+  all('[data-open-shared-profile]',root).forEach(button=>{
+    button.onclick=()=>openPublicProfile(button.dataset.openSharedProfile);
+  });
 }
 
 function conversationPresence(id) {
@@ -5780,13 +5834,14 @@ function notificationIcon(type) {
     collaboration_approved: '✓',
     collaboration_rejected: '×',
     collaboration_revoked: '↶',
+    circle_mention: '◎',
     system: 'R'
   })[type] || '•';
 }
 
 function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
-  if (filter === 'mentions') return notification.type === 'mention';
+  if (filter === 'mentions') return ['mention','circle_mention'].includes(notification.type);
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
@@ -5829,6 +5884,17 @@ async function navigateNotification(notification) {
   const type = String(notification.type || '');
   const entityType = String(notification.entity_type || '');
   const entityId = notification.entity_id;
+
+  if(type==='circle_mention' && entityType==='post' && entityId){
+    await openPostFocus(entityId);
+    return;
+  }
+
+  if(type==='mention' && entityType==='community' && entityId){
+    showView('communities');
+    await openCommunityDetail(entityId);
+    return;
+  }
 
   if (type === 'collaboration_request') {
     showView('profile');
@@ -6344,6 +6410,36 @@ function sharedPostMessageHTML(post){
   </article>`;
 }
 
+function sharedStoryMessageHTML(story){
+  if(!story)return '';
+  if(story.unavailable)return '<div class="shared-post-message unavailable"><b>Story no disponible</b><span>Puede haber caducado o ya no ser accesible para ti.</span></div>';
+  if(story.gated)return `<div class="shared-post-message gated"><div class="shared-post-message-head"><span class="shared-post-kind">18+</span><b>Story sensible compartida</b></div><p>${esc(gateText(story.gate_reason))}</p></div>`;
+  return `<article class="shared-post-message shared-story-message">
+    <div class="shared-post-message-head"><span class="shared-post-author-avatar">${avatarHTML(story)}</span><div><b>${esc(story.display_name||story.username||'RedLibertad')}</b><small>@${esc(story.username||'')}</small></div><span class="shared-post-kind">Story</span></div>
+    <div class="shared-post-message-media">${mediaHTML(story)}</div>
+    <button type="button" class="shared-post-open" data-open-shared-story="${story.id}">Ver Story</button>
+  </article>`;
+}
+
+function sharedProfileMessageHTML(profile){
+  if(!profile)return '';
+  if(profile.unavailable)return '<div class="shared-post-message unavailable"><b>Perfil no disponible</b><span>Puede haberse desactivado o ya no ser accesible para ti.</span></div>';
+  return `<article class="shared-post-message shared-profile-message">
+    <div class="shared-post-message-head"><span class="shared-post-author-avatar">${avatarHTML(profile)}</span><div><b>${esc(profile.display_name||profile.username||'RedLibertad')} ${profile.creator_verified?'<span class="verified">✓</span>':''}</b><small>@${esc(profile.username||'')}</small></div><span class="shared-post-kind">Perfil</span></div>
+    ${profile.bio?`<p class="shared-post-message-caption">${esc(profile.bio)}</p>`:''}
+    <button type="button" class="shared-post-open" data-open-shared-profile="${esc(profile.username||'')}">Ver perfil</button>
+  </article>`;
+}
+
+async function openSharedStory(storyId){
+  let story=visibleStories.find(item=>String(item.id)===String(storyId));
+  if(!story){await loadStories();story=visibleStories.find(item=>String(item.id)===String(storyId));}
+  if(!story)return toast('La Story ya no está disponible.');
+  const group=storyGroups.get(String(story.user_id))||[];
+  const index=Math.max(0,group.findIndex(item=>String(item.id)===String(story.id)));
+  openStoryViewer(story.user_id,index);
+}
+
 function messageHTML(m,other,conversation=activeConversationMeta) {
   const mine=String(m.sender_id)===String(me.id);
   const isGroup=conversation?.is_group===true;
@@ -6361,7 +6457,7 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     media=`<div class="message-media">${mediaHTML(m)}</div>`;
   }
 
-  const sharedCard=sharedPostMessageHTML(m.shared_post);
+  const sharedCard=sharedPostMessageHTML(m.shared_post)+sharedStoryMessageHTML(m.shared_story)+sharedProfileMessageHTML(m.shared_profile);
 
   const reply=m.reply_preview
     ? `<div class="message-reply-preview ${m.reply_preview.gated ? 'gated' : ''}"><small>↩ ${esc(m.reply_preview.display_name || m.reply_preview.username || 'Mensaje')}</small><p>${esc(m.reply_preview.text || 'Mensaje')}</p></div>`
@@ -6395,7 +6491,11 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
           ? 'Vídeo'
           : m.shared_post
             ? 'Publicación compartida'
-            : 'Mensaje';
+            : m.shared_story
+              ? 'Story compartida'
+              : m.shared_profile
+                ? 'Perfil compartido'
+                : 'Mensaje';
 
   return `<div class="message-bubble ${mine ? 'mine' : 'theirs'} ${isGroup?'group-message':''}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
     ${senderLabel}
@@ -7239,8 +7339,9 @@ function communityPostHTML(post,community){
       </div>
       ${post.can_delete?`<button type="button" class="tiny-action danger-outline" data-community-delete-post="${post.id}">Eliminar</button>`:''}
     </header>
-    ${post.body?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
+    ${post.body&&(!post.shared_post||post.body!=='Publicación compartida')?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
     ${media?`<div class="community-post-media">${media}</div>`:''}
+    ${post.shared_post?sharedPostMessageHTML(post.shared_post):''}
     <div class="community-post-comments">
       <div class="community-comment-count">${Number(post.comment_count||comments.length)} comentarios</div>
       ${comments.length ? comments.map(comment=>`<div class="community-comment" data-community-comment="${comment.id}">
@@ -7274,6 +7375,7 @@ async function loadCommunityPosts(){
     ? posts.map(post=>communityPostHTML(post,activeCommunityData.community)).join('')
     : '<div class="community-posts-empty"><b>Todavía no hay publicaciones.</b><p>Los miembros pueden iniciar la conversación.</p></div>';
   if($('#communityPostCount'))$('#communityPostCount').textContent=`${posts.length} publicaciones`;
+  all('[data-open-shared-post]',root).forEach(button=>button.onclick=()=>openPostFocus(button.dataset.openSharedPost));
 }
 
 async function loadCommunityAdminData(){
@@ -7759,6 +7861,7 @@ async function prepareAudiencePickers(){
   }catch(_error){}
   renderAudienceCircleOptions('postCircleAudienceOptions');
   renderAudienceCircleOptions('storyCircleAudienceOptions');
+  renderAudienceCircleOptions('postCircleMentionOptions');
   syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
   syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
 }
@@ -7903,6 +8006,7 @@ $('#createForm').addEventListener('submit', async e => {
         : 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
     const collaborators = String(fd.get('collaborators') || '').split(',').map(x => x.trim()).filter(Boolean);
+    const mentionCircleIds=selectedAudienceCircleIds('postCircleMentionOptions').slice(0,5);
     const payload = {
       caption,
       kind,
@@ -7918,6 +8022,7 @@ $('#createForm').addEventListener('submit', async e => {
       pollOptions,
       participantUsernames: participants,
       collaboratorUsernames: collaborators,
+      mentionCircleIds,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
       mediaProvider: media?.provider || 'local',
@@ -7956,6 +8061,8 @@ $('#createForm').addEventListener('submit', async e => {
           ? `No encontramos estos colaboradores: ${(d.missing || []).join(', ')}`
         : d.error === 'collaborator_unavailable'
           ? `No puedes invitar a colaborar a: ${(d.usernames || []).join(', ')}`
+        : d.error === 'invalid_mention_circle'
+          ? 'Uno de los círculos mencionados ya no está disponible.'
           : d.error === 'empty_post'
             ? 'Escribe algo o selecciona una foto o vídeo.'
             : d.error === 'reel_media_required'
@@ -7978,6 +8085,7 @@ $('#createForm').addEventListener('submit', async e => {
     updateCommunityComposeFields();
     syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
     syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
+    renderAudienceCircleOptions('postCircleMentionOptions');
     await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
@@ -8019,16 +8127,24 @@ $('#shareInternalForm')?.addEventListener('submit', async event => {
   await shareInsideRedLibertad($('#shareInternalUsername')?.value);
 });
 $('#refreshShareChats')?.addEventListener('click',()=>loadShareConversations().catch(()=>{}));
+$('#clearShareHistory')?.addEventListener('click',async()=>{
+  const {r}=await api('/api/shares/history',{method:'DELETE'});
+  if(r.ok){toast('Historial privado borrado');await loadShareHistory();}
+});
 if ($('#closeShareModal')) $('#closeShareModal').onclick = closeShare;
 if ($('#shareNative')) $('#shareNative').onclick = nativeShare;
 if ($('#shareCopy')) $('#shareCopy').onclick = copyShareLink;
-if ($('#shareFacebook')) $('#shareFacebook').onclick = () => {
-  if (!activeSharePostId) return;
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl(activeSharePostId))}`, '_blank', 'noopener,noreferrer');
+if ($('#shareFacebook')) $('#shareFacebook').onclick = async () => {
+  if(!activeShareEntity||!canShareExternally())return;
+  await recordExternalShare('external','Facebook');
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl())}`,'_blank','noopener,noreferrer');
+  await loadShareHistory();
 };
-if ($('#shareWhatsApp')) $('#shareWhatsApp').onclick = () => {
-  if (!activeSharePostId) return;
-  window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl(activeSharePostId)}`)}`, '_blank', 'noopener,noreferrer');
+if ($('#shareWhatsApp')) $('#shareWhatsApp').onclick = async () => {
+  if(!activeShareEntity||!canShareExternally())return;
+  await recordExternalShare('external','WhatsApp');
+  window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl()}`)}`,'_blank','noopener,noreferrer');
+  await loadShareHistory();
 };
 $('#shareModal')?.addEventListener('click', e => { if (e.target === $('#shareModal')) closeShare(); });
 
@@ -8054,6 +8170,7 @@ async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
   const post = params.get('post');
+  const story = params.get('story');
   const view = params.get('view');
   const conversation = params.get('conversation');
   const trust = params.get('trust');
@@ -8065,6 +8182,11 @@ async function handleInitialDeepLink() {
 
   if (post) {
     await openPostFocus(post);
+    return;
+  }
+
+  if(story){
+    await openSharedStory(story);
     return;
   }
 

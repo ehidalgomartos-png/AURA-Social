@@ -121,6 +121,7 @@ async function ensurePrivacyV19() {
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE");
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS mention_privacy TEXT NOT NULL DEFAULT 'everyone'");
       const privacyConstraint=await db.query(
         "SELECT 1 FROM pg_constraint WHERE conname='users_message_privacy_check' AND conrelid='users'::regclass LIMIT 1"
       );
@@ -129,6 +130,16 @@ async function ensurePrivacyV19() {
           ALTER TABLE users
             ADD CONSTRAINT users_message_privacy_check
             CHECK(message_privacy IN ('everyone','following','no_one'))
+        `);
+      }
+      const mentionPrivacyConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='users_mention_privacy_check' AND conrelid='users'::regclass LIMIT 1"
+      );
+      if(!mentionPrivacyConstraint.rowCount){
+        await db.query(`
+          ALTER TABLE users
+            ADD CONSTRAINT users_mention_privacy_check
+            CHECK(mention_privacy IN ('everyone','connections','no_one'))
         `);
       }
       await db.query(`
@@ -1232,6 +1243,7 @@ router.post('/:id/discovery-hide',requireAuth,async(req,res)=>{
 
 const privacySchema=z.object({
   messagePrivacy:z.enum(['everyone','following','no_one']).optional(),
+  mentionPrivacy:z.enum(['everyone','connections','no_one']).optional(),
   discoverable:z.boolean().optional(),
   showActivity:z.boolean().optional()
 });
@@ -1239,7 +1251,7 @@ const privacySchema=z.object({
 router.get('/me/privacy',requireAuth,async(req,res)=>{
   const [settings,muted,blocked]=await Promise.all([
     db.query(
-      `SELECT message_privacy,discoverable,show_activity
+      `SELECT message_privacy,mention_privacy,discoverable,show_activity
          FROM users WHERE id=$1 LIMIT 1`,
       [req.user.id]
     ),
@@ -1251,6 +1263,7 @@ router.get('/me/privacy',requireAuth,async(req,res)=>{
   res.json({
     settings:{
       messagePrivacy:settings.rows[0].message_privacy,
+      mentionPrivacy:settings.rows[0].mention_privacy,
       discoverable:settings.rows[0].discoverable,
       showActivity:settings.rows[0].show_activity
     },
@@ -1264,7 +1277,7 @@ router.patch('/me/privacy',requireAuth,async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_data'});
 
   const current=await db.query(
-    'SELECT message_privacy,discoverable,show_activity FROM users WHERE id=$1',
+    'SELECT message_privacy,mention_privacy,discoverable,show_activity FROM users WHERE id=$1',
     [req.user.id]
   );
   if(!current.rowCount)return res.status(404).json({error:'user_not_found'});
@@ -1273,14 +1286,16 @@ router.patch('/me/privacy',requireAuth,async(req,res)=>{
   const row=await db.query(`
     UPDATE users
        SET message_privacy=$2,
-           discoverable=$3,
-           show_activity=$4,
+           mention_privacy=$3,
+           discoverable=$4,
+           show_activity=$5,
            updated_at=now()
      WHERE id=$1
-     RETURNING message_privacy,discoverable,show_activity
+     RETURNING message_privacy,mention_privacy,discoverable,show_activity
   `,[
     req.user.id,
     d.messagePrivacy ?? current.rows[0].message_privacy,
+    d.mentionPrivacy ?? current.rows[0].mention_privacy,
     d.discoverable ?? current.rows[0].discoverable,
     d.showActivity ?? current.rows[0].show_activity
   ]);
@@ -1289,6 +1304,7 @@ router.patch('/me/privacy',requireAuth,async(req,res)=>{
     ok:true,
     settings:{
       messagePrivacy:row.rows[0].message_privacy,
+      mentionPrivacy:row.rows[0].mention_privacy,
       discoverable:row.rows[0].discoverable,
       showActivity:row.rows[0].show_activity
     }
@@ -2032,6 +2048,37 @@ router.post('/me/creator-vip-broadcasts',requireAuth,async(req,res)=>{
   }finally{
     client.release();
   }
+});
+
+router.get('/mentions/suggestions',requireAuth,async(req,res)=>{
+  const q=String(req.query.q||'').trim().replace(/^@/,'').toLowerCase().slice(0,30);
+  if(!q)return res.json({users:[]});
+  const result=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM users u
+     WHERE u.status='active'
+       AND u.id<>$1
+       AND u.is_admin=false
+       AND u.discoverable=true
+       AND lower(u.username) LIKE $2 || '%'
+       AND u.mention_privacy<>'no_one'
+       AND (
+         u.mention_privacy='everyone'
+         OR (
+           u.mention_privacy='connections'
+           AND EXISTS(SELECT 1 FROM follows f1 WHERE f1.follower_id=$1 AND f1.following_id=u.id)
+           AND EXISTS(SELECT 1 FROM follows f2 WHERE f2.follower_id=u.id AND f2.following_id=$1)
+         )
+       )
+       AND NOT EXISTS(
+         SELECT 1 FROM blocks b
+          WHERE (b.blocker_id=$1 AND b.blocked_id=u.id)
+             OR (b.blocker_id=u.id AND b.blocked_id=$1)
+       )
+     ORDER BY CASE WHEN lower(u.username)=$2 THEN 0 ELSE 1 END,lower(u.username),u.id
+     LIMIT 8
+  `,[req.user.id,q]);
+  res.json({users:result.rows});
 });
 
 router.get('/:username', optionalAuth, async (req,res)=>{
