@@ -1498,6 +1498,145 @@ router.patch('/creator/community/responses/:responseId/star',requireAuth,async(r
   res.json({ok:true,response:updated.rows[0]});
 });
 
+router.get('/creator/community-insights',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+
+  const [summary,trend,topTools]=await Promise.all([
+    db.query(`
+      SELECT
+        (SELECT count(*)::int
+           FROM creator_poll_votes v
+           JOIN creator_polls cp ON cp.id=v.poll_id
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1
+            AND p.moderation_status='published'
+            AND v.created_at>=now()-interval '7 days') votes_7d,
+        (SELECT count(*)::int
+           FROM creator_poll_votes v
+           JOIN creator_polls cp ON cp.id=v.poll_id
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1
+            AND p.moderation_status='published'
+            AND v.created_at>=now()-interval '30 days') votes_30d,
+        (SELECT count(*)::int
+           FROM creator_question_responses qr
+           JOIN creator_questions cq ON cq.id=qr.question_id
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1
+            AND p.moderation_status='published'
+            AND qr.created_at>=now()-interval '7 days') responses_7d,
+        (SELECT count(*)::int
+           FROM creator_question_responses qr
+           JOIN creator_questions cq ON cq.id=qr.question_id
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1
+            AND p.moderation_status='published'
+            AND qr.created_at>=now()-interval '30 days') responses_30d,
+        (SELECT count(DISTINCT x.user_id)::int
+           FROM (
+             SELECT v.user_id
+               FROM creator_poll_votes v
+               JOIN creator_polls cp ON cp.id=v.poll_id
+               JOIN posts p ON p.id=cp.post_id
+              WHERE p.user_id=$1
+                AND p.moderation_status='published'
+                AND v.created_at>=now()-interval '30 days'
+             UNION ALL
+             SELECT qr.user_id
+               FROM creator_question_responses qr
+               JOIN creator_questions cq ON cq.id=qr.question_id
+               JOIN posts p ON p.id=cq.post_id
+              WHERE p.user_id=$1
+                AND p.moderation_status='published'
+                AND qr.created_at>=now()-interval '30 days'
+           ) x) participants_30d
+    `,[req.user.id]),
+    db.query(`
+      WITH days AS (
+        SELECT generate_series(current_date-13,current_date,interval '1 day')::date AS day
+      ),
+      activity AS (
+        SELECT v.created_at::date AS day,count(*)::int AS votes,0::int AS responses
+          FROM creator_poll_votes v
+          JOIN creator_polls cp ON cp.id=v.poll_id
+          JOIN posts p ON p.id=cp.post_id
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND v.created_at>=current_date-13
+         GROUP BY v.created_at::date
+        UNION ALL
+        SELECT qr.created_at::date AS day,0::int AS votes,count(*)::int AS responses
+          FROM creator_question_responses qr
+          JOIN creator_questions cq ON cq.id=qr.question_id
+          JOIN posts p ON p.id=cq.post_id
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND qr.created_at>=current_date-13
+         GROUP BY qr.created_at::date
+      )
+      SELECT d.day,
+             COALESCE(sum(a.votes),0)::int votes,
+             COALESCE(sum(a.responses),0)::int responses
+        FROM days d
+        LEFT JOIN activity a ON a.day=d.day
+       GROUP BY d.day
+       ORDER BY d.day
+    `,[req.user.id]),
+    db.query(`
+      SELECT *
+      FROM (
+        SELECT
+          'poll'::text kind,
+          cp.id tool_id,
+          cp.post_id,
+          cp.question prompt,
+          p.audience,
+          cp.status,
+          cp.is_open,
+          count(v.user_id) FILTER (WHERE v.created_at>=now()-interval '7 days')::int activity_7d,
+          count(v.user_id) FILTER (WHERE v.created_at>=now()-interval '30 days')::int activity_30d
+        FROM creator_polls cp
+        JOIN posts p ON p.id=cp.post_id
+        LEFT JOIN creator_poll_votes v ON v.poll_id=cp.id
+        WHERE p.user_id=$1
+          AND p.moderation_status='published'
+        GROUP BY cp.id,cp.post_id,cp.question,p.audience,cp.status,cp.is_open
+
+        UNION ALL
+
+        SELECT
+          'question'::text kind,
+          cq.id tool_id,
+          cq.post_id,
+          cq.prompt,
+          p.audience,
+          cq.status,
+          cq.is_open,
+          count(qr.id) FILTER (WHERE qr.created_at>=now()-interval '7 days')::int activity_7d,
+          count(qr.id) FILTER (WHERE qr.created_at>=now()-interval '30 days')::int activity_30d
+        FROM creator_questions cq
+        JOIN posts p ON p.id=cq.post_id
+        LEFT JOIN creator_question_responses qr ON qr.question_id=cq.id
+        WHERE p.user_id=$1
+          AND p.moderation_status='published'
+        GROUP BY cq.id,cq.post_id,cq.prompt,p.audience,cq.status,cq.is_open
+      ) tools
+      ORDER BY activity_30d DESC,activity_7d DESC,post_id DESC
+      LIMIT 8
+    `,[req.user.id])
+  ]);
+
+  res.json({
+    summary:summary.rows[0] || {
+      votes_7d:0,votes_30d:0,responses_7d:0,responses_30d:0,participants_30d:0
+    },
+    trend:trend.rows,
+    topTools:topTools.rows
+  });
+});
+
 router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
   if(!await requireVerifiedCreator(req.user.id)){
     return res.status(403).json({error:'verified_creator_required_for_community_tools'});
