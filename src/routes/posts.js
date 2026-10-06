@@ -268,6 +268,67 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorPublishingV20Ready=null;
+async function ensureCreatorPublishingV20(){
+  if(!creatorPublishingV20Ready){
+    creatorPublishingV20Ready=(async()=>{
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS creator_state TEXT NOT NULL DEFAULT 'live'");
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMPTZ");
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='posts_creator_state_check' AND conrelid='posts'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE posts ADD CONSTRAINT posts_creator_state_check CHECK(creator_state IN ('live','draft','scheduled'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_creator_state_schedule ON posts(creator_state,scheduled_for,user_id)');
+    })().catch(error=>{
+      creatorPublishingV20Ready=null;
+      throw error;
+    });
+  }
+  return creatorPublishingV20Ready;
+}
+
+let schedulerRunning=false;
+async function publishDueScheduledPosts(){
+  if(schedulerRunning)return 0;
+  schedulerRunning=true;
+  try{
+    await ensureCreatorPublishingV20();
+    const result=await db.query(`
+      UPDATE posts
+         SET creator_state='live',
+             moderation_status='published',
+             created_at=now(),
+             updated_at=now()
+       WHERE creator_state='scheduled'
+         AND scheduled_for IS NOT NULL
+         AND scheduled_for<=now()
+         AND moderation_status<>'rejected'
+         AND consent_state IN ('none','approved')
+      RETURNING id
+    `);
+    return result.rowCount;
+  }finally{
+    schedulerRunning=false;
+  }
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorPublishingV20();
+    await publishDueScheduledPosts();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.20 publishing bootstrap failed:',error);
+    res.status(500).json({error:'publishing_tools_bootstrap_failed'});
+  }
+});
+
+setTimeout(()=>publishDueScheduledPosts().catch(error=>console.error('RedLibertad V1.20 initial scheduler failed:',error)),5000).unref?.();
+setInterval(()=>publishDueScheduledPosts().catch(error=>console.error('RedLibertad V1.20 scheduler failed:',error)),60*1000).unref?.();
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
