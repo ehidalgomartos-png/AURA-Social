@@ -233,3 +233,20 @@ CREATE TABLE IF NOT EXISTS creator_featured_posts (
 CREATE INDEX IF NOT EXISTS idx_creator_featured_posts_user
   ON creator_featured_posts(user_id,featured_at DESC);
 
+-- RedLibertad V1.14: perfil público de creador y enlaces
+ALTER TABLE users ADD COLUMN IF NOT EXISTS creator_headline VARCHAR(120) NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS creator_links (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label VARCHAR(40) NOT NULL,
+  url TEXT NOT NULL,
+  position SMALLINT NOT NULL DEFAULT 0,
+  click_count BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_creator_links_user_position
+  ON creator_links(user_id,position,id);
+
+
