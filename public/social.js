@@ -1731,6 +1731,25 @@ function closePostFocus() {
   if (root) root.innerHTML = '';
 }
 
+$('#newConnectionCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
+$('#closeConnectionCirclesModal')?.addEventListener('click',closeConnectionCirclesModal);
+$('#connectionCirclesModal')?.addEventListener('click',event=>{
+  if(event.target===$('#connectionCirclesModal'))closeConnectionCirclesModal();
+});
+$('#newCircleForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const status=$('#newCircleStatus');
+  const name=String(new FormData(form).get('name') || '').trim();
+  if(!name)return;
+  status.textContent='Creando…';
+  const result=await createConnectionCircle(name);
+  if(!result.ok){status.textContent=result.message;return;}
+  form.reset();
+  status.textContent='Círculo creado.';
+  await loadConnections();
+});
+
 $('#closePostFocusModal')?.addEventListener('click', closePostFocus);
 $('#postFocusModal')?.addEventListener('click', event => {
   if (event.target === $('#postFocusModal')) closePostFocus();
