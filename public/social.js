@@ -1896,15 +1896,75 @@ function renderCreatorCommunity(data = {}) {
 }
 
 
+function renderCreatorCommunityInsights(data = {}) {
+  const summary=data.summary || {};
+  const votes7=Number(summary.votes_7d || 0);
+  const votes30=Number(summary.votes_30d || 0);
+  const responses7=Number(summary.responses_7d || 0);
+  const responses30=Number(summary.responses_30d || 0);
+  const activity7=votes7+responses7;
+  const activity30=votes30+responses30;
+
+  if($('#creatorCommunityInsights')){
+    $('#creatorCommunityInsights').innerHTML=[
+      creatorMetric('Participación · 7 días',activity7),
+      creatorMetric('Participación · 30 días',activity30),
+      creatorMetric('Personas únicas · 30 días',summary.participants_30d || 0),
+      creatorMetric('Votos / respuestas · 30 días',`${votes30} / ${responses30}`)
+    ].join('');
+  }
+
+  const trend=Array.isArray(data.trend) ? data.trend : [];
+  if($('#creatorCommunityTrend')){
+    if(!trend.length){
+      $('#creatorCommunityTrend').innerHTML='<div class="creator-empty compact">Todavía no hay suficiente actividad para mostrar evolución.</div>';
+    }else{
+      const max=Math.max(1,...trend.map(item=>Number(item.votes || 0)+Number(item.responses || 0)));
+      $('#creatorCommunityTrend').innerHTML=trend.map(item=>{
+        const votes=Number(item.votes || 0);
+        const responses=Number(item.responses || 0);
+        const total=votes+responses;
+        const height=Math.max(total ? 8 : 2,Math.round((total/max)*100));
+        const voteShare=total ? Math.round((votes/total)*100) : 0;
+        const day=new Date(`${String(item.day).slice(0,10)}T12:00:00`);
+        const label=Number.isFinite(day.getTime())
+          ? day.toLocaleDateString('es-ES',{day:'2-digit',month:'short'})
+          : String(item.day || '').slice(5,10);
+        return `<div class="creator-community-trend-day" title="${esc(label)} · ${votes} votos · ${responses} respuestas">
+          <div class="creator-community-trend-bar" style="height:${height}%">
+            <i class="votes" style="height:${voteShare}%"></i>
+            <i class="responses" style="height:${100-voteShare}%"></i>
+          </div>
+          <small>${esc(label)}</small>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  const tools=Array.isArray(data.topTools) ? data.topTools : [];
+  if($('#creatorCommunityTopTools')){
+    $('#creatorCommunityTopTools').innerHTML=tools.length
+      ? tools.map((item,index)=>`<button type="button" class="creator-community-top-tool" data-open-post="${item.post_id}">
+          <span class="creator-community-top-rank">${index+1}</span>
+          <span class="creator-community-top-copy">
+            <b>${item.kind==='poll' ? 'Encuesta' : 'Pregunta'} · ${esc(String(item.prompt || '').slice(0,70))}</b>
+            <small>${item.audience==='vip' ? '★ VIP · ' : ''}${item.status==='archived' ? 'Archivada · ' : item.is_open ? 'Abierta · ' : 'Cerrada · '}${Number(item.activity_7d || 0)} en 7d · ${Number(item.activity_30d || 0)} en 30d</small>
+          </span>
+        </button>`).join('')
+      : '<div class="creator-empty compact">Todavía no hay herramientas con actividad reciente.</div>';
+  }
+}
+
 async function loadCreatorCenter() {
   const metricsRoot = $('#creatorMetrics');
   const postsRoot = $('#creatorPosts');
   if (!metricsRoot || !postsRoot) return false;
 
-  const [centerResponse,publishingResponse,communityResponse]=await Promise.all([
+  const [centerResponse,publishingResponse,communityResponse,communityInsightsResponse]=await Promise.all([
     api('/api/profiles/me/creator-center'),
     api('/api/posts/creator/publishing'),
-    api('/api/posts/creator/community-inbox')
+    api('/api/posts/creator/community-inbox'),
+    api('/api/posts/creator/community-insights')
   ]);
   const { r, d }=centerResponse;
   if (!r.ok) {
@@ -1997,6 +2057,15 @@ async function loadCreatorCenter() {
   }else{
     if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='<div class="creator-empty compact">No se pudo cargar la bandeja de comunidad.</div>';
     if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
+    if($('#creatorQuestionSummaries'))$('#creatorQuestionSummaries').innerHTML='';
+  }
+
+  if(communityInsightsResponse.r.ok){
+    renderCreatorCommunityInsights(communityInsightsResponse.d);
+  }else{
+    if($('#creatorCommunityInsights'))$('#creatorCommunityInsights').innerHTML='<div class="creator-empty compact">No se pudieron cargar los insights.</div>';
+    if($('#creatorCommunityTrend'))$('#creatorCommunityTrend').innerHTML='';
+    if($('#creatorCommunityTopTools'))$('#creatorCommunityTopTools').innerHTML='';
   }
 
   await loadCreatorCalendar();
@@ -2021,6 +2090,9 @@ async function openCreatorModal() {
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
   if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
+  if($('#creatorCommunityInsights'))$('#creatorCommunityInsights').innerHTML='<div class="mini-loading">Calculando insights...</div>';
+  if($('#creatorCommunityTrend'))$('#creatorCommunityTrend').innerHTML='';
+  if($('#creatorCommunityTopTools'))$('#creatorCommunityTopTools').innerHTML='';
   if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='';
   if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
   if($('#creatorQuestionSummaries'))$('#creatorQuestionSummaries').innerHTML='';
