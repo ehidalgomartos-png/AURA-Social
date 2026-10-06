@@ -1,4 +1,4 @@
-# RedLibertad V1.22.0 — Creator Community Tools
+# RedLibertad V1.23.0 — Community Management 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -538,3 +538,47 @@ V1.21 continúa sin monetización activa. El calendario y la organización edito
 ### Monetización
 
 V1.22 continúa sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls. Las herramientas de comunidad funcionan igual para contenido público y VIP gratuito.
+
+
+## V1.23.0 — Community Management 2.0
+
+- Gestión avanzada de encuestas y preguntas del creador.
+- Estados de participación:
+  - abierta,
+  - cerrada,
+  - archivada.
+- Cerrar mantiene la herramienta visible y conserva resultados, pero bloquea nuevas participaciones.
+- Reabrir permite volver a recibir votos o respuestas.
+- Archivar oculta la herramienta del post sin borrar votos ni respuestas.
+- Restaurar devuelve la herramienta como activa y cerrada para evitar reapertura accidental.
+- Las respuestas abiertas pueden marcarse como destacadas de forma privada en el Centro de creador.
+- Destacar una respuesta no la publica ni cambia la privacidad de V1.22.
+
+### Centro de creador
+- Filtro Activas / Archivadas / Todas.
+- Filtro Solo respuestas destacadas.
+- Vista separada de:
+  - respuestas,
+  - encuestas,
+  - preguntas.
+- Métricas de herramientas activas, archivadas, participaciones y respuestas destacadas.
+- Acciones directas cerrar / reabrir / archivar / restaurar.
+- Acciones destacar / quitar destacada en respuestas.
+
+### Privacidad
+- Herramientas archivadas no se adjuntan a posts públicos.
+- Herramientas cerradas siguen mostrando resultados agregados o la propia respuesta, pero no permiten nueva participación.
+- Identidades de votantes siguen sin exponerse.
+- Respuestas destacadas siguen siendo privadas para el creador.
+- El usuario conserva la posibilidad de retirar su propio voto o respuesta.
+
+### Base de datos
+- creator_polls.status / is_open / archived_at.
+- creator_questions.status / is_open / archived_at.
+- creator_question_responses.creator_starred / starred_at.
+- Constraints de estado e índices nuevos.
+- Bootstrap idempotente.
+
+### Monetización
+
+V1.23 continúa sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
