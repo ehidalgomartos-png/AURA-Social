@@ -862,6 +862,12 @@ function postAudienceWhere(viewerParam=null, alias='p') {
          AND audience_participant.user_id=${viewerParam}
          AND audience_participant.consent_status='approved'
     )
+    OR EXISTS(
+      SELECT 1 FROM post_collaborators audience_collaborator
+       WHERE audience_collaborator.post_id=${alias}.id
+         AND audience_collaborator.user_id=${viewerParam}
+         AND audience_collaborator.status='approved'
+    )
   )`;
 }
 
@@ -886,6 +892,124 @@ async function accessiblePublishedPost(postId, viewerId) {
   return result.rows[0] || null;
 }
 
+let collaborativeV161Ready=null;
+async function ensureCollaborativeV161(){
+  if(!collaborativeV161Ready){
+    collaborativeV161Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_collaborators (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','revoked')),
+          requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          responded_at TIMESTAMPTZ,
+          PRIMARY KEY(post_id,user_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status ON post_collaborators(user_id,status,requested_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status ON post_collaborators(post_id,status,requested_at)');
+      await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
+      await db.query(`
+        ALTER TABLE notifications ADD CONSTRAINT notifications_type_check CHECK(type IN (
+          'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+          'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
+          'creator_poll_vote','creator_question_response','event_reminder',
+          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked','system'
+        ))
+      `);
+    })().catch(error=>{collaborativeV161Ready=null;throw error;});
+  }
+  return collaborativeV161Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureCollaborativeV161();next();}
+  catch(error){console.error('RedLibertad V1.61 collaboration bootstrap failed:',error);res.status(500).json({error:'collaboration_bootstrap_failed'});}
+});
+
+async function sendPendingCollaborationRequests(postId,actorId,client=db){
+  const result=await client.query(`
+    SELECT pc.user_id
+      FROM post_collaborators pc
+     WHERE pc.post_id=$1 AND pc.status='pending'
+       AND NOT EXISTS(
+         SELECT 1 FROM notifications n
+          WHERE n.user_id=pc.user_id AND n.actor_id=$2
+            AND n.type='collaboration_request' AND n.entity_type='post' AND n.entity_id=$1
+       )
+  `,[postId,actorId]);
+  for(const collaborator of result.rows){
+    await client.query(`
+      INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES($1,$2,'collaboration_request','post',$3,'Te invita a colaborar en una publicación.')
+    `,[collaborator.user_id,actorId,postId]);
+  }
+}
+
+async function resolveCollaborators(userId,usernames){
+  const names=[...new Set((usernames||[]).map(x=>String(x||'').trim().replace(/^@/,'').toLowerCase()).filter(Boolean))].slice(0,5);
+  if(!names.length)return {collaborators:[],missing:[],blocked:[]};
+  const found=await db.query(
+    `SELECT id,username,display_name,avatar_url,creator_verified
+       FROM users
+      WHERE lower(username)=ANY($1::text[]) AND status='active' AND id<>$2`,
+    [names,userId]
+  );
+  const foundNames=new Set(found.rows.map(x=>String(x.username).toLowerCase()));
+  const missing=names.filter(name=>!foundNames.has(name));
+  if(missing.length)return {collaborators:[],missing,blocked:[]};
+  const ids=found.rows.map(x=>Number(x.id));
+  const blockedResult=await db.query(`
+    SELECT CASE WHEN blocker_id=$1 THEN blocked_id ELSE blocker_id END AS user_id
+      FROM blocks
+     WHERE (blocker_id=$1 AND blocked_id=ANY($2::bigint[]))
+        OR (blocked_id=$1 AND blocker_id=ANY($2::bigint[]))
+  `,[userId,ids]);
+  const blockedIds=new Set(blockedResult.rows.map(x=>String(x.user_id)));
+  return {
+    collaborators:found.rows.filter(x=>!blockedIds.has(String(x.id))),
+    missing:[],
+    blocked:found.rows.filter(x=>blockedIds.has(String(x.id))).map(x=>x.username)
+  };
+}
+
+async function maybePublishAfterApprovals(postId){
+  const found=await db.query(`
+    SELECT p.*,u.creator_verified,u.age_verified
+      FROM posts p JOIN users u ON u.id=p.user_id
+     WHERE p.id=$1 LIMIT 1
+  `,[postId]);
+  if(!found.rowCount)return {published:false};
+  const post=found.rows[0];
+  if(post.moderation_status==='rejected'||['rejected','revoked'].includes(post.consent_state))return {published:false};
+  const [participantPending,participantCount,collaborationPending]=await Promise.all([
+    db.query("SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'",[postId]),
+    db.query('SELECT count(*)::int n FROM post_participants WHERE post_id=$1',[postId]),
+    db.query("SELECT count(*)::int n FROM post_collaborators WHERE post_id=$1 AND status='pending'",[postId])
+  ]);
+  if(Number(participantPending.rows[0]?.n||0)>0||Number(collaborationPending.rows[0]?.n||0)>0)return {published:false};
+  const scheduledDue=post.creator_state==='scheduled'&&post.scheduled_for&&new Date(post.scheduled_for).getTime()<=Date.now();
+  const eligibleAudience=post.audience!=='vip'||post.creator_verified===true;
+  const eligibleContent=post.content_level!=='nudity'||(post.creator_verified===true&&post.age_verified===true);
+  const shouldPublish=(post.creator_state==='live'||scheduledDue)&&eligibleAudience&&eligibleContent;
+  if(!shouldPublish)return {published:false};
+  const hasParticipants=Number(participantCount.rows[0]?.n||0)>0;
+  const updated=await db.query(`
+    UPDATE posts
+       SET moderation_status='published',
+           consent_state=CASE WHEN $2::boolean THEN 'approved' ELSE consent_state END,
+           creator_state=CASE WHEN $3::boolean THEN 'live' ELSE creator_state END,
+           created_at=CASE WHEN moderation_status<>'published' THEN now() ELSE created_at END,
+           updated_at=now()
+     WHERE id=$1 AND moderation_status<>'published'
+     RETURNING id,user_id,caption,audience
+  `,[postId,hasParticipants,scheduledDue]);
+  if(updated.rowCount){
+    try{await notifyMentions({actorId:updated.rows[0].user_id,text:updated.rows[0].caption,entityType:'post',entityId:updated.rows[0].id,audience:updated.rows[0].audience});}
+    catch(error){console.warn('RedLibertad V1.61 collaboration publish mention failed:',error?.message||error);}
+  }
+  return {published:updated.rowCount>0};
+}
+
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
   mediaUrl: z.string().max(4096).optional().default(''),
@@ -904,7 +1028,8 @@ const createSchema = z.object({
   communityType: z.enum(['none','poll','question']).optional().default('none'),
   communityPrompt: z.string().trim().max(300).optional().default(''),
   pollOptions: z.array(z.string().trim().min(1).max(120)).max(4).optional().default([]),
-  participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
+  participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([]),
+  collaboratorUsernames: z.array(z.string().min(1).max(30)).max(5).optional().default([])
 });
 
 function parseScheduledFor(value){
