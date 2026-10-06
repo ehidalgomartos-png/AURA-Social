@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.45.0",
+  "version": "1.46.0",
   "private": true,
-  "description": "RedLibertad V1.45 PWA & Performance 2.0 - caché segura del shell, navegación offline y renderizado diferido sin monetización.",
+  "description": "RedLibertad V1.46 Chat Presence & Read Receipts - presencia privada, escribiendo y visto sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
