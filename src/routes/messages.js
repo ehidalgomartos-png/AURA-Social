@@ -195,7 +195,7 @@ router.get('/conversations', async (req, res) => {
     LEFT JOIN LATERAL (
       SELECT
         CASE
-          WHEN shared_post_id IS NOT NULL AND btrim(body)='' THEN 'Publicación compartida'
+          WHEN COALESCE(shared_post_ref_id,shared_post_id) IS NOT NULL AND btrim(body)='' THEN 'Publicación compartida'
           ELSE body
         END AS body,
         content_level,created_at,sender_id
