@@ -24,6 +24,7 @@ const liveRoutes = require('./src/routes/live');
 const pushRoutes = require('./src/routes/push');
 const communityRoutes = require('./src/routes/communities');
 const eventRoutes = require('./src/routes/events');
+const shareRoutes = require('./src/routes/shares');
 const { startPushWorker, isPushConfigured } = require('./src/services/push');
 
 const app = express();
@@ -73,6 +74,7 @@ app.use('/api/live', liveRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/shares', shareRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
