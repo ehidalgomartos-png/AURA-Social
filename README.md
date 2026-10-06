@@ -1,4 +1,4 @@
-# RedLibertad V1.54.0 — Community Conversations
+# RedLibertad V1.55.0 — Connection Context & Starters
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1203,5 +1203,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Bloqueos y silencios respetados en todas las sugerencias.
 - No se exponen cuerpos de mensajes en el panel de continuidad.
 - Datos derivados de relaciones y actividad existentes; no requiere nuevas tablas.
+- Mobile-first.
+- Sin monetización activa.
+
+
+## V1.55.0 — Connection Context & Starters
+
+- Contexto privado por conexión desde el Centro de conexiones.
+- Intereses compartidos visibles para el usuario.
+- Conexiones mutuas basadas en seguimiento recíproco.
+- Misma zona solo cuando ambos perfiles muestran la misma ubicación.
+- Actividad reciente limitada a publicaciones públicas, normales y publicadas.
+- Ideas de conversación derivadas de contexto visible.
+- Las ideas solo preparan un borrador en el chat; nunca se envían automáticamente.
+- El usuario puede editar o borrar el borrador antes de enviar.
+- Bloqueados y silenciados quedan fuera del contexto.
+- Sin nuevas tablas ni perfilado adicional.
 - Mobile-first.
 - Sin monetización activa.

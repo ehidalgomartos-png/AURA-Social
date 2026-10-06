@@ -4850,3 +4850,108 @@ select:focus-visible{
   .community-conversation-card{grid-template-columns:42px minmax(0,1fr)}
   .community-conversation-open{grid-column:2}
 }
+
+
+/* =========================================================
+   RedLibertad V1.55 — Connection Context & Starters
+   ========================================================= */
+.connection-context-modal-card{
+  width:min(680px,100%);
+  max-height:92dvh;
+  overflow:auto;
+}
+.connection-context-content{display:grid;gap:12px;margin-top:14px}
+.connection-context-section{
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--soft);
+}
+.connection-context-section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:9px;
+}
+.connection-context-section-head b{color:var(--navy);font-size:11px}
+.connection-context-section-head small{color:var(--muted);font-size:8px;text-align:right}
+.connection-context-pills{display:flex;gap:6px;flex-wrap:wrap}
+.connection-context-pills span{
+  display:inline-flex;
+  min-height:27px;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:var(--paper);
+  border:1px solid var(--line);
+  color:var(--navy);
+  font-size:9px;
+  font-weight:800;
+}
+.connection-context-location{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:var(--paper);
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+}
+.connection-context-people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.connection-context-person{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border-radius:11px;
+  background:var(--paper);
+  border:1px solid var(--line);
+}
+.connection-context-person-avatar{
+  width:34px;height:34px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:var(--navy-soft);
+}
+.connection-context-person-avatar img{width:100%;height:100%;object-fit:cover}
+.connection-context-person b,.connection-context-person small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.connection-context-person b{font-size:9px;color:var(--ink)}
+.connection-context-person small{margin-top:2px;font-size:8px;color:var(--muted)}
+.connection-context-posts,.connection-starter-list{display:grid;gap:7px}
+.connection-context-post,.connection-starter{
+  width:100%;
+  display:grid;
+  gap:4px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--paper);
+  color:inherit;
+  text-align:left;
+}
+.connection-context-post span,.connection-starter span{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:800;
+}
+.connection-context-post b,.connection-starter b{
+  color:var(--ink);
+  font-size:10px;
+  line-height:1.4;
+}
+.connection-starter{
+  border-color:rgba(43,183,169,.28);
+  background:linear-gradient(145deg,var(--paper),var(--teal-soft));
+}
+.connection-starter:hover{border-color:var(--teal)}
+@media(max-width:760px){
+  .connection-context-modal-card{
+    max-height:calc(var(--visual-vh) - 8px);
+    border-radius:24px 24px 0 0;
+  }
+  .connection-context-section-head{display:grid;grid-template-columns:1fr}
+  .connection-context-section-head small{text-align:left}
+  .connection-context-people{grid-template-columns:1fr}
+  .connection-center-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .connection-center-actions button{padding-left:7px;padding-right:7px}
+}
