@@ -1,4 +1,4 @@
-# RedLibertad V1.24.0 — Community Insights & Creator Notifications
+# RedLibertad V1.25.0 — Community Activity Center
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -626,3 +626,44 @@ V1.23 continúa sin monetización activa: sin pagos, suscripciones, precios, che
 ### Monetización
 
 V1.24 continúa sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
+
+
+## V1.25.0 — Community Activity Center
+
+- Nuevo Centro de actividad dentro del Centro de creador.
+- Actividad basada en los avisos de primera participación de V1.24, sin duplicar votos ni respuestas.
+- Filtros:
+  - Pendiente.
+  - Revisado.
+  - Todo.
+- Agrupación por encuesta o pregunta para evitar saturación.
+- Cada grupo muestra:
+  - Público / VIP.
+  - Abierta / cerrada / archivada.
+  - participaciones totales.
+  - participaciones pendientes.
+  - hasta 6 participantes recientes.
+- Acciones:
+  - marcar una participación como revisada,
+  - marcar un grupo completo,
+  - marcar toda la actividad pendiente.
+- Estado Revisado es privado del creador y no altera el voto, respuesta ni notificación original.
+- Si una persona retiró su voto o respuesta, el Centro de actividad muestra el estado retirado.
+- Los avisos de comunidad llevan directamente a este Centro de actividad.
+
+### Datos
+- Nueva tabla creator_community_notification_reviews.
+- Referencia a notifications con ON DELETE CASCADE.
+- Un único estado de revisión por notificación.
+- Índice por creador y fecha de revisión.
+- Bootstrap idempotente.
+
+### Privacidad
+- El Centro de actividad solo está disponible para el creador verificado propietario.
+- No cambia la privacidad de votos o respuestas.
+- No expone identidades de votantes al público.
+- No añade tracking externo.
+
+### Monetización
+
+V1.25 continúa completamente sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
