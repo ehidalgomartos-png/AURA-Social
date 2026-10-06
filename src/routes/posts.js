@@ -967,6 +967,7 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
      WHERE p.id=$2
        AND p.moderation_status='published'
        AND u.status='active'
+       AND ${postAudienceWhere('$1','p')}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
