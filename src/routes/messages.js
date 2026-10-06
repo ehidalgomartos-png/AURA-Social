@@ -336,6 +336,8 @@ router.get('/conversations', async (req, res) => {
       SELECT
         CASE
           WHEN COALESCE(shared_post_ref_id,shared_post_id) IS NOT NULL AND btrim(body)='' THEN 'Publicación compartida'
+          WHEN COALESCE(shared_story_ref_id,shared_story_id) IS NOT NULL AND btrim(body)='' THEN 'Story compartida'
+          WHEN COALESCE(shared_profile_ref_id,shared_profile_id) IS NOT NULL AND btrim(body)='' THEN 'Perfil compartido'
           ELSE body
         END AS body,
         content_level,created_at,sender_id
