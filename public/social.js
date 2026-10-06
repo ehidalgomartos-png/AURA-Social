@@ -280,6 +280,15 @@ function participantsHTML(p) {
   return `<div class="post-participants"><span class="participants-label">Con ${visible.join(', ')}${extra}</span>${taggedMe ? '<span class="tagged-me">✓ Estás etiquetado</span>' : ''}</div>`;
 }
 
+function collaboratorsHTML(p) {
+  const collaborators=Array.isArray(p.collaborators)?p.collaborators:[];
+  if(!collaborators.length)return '';
+  const visible=collaborators.slice(0,3).map(x=>profileLink(x.username,`@${esc(x.username)}`,'collaborator-link'));
+  const extra=collaborators.length>3?` <span class="participants-extra">y ${collaborators.length-3} más</span>`:'';
+  const collaboratingMe=me&&collaborators.some(x=>String(x.id)===String(me.id));
+  return `<div class="post-collaborators"><span class="collaborators-label">🤝 Colaboración con ${visible.join(', ')}${extra}</span>${collaboratingMe?'<span class="collaborating-me">✓ Colaboras</span>':''}</div>`;
+}
+
 
 function inlineCommentsHTML(p) {
   const comments = Array.isArray(p.latest_comments) ? p.latest_comments : [];
@@ -383,6 +392,7 @@ function postHTML(p, options = {}) {
   const media = mediaHTML(p);
   const textOnly = !media;
   const ownPost = !!me && String(me.id) === String(p.user_id);
+  const collaboratingMe=!!me && Array.isArray(p.collaborators) && p.collaborators.some(x=>String(x.id)===String(me.id));
   const canManage = !!me && (ownPost || me.is_admin === true);
   const vipOnly = p.audience === 'vip';
   const privateAudience = p.audience && p.audience !== 'public';
@@ -410,6 +420,7 @@ function postHTML(p, options = {}) {
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
         <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span>${p.post_kind==='reel' && p.view_count!=null ? ` · <span class="reel-view-count">▶ ${Number(p.view_count||0)} vistas</span>` : ''}</small>
         ${audienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(p.audience)}">${esc(audienceBadge)}</span>` : ''}
+        ${collaboratorsHTML(p)}
         ${participantsHTML(p)}
       </div>
     </div>
@@ -419,7 +430,7 @@ function postHTML(p, options = {}) {
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
-      <button class="${reposted ? 'reposted' : ''}" ${ownPost || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
+      <button class="${reposted ? 'reposted' : ''}" ${ownPost || collaboratingMe || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : collaboratingMe ? 'Ya apareces como colaborador en esta publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
       <button class="share-action" ${privateAudience ? 'disabled title="El contenido de audiencia privada no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${privateAudience ? 'Privado' : 'Compartir'}</span></button>
       ${options.discovery && !ownPost ? `<button class="discovery-hide-action" data-discovery-hide-post="${p.id}" title="No me interesa" aria-label="No me interesa">−</button>` : ''}
