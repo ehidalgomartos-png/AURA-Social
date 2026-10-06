@@ -325,6 +325,20 @@ CREATE INDEX IF NOT EXISTS idx_stories_audience_active
   ON stories(audience,expires_at DESC,created_at DESC);
 
 
+-- RedLibertad V1.20: borradores y programación de publicaciones
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS creator_state TEXT NOT NULL DEFAULT 'live';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMPTZ;
+
+DO $ BEGIN
+  ALTER TABLE posts
+    ADD CONSTRAINT posts_creator_state_check
+    CHECK(creator_state IN ('live','draft','scheduled'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+CREATE INDEX IF NOT EXISTS idx_posts_creator_state_schedule
+  ON posts(creator_state,scheduled_for,user_id);
+
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
