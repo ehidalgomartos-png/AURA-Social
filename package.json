@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.67.0",
+  "version": "1.68.0",
   "private": true,
-  "description": "RedLibertad V1.67 Accessibility & UX Quality 2.0 - navegación por teclado, foco accesible, diálogos semánticos y mejoras para lectores de pantalla, sin monetización.",
+  "description": "RedLibertad V1.68 Performance & Reliability 2.0 - peticiones resilientes, menos trabajo duplicado, carga multimedia eficiente y servidor preparado para despliegues estables, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
