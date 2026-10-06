@@ -940,6 +940,7 @@ async function sendPendingCollaborationRequests(postId,actorId,client=db){
          SELECT 1 FROM notifications n
           WHERE n.user_id=pc.user_id AND n.actor_id=$2
             AND n.type='collaboration_request' AND n.entity_type='post' AND n.entity_id=$1
+            AND n.created_at>=pc.requested_at
        )
   `,[postId,actorId]);
   for(const collaborator of result.rows){
