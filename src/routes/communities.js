@@ -71,6 +71,9 @@ async function ensureCommunitiesV158(){
           CHECK(btrim(body)<>'' OR media_url IS NOT NULL)
         )
       `);
+      await db.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS media_provider TEXT");
+      await db.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS external_id TEXT");
+      await db.query("ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS playback_url TEXT");
       await db.query('CREATE INDEX IF NOT EXISTS idx_community_posts_community_created ON community_posts(community_id,created_at DESC)');
       await db.query(`
         CREATE TABLE IF NOT EXISTS community_comments (
@@ -146,7 +149,7 @@ async function communityState(communityId,userId){
   row.is_member=!!row.viewer_role;
   row.can_manage=['owner','admin'].includes(row.viewer_role);
   row.can_manage_roles=row.viewer_role==='owner';
-  row.can_view=row.privacy==='public' || row.is_member;
+  row.can_view_content=row.privacy==='public' || row.is_member;
   return row;
 }
 
@@ -211,10 +214,6 @@ router.get('/',async(req,res)=>{
     LEFT JOIN community_members member ON member.community_id=c.id AND member.user_id=$1
     LEFT JOIN community_join_requests request ON request.community_id=c.id AND request.user_id=$1
     WHERE owner.status='active'
-      AND (
-        c.privacy='public'
-        OR member.user_id IS NOT NULL
-      )
       AND (
         $2='all'
         OR ($2='mine' AND c.owner_id=$1)
@@ -293,7 +292,7 @@ router.post('/',async(req,res)=>{
 
 router.get('/:id',async(req,res)=>{
   const state=await communityState(req.params.id,req.user.id);
-  if(!state || !state.can_view)return res.status(404).json({error:'community_not_found'});
+  if(!state)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(404).json({error:'community_not_found'});
 
   const [rules,members]=await Promise.all([
@@ -330,7 +329,8 @@ router.get('/:id',async(req,res)=>{
       conversation_id:state.is_member ? state.conversation_id : null
     },
     rules:rules.rows,
-    members:members.rows
+    members:state.can_view_content ? members.rows : [],
+    can_view_content:state.can_view_content
   });
 });
 
@@ -581,11 +581,11 @@ router.delete('/:id/members/:userId',async(req,res)=>{
 
 router.get('/:id/posts',async(req,res)=>{
   const state=await communityState(req.params.id,req.user.id);
-  if(!state || !state.can_view)return res.status(404).json({error:'community_not_found'});
+  if(!state || !state.can_view_content)return res.status(404).json({error:'community_not_found'});
   const viewer=await viewerRow(req.user.id);
   const result=await db.query(`
     SELECT
-      cp.id,cp.community_id,cp.user_id,cp.body,cp.media_url,cp.media_type,cp.content_level,cp.created_at,cp.updated_at,
+      cp.id,cp.community_id,cp.user_id,cp.body,cp.media_url,cp.media_type,cp.media_provider,cp.external_id,cp.playback_url,cp.content_level,cp.created_at,cp.updated_at,
       u.username,u.display_name,u.avatar_url,u.creator_verified,
       (SELECT count(*)::int FROM community_comments cc WHERE cc.community_post_id=cp.id) AS comment_count
     FROM community_posts cp
@@ -642,6 +642,7 @@ router.get('/:id/posts',async(req,res)=>{
     return {
       ...post,
       media_url:gate.allowed ? post.media_url : null,
+      playback_url:gate.allowed ? post.playback_url : null,
       gated:!gate.allowed,
       gate_reason:gate.reason||null,
       can_delete:String(post.user_id)===String(req.user.id) || state.can_manage,
@@ -658,6 +659,9 @@ const communityPostSchema=z.object({
   body:z.string().max(2200).optional().default(''),
   mediaUrl:z.string().trim().max(4096).optional().default(''),
   mediaType:z.enum(['image','video']).optional().default('image'),
+  mediaProvider:z.string().trim().max(40).optional().default('local'),
+  externalId:z.string().trim().max(255).optional().nullable(),
+  playbackUrl:z.string().trim().max(4096).optional().nullable(),
   contentLevel:z.enum(['normal','sensitive','nudity']).default('normal')
 });
 
@@ -674,12 +678,15 @@ router.post('/:id/posts',async(req,res)=>{
     return res.status(403).json({error:'verified_creator_required_for_nudity'});
   }
   const result=await db.query(`
-    INSERT INTO community_posts(community_id,user_id,body,media_url,media_type,content_level)
-    VALUES ($1,$2,$3,$4,$5,$6)
+    INSERT INTO community_posts(
+      community_id,user_id,body,media_url,media_type,media_provider,external_id,playback_url,content_level
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     RETURNING *
   `,[
     state.id,req.user.id,String(data.body||'').trim(),data.mediaUrl||null,
-    data.mediaUrl ? data.mediaType : null,data.contentLevel
+    data.mediaUrl ? data.mediaType : null,data.mediaUrl ? data.mediaProvider : null,
+    data.mediaUrl ? data.externalId : null,data.mediaUrl ? data.playbackUrl : null,data.contentLevel
   ]);
   await db.query('UPDATE communities SET updated_at=now() WHERE id=$1',[state.id]);
   res.status(201).json({ok:true,post:result.rows[0]});
@@ -754,6 +761,30 @@ router.delete('/:id/posts/:postId/comments/:commentId',async(req,res)=>{
   }catch(error){
     await client.query('ROLLBACK');
     res.status(500).json({error:'comment_remove_failed'});
+  }finally{client.release();}
+});
+
+router.delete('/:id',async(req,res)=>{
+  const state=await communityState(req.params.id,req.user.id);
+  if(!state)return res.status(404).json({error:'community_not_found'});
+  if(state.viewer_role!=='owner')return res.status(403).json({error:'community_owner_required'});
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const conversationId=state.conversation_id;
+    await client.query('DELETE FROM communities WHERE id=$1',[state.id]);
+    if(conversationId){
+      await client.query(
+        "DELETE FROM conversations WHERE id=$1 AND conversation_type='group' AND created_by=$2",
+        [conversationId,req.user.id]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ok:true});
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad community delete failed:',error);
+    res.status(500).json({error:'community_delete_failed'});
   }finally{client.release();}
 });
 
