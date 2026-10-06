@@ -494,6 +494,10 @@ async function publishDueScheduledPosts(){
          AND p.scheduled_for<=now()
          AND p.moderation_status<>'rejected'
          AND p.consent_state IN ('none','approved')
+         AND NOT EXISTS(
+           SELECT 1 FROM post_collaborators pending_collab
+            WHERE pending_collab.post_id=p.id AND pending_collab.status='pending'
+         )
          AND u.id=p.user_id
          AND u.status='active'
          AND (p.audience<>'vip' OR u.creator_verified=true)
@@ -1378,6 +1382,7 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
     }
 
     await sendPendingConsentRequests(post.id,req.user.id,client);
+    await sendPendingCollaborationRequests(post.id,req.user.id,client);
     const pending=await client.query(
       "SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'",
       [post.id]
@@ -1386,7 +1391,11 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
       'SELECT count(*)::int n FROM post_participants WHERE post_id=$1',
       [post.id]
     );
-    const waiting=Number(pending.rows[0]?.n || 0)>0;
+    const collaborationPending=await client.query(
+      "SELECT count(*)::int n FROM post_collaborators WHERE post_id=$1 AND status='pending'",
+      [post.id]
+    );
+    const waiting=Number(pending.rows[0]?.n || 0)>0 || Number(collaborationPending.rows[0]?.n || 0)>0;
     const hasParticipants=Number(participantCount.rows[0]?.n || 0)>0;
 
     const updated=await client.query(`
