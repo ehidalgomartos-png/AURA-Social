@@ -1512,6 +1512,11 @@ function creatorPostHTML(post) {
         <small>${compactTimeAgo(post.created_at)} · ${interactions} interacciones · ${Number(post.save_count || 0)} guardados</small>
       </span>
     </button>
+    <div class="creator-published-editorial">
+      <input type="date" data-editorial-date="${post.id}" value="${esc(post.editorial_date || '')}" title="Fecha editorial privada">
+      <input type="text" maxlength="40" data-editorial-label="${post.id}" value="${esc(post.editorial_label || '')}" placeholder="Etiqueta interna">
+      <button type="button" class="tiny-action" data-editorial-save="${post.id}">Guardar organización</button>
+    </div>
     <button type="button" class="${post.featured ? 'secondary' : 'primary'} creator-feature-action" data-creator-feature="${post.id}" data-featured="${post.featured ? '1' : '0'}">
       ${post.featured ? 'Quitar destacado' : 'Destacar'}
     </button>
