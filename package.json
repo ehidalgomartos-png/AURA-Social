@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.56.0",
+  "version": "1.57.0",
   "private": true,
-  "description": "RedLibertad V1.56 Circle Sharing & Private Audiences - publicaciones y Stories para conexiones o círculos privados, sin monetización.",
+  "description": "RedLibertad V1.57 Close Connections - círculo privado Cercanas, feed dedicado y audiencia rápida, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
