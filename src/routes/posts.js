@@ -1123,6 +1123,225 @@ router.get('/creator/calendar',requireAuth,async(req,res)=>{
   res.json({posts:result.rows,labels,from:from.toISOString(),to:to.toISOString(),dateFrom,dateTo});
 });
 
+const creatorPollVoteSchema=z.object({
+  optionId:z.union([z.string().regex(/^\d+$/),z.number().int().positive()]).transform(value=>String(value))
+});
+
+router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
+  const parsed=creatorPollVoteSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_poll_vote'});
+
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
+
+  const poll=await db.query(`
+    SELECT cp.id,cp.allow_change
+      FROM creator_polls cp
+     WHERE cp.post_id=$1
+     LIMIT 1
+  `,[req.params.id]);
+  if(!poll.rowCount)return res.status(404).json({error:'poll_not_found'});
+
+  const option=await db.query(`
+    SELECT id
+      FROM creator_poll_options
+     WHERE id=$1
+       AND poll_id=$2
+     LIMIT 1
+  `,[parsed.data.optionId,poll.rows[0].id]);
+  if(!option.rowCount)return res.status(400).json({error:'invalid_poll_option'});
+
+  const existing=await db.query(
+    'SELECT option_id FROM creator_poll_votes WHERE poll_id=$1 AND user_id=$2 LIMIT 1',
+    [poll.rows[0].id,req.user.id]
+  );
+  if(existing.rowCount && !poll.rows[0].allow_change && String(existing.rows[0].option_id)!==String(parsed.data.optionId)){
+    return res.status(409).json({error:'poll_vote_locked'});
+  }
+
+  await db.query(`
+    INSERT INTO creator_poll_votes (poll_id,user_id,option_id)
+    VALUES ($1,$2,$3)
+    ON CONFLICT(poll_id,user_id) DO UPDATE
+      SET option_id=excluded.option_id,
+          updated_at=now()
+  `,[poll.rows[0].id,req.user.id,parsed.data.optionId]);
+
+  const attached=await attachCommunityMeta([{id:req.params.id}],req.user.id);
+  res.json({ok:true,poll:attached[0]?.community_poll || null});
+});
+
+router.delete('/:id/poll-vote',requireAuth,async(req,res)=>{
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
+
+  const poll=await db.query(
+    'SELECT id FROM creator_polls WHERE post_id=$1 LIMIT 1',
+    [req.params.id]
+  );
+  if(!poll.rowCount)return res.status(404).json({error:'poll_not_found'});
+
+  await db.query(
+    'DELETE FROM creator_poll_votes WHERE poll_id=$1 AND user_id=$2',
+    [poll.rows[0].id,req.user.id]
+  );
+
+  const attached=await attachCommunityMeta([{id:req.params.id}],req.user.id);
+  res.json({ok:true,poll:attached[0]?.community_poll || null});
+});
+
+const creatorQuestionResponseSchema=z.object({
+  body:z.string().trim().min(1).max(1000)
+});
+
+router.post('/:id/question-response',requireAuth,async(req,res)=>{
+  const parsed=creatorQuestionResponseSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_question_response'});
+
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
+
+  const question=await db.query(
+    'SELECT id FROM creator_questions WHERE post_id=$1 LIMIT 1',
+    [req.params.id]
+  );
+  if(!question.rowCount)return res.status(404).json({error:'question_not_found'});
+
+  const response=await db.query(`
+    INSERT INTO creator_question_responses (question_id,user_id,body)
+    VALUES ($1,$2,$3)
+    ON CONFLICT(question_id,user_id) DO UPDATE
+      SET body=excluded.body,
+          updated_at=now()
+    RETURNING id,question_id,user_id,body,created_at,updated_at
+  `,[question.rows[0].id,req.user.id,parsed.data.body]);
+
+  const count=await db.query(
+    'SELECT count(*)::int n FROM creator_question_responses WHERE question_id=$1',
+    [question.rows[0].id]
+  );
+
+  res.json({
+    ok:true,
+    response:response.rows[0],
+    responseCount:Number(count.rows[0]?.n || 0)
+  });
+});
+
+router.delete('/:id/question-response',requireAuth,async(req,res)=>{
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
+
+  const question=await db.query(
+    'SELECT id FROM creator_questions WHERE post_id=$1 LIMIT 1',
+    [req.params.id]
+  );
+  if(!question.rowCount)return res.status(404).json({error:'question_not_found'});
+
+  await db.query(
+    'DELETE FROM creator_question_responses WHERE question_id=$1 AND user_id=$2',
+    [question.rows[0].id,req.user.id]
+  );
+
+  const count=await db.query(
+    'SELECT count(*)::int n FROM creator_question_responses WHERE question_id=$1',
+    [question.rows[0].id]
+  );
+
+  res.json({ok:true,responseCount:Number(count.rows[0]?.n || 0)});
+});
+
+router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+
+  const [summary,responses,polls]=await Promise.all([
+    db.query(`
+      SELECT
+        (SELECT count(*)::int
+           FROM creator_polls cp
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1) poll_count,
+        (SELECT count(*)::int
+           FROM creator_poll_votes v
+           JOIN creator_polls cp ON cp.id=v.poll_id
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1) vote_count,
+        (SELECT count(*)::int
+           FROM creator_questions cq
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1) question_count,
+        (SELECT count(*)::int
+           FROM creator_question_responses qr
+           JOIN creator_questions cq ON cq.id=qr.question_id
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1) response_count
+    `,[req.user.id]),
+    db.query(`
+      SELECT
+        qr.id,qr.body,qr.created_at,qr.updated_at,
+        cq.id question_id,cq.prompt,
+        p.id post_id,p.caption,p.audience,
+        u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM creator_question_responses qr
+      JOIN creator_questions cq ON cq.id=qr.question_id
+      JOIN posts p ON p.id=cq.post_id
+      JOIN users u ON u.id=qr.user_id
+      WHERE p.user_id=$1
+        AND u.status='active'
+      ORDER BY qr.updated_at DESC
+      LIMIT 100
+    `,[req.user.id]),
+    db.query(`
+      SELECT
+        cp.id poll_id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,
+        o.id option_id,o.position,o.label,
+        count(v.user_id)::int vote_count
+      FROM creator_polls cp
+      JOIN posts p ON p.id=cp.post_id
+      JOIN creator_poll_options o ON o.poll_id=cp.id
+      LEFT JOIN creator_poll_votes v ON v.option_id=o.id
+      WHERE p.user_id=$1
+      GROUP BY cp.id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,o.id,o.position,o.label
+      ORDER BY p.created_at DESC,o.position
+      LIMIT 160
+    `,[req.user.id])
+  ]);
+
+  const pollMap=new Map();
+  for(const row of polls.rows){
+    const key=String(row.poll_id);
+    if(!pollMap.has(key)){
+      pollMap.set(key,{
+        id:row.poll_id,
+        post_id:row.post_id,
+        question:row.question,
+        caption:row.caption,
+        audience:row.audience,
+        created_at:row.created_at,
+        total_votes:0,
+        options:[]
+      });
+    }
+    const item=pollMap.get(key);
+    const count=Number(row.vote_count || 0);
+    item.total_votes+=count;
+    item.options.push({
+      id:row.option_id,
+      position:row.position,
+      label:row.label,
+      vote_count:count
+    });
+  }
+
+  res.json({
+    summary:summary.rows[0] || {poll_count:0,vote_count:0,question_count:0,response_count:0},
+    responses:responses.rows,
+    polls:[...pollMap.values()].slice(0,20)
+  });
+});
+
 async function viewerFrom(req) {
   if (!req.user) return null;
   const vr = await db.query(
