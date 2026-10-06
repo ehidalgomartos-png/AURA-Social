@@ -1,4 +1,4 @@
-# RedLibertad V1.67.0 — Accessibility & UX Quality 2.0
+# RedLibertad V1.68.0 — Performance & Reliability 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1429,5 +1429,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Objetivos táctiles reforzados en dispositivos táctiles.
 - Soporte para `prefers-reduced-motion` y Forced Colors.
 - Formularios de registro/login con labels accesibles y autocomplete.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.68.0 — Performance & Reliability 2.0
+
+- Timeout de 15 segundos para peticiones API del cliente.
+- Un reintento automático y corto para GET ante fallos de red y respuestas 502/503/504.
+- Deduplicación de peticiones GET simultáneas a la misma URL.
+- Protección del feed contra respuestas fuera de orden al cambiar rápidamente de pestaña.
+- Conservación del feed anterior si una actualización falla.
+- Avatares dinámicos con carga diferida y decodificación asíncrona.
+- Service Worker con timeout de red antes de usar el fallback cacheado.
+- Pool PostgreSQL endurecido con máximo de conexiones, timeout de conexión e idle timeout configurables.
+- Nuevo endpoint `/api/ready` que verifica disponibilidad real de PostgreSQL.
+- Registro de peticiones API lentas a partir de 1,5 segundos, sin guardar cuerpos ni datos privados.
+- Apagado limpio del servidor HTTP y del pool PostgreSQL ante SIGTERM/SIGINT.
+- Timeouts HTTP explícitos para conexiones persistentes.
+- Variables opcionales: `DB_POOL_MAX`, `DB_IDLE_TIMEOUT_MS` y `DB_CONNECT_TIMEOUT_MS`.
 - Mobile-first.
 - Sin monetización.
