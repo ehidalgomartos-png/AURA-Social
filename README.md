@@ -1,4 +1,4 @@
-# RedLibertad V1.41.0 — Comments 2.0
+# RedLibertad V1.42.0 — Live Activity 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1007,4 +1007,19 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - El borrado de un comentario raíz elimina también sus respuestas mediante integridad referencial.
 - Las previsualizaciones del feed muestran comentarios raíz para evitar respuestas sin contexto.
 - Bootstrap idempotente.
+- Sin monetización activa.
+
+
+## V1.42.0 — Live Activity 2.0
+
+- Canal privado Server-Sent Events autenticado mediante la sesión existente.
+- Actualiza en vivo el contador de mensajes sin leer.
+- Actualiza en vivo el contador de notificaciones.
+- Si Mensajes está abierto, refresca la lista automáticamente ante actividad nueva.
+- Si el chat activo está abierto, actualiza únicamente el hilo para no destruir el texto o archivo que el usuario esté preparando.
+- Si Notificaciones está abierta, actualiza la lista automáticamente.
+- El stream solo envía contadores e identificadores privados de cambio; no transmite cuerpos de mensajes ni contenido sensible.
+- Heartbeat y reconexión automática del navegador.
+- Funciona entre varias instancias porque la señal se calcula desde PostgreSQL, sin memoria compartida.
+- Sin dependencias nuevas.
 - Sin monetización activa.
