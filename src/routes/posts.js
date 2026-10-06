@@ -512,6 +512,9 @@ router.post('/', requireAuth, async (req, res) => {
   if (data.publishMode !== 'now' && !user.creator_verified) {
     return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
   }
+  if ((data.editorialDate || String(data.editorialLabel || '').trim()) && !user.creator_verified) {
+    return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
+  }
 
   let scheduledFor=null;
   if(data.publishMode==='scheduled'){
