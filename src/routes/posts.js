@@ -1964,20 +1964,22 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
 
   const summary=await db.query(`
     SELECT
-      count(*)::int total,
-      count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at<now())::int overdue,
+      count(*) FILTER (WHERE follow_up=true)::int total,
+      count(*) FILTER (WHERE follow_up=true AND follow_up_at IS NOT NULL AND follow_up_at<now())::int overdue,
       count(*) FILTER (
-        WHERE follow_up_at IS NOT NULL
+        WHERE follow_up=true
+          AND follow_up_at IS NOT NULL
           AND follow_up_at>=now()
           AND follow_up_at<$2::timestamptz
       )::int today,
       count(*) FILTER (
-        WHERE follow_up_at IS NOT NULL
+        WHERE follow_up=true
+          AND follow_up_at IS NOT NULL
           AND follow_up_at>=$2::timestamptz
           AND follow_up_at<now()+interval '7 days'
       )::int week,
-      count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
-      count(*) FILTER (WHERE follow_up_at IS NULL)::int undated,
+      count(*) FILTER (WHERE follow_up=true AND follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
+      count(*) FILTER (WHERE follow_up=true AND follow_up_at IS NULL)::int undated,
       count(*) FILTER (WHERE priority='high' AND follow_up=true)::int high_priority,
       count(*) FILTER (WHERE completed_at IS NOT NULL AND follow_up=false)::int completed_total,
       count(*) FILTER (WHERE completed_at IS NOT NULL AND follow_up=false AND completed_at>=now()-interval '30 days')::int completed_30d
