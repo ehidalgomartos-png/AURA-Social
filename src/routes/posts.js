@@ -1194,9 +1194,6 @@ router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
 });
 
 router.delete('/:id/poll-vote',requireAuth,async(req,res)=>{
-  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
-  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
-
   const poll=await db.query(
     'SELECT id FROM creator_polls WHERE post_id=$1 LIMIT 1',
     [req.params.id]
@@ -1208,6 +1205,8 @@ router.delete('/:id/poll-vote',requireAuth,async(req,res)=>{
     [poll.rows[0].id,req.user.id]
   );
 
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.json({ok:true,poll:null});
   const attached=await attachCommunityMeta([{id:req.params.id}],req.user.id);
   res.json({ok:true,poll:attached[0]?.community_poll || null});
 });
@@ -1251,9 +1250,6 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
 });
 
 router.delete('/:id/question-response',requireAuth,async(req,res)=>{
-  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
-  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
-
   const question=await db.query(
     'SELECT id FROM creator_questions WHERE post_id=$1 LIMIT 1',
     [req.params.id]
@@ -1264,6 +1260,9 @@ router.delete('/:id/question-response',requireAuth,async(req,res)=>{
     'DELETE FROM creator_question_responses WHERE question_id=$1 AND user_id=$2',
     [question.rows[0].id,req.user.id]
   );
+
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.json({ok:true,responseCount:null});
 
   const count=await db.query(
     'SELECT count(*)::int n FROM creator_question_responses WHERE question_id=$1',
