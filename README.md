@@ -1,4 +1,4 @@
-# RedLibertad V1.29.0 — Creator Tasks & Reminders
+# RedLibertad V1.30.0 — Creator CRM Lite
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -850,3 +850,13 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - API preparada para relacionar tareas con actividad, usuario o publicación.
 - Bootstrap idempotente e índice por creador/estado/fecha.
 - Sin monetización activa.
+
+
+## V1.30.0 — Creator CRM Lite
+
+- Ficha privada por seguidor o participante de comunidad.
+- Prioridad normal/alta, nota privada y hasta 10 etiquetas.
+- Señales de interacción de 30 días, VIP, seguimiento y tareas abiertas.
+- Búsqueda por persona, nota o etiqueta.
+- Crear una tarea relacionada directamente desde la ficha CRM.
+- Todo privado del creador y sin monetización activa.
