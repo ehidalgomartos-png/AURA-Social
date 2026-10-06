@@ -785,6 +785,10 @@
     <span class="eyebrow">CONVERSACIÓN</span>
     <h2>Comentarios</h2>
     <div id="commentsList" class="comments-list"></div>
+    <div id="commentReplyContext" class="comment-reply-context hidden">
+      <span>Respondiendo a <b id="commentReplyName"></b></span>
+      <button id="cancelCommentReply" type="button" class="tiny-action">Cancelar</button>
+    </div>
     <form id="commentForm" class="comment-form">
       <textarea id="commentBody" maxlength="1000" placeholder="Escribe un comentario..." required></textarea>
       <button class="primary" type="submit">Comentar</button>
