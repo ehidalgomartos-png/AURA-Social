@@ -113,6 +113,11 @@ ALTER TABLE messages
   ADD COLUMN IF NOT EXISTS reply_to_message_id BIGINT REFERENCES messages(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_messages_reply_to ON messages(reply_to_message_id);
 
+-- RedLibertad V1.51: compartir publicaciones dentro del chat
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS shared_post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_shared_post ON messages(shared_post_id);
+
 CREATE TABLE IF NOT EXISTS message_reactions (
   message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
