@@ -1,4 +1,4 @@
-# RedLibertad V1.26.0 — Creator Follow-up & Private Notes
+# RedLibertad V1.27.0 — Follow-up Dashboard
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -726,3 +726,72 @@ V1.25 continúa completamente sin monetización activa: sin pagos, suscripciones
 ### Monetización
 
 V1.26 continúa completamente sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
+
+
+## V1.27.0 — Follow-up Dashboard
+
+- Nuevo dashboard privado dentro del Centro de creador.
+- Organiza seguimientos existentes de V1.26 por vencimiento:
+  - Vencidos.
+  - Hoy.
+  - Próximos 7 días.
+  - Más adelante.
+  - Sin fecha.
+- Resumen privado con:
+  - total de seguimientos,
+  - vencidos,
+  - hoy,
+  - próximos 7 días,
+  - prioridad alta.
+
+### Búsqueda
+- Búsqueda server-side dentro de notas privadas.
+- Máximo 120 caracteres.
+- No busca en contenido público ni expone notas fuera del Creator Hub.
+- Debounce ligero en la interfaz para evitar peticiones innecesarias.
+
+### Acciones masivas
+- Selección múltiple de seguimientos visibles.
+- Seleccionar todos los visibles.
+- Acciones:
+  - Prioridad alta.
+  - Prioridad normal.
+  - Marcar revisado.
+  - Cerrar seguimiento.
+- Cerrar seguimiento desactiva follow_up y limpia follow_up_at.
+- Las acciones se limitan a actividades propias del creador autenticado.
+
+### Integración con V1.25/V1.26
+- Abrir en actividad lleva al Centro de actividad con filtro Seguimiento.
+- Cambiar una nota, prioridad o seguimiento desde V1.26 refresca también el dashboard.
+- Marcar actividad revisada desde V1.25 refresca también el dashboard.
+- Los estados Revisado y Seguimiento siguen siendo independientes.
+
+### API
+- GET /api/posts/creator/community-follow-ups.
+- Query params:
+  - window=all|overdue|today|week|later|undated.
+  - q=texto privado.
+- PATCH /api/posts/creator/community-follow-ups/bulk.
+- Acciones permitidas:
+  - priority_high.
+  - priority_normal.
+  - mark_reviewed.
+  - close_follow_up.
+
+### Base de datos
+- Reutiliza creator_community_activity_meta.
+- Nuevo índice:
+  - idx_creator_community_activity_follow_up_at.
+- Optimizado por creator_id + follow_up + follow_up_at + priority.
+- Bootstrap idempotente.
+
+### Privacidad
+- Dashboard disponible solo para creador verificado.
+- Las notas privadas no salen de endpoints del creador.
+- Sin cambios en posts, votos, respuestas ni privacidad pública.
+- Sin tracking externo.
+
+### Monetización
+
+V1.27 continúa completamente sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
