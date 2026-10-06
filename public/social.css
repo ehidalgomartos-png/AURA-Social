@@ -4416,3 +4416,159 @@ select:focus-visible{
   .group-manage-actions{display:grid;grid-template-columns:1fr}
   .group-manage-actions button{width:100%;min-height:44px}
 }
+
+
+/* =========================================================
+   RedLibertad V1.51 — Share to Chat
+   ========================================================= */
+.internal-share-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:9px;
+}
+.internal-share-head b,
+.internal-share-head small{display:block}
+.internal-share-head small{margin-top:3px;color:var(--muted);font-size:10px}
+.share-conversation-list{
+  display:grid;
+  gap:6px;
+  max-height:285px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  margin-bottom:10px;
+}
+.share-chat-option{
+  width:100%;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  gap:9px;
+  align-items:center;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:9px 10px;
+  background:var(--paper);
+  text-align:left;
+}
+.share-chat-option:hover{background:var(--soft)}
+.share-chat-avatar{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  background:var(--navy-soft);
+  color:var(--navy);
+  font-weight:900;
+}
+.share-chat-avatar img{width:100%;height:100%;object-fit:cover}
+.share-chat-copy{min-width:0}
+.share-chat-copy b,
+.share-chat-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.share-chat-copy b{color:var(--navy);font-size:11px}
+.share-chat-copy small{margin-top:2px;color:var(--muted);font-size:9px}
+.share-chat-send{color:var(--teal);font-size:10px;font-weight:900}
+.share-chat-loading,
+.share-chat-empty{
+  padding:13px;
+  border-radius:12px;
+  background:var(--soft);
+  color:var(--muted);
+  font-size:10px;
+  text-align:center;
+}
+.internal-share-divider{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:11px 0 8px;
+  color:var(--muted);
+  font-size:9px;
+}
+.internal-share-divider::before,
+.internal-share-divider::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:var(--line);
+}
+
+.shared-post-message{
+  margin:7px 0;
+  border:1px solid rgba(13,34,56,.10);
+  border-radius:14px;
+  overflow:hidden;
+  background:rgba(255,255,255,.88);
+  color:var(--ink);
+}
+.message-bubble.mine .shared-post-message{
+  background:rgba(255,255,255,.96);
+  color:var(--ink);
+}
+.shared-post-message-head{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  padding:9px 10px;
+}
+.shared-post-message-head>div b,
+.shared-post-message-head>div small{display:block}
+.shared-post-message-head>div b{color:var(--navy);font-size:10px}
+.shared-post-message-head>div small{color:var(--muted);font-size:8px}
+.shared-post-author-avatar{
+  width:34px;height:34px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:var(--navy-soft);font-weight:900
+}
+.shared-post-author-avatar img{width:100%;height:100%;object-fit:cover}
+.shared-post-kind{
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--teal-soft);
+  color:var(--teal);
+  font-size:8px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.shared-post-message-media{background:#101923;max-height:300px;overflow:hidden}
+.shared-post-message-media img,
+.shared-post-message-media video{width:100%;max-height:300px;object-fit:contain;display:block}
+.shared-post-message-media iframe{width:100%;aspect-ratio:9/16;border:0;max-height:300px}
+.shared-post-message-caption{
+  margin:0!important;
+  padding:9px 10px 4px;
+  font-size:10px;
+  line-height:1.45;
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.shared-post-open{
+  width:100%;
+  border:0;
+  border-top:1px solid var(--line);
+  padding:9px;
+  background:transparent;
+  color:var(--teal);
+  font-size:10px;
+  font-weight:900;
+}
+.shared-post-message.unavailable,
+.shared-post-message.gated{
+  padding:12px;
+}
+.shared-post-message.unavailable b,
+.shared-post-message.unavailable span{display:block}
+.shared-post-message.unavailable b{color:var(--navy);font-size:11px}
+.shared-post-message.unavailable span,
+.shared-post-message.gated p{margin:4px 0 0!important;color:var(--muted);font-size:9px;line-height:1.4}
+.shared-post-message.gated .shared-post-message-head{padding:0;grid-template-columns:auto minmax(0,1fr)}
+@media(max-width:620px){
+  .share-conversation-list{max-height:240px}
+  .shared-post-message-media,
+  .shared-post-message-media img,
+  .shared-post-message-media video{max-height:240px}
+}

@@ -4100,15 +4100,63 @@ function openReport(postId) {
 let activeSharePostId = null;
 function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
 function shareText() { return 'Mira mi post en RedLibertad, donde la libertad es lo primero.'; }
+
+async function loadShareConversations(){
+  const root=$('#shareConversationList');
+  if(!root || !activeSharePostId)return;
+  root.innerHTML='<div class="share-chat-loading">Cargando conversaciones…</div>';
+
+  const {r,d}=await api('/api/messages/conversations?filter=all&q=');
+  if(!r.ok){
+    root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus conversaciones.</div>';
+    return;
+  }
+
+  const conversations=(Array.isArray(d.conversations) ? d.conversations : []).slice(0,12);
+  if(!conversations.length){
+    root.innerHTML='<div class="share-chat-empty">Todavía no tienes conversaciones activas.</div>';
+    return;
+  }
+
+  root.innerHTML=conversations.map(conversation=>{
+    const identity=conversationListIdentity(conversation);
+    const subtitle=identity.isGroup
+      ? `${Number(conversation.member_count || 0)} miembros`
+      : identity.subtitle;
+    return `<button type="button" class="share-chat-option" data-share-conversation="${conversation.id}" data-share-label="${esc(identity.title)}">
+      <span class="share-chat-avatar ${identity.isGroup ? 'group-avatar' : ''}">${identity.avatar}</span>
+      <span class="share-chat-copy"><b>${esc(identity.title)}</b><small>${esc(subtitle || '')}</small></span>
+      <span class="share-chat-send">Enviar</span>
+    </button>`;
+  }).join('');
+
+  all('[data-share-conversation]',root).forEach(button=>{
+    button.onclick=()=>sendSharedPostToConversation(
+      button.dataset.shareConversation,
+      button.dataset.shareLabel
+    );
+  });
+}
+
 function openShare(postId) {
   activeSharePostId = Number(postId);
   const modal = $('#shareModal');
   if (modal) modal.classList.remove('hidden');
-  const status = $('#shareStatus'); if (status) status.textContent = '';
+  const status = $('#shareStatus');
+  if (status) status.textContent = '';
   const internalUsername = $('#shareInternalUsername');
   if (internalUsername) internalUsername.value = '';
+  loadShareConversations().catch(()=>{});
 }
-function closeShare() { const modal=$('#shareModal'); if(modal) modal.classList.add('hidden'); activeSharePostId=null; }
+
+function closeShare() {
+  const modal=$('#shareModal');
+  if(modal)modal.classList.add('hidden');
+  const list=$('#shareConversationList');
+  if(list)list.innerHTML='';
+  activeSharePostId=null;
+}
+
 async function writeClipboardText(value) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(value);
@@ -4144,56 +4192,76 @@ async function copyShareLink() {
     window.prompt('Copia este texto y enlace:', value);
   }
 }
-async function shareInsideRedLibertad(username) {
-  if (!activeSharePostId) return;
-  const clean = String(username || '').trim().replace(/^@/,'');
-  const status = $('#shareStatus');
+async function sendSharedPostToConversation(conversationId,label='chat'){
+  if(!activeSharePostId)return;
+  const status=$('#shareStatus');
+  if(status)status.textContent='Enviando publicación…';
 
-  if (!clean) {
-    if (status) status.textContent = 'Escribe un @usuario.';
+  const message=await api(
+    `/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,
+    {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        body:'',
+        contentLevel:'normal',
+        sharedPostId:activeSharePostId
+      })
+    }
+  );
+
+  if(!message.r.ok){
+    if(status){
+      status.textContent=message.d.error==='post_not_shareable'
+        ? 'Esta publicación ya no se puede compartir.'
+        : 'No se pudo enviar la publicación.';
+    }
     return;
   }
 
-  if (status) status.textContent = 'Abriendo conversación...';
+  const currentId=activeConversationId;
+  closeShare();
+  toast(`Publicación enviada a ${label}`);
+  await loadConversations();
+  if(currentId && String(currentId)===String(conversationId) && !$('#messagesView')?.classList.contains('hidden')){
+    await refreshActiveConversationLive();
+  }
+}
 
-  const conversation = await api('/api/messages/conversations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: clean })
+async function shareInsideRedLibertad(username) {
+  if (!activeSharePostId) return;
+  const clean=String(username || '').trim().replace(/^@/,'');
+  const status=$('#shareStatus');
+
+  if(!clean){
+    if(status)status.textContent='Escribe un @usuario.';
+    return;
+  }
+
+  if(status)status.textContent='Abriendo conversación…';
+
+  const conversation=await api('/api/messages/conversations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:clean})
   });
 
-  if (!conversation.r.ok) {
-    if (status) {
-      status.textContent = conversation.d.error === 'cannot_message_self'
+  if(!conversation.r.ok){
+    if(status){
+      status.textContent=conversation.d.error==='cannot_message_self'
         ? 'No puedes enviártelo a ti mismo.'
-        : conversation.d.error === 'message_privacy_denied'
+        : conversation.d.error==='message_privacy_denied'
           ? 'Esta persona no acepta nuevas conversaciones.'
-          : conversation.d.error === 'message_privacy_following_only'
+          : conversation.d.error==='message_privacy_following_only'
             ? 'Solo acepta mensajes de personas que sigue.'
-            : conversation.d.error === 'messaging_blocked'
+            : conversation.d.error==='messaging_blocked'
               ? 'No puedes iniciar esta conversación.'
               : 'No se pudo abrir la conversación.';
     }
     return;
   }
 
-  const message = await api(`/api/messages/conversations/${conversation.d.conversationId}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      body: `${shareText()} ${shareUrl(activeSharePostId)}`,
-      contentLevel: 'normal'
-    })
-  });
-
-  if (!message.r.ok) {
-    if (status) status.textContent = 'No se pudo enviar la publicación.';
-    return;
-  }
-
-  closeShare();
-  toast(`Publicación enviada a @${clean}`);
-  await loadConversations();
+  await sendSharedPostToConversation(conversation.d.conversationId,`@${clean}`);
 }
 
 async function nativeShare() {
@@ -4775,6 +4843,9 @@ function bindMessageActions(root=$('#messageThread')){
     button.onclick=()=>toggleMessageReaction(button);
   });
   all('[data-accept-sensitive]',root).forEach(button=>button.onclick=acceptSensitiveMessages);
+  all('[data-open-shared-post]',root).forEach(button=>{
+    button.onclick=()=>openPostFocus(button.dataset.openSharedPost);
+  });
 }
 
 function conversationPresence(id) {
@@ -5417,6 +5488,34 @@ async function openConversation(id) {
   await loadConversations();
 }
 
+function sharedPostMessageHTML(post){
+  if(!post)return '';
+  if(post.unavailable){
+    return `<div class="shared-post-message unavailable"><b>Publicación no disponible</b><span>Puede haberse eliminado, cambiado de audiencia o ya no ser accesible para ti.</span></div>`;
+  }
+
+  if(post.gated){
+    return `<div class="shared-post-message gated"><div class="shared-post-message-head"><span class="shared-post-kind">18+</span><b>Contenido sensible compartido</b></div><p>${esc(gateText(post.gate_reason))}</p></div>`;
+  }
+
+  const kind=post.post_kind==='reel' ? 'Reel' : 'Publicación';
+  const media=(post.media_url || post.playback_url)
+    ? `<div class="shared-post-message-media">${mediaHTML(post)}</div>`
+    : '';
+  const caption=String(post.caption || '').trim();
+
+  return `<article class="shared-post-message">
+    <div class="shared-post-message-head">
+      <span class="shared-post-author-avatar">${avatarHTML(post)}</span>
+      <div><b>${esc(post.display_name || post.username || 'RedLibertad')}</b><small>@${esc(post.username || '')}</small></div>
+      <span class="shared-post-kind">${kind}</span>
+    </div>
+    ${media}
+    ${caption ? `<p class="shared-post-message-caption">${esc(caption)}</p>` : ''}
+    <button type="button" class="shared-post-open" data-open-shared-post="${post.id}">Ver ${kind.toLowerCase()}</button>
+  </article>`;
+}
+
 function messageHTML(m,other,conversation=activeConversationMeta) {
   const mine=String(m.sender_id)===String(me.id);
   const isGroup=conversation?.is_group===true;
@@ -5433,6 +5532,8 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
   }else if(m.media_url || m.playback_url){
     media=`<div class="message-media">${mediaHTML(m)}</div>`;
   }
+
+  const sharedCard=sharedPostMessageHTML(m.shared_post);
 
   const reply=m.reply_preview
     ? `<div class="message-reply-preview ${m.reply_preview.gated ? 'gated' : ''}"><small>↩ ${esc(m.reply_preview.display_name || m.reply_preview.username || 'Mensaje')}</small><p>${esc(m.reply_preview.text || 'Mensaje')}</p></div>`
@@ -5460,13 +5561,20 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     ? 'Contenido sensible'
     : String(m.body || '').trim()
       ? String(m.body).trim().slice(0,160)
-      : m.media_type==='image' ? 'Foto' : m.media_type==='video' ? 'Vídeo' : 'Mensaje';
+      : m.media_type==='image'
+        ? 'Foto'
+        : m.media_type==='video'
+          ? 'Vídeo'
+          : m.shared_post
+            ? 'Publicación compartida'
+            : 'Mensaje';
 
   return `<div class="message-bubble ${mine ? 'mine' : 'theirs'} ${isGroup?'group-message':''}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
     ${senderLabel}
     ${reply}
     ${body}
     ${media}
+    ${sharedCard}
     <div class="message-bubble-meta">
       <small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${m.content_level!=='normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small>
       <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
@@ -6249,6 +6357,7 @@ $('#shareInternalForm')?.addEventListener('submit', async event => {
   event.preventDefault();
   await shareInsideRedLibertad($('#shareInternalUsername')?.value);
 });
+$('#refreshShareChats')?.addEventListener('click',()=>loadShareConversations().catch(()=>{}));
 if ($('#closeShareModal')) $('#closeShareModal').onclick = closeShare;
 if ($('#shareNative')) $('#shareNative').onclick = nativeShare;
 if ($('#shareCopy')) $('#shareCopy').onclick = copyShareLink;

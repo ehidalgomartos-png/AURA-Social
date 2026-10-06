@@ -1,4 +1,4 @@
-# RedLibertad V1.50.0 — Group Chats 2.0
+# RedLibertad V1.51.0 — Share to Chat
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1143,4 +1143,20 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Un mensaje nuevo devuelve la conversación a la bandeja activa de todos los miembros.
 - Migraciones/bootstrap idempotentes.
 - Se corrige el quoting SQL del trigger Web Push en schema.sql detectado durante esta fase.
+- Sin monetización activa.
+
+
+## V1.51.0 — Share to Chat
+
+- Posts y Reels públicos se pueden enviar como tarjeta interna a chats directos y grupos.
+- El modal Compartir muestra conversaciones recientes y permite abrir un chat nuevo por @usuario.
+- El mensaje guarda referencia estructurada al post en lugar de depender de una URL pegada.
+- Contenido VIP nunca puede compartirse por chat, incluso mediante una petición manipulada.
+- El servidor valida que quien comparte tenga acceso a la publicación.
+- Cada receptor vuelve a validar accesibilidad: bloqueos, estado del autor, moderación y audiencia.
+- Contenido sensible compartido respeta verificación +18 y preferencia Mostrar contenido sensible.
+- Si el post se elimina, cambia de audiencia o deja de estar disponible, el mensaje muestra “Publicación no disponible”.
+- Se conserva un ID histórico independiente de la FK para no dejar mensajes vacíos tras borrado.
+- Tarjetas con autor, tipo Post/Reel, multimedia, extracto y acceso al post original.
+- La previsualización del inbox muestra “Publicación compartida”.
 - Sin monetización activa.

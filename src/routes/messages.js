@@ -37,6 +37,10 @@ async function ensureMessagePrivacy() {
         )
       `);
       await db.query("CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id,updated_at DESC)");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_post_ref_id BIGINT");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post ON messages(shared_post_id)");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post_ref ON messages(shared_post_ref_id)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct'");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
@@ -62,7 +66,7 @@ router.use(async (_req,res,next)=>{
 });
 
 async function userRow(id) {
-  const r = await db.query(`SELECT id,username,display_name,avatar_url,age_verified,creator_verified,status FROM users WHERE id=$1`, [id]);
+  const r = await db.query(`SELECT id,username,display_name,avatar_url,age_verified,creator_verified,show_sensitive,status FROM users WHERE id=$1`, [id]);
   return r.rows[0] || null;
 }
 
@@ -189,7 +193,12 @@ router.get('/conversations', async (req, res) => {
     FROM conversation_members cm
     JOIN conversations c ON c.id=cm.conversation_id
     LEFT JOIN LATERAL (
-      SELECT body,content_level,created_at,sender_id
+      SELECT
+        CASE
+          WHEN COALESCE(shared_post_ref_id,shared_post_id) IS NOT NULL AND btrim(body)='' THEN 'Publicación compartida'
+          ELSE body
+        END AS body,
+        content_level,created_at,sender_id
         FROM messages
        WHERE conversation_id=c.id
        ORDER BY created_at DESC,id DESC
@@ -698,8 +707,31 @@ router.get('/conversations/:id/messages', async (req, res) => {
   const r=await db.query(`
     SELECT
       m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
-      m.content_level,m.created_at,m.reply_to_message_id,
+      m.content_level,m.created_at,m.reply_to_message_id,m.shared_post_id,m.shared_post_ref_id,
       u.username,u.display_name,u.avatar_url,
+      shared_post.id AS shared_post_actual_id,
+      shared_post.user_id AS shared_post_user_id,
+      shared_post.caption AS shared_post_caption,
+      shared_post.media_url AS shared_post_media_url,
+      shared_post.media_type AS shared_post_media_type,
+      shared_post.media_provider AS shared_post_media_provider,
+      shared_post.playback_url AS shared_post_playback_url,
+      shared_post.content_level AS shared_post_content_level,
+      shared_post.post_kind AS shared_post_kind,
+      shared_post.audience AS shared_post_audience,
+      shared_post.moderation_status AS shared_post_moderation_status,
+      shared_author.username AS shared_post_author_username,
+      shared_author.display_name AS shared_post_author_display_name,
+      shared_author.avatar_url AS shared_post_author_avatar_url,
+      shared_author.status AS shared_post_author_status,
+      EXISTS(
+        SELECT 1 FROM blocks shared_block
+         WHERE shared_post.user_id IS NOT NULL
+           AND (
+             (shared_block.blocker_id=$2 AND shared_block.blocked_id=shared_post.user_id)
+             OR (shared_block.blocker_id=shared_post.user_id AND shared_block.blocked_id=$2)
+           )
+      ) AS shared_post_blocked,
       reply.id AS reply_id,
       reply.sender_id AS reply_sender_id,
       reply.body AS reply_body,
@@ -710,6 +742,8 @@ router.get('/conversations/:id/messages', async (req, res) => {
       reply_user.display_name AS reply_display_name
     FROM messages m
     JOIN users u ON u.id=m.sender_id
+    LEFT JOIN posts shared_post ON shared_post.id=m.shared_post_id
+    LEFT JOIN users shared_author ON shared_author.id=shared_post.user_id
     LEFT JOIN messages reply ON reply.id=m.reply_to_message_id AND reply.conversation_id=m.conversation_id
     LEFT JOIN users reply_user ON reply_user.id=reply.sender_id
     WHERE m.conversation_id=$1
@@ -835,8 +869,53 @@ router.get('/conversations/:id/messages', async (req, res) => {
       };
     })() : null;
 
+    const sharedReference=m.shared_post_ref_id || m.shared_post_id;
+    const sharedPost=sharedReference ? (() => {
+      const unavailable=
+        !m.shared_post_actual_id ||
+        m.shared_post_moderation_status!=='published' ||
+        m.shared_post_audience!=='public' ||
+        m.shared_post_author_status!=='active' ||
+        m.shared_post_blocked===true;
+
+      if(unavailable){
+        return {
+          id:sharedReference,
+          unavailable:true,
+          gated:false
+        };
+      }
+
+      const sharedIsOwn=String(m.shared_post_user_id)===String(req.user.id);
+      const sharedGated=!!(
+        !sharedIsOwn &&
+        m.shared_post_content_level!=='normal' &&
+        (!viewer?.age_verified || !viewer?.show_sensitive)
+      );
+
+      return {
+        id:m.shared_post_actual_id,
+        unavailable:false,
+        gated:sharedGated,
+        gate_reason:sharedGated
+          ? (!viewer?.age_verified ? 'age_verification_required' : 'sensitive_content_disabled')
+          : null,
+        post_kind:m.shared_post_kind,
+        content_level:m.shared_post_content_level,
+        caption:sharedGated ? '' : (m.shared_post_caption || ''),
+        media_url:sharedGated ? null : m.shared_post_media_url,
+        media_type:sharedGated ? null : m.shared_post_media_type,
+        media_provider:sharedGated ? null : m.shared_post_media_provider,
+        playback_url:sharedGated ? null : m.shared_post_playback_url,
+        username:m.shared_post_author_username,
+        display_name:m.shared_post_author_display_name,
+        avatar_url:m.shared_post_author_avatar_url
+      };
+    })() : null;
+
     return {
       ...m,
+      shared_post:sharedPost,
       seen_count:seenCount,
       seen_by_other:!details.is_group && seenCount>0,
       seen_by_all:details.is_group && eligibleReaders.length>0 && seenCount>=eligibleReaders.length,
@@ -919,8 +998,9 @@ const messageSchema = z.object({
   externalId: z.string().max(255).optional().nullable(),
   playbackUrl: z.string().max(4096).optional().nullable(),
   replyToMessageId:z.coerce.number().int().positive().optional().nullable(),
+  sharedPostId:z.coerce.number().int().positive().optional().nullable(),
   contentLevel: z.enum(['normal','sensitive','nudity']).default('normal')
-}).refine(v => v.body.trim() || v.mediaUrl, { message: 'message_empty' });
+}).refine(v => v.body.trim() || v.mediaUrl || v.sharedPostId, { message: 'message_empty' });
 
 router.post('/conversations/:id/messages', async (req, res) => {
   const id=req.params.id;
@@ -952,6 +1032,32 @@ router.post('/conversations/:id/messages', async (req, res) => {
       replyToMessageId=replyTarget.rows[0].id;
     }
 
+    let sharedPostId=null;
+    if(d.sharedPostId){
+      const shareable=await db.query(`
+        SELECT p.id
+          FROM posts p
+          JOIN users author ON author.id=p.user_id
+         WHERE p.id=$1
+           AND p.moderation_status='published'
+           AND p.audience='public'
+           AND author.status='active'
+           AND (
+             p.user_id=$2
+             OR NOT EXISTS(
+               SELECT 1 FROM blocks b
+                WHERE (b.blocker_id=$2 AND b.blocked_id=p.user_id)
+                   OR (b.blocker_id=p.user_id AND b.blocked_id=$2)
+             )
+           )
+         LIMIT 1
+      `,[d.sharedPostId,req.user.id]);
+      if(!shareable.rowCount){
+        return res.status(400).json({error:'post_not_shareable'});
+      }
+      sharedPostId=shareable.rows[0].id;
+    }
+
     const sender=await userRow(req.user.id);
     if(
       d.contentLevel==='nudity' &&
@@ -979,9 +1085,11 @@ router.post('/conversations/:id/messages', async (req, res) => {
           external_id,
           playback_url,
           content_level,
-          reply_to_message_id
+          reply_to_message_id,
+          shared_post_id,
+          shared_post_ref_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
         RETURNING *
       `,[
         id,
@@ -993,7 +1101,9 @@ router.post('/conversations/:id/messages', async (req, res) => {
         d.externalId,
         d.playbackUrl,
         d.contentLevel,
-        replyToMessageId
+        replyToMessageId,
+        sharedPostId,
+        sharedPostId
       ]);
 
       await client.query(
@@ -1019,17 +1129,23 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }
 
     try{
-      const text=details.is_group
+      const text=sharedPostId
         ? (
-            d.contentLevel==='normal'
-              ? `${sender?.display_name || sender?.username || 'Alguien'} ha escrito en “${details.title || 'Grupo'}”.`
-              : `${sender?.display_name || sender?.username || 'Alguien'} ha enviado contenido sensible en “${details.title || 'Grupo'}”.`
+            details.is_group
+              ? `${sender?.display_name || sender?.username || 'Alguien'} ha compartido una publicación en “${details.title || 'Grupo'}”.`
+              : 'Te ha compartido una publicación.'
           )
-        : (
-            d.contentLevel==='normal'
-              ? 'Te ha enviado un mensaje.'
-              : 'Te ha enviado contenido sensible.'
-          );
+        : details.is_group
+          ? (
+              d.contentLevel==='normal'
+                ? `${sender?.display_name || sender?.username || 'Alguien'} ha escrito en “${details.title || 'Grupo'}”.`
+                : `${sender?.display_name || sender?.username || 'Alguien'} ha enviado contenido sensible en “${details.title || 'Grupo'}”.`
+            )
+          : (
+              d.contentLevel==='normal'
+                ? 'Te ha enviado un mensaje.'
+                : 'Te ha enviado contenido sensible.'
+            );
 
       await db.query(`
         INSERT INTO notifications(
