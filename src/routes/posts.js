@@ -822,10 +822,16 @@ router.get('/trends', requireAuth, async (req,res)=>{
 
 router.get('/saved/ids', requireAuth, async (req,res)=>{
   await ensureSavedPostsTable();
-  const result=await db.query(
-    'SELECT post_id FROM saved_posts WHERE user_id=$1 ORDER BY created_at DESC LIMIT 500',
-    [req.user.id]
-  );
+  const result=await db.query(`
+    SELECT sp.post_id
+      FROM saved_posts sp
+      JOIN posts p ON p.id=sp.post_id
+     WHERE sp.user_id=$1
+       AND p.moderation_status='published'
+       AND ${postAudienceWhere('$1','p')}
+     ORDER BY sp.created_at DESC
+     LIMIT 500
+  `,[req.user.id]);
   res.json({ids:result.rows.map(row=>String(row.post_id))});
 });
 
@@ -846,12 +852,14 @@ router.get('/saved', requireAuth, async (req,res)=>{
      WHERE sp.user_id=$1
        AND p.moderation_status='published'
        AND u.status='active'
+       AND ${postAudienceWhere('$1','p')}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND ${postAudienceWhere('$1','p')}
      ORDER BY sp.created_at DESC
      LIMIT 100
   `,[req.user.id]);
@@ -864,21 +872,13 @@ router.get('/saved', requireAuth, async (req,res)=>{
 
 router.post('/:id/save', requireAuth, async (req,res)=>{
   await ensureSavedPostsTable();
-  const inserted=await db.query(`
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post)return res.status(404).json({error:'post_not_found'});
+  await db.query(`
     INSERT INTO saved_posts (user_id,post_id)
-    SELECT $1,p.id
-      FROM posts p
-     WHERE p.id=$2
-       AND p.moderation_status='published'
+    VALUES ($1,$2)
     ON CONFLICT DO NOTHING
-    RETURNING post_id
   `,[req.user.id,req.params.id]);
-
-  if(!inserted.rowCount){
-    const exists=await db.query('SELECT 1 FROM posts WHERE id=$1 AND moderation_status=\'published\'',[req.params.id]);
-    if(!exists.rowCount) return res.status(404).json({error:'post_not_found'});
-  }
-
   res.json({ok:true,saved:true});
 });
 
@@ -897,9 +897,11 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
   const mode=['posts','reposts','media'].includes(String(req.query.mode||'')) ? String(req.query.mode) : 'posts';
   const params=[req.params.username];
   let likedByMe='false';
+  let audienceFilter=postAudienceWhere(null,'p');
   if(req.user){
     params.push(req.user.id);
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$2)';
+    audienceFilter=postAudienceWhere('$2','p');
   }
 
   const source = mode === 'reposts'
@@ -937,6 +939,7 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
      WHERE ${ownerFilter}
        AND p.moderation_status='published'
        AND u.status='active'
+       AND ${audienceFilter}
        ${mediaFilter}
      ORDER BY ${orderBy}
      LIMIT 60
