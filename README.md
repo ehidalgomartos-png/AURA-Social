@@ -1,4 +1,4 @@
-# RedLibertad V1.55.0 — Connection Context & Starters
+# RedLibertad V1.56.0 — Circle Sharing & Private Audiences
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1221,3 +1221,20 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin nuevas tablas ni perfilado adicional.
 - Mobile-first.
 - Sin monetización activa.
+
+
+## V1.56.0 — Circle Sharing & Private Audiences
+
+- Nuevas audiencias para publicaciones y Reels: Público, Solo conexiones, Círculos privados y VIP.
+- Una publicación puede dirigirse a uno o varios círculos privados.
+- Stories con las mismas audiencias privadas.
+- La audiencia Solo conexiones exige seguimiento mutuo vigente.
+- El acceso por círculos exige pertenecer al círculo y seguir siendo conexión mutua.
+- Al quitar una persona del círculo o romper la conexión, pierde acceso inmediatamente.
+- Publicaciones privadas no se pueden republicar.
+- Publicaciones privadas no se pueden compartir a chats ni mediante enlaces externos.
+- Las previsualizaciones públicas siguen limitadas a contenido Público.
+- Menciones solo notifican a personas con acceso a la audiencia.
+- Selector mobile-first de uno o varios círculos.
+- VIP continúa separado y gratuito.
+- Sin pagos, suscripciones ni paywalls comerciales.
