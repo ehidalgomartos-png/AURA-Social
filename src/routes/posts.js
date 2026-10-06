@@ -193,7 +193,7 @@ async function attachCommunityMeta(rows,viewerId=null){
   const [pollRows,questionRows]=await Promise.all([
     db.query(`
       SELECT
-        cp.id AS poll_id,cp.post_id,cp.question,cp.allow_change,
+        cp.id AS poll_id,cp.post_id,cp.question,cp.allow_change,cp.is_open,cp.status,
         o.id AS option_id,o.position,o.label,
         count(v.user_id)::int AS vote_count,
         ${viewerId ? 'EXISTS(SELECT 1 FROM creator_poll_votes myv WHERE myv.poll_id=cp.id AND myv.user_id=$2 AND myv.option_id=o.id)' : 'false'} AS voted_by_me
@@ -201,18 +201,20 @@ async function attachCommunityMeta(rows,viewerId=null){
       JOIN creator_poll_options o ON o.poll_id=cp.id
       LEFT JOIN creator_poll_votes v ON v.option_id=o.id
       WHERE cp.post_id=ANY($1::bigint[])
-      GROUP BY cp.id,cp.post_id,cp.question,cp.allow_change,o.id,o.position,o.label
+        AND cp.status='active'
+      GROUP BY cp.id,cp.post_id,cp.question,cp.allow_change,cp.is_open,cp.status,o.id,o.position,o.label
       ORDER BY cp.post_id,o.position
     `,viewerId ? [ids,viewerId] : [ids]),
     db.query(`
       SELECT
-        cq.id AS question_id,cq.post_id,cq.prompt,
+        cq.id AS question_id,cq.post_id,cq.prompt,cq.is_open,cq.status,
         count(r.id)::int AS response_count,
         ${viewerId ? '(SELECT qr.body FROM creator_question_responses qr WHERE qr.question_id=cq.id AND qr.user_id=$2 LIMIT 1)' : 'NULL::text'} AS my_response
       FROM creator_questions cq
       LEFT JOIN creator_question_responses r ON r.question_id=cq.id
       WHERE cq.post_id=ANY($1::bigint[])
-      GROUP BY cq.id,cq.post_id,cq.prompt
+        AND cq.status='active'
+      GROUP BY cq.id,cq.post_id,cq.prompt,cq.is_open,cq.status
     `,viewerId ? [ids,viewerId] : [ids])
   ]);
 
@@ -224,6 +226,8 @@ async function attachCommunityMeta(rows,viewerId=null){
         id:row.poll_id,
         question:row.question,
         allow_change:row.allow_change,
+        is_open:row.is_open===true,
+        status:row.status,
         total_votes:0,
         options:[]
       });
@@ -245,6 +249,8 @@ async function attachCommunityMeta(rows,viewerId=null){
     {
       id:row.question_id,
       prompt:row.prompt,
+      is_open:row.is_open===true,
+      status:row.status,
       response_count:Number(row.response_count || 0),
       my_response:row.my_response || ''
     }
@@ -524,6 +530,54 @@ router.use(async (_req,res,next)=>{
   }catch(error){
     console.error('RedLibertad V1.22 creator community bootstrap failed:',error);
     res.status(500).json({error:'creator_community_bootstrap_failed'});
+  }
+});
+
+
+let creatorCommunityV23Ready=null;
+async function ensureCreatorCommunityV23(){
+  if(!creatorCommunityV23Ready){
+    creatorCommunityV23Ready=(async()=>{
+      await db.query("ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'");
+      await db.query("ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query("ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ");
+      const pollConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_polls_status_check' AND conrelid='creator_polls'::regclass LIMIT 1"
+      );
+      if(!pollConstraint.rowCount){
+        await db.query("ALTER TABLE creator_polls ADD CONSTRAINT creator_polls_status_check CHECK(status IN ('active','archived'))");
+      }
+
+      await db.query("ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'");
+      await db.query("ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query("ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ");
+      const questionConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_questions_status_check' AND conrelid='creator_questions'::regclass LIMIT 1"
+      );
+      if(!questionConstraint.rowCount){
+        await db.query("ALTER TABLE creator_questions ADD CONSTRAINT creator_questions_status_check CHECK(status IN ('active','archived'))");
+      }
+
+      await db.query("ALTER TABLE creator_question_responses ADD COLUMN IF NOT EXISTS creator_starred BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("ALTER TABLE creator_question_responses ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ");
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_polls_status ON creator_polls(post_id,status,is_open)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_questions_status ON creator_questions(post_id,status,is_open)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_question_responses_starred ON creator_question_responses(question_id,creator_starred,updated_at DESC)');
+    })().catch(error=>{
+      creatorCommunityV23Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV23Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV23();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.23 community management bootstrap failed:',error);
+    res.status(500).json({error:'community_management_bootstrap_failed'});
   }
 });
 
