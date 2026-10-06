@@ -553,7 +553,7 @@ router.post('/:id/consent', requireAuth, async (req,res)=>{
 
 router.get('/feed', optionalAuth, async (req, res) => {
   const viewer = await viewerFrom(req);
-  const mode = ['latest','following','foryou'].includes(req.query.mode) ? req.query.mode : 'latest';
+  const mode = ['latest','following','foryou','vip'].includes(req.query.mode) ? req.query.mode : 'latest';
   const params = [];
   const where = [`p.moderation_status='published'`, `u.status='active'`];
   if (req.user) {
@@ -561,6 +561,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     where.push(postAudienceWhere('$1','p'));
     where.push(`p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`);
     where.push(`p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`);
+    if (mode === 'vip') where.push("p.audience='vip'");
     if (mode === 'following') where.push(`(
       p.user_id=$1
       OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
@@ -572,7 +573,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
     )`);
   } else {
     where.push(postAudienceWhere(null,'p'));
-    if (mode === 'following') return res.json({ posts: [] });
+    if (mode === 'following' || mode === 'vip') return res.json({ posts: [], mode });
   }
   const result = await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
