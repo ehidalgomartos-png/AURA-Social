@@ -1974,11 +1974,12 @@ document.addEventListener('click',async event=>{
 });
 
 document.addEventListener('click',async event=>{
+  const editorial=event.target.closest('[data-editorial-save]');
   const publishNow=event.target.closest('[data-publishing-now]');
   const schedule=event.target.closest('[data-publishing-schedule]');
   const toDraft=event.target.closest('[data-publishing-draft]');
   const remove=event.target.closest('[data-publishing-delete]');
-  const button=publishNow || schedule || toDraft || remove;
+  const button=editorial || publishNow || schedule || toDraft || remove;
   if(!button)return;
 
   event.preventDefault();
@@ -1986,7 +1987,20 @@ document.addEventListener('click',async event=>{
   button.disabled=true;
 
   try{
-    if(publishNow){
+    if(editorial){
+      const id=editorial.dataset.editorialSave;
+      const dateInput=document.querySelector(`[data-editorial-date="${CSS.escape(String(id))}"]`);
+      const labelInput=document.querySelector(`[data-editorial-label="${CSS.escape(String(id))}"]`);
+      const editorialDate=String(dateInput?.value || '') || null;
+      const editorialLabel=String(labelInput?.value || '').trim();
+      const { r,d }=await api(`/api/posts/creator/editorial/${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({editorialDate,editorialLabel})
+      });
+      if(!r.ok)throw new Error(d.error==='invalid_editorial_metadata' ? 'Revisa la fecha o etiqueta.' : 'No se pudo guardar la organización.');
+      toast('Organización editorial guardada');
+    }else if(publishNow){
       const { r,d }=await api(`/api/posts/creator/publishing/${encodeURIComponent(publishNow.dataset.publishingNow)}/publish`,{method:'POST'});
       if(!r.ok)throw new Error('No se pudo publicar ahora.');
       toast(d.awaitingConsent ? 'Esperando consentimientos antes de publicar' : 'Publicación publicada');
@@ -3690,6 +3704,8 @@ $('#createForm').addEventListener('submit', async e => {
       audience: fd.get('audience') || 'public',
       publishMode,
       scheduledFor,
+      editorialDate: fd.get('editorialDate') || null,
+      editorialLabel: String(fd.get('editorialLabel') || '').trim(),
       participantUsernames: participants,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
