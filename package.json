@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.55.0",
+  "version": "1.56.0",
   "private": true,
-  "description": "RedLibertad V1.55 Connection Context & Starters - contexto privado de conexiones e ideas de conversación como borradores, sin monetización.",
+  "description": "RedLibertad V1.56 Circle Sharing & Private Audiences - publicaciones y Stories para conexiones o círculos privados, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
