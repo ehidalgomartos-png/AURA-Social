@@ -495,3 +495,28 @@ CREATE INDEX IF NOT EXISTS idx_creator_community_activity_completed_at
 
 
 
+
+
+-- RedLibertad V1.29: tareas y recordatorios privados del creador
+CREATE TABLE IF NOT EXISTS creator_tasks (
+  id BIGSERIAL PRIMARY KEY,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(160) NOT NULL,
+  note VARCHAR(1000) NOT NULL DEFAULT '',
+  priority TEXT NOT NULL DEFAULT 'normal',
+  status TEXT NOT NULL DEFAULT 'open',
+  due_at TIMESTAMPTZ,
+  notification_id BIGINT REFERENCES notifications(id) ON DELETE SET NULL,
+  related_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL,
+  source_key VARCHAR(180),
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT creator_tasks_priority_check CHECK(priority IN ('normal','high')),
+  CONSTRAINT creator_tasks_status_check CHECK(status IN ('open','completed'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_creator_tasks_source_key
+  ON creator_tasks(creator_id,source_key) WHERE source_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_creator_tasks_open_due
+  ON creator_tasks(creator_id,status,priority,due_at,updated_at DESC);
