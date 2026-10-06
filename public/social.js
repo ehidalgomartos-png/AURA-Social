@@ -14,6 +14,8 @@ let activeMessageReply = null;
 let messageConversationFilter = 'all';
 let messageConversationSearch = '';
 let messageConversationSearchTimer = null;
+let communityConversationsData=null;
+let communityConversationsLoading=false;
 let interestCatalog = [];
 let activeExploreInterest = '';
 let connectionCircles=[];
@@ -1844,6 +1846,7 @@ function closePostFocus() {
   if (root) root.innerHTML = '';
 }
 
+$('#refreshCommunityConversations')?.addEventListener('click',loadCommunityConversations);
 $('#newConnectionCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
 $('#connectionsCenterNewCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
 $('#connectionsCenterSearch')?.addEventListener('input',event=>{
@@ -1875,6 +1878,14 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const communityConversation=event.target.closest('[data-community-conversation]');
+  if(communityConversation){
+    event.preventDefault();
+    showView('messages');
+    await openConversation(communityConversation.dataset.communityConversation);
+    return;
+  }
+
   const centerFilter=event.target.closest('[data-connection-center-filter]');
   if(centerFilter){
     event.preventDefault();
@@ -5633,6 +5644,112 @@ function conversationPreviewText(conversation){
   return body;
 }
 
+
+function communityConversationIdentity(item){
+  if(item.is_group){
+    const title=String(item.title || 'Grupo');
+    return {
+      title,
+      subtitle:`${Number(item.member_count || 0)} miembros`,
+      avatar:`<span class="group-avatar-mark">${esc(initials(title))}</span>`
+    };
+  }
+  return {
+    title:String(item.display_name || item.username || 'Conexión'),
+    subtitle:item.username ? `@${item.username}` : '',
+    avatar:item.avatar_url
+      ? `<img src="${esc(item.avatar_url)}" alt="" decoding="async">`
+      : esc(initials(item.display_name || item.username || 'R'))
+  };
+}
+
+function communityConversationLabel(item){
+  if(item.kind==='pending'){
+    const count=Number(item.unread_count || 0);
+    return count===1 ? 'Tienes 1 mensaje pendiente' : `Tienes ${count} mensajes pendientes`;
+  }
+  if(item.kind==='unanswered')return 'Tu último mensaje sigue sin respuesta';
+  return item.last_message_at ? `Podrías retomar esta conversación · ${timeAgo(item.last_message_at)}` : 'Podrías retomar esta conversación';
+}
+
+function communityPersonCardHTML(user,{activity=false}={}){
+  const when=activity && user.last_activity_at ? `Actividad ${timeAgo(user.last_activity_at)}` :
+    user.connection_since ? `Conexión ${timeAgo(user.connection_since)}` : '';
+  return `<article class="community-person-card">
+    ${profileLink(user.username,`<span class="community-person-avatar">${avatarHTML(user)}</span>`,'community-person-profile')}
+    <div class="community-person-copy">
+      ${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'community-person-name')}
+      <small>@${esc(user.username)}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small>
+      ${when ? `<span>${esc(when)}</span>` : ''}
+    </div>
+    <button type="button" class="tiny-action" data-connection-message="${esc(user.username)}">Mensaje</button>
+  </article>`;
+}
+
+function renderCommunityConversations(){
+  const section=$('#communityConversations');
+  if(!section || !communityConversationsData)return;
+  const data=communityConversationsData;
+  const conversations=Array.isArray(data.conversations)?data.conversations:[];
+  const newConnections=Array.isArray(data.new_connections)?data.new_connections:[];
+  const relevantActivity=Array.isArray(data.relevant_activity)?data.relevant_activity:[];
+  const hasAnything=conversations.length || newConnections.length || relevantActivity.length;
+  section.classList.toggle('hidden',!hasAnything);
+  if(!hasAnything)return;
+
+  const summary=data.summary || {};
+  const summaryRoot=$('#communityConversationSummary');
+  if(summaryRoot){
+    const chips=[];
+    if(Number(summary.pending||0))chips.push(`<span><b>${Number(summary.pending)}</b> pendientes</span>`);
+    if(Number(summary.unanswered||0))chips.push(`<span><b>${Number(summary.unanswered)}</b> sin respuesta</span>`);
+    if(Number(summary.resume||0))chips.push(`<span><b>${Number(summary.resume)}</b> para retomar</span>`);
+    if(Number(summary.new_connections||0))chips.push(`<span><b>${Number(summary.new_connections)}</b> conexiones nuevas</span>`);
+    summaryRoot.innerHTML=chips.join('');
+  }
+
+  const conversationBlock=$('#communityConversationSuggestions');
+  const conversationList=$('#communityConversationList');
+  conversationBlock?.classList.toggle('hidden',!conversations.length);
+  if(conversationList){
+    conversationList.innerHTML=conversations.map(item=>{
+      const identity=communityConversationIdentity(item);
+      return `<button type="button" class="community-conversation-card" data-community-conversation="${item.id}">
+        <span class="community-conversation-avatar ${item.is_group?'group-avatar':''}">${identity.avatar}</span>
+        <span class="community-conversation-copy">
+          <b>${esc(identity.title)} ${item.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
+          <small>${esc(identity.subtitle)}</small>
+          <em class="community-conversation-kind ${esc(item.kind)}">${esc(communityConversationLabel(item))}</em>
+        </span>
+        <span class="community-conversation-open">Abrir</span>
+      </button>`;
+    }).join('');
+  }
+
+  const newBlock=$('#communityNewConnectionsBlock');
+  const newRoot=$('#communityNewConnections');
+  newBlock?.classList.toggle('hidden',!newConnections.length);
+  if(newRoot)newRoot.innerHTML=newConnections.map(user=>communityPersonCardHTML(user)).join('');
+
+  const activityBlock=$('#communityRelevantActivityBlock');
+  const activityRoot=$('#communityRelevantActivity');
+  activityBlock?.classList.toggle('hidden',!relevantActivity.length);
+  if(activityRoot)activityRoot.innerHTML=relevantActivity.map(user=>communityPersonCardHTML(user,{activity:true})).join('');
+}
+
+async function loadCommunityConversations(){
+  if(communityConversationsLoading)return;
+  communityConversationsLoading=true;
+  try{
+    const {r,d}=await api('/api/messages/community-conversations');
+    if(!r.ok)return;
+    communityConversationsData=d;
+    renderCommunityConversations();
+  }finally{
+    communityConversationsLoading=false;
+  }
+}
+
 async function loadConversations(openId = null) {
   const params=new URLSearchParams({filter:messageConversationFilter,q:messageConversationSearch});
   const {r,d}=await api('/api/messages/conversations?'+params.toString());
@@ -6479,6 +6596,7 @@ function showView(name) {
     activeConversationMeta=null;
     activeConversationOther=null;
     loadConversations();
+    loadCommunityConversations();
   }
   if (name === 'notifications') loadNotifications();
 }
@@ -6790,7 +6908,7 @@ async function handleInitialDeepLink() {
   try {
     await loadMe();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
     startLiveActivity();
     startPresenceHeartbeat();
     syncVisualViewport();
