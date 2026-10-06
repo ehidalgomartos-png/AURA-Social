@@ -1156,13 +1156,18 @@ router.post('/', requireAuth, async (req, res) => {
     }
   }
 
+  const collaborationResolution=await resolveCollaborators(req.user.id,data.collaboratorUsernames);
+  if(collaborationResolution.missing.length)return res.status(400).json({error:'collaborator_not_found',missing:collaborationResolution.missing});
+  if(collaborationResolution.blocked.length)return res.status(400).json({error:'collaborator_unavailable',usernames:collaborationResolution.blocked});
+  const collaborators=collaborationResolution.collaborators;
   const needsConsent=participants.length>0;
+  const needsCollaborationApproval=collaborators.length>0;
   const creatorState=data.publishMode==='draft'
     ? 'draft'
     : data.publishMode==='scheduled'
       ? 'scheduled'
       : 'live';
-  const shouldPublishNow=creatorState==='live' && !needsConsent;
+  const shouldPublishNow=creatorState==='live' && !needsConsent && !needsCollaborationApproval;
   const moderationStatus=shouldPublishNow ? 'published' : 'under_review';
 
   const client=await db.pool.connect();
@@ -1218,8 +1223,19 @@ router.post('/', requireAuth, async (req, res) => {
       `,[post.id,participant.id]);
     }
 
+    for(const collaborator of collaborators){
+      await client.query(`
+        INSERT INTO post_collaborators(post_id,user_id,status)
+        VALUES($1,$2,'pending')
+        ON CONFLICT(post_id,user_id) DO UPDATE SET status='pending',requested_at=now(),responded_at=NULL
+      `,[post.id,collaborator.id]);
+    }
+
     if(creatorState!=='draft' && needsConsent){
       await sendPendingConsentRequests(post.id,req.user.id,client);
+    }
+    if(creatorState!=='draft' && needsCollaborationApproval){
+      await sendPendingCollaborationRequests(post.id,req.user.id,client);
     }
 
     await client.query('COMMIT');
@@ -1242,7 +1258,9 @@ router.post('/', requireAuth, async (req, res) => {
       ok:true,
       post,
       consentRequired:needsConsent,
+      collaborationRequired:needsCollaborationApproval,
       participants,
+      collaborators,
       publishMode:data.publishMode,
       communityType:data.communityType,
       audienceCircleIds
