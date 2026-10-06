@@ -59,7 +59,7 @@ async function ensureCommunityV15() {
           ADD CONSTRAINT notifications_type_check
           CHECK(type IN (
             'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-            'like','comment','mention','repost','system'
+            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast','system'
           ))
       `);
     })().catch(error => {
