@@ -172,6 +172,97 @@ CREATE TABLE IF NOT EXISTS connection_circle_members (
 CREATE INDEX IF NOT EXISTS idx_connection_circle_members_user
   ON connection_circle_members(connection_user_id,circle_id);
 
+-- RedLibertad V1.58: comunidades sociales
+CREATE TABLE IF NOT EXISTS communities (
+  id BIGSERIAL PRIMARY KEY,
+  owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(80) NOT NULL,
+  description VARCHAR(1000) NOT NULL DEFAULT '',
+  avatar_url TEXT,
+  privacy TEXT NOT NULL DEFAULT 'public' CHECK(privacy IN ('public','private')),
+  conversation_id BIGINT REFERENCES conversations(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_communities_owner_updated
+  ON communities(owner_id,updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_communities_privacy_updated
+  ON communities(privacy,updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_members (
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('owner','admin','member')),
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(community_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_community_members_user
+  ON community_members(user_id,joined_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_join_requests (
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','cancelled')),
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  PRIMARY KEY(community_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_community_join_requests_pending
+  ON community_join_requests(community_id,status,requested_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_rules (
+  id BIGSERIAL PRIMARY KEY,
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  position SMALLINT NOT NULL DEFAULT 0,
+  body VARCHAR(300) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_community_rules_community
+  ON community_rules(community_id,position,id);
+
+CREATE TABLE IF NOT EXISTS community_posts (
+  id BIGSERIAL PRIMARY KEY,
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(2200) NOT NULL DEFAULT '',
+  media_url TEXT,
+  media_type TEXT CHECK(media_type IS NULL OR media_type IN ('image','video')),
+  media_provider TEXT,
+  external_id TEXT,
+  playback_url TEXT,
+  content_level TEXT NOT NULL DEFAULT 'normal' CHECK(content_level IN ('normal','sensitive','nudity')),
+  moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','removed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK(btrim(body)<>'' OR media_url IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS idx_community_posts_community_created
+  ON community_posts(community_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_comments (
+  id BIGSERIAL PRIMARY KEY,
+  community_post_id BIGINT NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(1000) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_community_comments_post_created
+  ON community_comments(community_post_id,created_at,id);
+
+CREATE TABLE IF NOT EXISTS community_moderation_log (
+  id BIGSERIAL PRIMARY KEY,
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  actor_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id BIGINT,
+  note VARCHAR(300),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_community_moderation_log_community
+  ON community_moderation_log(community_id,created_at DESC);
+
 -- RedLibertad V1.48: notificaciones Web Push opcionales
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id BIGSERIAL PRIMARY KEY,

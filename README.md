@@ -1,4 +1,4 @@
-# RedLibertad V1.57.0 — Close Connections
+# RedLibertad V1.58.0 — Social Communities
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1255,4 +1255,27 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - El acceso a contenido Cercanas se revoca dinámicamente al quitar la marca.
 - Mobile-first.
 - VIP continúa separado y gratis.
+- Sin monetización.
+
+
+## V1.58.0 — Social Communities
+
+- Comunidades públicas y privadas.
+- Nombre, descripción y avatar opcional.
+- Roles Propietario / Administrador / Miembro.
+- Solicitudes de acceso para comunidades privadas.
+- Reglas propias, hasta 10 por comunidad.
+- Publicaciones y comentarios dentro de cada comunidad.
+- Fotos y vídeos con metadatos de reproducción preservados.
+- Clasificación Normal / Sensible / Desnudez y gate +18 existente.
+- La desnudez exige creador adulto verificado.
+- Moderadores pueden retirar publicaciones, comentarios y miembros.
+- El propietario puede promover/degradar administradores.
+- Log privado de moderación.
+- Chat de grupo opcional enlazado a la comunidad.
+- Membresía y roles del chat se sincronizan con la comunidad.
+- Los chats enlazados no permiten gestionar miembros desde Mensajes.
+- Comunidades privadas muestran ficha/reglas, pero ocultan publicaciones y miembros hasta la aprobación.
+- Bloqueos existentes se respetan en listados y contenido.
+- Mobile-first.
 - Sin monetización.

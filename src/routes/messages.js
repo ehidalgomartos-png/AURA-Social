@@ -118,12 +118,23 @@ async function conversationDetails(conversationId,userId){
   const members=participants.rows;
   const isGroup=row.conversation_type==='group';
   const other=isGroup ? null : members.find(member=>String(member.id)!==String(userId)) || null;
+  let communityId=null;
+  if(isGroup){
+    try{
+      const linked=await db.query('SELECT id FROM communities WHERE conversation_id=$1 LIMIT 1',[conversationId]);
+      communityId=linked.rows[0]?.id || null;
+    }catch(error){
+      if(error?.code!=='42P01')throw error;
+    }
+  }
   return {
     ...row,
     is_group:isGroup,
     participants:members,
     member_count:members.length,
-    other
+    other,
+    community_id:communityId,
+    community_managed:!!communityId
   };
 }
 
@@ -671,6 +682,7 @@ router.patch('/conversations/:id/group',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_group_title'});
   const details=await conversationDetails(req.params.id,req.user.id);
   if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.community_managed)return res.status(409).json({error:'community_managed_group',communityId:details.community_id});
   if(!['owner','admin'].includes(details.member_role)){
     return res.status(403).json({error:'group_admin_required'});
   }
@@ -693,6 +705,7 @@ router.post('/conversations/:id/group/members',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_group_member'});
   const details=await conversationDetails(req.params.id,req.user.id);
   if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.community_managed)return res.status(409).json({error:'community_managed_group',communityId:details.community_id});
   if(!['owner','admin'].includes(details.member_role)){
     return res.status(403).json({error:'group_admin_required'});
   }
@@ -740,6 +753,7 @@ router.post('/conversations/:id/group/members',async(req,res)=>{
 router.delete('/conversations/:id/group/members/:userId',async(req,res)=>{
   const details=await conversationDetails(req.params.id,req.user.id);
   if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.community_managed)return res.status(409).json({error:'community_managed_group',communityId:details.community_id});
   if(!['owner','admin'].includes(details.member_role)){
     return res.status(403).json({error:'group_admin_required'});
   }
@@ -762,6 +776,7 @@ router.delete('/conversations/:id/group/members/:userId',async(req,res)=>{
 router.post('/conversations/:id/group/leave',async(req,res)=>{
   const details=await conversationDetails(req.params.id,req.user.id);
   if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.community_managed)return res.status(409).json({error:'community_managed_group',communityId:details.community_id});
   if(details.member_role==='owner'){
     return res.status(409).json({error:'group_owner_cannot_leave'});
   }
@@ -777,6 +792,7 @@ router.post('/conversations/:id/group/leave',async(req,res)=>{
 router.delete('/conversations/:id/group',async(req,res)=>{
   const details=await conversationDetails(req.params.id,req.user.id);
   if(!details || !details.is_group)return res.status(404).json({error:'group_not_found'});
+  if(details.community_managed)return res.status(409).json({error:'community_managed_group',communityId:details.community_id});
   if(details.member_role!=='owner'){
     return res.status(403).json({error:'group_owner_required'});
   }
@@ -1154,8 +1170,10 @@ router.get('/conversations/:id/messages', async (req, res) => {
         typing:member.typing===true,
         blocked_with_viewer:member.blocked_with_viewer===true
       })),
-      can_manage_group:details.is_group && ['owner','admin'].includes(details.member_role),
-      can_delete_group:details.is_group && details.member_role==='owner'
+      community_managed:details.community_managed===true,
+      community_id:details.community_id || null,
+      can_manage_group:details.is_group && !details.community_managed && ['owner','admin'].includes(details.member_role),
+      can_delete_group:details.is_group && !details.community_managed && details.member_role==='owner'
     },
     sensitiveAllowed:directSensitiveAllowed,
     viewerAgeVerified:!!viewer?.age_verified,

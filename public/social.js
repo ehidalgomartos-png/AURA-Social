@@ -16,6 +16,12 @@ let messageConversationSearch = '';
 let messageConversationSearchTimer = null;
 let communityConversationsData=null;
 let communityConversationsLoading=false;
+let communityDirectoryItems=[];
+let communityScope='all';
+let communitySearch='';
+let communitySearchTimer=null;
+let activeCommunityId=null;
+let activeCommunityData=null;
 let interestCatalog = [];
 let activeExploreInterest = '';
 let connectionCircles=[];
@@ -6041,7 +6047,11 @@ async function openConversation(id) {
       <button type="button" class="tiny-action" data-conversation-setting="pinned">${activeConversationSettings.is_pinned?'★ Fijada':'☆ Fijar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="muted">${activeConversationSettings.notifications_muted?'Activar avisos':'Silenciar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="archived">${activeConversationSettings.is_archived?'Desarchivar':'Archivar'}</button>
-      ${isGroup ? '<button id="manageGroup" type="button" class="tiny-action">Participantes</button>' : ''}
+      ${isGroup
+        ? activeConversationMeta?.community_managed
+          ? `<button id="openChatCommunity" type="button" class="tiny-action">Ver comunidad</button>`
+          : '<button id="manageGroup" type="button" class="tiny-action">Participantes</button>'
+        : ''}
       ${!isGroup && d.sensitiveAllowed ? '<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>' : ''}
     </div>
   </header>
@@ -6077,6 +6087,12 @@ async function openConversation(id) {
   $('#messageFile').addEventListener('change',renderMessagePreview);
   $('#messageLevel').addEventListener('change',updateMessagePreviewLevel);
   if($('#manageGroup'))$('#manageGroup').onclick=openGroupManage;
+  if($('#openChatCommunity'))$('#openChatCommunity').onclick=async()=>{
+    const communityId=activeConversationMeta?.community_id;
+    if(!communityId)return;
+    showView('communities');
+    await openCommunityDetail(communityId);
+  };
 
   if($('#revokeSensitive') && d.other){
     $('#revokeSensitive').onclick=async()=>{
@@ -6737,6 +6753,527 @@ $('#returnPulseRefresh')?.addEventListener('click',async()=>{
   await loadReturnPulse(true);
 });
 
+
+function communityAvatarHTML(community){
+  return community?.avatar_url
+    ? `<img src="${esc(community.avatar_url)}" alt="" loading="lazy" decoding="async">`
+    : `<span>${esc(initials(community?.name || 'C'))}</span>`;
+}
+
+function communityRoleLabel(role){
+  return role==='owner' ? 'Propietario' : role==='admin' ? 'Administrador' : 'Miembro';
+}
+
+function communityCardHTML(community){
+  const privacy=community.privacy==='private' ? 'Privada' : 'Pública';
+  const member=!!community.is_member;
+  const status=member
+    ? communityRoleLabel(community.viewer_role)
+    : community.request_status==='pending'
+      ? 'Solicitud pendiente'
+      : community.privacy==='private' ? 'Requiere aprobación' : 'Abierta';
+  return `<article class="community-card" data-community-card="${community.id}">
+    <button type="button" class="community-card-main" data-community-open="${community.id}">
+      <span class="community-card-avatar">${communityAvatarHTML(community)}</span>
+      <span class="community-card-copy">
+        <span class="community-card-kicker">${esc(privacy)} · ${Number(community.member_count||0)} miembros</span>
+        <b>${esc(community.name)}</b>
+        <p>${esc(community.description || 'Sin descripción todavía.')}</p>
+        <small>${esc(status)} · ${Number(community.post_count||0)} publicaciones</small>
+      </span>
+    </button>
+  </article>`;
+}
+
+function renderCommunityDirectory(){
+  const root=$('#communityList');
+  if(!root)return;
+  root.innerHTML=communityDirectoryItems.length
+    ? communityDirectoryItems.map(communityCardHTML).join('')
+    : '<div class="communities-empty"><b>No hay comunidades en este filtro.</b><p>Prueba otra búsqueda o crea la primera.</p></div>';
+  all('[data-community-scope]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.communityScope===communityScope);
+  });
+}
+
+async function loadCommunities(){
+  const root=$('#communityList');
+  if(root && !communityDirectoryItems.length)root.innerHTML='<div class="mini-loading">Cargando comunidades…</div>';
+  const params=new URLSearchParams({scope:communityScope,q:communitySearch});
+  const {r,d}=await api('/api/communities?'+params.toString());
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="info-card"><b>No se pudieron cargar las comunidades.</b></div>';
+    return [];
+  }
+  communityDirectoryItems=Array.isArray(d.communities)?d.communities:[];
+  renderCommunityDirectory();
+  return communityDirectoryItems;
+}
+
+function showCommunityDirectory(){
+  activeCommunityId=null;
+  activeCommunityData=null;
+  $('#communityDetail')?.classList.add('hidden');
+  $('#communitiesDirectory')?.classList.remove('hidden');
+  loadCommunities();
+}
+
+function communityHeroHTML(data){
+  const community=data.community;
+  const isMember=community.is_member===true;
+  const pending=community.request_status==='pending';
+  const joinAction=isMember
+    ? community.viewer_role==='owner'
+      ? '<span class="community-owner-chip">Propietario</span>'
+      : '<button type="button" class="secondary" data-community-leave>Salir</button>'
+    : pending
+      ? '<button type="button" class="secondary" data-community-leave>Cancelar solicitud</button>'
+      : `<button type="button" class="primary" data-community-join>${community.privacy==='private'?'Solicitar acceso':'Unirme'}</button>`;
+  const chatAction=isMember && community.conversation_id
+    ? `<button type="button" class="secondary" data-community-chat="${community.conversation_id}">Abrir chat</button>`
+    : '';
+  return `<div class="community-hero-main">
+    <div class="community-hero-avatar">${communityAvatarHTML(community)}</div>
+    <div class="community-hero-copy">
+      <span class="eyebrow">${community.privacy==='private'?'COMUNIDAD PRIVADA':'COMUNIDAD PÚBLICA'}</span>
+      <h2>${esc(community.name)}</h2>
+      <p>${esc(community.description || 'Sin descripción todavía.')}</p>
+      <div class="community-hero-meta">
+        <span>${Number(community.member_count||0)} miembros</span>
+        <span>${Number(community.post_count||0)} publicaciones</span>
+        <span>Creada por @${esc(community.owner_username || '')}</span>
+        ${community.viewer_role ? `<span>${esc(communityRoleLabel(community.viewer_role))}</span>` : ''}
+      </div>
+    </div>
+  </div>
+  <div class="community-hero-actions">${joinAction}${chatAction}</div>`;
+}
+
+function renderCommunityRules(data){
+  const root=$('#communityRules');
+  if(!root)return;
+  const rules=Array.isArray(data.rules)?data.rules:[];
+  root.innerHTML=rules.length
+    ? `<div class="community-section-head"><b>Reglas</b><small>${rules.length} reglas</small></div><ol>${rules.map(rule=>`<li>${esc(rule.body)}</li>`).join('')}</ol>`
+    : '<div class="community-rules-empty">Esta comunidad todavía no tiene reglas propias.</div>';
+}
+
+function communityMemberHTML(member,community){
+  const canManage=community.can_manage===true;
+  const canRoles=community.can_manage_roles===true;
+  const mine=String(member.id)===String(me?.id);
+  const roleActions=canRoles && member.role!=='owner' && !mine
+    ? `<button type="button" class="tiny-action" data-community-role-user="${member.id}" data-community-role="${member.role==='admin'?'member':'admin'}">${member.role==='admin'?'Quitar admin':'Hacer admin'}</button>`
+    : '';
+  const canRemove=canManage && !mine && member.role!=='owner' && !(community.viewer_role==='admin' && member.role==='admin');
+  return `<article class="community-member-row">
+    ${profileLink(member.username,`<span class="community-member-avatar">${avatarHTML(member)}</span>`,'community-member-profile')}
+    <div class="community-member-copy">
+      ${profileLink(member.username,`<b>${esc(member.display_name)} ${member.creator_verified?'<span class="verified">✓</span>':''}</b>`,'community-member-name')}
+      <small>@${esc(member.username)} · ${esc(communityRoleLabel(member.role))}</small>
+    </div>
+    <div class="community-member-actions">${roleActions}${canRemove?`<button type="button" class="tiny-action danger-outline" data-community-remove-member="${member.id}">Expulsar</button>`:''}</div>
+  </article>`;
+}
+
+function renderCommunityMembers(data){
+  const root=$('#communityMembers');
+  const section=$('#communityMembersSection');
+  if(!root || !section)return;
+  const members=Array.isArray(data.members)?data.members:[];
+  const hidden=data.community.privacy==='private' && !data.community.is_member;
+  section.classList.toggle('hidden',hidden);
+  if(hidden)return;
+  root.innerHTML=members.length
+    ? members.map(member=>communityMemberHTML(member,data.community)).join('')
+    : '<div class="empty-list">No hay miembros visibles.</div>';
+  if($('#communityMemberCount'))$('#communityMemberCount').textContent=`${Number(data.community.member_count||0)} miembros`;
+}
+
+function communityPostHTML(post,community){
+  const comments=Array.isArray(post.comments)?post.comments:[];
+  const media=mediaHTML(post);
+  return `<article class="community-feed-post" data-community-post="${post.id}">
+    <header>
+      ${profileLink(post.username,`<span class="community-post-avatar">${avatarHTML(post)}</span>`,'community-post-profile')}
+      <div>
+        ${profileLink(post.username,`<b>${esc(post.display_name)} ${post.creator_verified?'<span class="verified">✓</span>':''}</b>`,'community-post-name')}
+        <small>@${esc(post.username)} · ${timeAgo(post.created_at)}${post.content_level!=='normal'?' · 18+':''}</small>
+      </div>
+      ${post.can_delete?`<button type="button" class="tiny-action danger-outline" data-community-delete-post="${post.id}">Eliminar</button>`:''}
+    </header>
+    ${post.body?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
+    ${media?`<div class="community-post-media">${media}</div>`:''}
+    <div class="community-post-comments">
+      <div class="community-comment-count">${Number(post.comment_count||comments.length)} comentarios</div>
+      ${comments.length ? comments.map(comment=>`<div class="community-comment" data-community-comment="${comment.id}">
+        <div><b>@${esc(comment.username)}</b> <span>${esc(comment.body)}</span><small>${timeAgo(comment.created_at)}</small></div>
+        ${comment.can_delete?`<button type="button" class="tiny-action" data-community-delete-comment="${comment.id}" data-community-post-id="${post.id}">Eliminar</button>`:''}
+      </div>`).join('') : '<div class="community-comments-empty">Sin comentarios todavía.</div>'}
+      ${community.is_member?`<form class="community-comment-form" data-community-comment-form="${post.id}">
+        <input name="body" maxlength="1000" placeholder="Escribe un comentario…" required>
+        <button class="tiny-action" type="submit">Comentar</button>
+      </form>`:''}
+    </div>
+  </article>`;
+}
+
+async function loadCommunityPosts(){
+  const root=$('#communityPosts');
+  if(!root || !activeCommunityId || !activeCommunityData)return;
+  if(!activeCommunityData.can_view_content){
+    root.innerHTML='<div class="community-private-gate"><b>Contenido privado</b><p>Solicita acceso para ver publicaciones y miembros de esta comunidad.</p></div>';
+    if($('#communityPostCount'))$('#communityPostCount').textContent='Contenido privado';
+    return;
+  }
+  root.innerHTML='<div class="mini-loading">Cargando publicaciones…</div>';
+  const {r,d}=await api(`/api/communities/${activeCommunityId}/posts`);
+  if(!r.ok){
+    root.innerHTML='<div class="info-card"><b>No se pudieron cargar las publicaciones.</b></div>';
+    return;
+  }
+  const posts=Array.isArray(d.posts)?d.posts:[];
+  root.innerHTML=posts.length
+    ? posts.map(post=>communityPostHTML(post,activeCommunityData.community)).join('')
+    : '<div class="community-posts-empty"><b>Todavía no hay publicaciones.</b><p>Los miembros pueden iniciar la conversación.</p></div>';
+  if($('#communityPostCount'))$('#communityPostCount').textContent=`${posts.length} publicaciones`;
+}
+
+async function loadCommunityAdminData(){
+  const data=activeCommunityData;
+  if(!data?.community?.can_manage)return;
+  const communityId=activeCommunityId;
+  const [requestsResult,logResult]=await Promise.all([
+    api(`/api/communities/${communityId}/requests`),
+    api(`/api/communities/${communityId}/moderation-log`)
+  ]);
+  if(String(activeCommunityId)!==String(communityId))return;
+  const requests=requestsResult.r.ok && Array.isArray(requestsResult.d.requests)?requestsResult.d.requests:[];
+  const logs=logResult.r.ok && Array.isArray(logResult.d.items)?logResult.d.items:[];
+  const requestRoot=$('#communityRequests');
+  if(requestRoot){
+    requestRoot.innerHTML=requests.length ? requests.map(request=>`<article class="community-request-row">
+      <div><b>${esc(request.display_name)}</b><small>@${esc(request.username)} · ${timeAgo(request.requested_at)}</small></div>
+      <div><button type="button" class="tiny-action" data-community-request-user="${request.user_id}" data-community-request-decision="approved">Aprobar</button><button type="button" class="tiny-action danger-outline" data-community-request-user="${request.user_id}" data-community-request-decision="rejected">Rechazar</button></div>
+    </article>`).join('') : '<div class="empty-list">No hay solicitudes pendientes.</div>';
+  }
+  if($('#communityRequestCount'))$('#communityRequestCount').textContent=`${requests.length} pendientes`;
+  const logRoot=$('#communityModerationLog');
+  if(logRoot){
+    logRoot.innerHTML=logs.length ? logs.slice(0,20).map(item=>`<div class="community-moderation-row"><b>${esc(item.action.replaceAll('_',' '))}</b><small>${esc(item.actor_display_name || item.actor_username)} · ${timeAgo(item.created_at)}</small></div>`).join('') : '<div class="empty-list">Sin acciones de moderación.</div>';
+  }
+}
+
+function renderCommunityAdmin(data){
+  const panel=$('#communityAdminPanel');
+  if(!panel)return;
+  const community=data.community;
+  panel.classList.toggle('hidden',!community.can_manage);
+  if(!community.can_manage)return;
+  const form=$('#communityEditForm');
+  if(form){
+    form.elements.name.value=community.name || '';
+    form.elements.description.value=community.description || '';
+    form.elements.privacy.value=community.privacy || 'public';
+    form.elements.rules.value=(data.rules||[]).map(rule=>rule.body).join('\n');
+  }
+  $('#deleteCommunity')?.classList.toggle('hidden',community.viewer_role!=='owner');
+  loadCommunityAdminData();
+}
+
+async function openCommunityDetail(communityId){
+  const id=Number(communityId);
+  if(!Number.isInteger(id)||id<=0)return;
+  activeCommunityId=id;
+  $('#communitiesDirectory')?.classList.add('hidden');
+  $('#communityDetail')?.classList.remove('hidden');
+  const hero=$('#communityHero');
+  if(hero)hero.innerHTML='<div class="mini-loading">Cargando comunidad…</div>';
+  const {r,d}=await api(`/api/communities/${id}`);
+  if(!r.ok){
+    if(hero)hero.innerHTML='<div class="info-card"><b>Esta comunidad no está disponible.</b></div>';
+    return;
+  }
+  activeCommunityData=d;
+  if(hero)hero.innerHTML=communityHeroHTML(d);
+  renderCommunityRules(d);
+  renderCommunityMembers(d);
+  renderCommunityAdmin(d);
+  $('#communityComposeSection')?.classList.toggle('hidden',!d.community.is_member);
+  await loadCommunityPosts();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function openCommunityCreateModal(){
+  $('#communityCreateModal')?.classList.remove('hidden');
+  $('#communityCreateStatus').textContent='';
+  setTimeout(()=>$('#communityCreateForm input[name="name"]')?.focus(),80);
+}
+
+function closeCommunityCreateModal(){
+  $('#communityCreateModal')?.classList.add('hidden');
+  $('#communityCreateForm')?.reset();
+  if($('#communityCreateStatus'))$('#communityCreateStatus').textContent='';
+}
+
+function parseCommunityRules(value=''){
+  return String(value||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).slice(0,10);
+}
+
+async function refreshActiveCommunity(){
+  if(activeCommunityId)await openCommunityDetail(activeCommunityId);
+  await loadCommunities();
+}
+
+$('#newCommunity')?.addEventListener('click',openCommunityCreateModal);
+$('#closeCommunityCreate')?.addEventListener('click',closeCommunityCreateModal);
+$('#communityCreateModal')?.addEventListener('click',event=>{
+  if(event.target===$('#communityCreateModal'))closeCommunityCreateModal();
+});
+$('#backToCommunities')?.addEventListener('click',showCommunityDirectory);
+
+$('#communitySearch')?.addEventListener('input',event=>{
+  communitySearch=event.currentTarget.value || '';
+  clearTimeout(communitySearchTimer);
+  communitySearchTimer=setTimeout(loadCommunities,220);
+});
+
+$('#communityCreateForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const submit=form.querySelector('button[type="submit"]');
+  const status=$('#communityCreateStatus');
+  submit.disabled=true;
+  status.textContent='Creando comunidad…';
+  try{
+    const fd=new FormData(form);
+    const avatarFile=$('#communityAvatarFile')?.files?.[0] || null;
+    let avatarUrl='';
+    if(avatarFile){
+      const media=await uploadFile(avatarFile);
+      if(media?.mediaType && media.mediaType!=='image')throw new Error('El avatar debe ser una imagen.');
+      avatarUrl=media?.url || '';
+    }
+    const {r,d}=await api('/api/communities',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        name:String(fd.get('name')||'').trim(),
+        description:String(fd.get('description')||'').trim(),
+        privacy:String(fd.get('privacy')||'public'),
+        avatarUrl,
+        rules:parseCommunityRules(fd.get('rules')),
+        createChat:fd.get('createChat')==='on'
+      })
+    });
+    if(!r.ok)throw new Error(d.error==='invalid_community'?'Revisa el nombre y los datos de la comunidad.':'No se pudo crear la comunidad.');
+    closeCommunityCreateModal();
+    toast('Comunidad creada');
+    await loadCommunities();
+    await openCommunityDetail(d.community.id);
+  }catch(error){
+    status.textContent=error.message;
+  }finally{submit.disabled=false;}
+});
+
+$('#communityEditForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeCommunityId || !activeCommunityData?.community?.can_manage)return;
+  const form=event.currentTarget;
+  const status=$('#communityEditStatus');
+  status.textContent='Guardando…';
+  try{
+    const fd=new FormData(form);
+    const payload={
+      name:String(fd.get('name')||'').trim(),
+      description:String(fd.get('description')||'').trim(),
+      privacy:String(fd.get('privacy')||'public'),
+      rules:parseCommunityRules(fd.get('rules'))
+    };
+    const avatarFile=$('#communityEditAvatarFile')?.files?.[0] || null;
+    if(avatarFile){
+      const media=await uploadFile(avatarFile);
+      if(media?.mediaType && media.mediaType!=='image')throw new Error('El avatar debe ser una imagen.');
+      payload.avatarUrl=media?.url || '';
+    }
+    const {r,d}=await api(`/api/communities/${activeCommunityId}`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    if(!r.ok)throw new Error(d.error==='community_admin_required'?'No tienes permisos para editar esta comunidad.':'No se pudo guardar.');
+    status.textContent='Guardado.';
+    toast('Comunidad actualizada');
+    await refreshActiveCommunity();
+  }catch(error){status.textContent=error.message;}
+});
+
+$('#communityPostForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeCommunityId || !activeCommunityData?.community?.is_member)return;
+  const form=event.currentTarget;
+  const status=$('#communityPostStatus');
+  const submit=form.querySelector('button[type="submit"]');
+  submit.disabled=true;
+  status.textContent='Publicando…';
+  try{
+    const fd=new FormData(form);
+    const file=$('#communityPostFile')?.files?.[0] || null;
+    let media=null;
+    if(file)media=await uploadFile(file);
+    const {r,d}=await api(`/api/communities/${activeCommunityId}/posts`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        body:String(fd.get('body')||''),
+        contentLevel:String(fd.get('contentLevel')||'normal'),
+        mediaUrl:media?.url || '',
+        mediaType:media?.mediaType || 'image',
+        mediaProvider:media?.provider || 'local',
+        externalId:media?.externalId || null,
+        playbackUrl:media?.playbackUrl || null
+      })
+    });
+    if(!r.ok){
+      throw new Error(
+        d.error==='verified_creator_required_for_nudity'
+          ? 'La desnudez requiere una cuenta de creador adulto verificado.'
+          : d.error==='empty_post' ? 'Escribe algo o selecciona una foto o vídeo.'
+          : 'No se pudo publicar.'
+      );
+    }
+    form.reset();
+    status.textContent='';
+    toast('Publicado en la comunidad');
+    await refreshActiveCommunity();
+  }catch(error){status.textContent=error.message;}
+  finally{submit.disabled=false;}
+});
+
+$('#deleteCommunity')?.addEventListener('click',async()=>{
+  if(!activeCommunityId || activeCommunityData?.community?.viewer_role!=='owner')return;
+  if(!window.confirm('¿Eliminar esta comunidad? Se eliminarán sus publicaciones, miembros y el chat asociado.'))return;
+  const {r}=await api(`/api/communities/${activeCommunityId}`,{method:'DELETE'});
+  if(!r.ok)return toast('No se pudo eliminar la comunidad.');
+  toast('Comunidad eliminada');
+  showCommunityDirectory();
+});
+
+document.addEventListener('submit',async event=>{
+  const form=event.target.closest('[data-community-comment-form]');
+  if(!form)return;
+  event.preventDefault();
+  if(!activeCommunityId)return;
+  const postId=form.dataset.communityCommentForm;
+  const body=String(new FormData(form).get('body')||'').trim();
+  if(!body)return;
+  const button=form.querySelector('button[type="submit"]');
+  button.disabled=true;
+  const {r}=await api(`/api/communities/${activeCommunityId}/posts/${postId}/comments`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body})
+  });
+  button.disabled=false;
+  if(!r.ok)return toast('No se pudo comentar.');
+  form.reset();
+  await loadCommunityPosts();
+});
+
+document.addEventListener('click',async event=>{
+  const scopeButton=event.target.closest('[data-community-scope]');
+  if(scopeButton){
+    event.preventDefault();
+    communityScope=scopeButton.dataset.communityScope || 'all';
+    await loadCommunities();
+    return;
+  }
+  const openButton=event.target.closest('[data-community-open]');
+  if(openButton){
+    event.preventDefault();
+    await openCommunityDetail(openButton.dataset.communityOpen);
+    return;
+  }
+  const joinButton=event.target.closest('[data-community-join]');
+  if(joinButton){
+    event.preventDefault();
+    if(!activeCommunityId)return;
+    const {r,d}=await api(`/api/communities/${activeCommunityId}/join`,{method:'POST'});
+    if(!r.ok)return toast('No se pudo actualizar la membresía.');
+    toast(d.status==='pending'?'Solicitud enviada':'Ya formas parte de la comunidad');
+    await refreshActiveCommunity();
+    return;
+  }
+  const leaveButton=event.target.closest('[data-community-leave]');
+  if(leaveButton){
+    event.preventDefault();
+    if(!activeCommunityId)return;
+    const isMember=activeCommunityData?.community?.is_member;
+    if(isMember && !window.confirm('¿Salir de esta comunidad?'))return;
+    const {r}=await api(`/api/communities/${activeCommunityId}/join`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo actualizar la membresía.');
+    toast(isMember?'Has salido de la comunidad':'Solicitud cancelada');
+    await refreshActiveCommunity();
+    return;
+  }
+  const chatButton=event.target.closest('[data-community-chat]');
+  if(chatButton){
+    event.preventDefault();
+    showView('messages');
+    await loadConversations(chatButton.dataset.communityChat);
+    return;
+  }
+  const reviewButton=event.target.closest('[data-community-request-user]');
+  if(reviewButton){
+    event.preventDefault();
+    const {r}=await api(`/api/communities/${activeCommunityId}/requests/${reviewButton.dataset.communityRequestUser}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({decision:reviewButton.dataset.communityRequestDecision})
+    });
+    if(!r.ok)return toast('No se pudo revisar la solicitud.');
+    toast(reviewButton.dataset.communityRequestDecision==='approved'?'Solicitud aprobada':'Solicitud rechazada');
+    await refreshActiveCommunity();
+    return;
+  }
+  const roleButton=event.target.closest('[data-community-role-user]');
+  if(roleButton){
+    event.preventDefault();
+    const {r}=await api(`/api/communities/${activeCommunityId}/members/${roleButton.dataset.communityRoleUser}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({role:roleButton.dataset.communityRole})
+    });
+    if(!r.ok)return toast('No se pudo cambiar el rol.');
+    toast('Rol actualizado');
+    await refreshActiveCommunity();
+    return;
+  }
+  const removeMember=event.target.closest('[data-community-remove-member]');
+  if(removeMember){
+    event.preventDefault();
+    if(!window.confirm('¿Expulsar a esta persona de la comunidad?'))return;
+    const {r}=await api(`/api/communities/${activeCommunityId}/members/${removeMember.dataset.communityRemoveMember}`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo expulsar a esta persona.');
+    toast('Miembro eliminado');
+    await refreshActiveCommunity();
+    return;
+  }
+  const deletePost=event.target.closest('[data-community-delete-post]');
+  if(deletePost){
+    event.preventDefault();
+    if(!window.confirm('¿Eliminar esta publicación de la comunidad?'))return;
+    const {r}=await api(`/api/communities/${activeCommunityId}/posts/${deletePost.dataset.communityDeletePost}`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo eliminar la publicación.');
+    await refreshActiveCommunity();
+    return;
+  }
+  const deleteComment=event.target.closest('[data-community-delete-comment]');
+  if(deleteComment){
+    event.preventDefault();
+    const {r}=await api(`/api/communities/${activeCommunityId}/posts/${deleteComment.dataset.communityPostId}/comments/${deleteComment.dataset.communityDeleteComment}`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo eliminar el comentario.');
+    await loadCommunityPosts();
+    return;
+  }
+});
+
 function showView(name) {
   const switching=name!==activeViewName;
   if(!switching){
@@ -6757,6 +7294,10 @@ function showView(name) {
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
   if (name === 'connections') loadConnectionsCenter();
+  if (name === 'communities') {
+    if(activeCommunityId)openCommunityDetail(activeCommunityId);
+    else loadCommunities();
+  }
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
   if (name === 'messages') {
