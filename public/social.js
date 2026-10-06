@@ -324,6 +324,7 @@ function momentumCardHTML(post) {
     </div>
     <div class="momentum-card-copy">
       <span class="momentum-author"><span class="momentum-avatar">${avatarHTML(post)}</span><b>${esc(post.display_name)}</b></span>
+      ${post.audience === 'vip' ? '<span class="vip-content-badge compact">★ SOLO VIP</span>' : ''}
       ${media && shortCopy ? `<p>${esc(shortCopy)}</p>` : ''}
       <small>${post.from_following ? 'Siguiendo · ' : ''}${compactTimeAgo(post.created_at)}${engagement ? ` · ${engagement} interacciones` : ''}</small>
     </div>
@@ -1312,7 +1313,7 @@ function creatorTopContentHTML(posts = []) {
     <span class="creator-top-content-rank">${index + 1}</span>
     <span class="creator-top-content-media">${tileContentHTML(post)}</span>
     <span class="creator-top-content-copy">
-      <b>${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
+      <b>${post.audience === 'vip' ? '★ VIP · ' : ''}${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
       <small>♥ ${Number(post.like_count_30d || 0)} · ◯ ${Number(post.comment_count_30d || 0)} · ⟳ ${Number(post.repost_count_30d || 0)} · ★ ${Number(post.save_count_30d || 0)} guardados</small>
     </span>
   </button>`).join('');
