@@ -125,6 +125,15 @@
 
     <section id="messagesView" class="view hidden">
       <div class="page-title"><div><span class="eyebrow">PRIVADO Y CON CONSENTIMIENTO</span><h1>Mensajes</h1></div><button id="newConversation" class="secondary">Nuevo mensaje</button></div>
+      <div class="message-inbox-tools">
+        <div class="message-inbox-tabs">
+          <button type="button" class="active" data-message-filter="all">Activas</button>
+          <button type="button" data-message-filter="unread">No leídas</button>
+          <button type="button" data-message-filter="archived">Archivadas</button>
+        </div>
+        <input id="messageConversationSearch" type="search" maxlength="100" placeholder="Buscar conversación…">
+        <div id="messageInboxSummary" class="message-inbox-summary"></div>
+      </div>
       <div class="messages-layout">
         <aside class="conversation-panel"><div id="conversationList" class="conversation-list"></div></aside>
         <div id="chatPanel" class="chat-panel empty-chat"><div class="empty-state"><b>Elige una conversación</b><p>Las imágenes sensibles permanecen tapadas hasta que el destinatario las acepte.</p></div></div>

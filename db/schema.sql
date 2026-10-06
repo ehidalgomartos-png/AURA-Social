@@ -59,6 +59,13 @@ CREATE TABLE IF NOT EXISTS conversation_members (
 );
 CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id,conversation_id);
 
+-- RedLibertad V1.36: organización privada de conversaciones
+ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS notifications_muted BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS idx_conversation_members_inbox
+  ON conversation_members(user_id,is_archived,is_pinned,conversation_id);
+
 CREATE TABLE IF NOT EXISTS messages (
   id BIGSERIAL PRIMARY KEY,
   conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,

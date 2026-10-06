@@ -5,6 +5,10 @@ let currentMode = 'foryou';
 let currentFileMedia = null;
 let activeConversationId = null;
 let activeConversationOther = null;
+let activeConversationSettings = null;
+let messageConversationFilter = 'all';
+let messageConversationSearch = '';
+let messageConversationSearchTimer = null;
 let interestCatalog = [];
 let activeExploreInterest = '';
 let activeCommentsPostId = null;
@@ -4362,6 +4366,20 @@ all('[data-notification-filter]').forEach(button => {
   };
 });
 
+all('[data-message-filter]').forEach(button=>{
+  button.onclick=async()=>{
+    messageConversationFilter=button.dataset.messageFilter || 'all';
+    activeConversationId=null;
+    $('.messages-layout')?.classList.remove('chat-open');
+    await loadConversations();
+  };
+});
+$('#messageConversationSearch')?.addEventListener('input',event=>{
+  messageConversationSearch=String(event.currentTarget.value||'').trim();
+  clearTimeout(messageConversationSearchTimer);
+  messageConversationSearchTimer=setTimeout(()=>loadConversations(),260);
+});
+
 $('#readAllNotifications').onclick = async () => {
   await api('/api/notifications/read-all', { method: 'POST' });
   notificationCache = notificationCache.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }));
@@ -4371,8 +4389,10 @@ $('#readAllNotifications').onclick = async () => {
 };
 
 async function loadConversations(openId = null) {
-  const { d } = await api('/api/messages/conversations');
-  const total = d.conversations.reduce((a, x) => a + Number(x.unread_count || 0), 0);
+  const params=new URLSearchParams({filter:messageConversationFilter,q:messageConversationSearch});
+  const { d } = await api('/api/messages/conversations?'+params.toString());
+  const conversations=Array.isArray(d.conversations)?d.conversations:[];
+  const total = conversations.reduce((a, x) => a + Number(x.unread_count || 0), 0);
   const badgeValue = total > 99 ? '99+' : String(total);
   ['#messageBadge', '#messageBadgeMobile'].forEach(selector => {
     const badge = $(selector);
@@ -4380,7 +4400,27 @@ async function loadConversations(openId = null) {
     badge.textContent = badgeValue;
     badge.classList.toggle('hidden', !total);
   });
-  $('#conversationList').innerHTML = d.conversations.length ? d.conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''}" data-conversation="${c.id}"><div class="avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}</div><div class="conversation-copy"><b>${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small></div>${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}</button>`).join('') : '<div class="empty-list">Todavía no tienes conversaciones.</div>';
+
+  all('[data-message-filter]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.messageFilter===messageConversationFilter);
+  });
+  const summary=d.summary||{};
+  if($('#messageInboxSummary')){
+    $('#messageInboxSummary').textContent=`${Number(summary.unread||0)} no leídas · ${Number(summary.pinned||0)} fijadas · ${Number(summary.archived||0)} archivadas`;
+  }
+  if($('#messageConversationSearch') && $('#messageConversationSearch').value!==messageConversationSearch){
+    $('#messageConversationSearch').value=messageConversationSearch;
+  }
+
+  $('#conversationList').innerHTML = conversations.length ? conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''} ${c.is_pinned?'pinned':''}" data-conversation="${c.id}">
+    <div class="avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}</div>
+    <div class="conversation-copy">
+      <b>${c.is_pinned?'★ ':''}${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
+      <small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small>
+      ${c.notifications_muted?'<em class="conversation-muted">Silenciada</em>':''}
+    </div>
+    ${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}
+  </button>`).join('') : '<div class="empty-list">No hay conversaciones en este filtro.</div>';
   all('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
   if (openId) await openConversation(openId);
 }
@@ -4390,9 +4430,20 @@ async function openConversation(id) {
   if (layout) layout.classList.add('chat-open');
   const { d } = await api(`/api/messages/conversations/${id}/messages`);
   activeConversationOther = d.other;
+  activeConversationSettings=d.settings || {is_pinned:false,is_archived:false,notifications_muted:false};
   const messages = d.messages.map(m => messageHTML(m, d.other)).join('');
   $('#chatPanel').className = 'chat-panel';
-  $('#chatPanel').innerHTML = `<header class="chat-head"><button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Volver a conversaciones">‹</button><div class="avatar">${avatarHTML(d.other)}</div><div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}</header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
+  $('#chatPanel').innerHTML = `<header class="chat-head">
+    <button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Volver a conversaciones">‹</button>
+    <div class="avatar">${avatarHTML(d.other)}</div>
+    <div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>
+    <div class="chat-conversation-actions">
+      <button type="button" class="tiny-action" data-conversation-setting="pinned">${activeConversationSettings.is_pinned?'★ Fijada':'☆ Fijar'}</button>
+      <button type="button" class="tiny-action" data-conversation-setting="muted">${activeConversationSettings.notifications_muted?'Activar avisos':'Silenciar'}</button>
+      <button type="button" class="tiny-action" data-conversation-setting="archived">${activeConversationSettings.is_archived?'Desarchivar':'Archivar'}</button>
+      ${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}
+    </div>
+  </header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
   const mobileBack = $('#mobileChatBack');
   if (mobileBack) mobileBack.onclick = () => {
     const messagesLayout = $('.messages-layout');
@@ -4409,6 +4460,34 @@ async function openConversation(id) {
     toast('Ya no recibirás contenido sensible visible de esta persona');
     await openConversation(activeConversationId);
   };
+  all('[data-conversation-setting]',$('#chatPanel')).forEach(button=>{
+    button.onclick=async()=>{
+      const key=button.dataset.conversationSetting;
+      const payload=key==='pinned'
+        ? {pinned:!activeConversationSettings.is_pinned}
+        : key==='archived'
+          ? {archived:!activeConversationSettings.is_archived}
+          : {muted:!activeConversationSettings.notifications_muted};
+      button.disabled=true;
+      const {r,d:settingsData}=await api(`/api/messages/conversations/${activeConversationId}/settings`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      if(!r.ok){button.disabled=false;return toast('No se pudo actualizar la conversación.');}
+      activeConversationSettings=settingsData.settings || activeConversationSettings;
+      toast(key==='pinned'?(activeConversationSettings.is_pinned?'Conversación fijada':'Conversación desfijada'):key==='archived'?(activeConversationSettings.is_archived?'Conversación archivada':'Conversación recuperada'):(activeConversationSettings.notifications_muted?'Avisos silenciados':'Avisos activados'));
+      if(key==='archived' && activeConversationSettings.is_archived){
+        activeConversationId=null;
+        $('.messages-layout')?.classList.remove('chat-open');
+        $('#chatPanel').className='chat-panel empty-chat';
+        $('#chatPanel').innerHTML='<div class="empty-state"><b>Conversación archivada</b><p>Puedes recuperarla desde la pestaña Archivadas.</p></div>';
+        await loadConversations();
+      }else{
+        await openConversation(activeConversationId);
+      }
+    };
+  });
   const thread = $('#messageThread'); thread.scrollTop = thread.scrollHeight;
   await loadConversations();
 }

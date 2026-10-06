@@ -10,6 +10,10 @@ async function ensureMessagePrivacy() {
   if (!messagePrivacyReady) {
     messagePrivacyReady = (async () => {
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone'");
+      await db.query("ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS notifications_muted BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_conversation_members_inbox ON conversation_members(user_id,is_archived,is_pinned,conversation_id)");
     })().catch(error => {
       messagePrivacyReady = null;
       throw error;
@@ -50,8 +54,15 @@ async function otherMember(conversationId, userId) {
 }
 
 router.get('/conversations', async (req, res) => {
+  const filter=String(req.query.filter || 'all');
+  const q=String(req.query.q || '').trim().slice(0,100);
+  if(!['all','unread','archived'].includes(filter)){
+    return res.status(400).json({error:'invalid_conversation_filter'});
+  }
+
   const r = await db.query(`
     SELECT c.id,c.updated_at,
+           cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at,
            u.id AS other_user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            m.body AS last_body,m.content_level AS last_content_level,m.created_at AS last_message_at,
            (SELECT count(*)::int FROM messages mu
@@ -71,13 +82,58 @@ router.get('/conversations', async (req, res) => {
       ) m ON true
      WHERE cm.user_id=$1
        AND u.status='active'
-       AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)
-     ORDER BY COALESCE(m.created_at,c.updated_at) DESC
+       AND u.id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION
+         SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+       AND (
+         ($2='all' AND cm.is_archived=false)
+         OR ($2='archived' AND cm.is_archived=true)
+         OR ($2='unread' AND cm.is_archived=false AND EXISTS(
+           SELECT 1 FROM messages um
+            WHERE um.conversation_id=c.id
+              AND um.sender_id<>$1
+              AND um.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
+         ))
+       )
+       AND (
+         $3=''
+         OR u.username ILIKE '%' || $3 || '%'
+         OR u.display_name ILIKE '%' || $3 || '%'
+       )
+     ORDER BY
+       cm.is_pinned DESC,
+       CASE WHEN EXISTS(
+         SELECT 1 FROM messages um
+          WHERE um.conversation_id=c.id
+            AND um.sender_id<>$1
+            AND um.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
+       ) THEN 0 ELSE 1 END,
+       COALESCE(m.created_at,c.updated_at) DESC
      LIMIT 100
-  `, [req.user.id]);
-  res.json({ conversations: r.rows });
-});
+  `, [req.user.id,filter,q]);
 
+  const summary=await db.query(`
+    SELECT
+      count(*) FILTER (WHERE is_archived=false)::int active,
+      count(*) FILTER (WHERE is_archived=true)::int archived,
+      count(*) FILTER (
+        WHERE is_archived=false
+          AND EXISTS(
+            SELECT 1 FROM messages um
+             WHERE um.conversation_id=conversation_members.conversation_id
+               AND um.sender_id<>$1
+               AND um.created_at>COALESCE(conversation_members.last_read_at,to_timestamp(0))
+          )
+      )::int unread,
+      count(*) FILTER (WHERE is_archived=false AND is_pinned=true)::int pinned
+    FROM conversation_members
+    WHERE user_id=$1
+  `,[req.user.id]);
+
+  res.json({filter,q,summary:summary.rows[0] || {active:0,archived:0,unread:0,pinned:0},conversations:r.rows});
+});
 const createConversationSchema = z.object({ username: z.string().min(1).max(30) });
 router.post('/conversations', async (req, res) => {
   const parsed = createConversationSchema.safeParse(req.body);
@@ -131,6 +187,35 @@ router.post('/conversations', async (req, res) => {
   }
 });
 
+const conversationSettingsSchema=z.object({
+  pinned:z.boolean().optional(),
+  archived:z.boolean().optional(),
+  muted:z.boolean().optional()
+}).refine(value=>Object.keys(value).length>0);
+
+router.patch('/conversations/:id/settings',async(req,res)=>{
+  const parsed=conversationSettingsSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_conversation_settings'});
+  if(!(await conversationForUser(req.params.id,req.user.id))){
+    return res.status(404).json({error:'conversation_not_found'});
+  }
+  const data=parsed.data;
+  const updated=await db.query(`
+    UPDATE conversation_members
+       SET is_pinned=CASE WHEN $3 THEN $4 ELSE is_pinned END,
+           is_archived=CASE WHEN $5 THEN $6 ELSE is_archived END,
+           notifications_muted=CASE WHEN $7 THEN $8 ELSE notifications_muted END
+     WHERE conversation_id=$1 AND user_id=$2
+     RETURNING conversation_id,is_pinned,is_archived,notifications_muted,last_read_at
+  `,[
+    req.params.id,req.user.id,
+    Object.prototype.hasOwnProperty.call(data,'pinned'),data.pinned===true,
+    Object.prototype.hasOwnProperty.call(data,'archived'),data.archived===true,
+    Object.prototype.hasOwnProperty.call(data,'muted'),data.muted===true
+  ]);
+  res.json({ok:true,settings:updated.rows[0]});
+});
+
 router.get('/conversations/:id/messages', async (req, res) => {
   const id = req.params.id;
   if (!(await conversationForUser(id, req.user.id))) return res.status(404).json({ error: 'conversation_not_found' });
@@ -161,8 +246,20 @@ router.get('/conversations/:id/messages', async (req, res) => {
     };
   });
 
-  await db.query(`UPDATE conversation_members SET last_read_at=now() WHERE conversation_id=$1 AND user_id=$2`, [id, req.user.id]);
-  res.json({ messages, other, sensitiveAllowed: allowedFromOther, viewerAgeVerified: !!viewer?.age_verified });
+  const memberState=await db.query(
+    `UPDATE conversation_members
+        SET last_read_at=now()
+      WHERE conversation_id=$1 AND user_id=$2
+      RETURNING is_pinned,is_archived,notifications_muted,last_read_at`,
+    [id, req.user.id]
+  );
+  res.json({
+    messages,
+    other,
+    sensitiveAllowed: allowedFromOther,
+    viewerAgeVerified: !!viewer?.age_verified,
+    settings:memberState.rows[0] || {is_pinned:false,is_archived:false,notifications_muted:false}
+  });
 });
 
 const messageSchema = z.object({
@@ -255,6 +352,12 @@ router.post('/conversations/:id/messages', async (req, res) => {
       await client.query(
         `UPDATE conversations SET updated_at=now() WHERE id=$1`,
         [id]
+      );
+      await client.query(
+        `UPDATE conversation_members
+            SET is_archived=false
+          WHERE conversation_id=$1 AND user_id=$2`,
+        [id,req.user.id]
       );
 
       await client.query('COMMIT');
