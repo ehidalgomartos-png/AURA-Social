@@ -3133,7 +3133,12 @@ function bindPostActions(root) {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({optionId:button.dataset.pollOption})
         });
-        if(!r.ok)throw new Error(d.error==='poll_vote_locked' ? 'Esta encuesta no permite cambiar el voto.' : 'No se pudo registrar el voto.');
+        if(!r.ok)throw new Error(
+          d.error==='poll_closed' ? 'Esta encuesta está cerrada.' :
+          d.error==='poll_archived' ? 'Esta encuesta ya no está disponible.' :
+          d.error==='poll_vote_locked' ? 'Esta encuesta no permite cambiar el voto.' :
+          'No se pudo registrar el voto.'
+        );
         await refreshPostArticle(button.dataset.pollVote);
         tapFeedback();
       }catch(error){
@@ -3175,7 +3180,12 @@ function bindPostActions(root) {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({body})
         });
-        if(!r.ok)throw new Error(d.error==='invalid_question_response' ? 'La respuesta debe tener entre 1 y 1000 caracteres.' : 'No se pudo guardar la respuesta.');
+        if(!r.ok)throw new Error(
+          d.error==='question_closed' ? 'Esta pregunta está cerrada.' :
+          d.error==='question_archived' ? 'Esta pregunta ya no está disponible.' :
+          d.error==='invalid_question_response' ? 'La respuesta debe tener entre 1 y 1000 caracteres.' :
+          'No se pudo guardar la respuesta.'
+        );
         await refreshPostArticle(form.dataset.questionResponse);
         toast('Respuesta guardada para el creador');
       }catch(error){
