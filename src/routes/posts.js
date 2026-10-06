@@ -202,6 +202,8 @@ async function notifyMentions({ actorId, text, entityType='post', entityId, audi
                JOIN connection_circles cc ON cc.id=pca.circle_id AND cc.user_id=$2
                JOIN connection_circle_members ccm ON ccm.circle_id=cc.id AND ccm.connection_user_id=u.id
               WHERE pca.post_id=$4
+                AND EXISTS(SELECT 1 FROM follows cmf1 WHERE cmf1.follower_id=$2 AND cmf1.following_id=u.id)
+                AND EXISTS(SELECT 1 FROM follows cmf2 WHERE cmf2.follower_id=u.id AND cmf2.following_id=$2)
            )
          )
          OR EXISTS(
