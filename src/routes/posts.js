@@ -937,8 +937,51 @@ router.post('/:id/consent', requireAuth, async (req,res)=>{
     await db.query(`UPDATE posts SET consent_state='revoked',moderation_status='under_review',updated_at=now() WHERE id=$1`,[req.params.id]);
     await db.query(`INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text) VALUES ($1,$2,'consent_revoked','post',$3,'Ha retirado su consentimiento. La publicación se ha ocultado.')`,[ownerId,req.user.id,req.params.id]);
   }else{
-    const remaining=await db.query(`SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'`,[req.params.id]);
-    if(remaining.rows[0].n===0) await db.query(`UPDATE posts SET consent_state='approved',moderation_status='published',updated_at=now() WHERE id=$1`,[req.params.id]);
+    const remaining=await db.query(
+      `SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'`,
+      [req.params.id]
+    );
+
+    let publishedNow=false;
+    if(Number(remaining.rows[0]?.n || 0)===0){
+      const source=post.rows[0];
+      const scheduledDue=
+        source.creator_state==='scheduled' &&
+        source.scheduled_for &&
+        new Date(source.scheduled_for).getTime()<=Date.now();
+      const shouldPublish=source.creator_state==='live' || scheduledDue;
+
+      const updated=await db.query(`
+        UPDATE posts
+           SET consent_state='approved',
+               moderation_status=$2,
+               creator_state=CASE WHEN $3::boolean THEN 'live' ELSE creator_state END,
+               created_at=CASE WHEN $2='published' THEN now() ELSE created_at END,
+               updated_at=now()
+         WHERE id=$1
+         RETURNING id,user_id,caption,audience,creator_state,moderation_status
+      `,[
+        req.params.id,
+        shouldPublish ? 'published' : 'under_review',
+        scheduledDue
+      ]);
+
+      publishedNow=updated.rows[0]?.moderation_status==='published';
+      if(publishedNow){
+        try{
+          await notifyMentions({
+            actorId:updated.rows[0].user_id,
+            text:updated.rows[0].caption,
+            entityType:'post',
+            entityId:updated.rows[0].id,
+            audience:updated.rows[0].audience
+          });
+        }catch(error){
+          console.warn('RedLibertad consent publish mention notification failed:',error?.message || error);
+        }
+      }
+    }
+
     await db.query(`INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text) VALUES ($1,$2,'consent_approved','post',$3,'Ha aprobado aparecer en tu publicación.')`,[ownerId,req.user.id,req.params.id]);
   }
   res.json({ok:true,decision});
@@ -1437,12 +1480,8 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
   );
 
   if(inserted.rowCount){
-    const owner=await db.query(
-      `SELECT user_id FROM posts WHERE id=$1 AND moderation_status='published'`,
-      [req.params.id]
-    );
-
-    if(owner.rowCount && String(owner.rows[0].user_id)!==String(req.user.id)){
+    const ownerId=visiblePost.user_id;
+    if(String(ownerId)!==String(req.user.id)){
       await db.query(`
         INSERT INTO notifications (
           user_id,actor_id,type,entity_type,entity_id,text
@@ -1607,7 +1646,7 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
         user_id,actor_id,type,entity_type,entity_id,text
       )
       VALUES ($1,$2,'comment','post',$3,'Ha comentado tu publicación.')
-    `,[owner.rows[0].user_id,req.user.id,req.params.id]);
+    `,[ownerId,req.user.id,req.params.id]);
   }
 
   try {
