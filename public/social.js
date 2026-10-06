@@ -2096,9 +2096,12 @@ function renderCreatorFollowUps(data = {}) {
 async function loadCreatorFollowUps() {
   const root=$('#creatorFollowUpList');
   if(root)root.innerHTML='<div class="mini-loading">Cargando seguimientos...</div>';
+  const dayEnd=new Date();
+  dayEnd.setHours(24,0,0,0);
   const qs=new URLSearchParams({
     window:creatorFollowUpWindow,
-    q:creatorFollowUpSearch
+    q:creatorFollowUpSearch,
+    dayEnd:dayEnd.toISOString()
   });
   const { r,d }=await api(`/api/posts/creator/community-follow-ups?${qs.toString()}`);
   if(!r.ok){
