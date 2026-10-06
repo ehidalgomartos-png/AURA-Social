@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.27.1",
+  "version": "1.28.0",
   "private": true,
-  "description": "RedLibertad V1.27.1 Follow-up Dashboard Hotfix - fechas locales coherentes, filtros combinables y cierre rápido, sin monetización.",
+  "description": "RedLibertad V1.28 Follow-up Workflow & History - historial privado, reapertura y reprogramación de seguimientos, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
