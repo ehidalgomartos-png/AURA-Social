@@ -1756,6 +1756,68 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const circleFilter=event.target.closest('[data-connection-circle-filter]');
+  if(circleFilter){
+    event.preventDefault();
+    activeConnectionCircleId=circleFilter.dataset.connectionCircleFilter ? Number(circleFilter.dataset.connectionCircleFilter) : null;
+    await loadConnections();
+    return;
+  }
+
+  const favoriteButton=event.target.closest('[data-connection-favorite]');
+  if(favoriteButton){
+    event.preventDefault();
+    event.stopPropagation();
+    await toggleFavoriteConnection(Number(favoriteButton.dataset.connectionFavorite));
+    return;
+  }
+
+  const organizeButton=event.target.closest('[data-connection-organize]');
+  if(organizeButton){
+    event.preventDefault();
+    event.stopPropagation();
+    await openConnectionCirclesModal({
+      id:Number(organizeButton.dataset.connectionOrganize),
+      displayName:organizeButton.dataset.connectionDisplay,
+      username:organizeButton.dataset.connectionUsername
+    });
+    return;
+  }
+
+  const renameCircle=event.target.closest('[data-circle-rename]');
+  if(renameCircle){
+    event.preventDefault();
+    const next=window.prompt('Nuevo nombre del círculo:',renameCircle.dataset.circleName || '');
+    if(next===null)return;
+    const name=String(next).trim();
+    if(!name)return toast('Escribe un nombre.');
+    const {r,d}=await api(`/api/profiles/connections/circles/${renameCircle.dataset.circleRename}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name})
+    });
+    if(!r.ok)return toast(d.error==='circle_name_exists' ? 'Ya existe un círculo con ese nombre.' : 'No se pudo renombrar.');
+    await loadConnectionCircles();
+    await loadConnectionMemberships();
+    await loadConnections();
+    toast('Círculo renombrado');
+    return;
+  }
+
+  const deleteCircle=event.target.closest('[data-circle-delete]');
+  if(deleteCircle){
+    event.preventDefault();
+    if(!window.confirm(`¿Eliminar el círculo “${deleteCircle.dataset.circleName || ''}”? Las conexiones no se eliminarán.`))return;
+    const {r}=await api(`/api/profiles/connections/circles/${deleteCircle.dataset.circleDelete}`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo eliminar el círculo.');
+    if(String(activeConnectionCircleId)===String(deleteCircle.dataset.circleDelete))activeConnectionCircleId=null;
+    await loadConnectionCircles();
+    await loadConnectionMemberships();
+    await loadConnections();
+    toast('Círculo eliminado');
+    return;
+  }
+
   const connectionMessage=event.target.closest('[data-connection-message]');
   if(connectionMessage){event.preventDefault();event.stopPropagation();await openConnectionMessage(connectionMessage.dataset.connectionMessage);return;}
 
