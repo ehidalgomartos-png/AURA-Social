@@ -191,10 +191,60 @@ function inlineCommentsHTML(p) {
 function tileContentHTML(p) {
   const media = mediaHTML(p, true);
   if (media) return media;
-  const text = String(p.caption || '').trim();
+  const communityText=String(p.community_poll?.question || p.community_question?.prompt || '').trim();
+  const text = String(p.caption || communityText || '').trim();
   if (!text) return '<div class="text-tile"><span>Publicación</span></div>';
   const shortText = text.length > 150 ? text.slice(0, 147) + '…' : text;
   return `<div class="text-tile"><span>${esc(shortText)}</span></div>`;
+}
+
+function communityPollHTML(postId,poll) {
+  if(!poll)return '';
+  const total=Number(poll.total_votes || 0);
+  const selected=poll.options?.find(option=>option.voted_by_me);
+  return `<section class="community-tool community-poll" data-community-poll-container="${postId}">
+    <div class="community-tool-head">
+      <span>ENCUESTA</span>
+      <small>${total} ${total===1 ? 'voto' : 'votos'} · resultados agregados</small>
+    </div>
+    <h4>${esc(poll.question)}</h4>
+    <div class="community-poll-options">
+      ${(poll.options || []).map(option=>{
+        const count=Number(option.vote_count || 0);
+        const pct=total ? Math.round((count/total)*100) : 0;
+        return `<button type="button" class="community-poll-option ${option.voted_by_me ? 'selected' : ''}" data-poll-vote="${postId}" data-poll-option="${option.id}">
+          <span class="community-poll-option-bar" style="width:${pct}%"></span>
+          <span class="community-poll-option-copy"><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span>
+        </button>`;
+      }).join('')}
+    </div>
+    ${selected ? `<button type="button" class="tiny-action community-remove-vote" data-poll-remove="${postId}">Quitar mi voto</button>` : ''}
+  </section>`;
+}
+
+function communityQuestionHTML(postId,question) {
+  if(!question)return '';
+  const response=String(question.my_response || '');
+  return `<section class="community-tool community-question" data-community-question-container="${postId}">
+    <div class="community-tool-head">
+      <span>PREGUNTA ABIERTA</span>
+      <small>${Number(question.response_count || 0)} ${Number(question.response_count || 0)===1 ? 'respuesta' : 'respuestas'} · privadas para el creador</small>
+    </div>
+    <h4>${esc(question.prompt)}</h4>
+    <form class="community-question-form" data-question-response="${postId}">
+      <textarea maxlength="1000" placeholder="Escribe tu respuesta...">${esc(response)}</textarea>
+      <div class="community-question-actions">
+        <button class="secondary" type="submit">${response ? 'Actualizar respuesta' : 'Responder'}</button>
+        ${response ? `<button class="tiny-action" type="button" data-question-remove="${postId}">Retirar mi respuesta</button>` : ''}
+      </div>
+    </form>
+  </section>`;
+}
+
+function communityToolHTML(p) {
+  if(p.community_poll)return communityPollHTML(p.id,p.community_poll);
+  if(p.community_question)return communityQuestionHTML(p.id,p.community_question);
+  return '';
 }
 
 function postHTML(p) {
@@ -225,6 +275,7 @@ function postHTML(p) {
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
+    ${communityToolHTML(p)}
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
