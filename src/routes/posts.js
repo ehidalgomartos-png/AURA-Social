@@ -493,7 +493,7 @@ async function attachCommentPreviews(rows, viewer = null) {
 
 router.get('/consents/pending', requireAuth, async (req,res)=>{
   const r=await db.query(`
-    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            pp.consent_status,
            u.id AS owner_id,u.username,u.display_name,u.avatar_url
       FROM post_participants pp
@@ -544,6 +544,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
   const where = [`p.moderation_status='published'`, `u.status='active'`];
   if (req.user) {
     params.push(req.user.id);
+    where.push(postAudienceWhere('$1','p'));
     where.push(`p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`);
     where.push(`p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`);
     if (mode === 'following') where.push(`(
@@ -555,9 +556,12 @@ router.get('/feed', optionalAuth, async (req, res) => {
          WHERE rp.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
       )
     )`);
-  } else if (mode === 'following') return res.json({ posts: [] });
+  } else {
+    where.push(postAudienceWhere(null,'p'));
+    if (mode === 'following') return res.json({ posts: [] });
+  }
   const result = await db.query(`
-    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id AS user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) AS like_count,
            ${req.user ? `EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)` : 'false'} AS liked_by_me,
@@ -591,7 +595,7 @@ router.get('/momentum', requireAuth, async (req,res)=>{
 
   const commonSelect=`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            EXISTS(SELECT 1 FROM follows mine WHERE mine.follower_id=$1 AND mine.following_id=u.id) from_following,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
@@ -608,7 +612,8 @@ router.get('/momentum', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
-       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND ${postAudienceWhere('$1','p')}`;
 
   const catchupResult=await db.query(`
     ${commonSelect}
@@ -666,14 +671,16 @@ router.get('/discover', optionalAuth, async (req, res) => {
   const params=[];
   let block='';
   let likedByMe='false';
+  let audienceFilter=postAudienceWhere(null,'p');
   if(req.user){
     params.push(req.user.id);
     block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)';
+    audienceFilter=postAudienceWhere('$1','p');
   }
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            ${likedByMe} AS liked_by_me
@@ -682,6 +689,7 @@ router.get('/discover', optionalAuth, async (req, res) => {
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${audienceFilter}
        ${block}
      ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC
      LIMIT 60
@@ -699,7 +707,7 @@ router.get('/search', requireAuth, async (req,res)=>{
   const likePattern=`%${q}%`;
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -709,6 +717,7 @@ router.get('/search', requireAuth, async (req,res)=>{
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -741,7 +750,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -751,6 +760,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
        AND p.created_at >= now() - interval '30 days'
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
@@ -776,6 +786,7 @@ router.get('/trends', requireAuth, async (req,res)=>{
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
        AND p.created_at >= now() - interval '30 days'
        AND p.caption <> ''
        AND p.user_id NOT IN (
@@ -823,7 +834,7 @@ router.get('/saved', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -916,7 +927,7 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            ${likedByMe} AS liked_by_me,
@@ -941,7 +952,7 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
