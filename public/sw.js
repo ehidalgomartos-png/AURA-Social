@@ -1,5 +1,5 @@
-const SHELL_CACHE='redlibertad-v167-shell';
-const STATIC_CACHE='redlibertad-v167-static';
+const SHELL_CACHE='redlibertad-v168-shell';
+const STATIC_CACHE='redlibertad-v168-static';
 const CACHE_PREFIX='redlibertad-';
 
 const SHELL_ASSETS=[
@@ -54,9 +54,19 @@ function isStaticAsset(url,request){
   return /\.(?:css|js|svg|png|jpg|jpeg|webp|ico|webmanifest)$/i.test(url.pathname);
 }
 
+async function fetchWithTimeout(request,timeoutMs=10000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    return await fetch(request,{signal:controller.signal});
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
 async function networkFirstNavigation(request,url){
   try{
-    const response=await fetch(request);
+    const response=await fetchWithTimeout(request,8000);
     if(response.ok && response.type==='basic'){
       const cache=await caches.open(SHELL_CACHE);
       cache.put(request,response.clone()).catch(()=>{});
@@ -73,7 +83,7 @@ async function networkFirstNavigation(request,url){
 async function staleWhileRevalidate(request){
   const cache=await caches.open(STATIC_CACHE);
   const cached=await cache.match(request);
-  const network=fetch(request)
+  const network=fetchWithTimeout(request,10000)
     .then(response=>{
       if(response.ok && response.type==='basic'){
         cache.put(request,response.clone()).catch(()=>{});

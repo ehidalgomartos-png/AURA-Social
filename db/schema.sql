@@ -11,6 +11,10 @@ ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_kind TEXT NOT NULL DEFAULT 'post
 DO $$ BEGIN ALTER TABLE posts ADD CONSTRAINT posts_kind_check CHECK(post_kind IN ('post','reel')); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC); CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); CREATE INDEX IF NOT EXISTS idx_posts_kind ON posts(post_kind,created_at DESC);
 CREATE TABLE IF NOT EXISTS likes (user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),PRIMARY KEY(user_id,post_id));
+CREATE INDEX IF NOT EXISTS idx_likes_post_created ON likes(post_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_follows_following_follower ON follows(following_id,follower_id);
+CREATE INDEX IF NOT EXISTS idx_blocks_blocked_blocker ON blocks(blocked_id,blocker_id);
+CREATE INDEX IF NOT EXISTS idx_posts_published_created ON posts(created_at DESC) WHERE moderation_status='published';
 CREATE TABLE IF NOT EXISTS comments (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
