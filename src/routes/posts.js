@@ -737,10 +737,12 @@ router.patch('/creator/publishing/:id/schedule',requireAuth,async(req,res)=>{
   try{
     await client.query('BEGIN');
     const found=await client.query(`
-      SELECT id,creator_state,moderation_status
-      FROM posts
-      WHERE id=$1 AND user_id=$2
-      FOR UPDATE
+      SELECT p.id,p.creator_state,p.moderation_status,p.content_level,p.audience,
+             u.creator_verified,u.age_verified
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+      WHERE p.id=$1 AND p.user_id=$2
+      FOR UPDATE OF p
     `,[req.params.id,req.user.id]);
 
     if(!found.rowCount){
@@ -754,6 +756,15 @@ router.patch('/creator/publishing/:id/schedule',requireAuth,async(req,res)=>{
     if(found.rows[0].moderation_status==='rejected'){
       await client.query('ROLLBACK');
       return res.status(409).json({error:'post_rejected'});
+    }
+    const source=found.rows[0];
+    if(source.audience==='vip' && !source.creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required_for_vip_content'});
+    }
+    if(source.content_level==='nudity' && (!source.creator_verified || !source.age_verified)){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required_for_nudity'});
     }
 
     await sendPendingConsentRequests(req.params.id,req.user.id,client);
