@@ -49,13 +49,17 @@ async function ensureVipStoriesV19() {
   if (!vipStoriesV19Ready) {
     vipStoriesV19Ready = (async () => {
       await db.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
-      const constraint=await db.query(
-        "SELECT 1 FROM pg_constraint WHERE conname='stories_audience_check' AND conrelid='stories'::regclass LIMIT 1"
-      );
-      if(!constraint.rowCount){
-        await db.query("ALTER TABLE stories ADD CONSTRAINT stories_audience_check CHECK(audience IN ('public','vip'))");
-      }
+      await db.query("ALTER TABLE stories DROP CONSTRAINT IF EXISTS stories_audience_check");
+      await db.query("ALTER TABLE stories ADD CONSTRAINT stories_audience_check CHECK(audience IN ('public','vip','connections','circles'))");
       await db.query('CREATE INDEX IF NOT EXISTS idx_stories_audience_active ON stories(audience,expires_at DESC,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS story_circle_audiences (
+          story_id BIGINT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+          circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+          PRIMARY KEY(story_id,circle_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_story_circle_audiences_circle ON story_circle_audiences(circle_id,story_id)');
       await db.query(`
         CREATE TABLE IF NOT EXISTS creator_vips (
           creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -89,14 +93,54 @@ function storyAudienceWhere(viewerParam=null, alias='s') {
     ${alias}.audience='public'
     OR ${alias}.user_id=${viewerParam}
     OR EXISTS(SELECT 1 FROM users story_admin WHERE story_admin.id=${viewerParam} AND story_admin.is_admin=true)
-    OR EXISTS(
-      SELECT 1
-        FROM creator_vips story_vip
-        JOIN follows story_follow
-          ON story_follow.follower_id=story_vip.fan_id
-         AND story_follow.following_id=story_vip.creator_id
-       WHERE story_vip.creator_id=${alias}.user_id
-         AND story_vip.fan_id=${viewerParam}
+    OR (
+      ${alias}.audience='vip'
+      AND EXISTS(
+        SELECT 1
+          FROM creator_vips story_vip
+          JOIN follows story_follow
+            ON story_follow.follower_id=story_vip.fan_id
+           AND story_follow.following_id=story_vip.creator_id
+         WHERE story_vip.creator_id=${alias}.user_id
+           AND story_vip.fan_id=${viewerParam}
+      )
+    )
+    OR (
+      ${alias}.audience='connections'
+      AND EXISTS(
+        SELECT 1 FROM follows story_connection_out
+         WHERE story_connection_out.follower_id=${alias}.user_id
+           AND story_connection_out.following_id=${viewerParam}
+      )
+      AND EXISTS(
+        SELECT 1 FROM follows story_connection_in
+         WHERE story_connection_in.follower_id=${viewerParam}
+           AND story_connection_in.following_id=${alias}.user_id
+      )
+    )
+    OR (
+      ${alias}.audience='circles'
+      AND EXISTS(
+        SELECT 1
+          FROM story_circle_audiences story_circle_audience
+          JOIN connection_circles story_circle
+            ON story_circle.id=story_circle_audience.circle_id
+           AND story_circle.user_id=${alias}.user_id
+          JOIN connection_circle_members story_circle_member
+            ON story_circle_member.circle_id=story_circle.id
+           AND story_circle_member.connection_user_id=${viewerParam}
+         WHERE story_circle_audience.story_id=${alias}.id
+           AND EXISTS(
+             SELECT 1 FROM follows story_circle_connection_out
+              WHERE story_circle_connection_out.follower_id=${alias}.user_id
+                AND story_circle_connection_out.following_id=${viewerParam}
+           )
+           AND EXISTS(
+             SELECT 1 FROM follows story_circle_connection_in
+              WHERE story_circle_connection_in.follower_id=${viewerParam}
+                AND story_circle_connection_in.following_id=${alias}.user_id
+           )
+      )
     )
   )`;
 }
@@ -108,7 +152,8 @@ const schema = z.object({
   externalId: z.string().max(255).optional().nullable(),
   playbackUrl: z.string().max(4096).optional().nullable(),
   contentLevel: z.enum(['normal','sensitive','nudity']),
-  audience: z.enum(['public','vip']).default('public')
+  audience: z.enum(['public','vip','connections','circles']).default('public'),
+  audienceCircleIds: z.array(z.coerce.number().int().positive()).max(12).optional().default([])
 });
 
 router.post('/', requireAuth, async (req,res) => {
@@ -131,14 +176,47 @@ router.post('/', requireAuth, async (req,res) => {
     return res.status(403).json({ error:'verified_creator_required_for_vip_content' });
   }
 
-  const r=await db.query(`
-    INSERT INTO stories
-      (user_id,media_url,media_type,media_provider,external_id,playback_url,content_level,audience,expires_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now()+interval '24 hours')
-    RETURNING *
-  `,[req.user.id,d.mediaUrl,d.mediaType,d.mediaProvider,d.externalId,d.playbackUrl,d.contentLevel,d.audience]);
+  const requestedCircleIds=[...new Set(d.audienceCircleIds.map(Number).filter(Number.isInteger))];
+  let audienceCircleIds=[];
+  if(d.audience==='circles'){
+    if(!requestedCircleIds.length)return res.status(400).json({error:'circle_audience_required'});
+    const ownedCircles=await db.query(
+      'SELECT id FROM connection_circles WHERE user_id=$1 AND id=ANY($2::bigint[])',
+      [req.user.id,requestedCircleIds]
+    );
+    audienceCircleIds=ownedCircles.rows.map(row=>Number(row.id));
+    if(audienceCircleIds.length!==requestedCircleIds.length){
+      return res.status(400).json({error:'invalid_circle_audience'});
+    }
+  }
 
-  res.status(201).json({ok:true,story:r.rows[0]});
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const r=await client.query(`
+      INSERT INTO stories
+        (user_id,media_url,media_type,media_provider,external_id,playback_url,content_level,audience,expires_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now()+interval '24 hours')
+      RETURNING *
+    `,[req.user.id,d.mediaUrl,d.mediaType,d.mediaProvider,d.externalId,d.playbackUrl,d.contentLevel,d.audience]);
+    const story=r.rows[0];
+    if(d.audience==='circles'){
+      for(const circleId of audienceCircleIds){
+        await client.query(
+          'INSERT INTO story_circle_audiences(story_id,circle_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+          [story.id,circleId]
+        );
+      }
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ok:true,story,audienceCircleIds});
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad V1.56 story create failed:',error);
+    res.status(500).json({error:'story_create_failed'});
+  }finally{
+    client.release();
+  }
 });
 
 router.get('/', optionalAuth, async (req,res) => {
@@ -223,16 +301,7 @@ router.post('/:id/view',requireAuth,async(req,res)=>{
        AND s.expires_at>now()
        AND s.moderation_status='published'
        AND owner.status='active'
-       AND (
-         s.audience='public'
-         OR s.user_id=$2
-         OR EXISTS(SELECT 1 FROM users admin WHERE admin.id=$2 AND admin.is_admin=true)
-         OR EXISTS(
-           SELECT 1 FROM creator_vips cv
-           JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
-            WHERE cv.creator_id=s.user_id AND cv.fan_id=$2
-         )
-       )
+       AND ${storyAudienceWhere('$2','s')}
        AND (
          s.user_id=$2
          OR s.user_id NOT IN (

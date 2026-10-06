@@ -4955,3 +4955,79 @@ select:focus-visible{
   .connection-center-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
   .connection-center-actions button{padding-left:7px;padding-right:7px}
 }
+
+
+/* =========================================================
+   RedLibertad V1.56 — Circle Sharing & Private Audiences
+   ========================================================= */
+.circle-audience-picker{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--soft);
+}
+.circle-audience-picker-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.circle-audience-picker-head b{color:var(--navy);font-size:10px}
+.circle-audience-picker-head small{color:var(--muted);font-size:8px;text-align:right}
+.circle-audience-options{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+.circle-audience-option{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--paper);
+  cursor:pointer;
+}
+.circle-audience-option input{width:auto;margin:0}
+.circle-audience-option b,.circle-audience-option small{display:block}
+.circle-audience-option b{font-size:9px;color:var(--ink)}
+.circle-audience-option small{margin-top:2px;font-size:8px;color:var(--muted)}
+.circle-audience-empty{
+  grid-column:1/-1;
+  padding:10px;
+  border:1px dashed var(--line);
+  border-radius:10px;
+  color:var(--muted);
+  font-size:9px;
+}
+.private-audience-badge.connections,
+.private-audience-badge.circles{
+  background:var(--teal-soft);
+  color:var(--teal);
+  border:1px solid rgba(43,183,169,.18);
+}
+.story-private-mark{
+  position:absolute;
+  right:-2px;
+  bottom:-2px;
+  width:18px;
+  height:18px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--teal);
+  color:white;
+  border:2px solid var(--paper);
+  font-size:9px;
+  font-weight:900;
+}
+.story-ring{position:relative}
+@media(max-width:760px){
+  .circle-audience-picker-head{display:grid;grid-template-columns:1fr}
+  .circle-audience-picker-head small{text-align:left}
+  .circle-audience-options{grid-template-columns:1fr}
+}

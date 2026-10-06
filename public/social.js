@@ -370,6 +370,14 @@ function postHTML(p, options = {}) {
   const ownPost = !!me && String(me.id) === String(p.user_id);
   const canManage = !!me && (ownPost || me.is_admin === true);
   const vipOnly = p.audience === 'vip';
+  const privateAudience = p.audience && p.audience !== 'public';
+  const audienceBadge = p.audience === 'vip'
+    ? '★ SOLO VIP'
+    : p.audience === 'connections'
+      ? '◎ SOLO CONEXIONES'
+      : p.audience === 'circles'
+        ? '◉ CÍRCULOS PRIVADOS'
+        : '';
   const liked = p.liked_by_me === true;
   const reposted = p.reposted_by_me === true;
   const repostBanner = p.repost_actor_username
@@ -379,14 +387,14 @@ function postHTML(p, options = {}) {
         'repost-profile-link'
       )}</div>`
     : '';
-  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''} ${options.immersive ? 'immersive-reel-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
+  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : privateAudience ? 'private-audience-post' : ''} ${options.immersive ? 'immersive-reel-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
     ${repostBanner}
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
         <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span>${p.post_kind==='reel' && p.view_count!=null ? ` · <span class="reel-view-count">▶ ${Number(p.view_count||0)} vistas</span>` : ''}</small>
-        ${vipOnly ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
+        ${audienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(p.audience)}">${esc(audienceBadge)}</span>` : ''}
         ${participantsHTML(p)}
       </div>
     </div>
@@ -396,9 +404,9 @@ function postHTML(p, options = {}) {
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
-      <button class="${reposted ? 'reposted' : ''}" ${ownPost || vipOnly ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${vipOnly ? 'El contenido VIP no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
+      <button class="${reposted ? 'reposted' : ''}" ${ownPost || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
-      <button class="share-action" ${vipOnly ? 'disabled title="El contenido VIP no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${vipOnly ? 'VIP' : 'Compartir'}</span></button>
+      <button class="share-action" ${privateAudience ? 'disabled title="El contenido de audiencia privada no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${privateAudience ? 'Privado' : 'Compartir'}</span></button>
       ${options.discovery && !ownPost ? `<button class="discovery-hide-action" data-discovery-hide-post="${p.id}" title="No me interesa" aria-label="No me interesa">−</button>` : ''}
       ${canManage
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
@@ -1363,11 +1371,18 @@ function renderStoryViewer() {
   if(!story || !root)return;
 
   const media=mediaHTML(story);
-  root.innerHTML=`<article class="story-viewer-story ${story.audience==='vip' ? 'vip-story' : ''}">
+  const storyAudienceBadge=story.audience==='vip'
+    ? '★ SOLO VIP'
+    : story.audience==='connections'
+      ? '◎ SOLO CONEXIONES'
+      : story.audience==='circles'
+        ? '◉ CÍRCULOS PRIVADOS'
+        : '';
+  root.innerHTML=`<article class="story-viewer-story ${story.audience==='vip' ? 'vip-story' : story.audience!=='public' ? 'private-story' : ''}">
     <header>
       <span class="story-viewer-avatar">${avatarHTML(story)}</span>
       <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}${story.view_count!=null ? ` · ${Number(story.view_count||0)} vistas` : ''}</small></div>
-      ${story.audience==='vip' ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
+      ${storyAudienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(story.audience)}">${esc(storyAudienceBadge)}</span>` : ''}
     </header>
     <div class="story-viewer-media">${media || '<div class="gate"><b>Story no disponible</b></div>'}</div>
   </article>`;
@@ -1422,8 +1437,16 @@ async function loadStories() {
   $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + representatives.map(story => {
     const group=storyGroups.get(String(story.user_id)) || [];
     const hasVip=group.some(item=>item.audience==='vip');
+    const hasPrivate=group.some(item=>item.audience==='connections' || item.audience==='circles');
     const allSeen=group.every(item=>item.gated || item.viewed_by_me || (me && String(item.user_id)===String(me.id)));
-    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''} ${allSeen ? 'seen' : ''}" data-story-user="${story.user_id}" title="${story.gated ? gateText(story.gate_reason) : hasVip ? 'Story VIP disponible' : 'Story activa'}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
+    const storyTitle=story.gated
+      ? gateText(story.gate_reason)
+      : hasVip
+        ? 'Story VIP disponible'
+        : hasPrivate
+          ? 'Story para audiencia privada'
+          : 'Story activa';
+    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''} ${hasPrivate ? 'has-private-story' : ''} ${allSeen ? 'seen' : ''}" data-story-user="${story.user_id}" title="${storyTitle}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : hasPrivate ? '<span class="story-private-mark">◎</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
   }).join('');
 
   bindCreateButtons();
@@ -2329,7 +2352,7 @@ function creatorTopContentHTML(posts = []) {
     <span class="creator-top-content-rank">${index + 1}</span>
     <span class="creator-top-content-media">${tileContentHTML(post)}</span>
     <span class="creator-top-content-copy">
-      <b>${post.audience === 'vip' ? '★ VIP · ' : ''}${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
+      <b>${post.audience === 'vip' ? '★ VIP · ' : post.audience === 'connections' ? '◎ Conexiones · ' : post.audience === 'circles' ? '◉ Círculos · ' : ''}${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
       <small>♥ ${Number(post.like_count_30d || 0)} · ◯ ${Number(post.comment_count_30d || 0)} · ⟳ ${Number(post.repost_count_30d || 0)} · ★ ${Number(post.save_count_30d || 0)} guardados</small>
     </span>
   </button>`).join('');
@@ -2390,7 +2413,7 @@ function creatorPostHTML(post) {
     <button type="button" class="creator-post-preview" data-open-post="${post.id}">
       <span class="creator-post-media">${tileContentHTML(post)}</span>
       <span class="creator-post-copy">
-        <b>${post.audience === 'vip' ? '★ Solo VIP · ' : ''}${post.featured ? 'Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
+        <b>${post.audience === 'vip' ? '★ Solo VIP · ' : post.audience === 'connections' ? '◎ Solo conexiones · ' : post.audience === 'circles' ? '◉ Círculos privados · ' : ''}${post.featured ? 'Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
         <small>${compactTimeAgo(post.created_at)} · ${interactions} interacciones · ${Number(post.save_count || 0)} guardados</small>
       </span>
     </button>
@@ -6747,7 +6770,45 @@ function updateCommunityComposeFields() {
 
 $('#communityType')?.addEventListener('change',updateCommunityComposeFields);
 
-function openModal() {
+function renderAudienceCircleOptions(rootId,selectedIds=[]){
+  const root=$('#'+rootId);
+  if(!root)return;
+  const selected=new Set((selectedIds||[]).map(String));
+  const circles=Array.isArray(connectionCircles)?connectionCircles:[];
+  root.innerHTML=circles.length
+    ? circles.map(circle=>`
+      <label class="circle-audience-option">
+        <input type="checkbox" value="${circle.id}" ${selected.has(String(circle.id))?'checked':''}>
+        <span><b>${circle.is_favorites ? '★ ' : ''}${esc(circle.name)}</b><small>${Number(circle.member_count || 0)} conexiones</small></span>
+      </label>`).join('')
+    : '<div class="circle-audience-empty">Todavía no tienes círculos. Puedes crearlos desde Conexiones.</div>';
+}
+
+function syncAudienceCirclePicker(selectId,pickerId){
+  const select=$('#'+selectId);
+  const picker=$('#'+pickerId);
+  if(!select || !picker)return;
+  picker.classList.toggle('hidden',select.value!=='circles');
+}
+
+function selectedAudienceCircleIds(rootId){
+  return all('input[type="checkbox"]:checked',$('#'+rootId)).map(input=>Number(input.value)).filter(Number.isInteger);
+}
+
+async function prepareAudiencePickers(){
+  try{
+    await loadConnectionCircles();
+  }catch(_error){}
+  renderAudienceCircleOptions('postCircleAudienceOptions');
+  renderAudienceCircleOptions('storyCircleAudienceOptions');
+  syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
+  syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
+}
+
+$('#postAudienceSelect')?.addEventListener('change',()=>syncAudienceCirclePicker('postAudienceSelect','postCircleAudience'));
+$('#storyAudienceSelect')?.addEventListener('change',()=>syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience'));
+
+async function openModal() {
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
   const storyAudience=$('#storyForm [name="audience"]');
@@ -6760,6 +6821,8 @@ function openModal() {
       ? 'Elige quién puede ver este contenido.'
       : 'El contenido Solo VIP requiere una cuenta de creador verificada.';
   }
+
+  await prepareAudiencePickers();
 
   const publishingControls=$('#creatorPublishingControls');
   if(publishingControls){
@@ -6829,6 +6892,9 @@ $('#createForm').addEventListener('submit', async e => {
     const publishMode=String(e.submitter?.dataset?.publishMode || 'now');
     const communityType=String(fd.get('communityType') || 'none');
     const communityPrompt=String(fd.get('communityPrompt') || '').trim();
+    const audience=String(fd.get('audience') || 'public');
+    const audienceCircleIds=audience==='circles' ? selectedAudienceCircleIds('postCircleAudienceOptions') : [];
+    if(audience==='circles' && !audienceCircleIds.length)throw new Error('Selecciona al menos un círculo para esta audiencia.');
     const pollOptions=[1,2,3,4].map(index=>String(fd.get(`pollOption${index}`) || '').trim()).filter(Boolean);
 
     if (!file && !caption && communityType==='none') throw new Error('Escribe algo, selecciona una foto o añade una herramienta de comunidad.');
@@ -6873,7 +6939,8 @@ $('#createForm').addEventListener('submit', async e => {
       caption,
       kind,
       contentLevel: fd.get('contentLevel'),
-      audience: fd.get('audience') || 'public',
+      audience,
+      audienceCircleIds,
       publishMode,
       scheduledFor,
       editorialDate: fd.get('editorialDate') || null,
@@ -6900,6 +6967,10 @@ $('#createForm').addEventListener('submit', async e => {
         ? 'Necesitas verificación de creador adulto para publicar desnudez.'
         : d.error === 'verified_creator_required_for_vip_content'
           ? 'Solo los creadores verificados pueden publicar contenido Solo VIP.'
+        : d.error === 'circle_audience_required'
+          ? 'Selecciona al menos un círculo para esta publicación.'
+        : d.error === 'invalid_circle_audience'
+          ? 'Uno de los círculos seleccionados ya no está disponible.'
         : d.error === 'verified_creator_required_for_publishing_tools'
           ? 'Los borradores y la programación requieren una cuenta de creador verificada.'
         : d.error === 'invalid_scheduled_time'
@@ -6931,6 +7002,8 @@ $('#createForm').addEventListener('submit', async e => {
     clearPostMedia();
     updateCreateCounter();
     updateCommunityComposeFields();
+    syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
+    syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
     await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
@@ -6941,15 +7014,21 @@ $('#storyForm').addEventListener('submit', async e => {
   try {
     msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#createForm [name="contentLevel"]').value;
     const audience=$('#storyForm [name="audience"]')?.value || 'public';
-    const { r, d } = await api('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentLevel: level, audience, mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl }) });
+    const audienceCircleIds=audience==='circles' ? selectedAudienceCircleIds('storyCircleAudienceOptions') : [];
+    if(audience==='circles' && !audienceCircleIds.length)throw new Error('Selecciona al menos un círculo para esta Story.');
+    const { r, d } = await api('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentLevel: level, audience, audienceCircleIds, mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl }) });
     if (!r.ok) throw new Error(
       d.error === 'verified_creator_required_for_nudity'
         ? 'Necesitas verificación de creador adulto para esta Story.'
         : d.error === 'verified_creator_required_for_vip_content'
           ? 'Solo los creadores verificados pueden publicar Stories Solo VIP.'
+        : d.error === 'circle_audience_required'
+          ? 'Selecciona al menos un círculo para esta Story.'
+        : d.error === 'invalid_circle_audience'
+          ? 'Uno de los círculos seleccionados ya no está disponible.'
           : 'No se pudo publicar.'
     );
-    toast(audience==='vip' ? 'Story VIP publicada durante 24 h' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
+    toast(audience==='vip' ? 'Story VIP publicada durante 24 h' : audience==='circles' ? 'Story publicada para tus círculos' : audience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
   } catch (err) { msg.textContent = err.message; }
 });
 $('#shareInternalForm')?.addEventListener('submit', async event => {
