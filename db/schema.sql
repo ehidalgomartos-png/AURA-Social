@@ -473,6 +473,30 @@ ALTER TABLE stories
 CREATE INDEX IF NOT EXISTS idx_stories_audience_active
   ON stories(audience,expires_at DESC,created_at DESC);
 
+-- RedLibertad V1.52: Círculo cercano privado
+CREATE TABLE IF NOT EXISTS user_circle_members (
+  owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  member_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(owner_id,member_id),
+  CHECK(owner_id<>member_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_circle_members_owner
+  ON user_circle_members(owner_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_circle_members_member
+  ON user_circle_members(member_id,owner_id);
+
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_audience_check;
+ALTER TABLE posts
+  ADD CONSTRAINT posts_audience_check
+  CHECK(audience IN ('public','vip','circle'));
+
+ALTER TABLE stories DROP CONSTRAINT IF EXISTS stories_audience_check;
+ALTER TABLE stories
+  ADD CONSTRAINT stories_audience_check
+  CHECK(audience IN ('public','vip','circle'));
+
+
 
 -- RedLibertad V1.20: borradores y programación de publicaciones
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS creator_state TEXT NOT NULL DEFAULT 'live';
