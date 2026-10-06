@@ -3396,3 +3396,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .public-creator-links{display:grid}
   .public-creator-links a{justify-content:space-between;border-radius:12px}
 }
+
+
+/* RedLibertad V1.15 — Creator Audience & Broadcasts */
+.creator-broadcast-section,.creator-audience-section{padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.creator-broadcast-form{display:grid;gap:10px}
+.creator-broadcast-form textarea{min-height:92px}
+.creator-broadcast-history{display:grid;gap:8px;margin-top:14px}
+.creator-broadcast-item{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.creator-broadcast-item p{margin:0 0 6px;line-height:1.45}
+.creator-broadcast-item small{color:var(--muted)}
+.creator-empty.compact{padding:12px}
+.creator-audience-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.creator-audience-person{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.creator-audience-avatar{width:42px;height:42px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--paper);font-weight:800}
+.creator-audience-avatar img{width:100%;height:100%;object-fit:cover}
+.creator-audience-person b,.creator-audience-person small{display:block;text-align:left}
+.creator-audience-person small{margin-top:2px;color:var(--muted);font-size:11px}
+.creator-audience-profile{justify-content:flex-start;text-align:left}
+@media (max-width:760px){
+  .creator-audience-list{grid-template-columns:1fr}
+  .creator-broadcast-section,.creator-audience-section{padding:13px}
+}
