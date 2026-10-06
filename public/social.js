@@ -5890,6 +5890,12 @@ async function navigateNotification(notification) {
     return;
   }
 
+  if(type==='mention' && entityType==='community' && entityId){
+    showView('communities');
+    await openCommunityDetail(entityId);
+    return;
+  }
+
   if (type === 'collaboration_request') {
     showView('profile');
     setTimeout(() => document.querySelector('.consent-section')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
