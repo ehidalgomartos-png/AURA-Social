@@ -412,7 +412,16 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
                 AND back.following_id=mine.follower_id
               WHERE mine.follower_id=users.id
            ) connection_count,
-           (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
+           (SELECT count(*)::int FROM posts p
+             WHERE p.moderation_status='published'
+               AND (
+                 p.user_id=users.id
+                 OR EXISTS(
+                   SELECT 1 FROM post_collaborators pc
+                    WHERE pc.post_id=p.id AND pc.user_id=users.id AND pc.status='approved'
+                 )
+               )
+           ) post_count,
            (SELECT count(*)::int FROM notifications n WHERE n.user_id=users.id AND n.read_at IS NULL AND (n.actor_id IS NULL OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=users.id))) notification_count,
            COALESCE(
              (SELECT array_agg(ui.interest ORDER BY ui.interest)
@@ -2088,7 +2097,15 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     ? await db.query(`
         SELECT count(*)::int AS n
           FROM posts p
-         WHERE p.user_id=$1
+         WHERE (
+             p.user_id=$1
+             OR EXISTS(
+               SELECT 1 FROM post_collaborators profile_collab
+                WHERE profile_collab.post_id=p.id
+                  AND profile_collab.user_id=$1
+                  AND profile_collab.status='approved'
+             )
+           )
            AND p.moderation_status='published'
            AND (
              p.audience='public'
@@ -2107,12 +2124,26 @@ router.get('/:username', optionalAuth, async (req,res)=>{
                   AND pp.user_id=$2
                   AND pp.consent_status='approved'
              )
+             OR EXISTS(
+               SELECT 1 FROM post_collaborators viewer_collab
+                WHERE viewer_collab.post_id=p.id
+                  AND viewer_collab.user_id=$2
+                  AND viewer_collab.status='approved'
+             )
            )
       `,[profile.id,req.user.id])
     : await db.query(`
         SELECT count(*)::int AS n
           FROM posts p
-         WHERE p.user_id=$1
+         WHERE (
+             p.user_id=$1
+             OR EXISTS(
+               SELECT 1 FROM post_collaborators profile_collab
+                WHERE profile_collab.post_id=p.id
+                  AND profile_collab.user_id=$1
+                  AND profile_collab.status='approved'
+             )
+           )
            AND p.moderation_status='published'
            AND p.audience='public'
       `,[profile.id]);
