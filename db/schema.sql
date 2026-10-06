@@ -222,3 +222,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_verification_requests_one_pending
 
 CREATE INDEX IF NOT EXISTS idx_verification_requests_queue
   ON verification_requests(status,type,created_at);
+
+-- RedLibertad V1.13: creator hub y contenido destacado
+CREATE TABLE IF NOT EXISTS creator_featured_posts (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  featured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,post_id)
+);
+CREATE INDEX IF NOT EXISTS idx_creator_featured_posts_user
+  ON creator_featured_posts(user_id,featured_at DESC);
+
