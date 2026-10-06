@@ -934,7 +934,16 @@
 </div>
 
 
-<div id="shareModal" class="modal hidden"><div class="modal-card share-modal-card"><button id="closeShareModal" class="modal-close" type="button">×</button><span class="eyebrow">COMPARTE TU VOZ</span><h2>Compartir publicación</h2><p class="muted share-copy">Mira mi post en RedLibertad, donde la libertad es lo primero.</p><div class="share-grid"><button id="shareNative" class="primary" type="button">↗ Compartir</button><button id="shareFacebook" class="secondary" type="button">Facebook</button><button id="shareWhatsApp" class="secondary" type="button">WhatsApp</button><button id="shareCopy" class="secondary" type="button">Copiar enlace</button></div><div class="internal-share"><b>Enviar dentro de RedLibertad</b><form id="shareInternalForm"><input id="shareInternalUsername" maxlength="30" placeholder="@usuario" autocomplete="off"><button class="secondary" type="submit">Enviar por mensaje</button></form><small>La publicación se enviará como enlace dentro de una conversación privada.</small></div><p id="shareStatus" class="status"></p></div></div>
+<div id="shareModal" class="modal hidden"><div class="modal-card share-modal-card"><button id="closeShareModal" class="modal-close" type="button">×</button><span class="eyebrow">COMPARTE TU VOZ</span><h2>Compartir publicación</h2><p class="muted share-copy">Mira mi post en RedLibertad, donde la libertad es lo primero.</p><div class="share-grid"><button id="shareNative" class="primary" type="button">↗ Compartir</button><button id="shareFacebook" class="secondary" type="button">Facebook</button><button id="shareWhatsApp" class="secondary" type="button">WhatsApp</button><button id="shareCopy" class="secondary" type="button">Copiar enlace</button></div><div class="internal-share">
+  <div class="internal-share-head">
+    <div><b>Enviar a un chat</b><small>Elige una conversación directa o un grupo.</small></div>
+    <button id="refreshShareChats" class="tiny-action" type="button">Actualizar</button>
+  </div>
+  <div id="shareConversationList" class="share-conversation-list"></div>
+  <div class="internal-share-divider"><span>o abre un chat nuevo</span></div>
+  <form id="shareInternalForm"><input id="shareInternalUsername" maxlength="30" placeholder="@usuario" autocomplete="off"><button class="secondary" type="submit">Enviar</button></form>
+  <small>La publicación se enviará como tarjeta interna. El contenido VIP no se puede compartir.</small>
+</div><p id="shareStatus" class="status"></p></div></div>
 <div id="postFocusModal" class="modal hidden">
   <div class="modal-card post-focus-modal-card">
     <button id="closePostFocusModal" class="modal-close" type="button">×</button>
