@@ -100,6 +100,17 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
+-- RedLibertad V1.46: presencia privada de chat
+CREATE TABLE IF NOT EXISTS user_chat_presence (
+  user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  active_conversation_id BIGINT REFERENCES conversations(id) ON DELETE SET NULL,
+  typing_until TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_user_chat_presence_active
+  ON user_chat_presence(active_conversation_id,typing_until);
+
 -- RedLibertad V1.40: estado privado de retorno
 CREATE TABLE IF NOT EXISTS user_experience_state (
   user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
