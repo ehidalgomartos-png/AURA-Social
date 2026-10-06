@@ -6,6 +6,11 @@ const { canViewerSee } = require('../services/contentPolicy');
 
 const router = express.Router();
 
+const COMMUNITY_CATEGORIES=['general','amistad','ocio','musica','cine','deporte','tecnologia','arte','viajes','local','creadores','debate'];
+function normalizeCommunityInterest(value=''){
+  return String(value||'').normalize('NFKC').trim().toLowerCase().slice(0,80);
+}
+
 let communitiesV158Ready=null;
 async function ensureCommunitiesV158(){
   if(!communitiesV158Ready){
@@ -99,6 +104,25 @@ async function ensureCommunitiesV158(){
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_community_moderation_log_community ON community_moderation_log(community_id,created_at DESC)');
+      await db.query("ALTER TABLE communities ADD COLUMN IF NOT EXISTS category VARCHAR(40) NOT NULL DEFAULT 'general'");
+      await db.query('CREATE INDEX IF NOT EXISTS idx_communities_category_updated ON communities(category,updated_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS community_interests (
+          community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+          interest VARCHAR(80) NOT NULL,
+          PRIMARY KEY(community_id,interest)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_community_interests_interest ON community_interests(interest,community_id)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS community_hidden_suggestions (
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+          hidden_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(user_id,community_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_community_hidden_suggestions_user ON community_hidden_suggestions(user_id,hidden_at DESC)');
     })().catch(error=>{communitiesV158Ready=null;throw error;});
   }
   return communitiesV158Ready;
@@ -199,6 +223,8 @@ const createSchema=z.object({
   description:z.string().trim().max(1000).optional().default(''),
   avatarUrl:z.string().trim().max(4096).optional().default(''),
   privacy:z.enum(['public','private']).default('public'),
+  category:z.enum(COMMUNITY_CATEGORIES).default('general'),
+  interests:z.array(z.string().trim().min(1).max(80)).max(8).optional().default([]),
   rules:z.array(z.string().trim().min(1).max(300)).max(10).optional().default([]),
   createChat:z.boolean().optional().default(true)
 });
@@ -252,6 +278,7 @@ router.post('/',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_community',details:parsed.error.flatten()});
   const data=parsed.data;
   const rules=[...new Set(data.rules.map(v=>String(v||'').trim()).filter(Boolean))].slice(0,10);
+  const interests=[...new Set(data.interests.map(normalizeCommunityInterest).filter(Boolean))].slice(0,8);
   const client=await db.pool.connect();
   try{
     await client.query('BEGIN');
@@ -269,10 +296,10 @@ router.post('/',async(req,res)=>{
       `,[conversationId,req.user.id]);
     }
     const created=await client.query(`
-      INSERT INTO communities(owner_id,name,description,avatar_url,privacy,conversation_id)
-      VALUES ($1,$2,$3,$4,$5,$6)
+      INSERT INTO communities(owner_id,name,description,avatar_url,privacy,category,conversation_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING *
-    `,[req.user.id,data.name,data.description,data.avatarUrl||null,data.privacy,conversationId]);
+    `,[req.user.id,data.name,data.description,data.avatarUrl||null,data.privacy,data.category,conversationId]);
     const community=created.rows[0];
     await client.query(`
       INSERT INTO community_members(community_id,user_id,role)
@@ -284,8 +311,14 @@ router.post('/',async(req,res)=>{
         [community.id,i,rules[i]]
       );
     }
+    for(const interest of interests){
+      await client.query(
+        'INSERT INTO community_interests(community_id,interest) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [community.id,interest]
+      );
+    }
     await client.query('COMMIT');
-    res.status(201).json({ok:true,community:{...community,viewer_role:'owner',is_member:true,can_manage:true},rules});
+    res.status(201).json({ok:true,community:{...community,viewer_role:'owner',is_member:true,can_manage:true},rules,interests});
   }catch(error){
     await client.query('ROLLBACK');
     console.error('RedLibertad community create failed:',error);
@@ -344,6 +377,8 @@ const updateSchema=z.object({
   description:z.string().trim().max(1000).optional(),
   avatarUrl:z.string().trim().max(4096).optional().nullable(),
   privacy:z.enum(['public','private']).optional(),
+  category:z.enum(COMMUNITY_CATEGORIES).optional(),
+  interests:z.array(z.string().trim().min(1).max(80)).max(8).optional(),
   rules:z.array(z.string().trim().min(1).max(300)).max(10).optional()
 });
 
@@ -363,6 +398,7 @@ router.patch('/:id',async(req,res)=>{
              description=COALESCE($3,description),
              avatar_url=CASE WHEN $4::boolean THEN $5 ELSE avatar_url END,
              privacy=COALESCE($6,privacy),
+             category=COALESCE($7,category),
              updated_at=now()
        WHERE id=$1
        RETURNING *
@@ -372,7 +408,8 @@ router.patch('/:id',async(req,res)=>{
       data.description===undefined?null:data.description,
       Object.prototype.hasOwnProperty.call(data,'avatarUrl'),
       data.avatarUrl||null,
-      data.privacy||null
+      data.privacy||null,
+      data.category||null
     ]);
     if(data.rules){
       const rules=[...new Set(data.rules.map(v=>String(v||'').trim()).filter(Boolean))].slice(0,10);
@@ -381,6 +418,16 @@ router.patch('/:id',async(req,res)=>{
         await client.query(
           'INSERT INTO community_rules(community_id,position,body) VALUES ($1,$2,$3)',
           [state.id,i,rules[i]]
+        );
+      }
+    }
+    if(data.interests){
+      const interests=[...new Set(data.interests.map(normalizeCommunityInterest).filter(Boolean))].slice(0,8);
+      await client.query('DELETE FROM community_interests WHERE community_id=$1',[state.id]);
+      for(const interest of interests){
+        await client.query(
+          'INSERT INTO community_interests(community_id,interest) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+          [state.id,interest]
         );
       }
     }
