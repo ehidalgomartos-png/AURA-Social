@@ -344,13 +344,28 @@ CREATE TABLE IF NOT EXISTS event_reminders (
 CREATE INDEX IF NOT EXISTS idx_event_reminders_due
   ON event_reminders(sent_at,remind_at);
 
+-- RedLibertad V1.61: publicaciones colaborativas
+CREATE TABLE IF NOT EXISTS post_collaborators (
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','revoked')),
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  responded_at TIMESTAMPTZ,
+  PRIMARY KEY(post_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status
+  ON post_collaborators(user_id,status,requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status
+  ON post_collaborators(post_id,status,requested_at);
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
   CHECK(type IN (
     'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
     'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
-    'creator_poll_vote','creator_question_response','event_reminder','system'
+    'creator_poll_vote','creator_question_response','event_reminder',
+    'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked','system'
   ));
 
 -- RedLibertad V1.48: notificaciones Web Push opcionales
