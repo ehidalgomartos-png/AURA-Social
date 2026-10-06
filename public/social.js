@@ -6357,6 +6357,7 @@ $('#shareInternalForm')?.addEventListener('submit', async event => {
   event.preventDefault();
   await shareInsideRedLibertad($('#shareInternalUsername')?.value);
 });
+$('#refreshShareChats')?.addEventListener('click',()=>loadShareConversations().catch(()=>{}));
 if ($('#closeShareModal')) $('#closeShareModal').onclick = closeShare;
 if ($('#shareNative')) $('#shareNative').onclick = nativeShare;
 if ($('#shareCopy')) $('#shareCopy').onclick = copyShareLink;
