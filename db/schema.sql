@@ -278,5 +278,45 @@ ALTER TABLE notifications
     'system'
   ));
 
+-- RedLibertad V1.17: círculo VIP privado de creador
+CREATE TABLE IF NOT EXISTS creator_vips (
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  fan_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(creator_id,fan_id),
+  CHECK(creator_id<>fan_id)
+);
+CREATE INDEX IF NOT EXISTS idx_creator_vips_creator_created
+  ON creator_vips(creator_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS creator_vip_broadcasts (
+  id BIGSERIAL PRIMARY KEY,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(280) NOT NULL,
+  recipient_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_creator_vip_broadcasts_creator_created
+  ON creator_vip_broadcasts(creator_id,created_at DESC);
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK(type IN (
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'mention',
+    'repost',
+    'creator_broadcast',
+    'creator_vip_broadcast',
+    'system'
+  ));
+
 
 

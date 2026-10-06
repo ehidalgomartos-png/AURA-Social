@@ -1291,15 +1291,16 @@ function creatorEngagementSummaryHTML(engagement = {}) {
 
 function creatorTopFansHTML(fans = []) {
   if (!fans.length) return '<div class="creator-empty compact">Todavía no hay interacciones de seguidores en los últimos 30 días.</div>';
-  return fans.map((fan,index)=>`<article class="creator-fan-row">
+  return fans.map((fan,index)=>`<article class="creator-fan-row ${fan.is_vip ? 'is-vip' : ''}">
     <span class="creator-fan-rank">${index + 1}</span>
     ${profileLink(fan.username,`<span class="creator-audience-avatar">${avatarHTML(fan)}</span>`,'creator-audience-profile')}
     <div class="creator-fan-copy">
-      ${profileLink(fan.username,`<b>${esc(fan.display_name)} ${fan.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+      ${profileLink(fan.username,`<b>${esc(fan.display_name)} ${fan.creator_verified ? '<span class="verified">✓</span>' : ''}${fan.is_vip ? ' <span class="creator-vip-badge">VIP</span>' : ''}</b>`,'creator-audience-profile')}
       <small>@${esc(fan.username)}</small>
       <span>♥ ${Number(fan.like_count || 0)} · ◯ ${Number(fan.comment_count || 0)} · ⟳ ${Number(fan.repost_count || 0)}</span>
     </div>
     <strong>${Number(fan.interaction_count || 0)}</strong>
+    <button type="button" class="tiny-action creator-vip-toggle" data-creator-vip="${fan.id}" data-vip="${fan.is_vip ? '1' : '0'}">${fan.is_vip ? 'Quitar VIP' : 'Añadir VIP'}</button>
   </article>`).join('');
 }
 
@@ -1317,12 +1318,25 @@ function creatorTopContentHTML(posts = []) {
 
 function creatorAudienceHTML(users = []) {
   if (!users.length) return '<div class="creator-empty">Todavía no tienes seguidores.</div>';
-  return users.map(user=>`<article class="creator-audience-person">
+  return users.map(user=>`<article class="creator-audience-person ${user.is_vip ? 'is-vip' : ''}">
     ${profileLink(user.username,`<span class="creator-audience-avatar">${avatarHTML(user)}</span>`,'creator-audience-profile')}
     <div>
-      ${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+      ${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}${user.is_vip ? ' <span class="creator-vip-badge">VIP</span>' : ''}</b>`,'creator-audience-profile')}
       <small>@${esc(user.username)} · te sigue desde ${timeAgo(user.followed_at)}</small>
     </div>
+    <button type="button" class="tiny-action creator-vip-toggle" data-creator-vip="${user.id}" data-vip="${user.is_vip ? '1' : '0'}">${user.is_vip ? 'Quitar VIP' : 'Añadir VIP'}</button>
+  </article>`).join('');
+}
+
+function creatorVipMembersHTML(members = []) {
+  if (!members.length) return '<div class="creator-empty compact">Tu círculo VIP está vacío. Añade seguidores desde Tu audiencia o Fans más activos.</div>';
+  return members.map(member=>`<article class="creator-vip-member ${member.still_follows ? '' : 'inactive'}">
+    ${profileLink(member.username,`<span class="creator-audience-avatar">${avatarHTML(member)}</span>`,'creator-audience-profile')}
+    <div>
+      ${profileLink(member.username,`<b>${esc(member.display_name)} ${member.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+      <small>@${esc(member.username)} · VIP desde ${timeAgo(member.vip_since)}${member.still_follows ? '' : ' · ya no te sigue'}</small>
+    </div>
+    <button type="button" class="tiny-action" data-creator-vip="${member.id}" data-vip="1">Quitar VIP</button>
   </article>`).join('');
 }
 
@@ -1390,7 +1404,9 @@ async function loadCreatorCenter() {
     creatorMetric('Guardados',creator.save_count,creator.saves_30d),
     creatorMetric('Destacadas',creator.featured_count),
     creatorMetric('Clics en enlaces',creator.link_click_count),
-    creatorMetric('Avisos enviados',creator.broadcast_count)
+    creatorMetric('Avisos enviados',creator.broadcast_count),
+    creatorMetric('Miembros VIP',creator.vip_count),
+    creatorMetric('Avisos VIP',creator.vip_broadcast_count)
   ].join('');
 
   const creatorForm=$('#creatorProfileForm');
@@ -1436,6 +1452,17 @@ async function loadCreatorCenter() {
   if(broadcastHint)broadcastHint.textContent=availability.label;
   if(broadcastSubmit)broadcastSubmit.disabled=availability.blocked;
   if(broadcastForm?.body)broadcastForm.body.disabled=availability.blocked;
+
+  const vip=d.vip || {};
+  if($('#creatorVipMembers'))$('#creatorVipMembers').innerHTML=creatorVipMembersHTML(Array.isArray(vip.members) ? vip.members : []);
+  if($('#creatorVipBroadcastHistory'))$('#creatorVipBroadcastHistory').innerHTML=creatorBroadcastHistoryHTML(Array.isArray(vip.broadcasts) ? vip.broadcasts : []);
+  if($('#creatorVipHint'))$('#creatorVipHint').textContent=`${Array.isArray(vip.members) ? vip.members.length : Number(creator.vip_count || 0)} de ${Number(vip.limit || 50)} miembros VIP.`;
+  const vipAvailability=creatorBroadcastAvailability(vip.nextBroadcastAt);
+  const vipForm=$('#creatorVipBroadcastForm');
+  const vipSubmit=$('#creatorVipBroadcastSubmit');
+  if(vipSubmit)vipSubmit.disabled=vipAvailability.blocked || Number(creator.vip_count || 0)===0;
+  if(vipForm?.body)vipForm.body.disabled=vipAvailability.blocked || Number(creator.vip_count || 0)===0;
+  if($('#creatorVipBroadcastStatus') && vipAvailability.blocked)$('#creatorVipBroadcastStatus').textContent=vipAvailability.label;
   return true;
 }
 
@@ -1451,6 +1478,9 @@ async function openCreatorModal() {
   if($('#creatorTopContent'))$('#creatorTopContent').innerHTML='';
   if($('#creatorBroadcastHistory'))$('#creatorBroadcastHistory').innerHTML='';
   if($('#creatorBroadcastStatus'))$('#creatorBroadcastStatus').textContent='';
+  if($('#creatorVipMembers'))$('#creatorVipMembers').innerHTML='<div class="mini-loading">Cargando círculo VIP...</div>';
+  if($('#creatorVipBroadcastHistory'))$('#creatorVipBroadcastHistory').innerHTML='';
+  if($('#creatorVipBroadcastStatus'))$('#creatorVipBroadcastStatus').textContent='';
   await loadCreatorCenter();
 }
 
@@ -1506,6 +1536,66 @@ $('#creatorBroadcastForm')?.addEventListener('submit',async event=>{
     status.textContent='No se pudo enviar el aviso.';
     submit.disabled=false;
   }
+});
+
+$('#creatorVipBroadcastForm textarea[name="body"]')?.addEventListener('input',event=>{
+  const count=$('#creatorVipBroadcastCount');
+  if(count)count.textContent=`${String(event.currentTarget.value || '').length} / 280`;
+});
+
+$('#creatorVipBroadcastForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const body=String(form.body?.value || '').trim();
+  const status=$('#creatorVipBroadcastStatus');
+  const submit=$('#creatorVipBroadcastSubmit');
+  if(!body){
+    status.textContent='Escribe un aviso VIP antes de enviarlo.';
+    return;
+  }
+  submit.disabled=true;
+  status.textContent='Enviando aviso VIP...';
+  const { r, d }=await api('/api/profiles/me/creator-vip-broadcasts',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({body})
+  });
+  if(!r.ok){
+    if(d.error==='vip_broadcast_cooldown'){
+      status.textContent=creatorBroadcastAvailability(d.nextBroadcastAt).label;
+      return;
+    }
+    status.textContent='No se pudo enviar el aviso VIP.';
+    submit.disabled=false;
+    return;
+  }
+  form.reset();
+  if($('#creatorVipBroadcastCount'))$('#creatorVipBroadcastCount').textContent='0 / 280';
+  status.textContent=`Aviso VIP enviado a ${Number(d.broadcast?.recipient_count || 0)} miembros.`;
+  toast('Aviso enviado a tu círculo VIP');
+  await Promise.all([loadCreatorCenter(),loadNotifications()]);
+});
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-creator-vip]');
+  if(!button)return;
+  event.preventDefault();
+  event.stopPropagation();
+  const active=button.dataset.vip==='1';
+  button.disabled=true;
+  const { r, d }=await api(`/api/profiles/me/creator-vips/${encodeURIComponent(button.dataset.creatorVip)}`,{
+    method:active ? 'DELETE' : 'POST'
+  });
+  if(!r.ok){
+    button.disabled=false;
+    return toast(
+      d.error==='vip_limit_reached' ? 'Tu círculo VIP admite hasta 50 personas.' :
+      d.error==='vip_requires_current_follower' ? 'Solo puedes añadir seguidores actuales.' :
+      'No se pudo actualizar el círculo VIP.'
+    );
+  }
+  toast(active ? 'Persona retirada del círculo VIP' : 'Persona añadida al círculo VIP');
+  await loadCreatorCenter();
 });
 
 $('#creatorProfileForm')?.addEventListener('submit',async event=>{
@@ -2677,6 +2767,7 @@ function notificationIcon(type) {
     consent_rejected: '×',
     consent_revoked: '↶',
     creator_broadcast: '📣',
+    creator_vip_broadcast: '★',
     system: 'R'
   })[type] || '•';
 }
@@ -2685,7 +2776,7 @@ function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
   if (filter === 'mentions') return notification.type === 'mention';
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
-  if (filter === 'community') return ['follow','creator_broadcast'].includes(notification.type);
+  if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
   if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
   return true;
@@ -2739,6 +2830,11 @@ async function navigateNotification(notification) {
   }
 
   if (type === 'creator_broadcast' && notification.actor_username) {
+    await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (type === 'creator_vip_broadcast' && notification.actor_username) {
     await openPublicProfile(notification.actor_username);
     return;
   }

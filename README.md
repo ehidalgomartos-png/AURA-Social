@@ -1,4 +1,4 @@
-# RedLibertad V1.16.0 — Fans & Creator Engagement
+# RedLibertad V1.17.0 — Creator VIP Circle
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -334,3 +334,23 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Los rankings son privados y solo visibles para el creador de la cuenta.
 - No añade tablas ni requiere migración SQL nueva.
 - Healthcheck actualizado a 1.16.0 y caché PWA V1.16.
+
+
+## V1.17.0 — Creator VIP Circle
+
+- Nuevo Círculo VIP privado para creadores verificados.
+- Hasta 50 miembros VIP por creador.
+- Solo se pueden añadir seguidores actuales.
+- Añadir/quitar VIP directamente desde Tu audiencia o Fans más activos.
+- Lista privada de miembros VIP dentro del Centro de creador.
+- El estado VIP no se muestra públicamente en perfiles.
+- Los miembros que dejan de seguir quedan marcados como inactivos y no reciben avisos VIP.
+- Avisos VIP de texto de hasta 280 caracteres.
+- Máximo un aviso VIP cada 24 horas por creador.
+- Cooldown protegido transaccionalmente.
+- Los avisos VIP respetan bloqueos y silencios.
+- Nuevo tipo de notificación creator_vip_broadcast.
+- Historial de los últimos 10 avisos VIP y número de destinatarios.
+- Nuevas tablas creator_vips y creator_vip_broadcasts.
+- Bootstrap idempotente y actualización automática de notifications_type_check.
+- Healthcheck actualizado a 1.17.0 y caché PWA V1.17.

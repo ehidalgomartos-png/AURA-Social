@@ -167,6 +167,64 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorV17Ready = null;
+async function ensureCreatorV17() {
+  if (!creatorV17Ready) {
+    creatorV17Ready = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_vips (
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          fan_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(creator_id,fan_id),
+          CHECK(creator_id<>fan_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_vips_creator_created ON creator_vips(creator_id,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_vip_broadcasts (
+          id BIGSERIAL PRIMARY KEY,
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body VARCHAR(280) NOT NULL,
+          recipient_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_vip_broadcasts_creator_created ON creator_vip_broadcasts(creator_id,created_at DESC)');
+      const constraint=await db.query(
+        "SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conname='notifications_type_check' AND conrelid='notifications'::regclass LIMIT 1"
+      );
+      const definition=String(constraint.rows[0]?.definition || '');
+      if(!definition.includes('creator_vip_broadcast')){
+        await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
+        await db.query(`
+          ALTER TABLE notifications
+            ADD CONSTRAINT notifications_type_check
+            CHECK(type IN (
+              'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+              'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast','system'
+            ))
+        `);
+      }
+    })().catch(error => {
+      creatorV17Ready = null;
+      throw error;
+    });
+  }
+  return creatorV17Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorV17();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.17 creator VIP bootstrap failed:',error);
+    res.status(500).json({error:'creator_vip_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
@@ -509,7 +567,9 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND s.created_at>=now()-interval '30 days') saves_30d,
       (SELECT count(*)::int FROM creator_featured_posts fp WHERE fp.user_id=u.id) featured_count,
       (SELECT COALESCE(sum(cl.click_count),0)::bigint FROM creator_links cl WHERE cl.user_id=u.id) link_click_count,
-      (SELECT count(*)::int FROM creator_broadcasts cb WHERE cb.user_id=u.id) broadcast_count
+      (SELECT count(*)::int FROM creator_broadcasts cb WHERE cb.user_id=u.id) broadcast_count,
+      (SELECT count(*)::int FROM creator_vips cv WHERE cv.creator_id=u.id) vip_count,
+      (SELECT count(*)::int FROM creator_vip_broadcasts cvb WHERE cvb.creator_id=u.id) vip_broadcast_count
     FROM users u
     WHERE u.id=$1
     LIMIT 1
@@ -547,7 +607,8 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
 
   const [audience,broadcasts,lastBroadcast,engagementSummary,topFans,topContent]=await Promise.all([
     db.query(`
-      SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,f.created_at AS followed_at
+      SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,f.created_at AS followed_at,
+             EXISTS(SELECT 1 FROM creator_vips cv WHERE cv.creator_id=$1 AND cv.fan_id=u.id) AS is_vip
         FROM follows f
         JOIN users u ON u.id=f.follower_id
        WHERE f.following_id=$1
@@ -651,6 +712,7 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       )
       SELECT
         u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+        EXISTS(SELECT 1 FROM creator_vips cv WHERE cv.creator_id=$1 AND cv.fan_id=u.id) AS is_vip,
         a.like_count,a.comment_count,a.repost_count,
         (a.like_count+a.comment_count+a.repost_count)::int AS interaction_count
       FROM fan_activity a
@@ -704,6 +766,38 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
     `,[req.user.id])
   ]);
 
+  const [vips,vipBroadcasts,lastVipBroadcast]=await Promise.all([
+    db.query(`
+      SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,cv.created_at AS vip_since,
+             EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=u.id AND f.following_id=$1) AS still_follows
+        FROM creator_vips cv
+        JOIN users u ON u.id=cv.fan_id
+       WHERE cv.creator_id=$1
+         AND u.status='active'
+       ORDER BY cv.created_at DESC
+       LIMIT 50
+    `,[req.user.id]),
+    db.query(`
+      SELECT id,body,recipient_count,created_at
+        FROM creator_vip_broadcasts
+       WHERE creator_id=$1
+       ORDER BY created_at DESC
+       LIMIT 10
+    `,[req.user.id]),
+    db.query(`
+      SELECT created_at
+        FROM creator_vip_broadcasts
+       WHERE creator_id=$1
+       ORDER BY created_at DESC
+       LIMIT 1
+    `,[req.user.id])
+  ]);
+
+  const lastVipCreated=lastVipBroadcast.rows[0]?.created_at || null;
+  const nextVipBroadcastAt=lastVipCreated
+    ? new Date(new Date(lastVipCreated).getTime()+24*60*60*1000).toISOString()
+    : null;
+
   const lastCreated=lastBroadcast.rows[0]?.created_at || null;
   const nextBroadcastAt=lastCreated
     ? new Date(new Date(lastCreated).getTime()+24*60*60*1000).toISOString()
@@ -727,6 +821,13 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       interactions30d:Number(engagementSummary.rows[0]?.interactions_30d || 0),
       topFans:topFans.rows,
       topContent:topContent.rows
+    },
+    vip:{
+      members:vips.rows,
+      broadcasts:vipBroadcasts.rows,
+      limit:50,
+      broadcastLimitHours:24,
+      nextBroadcastAt:nextVipBroadcastAt
     },
     featuredLimit:3,
     linkLimit:5,
@@ -1005,6 +1106,156 @@ router.post('/me/creator-broadcasts',requireAuth,async(req,res)=>{
     await client.query('ROLLBACK');
     console.error('RedLibertad creator broadcast failed:',error);
     res.status(500).json({error:'creator_broadcast_failed'});
+  }finally{
+    client.release();
+  }
+});
+
+const creatorVipBroadcastSchema=z.object({
+  body:z.string().trim().min(1).max(280)
+});
+
+router.post('/me/creator-vips/:fanId',requireAuth,async(req,res)=>{
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const account=await client.query('SELECT creator_verified FROM users WHERE id=$1 FOR UPDATE',[req.user.id]);
+    if(!account.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'user_not_found'});
+    }
+    if(!account.rows[0].creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required'});
+    }
+
+    const follower=await client.query(`
+      SELECT u.id
+        FROM follows f
+        JOIN users u ON u.id=f.follower_id
+       WHERE f.following_id=$1
+         AND f.follower_id=$2
+         AND u.status='active'
+       LIMIT 1
+    `,[req.user.id,req.params.fanId]);
+    if(!follower.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(400).json({error:'vip_requires_current_follower'});
+    }
+
+    const existing=await client.query(
+      'SELECT 1 FROM creator_vips WHERE creator_id=$1 AND fan_id=$2',
+      [req.user.id,req.params.fanId]
+    );
+    if(existing.rowCount){
+      await client.query('COMMIT');
+      return res.json({ok:true,vip:true});
+    }
+
+    const count=await client.query('SELECT count(*)::int n FROM creator_vips WHERE creator_id=$1',[req.user.id]);
+    if(Number(count.rows[0]?.n || 0)>=50){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'vip_limit_reached',limit:50});
+    }
+
+    await client.query(
+      'INSERT INTO creator_vips (creator_id,fan_id) VALUES ($1,$2)',
+      [req.user.id,req.params.fanId]
+    );
+    await client.query('COMMIT');
+    res.status(201).json({ok:true,vip:true});
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad add creator VIP failed:',error);
+    res.status(500).json({error:'creator_vip_update_failed'});
+  }finally{
+    client.release();
+  }
+});
+
+router.delete('/me/creator-vips/:fanId',requireAuth,async(req,res)=>{
+  const account=await db.query('SELECT creator_verified FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+  if(!account.rowCount)return res.status(404).json({error:'user_not_found'});
+  if(!account.rows[0].creator_verified)return res.status(403).json({error:'verified_creator_required'});
+
+  await db.query(
+    'DELETE FROM creator_vips WHERE creator_id=$1 AND fan_id=$2',
+    [req.user.id,req.params.fanId]
+  );
+  res.json({ok:true,vip:false});
+});
+
+router.post('/me/creator-vip-broadcasts',requireAuth,async(req,res)=>{
+  const parsed=creatorVipBroadcastSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_vip_broadcast'});
+
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const account=await client.query('SELECT creator_verified FROM users WHERE id=$1 FOR UPDATE',[req.user.id]);
+    if(!account.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'user_not_found'});
+    }
+    if(!account.rows[0].creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required'});
+    }
+
+    const last=await client.query(`
+      SELECT created_at FROM creator_vip_broadcasts
+       WHERE creator_id=$1
+       ORDER BY created_at DESC LIMIT 1
+    `,[req.user.id]);
+    if(last.rowCount){
+      const nextAt=new Date(new Date(last.rows[0].created_at).getTime()+24*60*60*1000);
+      if(nextAt.getTime()>Date.now()){
+        await client.query('ROLLBACK');
+        return res.status(429).json({error:'vip_broadcast_cooldown',nextBroadcastAt:nextAt.toISOString()});
+      }
+    }
+
+    const inserted=await client.query(`
+      INSERT INTO creator_vip_broadcasts (creator_id,body)
+      VALUES ($1,$2)
+      RETURNING id,body,created_at
+    `,[req.user.id,parsed.data.body]);
+    const broadcast=inserted.rows[0];
+
+    const recipients=await client.query(`
+      INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+      SELECT cv.fan_id,$1,'creator_vip_broadcast','creator_vip_broadcast',$2,$3
+        FROM creator_vips cv
+        JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+        JOIN users fan ON fan.id=cv.fan_id
+       WHERE cv.creator_id=$1
+         AND fan.status='active'
+         AND NOT EXISTS (
+           SELECT 1 FROM mutes m WHERE m.muter_id=cv.fan_id AND m.muted_id=$1
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM blocks b
+            WHERE (b.blocker_id=cv.fan_id AND b.blocked_id=$1)
+               OR (b.blocker_id=$1 AND b.blocked_id=cv.fan_id)
+         )
+      RETURNING id
+    `,[req.user.id,broadcast.id,parsed.data.body]);
+
+    await client.query(
+      'UPDATE creator_vip_broadcasts SET recipient_count=$2 WHERE id=$1',
+      [broadcast.id,recipients.rowCount]
+    );
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      ok:true,
+      broadcast:{...broadcast,recipient_count:recipients.rowCount},
+      nextBroadcastAt:new Date(new Date(broadcast.created_at).getTime()+24*60*60*1000).toISOString()
+    });
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad creator VIP broadcast failed:',error);
+    res.status(500).json({error:'creator_vip_broadcast_failed'});
   }finally{
     client.release();
   }

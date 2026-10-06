@@ -245,6 +245,26 @@
       </div>
     </section>
 
+    <section class="creator-section creator-vip-section">
+      <div class="creator-section-head">
+        <div>
+          <b>Círculo VIP</b>
+          <small id="creatorVipHint">Selecciona hasta 50 seguidores para tu círculo privado.</small>
+        </div>
+      </div>
+      <div id="creatorVipMembers" class="creator-vip-list"></div>
+
+      <form id="creatorVipBroadcastForm" class="creator-broadcast-form creator-vip-broadcast-form">
+        <div class="compose-text-wrap">
+          <textarea name="body" maxlength="280" placeholder="Escribe un aviso solo para tu círculo VIP..." required></textarea>
+          <small id="creatorVipBroadcastCount" class="char-counter">0 / 280</small>
+        </div>
+        <button id="creatorVipBroadcastSubmit" class="primary full" type="submit">Enviar aviso VIP</button>
+        <p id="creatorVipBroadcastStatus" class="status"></p>
+      </form>
+      <div id="creatorVipBroadcastHistory" class="creator-broadcast-history"></div>
+    </section>
+
     <section class="creator-section">
       <div class="creator-section-head">
         <div>
