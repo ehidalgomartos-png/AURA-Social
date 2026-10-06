@@ -1,4 +1,4 @@
-# RedLibertad V1.13.0 — Creator Hub & Featured Content
+# RedLibertad V1.14.0 — Creator Profile & Links
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -281,3 +281,19 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Control transaccional del límite de 3 publicaciones destacadas.
 - Nueva tabla creator_featured_posts con creación idempotente.
 - Healthcheck actualizado a 1.13.0 y caché PWA V1.13.
+
+
+## V1.14.0 — Creator Profile & Links
+
+- Nuevo perfil público ampliado para creadores verificados.
+- Titular de creador de hasta 120 caracteres.
+- Hasta 5 enlaces públicos por creador.
+- Edición de enlaces directamente desde el Centro de creador.
+- Los enlaces se muestran como CTAs en el perfil público.
+- Métrica agregada de clics por enlace y total en el Centro de creador.
+- No se almacena quién hizo clic, IP, dispositivo ni historial individual.
+- Validación de URLs http/https.
+- Los enlaces conservan sus contadores al editarse.
+- Nueva tabla creator_links y nueva columna users.creator_headline.
+- Bootstrap idempotente, sin SQL manual.
+- Healthcheck actualizado a 1.14.0 y caché PWA V1.14.
