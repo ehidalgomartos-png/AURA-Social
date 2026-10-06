@@ -3826,6 +3826,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .creator-followup-head small{margin-top:3px;color:var(--muted);font-size:10px}
 .creator-followup-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:12px 0}
 .creator-followup-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.7fr);gap:12px;align-items:end}
+.creator-followup-filter-stack{display:grid;grid-template-columns:minmax(120px,.35fr) minmax(0,1fr);gap:8px;align-items:end}
+.creator-followup-priority{display:grid;gap:5px;font-size:9px;font-weight:900;color:var(--muted)}
+.creator-followup-priority select{width:100%;border:1px solid var(--line);border-radius:11px;padding:9px 10px;background:var(--paper);color:var(--ink)}
 .creator-followup-window-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .creator-followup-window-tabs button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 10px;font-size:9px;font-weight:900;color:var(--muted)}
 .creator-followup-window-tabs button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -3860,6 +3863,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 @media (max-width:900px){
   .creator-followup-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
   .creator-followup-toolbar{grid-template-columns:1fr}
+  .creator-followup-filter-stack{grid-template-columns:1fr}
 }
 @media (max-width:760px){
   .creator-followup-dashboard{padding:12px}
