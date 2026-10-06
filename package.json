@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.22.0",
+  "version": "1.23.0",
   "private": true,
-  "description": "RedLibertad V1.22 Creator Community Tools - encuestas, preguntas abiertas y bandeja privada de respuestas, sin monetización.",
+  "description": "RedLibertad V1.23 Community Management 2.0 - cierre, archivo y respuestas destacadas privadas para comunidad de creadores, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
