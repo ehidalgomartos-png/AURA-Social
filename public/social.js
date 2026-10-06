@@ -20,6 +20,11 @@ let communityDirectoryItems=[];
 let communityScope='all';
 let communitySearch='';
 let communitySearchTimer=null;
+let communityDiscoveryMode='recommended';
+let communityDiscoveryCategory='';
+let communityDiscoverySearch='';
+let communityDiscoverySearchTimer=null;
+let communityDiscoveryItems=[];
 let activeCommunityId=null;
 let activeCommunityData=null;
 let interestCatalog = [];
@@ -2027,6 +2032,28 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const discoveryMode=event.target.closest('[data-community-discovery-mode]');
+  if(discoveryMode){
+    event.preventDefault();
+    communityDiscoveryMode=discoveryMode.dataset.communityDiscoveryMode || 'recommended';
+    await loadCommunityDiscovery();
+    return;
+  }
+  const discoveryHide=event.target.closest('[data-community-discovery-hide]');
+  if(discoveryHide){
+    event.preventDefault();
+    event.stopPropagation();
+    const id=Number(discoveryHide.dataset.communityDiscoveryHide);
+    if(Number.isInteger(id) && id>0){
+      const {r}=await api(`/api/communities/discover/${id}/hide`,{method:'POST'});
+      if(r.ok){
+        communityDiscoveryItems=communityDiscoveryItems.filter(item=>Number(item.id)!==id);
+        renderCommunityDiscovery();
+        toast('Sugerencia ocultada');
+      }else toast('No se pudo ocultar la sugerencia.');
+    }
+    return;
+  }
   const communityConversation=event.target.closest('[data-community-conversation]');
   if(communityConversation){
     event.preventDefault();
@@ -6785,6 +6812,61 @@ function communityCardHTML(community){
   </article>`;
 }
 
+
+const COMMUNITY_CATEGORY_LABELS={
+  general:'General',amistad:'Amistad',ocio:'Ocio',musica:'Música',cine:'Cine',deporte:'Deporte',
+  tecnologia:'Tecnología',arte:'Arte',viajes:'Viajes',local:'Local',creadores:'Creadores',debate:'Debate'
+};
+
+function parseCommunityInterests(value=''){
+  return [...new Set(String(value||'').split(',').map(item=>item.normalize('NFKC').trim().toLowerCase()).filter(Boolean))].slice(0,8);
+}
+
+function communityDiscoveryCardHTML(community){
+  const privacy=community.privacy==='private' ? 'Privada' : 'Pública';
+  const interests=Array.isArray(community.interests)?community.interests:[];
+  return `<article class="community-discovery-card" data-community-discovery-card="${community.id}">
+    <button type="button" class="community-discovery-main" data-community-open="${community.id}">
+      <span class="community-card-avatar">${communityAvatarHTML(community)}</span>
+      <span class="community-card-copy">
+        <span class="community-card-kicker">${esc(COMMUNITY_CATEGORY_LABELS[community.category] || 'General')} · ${esc(privacy)}</span>
+        <b>${esc(community.name)}</b>
+        <p>${esc(community.description || 'Sin descripción todavía.')}</p>
+        <small>${Number(community.member_count||0)} miembros · ${Number(community.post_count||0)} publicaciones</small>
+        <em class="community-discovery-reason">${esc(community.reason || 'Comunidad que podrías explorar')}</em>
+        ${interests.length ? `<span class="community-discovery-interests">${interests.slice(0,4).map(item=>`<i>${esc(item)}</i>`).join('')}</span>` : ''}
+      </span>
+    </button>
+    <button type="button" class="community-discovery-hide" data-community-discovery-hide="${community.id}" title="Ocultar sugerencia" aria-label="Ocultar sugerencia">×</button>
+  </article>`;
+}
+
+function renderCommunityDiscovery(){
+  const root=$('#communityDiscoveryList');
+  if(!root)return;
+  root.innerHTML=communityDiscoveryItems.length
+    ? communityDiscoveryItems.map(communityDiscoveryCardHTML).join('')
+    : '<div class="communities-empty"><b>No hay sugerencias con estos filtros.</b><p>Puedes cambiar categoría, búsqueda o modo.</p></div>';
+  all('[data-community-discovery-mode]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.communityDiscoveryMode===communityDiscoveryMode);
+  });
+}
+
+async function loadCommunityDiscovery(){
+  const root=$('#communityDiscoveryList');
+  if(root && !communityDiscoveryItems.length)root.innerHTML='<div class="mini-loading">Preparando sugerencias…</div>';
+  const params=new URLSearchParams({mode:communityDiscoveryMode,q:communityDiscoverySearch});
+  if(communityDiscoveryCategory)params.set('category',communityDiscoveryCategory);
+  const {r,d}=await api('/api/communities/discover?'+params.toString());
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="info-card"><b>No se pudieron cargar las sugerencias.</b></div>';
+    return [];
+  }
+  communityDiscoveryItems=Array.isArray(d.communities)?d.communities:[];
+  renderCommunityDiscovery();
+  return communityDiscoveryItems;
+}
+
 function renderCommunityDirectory(){
   const root=$('#communityList');
   if(!root)return;
@@ -6816,6 +6898,7 @@ function showCommunityDirectory(){
   $('#communityDetail')?.classList.add('hidden');
   $('#communitiesDirectory')?.classList.remove('hidden');
   loadCommunities();
+  loadCommunityDiscovery();
 }
 
 function communityHeroHTML(data){
@@ -6839,11 +6922,13 @@ function communityHeroHTML(data){
       <h2>${esc(community.name)}</h2>
       <p>${esc(community.description || 'Sin descripción todavía.')}</p>
       <div class="community-hero-meta">
+        <span>${esc(COMMUNITY_CATEGORY_LABELS[community.category] || 'General')}</span>
         <span>${Number(community.member_count||0)} miembros</span>
         <span>${Number(community.post_count||0)} publicaciones</span>
         <span>Creada por @${esc(community.owner_username || '')}</span>
         ${community.viewer_role ? `<span>${esc(communityRoleLabel(community.viewer_role))}</span>` : ''}
       </div>
+      ${Array.isArray(data.interests) && data.interests.length ? `<div class="community-hero-interests">${data.interests.map(item=>`<span>${esc(item)}</span>`).join('')}</div>` : ''}
     </div>
   </div>
   <div class="community-hero-actions">${joinAction}${chatAction}</div>`;
@@ -6975,6 +7060,8 @@ function renderCommunityAdmin(data){
     form.elements.name.value=community.name || '';
     form.elements.description.value=community.description || '';
     form.elements.privacy.value=community.privacy || 'public';
+    if(form.elements.category)form.elements.category.value=community.category || 'general';
+    if(form.elements.interests)form.elements.interests.value=(data.interests||[]).join(', ');
     form.elements.rules.value=(data.rules||[]).map(rule=>rule.body).join('\n');
   }
   $('#deleteCommunity')?.classList.toggle('hidden',community.viewer_role!=='owner');
@@ -7038,6 +7125,16 @@ $('#communitySearch')?.addEventListener('input',event=>{
   communitySearchTimer=setTimeout(loadCommunities,220);
 });
 
+$('#communityDiscoveryCategory')?.addEventListener('change',event=>{
+  communityDiscoveryCategory=event.currentTarget.value || '';
+  loadCommunityDiscovery();
+});
+$('#communityDiscoverySearch')?.addEventListener('input',event=>{
+  communityDiscoverySearch=event.currentTarget.value || '';
+  clearTimeout(communityDiscoverySearchTimer);
+  communityDiscoverySearchTimer=setTimeout(loadCommunityDiscovery,220);
+});
+
 $('#communityCreateForm')?.addEventListener('submit',async event=>{
   event.preventDefault();
   const form=event.currentTarget;
@@ -7061,6 +7158,8 @@ $('#communityCreateForm')?.addEventListener('submit',async event=>{
         name:String(fd.get('name')||'').trim(),
         description:String(fd.get('description')||'').trim(),
         privacy:String(fd.get('privacy')||'public'),
+        category:String(fd.get('category')||'general'),
+        interests:parseCommunityInterests(fd.get('interests')),
         avatarUrl,
         rules:parseCommunityRules(fd.get('rules')),
         createChat:fd.get('createChat')==='on'
@@ -7088,6 +7187,8 @@ $('#communityEditForm')?.addEventListener('submit',async event=>{
       name:String(fd.get('name')||'').trim(),
       description:String(fd.get('description')||'').trim(),
       privacy:String(fd.get('privacy')||'public'),
+      category:String(fd.get('category')||'general'),
+      interests:parseCommunityInterests(fd.get('interests')),
       rules:parseCommunityRules(fd.get('rules'))
     };
     const avatarFile=$('#communityEditAvatarFile')?.files?.[0] || null;
@@ -7296,7 +7397,7 @@ function showView(name) {
   if (name === 'connections') loadConnectionsCenter();
   if (name === 'communities') {
     if(activeCommunityId)openCommunityDetail(activeCommunityId);
-    else loadCommunities();
+    else Promise.all([loadCommunities(),loadCommunityDiscovery()]);
   }
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
