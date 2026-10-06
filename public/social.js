@@ -2234,6 +2234,65 @@ $('#creatorCommunityStarredOnly')?.addEventListener('change',event=>{
   if(creatorCommunityData)renderCreatorCommunity(creatorCommunityData);
 });
 
+all('[data-creator-activity-status]').forEach(button=>{
+  button.addEventListener('click',async()=>{
+    creatorCommunityActivityStatus=button.dataset.creatorActivityStatus || 'pending';
+    await loadCreatorCommunityActivity();
+  });
+});
+
+$('#creatorActivityReviewAll')?.addEventListener('click',async()=>{
+  const button=$('#creatorActivityReviewAll');
+  if(!button || button.disabled)return;
+  button.disabled=true;
+  try{
+    const { r }=await api('/api/posts/creator/community-activity/review-all',{method:'POST'});
+    if(!r.ok)throw new Error('No se pudo marcar la actividad.');
+    toast('Actividad marcada como revisada');
+    await loadCreatorCommunityActivity();
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar la actividad.');
+  }finally{
+    button.disabled=false;
+  }
+});
+
+document.addEventListener('click',async event=>{
+  const single=event.target.closest('[data-creator-activity-review-id]');
+  const groupButton=event.target.closest('[data-creator-activity-review-group]');
+  const button=single || groupButton;
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if(button.disabled)return;
+  button.disabled=true;
+
+  try{
+    let ids=[];
+    if(single){
+      ids=[single.dataset.creatorActivityReviewId];
+    }else{
+      const group=(creatorCommunityActivityData?.groups || []).find(item=>item.key===groupButton.dataset.creatorActivityReviewGroup);
+      ids=group ? group.notification_ids : [];
+    }
+    if(!ids.length)throw new Error('No hay actividad pendiente en este grupo.');
+
+    const { r }=await api('/api/posts/creator/community-activity/review',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({notificationIds:ids})
+    });
+    if(!r.ok)throw new Error('No se pudo marcar la actividad como revisada.');
+    toast(ids.length===1 ? 'Actividad revisada' : 'Grupo revisado');
+    await loadCreatorCommunityActivity();
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar la actividad.');
+  }finally{
+    button.disabled=false;
+  }
+});
+
 document.addEventListener('click',async event=>{
   const pollButton=event.target.closest('[data-community-poll-action]');
   const questionButton=event.target.closest('[data-community-question-action]');
@@ -3819,9 +3878,10 @@ async function navigateNotification(notification) {
   }
 
   if (['creator_poll_vote','creator_question_response'].includes(type)) {
+    creatorCommunityActivityStatus='pending';
     await openCreatorModal();
     setTimeout(() => {
-      document.querySelector('.creator-community-section')?.scrollIntoView({behavior:'smooth',block:'start'});
+      document.querySelector('.creator-activity-center')?.scrollIntoView({behavior:'smooth',block:'start'});
     },120);
     return;
   }
