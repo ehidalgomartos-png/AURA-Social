@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.65.0",
+  "version": "1.66.0",
   "private": true,
-  "description": "RedLibertad V1.65 Relationship Intelligence - sugerencias explicables para cuidar conexiones sin rachas, FOMO ni lectura de mensajes, sin monetización.",
+  "description": "RedLibertad V1.66 Growth & Onboarding 2.0 - invitaciones opacas, onboarding social, sugerencias de arranque y protección anti-abuso, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
