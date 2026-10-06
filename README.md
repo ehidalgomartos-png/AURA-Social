@@ -1,4 +1,4 @@
-# RedLibertad V1.17.0 — Creator VIP Circle
+# RedLibertad V1.18.0 — Exclusive Creator Content
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -354,3 +354,27 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Nuevas tablas creator_vips y creator_vip_broadcasts.
 - Bootstrap idempotente y actualización automática de notifications_type_check.
 - Healthcheck actualizado a 1.17.0 y caché PWA V1.17.
+
+
+## V1.18.0 — Exclusive Creator Content
+
+- Nuevo selector de audiencia al publicar: Público o Solo VIP.
+- Solo los creadores verificados pueden crear publicaciones Solo VIP.
+- El contenido VIP es visible únicamente para:
+  - el creador autor,
+  - administradores,
+  - miembros del círculo VIP que siguen actualmente al creador,
+  - participantes aprobados para poder gestionar su consentimiento.
+- Los controles +18, sensible y desnudez siguen aplicándose además del control VIP.
+- El filtro VIP se aplica en feed, Momentum, Explorar, búsqueda, tendencias, hashtags, guardados, perfiles y detalle.
+- Likes, comentarios y guardados validan acceso antes de crear interacción.
+- Los posts VIP no pueden republicarse.
+- Los posts VIP no ofrecen acciones de compartir.
+- La ruta pública /p/:id solo permite publicaciones públicas.
+- Menciones desde contenido VIP solo notifican a usuarios autorizados o participantes.
+- El contador público de publicaciones no revela contenido VIP a usuarios no autorizados.
+- Los usuarios que pierden acceso VIP pueden retirar sus propios Me gusta o guardados sin recuperar acceso al contenido.
+- La audiencia de una publicación queda fijada al crearla en esta versión.
+- Nueva columna posts.audience con valores public/vip.
+- Bootstrap idempotente desde posts, profiles y la ruta pública de compartición.
+- Healthcheck actualizado a 1.18.0 y caché PWA V1.18.
