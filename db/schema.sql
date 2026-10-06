@@ -157,6 +157,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_favorites
 CREATE INDEX IF NOT EXISTS idx_connection_circles_user_position
   ON connection_circles(user_id,position,id);
 
+-- RedLibertad V1.57: conexiones cercanas como círculo privado fijo
+ALTER TABLE connection_circles ADD COLUMN IF NOT EXISTS is_close BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_close
+  ON connection_circles(user_id)
+  WHERE is_close=true;
+
 CREATE TABLE IF NOT EXISTS connection_circle_members (
   circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
   connection_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

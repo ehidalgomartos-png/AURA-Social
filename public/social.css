@@ -5031,3 +5031,22 @@ select:focus-visible{
   .circle-audience-picker-head small{text-align:left}
   .circle-audience-options{grid-template-columns:1fr}
 }
+
+
+/* =========================================================
+   RedLibertad V1.57 — Close Connections
+   ========================================================= */
+.connection-close-toggle.active{
+  border-color:rgba(202,79,92,.28)!important;
+  background:rgba(202,79,92,.08)!important;
+  color:#a83f4c!important;
+}
+.connection-center-signal.close{
+  background:rgba(202,79,92,.09);
+  color:#a83f4c;
+}
+@media(max-width:760px){
+  .connection-center-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}

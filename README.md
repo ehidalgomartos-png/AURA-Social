@@ -1,4 +1,4 @@
-# RedLibertad V1.56.0 — Circle Sharing & Private Audiences
+# RedLibertad V1.57.0 — Close Connections
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1238,3 +1238,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Selector mobile-first de uno o varios círculos.
 - VIP continúa separado y gratuito.
 - Sin pagos, suscripciones ni paywalls comerciales.
+
+
+## V1.57.0 — Close Connections
+
+- Círculo privado fijo Cercanas.
+- Solo el usuario puede ver quién está en Cercanas.
+- Marcar/desmarcar desde perfiles y Centro de conexiones.
+- Sin notificaciones al añadir o quitar.
+- Feed Cercanas en Inicio.
+- El feed solo incluye conexiones mutuas vigentes marcadas como Cercanas.
+- Audiencia rápida Solo Cercanas para publicaciones, Reels y Stories.
+- Internamente reutiliza el círculo privado fijo de V1.56.
+- Cercanas no se puede renombrar ni eliminar.
+- Al dejar de seguir o romper la conexión, la membresía de círculos se limpia.
+- El acceso a contenido Cercanas se revoca dinámicamente al quitar la marca.
+- Mobile-first.
+- VIP continúa separado y gratis.
+- Sin monetización.
