@@ -6047,7 +6047,11 @@ async function openConversation(id) {
       <button type="button" class="tiny-action" data-conversation-setting="pinned">${activeConversationSettings.is_pinned?'★ Fijada':'☆ Fijar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="muted">${activeConversationSettings.notifications_muted?'Activar avisos':'Silenciar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="archived">${activeConversationSettings.is_archived?'Desarchivar':'Archivar'}</button>
-      ${isGroup ? '<button id="manageGroup" type="button" class="tiny-action">Participantes</button>' : ''}
+      ${isGroup
+        ? activeConversationMeta?.community_managed
+          ? `<button id="openChatCommunity" type="button" class="tiny-action">Ver comunidad</button>`
+          : '<button id="manageGroup" type="button" class="tiny-action">Participantes</button>'
+        : ''}
       ${!isGroup && d.sensitiveAllowed ? '<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>' : ''}
     </div>
   </header>
@@ -6083,6 +6087,12 @@ async function openConversation(id) {
   $('#messageFile').addEventListener('change',renderMessagePreview);
   $('#messageLevel').addEventListener('change',updateMessagePreviewLevel);
   if($('#manageGroup'))$('#manageGroup').onclick=openGroupManage;
+  if($('#openChatCommunity'))$('#openChatCommunity').onclick=async()=>{
+    const communityId=activeConversationMeta?.community_id;
+    if(!communityId)return;
+    showView('communities');
+    await openCommunityDetail(communityId);
+  };
 
   if($('#revokeSensitive') && d.other){
     $('#revokeSensitive').onclick=async()=>{
@@ -6932,10 +6942,12 @@ async function loadCommunityPosts(){
 async function loadCommunityAdminData(){
   const data=activeCommunityData;
   if(!data?.community?.can_manage)return;
+  const communityId=activeCommunityId;
   const [requestsResult,logResult]=await Promise.all([
-    api(`/api/communities/${activeCommunityId}/requests`),
-    api(`/api/communities/${activeCommunityId}/moderation-log`)
+    api(`/api/communities/${communityId}/requests`),
+    api(`/api/communities/${communityId}/moderation-log`)
   ]);
+  if(String(activeCommunityId)!==String(communityId))return;
   const requests=requestsResult.r.ok && Array.isArray(requestsResult.d.requests)?requestsResult.d.requests:[];
   const logs=logResult.r.ok && Array.isArray(logResult.d.items)?logResult.d.items:[];
   const requestRoot=$('#communityRequests');
