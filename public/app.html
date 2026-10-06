@@ -184,6 +184,29 @@
 
     <section id="messagesView" class="view hidden">
       <div class="page-title"><div><span class="eyebrow">PRIVADO Y CON CONSENTIMIENTO</span><h1>Mensajes</h1></div><button id="newConversation" class="secondary">Nueva conversación</button></div>
+      <section id="communityConversations" class="community-conversations hidden">
+        <div class="community-conversations-head">
+          <div>
+            <span class="eyebrow">CONTINUIDAD SOCIAL</span>
+            <h2>Conversaciones de tu comunidad</h2>
+            <p>Ideas para ponerte al día cuando te apetezca. Sin rachas, urgencia ni presión.</p>
+          </div>
+          <button id="refreshCommunityConversations" type="button" class="tiny-action">Actualizar</button>
+        </div>
+        <div id="communityConversationSummary" class="community-conversation-summary"></div>
+        <div id="communityConversationSuggestions" class="community-conversation-block hidden">
+          <div class="community-conversation-block-head"><b>Conversaciones</b><small>Pendientes o que quizá quieras retomar</small></div>
+          <div id="communityConversationList" class="community-conversation-list"></div>
+        </div>
+        <div id="communityNewConnectionsBlock" class="community-conversation-block hidden">
+          <div class="community-conversation-block-head"><b>Conexiones nuevas</b><small>Personas con las que acabas de conectar</small></div>
+          <div id="communityNewConnections" class="community-person-strip"></div>
+        </div>
+        <div id="communityRelevantActivityBlock" class="community-conversation-block hidden">
+          <div class="community-conversation-block-head"><b>Actividad relevante</b><small>Conexiones con actividad reciente, sin insistencia</small></div>
+          <div id="communityRelevantActivity" class="community-person-strip"></div>
+        </div>
+      </section>
       <div class="message-inbox-tools">
         <div class="message-inbox-tabs">
           <button type="button" class="active" data-message-filter="all">Activas</button>
