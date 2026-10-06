@@ -1628,6 +1628,7 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
         pending_count:0,
         latest_at:row.created_at,
         notification_ids:[],
+        pending_notification_ids:[],
         items:[]
       });
     }
@@ -1635,6 +1636,7 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
     group.total_count++;
     if(!row.reviewed_at)group.pending_count++;
     group.notification_ids.push(String(row.notification_id));
+    if(!row.reviewed_at)group.pending_notification_ids.push(String(row.notification_id));
     group.items.push({
       notification_id:row.notification_id,
       type:row.type,
@@ -1668,6 +1670,9 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
       count(*)::int total_count,
       count(*) FILTER (WHERE review.reviewed_at IS NULL)::int pending_count
     FROM notifications n
+    JOIN posts activity_post
+      ON activity_post.id=n.entity_id
+     AND activity_post.user_id=$1
     LEFT JOIN creator_community_notification_reviews review
       ON review.notification_id=n.id
      AND review.creator_id=$1
