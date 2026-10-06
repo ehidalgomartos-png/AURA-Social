@@ -723,6 +723,27 @@ router.get('/connections', requireAuth, async (req,res)=>{
               WHERE own_interest.user_id=$1
            )
       ) AS shared_interest_count,
+      direct_chat.conversation_id AS direct_conversation_id,
+      direct_chat.last_message_at,
+      COALESCE(direct_chat.unread_message_count,0)::int AS unread_message_count,
+      (GREATEST(mine.created_at,theirs.created_at) >= now() - interval '14 days') AS is_new_connection,
+      (
+        u.show_activity
+        AND activity.last_activity_at > 'epoch'::timestamptz
+        AND activity.last_activity_at >= now() - interval '7 days'
+      ) AS is_active_connection,
+      EXISTS(
+        SELECT 1
+          FROM user_interests target_interest
+          JOIN user_interests own_interest
+            ON own_interest.user_id=$1
+           AND own_interest.interest=target_interest.interest
+         WHERE target_interest.user_id=u.id
+      ) AS has_common_interests,
+      (
+        direct_chat.last_message_at IS NOT NULL
+        AND direct_chat.last_message_at >= now() - interval '30 days'
+      ) AS has_recent_conversation,
       EXISTS(
         SELECT 1
           FROM connection_circle_members favorite_member
@@ -760,6 +781,32 @@ router.get('/connections', requireAuth, async (req,res)=>{
         COALESCE((SELECT max(st.created_at) FROM stories st WHERE st.user_id=u.id AND st.moderation_status='published'),'epoch'::timestamptz)
       ) AS last_activity_at
     ) activity
+    LEFT JOIN LATERAL (
+      SELECT
+        c.id AS conversation_id,
+        (
+          SELECT max(message.created_at)
+            FROM messages message
+           WHERE message.conversation_id=c.id
+        ) AS last_message_at,
+        (
+          SELECT count(*)::int
+            FROM messages unread_message
+           WHERE unread_message.conversation_id=c.id
+             AND unread_message.sender_id=u.id
+             AND unread_message.created_at > COALESCE(self_member.last_read_at,'epoch'::timestamptz)
+        ) AS unread_message_count
+        FROM conversations c
+        JOIN conversation_members self_member
+          ON self_member.conversation_id=c.id
+         AND self_member.user_id=$1
+        JOIN conversation_members other_member
+          ON other_member.conversation_id=c.id
+         AND other_member.user_id=u.id
+       WHERE c.conversation_type='direct'
+       ORDER BY c.updated_at DESC,c.id DESC
+       LIMIT 1
+    ) direct_chat ON TRUE
     WHERE mine.follower_id=$1
       AND u.status='active'
       AND u.is_admin=false

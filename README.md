@@ -1,4 +1,4 @@
-# RedLibertad V1.52.0 — Connection Circles
+# RedLibertad V1.53.0 — Connections Center 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1177,3 +1177,16 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Al romper el seguimiento mutuo o bloquear, se limpian membresías en ambos sentidos para evitar estados antiguos que puedan revivir.
 - Bootstrap y migraciones idempotentes.
 - Sin monetización activa.
+
+
+## V1.53.0 — Connections Center 2.0
+
+- Centro dedicado de conexiones además del acceso rápido desde Explorar.
+- Búsqueda privada por nombre, @usuario, ciudad, estado, intereses y círculos.
+- Filtros: Todas, Nuevas, Activas, Intereses, Conversación reciente y Pendientes.
+- Resumen de conexiones, nuevas, activas y con mensajes pendientes.
+- Integración completa con Favoritas y círculos privados.
+- Señal de conversación reciente sin exponer el cuerpo de mensajes.
+- CTA directo a Mensaje y acceso a perfil.
+- Respeta bloqueos, silencios, actividad privada y relaciones de seguimiento mutuo.
+- Mobile-first y sin monetización.

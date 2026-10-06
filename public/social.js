@@ -19,6 +19,10 @@ let activeExploreInterest = '';
 let connectionCircles=[];
 let activeConnectionCircleId=null;
 let activeCircleConnection=null;
+let connectionsCenterItems=[];
+let connectionsCenterFilter='all';
+let connectionsCenterSearch='';
+let connectionsCenterSearchTimer=null;
 let activeCommentsPostId = null;
 let activeCommentReply = null;
 let activeReportPostId = null;
@@ -488,6 +492,114 @@ async function loadConnections() {
   return connections;
 }
 
+
+function connectionsCenterReason(user){
+  if(Number(user.unread_message_count || 0)>0)return `${Number(user.unread_message_count)} ${Number(user.unread_message_count)===1?'mensaje pendiente':'mensajes pendientes'}`;
+  if(user.has_recent_conversation && user.last_message_at)return `Conversación ${timeAgo(user.last_message_at)}`;
+  if(user.is_new_connection)return 'Nueva conexión';
+  if(user.has_common_interests)return `${Number(user.shared_interest_count || 0)} ${Number(user.shared_interest_count || 0)===1?'interés en común':'intereses en común'}`;
+  if(user.is_active_connection && user.last_activity_at)return `Activo ${timeAgo(user.last_activity_at)}`;
+  return 'Seguimiento mutuo';
+}
+
+function connectionCenterCardHTML(user){
+  const unread=Number(user.unread_message_count || 0);
+  const shared=Number(user.shared_interest_count || 0);
+  const signals=[
+    user.is_new_connection ? '<span class="connection-center-signal">Nueva</span>' : '',
+    user.is_active_connection ? '<span class="connection-center-signal">Activa</span>' : '',
+    shared ? `<span class="connection-center-signal">${shared} ${shared===1?'interés':'intereses'}</span>` : '',
+    user.favorite ? '<span class="connection-center-signal favorite">★ Favorita</span>' : '',
+    unread ? `<span class="connection-center-signal unread">${unread} pendiente${unread===1?'':'s'}</span>` : ''
+  ].filter(Boolean).join('');
+  return `<article class="connection-center-card" data-connection-card="${user.id}">
+    <button type="button" class="connection-favorite ${user.favorite ? 'active' : ''}" data-connection-favorite="${user.id}" aria-label="${user.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'}">${user.favorite ? '★' : '☆'}</button>
+    ${profileLink(user.username,`<span class="connection-center-avatar">${avatarHTML(user)}</span>`,'connection-profile')}
+    <div class="connection-center-copy">
+      <div class="connection-center-name">${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'connection-name')}<small>@${esc(user.username)}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small></div>
+      ${user.profile_status ? `<p>${esc(user.profile_status)}</p>` : ''}
+      <div class="connection-center-signals">${signals}</div>
+      <span class="connection-center-context">${esc(connectionsCenterReason(user))}</span>
+      ${connectionCircleNamesHTML(user)}
+    </div>
+    <div class="connection-center-actions">
+      <button type="button" class="secondary" data-connection-organize="${user.id}" data-connection-display="${esc(user.display_name || user.username)}" data-connection-username="${esc(user.username)}">Círculos</button>
+      <button type="button" class="primary" data-connection-message="${esc(user.username)}">Mensaje</button>
+    </div>
+  </article>`;
+}
+
+function renderConnectionsCenterCircleFilters(){
+  const root=$('#connectionsCenterCircleFilters');
+  if(!root)return;
+  root.innerHTML=`
+    <button type="button" class="${activeConnectionCircleId===null ? 'active' : ''}" data-connection-center-circle="">Todas</button>
+    ${connectionCircles.map(circle=>`
+      <button type="button" class="${String(activeConnectionCircleId)===String(circle.id) ? 'active' : ''}" data-connection-center-circle="${circle.id}">
+        ${circle.is_favorites ? '★ ' : ''}${esc(circle.name)} <span>${Number(circle.member_count || 0)}</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+function filteredConnectionsCenterItems(){
+  const q=connectionsCenterSearch.trim().toLowerCase();
+  return connectionsCenterItems.filter(user=>{
+    if(connectionsCenterFilter==='new' && !user.is_new_connection)return false;
+    if(connectionsCenterFilter==='active' && !user.is_active_connection)return false;
+    if(connectionsCenterFilter==='interests' && !user.has_common_interests)return false;
+    if(connectionsCenterFilter==='recent' && !user.has_recent_conversation)return false;
+    if(connectionsCenterFilter==='unread' && Number(user.unread_message_count || 0)<=0)return false;
+    if(!q)return true;
+    const haystack=[
+      user.display_name,user.username,user.location_label,user.profile_status,
+      ...(Array.isArray(user.interests)?user.interests:[]),
+      ...(Array.isArray(user.circle_names)?user.circle_names:[])
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(q);
+  });
+}
+
+function renderConnectionsCenter(){
+  const list=$('#connectionsCenterList');
+  if(!list)return;
+  const visible=filteredConnectionsCenterItems();
+  list.innerHTML=visible.length
+    ? visible.map(connectionCenterCardHTML).join('')
+    : '<div class="connections-center-empty"><b>No hay conexiones con este filtro.</b><p>Prueba otro filtro, círculo o término de búsqueda.</p></div>';
+  if($('#connectionsCenterVisibleCount'))$('#connectionsCenterVisibleCount').textContent=String(visible.length);
+  const headings={
+    all:'Todas tus conexiones',
+    new:'Conexiones nuevas',
+    active:'Conexiones activas',
+    interests:'Con intereses en común',
+    recent:'Con conversación reciente',
+    unread:'Mensajes pendientes'
+  };
+  if($('#connectionsCenterHeading'))$('#connectionsCenterHeading').textContent=headings[connectionsCenterFilter] || headings.all;
+  all('[data-connection-center-filter]').forEach(button=>button.classList.toggle('active',button.dataset.connectionCenterFilter===connectionsCenterFilter));
+  renderConnectionsCenterCircleFilters();
+}
+
+async function refreshConnectionSurfaces(){
+  await loadConnections();
+  if(activeViewName==='connections')await loadConnectionsCenter();
+}
+
+async function loadConnectionsCenter(){
+  await loadConnectionCircles();
+  const query=new URLSearchParams({limit:'100'});
+  if(activeConnectionCircleId!==null)query.set('circleId',String(activeConnectionCircleId));
+  const {r,d}=await api(`/api/profiles/connections?${query.toString()}`);
+  connectionsCenterItems=r.ok && Array.isArray(d.connections) ? d.connections : [];
+  if($('#connectionsCenterTotal'))$('#connectionsCenterTotal').textContent=String(connectionsCenterItems.length);
+  if($('#connectionsCenterNew'))$('#connectionsCenterNew').textContent=String(connectionsCenterItems.filter(user=>user.is_new_connection).length);
+  if($('#connectionsCenterActive'))$('#connectionsCenterActive').textContent=String(connectionsCenterItems.filter(user=>user.is_active_connection).length);
+  if($('#connectionsCenterUnread'))$('#connectionsCenterUnread').textContent=String(connectionsCenterItems.filter(user=>Number(user.unread_message_count || 0)>0).length);
+  renderConnectionsCenter();
+  return connectionsCenterItems;
+}
+
 function closeConnectionCirclesModal(){
   $('#connectionCirclesModal')?.classList.add('hidden');
   activeCircleConnection=null;
@@ -547,7 +659,7 @@ async function loadConnectionMemberships(){
       }else{
         await loadConnectionCircles();
         renderConnectionCircleManageList();
-        await loadConnections();
+        await refreshConnectionSurfaces();
       }
       input.disabled=false;
     };
@@ -577,6 +689,7 @@ async function createConnectionCircle(name){
   }
   await loadConnectionCircles();
   await loadConnectionMemberships();
+  if(activeViewName==='connections')await loadConnectionsCenter();
   return {ok:true};
 }
 
@@ -594,7 +707,7 @@ async function toggleFavoriteConnection(userId){
     return toast('No se pudo actualizar Favoritas.');
   }
   toast(active ? 'Quitada de Favoritas' : 'Añadida a Favoritas');
-  await loadConnections();
+  await refreshConnectionSurfaces();
 }
 
 async function openConnectionMessage(username) {
@@ -1732,6 +1845,12 @@ function closePostFocus() {
 }
 
 $('#newConnectionCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
+$('#connectionsCenterNewCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
+$('#connectionsCenterSearch')?.addEventListener('input',event=>{
+  connectionsCenterSearch=event.currentTarget.value || '';
+  clearTimeout(connectionsCenterSearchTimer);
+  connectionsCenterSearchTimer=setTimeout(renderConnectionsCenter,120);
+});
 $('#closeConnectionCirclesModal')?.addEventListener('click',closeConnectionCirclesModal);
 $('#connectionCirclesModal')?.addEventListener('click',event=>{
   if(event.target===$('#connectionCirclesModal'))closeConnectionCirclesModal();
@@ -1747,7 +1866,7 @@ $('#newCircleForm')?.addEventListener('submit',async event=>{
   if(!result.ok){status.textContent=result.message;return;}
   form.reset();
   status.textContent='Círculo creado.';
-  await loadConnections();
+  await refreshConnectionSurfaces();
 });
 
 $('#closePostFocusModal')?.addEventListener('click', closePostFocus);
@@ -1756,6 +1875,22 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const centerFilter=event.target.closest('[data-connection-center-filter]');
+  if(centerFilter){
+    event.preventDefault();
+    connectionsCenterFilter=centerFilter.dataset.connectionCenterFilter || 'all';
+    renderConnectionsCenter();
+    return;
+  }
+
+  const centerCircle=event.target.closest('[data-connection-center-circle]');
+  if(centerCircle){
+    event.preventDefault();
+    activeConnectionCircleId=centerCircle.dataset.connectionCenterCircle ? Number(centerCircle.dataset.connectionCenterCircle) : null;
+    await loadConnectionsCenter();
+    return;
+  }
+
   const circleFilter=event.target.closest('[data-connection-circle-filter]');
   if(circleFilter){
     event.preventDefault();
@@ -1799,7 +1934,7 @@ document.addEventListener('click', async event => {
     if(!r.ok)return toast(d.error==='circle_name_exists' ? 'Ya existe un círculo con ese nombre.' : 'No se pudo renombrar.');
     await loadConnectionCircles();
     await loadConnectionMemberships();
-    await loadConnections();
+    await refreshConnectionSurfaces();
     toast('Círculo renombrado');
     return;
   }
@@ -1813,7 +1948,7 @@ document.addEventListener('click', async event => {
     if(String(activeConnectionCircleId)===String(deleteCircle.dataset.circleDelete))activeConnectionCircleId=null;
     await loadConnectionCircles();
     await loadConnectionMemberships();
-    await loadConnections();
+    await refreshConnectionSurfaces();
     toast('Círculo eliminado');
     return;
   }
@@ -6334,6 +6469,7 @@ function showView(name) {
   if(switching)restoreViewScroll(name);
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
+  if (name === 'connections') loadConnectionsCenter();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
   if (name === 'messages') {
