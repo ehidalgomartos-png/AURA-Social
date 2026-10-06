@@ -1,4 +1,4 @@
-# RedLibertad V1.59.0 — Community Discovery
+# RedLibertad V1.60.0 — Events & Meetups
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1293,6 +1293,23 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Señales: intereses compartidos, conexiones que participan y actividad reciente.
 - Sin ranking por engagement, rachas o presión artificial.
 - Ocultar sugerencias de forma privada por usuario.
+- Bloqueos y silencios respetados.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.60.0 — Events & Meetups
+
+- Eventos presenciales y online.
+- Fecha/hora de inicio y fin opcional.
+- Lugar presencial o enlace online según tipo.
+- Audiencia Público / Conexiones / Círculos / Comunidad.
+- Eventos de comunidad restringidos a propietarios y administradores.
+- Respuestas Me interesa / Voy.
+- Recordatorios opcionales activados con la respuesta.
+- Worker de recordatorios integrado con Notifications + Web Push.
+- Privacidad de asistentes: visible / solo quienes responden / solo creador.
+- Cancelación por creador.
 - Bloqueos y silencios respetados.
 - Mobile-first.
 - Sin monetización.

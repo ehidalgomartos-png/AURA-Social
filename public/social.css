@@ -5211,3 +5211,49 @@ select:focus-visible{
   .community-discovery-main{grid-template-columns:46px minmax(0,1fr);padding:11px 40px 11px 10px}
   .community-directory-heading{display:grid;grid-template-columns:1fr}
 }
+
+
+/* =========================================================
+   RedLibertad V1.60 — Events & Meetups
+   ========================================================= */
+.events-title p{max-width:620px;margin:5px 0 0;color:var(--muted)}
+.events-toolbar{margin-bottom:13px}
+.events-scope-tabs{display:flex;gap:7px;overflow:auto;scrollbar-width:none}
+.events-scope-tabs::-webkit-scrollbar{display:none}
+.events-scope-tabs button{
+  flex:0 0 auto;min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;
+  background:var(--paper);color:var(--muted);font-size:10px;font-weight:900;
+}
+.events-scope-tabs button.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal)}
+.events-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.event-card{border:1px solid var(--line);border-radius:18px;background:var(--paper);overflow:hidden;box-shadow:0 8px 24px rgba(13,34,56,.04)}
+.event-card-main{width:100%;display:grid;grid-template-columns:52px minmax(0,1fr);gap:11px;padding:13px;border:0;background:transparent;color:inherit;text-align:left}
+.event-card-date{width:52px;height:58px;border-radius:13px;background:var(--navy);color:white;display:grid;place-content:center;text-align:center}
+.event-card-date b{font:800 20px/1 Manrope,sans-serif}.event-card-date small{text-transform:uppercase;font-size:8px;margin-top:3px}
+.event-card-copy{min-width:0}.event-card-copy>b,.event-card-copy>p,.event-card-copy>small,.event-card-stats{display:block}
+.event-card-copy>b{margin-top:3px;color:var(--ink);font-size:12px}.event-card-copy>p{margin:5px 0;color:var(--muted);font-size:9px;line-height:1.4}
+.event-card-copy>small,.event-card-stats{color:var(--muted);font-size:8px}.event-card-stats{margin-top:6px;font-weight:800}
+.event-card-kicker{color:var(--teal);font-size:8px;font-weight:900;text-transform:uppercase}
+.event-card-actions{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.event-card-actions button{min-height:42px;border:0;background:transparent;color:var(--muted);font-weight:900;font-size:9px}
+.event-card-actions button+button{border-left:1px solid var(--line)}
+.event-card-actions button.active{background:var(--teal-soft);color:var(--teal)}
+.event-create-modal-card,.event-detail-modal-card{width:min(680px,100%);max-height:92dvh;overflow:auto}
+.event-detail h2{margin:5px 0 7px;color:var(--navy)}.event-detail>p{color:var(--muted);line-height:1.5}
+.event-detail-meta{display:grid;gap:6px;margin:13px 0;padding:11px;border-radius:13px;background:var(--soft);font-size:9px;color:var(--ink)}
+.event-detail-meta a{color:var(--teal);font-weight:900}
+.event-detail-stats{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.event-detail-stats span{padding:5px 8px;border:1px solid var(--line);border-radius:999px;font-size:9px;font-weight:800}
+.event-detail-actions{display:flex;gap:7px;flex-wrap:wrap}.event-detail-actions button{min-height:40px}
+.event-detail-actions .active{box-shadow:inset 0 0 0 2px var(--teal)}
+.event-attendees{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.event-attendee{display:grid;grid-template-columns:38px minmax(0,1fr);gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.event-attendee-avatar{width:38px;height:38px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--navy-soft)}
+.event-attendee-avatar img{width:100%;height:100%;object-fit:cover}
+.event-attendee b,.event-attendee small{display:block}.event-attendee b{font-size:10px;color:var(--ink)}.event-attendee small{margin-top:2px;font-size:8px;color:var(--muted)}
+@media(max-width:760px){
+  .events-grid{grid-template-columns:1fr}
+  .event-create-modal-card,.event-detail-modal-card{max-height:calc(var(--visual-vh) - 8px);border-radius:24px 24px 0 0}
+  .event-detail-actions{display:grid;grid-template-columns:1fr 1fr}
+  .event-detail-actions button{width:100%}
+}
