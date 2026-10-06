@@ -1,4 +1,4 @@
-# RedLibertad V1.23.0 — Community Management 2.0
+# RedLibertad V1.24.0 — Community Insights & Creator Notifications
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -582,3 +582,47 @@ V1.22 continúa sin monetización activa: sin pagos, suscripciones, precios, che
 ### Monetización
 
 V1.23 continúa sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
+
+
+## V1.24.0 — Community Insights & Creator Notifications
+
+- Notificación al creador cuando una persona participa por primera vez en una encuesta.
+- Notificación al creador cuando una persona responde por primera vez a una pregunta abierta.
+- Cambiar un voto o editar una respuesta no genera nuevas notificaciones.
+- Si una persona retira su interacción y vuelve después, el aviso no se duplica.
+- Índice único parcial de base de datos para reforzar esa deduplicación.
+- Los nuevos avisos aparecen en Notificaciones → Comunidad.
+- Al tocar el aviso se abre directamente la gestión de comunidad del Centro de creador.
+
+### Insights de comunidad
+- Participación total de los últimos 7 días.
+- Participación total de los últimos 30 días.
+- Votos de 7/30 días.
+- Respuestas de 7/30 días.
+- Personas únicas que participaron en 30 días.
+- Evolución diaria de votos y respuestas durante los últimos 14 días.
+- Ranking de hasta 8 encuestas/preguntas con más participación en 30 días.
+- El ranking muestra:
+  - tipo,
+  - Público / VIP,
+  - abierta / cerrada / archivada,
+  - actividad de 7 y 30 días.
+
+### Privacidad
+- Los insights son privados para el creador.
+- Los votantes siguen mostrándose únicamente de forma agregada.
+- Las respuestas abiertas mantienen las reglas privadas de V1.22/V1.23.
+- Las notificaciones identifican al participante solo ante el creador propietario.
+- No se añade tracking externo.
+
+### Base de datos
+- Nuevos tipos de notificación:
+  - creator_poll_vote.
+  - creator_question_response.
+- Índices de fecha para votos y respuestas.
+- Índice único parcial para avisos de primera participación.
+- Bootstrap idempotente.
+
+### Monetización
+
+V1.24 continúa sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
