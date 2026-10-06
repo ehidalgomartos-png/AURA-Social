@@ -180,6 +180,20 @@
         <article><b id="connectionsCenterActive">0</b><span>activas</span></article>
         <article><b id="connectionsCenterUnread">0</b><span>con mensajes pendientes</span></article>
       </section>
+      <section class="relationship-intelligence">
+        <div class="relationship-intelligence-head">
+          <div><span class="eyebrow">CONTEXTO DE TU RED</span><h2>Conexiones que quizá quieras retomar</h2><p>Sugerencias explicables por intereses, comunidades e interacción. Sin rachas ni presión.</p></div>
+        </div>
+        <div class="relationship-intelligence-tabs" role="tablist" aria-label="Sugerencias de conexiones">
+          <button type="button" class="active" data-relationship-mode="all">Para ti</button>
+          <button type="button" data-relationship-mode="interests">Intereses</button>
+          <button type="button" data-relationship-mode="communities">Comunidades</button>
+          <button type="button" data-relationship-mode="reconnect">Retomar</button>
+          <button type="button" data-relationship-mode="active">Interacción</button>
+        </div>
+        <div id="relationshipSuggestions" class="relationship-suggestions"><div class="mini-loading">Preparando sugerencias…</div></div>
+      </section>
+
       <section class="connections-center-toolbar">
         <label class="connections-center-search">
           <span>Buscar en tus conexiones</span>

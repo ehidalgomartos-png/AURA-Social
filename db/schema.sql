@@ -321,6 +321,18 @@ CREATE INDEX IF NOT EXISTS idx_community_member_sanctions_active
   ON community_member_sanctions(community_id,user_id,action,expires_at,revoked_at);
 
 
+-- RedLibertad V1.65: Relationship Intelligence
+CREATE TABLE IF NOT EXISTS relationship_hidden_suggestions (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  hidden_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,target_user_id),
+  CHECK(user_id<>target_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_relationship_hidden_suggestions_user
+  ON relationship_hidden_suggestions(user_id,hidden_at DESC);
+
+
 -- RedLibertad V1.59: descubrimiento explicable de comunidades
 ALTER TABLE communities ADD COLUMN IF NOT EXISTS category VARCHAR(40) NOT NULL DEFAULT 'general';
 CREATE INDEX IF NOT EXISTS idx_communities_category_updated

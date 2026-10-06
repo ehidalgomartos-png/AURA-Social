@@ -1,4 +1,4 @@
-# RedLibertad V1.64.0 — Social Search 2.0
+# RedLibertad V1.65.0 — Relationship Intelligence
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1380,5 +1380,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Bloqueos, silencios y discoverability respetados.
 - Historial opcional, guardado solo en localStorage del dispositivo.
 - Historial desactivado por defecto y borrable por el usuario.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.65.0 — Relationship Intelligence
+
+- Sugerencias explicables dentro del Centro de conexiones.
+- Intereses fuertes compartidos.
+- Comunidades compartidas.
+- Conversaciones que quizá quieras retomar usando solo fecha y volumen, nunca cuerpos de mensajes.
+- Señal de interacción habitual por likes/comentarios agregados.
+- Actividad reciente solo cuando show_activity lo permite.
+- Acciones Ver contexto / Retomar chat, sin envío automático.
+- Ocultar sugerencias de forma privada.
+- Bloqueos y silencios respetados.
+- Sin rachas, FOMO, urgencia ni presión artificial.
 - Mobile-first.
 - Sin monetización.
