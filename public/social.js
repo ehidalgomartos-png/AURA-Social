@@ -812,7 +812,7 @@ function creatorLinksHTML(profileData) {
   return `<section class="public-creator-showcase">
     <div class="public-creator-showcase-head"><span>CREADOR</span>${headline ? `<b>${esc(headline)}</b>` : ''}</div>
     ${links.length ? `<div class="public-creator-links">${links.map(link =>
-      `<a href="${esc(link.url)}" target="_blank" rel="noopener noreferrer" data-creator-link-click="${link.id}">${esc(link.label)} <span>↗</span></a>`
+      `<a href="${esc(link.url)}" target="_blank" rel="ugc nofollow noopener noreferrer" data-creator-link-click="${link.id}">${esc(link.label)} <span>↗</span></a>`
     ).join('')}</div>` : ''}
   </section>`;
 }
