@@ -59,6 +59,36 @@ CREATE TABLE IF NOT EXISTS conversations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- RedLibertad V1.50: chats de grupo
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct';
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120);
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL;
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname='conversations_type_check'
+  ) THEN
+    ALTER TABLE conversations
+      ADD CONSTRAINT conversations_type_check
+      CHECK(conversation_type IN ('direct','group'));
+  END IF;
+END $;
+
+ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS member_role TEXT NOT NULL DEFAULT 'member';
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname='conversation_members_role_check'
+  ) THEN
+    ALTER TABLE conversation_members
+      ADD CONSTRAINT conversation_members_role_check
+      CHECK(member_role IN ('owner','admin','member'));
+  END IF;
+END $;
+CREATE INDEX IF NOT EXISTS idx_conversations_type_updated
+  ON conversations(conversation_type,updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS conversation_members (
   conversation_id BIGINT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
