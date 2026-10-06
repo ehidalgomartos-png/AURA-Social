@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.51.0",
+  "version": "1.52.0",
   "private": true,
-  "description": "RedLibertad V1.51 Share to Chat - compartir posts y Reels como tarjetas seguras en chats y grupos, sin monetización.",
+  "description": "RedLibertad V1.52 Connection Circles - círculos privados, favoritas y organización de conexiones sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
