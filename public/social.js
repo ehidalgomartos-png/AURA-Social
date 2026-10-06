@@ -5619,28 +5619,306 @@ async function sendMessage(e) {
     }
   }
 }
-$('#newConversation').onclick = () => $('#newMessageModal').classList.remove('hidden');
-$('#closeNewMessage').onclick = () => $('#newMessageModal').classList.add('hidden');
-$('#newMessageForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const fd = new FormData(e.target); const status = $('#newMessageStatus'); status.textContent = 'Abriendo...';
-  const username = String(fd.get('username') || '').replace(/^@/, '');
-  const { r, d } = await api('/api/messages/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
-  if (!r.ok) {
-    status.textContent = d.error === 'user_not_found'
+function setNewConversationMode(mode){
+  const group=mode==='group';
+  all('[data-new-conversation-mode]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.newConversationMode===mode);
+  });
+  $('#newMessageForm')?.classList.toggle('hidden',group);
+  $('#newGroupForm')?.classList.toggle('hidden',!group);
+  $('#newMessageStatus').textContent='';
+  $('#newGroupStatus').textContent='';
+}
+
+function openNewConversationModal(){
+  $('#newMessageModal').classList.remove('hidden');
+  setNewConversationMode('direct');
+  setTimeout(()=>$('#newMessageForm input[name="username"]')?.focus(),100);
+}
+
+function closeNewConversationModal(){
+  $('#newMessageModal').classList.add('hidden');
+  $('#newMessageForm')?.reset();
+  $('#newGroupForm')?.reset();
+  setNewConversationMode('direct');
+}
+
+function groupRoleLabel(role){
+  return role==='owner' ? 'Propietario' : role==='admin' ? 'Administrador' : 'Miembro';
+}
+
+function renderGroupManage(){
+  const group=activeConversationMeta;
+  if(!group?.is_group)return;
+
+  const canManage=group.can_manage_group===true;
+  const ownRole=String(group.member_role || 'member');
+  $('#groupManageTitle').textContent=group.title || 'Grupo';
+  $('#groupManageSummary').innerHTML=`<b>${Number(group.member_count || 0)} miembros</b><small>${canManage ? 'Puedes gestionar este grupo.' : 'Solo propietarios y administradores pueden cambiar participantes.'}</small>`;
+  $('#groupManageStatus').textContent='';
+
+  const renameForm=$('#groupRenameForm');
+  const addForm=$('#groupAddMemberForm');
+  renameForm?.classList.toggle('hidden',!canManage);
+  addForm?.classList.toggle('hidden',!canManage);
+  if(renameForm)renameForm.title.value=group.title || '';
+  addForm?.reset();
+
+  const participants=Array.isArray(group.participants) ? group.participants : [];
+  $('#groupMemberList').innerHTML=participants.map(member=>{
+    const self=String(member.id)===String(me?.id);
+    const removable=canManage &&
+      !self &&
+      member.member_role!=='owner' &&
+      !(ownRole==='admin' && member.member_role==='admin');
+    return `<article class="group-member-row">
+      <span class="group-member-avatar">${avatarHTML(member)}</span>
+      <div>
+        <b>${esc(member.display_name || member.username)} ${member.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
+        <small>@${esc(member.username)} · ${groupRoleLabel(member.member_role)}${self ? ' · Tú' : ''}${member.blocked_with_viewer ? ' · Bloqueado' : ''}</small>
+      </div>
+      ${removable ? `<button type="button" class="tiny-action" data-remove-group-member="${member.id}" data-remove-group-name="${esc(member.display_name || member.username)}">Quitar</button>` : ''}
+    </article>`;
+  }).join('');
+
+  all('[data-remove-group-member]',$('#groupMemberList')).forEach(button=>{
+    button.onclick=async()=>{
+      const name=button.dataset.removeGroupName || 'esta persona';
+      if(!window.confirm(`¿Quitar a ${name} del grupo?`))return;
+      button.disabled=true;
+      const {r,d}=await api(
+        `/api/messages/conversations/${activeConversationId}/group/members/${button.dataset.removeGroupMember}`,
+        {method:'DELETE'}
+      );
+      if(!r.ok){
+        $('#groupManageStatus').textContent=d.error==='owner_required'
+          ? 'Solo el propietario puede quitar a otro administrador.'
+          : 'No se pudo quitar a esta persona.';
+        button.disabled=false;
+        return;
+      }
+      toast('Persona retirada del grupo');
+      await openConversation(activeConversationId);
+      renderGroupManage();
+    };
+  });
+
+  $('#leaveGroup').classList.toggle('hidden',ownRole==='owner');
+  $('#deleteGroup').classList.toggle('hidden',group.can_delete_group!==true);
+}
+
+function openGroupManage(){
+  if(!activeConversationMeta?.is_group)return;
+  $('#groupManageModal').classList.remove('hidden');
+  renderGroupManage();
+}
+
+function closeGroupManage(){
+  $('#groupManageModal').classList.add('hidden');
+}
+
+$('#newConversation').onclick=openNewConversationModal;
+$('#closeNewMessage').onclick=closeNewConversationModal;
+$('#newMessageModal')?.addEventListener('click',event=>{
+  if(event.target===$('#newMessageModal'))closeNewConversationModal();
+});
+all('[data-new-conversation-mode]').forEach(button=>{
+  button.onclick=()=>setNewConversationMode(button.dataset.newConversationMode);
+});
+
+$('#newMessageForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const fd=new FormData(event.target);
+  const status=$('#newMessageStatus');
+  status.textContent='Abriendo…';
+  const username=String(fd.get('username') || '').replace(/^@/,'');
+  const {r,d}=await api('/api/messages/conversations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username})
+  });
+  if(!r.ok){
+    status.textContent=d.error==='user_not_found'
       ? 'No encuentro ese usuario.'
-      : d.error === 'message_privacy_denied'
+      : d.error==='message_privacy_denied'
         ? 'Esta persona no acepta nuevas conversaciones.'
-        : d.error === 'message_privacy_following_only'
+        : d.error==='message_privacy_following_only'
           ? 'Solo acepta mensajes de personas que sigue.'
-          : d.error === 'messaging_blocked'
+          : d.error==='messaging_blocked'
             ? 'No puedes iniciar esta conversación.'
             : 'No se pudo abrir la conversación.';
     return;
   }
-  $('#newMessageModal').classList.add('hidden'); e.target.reset(); showView('messages'); await loadConversations(d.conversationId);
+  closeNewConversationModal();
+  showView('messages');
+  await loadConversations(d.conversationId);
 });
 
+$('#newGroupForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const fd=new FormData(event.currentTarget);
+  const status=$('#newGroupStatus');
+  const title=String(fd.get('title') || '').trim();
+  const usernames=[...new Set(
+    String(fd.get('usernames') || '')
+      .split(/[\s,;]+/)
+      .map(value=>value.replace(/^@/,'').trim())
+      .filter(Boolean)
+  )];
+
+  if(usernames.length<2){
+    status.textContent='Añade al menos 2 personas al grupo.';
+    return;
+  }
+
+  status.textContent='Creando grupo…';
+  const submit=event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled=true;
+  try{
+    const {r,d}=await api('/api/messages/groups',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,usernames})
+    });
+
+    if(!r.ok){
+      const label=d.username ? ` @${d.username}` : '';
+      status.textContent=
+        d.error==='group_user_not_found' || d.error==='user_not_found'
+          ? 'No encuentro una de las personas indicadas.'
+          : d.error==='messaging_blocked'
+            ? `No puedes crear el grupo con${label || ' una de esas personas'} por un bloqueo activo.`
+            : d.error==='message_privacy_denied'
+              ? `${label || 'Una persona'} no acepta nuevas conversaciones.`
+              : d.error==='message_privacy_following_only'
+                ? `${label || 'Una persona'} solo acepta mensajes de personas que sigue.`
+                : d.error==='group_requires_two_invitees'
+                  ? 'El grupo necesita al menos 2 personas además de ti.'
+                  : 'No se pudo crear el grupo.';
+      return;
+    }
+
+    closeNewConversationModal();
+    toast('Grupo creado');
+    showView('messages');
+    await loadConversations(d.conversationId);
+  }finally{
+    submit.disabled=false;
+  }
+});
+
+$('#closeGroupManage')?.addEventListener('click',closeGroupManage);
+$('#groupManageModal')?.addEventListener('click',event=>{
+  if(event.target===$('#groupManageModal'))closeGroupManage();
+});
+
+$('#groupRenameForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  const status=$('#groupManageStatus');
+  const fd=new FormData(event.currentTarget);
+  const title=String(fd.get('title') || '').trim();
+  status.textContent='Guardando nombre…';
+
+  const {r,d}=await api(`/api/messages/conversations/${activeConversationId}/group`,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({title})
+  });
+  if(!r.ok){
+    status.textContent=d.error==='group_admin_required'
+      ? 'No tienes permisos para cambiar el grupo.'
+      : 'No se pudo cambiar el nombre.';
+    return;
+  }
+
+  toast('Nombre del grupo actualizado');
+  await openConversation(activeConversationId);
+  renderGroupManage();
+});
+
+$('#groupAddMemberForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  const status=$('#groupManageStatus');
+  const fd=new FormData(event.currentTarget);
+  const username=String(fd.get('username') || '').replace(/^@/,'').trim();
+  status.textContent='Añadiendo persona…';
+
+  const {r,d}=await api(`/api/messages/conversations/${activeConversationId}/group/members`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username})
+  });
+
+  if(!r.ok){
+    status.textContent=
+      d.error==='user_not_found'
+        ? 'No encuentro ese usuario.'
+        : d.error==='already_group_member'
+          ? 'Esa persona ya forma parte del grupo.'
+          : d.error==='group_member_limit'
+            ? 'El grupo ya ha alcanzado el máximo de 20 miembros.'
+            : d.error==='messaging_blocked'
+              ? 'No puedes añadir a esa persona por un bloqueo activo.'
+              : d.error==='message_privacy_denied'
+                ? 'Esa persona no acepta nuevas conversaciones.'
+                : d.error==='message_privacy_following_only'
+                  ? 'Esa persona solo acepta mensajes de personas que sigue.'
+                  : 'No se pudo añadir a la persona.';
+    return;
+  }
+
+  event.currentTarget.reset();
+  toast('Persona añadida al grupo');
+  await openConversation(activeConversationId);
+  renderGroupManage();
+});
+
+$('#leaveGroup')?.addEventListener('click',async()=>{
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  if(!window.confirm('¿Salir de este grupo? Dejarás de recibir sus mensajes y avisos.'))return;
+
+  const id=activeConversationId;
+  const {r,d}=await api(`/api/messages/conversations/${id}/group/leave`,{method:'POST'});
+  if(!r.ok){
+    $('#groupManageStatus').textContent=d.error==='group_owner_cannot_leave'
+      ? 'El propietario no puede salir. Puede eliminar el grupo.'
+      : 'No se pudo salir del grupo.';
+    return;
+  }
+
+  closeGroupManage();
+  activeConversationId=null;
+  activeConversationMeta=null;
+  activeConversationOther=null;
+  $('.messages-layout')?.classList.remove('chat-open');
+  $('#chatPanel').className='chat-panel empty-chat';
+  $('#chatPanel').innerHTML='<div class="empty-state"><b>Has salido del grupo</b><p>Ya no recibirás nuevos mensajes de esta conversación.</p></div>';
+  await loadConversations();
+});
+
+$('#deleteGroup')?.addEventListener('click',async()=>{
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  if(!window.confirm('¿Eliminar definitivamente este grupo y todos sus mensajes? Esta acción no se puede deshacer.'))return;
+
+  const id=activeConversationId;
+  const {r}=await api(`/api/messages/conversations/${id}/group`,{method:'DELETE'});
+  if(!r.ok){
+    $('#groupManageStatus').textContent='No se pudo eliminar el grupo.';
+    return;
+  }
+
+  closeGroupManage();
+  activeConversationId=null;
+  activeConversationMeta=null;
+  activeConversationOther=null;
+  $('.messages-layout')?.classList.remove('chat-open');
+  $('#chatPanel').className='chat-panel empty-chat';
+  $('#chatPanel').innerHTML='<div class="empty-state"><b>Grupo eliminado</b><p>La conversación ya no está disponible.</p></div>';
+  toast('Grupo eliminado');
+  await loadConversations();
+});
 
 $('#postSearchForm')?.addEventListener('submit', async event => {
   event.preventDefault();
