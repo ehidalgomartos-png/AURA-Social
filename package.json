@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.39.0",
+  "version": "1.40.0",
   "private": true,
-  "description": "RedLibertad V1.39 Stories & Reels 2.0 - señales de visto y contadores privados/únicos, sin monetización.",
+  "description": "RedLibertad V1.40 Retention & Growth 2.0 - resumen de regreso sincronizado y accesos directos sin presión ni monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
