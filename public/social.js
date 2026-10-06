@@ -449,6 +449,7 @@ function connectionCardHTML(user) {
       ${connectionCircleNamesHTML(user)}
     </div>
     <div class="connection-card-actions">
+      <button type="button" class="connection-close-toggle ${user.close_connection ? 'active' : ''}" data-close-connection="${user.id}" data-close="${user.close_connection ? '1' : '0'}">${user.close_connection ? '♥ Cercana' : '♡ Cercana'}</button>
       <button type="button" class="connection-organize" data-connection-organize="${user.id}" data-connection-display="${esc(user.display_name || user.username)}" data-connection-username="${esc(user.username)}">Círculos</button>
       <button type="button" class="connection-message" data-connection-message="${esc(user.username)}">Mensaje</button>
     </div>
@@ -462,7 +463,7 @@ function renderConnectionCircleFilters(){
     <button type="button" class="${activeConnectionCircleId===null ? 'active' : ''}" data-connection-circle-filter="">Todas</button>
     ${connectionCircles.map(circle=>`
       <button type="button" class="${String(activeConnectionCircleId)===String(circle.id) ? 'active' : ''}" data-connection-circle-filter="${circle.id}">
-        ${circle.is_favorites ? '★ ' : ''}${esc(circle.name)} <span>${Number(circle.member_count || 0)}</span>
+        ${circle.is_favorites ? '★ ' : circle.is_close ? '♥ ' : ''}${esc(circle.name)} <span>${Number(circle.member_count || 0)}</span>
       </button>
     `).join('')}
   `;
@@ -521,6 +522,7 @@ function connectionCenterCardHTML(user){
     user.is_active_connection ? '<span class="connection-center-signal">Activa</span>' : '',
     shared ? `<span class="connection-center-signal">${shared} ${shared===1?'interés':'intereses'}</span>` : '',
     user.favorite ? '<span class="connection-center-signal favorite">★ Favorita</span>' : '',
+    user.close_connection ? '<span class="connection-center-signal close">♥ Cercana</span>' : '',
     unread ? `<span class="connection-center-signal unread">${unread} pendiente${unread===1?'':'s'}</span>` : ''
   ].filter(Boolean).join('');
   return `<article class="connection-center-card" data-connection-card="${user.id}">
@@ -534,6 +536,7 @@ function connectionCenterCardHTML(user){
       ${connectionCircleNamesHTML(user)}
     </div>
     <div class="connection-center-actions">
+      <button type="button" class="secondary connection-close-toggle ${user.close_connection ? 'active' : ''}" data-close-connection="${user.id}" data-close="${user.close_connection ? '1' : '0'}">${user.close_connection ? '♥ Cercana' : '♡ Cercana'}</button>
       <button type="button" class="secondary" data-connection-context="${user.id}">Contexto</button>
       <button type="button" class="secondary" data-connection-organize="${user.id}" data-connection-display="${esc(user.display_name || user.username)}" data-connection-username="${esc(user.username)}">Círculos</button>
       <button type="button" class="primary" data-connection-message="${esc(user.username)}">Mensaje</button>
@@ -704,8 +707,8 @@ function renderConnectionCircleManageList(){
   if(!root)return;
   root.innerHTML=connectionCircles.map(circle=>`
     <article class="connection-circle-manage-row">
-      <div><b>${circle.is_favorites ? '★ ' : ''}${esc(circle.name)}</b><small>${Number(circle.member_count || 0)} conexiones</small></div>
-      ${circle.is_favorites ? '<span class="connection-circle-fixed">Fijo</span>' : `
+      <div><b>${circle.is_favorites ? '★ ' : circle.is_close ? '♥ ' : ''}${esc(circle.name)}</b><small>${Number(circle.member_count || 0)} conexiones</small></div>
+      ${circle.is_favorites || circle.is_close ? `<span class="connection-circle-fixed">${circle.is_close ? 'Privado · fijo' : 'Fijo'}</span>` : `
         <div class="connection-circle-manage-actions">
           <button type="button" class="tiny-action" data-circle-rename="${circle.id}" data-circle-name="${esc(circle.name)}">Renombrar</button>
           <button type="button" class="tiny-action danger-outline" data-circle-delete="${circle.id}" data-circle-name="${esc(circle.name)}">Eliminar</button>
@@ -734,7 +737,7 @@ async function loadConnectionMemberships(){
   root.innerHTML=memberships.map(circle=>`
     <label class="connection-circle-membership">
       <input type="checkbox" data-circle-membership="${circle.id}" ${circle.selected ? 'checked' : ''}>
-      <span><b>${circle.is_favorites ? '★ ' : ''}${esc(circle.name)}</b><small>${circle.is_favorites ? 'Tu lista rápida de favoritas.' : 'Círculo privado.'}</small></span>
+      <span><b>${circle.is_favorites ? '★ ' : circle.is_close ? '♥ ' : ''}${esc(circle.name)}</b><small>${circle.is_favorites ? 'Tu lista rápida de favoritas.' : circle.is_close ? 'Solo tú sabes quién está en Cercanas.' : 'Círculo privado.'}</small></span>
     </label>
   `).join('');
   all('[data-circle-membership]',root).forEach(input=>{
@@ -799,6 +802,24 @@ async function toggleFavoriteConnection(userId){
     return toast('No se pudo actualizar Favoritas.');
   }
   toast(active ? 'Quitada de Favoritas' : 'Añadida a Favoritas');
+  await refreshConnectionSurfaces();
+}
+
+async function toggleCloseConnection(userId,button=null){
+  const active=button ? button.dataset.close==='1' : connectionsCenterItems.some(user=>String(user.id)===String(userId) && user.close_connection===true);
+  if(button)button.disabled=true;
+  const {r}=await api(`/api/profiles/connections/${encodeURIComponent(userId)}/close`,{method:active?'DELETE':'PUT'});
+  if(!r.ok){
+    if(button)button.disabled=false;
+    return toast('No se pudo actualizar Cercanas.');
+  }
+  if(button){
+    button.dataset.close=active?'0':'1';
+    button.classList.toggle('active',!active);
+    button.textContent=active ? '♡ Cercana' : '♥ Cercana';
+    button.disabled=false;
+  }
+  toast(active ? 'Quitada de Cercanas' : 'Añadida a Cercanas');
   await refreshConnectionSurfaces();
 }
 
@@ -1340,11 +1361,15 @@ async function loadFeed(mode = currentMode) {
 
   const emptyTitle=mode==='vip'
     ? 'Todavía no tienes contenido VIP disponible.'
+    : mode==='close'
+      ? 'Todavía no hay contenido de tus conexiones cercanas.'
     : mode==='following'
       ? 'Tu feed de Siguiendo empieza aquí.'
       : 'Todavía hay poco por aquí.';
   const emptyCopy=mode==='vip'
     ? 'Cuando un creador te añada a su círculo VIP y publique contenido exclusivo, aparecerá aquí.'
+    : mode==='close'
+      ? 'Marca conexiones como Cercanas desde sus perfiles o desde el Centro de conexiones. Nadie recibe una notificación.'
     : mode==='following'
       ? 'Sigue a personas que te interesen y sus publicaciones aparecerán aquí.'
       : 'Descubre personas, sigue perfiles o publica algo para poner RedLibertad en movimiento.';
@@ -1797,6 +1822,7 @@ async function openPublicProfile(username) {
           ${profileData.following ? 'Siguiendo' : 'Seguir'}
         </button>
         <button type="button" class="secondary" data-message-profile="${esc(profile.username)}" ${profileData.blockedByMe ? 'disabled' : ''}>Mensaje</button>
+        ${profileData.connected ? `<button type="button" class="secondary connection-close-toggle ${profileData.closeConnection ? 'active' : ''}" data-close-connection="${profile.id}" data-close="${profileData.closeConnection ? '1' : '0'}">${profileData.closeConnection ? '♥ Cercana' : '♡ Cercana'}</button>` : ''}
         <button type="button" class="secondary" data-share-profile="${esc(profile.username)}">Compartir perfil</button>
         <button type="button" class="secondary ${profileData.mutedByMe ? 'active-control' : ''}" data-mute-profile="${profile.id}" data-muted="${profileData.mutedByMe ? '1' : '0'}">${profileData.mutedByMe ? 'Silenciado' : 'Silenciar'}</button>
         <button type="button" class="danger-outline" data-block-profile="${profile.id}" data-blocked="${profileData.blockedByMe ? '1' : '0'}">${profileData.blockedByMe ? 'Desbloquear' : 'Bloquear'}</button>
@@ -2000,6 +2026,14 @@ document.addEventListener('click', async event => {
     event.preventDefault();
     showView('messages');
     await openConversation(communityConversation.dataset.communityConversation);
+    return;
+  }
+
+  const closeConnectionButton=event.target.closest('[data-close-connection]');
+  if(closeConnectionButton){
+    event.preventDefault();
+    event.stopPropagation();
+    await toggleCloseConnection(Number(closeConnectionButton.dataset.closeConnection),closeConnectionButton);
     return;
   }
 
