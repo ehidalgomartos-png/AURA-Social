@@ -1,4 +1,4 @@
-# RedLibertad V1.21.0 — Creator Content Calendar
+# RedLibertad V1.22.0 — Creator Community Tools
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -480,3 +480,61 @@ V1.20 continúa sin monetización activa. No existen precios, planes, suscripcio
 ### Monetización
 
 V1.21 continúa sin monetización activa. El calendario y la organización editorial funcionan igual con contenido público y VIP gratuito.
+
+
+## V1.22.0 — Creator Community Tools
+
+- Nuevas herramientas de comunidad dentro de publicaciones:
+  - Encuesta.
+  - Pregunta abierta.
+- Solo los creadores verificados pueden crear estas herramientas.
+- Funcionan con contenido Público y Solo VIP.
+- Funcionan con publicación inmediata, borradores y programación.
+- Una encuesta/pregunta puede existir sin caption ni multimedia.
+
+### Encuestas
+- Pregunta de hasta 300 caracteres.
+- Entre 2 y 4 opciones.
+- Una persona mantiene un único voto por encuesta.
+- El voto puede cambiarse o retirarse.
+- Los resultados muestran únicamente totales y porcentajes agregados.
+- Nunca se exponen públicamente identidades de votantes.
+
+### Preguntas abiertas
+- Enunciado de hasta 300 caracteres.
+- Cada persona puede mantener una respuesta de hasta 1000 caracteres.
+- La respuesta puede actualizarse o retirarse.
+- El usuario ve únicamente su propia respuesta.
+- El creador ve el listado completo dentro de su Centro de creador.
+- El resto de usuarios solo ve el número total de respuestas.
+
+### Centro de creador
+- Nueva sección Comunidad · respuestas y encuestas.
+- Métricas privadas:
+  - número de encuestas,
+  - votos recibidos,
+  - preguntas abiertas,
+  - respuestas recibidas.
+- Bandeja de respuestas recientes con usuario, respuesta y publicación.
+- Resumen de encuestas recientes con resultados agregados.
+
+### Privacidad y acceso
+- Las herramientas heredan la visibilidad del post.
+- Un contenido VIP exige acceso VIP también para votar o responder.
+- Bloqueos siguen aplicándose mediante las reglas existentes del post.
+- Si alguien pierde acceso después de interactuar, puede retirar su voto o respuesta sin recuperar acceso al contenido.
+- Las respuestas abiertas completas solo se devuelven al creador propietario y al propio autor de la respuesta.
+
+### Base de datos
+- creator_polls.
+- creator_poll_options.
+- creator_poll_votes.
+- creator_questions.
+- creator_question_responses.
+- Índices de opciones, votos y respuestas.
+- Cascada automática al borrar una publicación.
+- Bootstrap idempotente.
+
+### Monetización
+
+V1.22 continúa sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls. Las herramientas de comunidad funcionan igual para contenido público y VIP gratuito.
