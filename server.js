@@ -21,6 +21,8 @@ const growthRoutes = require('./src/routes/growth');
 const trustRoutes = require('./src/routes/trust');
 const creatorWorkflowRoutes = require('./src/routes/creator-workflow');
 const liveRoutes = require('./src/routes/live');
+const pushRoutes = require('./src/routes/push');
+const { startPushWorker, isPushConfigured } = require('./src/services/push');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -66,6 +68,7 @@ app.use('/api/growth', growthRoutes);
 app.use('/api/trust', trustRoutes);
 app.use('/api/creator', creatorWorkflowRoutes);
 app.use('/api/live', liveRoutes);
+app.use('/api/push', pushRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -138,3 +141,7 @@ app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'pub
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 app.listen(PORT, () => console.log(`RedLibertad V1.47.0 running on http://localhost:${PORT}`));
+
+startPushWorker()
+  .then(()=>console.log(`RedLibertad Web Push ${isPushConfigured() ? 'enabled' : 'disabled (VAPID not configured)'}`))
+  .catch(error=>console.error('RedLibertad push worker startup failed:',error));
