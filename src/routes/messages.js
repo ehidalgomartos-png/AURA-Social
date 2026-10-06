@@ -38,7 +38,9 @@ async function ensureMessagePrivacy() {
       `);
       await db.query("CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id,updated_at DESC)");
       await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_post_id BIGINT REFERENCES posts(id) ON DELETE SET NULL");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS shared_post_ref_id BIGINT");
       await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post ON messages(shared_post_id)");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_shared_post_ref ON messages(shared_post_ref_id)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct'");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120)");
       await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
@@ -705,7 +707,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
   const r=await db.query(`
     SELECT
       m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
-      m.content_level,m.created_at,m.reply_to_message_id,m.shared_post_id,
+      m.content_level,m.created_at,m.reply_to_message_id,m.shared_post_id,m.shared_post_ref_id,
       u.username,u.display_name,u.avatar_url,
       shared_post.id AS shared_post_actual_id,
       shared_post.user_id AS shared_post_user_id,
@@ -867,7 +869,8 @@ router.get('/conversations/:id/messages', async (req, res) => {
       };
     })() : null;
 
-    const sharedPost=m.shared_post_id ? (() => {
+    const sharedReference=m.shared_post_ref_id || m.shared_post_id;
+    const sharedPost=sharedReference ? (() => {
       const unavailable=
         !m.shared_post_actual_id ||
         m.shared_post_moderation_status!=='published' ||
@@ -877,7 +880,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
 
       if(unavailable){
         return {
-          id:m.shared_post_id,
+          id:sharedReference,
           unavailable:true,
           gated:false
         };
@@ -1083,9 +1086,10 @@ router.post('/conversations/:id/messages', async (req, res) => {
           playback_url,
           content_level,
           reply_to_message_id,
-          shared_post_id
+          shared_post_id,
+          shared_post_ref_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
         RETURNING *
       `,[
         id,
@@ -1098,6 +1102,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
         d.playbackUrl,
         d.contentLevel,
         replyToMessageId,
+        sharedPostId,
         sharedPostId
       ]);
 
