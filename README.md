@@ -1,4 +1,4 @@
-# RedLibertad V1.27.1 — Follow-up Dashboard Hotfix
+# RedLibertad V1.28.0 — Follow-up Workflow & History
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -805,3 +805,36 @@ V1.27 continúa completamente sin monetización activa: sin pagos, suscripciones
 - Añade acción individual “Completar seguimiento”.
 - Conserva búsqueda privada, acciones masivas, orden por prioridad/fecha y privacidad por creador.
 - Sin cambios de esquema adicionales y sin monetización activa.
+
+
+## V1.28.0 — Follow-up Workflow & History
+
+- Evoluciona el Follow-up Dashboard sin monetización activa.
+- Nuevo historial privado de seguimientos completados.
+- Los seguimientos completados guardan `completed_at` y conservan la fecha que tenían programada.
+- Pestañas privadas:
+  - Activos.
+  - Completados.
+- Reabrir un seguimiento completado sin perder nota ni prioridad.
+- Reprogramación rápida individual:
+  - +1 hora.
+  - Mañana a las 09:00 en hora local del navegador.
+  - +7 días.
+  - Sin fecha.
+- Reprogramación masiva con los mismos presets principales.
+- Las acciones masivas se adaptan al estado Activos/Completados.
+- El historial permite búsqueda por nota privada y filtro por prioridad.
+- Los completados no inflan los contadores de vencidos, hoy o próximos.
+- Índice privado por `creator_id + completed_at` para historial eficiente.
+- Bootstrap idempotente con `ADD COLUMN IF NOT EXISTS completed_at`.
+- Todo continúa restringido al creador verificado propietario.
+
+### Privacidad
+
+- `completed_at`, notas, prioridad y fechas de seguimiento son privados.
+- No aparecen en feeds, perfiles ni APIs públicas.
+- No se añade tracking externo.
+
+### Monetización
+
+V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkout, créditos, saldo ni paywalls.
