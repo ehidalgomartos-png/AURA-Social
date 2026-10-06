@@ -3419,6 +3419,19 @@ function openModal() {
       ? 'Elige quién puede ver este contenido.'
       : 'El contenido Solo VIP requiere una cuenta de creador verificada.';
   }
+
+  const publishingControls=$('#creatorPublishingControls');
+  if(publishingControls){
+    publishingControls.classList.toggle('hidden',!me?.creator_verified);
+    const scheduledInput=publishingControls.querySelector('[name="scheduledFor"]');
+    if(scheduledInput && me?.creator_verified){
+      const now=new Date();
+      const min=new Date(now.getTime()+5*60*1000);
+      const max=new Date(now.getTime()+90*24*60*60*1000);
+      scheduledInput.min=toLocalDateTimeInput(min);
+      scheduledInput.max=toLocalDateTimeInput(max);
+    }
+  }
   $('#modal').classList.remove('hidden');
   setTimeout(() => $('#createForm textarea')?.focus(), 120);
 }
@@ -3471,9 +3484,23 @@ $('#createForm').addEventListener('submit', async e => {
     const file = $('#mediaFile').files[0];
     const caption = String(fd.get('caption') || '').trim();
     const kind = String(fd.get('kind') || 'post');
+    const publishMode=String(e.submitter?.dataset?.publishMode || 'now');
 
     if (!file && !caption) throw new Error('Escribe algo o selecciona una foto o vídeo.');
     if (kind === 'reel' && !file) throw new Error('Los Reels necesitan una foto o vídeo.');
+
+    if(publishMode!=='now' && !me?.creator_verified){
+      throw new Error('Los borradores y la programación requieren una cuenta de creador verificada.');
+    }
+
+    let scheduledFor=null;
+    if(publishMode==='scheduled'){
+      const localValue=String(fd.get('scheduledFor') || '');
+      if(!localValue)throw new Error('Elige una fecha y hora para programar.');
+      const date=new Date(localValue);
+      if(!Number.isFinite(date.getTime()))throw new Error('Fecha de programación no válida.');
+      scheduledFor=date.toISOString();
+    }
 
     let media = null;
     if (file) {
@@ -3481,13 +3508,19 @@ $('#createForm').addEventListener('submit', async e => {
       media = await ensureUpload();
     }
 
-    msg.textContent = 'Publicando...';
+    msg.textContent = publishMode==='draft'
+      ? 'Guardando borrador...'
+      : publishMode==='scheduled'
+        ? 'Programando...'
+        : 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
     const payload = {
       caption,
       kind,
       contentLevel: fd.get('contentLevel'),
       audience: fd.get('audience') || 'public',
+      publishMode,
+      scheduledFor,
       participantUsernames: participants,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
@@ -3507,6 +3540,10 @@ $('#createForm').addEventListener('submit', async e => {
         ? 'Necesitas verificación de creador adulto para publicar desnudez.'
         : d.error === 'verified_creator_required_for_vip_content'
           ? 'Solo los creadores verificados pueden publicar contenido Solo VIP.'
+        : d.error === 'verified_creator_required_for_publishing_tools'
+          ? 'Los borradores y la programación requieren una cuenta de creador verificada.'
+        : d.error === 'invalid_scheduled_time'
+          ? 'La programación debe estar entre 5 minutos y 90 días.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
           : d.error === 'empty_post'
@@ -3516,12 +3553,18 @@ $('#createForm').addEventListener('submit', async e => {
               : 'No se pudo publicar.'
     );
 
-    toast(d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
+    const successMessage=publishMode==='draft'
+      ? 'Borrador guardado'
+      : publishMode==='scheduled'
+        ? (d.consentRequired ? 'Programada. Esperando consentimientos.' : 'Publicación programada')
+        : (d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
+
+    toast(successMessage);
     $('#modal').classList.add('hidden');
     e.target.reset();
     clearPostMedia();
     updateCreateCounter();
-    await loadFeed('latest');
+    await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
