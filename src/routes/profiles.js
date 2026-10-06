@@ -612,32 +612,42 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
         )::int AS interactions_30d
     `,[req.user.id]),
     db.query(`
-      WITH fan_activity AS (
+      WITH interactions AS (
+        SELECT l.user_id, count(*)::int AS like_count, 0::int AS comment_count, 0::int AS repost_count
+          FROM likes l
+          JOIN posts p ON p.id=l.post_id
+          JOIN follows f ON f.follower_id=l.user_id AND f.following_id=$1
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND l.created_at>=now()-interval '30 days'
+         GROUP BY l.user_id
+        UNION ALL
+        SELECT c.user_id, 0::int, count(*)::int, 0::int
+          FROM comments c
+          JOIN posts p ON p.id=c.post_id
+          JOIN follows f ON f.follower_id=c.user_id AND f.following_id=$1
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND c.created_at>=now()-interval '30 days'
+         GROUP BY c.user_id
+        UNION ALL
+        SELECT r.user_id, 0::int, 0::int, count(*)::int
+          FROM reposts r
+          JOIN posts p ON p.id=r.post_id
+          JOIN follows f ON f.follower_id=r.user_id AND f.following_id=$1
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND r.created_at>=now()-interval '30 days'
+         GROUP BY r.user_id
+      ),
+      fan_activity AS (
         SELECT
-          f.follower_id AS user_id,
-          (SELECT count(*)::int
-             FROM likes l
-             JOIN posts p ON p.id=l.post_id
-            WHERE l.user_id=f.follower_id
-              AND p.user_id=$1
-              AND p.moderation_status='published'
-              AND l.created_at>=now()-interval '30 days') AS like_count,
-          (SELECT count(*)::int
-             FROM comments c
-             JOIN posts p ON p.id=c.post_id
-            WHERE c.user_id=f.follower_id
-              AND p.user_id=$1
-              AND p.moderation_status='published'
-              AND c.created_at>=now()-interval '30 days') AS comment_count,
-          (SELECT count(*)::int
-             FROM reposts r
-             JOIN posts p ON p.id=r.post_id
-            WHERE r.user_id=f.follower_id
-              AND p.user_id=$1
-              AND p.moderation_status='published'
-              AND r.created_at>=now()-interval '30 days') AS repost_count
-        FROM follows f
-        WHERE f.following_id=$1
+          user_id,
+          sum(like_count)::int AS like_count,
+          sum(comment_count)::int AS comment_count,
+          sum(repost_count)::int AS repost_count
+        FROM interactions
+        GROUP BY user_id
       )
       SELECT
         u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,
@@ -646,27 +656,42 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       FROM fan_activity a
       JOIN users u ON u.id=a.user_id
       WHERE u.status='active'
-        AND (a.like_count+a.comment_count+a.repost_count)>0
       ORDER BY interaction_count DESC,a.comment_count DESC,a.repost_count DESC,u.display_name ASC
       LIMIT 10
     `,[req.user.id]),
     db.query(`
+      WITH like_stats AS (
+        SELECT post_id,count(*)::int AS n FROM likes
+         WHERE created_at>=now()-interval '30 days'
+         GROUP BY post_id
+      ),
+      comment_stats AS (
+        SELECT post_id,count(*)::int AS n FROM comments
+         WHERE created_at>=now()-interval '30 days'
+         GROUP BY post_id
+      ),
+      repost_stats AS (
+        SELECT post_id,count(*)::int AS n FROM reposts
+         WHERE created_at>=now()-interval '30 days'
+         GROUP BY post_id
+      ),
+      save_stats AS (
+        SELECT post_id,count(*)::int AS n FROM saved_posts
+         WHERE created_at>=now()-interval '30 days'
+         GROUP BY post_id
+      )
       SELECT
         p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
-        (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id AND l.created_at>=now()-interval '30 days') AS like_count_30d,
-        (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id AND c.created_at>=now()-interval '30 days') AS comment_count_30d,
-        (SELECT count(*)::int FROM reposts r WHERE r.post_id=p.id AND r.created_at>=now()-interval '30 days') AS repost_count_30d,
-        (SELECT count(*)::int FROM saved_posts s WHERE s.post_id=p.id AND s.created_at>=now()-interval '30 days') AS save_count_30d,
-        (
-          (SELECT count(*) FROM likes l WHERE l.post_id=p.id AND l.created_at>=now()-interval '30 days')
-          +
-          (SELECT count(*) FROM comments c WHERE c.post_id=p.id AND c.created_at>=now()-interval '30 days')
-          +
-          (SELECT count(*) FROM reposts r WHERE r.post_id=p.id AND r.created_at>=now()-interval '30 days')
-          +
-          (SELECT count(*) FROM saved_posts s WHERE s.post_id=p.id AND s.created_at>=now()-interval '30 days')
-        )::int AS engagement_count_30d
+        COALESCE(ls.n,0)::int AS like_count_30d,
+        COALESCE(cs.n,0)::int AS comment_count_30d,
+        COALESCE(rs.n,0)::int AS repost_count_30d,
+        COALESCE(ss.n,0)::int AS save_count_30d,
+        (COALESCE(ls.n,0)+COALESCE(cs.n,0)+COALESCE(rs.n,0)+COALESCE(ss.n,0))::int AS engagement_count_30d
       FROM posts p
+      LEFT JOIN like_stats ls ON ls.post_id=p.id
+      LEFT JOIN comment_stats cs ON cs.post_id=p.id
+      LEFT JOIN repost_stats rs ON rs.post_id=p.id
+      LEFT JOIN save_stats ss ON ss.post_id=p.id
       WHERE p.user_id=$1
         AND p.moderation_status='published'
       ORDER BY engagement_count_30d DESC,p.created_at DESC
