@@ -1,4 +1,4 @@
-# RedLibertad V1.15.0 — Creator Audience & Broadcasts
+# RedLibertad V1.16.0 — Fans & Creator Engagement
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -317,3 +317,20 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Nuevo tipo de notificación creator_broadcast.
 - Bootstrap idempotente y actualización automática de la constraint de notificaciones.
 - Healthcheck actualizado a 1.15.0 y caché PWA V1.15.
+
+
+## V1.16.0 — Fans & Creator Engagement
+
+- Nueva analítica privada de engagement dentro del Centro de creador.
+- Audiencia activa de los últimos 30 días.
+- Porcentaje de seguidores actuales que han interactuado durante ese periodo.
+- Total de Me gusta, comentarios y republicaciones recibidos en 30 días.
+- Top 10 fans activos calculado únicamente entre seguidores actuales.
+- El ranking suma de forma transparente Me gusta + comentarios + republicaciones.
+- Los guardados no se utilizan para identificar o rankear personas.
+- Desglose individual de Me gusta, comentarios y republicaciones de cada fan activo.
+- Top 5 contenidos con mayor respuesta reciente.
+- El rendimiento de contenido incluye cifras agregadas de Me gusta, comentarios, republicaciones y guardados.
+- Los rankings son privados y solo visibles para el creador de la cuenta.
+- No añade tablas ni requiere migración SQL nueva.
+- Healthcheck actualizado a 1.16.0 y caché PWA V1.16.
