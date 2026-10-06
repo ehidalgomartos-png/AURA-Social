@@ -27,6 +27,7 @@ let communityDiscoverySearchTimer=null;
 let communityDiscoveryItems=[];
 let activeCommunityId=null;
 let activeCommunityData=null;
+let activeCommunityReportTarget=null;
 let eventScope='upcoming';
 let eventItems=[];
 let activeEventId=null;
@@ -7140,7 +7141,7 @@ function communityAvatarHTML(community){
 }
 
 function communityRoleLabel(role){
-  return role==='owner' ? 'Propietario' : role==='admin' ? 'Administrador' : 'Miembro';
+  return role==='owner' ? 'Propietario' : role==='admin' ? 'Administrador' : role==='moderator' ? 'Moderador' : 'Miembro';
 }
 
 function communityCardHTML(community){
@@ -7297,19 +7298,25 @@ function renderCommunityRules(data){
 
 function communityMemberHTML(member,community){
   const canManage=community.can_manage===true;
+  const canModerate=community.can_moderate===true;
   const canRoles=community.can_manage_roles===true;
   const mine=String(member.id)===String(me?.id);
   const roleActions=canRoles && member.role!=='owner' && !mine
-    ? `<button type="button" class="tiny-action" data-community-role-user="${member.id}" data-community-role="${member.role==='admin'?'member':'admin'}">${member.role==='admin'?'Quitar admin':'Hacer admin'}</button>`
+    ? `<select class="community-role-select" data-community-role-select-user="${member.id}" aria-label="Rol de @${esc(member.username)}"><option value="member" ${member.role==='member'?'selected':''}>Miembro</option><option value="moderator" ${member.role==='moderator'?'selected':''}>Moderador</option><option value="admin" ${member.role==='admin'?'selected':''}>Administrador</option></select>`
+    : '';
+  const canSanction=canModerate && !mine && member.role!=='owner' && !(community.viewer_role==='moderator'&&member.role!=='member') && !(community.viewer_role==='admin'&&member.role==='admin');
+  const sanctionActions=canSanction
+    ? `<button type="button" class="tiny-action" data-community-sanction-user="${member.id}" data-community-sanction-action="warning">Avisar</button><button type="button" class="tiny-action" data-community-sanction-user="${member.id}" data-community-sanction-action="mute">Silenciar 24 h</button><button type="button" class="tiny-action danger-outline" data-community-sanction-user="${member.id}" data-community-sanction-action="suspend">Suspender 24 h</button>`
     : '';
   const canRemove=canManage && !mine && member.role!=='owner' && !(community.viewer_role==='admin' && member.role==='admin');
+  const reportAction=!mine ? `<button type="button" class="tiny-action" data-community-report-type="member" data-community-report-id="${member.id}" data-community-report-label="@${esc(member.username)}">Informar</button>` : '';
   return `<article class="community-member-row">
     ${profileLink(member.username,`<span class="community-member-avatar">${avatarHTML(member)}</span>`,'community-member-profile')}
     <div class="community-member-copy">
       ${profileLink(member.username,`<b>${esc(member.display_name)} ${member.creator_verified?'<span class="verified">✓</span>':''}</b>`,'community-member-name')}
       <small>@${esc(member.username)} · ${esc(communityRoleLabel(member.role))}</small>
     </div>
-    <div class="community-member-actions">${roleActions}${canRemove?`<button type="button" class="tiny-action danger-outline" data-community-remove-member="${member.id}">Expulsar</button>`:''}</div>
+    <div class="community-member-actions">${roleActions}${sanctionActions}${canRemove?`<button type="button" class="tiny-action danger-outline" data-community-remove-member="${member.id}">Expulsar</button>`:''}${reportAction}</div>
   </article>`;
 }
 
@@ -7337,7 +7344,7 @@ function communityPostHTML(post,community){
         ${profileLink(post.username,`<b>${esc(post.display_name)} ${post.creator_verified?'<span class="verified">✓</span>':''}</b>`,'community-post-name')}
         <small>@${esc(post.username)} · ${timeAgo(post.created_at)}${post.content_level!=='normal'?' · 18+':''}</small>
       </div>
-      ${post.can_delete?`<button type="button" class="tiny-action danger-outline" data-community-delete-post="${post.id}">Eliminar</button>`:''}
+      <div class="community-post-head-actions">${String(post.user_id)!==String(me?.id)?`<button type="button" class="tiny-action" data-community-report-type="post" data-community-report-id="${post.id}" data-community-report-label="publicación de @${esc(post.username)}">Informar</button>`:''}${post.can_delete?`<button type="button" class="tiny-action danger-outline" data-community-delete-post="${post.id}">Eliminar</button>`:''}</div>
     </header>
     ${post.body&&(!post.shared_post||post.body!=='Publicación compartida')?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
     ${media?`<div class="community-post-media">${media}</div>`:''}
@@ -7346,7 +7353,7 @@ function communityPostHTML(post,community){
       <div class="community-comment-count">${Number(post.comment_count||comments.length)} comentarios</div>
       ${comments.length ? comments.map(comment=>`<div class="community-comment" data-community-comment="${comment.id}">
         <div><b>@${esc(comment.username)}</b> <span>${esc(comment.body)}</span><small>${timeAgo(comment.created_at)}</small></div>
-        ${comment.can_delete?`<button type="button" class="tiny-action" data-community-delete-comment="${comment.id}" data-community-post-id="${post.id}">Eliminar</button>`:''}
+        <div class="community-comment-actions">${String(comment.user_id)!==String(me?.id)?`<button type="button" class="tiny-action" data-community-report-type="comment" data-community-report-id="${comment.id}" data-community-report-label="comentario de @${esc(comment.username)}">Informar</button>`:''}${comment.can_delete?`<button type="button" class="tiny-action" data-community-delete-comment="${comment.id}" data-community-post-id="${post.id}">Eliminar</button>`:''}</div>
       </div>`).join('') : '<div class="community-comments-empty">Sin comentarios todavía.</div>'}
       ${community.is_member?`<form class="community-comment-form" data-community-comment-form="${post.id}">
         <input name="body" maxlength="1000" placeholder="Escribe un comentario…" required>
@@ -7380,15 +7387,20 @@ async function loadCommunityPosts(){
 
 async function loadCommunityAdminData(){
   const data=activeCommunityData;
-  if(!data?.community?.can_manage)return;
+  if(!data?.community?.can_moderate)return;
   const communityId=activeCommunityId;
-  const [requestsResult,logResult]=await Promise.all([
-    api(`/api/communities/${communityId}/requests`),
-    api(`/api/communities/${communityId}/moderation-log`)
+  const requestsPromise=data.community.can_manage ? api(`/api/communities/${communityId}/requests`) : Promise.resolve({r:{ok:true},d:{requests:[]}});
+  const [requestsResult,logResult,reportsResult,sanctionsResult]=await Promise.all([
+    requestsPromise,
+    api(`/api/communities/${communityId}/moderation-log`),
+    api(`/api/communities/${communityId}/moderation/reports`),
+    api(`/api/communities/${communityId}/moderation/sanctions`)
   ]);
   if(String(activeCommunityId)!==String(communityId))return;
   const requests=requestsResult.r.ok && Array.isArray(requestsResult.d.requests)?requestsResult.d.requests:[];
   const logs=logResult.r.ok && Array.isArray(logResult.d.items)?logResult.d.items:[];
+  const reports=reportsResult.r.ok && Array.isArray(reportsResult.d.reports)?reportsResult.d.reports:[];
+  const sanctions=sanctionsResult.r.ok && Array.isArray(sanctionsResult.d.items)?sanctionsResult.d.items:[];
   const requestRoot=$('#communityRequests');
   if(requestRoot){
     requestRoot.innerHTML=requests.length ? requests.map(request=>`<article class="community-request-row">
@@ -7397,6 +7409,15 @@ async function loadCommunityAdminData(){
     </article>`).join('') : '<div class="empty-list">No hay solicitudes pendientes.</div>';
   }
   if($('#communityRequestCount'))$('#communityRequestCount').textContent=`${requests.length} pendientes`;
+  const queueRoot=$('#communityModerationQueue');
+  if(queueRoot){
+    queueRoot.innerHTML=reports.length ? reports.map(item=>`<article class="community-report-row ${item.coordinated_signal?'coordinated':''}"><div><b>${esc(item.reason)} · ${esc(item.target_type)} #${item.target_id}</b><small>@${esc(item.reporter_username)} · ${timeAgo(item.created_at)} · ${Number(item.target_report_count||1)} incidencias${item.coordinated_signal?' · POSIBLE RÁFAGA COORDINADA':''}</small>${item.details?`<p>${esc(item.details)}</p>`:''}</div><div><button type="button" class="tiny-action" data-community-report-review="${item.id}" data-community-report-decision="resolved">Resolver</button><button type="button" class="tiny-action danger-outline" data-community-report-review="${item.id}" data-community-report-decision="dismissed">Descartar</button></div></article>`).join('') : '<div class="empty-list">No hay incidencias abiertas.</div>';
+  }
+  if($('#communityModerationQueueCount'))$('#communityModerationQueueCount').textContent=`${reports.length} abiertas`;
+  const sanctionsRoot=$('#communitySanctions');
+  if(sanctionsRoot){
+    sanctionsRoot.innerHTML=sanctions.length ? sanctions.map(item=>`<article class="community-sanction-row"><div><b>@${esc(item.username)} · ${esc(item.action)}</b><small>${item.expires_at?`Hasta ${eventDateLabel(item.expires_at)}`:'Aviso sin caducidad'} · por @${esc(item.actor_username)}</small>${item.note?`<p>${esc(item.note)}</p>`:''}</div><button type="button" class="tiny-action" data-community-sanction-revoke="${item.id}">Revocar</button></article>`).join('') : '<div class="empty-list">No hay sanciones activas.</div>';
+  }
   const logRoot=$('#communityModerationLog');
   if(logRoot){
     logRoot.innerHTML=logs.length ? logs.slice(0,20).map(item=>`<div class="community-moderation-row"><b>${esc(item.action.replaceAll('_',' '))}</b><small>${esc(item.actor_display_name || item.actor_username)} · ${timeAgo(item.created_at)}</small></div>`).join('') : '<div class="empty-list">Sin acciones de moderación.</div>';
@@ -7407,8 +7428,10 @@ function renderCommunityAdmin(data){
   const panel=$('#communityAdminPanel');
   if(!panel)return;
   const community=data.community;
-  panel.classList.toggle('hidden',!community.can_manage);
-  if(!community.can_manage)return;
+  panel.classList.toggle('hidden',!community.can_moderate);
+  if(!community.can_moderate)return;
+  $('#communityManagementOnly')?.classList.toggle('hidden',!community.can_manage);
+  $('#communityRequestsSection')?.classList.toggle('hidden',!community.can_manage);
   const form=$('#communityEditForm');
   if(form){
     form.elements.name.value=community.name || '';
