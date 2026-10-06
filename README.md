@@ -1,4 +1,4 @@
-# RedLibertad V1.39.0 — Stories & Reels 2.0
+# RedLibertad V1.40.0 — Retention & Growth 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -972,4 +972,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Los Reels muestran contador de vistas agregado.
 - Se mantienen contenido sensible, VIP, bloqueos, silencios y feedback de descubrimiento.
 - Bootstrap idempotente.
+- Sin monetización activa.
+
+
+## V1.40.0 — Retention & Growth 2.0
+
+- Nuevo resumen de regreso sincronizado entre dispositivos.
+- Guarda únicamente cuándo el usuario vio Inicio por última vez.
+- Resume:
+  - mensajes sin leer,
+  - notificaciones pendientes,
+  - publicaciones nuevas de personas seguidas,
+  - Stories visibles aún no vistas,
+  - Reels visibles aún no vistos,
+  - nuevos seguidores desde la última visita.
+- Cada tarjeta lleva directamente a la sección correspondiente.
+- El estado se limita a los últimos 30 días para evitar recaps indefinidos.
+- No usa rachas, presión artificial, puntuaciones de adicción ni notificaciones fabricadas.
+- Respeta bloqueos, silencios, audiencia VIP y preferencias de contenido sensible.
+- Corrige un bug heredado de V1.36: silenciar una conversación impide ahora crear nuevas notificaciones de mensaje para esa conversación; los mensajes siguen llegando y siguen contando como no leídos dentro del inbox.
+- Bootstrap idempotente con user_experience_state.
 - Sin monetización activa.
