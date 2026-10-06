@@ -5137,6 +5137,8 @@ all('[data-message-filter]').forEach(button=>{
   button.onclick=async()=>{
     messageConversationFilter=button.dataset.messageFilter || 'all';
     activeConversationId=null;
+    activeConversationMeta=null;
+    activeConversationOther=null;
     $('.messages-layout')?.classList.remove('chat-open');
     await loadConversations();
   };
@@ -5994,7 +5996,14 @@ function showView(name) {
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
-  if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
+  if (name === 'messages') {
+    const layout=$('.messages-layout');
+    if(layout)layout.classList.remove('chat-open');
+    activeConversationId=null;
+    activeConversationMeta=null;
+    activeConversationOther=null;
+    loadConversations();
+  }
   if (name === 'notifications') loadNotifications();
 }
 all('[data-view]').forEach(b => b.onclick = () => {
