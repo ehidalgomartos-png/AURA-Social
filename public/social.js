@@ -7339,7 +7339,7 @@ function communityPostHTML(post,community){
       </div>
       ${post.can_delete?`<button type="button" class="tiny-action danger-outline" data-community-delete-post="${post.id}">Eliminar</button>`:''}
     </header>
-    ${post.body&&!post.shared_post?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
+    ${post.body&&(!post.shared_post||post.body!=='Publicación compartida')?`<div class="community-post-body">${captionHTML(post.body)}</div>`:''}
     ${media?`<div class="community-post-media">${media}</div>`:''}
     ${post.shared_post?sharedPostMessageHTML(post.shared_post):''}
     <div class="community-post-comments">
