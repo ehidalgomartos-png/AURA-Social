@@ -884,6 +884,8 @@ router.post('/:id/save', requireAuth, async (req,res)=>{
 
 router.delete('/:id/save', requireAuth, async (req,res)=>{
   await ensureSavedPostsTable();
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
   await db.query(
     'DELETE FROM saved_posts WHERE user_id=$1 AND post_id=$2',
     [req.user.id,req.params.id]
@@ -982,12 +984,10 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
 });
 
 router.post('/:id/repost',requireAuth,async(req,res)=>{
-  const post=await db.query(
-    `SELECT id,user_id FROM posts WHERE id=$1 AND moderation_status='published' LIMIT 1`,
-    [req.params.id]
-  );
-  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
-  if(String(post.rows[0].user_id)===String(req.user.id)){
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post)return res.status(404).json({error:'post_not_found'});
+  if(post.audience==='vip')return res.status(403).json({error:'vip_post_cannot_be_reposted'});
+  if(String(post.user_id)===String(req.user.id)){
     return res.status(400).json({error:'cannot_repost_own_post'});
   }
 
@@ -1003,7 +1003,7 @@ router.post('/:id/repost',requireAuth,async(req,res)=>{
       await db.query(`
         INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
         VALUES ($1,$2,'repost','post',$3,'Ha republicado tu publicación.')
-      `,[post.rows[0].user_id,req.user.id,req.params.id]);
+      `,[post.user_id,req.user.id,req.params.id]);
     }catch(notificationError){
       console.warn('RedLibertad repost notification failed:',notificationError?.message || notificationError);
     }
@@ -1020,6 +1020,8 @@ router.delete('/:id/repost',requireAuth,async(req,res)=>{
 });
 
 router.post('/:id/like', requireAuth, async (req,res)=>{
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
   const inserted=await db.query(
     `INSERT INTO likes (user_id,post_id)
      VALUES ($1,$2)
@@ -1040,7 +1042,7 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
           user_id,actor_id,type,entity_type,entity_id,text
         )
         VALUES ($1,$2,'like','post',$3,'Le gusta tu publicación.')
-      `,[owner.rows[0].user_id,req.user.id,req.params.id]);
+      `,[ownerId,req.user.id,req.params.id]);
     }
   }
 
@@ -1048,6 +1050,8 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
   res.json({ok:true,liked:true,likeCount:count.rows[0]?.n || 0});
 });
 router.delete('/:id/like', requireAuth, async (req,res)=>{
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
   await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);
   const count=await db.query('SELECT count(*)::int AS n FROM likes WHERE post_id=$1',[req.params.id]);
   res.json({ok:true,liked:false,likeCount:count.rows[0]?.n || 0});
@@ -1103,16 +1107,8 @@ router.delete('/:id',requireAuth,async(req,res)=>{
 });
 
 router.get('/:id/comments', requireAuth, async (req,res)=>{
-  const post = await db.query(
-    `SELECT id,user_id
-       FROM posts
-      WHERE id=$1
-        AND moderation_status='published'
-      LIMIT 1`,
-    [req.params.id]
-  );
-
-  if(!post.rowCount){
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post){
     return res.status(404).json({error:'post_not_found'});
   }
 
@@ -1134,7 +1130,7 @@ router.get('/:id/comments', requireAuth, async (req,res)=>{
     LIMIT 250
   `,[req.params.id]);
 
-  const postOwnerId = post.rows[0].user_id;
+  const postOwnerId = post.user_id;
 
   const comments = result.rows.map(comment => ({
     ...comment,
@@ -1188,6 +1184,8 @@ const commentSchema=z.object({body:z.string().min(1).max(1000)});
 router.post('/:id/comments',requireAuth,async(req,res)=>{
   const parsed=commentSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_comment'});
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
   const result=await db.query(`
     INSERT INTO comments (user_id,post_id,body)
@@ -1195,12 +1193,9 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
     RETURNING id,user_id,post_id,body,created_at
   `,[req.user.id,req.params.id,parsed.data.body]);
 
-  const owner=await db.query(
-    `SELECT user_id FROM posts WHERE id=$1 AND moderation_status='published'`,
-    [req.params.id]
-  );
+  const ownerId=visiblePost.user_id;
 
-  if(owner.rowCount && String(owner.rows[0].user_id)!==String(req.user.id)){
+  if(String(ownerId)!==String(req.user.id)){
     await db.query(`
       INSERT INTO notifications (
         user_id,actor_id,type,entity_type,entity_id,text
@@ -1210,7 +1205,7 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
   }
 
   try {
-    await notifyMentions({actorId:req.user.id,text:parsed.data.body,entityType:'post',entityId:req.params.id});
+    await notifyMentions({actorId:req.user.id,text:parsed.data.body,entityType:'post',entityId:req.params.id,audience:visiblePost.audience});
   } catch (mentionError) {
     console.warn('RedLibertad comment mention notification failed:',mentionError?.message || mentionError);
   }
