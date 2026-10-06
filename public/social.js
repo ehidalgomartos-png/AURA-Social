@@ -5677,9 +5677,31 @@ function renderGroupManage(){
         <b>${esc(member.display_name || member.username)} ${member.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
         <small>@${esc(member.username)} · ${groupRoleLabel(member.member_role)}${self ? ' · Tú' : ''}${member.blocked_with_viewer ? ' · Bloqueado' : ''}</small>
       </div>
-      ${removable ? `<button type="button" class="tiny-action" data-remove-group-member="${member.id}" data-remove-group-name="${esc(member.display_name || member.username)}">Quitar</button>` : ''}
+      <div class="group-member-actions">
+        ${member.sensitive_allowed && !self ? `<button type="button" class="tiny-action" data-revoke-group-sensitive="${member.id}" data-revoke-group-name="${esc(member.display_name || member.username)}">No sensible</button>` : ''}
+        ${removable ? `<button type="button" class="tiny-action" data-remove-group-member="${member.id}" data-remove-group-name="${esc(member.display_name || member.username)}">Quitar</button>` : ''}
+      </div>
     </article>`;
   }).join('');
+
+  all('[data-revoke-group-sensitive]',$('#groupMemberList')).forEach(button=>{
+    button.onclick=async()=>{
+      button.disabled=true;
+      const {r}=await api(`/api/messages/users/${button.dataset.revokeGroupSensitive}/sensitive-permission`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({allow:false})
+      });
+      if(!r.ok){
+        $('#groupManageStatus').textContent='No se pudo revocar el contenido sensible.';
+        button.disabled=false;
+        return;
+      }
+      toast(`Contenido sensible de ${button.dataset.revokeGroupName || 'esta persona'} desactivado`);
+      await openConversation(activeConversationId);
+      renderGroupManage();
+    };
+  });
 
   all('[data-remove-group-member]',$('#groupMemberList')).forEach(button=>{
     button.onclick=async()=>{
