@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.25.0",
+  "version": "1.26.0",
   "private": true,
-  "description": "RedLibertad V1.25 Community Activity Center - actividad pendiente agrupada y flujo privado de revisión para creadores, sin monetización.",
+  "description": "RedLibertad V1.26 Creator Follow-up & Private Notes - prioridad, notas privadas y seguimiento de actividad para creadores, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
