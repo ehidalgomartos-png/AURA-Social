@@ -7759,6 +7759,7 @@ async function prepareAudiencePickers(){
   }catch(_error){}
   renderAudienceCircleOptions('postCircleAudienceOptions');
   renderAudienceCircleOptions('storyCircleAudienceOptions');
+  renderAudienceCircleOptions('postCircleMentionOptions');
   syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
   syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
 }
@@ -7903,6 +7904,7 @@ $('#createForm').addEventListener('submit', async e => {
         : 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
     const collaborators = String(fd.get('collaborators') || '').split(',').map(x => x.trim()).filter(Boolean);
+    const mentionCircleIds=selectedAudienceCircleIds('postCircleMentionOptions').slice(0,5);
     const payload = {
       caption,
       kind,
@@ -7918,6 +7920,7 @@ $('#createForm').addEventListener('submit', async e => {
       pollOptions,
       participantUsernames: participants,
       collaboratorUsernames: collaborators,
+      mentionCircleIds,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
       mediaProvider: media?.provider || 'local',
@@ -7956,6 +7959,8 @@ $('#createForm').addEventListener('submit', async e => {
           ? `No encontramos estos colaboradores: ${(d.missing || []).join(', ')}`
         : d.error === 'collaborator_unavailable'
           ? `No puedes invitar a colaborar a: ${(d.usernames || []).join(', ')}`
+        : d.error === 'invalid_mention_circle'
+          ? 'Uno de los círculos mencionados ya no está disponible.'
           : d.error === 'empty_post'
             ? 'Escribe algo o selecciona una foto o vídeo.'
             : d.error === 'reel_media_required'
@@ -7978,6 +7983,7 @@ $('#createForm').addEventListener('submit', async e => {
     updateCommunityComposeFields();
     syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
     syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
+    renderAudienceCircleOptions('postCircleMentionOptions');
     await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
