@@ -508,7 +508,8 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published') save_count,
       (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND s.created_at>=now()-interval '30 days') saves_30d,
       (SELECT count(*)::int FROM creator_featured_posts fp WHERE fp.user_id=u.id) featured_count,
-      (SELECT COALESCE(sum(cl.click_count),0)::bigint FROM creator_links cl WHERE cl.user_id=u.id) link_click_count
+      (SELECT COALESCE(sum(cl.click_count),0)::bigint FROM creator_links cl WHERE cl.user_id=u.id) link_click_count,
+      (SELECT count(*)::int FROM creator_broadcasts cb WHERE cb.user_id=u.id) broadcast_count
     FROM users u
     WHERE u.id=$1
     LIMIT 1
