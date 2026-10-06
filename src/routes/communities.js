@@ -803,6 +803,19 @@ router.get('/:id/posts',async(req,res)=>{
       shared.moderation_status AS shared_post_moderation_status,
       shared_author.username AS shared_post_author_username,shared_author.display_name AS shared_post_author_display_name,
       shared_author.avatar_url AS shared_post_author_avatar_url,shared_author.status AS shared_post_author_status,
+      EXISTS(
+        SELECT 1 FROM blocks shared_block
+         WHERE shared.user_id IS NOT NULL
+           AND (
+             (shared_block.blocker_id=$2 AND shared_block.blocked_id=shared.user_id)
+             OR (shared_block.blocker_id=shared.user_id AND shared_block.blocked_id=$2)
+           )
+      ) AS shared_post_blocked,
+      EXISTS(
+        SELECT 1 FROM mutes shared_mute
+         WHERE shared.user_id IS NOT NULL
+           AND shared_mute.muter_id=$2 AND shared_mute.muted_id=shared.user_id
+      ) AS shared_post_muted,
       (SELECT count(*)::int FROM community_comments cc WHERE cc.community_post_id=cp.id) AS comment_count
     FROM community_posts cp
     JOIN users u ON u.id=cp.user_id
@@ -872,7 +885,7 @@ router.get('/:id/posts',async(req,res)=>{
     const sharedReference=post.shared_post_ref_id||post.shared_post_id;
     let shared_post=null;
     if(sharedReference){
-      const unavailable=!post.shared_post_actual_id||post.shared_post_moderation_status!=='published'||post.shared_post_audience!=='public'||post.shared_post_author_status!=='active';
+      const unavailable=!post.shared_post_actual_id||post.shared_post_moderation_status!=='published'||post.shared_post_audience!=='public'||post.shared_post_author_status!=='active'||post.shared_post_blocked===true||post.shared_post_muted===true;
       if(unavailable){
         shared_post={id:sharedReference,unavailable:true,gated:false};
       }else{
