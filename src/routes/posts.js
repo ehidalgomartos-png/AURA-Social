@@ -2938,6 +2938,110 @@ router.post('/:id/consent', requireAuth, async (req,res)=>{
   res.json({ok:true,decision});
 });
 
+
+const collaborationDecisionSchema=z.object({decision:z.enum(['approved','rejected','revoked'])});
+router.post('/:id/collaboration',requireAuth,async(req,res)=>{
+  const parsed=collaborationDecisionSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_decision'});
+  const post=await db.query(`
+    SELECT p.id,p.user_id,p.content_level,p.creator_state,p.moderation_status,u.username owner_username
+      FROM posts p JOIN users u ON u.id=p.user_id
+     WHERE p.id=$1 LIMIT 1
+  `,[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  const relation=await db.query(
+    'SELECT status FROM post_collaborators WHERE post_id=$1 AND user_id=$2 LIMIT 1',
+    [req.params.id,req.user.id]
+  );
+  if(!relation.rowCount)return res.status(403).json({error:'not_a_collaborator'});
+  const decision=parsed.data.decision;
+  const current=relation.rows[0].status;
+  if(decision==='revoked'&&current!=='approved')return res.status(400).json({error:'collaboration_not_approved'});
+  if(['approved','rejected'].includes(decision)&&current!=='pending')return res.status(409).json({error:'collaboration_already_answered'});
+
+  if(decision==='approved'){
+    const viewer=await db.query('SELECT age_verified,creator_verified FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+    if(post.rows[0].content_level!=='normal'&&!viewer.rows[0]?.age_verified){
+      return res.status(403).json({error:'age_verification_required'});
+    }
+    if(post.rows[0].content_level==='nudity'&&!viewer.rows[0]?.creator_verified){
+      return res.status(403).json({error:'verified_creator_required_for_nudity_collaboration'});
+    }
+  }
+
+  await db.query(
+    'UPDATE post_collaborators SET status=$3,responded_at=now() WHERE post_id=$1 AND user_id=$2',
+    [req.params.id,req.user.id,decision]
+  );
+  const ownerId=post.rows[0].user_id;
+  const notificationType=decision==='approved'?'collaboration_approved':decision==='rejected'?'collaboration_rejected':'collaboration_revoked';
+  const notificationText=decision==='approved'
+    ? 'Ha aceptado colaborar en tu publicación.'
+    : decision==='rejected'
+      ? 'Ha rechazado la invitación para colaborar en tu publicación.'
+      : 'Ha dejado de colaborar en tu publicación.';
+  await db.query(`
+    INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+    VALUES($1,$2,$3,'post',$4,$5)
+  `,[ownerId,req.user.id,notificationType,req.params.id,notificationText]);
+
+  const outcome=await maybePublishAfterApprovals(req.params.id);
+  res.json({ok:true,decision,published:outcome.published});
+});
+
+router.get('/:id/collaborators',requireAuth,async(req,res)=>{
+  const post=await db.query('SELECT id,user_id FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  if(String(post.rows[0].user_id)!==String(req.user.id)&&req.user.isAdmin!==true){
+    return res.status(403).json({error:'post_manage_not_allowed'});
+  }
+  const result=await db.query(`
+    SELECT pc.user_id,pc.status,pc.requested_at,pc.responded_at,
+           u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM post_collaborators pc JOIN users u ON u.id=pc.user_id
+     WHERE pc.post_id=$1
+     ORDER BY pc.requested_at,u.username
+  `,[req.params.id]);
+  res.json({collaborators:result.rows});
+});
+
+const collaboratorManageSchema=z.object({
+  usernames:z.array(z.string().min(1).max(30)).min(1).max(5)
+});
+router.post('/:id/collaborators',requireAuth,async(req,res)=>{
+  const parsed=collaboratorManageSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_collaborators'});
+  const post=await db.query('SELECT id,user_id,moderation_status FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  if(String(post.rows[0].user_id)!==String(req.user.id)&&req.user.isAdmin!==true){
+    return res.status(403).json({error:'post_manage_not_allowed'});
+  }
+  const resolved=await resolveCollaborators(post.rows[0].user_id,parsed.data.usernames);
+  if(resolved.missing.length)return res.status(400).json({error:'collaborator_not_found',missing:resolved.missing});
+  if(resolved.blocked.length)return res.status(400).json({error:'collaborator_unavailable',usernames:resolved.blocked});
+  for(const collaborator of resolved.collaborators){
+    await db.query(`
+      INSERT INTO post_collaborators(post_id,user_id,status,requested_at,responded_at)
+      VALUES($1,$2,'pending',now(),NULL)
+      ON CONFLICT(post_id,user_id) DO UPDATE
+        SET status='pending',requested_at=now(),responded_at=NULL
+    `,[req.params.id,collaborator.id]);
+  }
+  await sendPendingCollaborationRequests(req.params.id,post.rows[0].user_id);
+  res.json({ok:true,collaborators:resolved.collaborators});
+});
+
+router.delete('/:id/collaborators/:userId',requireAuth,async(req,res)=>{
+  const post=await db.query('SELECT id,user_id FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  const sameUser=String(req.params.userId)===String(req.user.id);
+  const canManage=String(post.rows[0].user_id)===String(req.user.id)||req.user.isAdmin===true;
+  if(!canManage&&!sameUser)return res.status(403).json({error:'post_manage_not_allowed'});
+  await db.query('DELETE FROM post_collaborators WHERE post_id=$1 AND user_id=$2',[req.params.id,req.params.userId]);
+  const outcome=await maybePublishAfterApprovals(req.params.id);
+  res.json({ok:true,published:outcome.published});
+});
+
 router.get('/feed', optionalAuth, async (req, res) => {
   const viewer = await viewerFrom(req);
   const mode = ['latest','following','foryou','vip','close'].includes(req.query.mode) ? req.query.mode : 'latest';
