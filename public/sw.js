@@ -1,5 +1,5 @@
-const SHELL_CACHE='redlibertad-v147-shell';
-const STATIC_CACHE='redlibertad-v147-static';
+const SHELL_CACHE='redlibertad-v148-shell';
+const STATIC_CACHE='redlibertad-v148-static';
 const CACHE_PREFIX='redlibertad-';
 
 const SHELL_ASSETS=[
@@ -103,4 +103,48 @@ self.addEventListener('fetch',event=>{
   if(isStaticAsset(url,request)){
     event.respondWith(staleWhileRevalidate(request));
   }
+});
+
+
+self.addEventListener('push',event=>{
+  let payload={};
+  try{
+    payload=event.data ? event.data.json() : {};
+  }catch(_){
+    payload={body:event.data?.text?.() || ''};
+  }
+
+  const title=String(payload.title || 'RedLibertad');
+  const options={
+    body:String(payload.body || 'Tienes actividad nueva en RedLibertad.'),
+    icon:'/icons/redlibertad-192.png',
+    badge:'/icons/redlibertad-192.png',
+    tag:payload.notificationId ? `redlibertad-${payload.notificationId}` : 'redlibertad-activity',
+    renotify:false,
+    data:{
+      url:String(payload.url || '/app?view=notifications'),
+      notificationId:payload.notificationId || null,
+      type:payload.type || null
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title,options));
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  const target=new URL(event.notification.data?.url || '/app',self.location.origin).href;
+
+  event.waitUntil((async()=>{
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of windows){
+      if(new URL(client.url).origin===self.location.origin){
+        try{
+          await client.navigate(target);
+        }catch(_){}
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow(target);
+  })());
 });

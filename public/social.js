@@ -3470,6 +3470,126 @@ function accountSummaryHTML(account) {
   </div>`;
 }
 
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(char=>char.charCodeAt(0)));
+}
+
+async function localPushSubscription(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window))return null;
+  const registration=await navigator.serviceWorker.ready;
+  return registration.pushManager.getSubscription();
+}
+
+async function loadPushSettings(){
+  const button=$('#pushNotificationsToggle');
+  const state=$('#pushNotificationsState');
+  const status=$('#pushNotificationsStatus');
+  if(!button || !state)return;
+
+  if(!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)){
+    state.innerHTML='<b>No disponible en este navegador</b><small>Tu navegador o modo actual no admite Web Push.</small>';
+    button.disabled=true;
+    button.textContent='No disponible';
+    return;
+  }
+
+  const {r,d}=await api('/api/push/config');
+  if(!r.ok){
+    state.innerHTML='<b>No se pudo comprobar</b><small>Prueba de nuevo más tarde.</small>';
+    button.disabled=true;
+    return;
+  }
+
+  if(!d.enabled){
+    state.innerHTML='<b>Preparado, pendiente de configuración del servidor</b><small>Faltan las claves VAPID en el entorno de producción.</small>';
+    button.disabled=true;
+    button.textContent='Pendiente';
+    if(status)status.textContent='';
+    return;
+  }
+
+  const subscription=await localPushSubscription();
+  const active=!!subscription;
+  state.innerHTML=active
+    ? '<b>Activadas en este dispositivo</b><small>Los avisos pueden llegar aunque RedLibertad no esté abierta.</small>'
+    : '<b>Desactivadas en este dispositivo</b><small>Actívalas solo si quieres recibir avisos del sistema.</small>';
+  button.disabled=false;
+  button.textContent=active ? 'Desactivar' : 'Activar';
+  button.dataset.pushPublicKey=d.publicKey || '';
+  if(status)status.textContent=Notification.permission==='denied'
+    ? 'El navegador tiene bloqueadas las notificaciones para este sitio.'
+    : '';
+}
+
+async function togglePushNotifications(){
+  const button=$('#pushNotificationsToggle');
+  const status=$('#pushNotificationsStatus');
+  if(!button || button.disabled)return;
+  button.disabled=true;
+  if(status)status.textContent='Actualizando…';
+
+  try{
+    const current=await localPushSubscription();
+    if(current){
+      await api('/api/push/subscribe',{
+        method:'DELETE',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({endpoint:current.endpoint})
+      });
+      await current.unsubscribe();
+      if(status)status.textContent='Notificaciones push desactivadas en este dispositivo.';
+      await loadPushSettings();
+      return;
+    }
+
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted'){
+      if(status)status.textContent=permission==='denied'
+        ? 'Has bloqueado las notificaciones en el navegador.'
+        : 'No se activaron las notificaciones.';
+      return;
+    }
+
+    const publicKey=String(button.dataset.pushPublicKey || '');
+    if(!publicKey)throw new Error('push_public_key_missing');
+
+    const registration=await navigator.serviceWorker.ready;
+    const subscription=await registration.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:urlBase64ToUint8Array(publicKey)
+    });
+    const json=subscription.toJSON();
+    const {r}=await api('/api/push/subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        endpoint:subscription.endpoint,
+        keys:{
+          p256dh:json.keys?.p256dh || '',
+          auth:json.keys?.auth || ''
+        },
+        userAgent:String(navigator.userAgent || '').slice(0,500)
+      })
+    });
+    if(!r.ok){
+      await subscription.unsubscribe().catch(()=>{});
+      throw new Error('push_subscription_failed');
+    }
+
+    if(status)status.textContent='Notificaciones push activadas en este dispositivo.';
+    await loadPushSettings();
+  }catch(error){
+    if(status)status.textContent='No se pudieron actualizar las notificaciones push.';
+  }finally{
+    button.disabled=false;
+  }
+}
+
+$('#pushNotificationsToggle')?.addEventListener('click',togglePushNotifications);
+
 async function openAccountModal() {
   const modal = $('#accountModal');
   if (!modal) return;
@@ -3480,6 +3600,8 @@ async function openAccountModal() {
   $('#changePasswordStatus').textContent = '';
   $('#accountToolsStatus').textContent = '';
   $('#deleteAccountStatus').textContent = '';
+  $('#pushNotificationsStatus').textContent = '';
+  loadPushSettings().catch(()=>{});
   $('#changePasswordForm')?.reset();
   $('#deleteAccountForm')?.reset();
 
@@ -5560,6 +5682,9 @@ async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
   const post = params.get('post');
+  const view = params.get('view');
+  const conversation = params.get('conversation');
+  const trust = params.get('trust');
 
   if (profile) {
     await openPublicProfile(profile);
@@ -5568,6 +5693,17 @@ async function handleInitialDeepLink() {
 
   if (post) {
     await openPostFocus(post);
+    return;
+  }
+
+  if(view && ['feed','explore','reels','messages','notifications','profile'].includes(view)){
+    showView(view);
+    if(view==='messages' && conversation){
+      await loadConversations(conversation);
+    }
+    if(view==='profile' && trust==='1'){
+      await openTrustModal();
+    }
   }
 }
 
