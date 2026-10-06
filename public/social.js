@@ -6198,6 +6198,7 @@ async function sendMessage(e) {
 
     try {
       await openConversation(activeConversationId);
+      loadCommunityConversations();
     } catch (refreshError) {
       console.error('Message sent, but chat refresh failed:', refreshError);
       toast('Mensaje enviado. Recarga la conversación para verlo.');
