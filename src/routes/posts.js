@@ -356,6 +356,32 @@ router.use(async (_req,res,next)=>{
 setTimeout(()=>publishDueScheduledPosts().catch(error=>console.error('RedLibertad V1.20 initial scheduler failed:',error)),5000).unref?.();
 setInterval(()=>publishDueScheduledPosts().catch(error=>console.error('RedLibertad V1.20 scheduler failed:',error)),60*1000).unref?.();
 
+
+let creatorCalendarV21Ready=null;
+async function ensureCreatorCalendarV21(){
+  if(!creatorCalendarV21Ready){
+    creatorCalendarV21Ready=(async()=>{
+      await db.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS editorial_date DATE');
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS editorial_label VARCHAR(40) NOT NULL DEFAULT ''");
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_creator_editorial_date ON posts(user_id,editorial_date)');
+    })().catch(error=>{
+      creatorCalendarV21Ready=null;
+      throw error;
+    });
+  }
+  return creatorCalendarV21Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCalendarV21();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.21 calendar bootstrap failed:',error);
+    res.status(500).json({error:'creator_calendar_bootstrap_failed'});
+  }
+});
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
@@ -413,6 +439,8 @@ const createSchema = z.object({
   audience: z.enum(['public','vip']).default('public'),
   publishMode: z.enum(['now','draft','scheduled']).default('now'),
   scheduledFor: z.string().datetime({offset:true}).optional().nullable(),
+  editorialDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  editorialLabel: z.string().trim().max(40).optional().default(''),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
 });
 
@@ -484,6 +512,9 @@ router.post('/', requireAuth, async (req, res) => {
   if (data.publishMode !== 'now' && !user.creator_verified) {
     return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
   }
+  if ((data.editorialDate || String(data.editorialLabel || '').trim()) && !user.creator_verified) {
+    return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
+  }
 
   let scheduledFor=null;
   if(data.publishMode==='scheduled'){
@@ -523,12 +554,13 @@ router.post('/', requireAuth, async (req, res) => {
     const result = await client.query(`
       INSERT INTO posts
         (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,audience,
-         creator_state,scheduled_for,moderation_status,consent_state)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         creator_state,scheduled_for,editorial_date,editorial_label,moderation_status,consent_state)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *
     `,[
       req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,
       data.contentLevel,data.kind,data.audience,creatorState,scheduledFor?.toISOString() || null,
+      data.editorialDate || null,data.editorialLabel || '',
       moderationStatus,needsConsent?'pending':'none'
     ]);
     const post=result.rows[0];
@@ -598,6 +630,7 @@ router.get('/creator/publishing',requireAuth,async(req,res)=>{
     SELECT
       p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,
       p.content_level,p.post_kind,p.audience,p.creator_state,p.scheduled_for,
+      p.editorial_date,p.editorial_label,
       p.consent_state,p.moderation_status,p.created_at,p.updated_at,
       (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id) participant_count,
       (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id AND pp.consent_status<>'approved') pending_consent_count
@@ -817,6 +850,94 @@ router.post('/creator/publishing/:id/draft',requireAuth,async(req,res)=>{
 
   if(!updated.rowCount)return res.status(404).json({error:'post_not_pending'});
   res.json({ok:true,post:updated.rows[0]});
+});
+
+const editorialMetaSchema=z.object({
+  editorialDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  editorialLabel:z.string().trim().max(40).optional().default('')
+});
+
+router.patch('/creator/editorial/:id',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_publishing_tools'});
+  }
+
+  const parsed=editorialMetaSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_editorial_metadata'});
+
+  const updated=await db.query(`
+    UPDATE posts
+       SET editorial_date=$3,
+           editorial_label=$4,
+           updated_at=now()
+     WHERE id=$1
+       AND user_id=$2
+     RETURNING id,editorial_date,editorial_label,creator_state,scheduled_for,created_at
+  `,[
+    req.params.id,
+    req.user.id,
+    parsed.data.editorialDate || null,
+    parsed.data.editorialLabel || ''
+  ]);
+
+  if(!updated.rowCount)return res.status(404).json({error:'post_not_found'});
+  res.json({ok:true,post:updated.rows[0]});
+});
+
+router.get('/creator/calendar',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_publishing_tools'});
+  }
+
+  const from=new Date(String(req.query.from || ''));
+  const to=new Date(String(req.query.to || ''));
+  const dateFrom=String(req.query.dateFrom || '');
+  const dateTo=String(req.query.dateTo || '');
+  const datePattern=/^\d{4}-\d{2}-\d{2}$/;
+
+  if(!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || to<=from ||
+     to.getTime()-from.getTime()>45*24*60*60*1000 ||
+     !datePattern.test(dateFrom) || !datePattern.test(dateTo)){
+    return res.status(400).json({error:'invalid_calendar_range'});
+  }
+
+  const result=await db.query(`
+    SELECT
+      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,
+      p.content_level,p.post_kind,p.audience,p.creator_state,p.scheduled_for,
+      p.editorial_date,p.editorial_label,p.consent_state,p.moderation_status,
+      p.created_at,p.updated_at,
+      (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id AND pp.consent_status<>'approved') pending_consent_count
+    FROM posts p
+    WHERE p.user_id=$1
+      AND p.moderation_status<>'rejected'
+      AND (
+        (p.editorial_date IS NOT NULL AND p.editorial_date >= $2::date AND p.editorial_date < $3::date)
+        OR (
+          p.editorial_date IS NULL
+          AND p.creator_state='scheduled'
+          AND p.scheduled_for >= $4::timestamptz
+          AND p.scheduled_for < $5::timestamptz
+        )
+        OR (
+          p.editorial_date IS NULL
+          AND p.creator_state='live'
+          AND p.moderation_status='published'
+          AND p.created_at >= $4::timestamptz
+          AND p.created_at < $5::timestamptz
+        )
+      )
+    ORDER BY
+      COALESCE(p.editorial_date::text,p.scheduled_for::date::text,p.created_at::date::text),
+      COALESCE(p.scheduled_for,p.created_at),
+      p.id
+    LIMIT 500
+  `,[req.user.id,dateFrom,dateTo,from.toISOString(),to.toISOString()]);
+
+  const labels=[...new Set(result.rows.map(row=>String(row.editorial_label || '').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'es'));
+
+  res.json({posts:result.rows,labels,from:from.toISOString(),to:to.toISOString(),dateFrom,dateTo});
 });
 
 async function viewerFrom(req) {

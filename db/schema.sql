@@ -336,6 +336,14 @@ CREATE INDEX IF NOT EXISTS idx_posts_creator_state_schedule
   ON posts(creator_state,scheduled_for,user_id);
 
 
+-- RedLibertad V1.21: calendario editorial privado
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS editorial_date DATE;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS editorial_label VARCHAR(40) NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS idx_posts_creator_editorial_date
+  ON posts(user_id,editorial_date);
+
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
