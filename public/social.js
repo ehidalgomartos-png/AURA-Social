@@ -31,6 +31,7 @@ let creatorCommunityStatus = 'active';
 let creatorCommunityStarredOnly = false;
 let creatorCommunityData = null;
 let creatorCommunityActivityStatus = 'pending';
+let creatorCommunityActivityFocus = 'all';
 let creatorCommunityActivityData = null;
 
 
@@ -1799,6 +1800,10 @@ function creatorActivityActorHTML(actor = {}) {
 
 function creatorActivityItemHTML(group,item) {
   const isPoll=group.kind==='poll';
+  const management=item.management || {};
+  const priority=management.priority==='high' ? 'high' : 'normal';
+  const followUp=management.follow_up===true;
+  const followUpValue=management.follow_up_at ? toLocalDateTimeInput(management.follow_up_at) : '';
   let detail='';
   if(isPoll){
     detail=item.interaction?.withdrawn
@@ -1809,13 +1814,41 @@ function creatorActivityItemHTML(group,item) {
       ? '<span class="creator-activity-withdrawn">Respuesta retirada</span>'
       : `<span class="creator-activity-response-copy">${esc(item.interaction?.body || '')}</span>`;
   }
-  return `<div class="creator-activity-item ${item.reviewed_at ? 'reviewed' : 'pending'}">
+  return `<div class="creator-activity-item ${item.reviewed_at ? 'reviewed' : 'pending'} ${priority==='high' ? 'high-priority' : ''} ${followUp ? 'follow-up' : ''}">
     ${creatorActivityActorHTML(item.actor)}
     <div class="creator-activity-item-copy">
+      <div class="creator-activity-private-flags">
+        ${priority==='high' ? '<span class="creator-activity-priority-badge">Prioridad alta</span>' : ''}
+        ${followUp ? `<span class="creator-activity-followup-badge">Seguimiento${followUpValue ? ` · ${esc(new Date(management.follow_up_at).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))}` : ''}</span>` : ''}
+      </div>
       <p>${detail}</p>
-      <small>${timeAgo(item.created_at)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}</small>
+      <small>${timeAgo(item.created_at)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}${management.note ? ' · Nota privada' : ''}</small>
     </div>
-    ${item.reviewed_at ? '' : `<button type="button" class="tiny-action" data-creator-activity-review-id="${item.notification_id}">Revisado</button>`}
+    <div class="creator-activity-item-actions">
+      ${item.reviewed_at ? '' : `<button type="button" class="tiny-action" data-creator-activity-review-id="${item.notification_id}">Revisado</button>`}
+      <details class="creator-activity-private-editor">
+        <summary>Gestionar</summary>
+        <div class="creator-activity-private-form">
+          <label>Prioridad
+            <select data-activity-priority="${item.notification_id}">
+              <option value="normal" ${priority==='normal' ? 'selected' : ''}>Normal</option>
+              <option value="high" ${priority==='high' ? 'selected' : ''}>Alta</option>
+            </select>
+          </label>
+          <label class="creator-activity-followup-toggle">
+            <input type="checkbox" data-activity-followup="${item.notification_id}" ${followUp ? 'checked' : ''}>
+            Dejar en seguimiento
+          </label>
+          <label>Recordar para
+            <input type="datetime-local" data-activity-followup-at="${item.notification_id}" value="${esc(followUpValue)}">
+          </label>
+          <label>Nota privada
+            <textarea maxlength="1000" data-activity-note="${item.notification_id}" placeholder="Solo tú puedes ver esta nota...">${esc(management.note || '')}</textarea>
+          </label>
+          <button type="button" class="tiny-action primary-soft" data-activity-meta-save="${item.notification_id}">Guardar seguimiento</button>
+        </div>
+      </details>
+    </div>
   </div>`;
 }
 
@@ -1829,6 +1862,15 @@ function renderCreatorCommunityActivity(data = {}) {
   }
   const reviewAll=$('#creatorActivityReviewAll');
   if(reviewAll)reviewAll.disabled=pending===0;
+  if($('#creatorActivityHighCount')){
+    const count=Number(data.highPriorityCount || 0);
+    $('#creatorActivityHighCount').textContent=`${count} ${count===1 ? 'alta' : 'altas'}`;
+  }
+  if($('#creatorActivityFollowUpCount')){
+    const count=Number(data.followUpCount || 0);
+    $('#creatorActivityFollowUpCount').textContent=`${count} seguimiento`;
+  }
+  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value=creatorCommunityActivityFocus;
 
   all('[data-creator-activity-status]').forEach(button=>{
     button.classList.toggle('active',button.dataset.creatorActivityStatus===creatorCommunityActivityStatus);
@@ -1874,7 +1916,10 @@ function renderCreatorCommunityActivity(data = {}) {
 async function loadCreatorCommunityActivity() {
   const root=$('#creatorActivityGroups');
   if(root)root.innerHTML='<div class="mini-loading">Cargando actividad...</div>';
-  const qs=new URLSearchParams({status:creatorCommunityActivityStatus});
+  const qs=new URLSearchParams({
+    status:creatorCommunityActivityStatus,
+    focus:creatorCommunityActivityFocus
+  });
   const { r,d }=await api(`/api/posts/creator/community-activity?${qs.toString()}`);
   if(!r.ok){
     if(root)root.innerHTML='<div class="creator-empty compact">No se pudo cargar el centro de actividad.</div>';
