@@ -5411,3 +5411,24 @@ select:focus-visible{
   .growth-starter-list{grid-template-columns:1fr}
   .growth-starter-head{align-items:center}
 }
+
+
+/* =========================================================
+   RedLibertad V1.67 — Accessibility & UX Quality 2.0
+   ========================================================= */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.skip-link{position:fixed;left:12px;top:10px;z-index:9999;transform:translateY(-170%);background:var(--navy);color:#fff;padding:10px 14px;border-radius:11px;font-weight:900;box-shadow:var(--shadow-float)}
+.skip-link:focus{transform:translateY(0)}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid var(--teal)!important;outline-offset:3px!important}
+.modal-close:focus-visible,.round-btn:focus-visible,.bottom-nav button:focus-visible{outline-offset:2px!important}
+.view[aria-hidden="true"]{pointer-events:none}
+button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
+@media(pointer:coarse){
+  button:not(.profile-link),a.button,.admin-link,input:not([type="checkbox"]):not([type="radio"]),select{min-height:44px}
+  .modal-close,.round-btn{min-width:44px;min-height:44px}
+}
+@media(forced-colors:active){
+  :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid CanvasText!important}
+  .active,[aria-current="page"],[aria-selected="true"]{outline:1px solid CanvasText}
+  .modal,.post,.person-card,.info-card{border:1px solid CanvasText}
+}
