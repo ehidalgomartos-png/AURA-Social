@@ -6,6 +6,7 @@ let currentFileMedia = null;
 let activeConversationId = null;
 let activeConversationOther = null;
 let activeConversationSettings = null;
+let activeMessageReply = null;
 let messageConversationFilter = 'all';
 let messageConversationSearch = '';
 let messageConversationSearchTimer = null;
@@ -30,6 +31,7 @@ let liveActivityState = {
   latestNotificationId:'0',
   messageUnread:null,
   latestIncomingMessageId:'0',
+  latestReactionAt:null,
   conversationPresence:[]
 };
 let liveConversationPresence=new Map();
@@ -4511,6 +4513,77 @@ $('#reportForm').addEventListener('submit', async event => {
   }
 });
 
+const MESSAGE_REACTIONS={
+  heart:'❤️',
+  like:'👍',
+  laugh:'😂',
+  fire:'🔥',
+  wow:'😮',
+  sad:'😢'
+};
+
+function reactionEmoji(key){
+  return MESSAGE_REACTIONS[key] || '•';
+}
+
+function clearMessageReply(){
+  activeMessageReply=null;
+  const box=$('#messageReplyComposer');
+  if(box){
+    box.classList.add('hidden');
+    box.innerHTML='';
+  }
+}
+
+function setMessageReply(messageId,label,text){
+  activeMessageReply={
+    id:Number(messageId),
+    label:String(label || 'Mensaje'),
+    text:String(text || 'Mensaje')
+  };
+  const box=$('#messageReplyComposer');
+  if(box){
+    box.innerHTML=`<div><small>RESPONDIENDO A</small><b>${esc(activeMessageReply.label)}</b><p>${esc(activeMessageReply.text)}</p></div><button type="button" id="cancelMessageReply" class="tiny-action">Cancelar</button>`;
+    box.classList.remove('hidden');
+    $('#cancelMessageReply')?.addEventListener('click',clearMessageReply);
+  }
+  $('#messageBody')?.focus();
+}
+
+async function toggleMessageReaction(button){
+  if(!activeConversationId)return;
+  const messageId=button.dataset.messageReact;
+  const reaction=button.dataset.reaction;
+  const active=button.dataset.reacted==='1';
+  button.disabled=true;
+  try{
+    const {r}=await api(`/api/messages/conversations/${encodeURIComponent(activeConversationId)}/messages/${encodeURIComponent(messageId)}/reaction`,{
+      method:active?'DELETE':'PUT',
+      headers:active ? undefined : {'Content-Type':'application/json'},
+      body:active ? undefined : JSON.stringify({reaction})
+    });
+    if(!r.ok)return toast('No se pudo guardar la reacción.');
+    await refreshActiveConversationLive();
+  }finally{
+    button.disabled=false;
+  }
+}
+
+function bindMessageActions(root=$('#messageThread')){
+  if(!root)return;
+  all('[data-message-reply]',root).forEach(button=>{
+    button.onclick=()=>setMessageReply(
+      button.dataset.messageReply,
+      button.dataset.replyLabel,
+      button.dataset.replyText
+    );
+  });
+  all('[data-message-react]',root).forEach(button=>{
+    button.onclick=()=>toggleMessageReaction(button);
+  });
+  all('[data-accept-sensitive]',root).forEach(button=>button.onclick=acceptSensitiveMessages);
+}
+
 function conversationPresence(id) {
   return liveConversationPresence.get(String(id)) || null;
 }
@@ -4623,7 +4696,7 @@ async function refreshActiveConversationLive() {
     if(thread){
       const nearBottom=(thread.scrollHeight-thread.scrollTop-thread.clientHeight)<120;
       thread.innerHTML=(Array.isArray(d.messages)?d.messages:[]).map(m=>messageHTML(m,d.other)).join('') || '<div class="empty-state"><p>Empieza la conversación.</p></div>';
-      all('[data-accept-sensitive]',thread).forEach(button=>button.onclick=acceptSensitiveMessages);
+      bindMessageActions(thread);
       if(nearBottom)thread.scrollTop=thread.scrollHeight;
     }
     await loadConversations();
@@ -4638,6 +4711,7 @@ async function handleLiveActivity(payload,initial=false) {
     latestNotificationId:String(payload.latestNotificationId || '0'),
     messageUnread:Number(payload.messageUnread || 0),
     latestIncomingMessageId:String(payload.latestIncomingMessageId || '0'),
+    latestReactionAt:payload.latestReactionAt || null,
     conversationPresence:Array.isArray(payload.conversationPresence) ? payload.conversationPresence : []
   };
   liveConversationPresence=new Map(
@@ -4655,7 +4729,8 @@ async function handleLiveActivity(payload,initial=false) {
     previous.notificationUnread!==liveActivityState.notificationUnread;
   const messageChanged=
     previous.latestIncomingMessageId!==liveActivityState.latestIncomingMessageId ||
-    previous.messageUnread!==liveActivityState.messageUnread;
+    previous.messageUnread!==liveActivityState.messageUnread ||
+    previous.latestReactionAt!==liveActivityState.latestReactionAt;
 
   if(notificationChanged && !$('#notificationsView')?.classList.contains('hidden')){
     await loadNotifications();
@@ -4890,6 +4965,7 @@ async function loadConversations(openId = null) {
 }
 async function openConversation(id) {
   activeConversationId = id;
+  clearMessageReply();
   const layout = $('.messages-layout');
   if (layout) layout.classList.add('chat-open');
   const { d } = await api(`/api/messages/conversations/${id}/messages`);
@@ -4907,7 +4983,7 @@ async function openConversation(id) {
       <button type="button" class="tiny-action" data-conversation-setting="archived">${activeConversationSettings.is_archived?'Desarchivar':'Archivar'}</button>
       ${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}
     </div>
-  </header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
+  </header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div id="messageReplyComposer" class="message-reply-composer hidden"></div><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
   const mobileBack = $('#mobileChatBack');
   if (mobileBack) mobileBack.onclick = () => {
     const messagesLayout = $('.messages-layout');
@@ -4917,6 +4993,7 @@ async function openConversation(id) {
     loadConversations();
   };
   $('#messageForm').onsubmit = sendMessage;
+  bindMessageActions($('#messageThread'));
   bindTypingPresence();
   sendChatPresence({typing:false,conversationId:id});
   updateActiveChatPresence();
@@ -4968,8 +5045,33 @@ function messageHTML(m, other) {
   } else if (m.media_url || m.playback_url) {
     media = `<div class="message-media">${mediaHTML(m)}</div>`;
   }
+
+  const reply=m.reply_preview
+    ? `<div class="message-reply-preview ${m.reply_preview.gated ? 'gated' : ''}"><small>↩ ${esc(m.reply_preview.display_name || m.reply_preview.username || 'Mensaje')}</small><p>${esc(m.reply_preview.text || 'Mensaje')}</p></div>`
+    : '';
+
+  const reactions=Array.isArray(m.reactions) ? m.reactions : [];
+  const reactionCounts=new Map(reactions.map(item=>[item.reaction,item]));
+  const reactionBar=`<div class="message-reaction-bar">${Object.entries(MESSAGE_REACTIONS).map(([key,emoji])=>{
+    const item=reactionCounts.get(key);
+    return `<button type="button" class="${item?.reacted_by_me ? 'active' : ''}" data-message-react="${m.id}" data-reaction="${key}" data-reacted="${item?.reacted_by_me ? '1' : '0'}" aria-label="Reaccionar ${emoji}">${emoji}${item?.count ? ` <span>${item.count}</span>` : ''}</button>`;
+  }).join('')}</div>`;
+
   const receipt=mine ? (m.seen_by_other ? 'Visto' : 'Enviado') : '';
-  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'}" data-message-created="${esc(m.created_at)}">${body}${media}<small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${m.content_level !== 'normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small></div>`;
+  const replyLabel=mine ? 'Tú' : (m.display_name || m.username || 'Mensaje');
+  const replyText=m.gated
+    ? 'Contenido sensible'
+    : String(m.body || '').trim()
+      ? String(m.body).trim().slice(0,160)
+      : m.media_type==='image' ? 'Foto' : m.media_type==='video' ? 'Vídeo' : 'Mensaje';
+
+  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
+    ${reply}
+    ${body}
+    ${media}
+    <div class="message-bubble-meta"><small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${m.content_level !== 'normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small><button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button></div>
+    ${reactionBar}
+  </div>`;
 }
 async function acceptSensitiveMessages(e) {
   const senderId = e.currentTarget.dataset.acceptSensitive;
@@ -5063,6 +5165,7 @@ async function sendMessage(e) {
     const payload = {
       body: $('#messageBody').value,
       contentLevel: $('#messageLevel').value,
+      replyToMessageId:activeMessageReply?.id || null,
       ...(media ? {
         mediaUrl: media.url,
         mediaType: media.mediaType,
@@ -5097,6 +5200,7 @@ async function sendMessage(e) {
     clearTimeout(typingClearTimer);
     sendChatPresence({typing:false});
     toast('Mensaje enviado');
+    clearMessageReply();
     clearMessagePreview();
 
     try {

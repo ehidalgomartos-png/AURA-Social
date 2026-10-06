@@ -1,4 +1,4 @@
-# RedLibertad V1.46.0 — Chat Presence & Read Receipts
+# RedLibertad V1.47.0 — Message Replies & Reactions
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1080,4 +1080,17 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - SSE amplía la señal en vivo con presencia y lectura del interlocutor.
 - Heartbeat del cliente cada 20 segundos mientras la app está visible.
 - Bootstrap y migración idempotentes mediante user_chat_presence.
+- Sin monetización activa.
+
+
+## V1.47.0 — Message Replies & Reactions
+
+- Respuesta a mensajes concretos con cita contextual.
+- La cita nunca revela texto o multimedia sensible si el receptor aún no tiene permiso.
+- Reacciones rápidas: corazón, me gusta, risa, fuego, sorpresa y tristeza.
+- Una reacción por usuario y mensaje, editable y eliminable.
+- Conteos agregados de reacciones dentro de cada burbuja.
+- Reacciones sincronizadas mediante el stream de actividad en vivo.
+- La referencia al mensaje original usa ON DELETE SET NULL para conservar la respuesta si el original desaparece.
+- Bootstrap/migraciones idempotentes para reply_to_message_id y message_reactions.
 - Sin monetización activa.

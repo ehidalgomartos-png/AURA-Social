@@ -5,7 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
 async function snapshotFor(userId) {
-  const [notifications,messages,presence] = await Promise.all([
+  const [notifications,messages,presence,reactionActivity] = await Promise.all([
     db.query(`
       SELECT
         count(*) FILTER (WHERE n.read_at IS NULL)::int AS unread,
@@ -57,6 +57,14 @@ async function snapshotFor(userId) {
         )
       ORDER BY mine.conversation_id
       LIMIT 120
+    `,[userId]),
+    db.query(`
+      SELECT max(mr.updated_at) AS latest_reaction_at
+        FROM conversation_members cm
+        JOIN messages m ON m.conversation_id=cm.conversation_id
+        JOIN message_reactions mr ON mr.message_id=m.id
+       WHERE cm.user_id=$1
+         AND cm.is_archived=false
     `,[userId])
   ]);
 
@@ -65,6 +73,7 @@ async function snapshotFor(userId) {
     latestNotificationId:String(notifications.rows[0]?.latest_id || '0'),
     messageUnread:Number(messages.rows[0]?.unread || 0),
     latestIncomingMessageId:String(messages.rows[0]?.latest_incoming_id || '0'),
+    latestReactionAt:reactionActivity.rows[0]?.latest_reaction_at || null,
     conversationPresence:presence.rows.map(row=>({
       conversationId:String(row.conversation_id),
       userId:String(row.user_id),
@@ -102,6 +111,7 @@ router.get('/stream',requireAuth,async(req,res)=>{
         latestNotificationId:payload.latestNotificationId,
         messageUnread:payload.messageUnread,
         latestIncomingMessageId:payload.latestIncomingMessageId,
+        latestReactionAt:payload.latestReactionAt,
         conversationPresence:payload.conversationPresence.map(item=>[
           item.conversationId,
           item.online,
