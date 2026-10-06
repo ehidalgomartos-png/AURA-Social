@@ -705,8 +705,31 @@ router.get('/conversations/:id/messages', async (req, res) => {
   const r=await db.query(`
     SELECT
       m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
-      m.content_level,m.created_at,m.reply_to_message_id,
+      m.content_level,m.created_at,m.reply_to_message_id,m.shared_post_id,
       u.username,u.display_name,u.avatar_url,
+      shared_post.id AS shared_post_actual_id,
+      shared_post.user_id AS shared_post_user_id,
+      shared_post.caption AS shared_post_caption,
+      shared_post.media_url AS shared_post_media_url,
+      shared_post.media_type AS shared_post_media_type,
+      shared_post.media_provider AS shared_post_media_provider,
+      shared_post.playback_url AS shared_post_playback_url,
+      shared_post.content_level AS shared_post_content_level,
+      shared_post.post_kind AS shared_post_kind,
+      shared_post.audience AS shared_post_audience,
+      shared_post.moderation_status AS shared_post_moderation_status,
+      shared_author.username AS shared_post_author_username,
+      shared_author.display_name AS shared_post_author_display_name,
+      shared_author.avatar_url AS shared_post_author_avatar_url,
+      shared_author.status AS shared_post_author_status,
+      EXISTS(
+        SELECT 1 FROM blocks shared_block
+         WHERE shared_post.user_id IS NOT NULL
+           AND (
+             (shared_block.blocker_id=$2 AND shared_block.blocked_id=shared_post.user_id)
+             OR (shared_block.blocker_id=shared_post.user_id AND shared_block.blocked_id=$2)
+           )
+      ) AS shared_post_blocked,
       reply.id AS reply_id,
       reply.sender_id AS reply_sender_id,
       reply.body AS reply_body,
@@ -717,6 +740,8 @@ router.get('/conversations/:id/messages', async (req, res) => {
       reply_user.display_name AS reply_display_name
     FROM messages m
     JOIN users u ON u.id=m.sender_id
+    LEFT JOIN posts shared_post ON shared_post.id=m.shared_post_id
+    LEFT JOIN users shared_author ON shared_author.id=shared_post.user_id
     LEFT JOIN messages reply ON reply.id=m.reply_to_message_id AND reply.conversation_id=m.conversation_id
     LEFT JOIN users reply_user ON reply_user.id=reply.sender_id
     WHERE m.conversation_id=$1
@@ -842,8 +867,52 @@ router.get('/conversations/:id/messages', async (req, res) => {
       };
     })() : null;
 
+    const sharedPost=m.shared_post_id ? (() => {
+      const unavailable=
+        !m.shared_post_actual_id ||
+        m.shared_post_moderation_status!=='published' ||
+        m.shared_post_audience!=='public' ||
+        m.shared_post_author_status!=='active' ||
+        m.shared_post_blocked===true;
+
+      if(unavailable){
+        return {
+          id:m.shared_post_id,
+          unavailable:true,
+          gated:false
+        };
+      }
+
+      const sharedIsOwn=String(m.shared_post_user_id)===String(req.user.id);
+      const sharedGated=!!(
+        !sharedIsOwn &&
+        m.shared_post_content_level!=='normal' &&
+        (!viewer?.age_verified || !viewer?.show_sensitive)
+      );
+
+      return {
+        id:m.shared_post_actual_id,
+        unavailable:false,
+        gated:sharedGated,
+        gate_reason:sharedGated
+          ? (!viewer?.age_verified ? 'age_verification_required' : 'sensitive_content_disabled')
+          : null,
+        post_kind:m.shared_post_kind,
+        content_level:m.shared_post_content_level,
+        caption:sharedGated ? '' : (m.shared_post_caption || ''),
+        media_url:sharedGated ? null : m.shared_post_media_url,
+        media_type:sharedGated ? null : m.shared_post_media_type,
+        media_provider:sharedGated ? null : m.shared_post_media_provider,
+        playback_url:sharedGated ? null : m.shared_post_playback_url,
+        username:m.shared_post_author_username,
+        display_name:m.shared_post_author_display_name,
+        avatar_url:m.shared_post_author_avatar_url
+      };
+    })() : null;
+
     return {
       ...m,
+      shared_post:sharedPost,
       seen_count:seenCount,
       seen_by_other:!details.is_group && seenCount>0,
       seen_by_all:details.is_group && eligibleReaders.length>0 && seenCount>=eligibleReaders.length,
