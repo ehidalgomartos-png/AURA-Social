@@ -138,3 +138,19 @@
   .creator-analytics-row small,.creator-analytics-row em{text-align:right}
   .creator-advanced-trend{height:150px}
 }
+
+/* V1.34 — Community Automation */
+.creator-automation-list{display:grid;gap:8px}
+.creator-automation-rule{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:11px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.creator-automation-toggle{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.creator-automation-toggle input{width:auto;margin-top:2px}
+.creator-automation-toggle b,.creator-automation-toggle small{display:block}
+.creator-automation-toggle b{font-size:10px;color:var(--navy)}
+.creator-automation-toggle small{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.4}
+.creator-automation-threshold{display:flex;gap:5px;align-items:center;font-size:8px;font-weight:900;color:var(--muted)}
+.creator-automation-threshold input{width:58px;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--paper);color:var(--ink)}
+.creator-automation-last{grid-column:1/-1;font-size:8px;color:var(--muted);padding-top:6px;border-top:1px solid var(--line)}
+@media(max-width:760px){
+  .creator-automation-rule{grid-template-columns:1fr}
+  .creator-automation-threshold{justify-content:flex-start}
+}

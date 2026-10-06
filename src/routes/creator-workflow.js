@@ -199,6 +199,47 @@ router.use(async(_req,res,next)=>{
   }
 });
 
+let creatorAutomationV134Ready=null;
+async function ensureCreatorAutomationV134(){
+  if(!creatorAutomationV134Ready){
+    creatorAutomationV134Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_automation_rules (
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rule_key TEXT NOT NULL,
+          enabled BOOLEAN NOT NULL DEFAULT FALSE,
+          threshold INTEGER NOT NULL DEFAULT 3,
+          last_run_at TIMESTAMPTZ,
+          last_result JSONB NOT NULL DEFAULT '{}'::jsonb,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(creator_id,rule_key)
+        )
+      `);
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_automation_rule_key_check' AND conrelid='creator_automation_rules'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE creator_automation_rules ADD CONSTRAINT creator_automation_rule_key_check CHECK(rule_key IN ('overdue_task_priority','repeat_participant_task','overdue_followup_task','high_priority_contact_task'))");
+      }
+      await db.query("CREATE INDEX IF NOT EXISTS idx_creator_automation_enabled ON creator_automation_rules(enabled,creator_id,updated_at DESC)");
+    })().catch(error=>{
+      creatorAutomationV134Ready=null;
+      throw error;
+    });
+  }
+  return creatorAutomationV134Ready;
+}
+
+router.use(async(_req,res,next)=>{
+  try{
+    await ensureCreatorAutomationV134();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.34 creator automation bootstrap failed:',error);
+    res.status(500).json({error:'creator_automation_bootstrap_failed'});
+  }
+});
+
 router.use(requireAuth);
 router.use(async(req,res,next)=>{
   if(!await requireVerifiedCreator(req.user.id)){
@@ -1040,5 +1081,172 @@ router.get('/analytics/advanced',async(req,res)=>{
     topContent:topContent.rows
   });
 });
+
+
+const automationRuleKeys=['overdue_task_priority','repeat_participant_task','overdue_followup_task','high_priority_contact_task'];
+const automationPatchSchema=z.object({
+  enabled:z.boolean(),
+  threshold:z.number().int().min(2).max(20).optional()
+});
+
+async function ensureCreatorAutomationDefaults(creatorId){
+  for(const key of automationRuleKeys){
+    await db.query(`
+      INSERT INTO creator_automation_rules (creator_id,rule_key,enabled,threshold)
+      VALUES ($1,$2,false,$3)
+      ON CONFLICT(creator_id,rule_key) DO NOTHING
+    `,[creatorId,key,key==='repeat_participant_task'?3:2]);
+  }
+}
+
+async function runCreatorAutomationRule(creatorId,rule){
+  let affected=0;
+  if(rule.rule_key==='overdue_task_priority'){
+    const result=await db.query(`
+      UPDATE creator_tasks SET priority='high',updated_at=now()
+       WHERE creator_id=$1 AND status='open' AND due_at IS NOT NULL AND due_at<now() AND priority<>'high'
+       RETURNING id
+    `,[creatorId]);
+    affected=result.rowCount;
+  }else if(rule.rule_key==='repeat_participant_task'){
+    const result=await db.query(`
+      WITH participants AS (
+        SELECT user_id,count(*)::int n
+        FROM (
+          SELECT v.user_id FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id
+           WHERE p.user_id=$1 AND v.created_at>=now()-interval '30 days'
+          UNION ALL
+          SELECT qr.user_id FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id
+           WHERE p.user_id=$1 AND qr.created_at>=now()-interval '30 days'
+        ) activity
+        GROUP BY user_id HAVING count(*)>=$2
+      )
+      INSERT INTO creator_tasks (creator_id,title,note,priority,related_user_id,source_key)
+      SELECT $1,'Revisar participación de @'||u.username,
+             'Creada automáticamente por participación recurrente en comunidad.',
+             'normal',u.id,'auto:repeat:'||u.id||':'||to_char(current_date,'YYYY-MM')
+        FROM participants p
+        JOIN users u ON u.id=p.user_id AND u.status='active'
+       WHERE u.id<>$1
+      ON CONFLICT(creator_id,source_key) WHERE source_key IS NOT NULL DO NOTHING
+      RETURNING id
+    `,[creatorId,Number(rule.threshold||3)]);
+    affected=result.rowCount;
+  }else if(rule.rule_key==='overdue_followup_task'){
+    const result=await db.query(`
+      INSERT INTO creator_tasks
+        (creator_id,title,note,priority,due_at,notification_id,related_user_id,post_id,source_key)
+      SELECT
+        $1,
+        'Revisar seguimiento vencido · '||COALESCE(actor.username,'comunidad'),
+        'Creada automáticamente desde un seguimiento privado vencido.',
+        meta.priority,
+        meta.follow_up_at,
+        n.id,
+        n.actor_id,
+        n.entity_id,
+        'auto:followup:'||n.id||':'||to_char(meta.follow_up_at,'YYYY-MM-DD')
+      FROM creator_community_activity_meta meta
+      JOIN notifications n ON n.id=meta.notification_id AND n.user_id=$1
+      LEFT JOIN users actor ON actor.id=n.actor_id
+      JOIN posts p ON p.id=n.entity_id AND p.user_id=$1
+      WHERE meta.creator_id=$1
+        AND meta.follow_up=true
+        AND meta.follow_up_at IS NOT NULL
+        AND meta.follow_up_at<now()
+      ON CONFLICT(creator_id,source_key) WHERE source_key IS NOT NULL DO NOTHING
+      RETURNING id
+    `,[creatorId]);
+    affected=result.rowCount;
+  }else if(rule.rule_key==='high_priority_contact_task'){
+    const result=await db.query(`
+      INSERT INTO creator_tasks (creator_id,title,note,priority,related_user_id,source_key)
+      SELECT
+        $1,
+        'Revisar contacto prioritario · @'||u.username,
+        'Creada automáticamente desde Creator CRM.',
+        'high',
+        meta.contact_id,
+        'auto:crm-high:'||meta.contact_id||':'||to_char(current_date,'YYYY-MM')
+      FROM creator_contact_meta meta
+      JOIN users u ON u.id=meta.contact_id AND u.status='active'
+      WHERE meta.creator_id=$1
+        AND meta.priority='high'
+        AND NOT EXISTS(
+          SELECT 1 FROM creator_tasks t
+           WHERE t.creator_id=$1 AND t.related_user_id=meta.contact_id AND t.status='open'
+        )
+      ON CONFLICT(creator_id,source_key) WHERE source_key IS NOT NULL DO NOTHING
+      RETURNING id
+    `,[creatorId]);
+    affected=result.rowCount;
+  }
+  const result={affected,ranAt:new Date().toISOString()};
+  await db.query(`
+    UPDATE creator_automation_rules
+       SET last_run_at=now(),last_result=$3::jsonb,updated_at=now()
+     WHERE creator_id=$1 AND rule_key=$2
+  `,[creatorId,rule.rule_key,JSON.stringify(result)]);
+  return result;
+}
+
+async function runCreatorAutomations(creatorId){
+  await ensureCreatorAutomationV134();
+  await ensureCreatorAutomationDefaults(creatorId);
+  const rules=await db.query("SELECT * FROM creator_automation_rules WHERE creator_id=$1 AND enabled=true ORDER BY rule_key",[creatorId]);
+  const results={};
+  for(const rule of rules.rows){
+    try{results[rule.rule_key]=await runCreatorAutomationRule(creatorId,rule);}
+    catch(error){results[rule.rule_key]={error:error?.message||'automation_failed'};}
+  }
+  return results;
+}
+
+router.get('/automations',async(req,res)=>{
+  await ensureCreatorAutomationDefaults(req.user.id);
+  const result=await db.query("SELECT rule_key,enabled,threshold,last_run_at,last_result,updated_at FROM creator_automation_rules WHERE creator_id=$1 ORDER BY rule_key",[req.user.id]);
+  const metadata={
+    overdue_task_priority:{name:'Subir prioridad de tareas vencidas',description:'Marca como prioridad alta las tareas privadas que ya han vencido.'},
+    repeat_participant_task:{name:'Tarea por participación recurrente',description:'Crea una tarea mensual para personas con varias participaciones en 30 días.'},
+    overdue_followup_task:{name:'Tarea por seguimiento vencido',description:'Convierte seguimientos privados vencidos en tareas relacionadas.'},
+    high_priority_contact_task:{name:'Tarea para contactos prioritarios',description:'Crea una tarea mensual si un contacto de prioridad alta no tiene otra tarea abierta.'}
+  };
+  res.json({rules:result.rows.map(rule=>({...rule,...metadata[rule.rule_key]}))});
+});
+
+router.patch('/automations/:key',async(req,res)=>{
+  const key=String(req.params.key||'');
+  if(!automationRuleKeys.includes(key))return res.status(404).json({error:'automation_rule_not_found'});
+  const parsed=automationPatchSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_automation_rule'});
+  await ensureCreatorAutomationDefaults(req.user.id);
+  const threshold=key==='repeat_participant_task' ? (parsed.data.threshold || 3) : 2;
+  const result=await db.query(`
+    UPDATE creator_automation_rules
+       SET enabled=$3,threshold=$4,updated_at=now()
+     WHERE creator_id=$1 AND rule_key=$2
+     RETURNING *
+  `,[req.user.id,key,parsed.data.enabled,threshold]);
+  res.json({ok:true,rule:result.rows[0]});
+});
+
+router.post('/automations/run',async(req,res)=>{
+  const results=await runCreatorAutomations(req.user.id);
+  res.json({ok:true,results});
+});
+
+async function runEnabledCreatorAutomations(){
+  await ensureCreatorAutomationV134();
+  const creators=await db.query("SELECT DISTINCT creator_id FROM creator_automation_rules WHERE enabled=true");
+  for(const row of creators.rows){
+    try{await runCreatorAutomations(row.creator_id);}
+    catch(error){console.error('RedLibertad creator automation failed:',row.creator_id,error?.message||error);}
+  }
+}
+
+const creatorAutomationTimer=setInterval(()=>{
+  runEnabledCreatorAutomations().catch(error=>console.error('RedLibertad V1.34 automation runner failed:',error?.message||error));
+},60*60*1000);
+if(typeof creatorAutomationTimer.unref==='function')creatorAutomationTimer.unref();
 
 module.exports = router;
