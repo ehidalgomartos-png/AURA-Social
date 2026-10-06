@@ -50,6 +50,38 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorV13Ready = null;
+async function ensureCreatorV13() {
+  if (!creatorV13Ready) {
+    creatorV13Ready = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_featured_posts (
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          featured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(user_id,post_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_featured_posts_user ON creator_featured_posts(user_id,featured_at DESC)');
+    })().catch(error => {
+      creatorV13Ready = null;
+      throw error;
+    });
+  }
+  return creatorV13Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorV13();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.13 creator bootstrap failed:',error);
+    res.status(500).json({error:'creator_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
@@ -372,6 +404,124 @@ router.get('/me/blocked',requireAuth,async(req,res)=>{
      LIMIT 250
   `,[req.user.id]);
   res.json({users:result.rows});
+});
+
+router.get('/me/creator-center',requireAuth,async(req,res)=>{
+  const summary=await db.query(`
+    SELECT
+      u.id,u.username,u.display_name,u.creator_verified,u.age_verified,
+      (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published') post_count,
+      (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published' AND p.post_kind='reel') reel_count,
+      (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) follower_count,
+      (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id AND f.created_at>=now()-interval '30 days') followers_30d,
+      (SELECT count(*)::int FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=u.id AND p.moderation_status='published') like_count,
+      (SELECT count(*)::int FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND l.created_at>=now()-interval '30 days') likes_30d,
+      (SELECT count(*)::int FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=u.id AND p.moderation_status='published') comment_count,
+      (SELECT count(*)::int FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND c.created_at>=now()-interval '30 days') comments_30d,
+      (SELECT count(*)::int FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=u.id AND p.moderation_status='published') repost_count,
+      (SELECT count(*)::int FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND r.created_at>=now()-interval '30 days') reposts_30d,
+      (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published') save_count,
+      (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND s.created_at>=now()-interval '30 days') saves_30d,
+      (SELECT count(*)::int FROM creator_featured_posts fp WHERE fp.user_id=u.id) featured_count
+    FROM users u
+    WHERE u.id=$1
+    LIMIT 1
+  `,[req.user.id]);
+
+  if(!summary.rowCount)return res.status(404).json({error:'user_not_found'});
+  const account=summary.rows[0];
+  if(!account.creator_verified)return res.status(403).json({error:'verified_creator_required'});
+
+  const posts=await db.query(`
+    SELECT
+      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+      EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) featured,
+      (SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) featured_at,
+      (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+      (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count,
+      (SELECT count(*)::int FROM reposts r WHERE r.post_id=p.id) repost_count,
+      (SELECT count(*)::int FROM saved_posts s WHERE s.post_id=p.id) save_count
+    FROM posts p
+    WHERE p.user_id=$1
+      AND p.moderation_status='published'
+    ORDER BY
+      EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) DESC,
+      COALESCE((SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id),p.created_at) DESC
+    LIMIT 24
+  `,[req.user.id]);
+
+  res.json({creator:account,posts:posts.rows,featuredLimit:3});
+});
+
+router.post('/me/creator/featured/:postId',requireAuth,async(req,res)=>{
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const account=await client.query(
+      'SELECT id,creator_verified FROM users WHERE id=$1 FOR UPDATE',
+      [req.user.id]
+    );
+    if(!account.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'user_not_found'});
+    }
+    if(!account.rows[0].creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required'});
+    }
+
+    const post=await client.query(
+      "SELECT id FROM posts WHERE id=$1 AND user_id=$2 AND moderation_status='published' LIMIT 1",
+      [req.params.postId,req.user.id]
+    );
+    if(!post.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'post_not_found'});
+    }
+
+    const existing=await client.query(
+      'SELECT 1 FROM creator_featured_posts WHERE user_id=$1 AND post_id=$2',
+      [req.user.id,req.params.postId]
+    );
+    if(existing.rowCount){
+      await client.query('COMMIT');
+      return res.json({ok:true,featured:true});
+    }
+
+    const count=await client.query(
+      'SELECT count(*)::int n FROM creator_featured_posts WHERE user_id=$1',
+      [req.user.id]
+    );
+    if(Number(count.rows[0]?.n || 0)>=3){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'featured_limit_reached',limit:3});
+    }
+
+    await client.query(
+      'INSERT INTO creator_featured_posts (user_id,post_id) VALUES ($1,$2)',
+      [req.user.id,req.params.postId]
+    );
+    await client.query('COMMIT');
+    res.json({ok:true,featured:true});
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad feature creator post failed:',error);
+    res.status(500).json({error:'feature_post_failed'});
+  }finally{
+    client.release();
+  }
+});
+
+router.delete('/me/creator/featured/:postId',requireAuth,async(req,res)=>{
+  const account=await db.query('SELECT creator_verified FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+  if(!account.rowCount)return res.status(404).json({error:'user_not_found'});
+  if(!account.rows[0].creator_verified)return res.status(403).json({error:'verified_creator_required'});
+
+  await db.query(
+    'DELETE FROM creator_featured_posts WHERE user_id=$1 AND post_id=$2',
+    [req.user.id,req.params.postId]
+  );
+  res.json({ok:true,featured:false});
 });
 
 router.get('/:username', optionalAuth, async (req,res)=>{
