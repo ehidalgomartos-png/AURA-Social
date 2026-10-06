@@ -5201,7 +5201,7 @@ if ($('#postCollaboratorForm')) $('#postCollaboratorForm').addEventListener('sub
   status.textContent='Enviando invitación…';
   const {r,d}=await api(`/api/posts/${activeManagePost}/collaborators`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usernames})});
   if(!r.ok){
-    status.textContent=d.error==='collaborator_not_found'?`No encontramos: ${(d.missing||[]).join(', ')}`:d.error==='collaborator_unavailable'?'Alguna persona no está disponible para colaborar.':'No se pudo enviar la invitación.';
+    status.textContent=d.error==='collaborator_not_found'?`No encontramos: ${(d.missing||[]).join(', ')}`:d.error==='collaborator_unavailable'?'Alguna persona no está disponible para colaborar.':d.error==='collaborator_limit'?'Puedes tener como máximo 5 colaboradores activos.':'No se pudo enviar la invitación.';
     return;
   }
   event.currentTarget.reset();
