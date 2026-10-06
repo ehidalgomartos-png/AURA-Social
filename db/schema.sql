@@ -837,6 +837,11 @@ ALTER TABLE notifications
     'creator_vip_broadcast',
     'creator_poll_vote',
     'creator_question_response',
+    'event_reminder',
+    'collaboration_request',
+    'collaboration_approved',
+    'collaboration_rejected',
+    'collaboration_revoked',
     'system'
   ));
 
