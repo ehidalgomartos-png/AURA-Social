@@ -3545,3 +3545,55 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .creator-publishing-schedule{grid-template-columns:1fr}
   .creator-publishing-actions-row{display:grid;grid-template-columns:1fr}
 }
+
+
+/* RedLibertad V1.21 — Creator Content Calendar */
+.creator-calendar-section{padding:16px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--paper),rgba(255,255,255,.76))}
+.creator-calendar-head{align-items:center}
+.creator-calendar-nav{display:flex;gap:6px;align-items:center}
+.creator-calendar-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;margin:12px 0}
+.creator-calendar-toolbar>b{font-size:18px;color:var(--navy);text-transform:capitalize}
+.creator-calendar-toolbar select{min-width:150px}
+.creator-calendar-weekdays,.creator-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:760px}
+.creator-calendar-weekdays{border:1px solid var(--line);border-bottom:0;border-radius:14px 14px 0 0;overflow:hidden;background:var(--soft)}
+.creator-calendar-weekdays span{padding:8px;text-align:center;font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.creator-calendar-grid{border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.creator-calendar-day{min-height:118px;padding:7px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--paper)}
+.creator-calendar-day.outside{background:var(--soft);opacity:.58}
+.creator-calendar-day.today{box-shadow:inset 0 0 0 2px var(--teal)}
+.creator-calendar-day-number{display:block;font-size:11px;font-weight:900;color:var(--muted);margin-bottom:5px}
+.creator-calendar-events{display:grid;gap:4px}
+.creator-calendar-event{border:0;border-radius:8px;padding:5px 6px;text-align:left;min-width:0;cursor:pointer}
+.creator-calendar-event b,.creator-calendar-event small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.creator-calendar-event b{font-size:9px}
+.creator-calendar-event small{font-size:8px;opacity:.75;margin-top:2px}
+.creator-calendar-event.draft{background:#edf1f5;color:#425466}
+.creator-calendar-event.scheduled{background:#e8f8f5;color:#176c64}
+.creator-calendar-event.live{background:#e8eef7;color:var(--navy)}
+.creator-calendar-event.vip{box-shadow:inset 3px 0 0 #f59e0b}
+.creator-calendar-more{font-size:9px;color:var(--muted);font-weight:800}
+.creator-calendar-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;color:var(--muted);font-size:10px}
+.creator-calendar-legend span{display:flex;align-items:center;gap:5px}
+.creator-calendar-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.creator-calendar-legend i.draft{background:#cbd5e1}
+.creator-calendar-legend i.scheduled{background:#5fcbbf}
+.creator-calendar-legend i.live{background:#7e9dc7}
+.creator-calendar-loading{grid-column:1/-1;padding:24px}
+.creator-editorial-fields,.creator-published-editorial{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:10px}
+.creator-published-editorial{grid-column:1/-1}
+.creator-editorial-fields input,.creator-published-editorial input{min-width:0}
+.creator-post-item{align-items:start}
+.creator-publishing-item.calendar-focus{animation:calendarFocus 1.15s ease}
+@keyframes calendarFocus{0%,100%{box-shadow:none}35%{box-shadow:0 0 0 4px rgba(43,183,169,.22)}}
+@media (max-width:900px){
+  .creator-calendar-section{overflow-x:auto}
+  .creator-calendar-toolbar{min-width:760px}
+}
+@media (max-width:760px){
+  .creator-calendar-section{padding:13px}
+  .creator-calendar-head{align-items:flex-start}
+  .creator-calendar-toolbar{grid-template-columns:1fr 1fr;min-width:720px}
+  .creator-calendar-toolbar>b{grid-column:1/-1}
+  .creator-calendar-day{min-height:102px;padding:5px}
+  .creator-editorial-fields,.creator-published-editorial{grid-template-columns:1fr}
+}
