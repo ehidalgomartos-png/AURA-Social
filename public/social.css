@@ -3238,6 +3238,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   background:white;
   color:var(--ink);
 }
+.push-settings-section{background:linear-gradient(145deg,rgba(43,183,169,.08),rgba(255,253,249,.96))}
+.push-settings-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+#pushNotificationsState{min-width:0}
+#pushNotificationsState b,#pushNotificationsState small{display:block}
+#pushNotificationsState b{color:var(--navy);font-size:12px}
+#pushNotificationsState small{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.4}
+#pushNotificationsToggle{flex:0 0 auto}
+#pushNotificationsToggle:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:520px){
+  .push-settings-row{align-items:stretch;flex-direction:column}
+  #pushNotificationsToggle{width:100%}
+}
+
 .account-tool-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
