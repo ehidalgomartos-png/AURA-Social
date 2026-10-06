@@ -1876,7 +1876,77 @@ function renderCreatorCommunityActivity(data = {}) {
   }
   if($('#creatorActivityFocus'))$('#creatorActivityFocus').value=creatorCommunityActivityFocus;
 
-  all('[data-creator-activity-status]').forEach(button=>{
+  all('[data-followup-window]').forEach(button=>{
+  button.addEventListener('click',async()=>{
+    creatorFollowUpWindow=button.dataset.followupWindow || 'all';
+    await loadCreatorFollowUps();
+  });
+});
+
+$('#creatorFollowUpSearch')?.addEventListener('input',event=>{
+  creatorFollowUpSearch=String(event.currentTarget.value || '').trim();
+  if(creatorFollowUpSearchTimer)clearTimeout(creatorFollowUpSearchTimer);
+  creatorFollowUpSearchTimer=setTimeout(()=>loadCreatorFollowUps(),280);
+});
+
+$('#creatorFollowUpSelectAll')?.addEventListener('change',event=>{
+  all('[data-followup-select]','#creatorFollowUpList').forEach(box=>{
+    box.checked=event.currentTarget.checked;
+  });
+  updateCreatorFollowUpBulkState();
+});
+
+$('#creatorFollowUpBulkAction')?.addEventListener('change',updateCreatorFollowUpBulkState);
+
+document.addEventListener('change',event=>{
+  if(event.target.matches('[data-followup-select]'))updateCreatorFollowUpBulkState();
+});
+
+$('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
+  const button=$('#creatorFollowUpBulkApply');
+  const action=$('#creatorFollowUpBulkAction')?.value || '';
+  const ids=all('[data-followup-select]:checked','#creatorFollowUpList').map(box=>box.dataset.followupSelect);
+  if(!button || !action || !ids.length)return;
+  if(action==='close_follow_up' && !window.confirm(`¿Cerrar ${ids.length} seguimientos seleccionados?`))return;
+
+  button.disabled=true;
+  try{
+    const { r,d }=await api('/api/posts/creator/community-follow-ups/bulk',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({notificationIds:ids,action})
+    });
+    if(!r.ok)throw new Error(d.error==='invalid_follow_up_bulk_action' ? 'Acción masiva no válida.' : 'No se pudo aplicar la acción.');
+    const labels={
+      priority_high:'Prioridad alta aplicada',
+      priority_normal:'Prioridad normal aplicada',
+      mark_reviewed:'Actividad marcada como revisada',
+      close_follow_up:'Seguimientos cerrados'
+    };
+    toast(labels[action] || 'Seguimientos actualizados');
+    if($('#creatorFollowUpBulkAction'))$('#creatorFollowUpBulkAction').value='';
+    await Promise.all([loadCreatorFollowUps(),loadCreatorCommunityActivity()]);
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar el seguimiento.');
+  }finally{
+    button.disabled=false;
+    updateCreatorFollowUpBulkState();
+  }
+});
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-followup-open-activity]');
+  if(!button)return;
+  event.preventDefault();
+  event.stopPropagation();
+  creatorCommunityActivityStatus='all';
+  creatorCommunityActivityFocus='followup';
+  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value='followup';
+  await loadCreatorCommunityActivity();
+  document.querySelector('.creator-activity-center')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+all('[data-creator-activity-status]').forEach(button=>{
     button.classList.toggle('active',button.dataset.creatorActivityStatus===creatorCommunityActivityStatus);
   });
 
