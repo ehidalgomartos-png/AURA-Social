@@ -3149,7 +3149,20 @@ function showView(name) {
 all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
 all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
-function openModal() { tapFeedback(); $('#modal').classList.remove('hidden'); setTimeout(() => $('#createForm textarea')?.focus(), 120); }
+function openModal() {
+  tapFeedback();
+  const audience=$('#createForm [name="audience"]');
+  if(audience){
+    const vipOption=audience.querySelector('option[value="vip"]');
+    if(vipOption)vipOption.disabled=!me?.creator_verified;
+    if(!me?.creator_verified && audience.value==='vip')audience.value='public';
+    audience.title=me?.creator_verified
+      ? 'Elige quién puede ver esta publicación.'
+      : 'El contenido Solo VIP requiere una cuenta de creador verificada.';
+  }
+  $('#modal').classList.remove('hidden');
+  setTimeout(() => $('#createForm textarea')?.focus(), 120);
+}
 function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = openModal); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');
