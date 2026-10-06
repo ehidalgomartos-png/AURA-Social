@@ -5536,6 +5536,12 @@ function bindMessageActions(root=$('#messageThread')){
   all('[data-open-shared-post]',root).forEach(button=>{
     button.onclick=()=>openPostFocus(button.dataset.openSharedPost);
   });
+  all('[data-open-shared-story]',root).forEach(button=>{
+    button.onclick=()=>openSharedStory(button.dataset.openSharedStory);
+  });
+  all('[data-open-shared-profile]',root).forEach(button=>{
+    button.onclick=()=>openPublicProfile(button.dataset.openSharedProfile);
+  });
 }
 
 function conversationPresence(id) {
@@ -6344,6 +6350,36 @@ function sharedPostMessageHTML(post){
   </article>`;
 }
 
+function sharedStoryMessageHTML(story){
+  if(!story)return '';
+  if(story.unavailable)return '<div class="shared-post-message unavailable"><b>Story no disponible</b><span>Puede haber caducado o ya no ser accesible para ti.</span></div>';
+  if(story.gated)return `<div class="shared-post-message gated"><div class="shared-post-message-head"><span class="shared-post-kind">18+</span><b>Story sensible compartida</b></div><p>${esc(gateText(story.gate_reason))}</p></div>`;
+  return `<article class="shared-post-message shared-story-message">
+    <div class="shared-post-message-head"><span class="shared-post-author-avatar">${avatarHTML(story)}</span><div><b>${esc(story.display_name||story.username||'RedLibertad')}</b><small>@${esc(story.username||'')}</small></div><span class="shared-post-kind">Story</span></div>
+    <div class="shared-post-message-media">${mediaHTML(story)}</div>
+    <button type="button" class="shared-post-open" data-open-shared-story="${story.id}">Ver Story</button>
+  </article>`;
+}
+
+function sharedProfileMessageHTML(profile){
+  if(!profile)return '';
+  if(profile.unavailable)return '<div class="shared-post-message unavailable"><b>Perfil no disponible</b><span>Puede haberse desactivado o ya no ser accesible para ti.</span></div>';
+  return `<article class="shared-post-message shared-profile-message">
+    <div class="shared-post-message-head"><span class="shared-post-author-avatar">${avatarHTML(profile)}</span><div><b>${esc(profile.display_name||profile.username||'RedLibertad')} ${profile.creator_verified?'<span class="verified">✓</span>':''}</b><small>@${esc(profile.username||'')}</small></div><span class="shared-post-kind">Perfil</span></div>
+    ${profile.bio?`<p class="shared-post-message-caption">${esc(profile.bio)}</p>`:''}
+    <button type="button" class="shared-post-open" data-open-shared-profile="${esc(profile.username||'')}">Ver perfil</button>
+  </article>`;
+}
+
+async function openSharedStory(storyId){
+  let story=visibleStories.find(item=>String(item.id)===String(storyId));
+  if(!story){await loadStories();story=visibleStories.find(item=>String(item.id)===String(storyId));}
+  if(!story)return toast('La Story ya no está disponible.');
+  const group=storyGroups.get(String(story.user_id))||[];
+  const index=Math.max(0,group.findIndex(item=>String(item.id)===String(story.id)));
+  openStoryViewer(story.user_id,index);
+}
+
 function messageHTML(m,other,conversation=activeConversationMeta) {
   const mine=String(m.sender_id)===String(me.id);
   const isGroup=conversation?.is_group===true;
@@ -6361,7 +6397,7 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     media=`<div class="message-media">${mediaHTML(m)}</div>`;
   }
 
-  const sharedCard=sharedPostMessageHTML(m.shared_post);
+  const sharedCard=sharedPostMessageHTML(m.shared_post)+sharedStoryMessageHTML(m.shared_story)+sharedProfileMessageHTML(m.shared_profile);
 
   const reply=m.reply_preview
     ? `<div class="message-reply-preview ${m.reply_preview.gated ? 'gated' : ''}"><small>↩ ${esc(m.reply_preview.display_name || m.reply_preview.username || 'Mensaje')}</small><p>${esc(m.reply_preview.text || 'Mensaje')}</p></div>`
@@ -6395,7 +6431,11 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
           ? 'Vídeo'
           : m.shared_post
             ? 'Publicación compartida'
-            : 'Mensaje';
+            : m.shared_story
+              ? 'Story compartida'
+              : m.shared_profile
+                ? 'Perfil compartido'
+                : 'Mensaje';
 
   return `<div class="message-bubble ${mine ? 'mine' : 'theirs'} ${isGroup?'group-message':''}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
     ${senderLabel}
