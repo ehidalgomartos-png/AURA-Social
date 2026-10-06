@@ -6,6 +6,21 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let closeConnectionsV157Ready=null;
+async function ensureCloseConnectionsV157(){
+  if(!closeConnectionsV157Ready){
+    closeConnectionsV157Ready=(async()=>{
+      await db.query("ALTER TABLE connection_circles ADD COLUMN IF NOT EXISTS is_close BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_close ON connection_circles(user_id) WHERE is_close=true");
+    })().catch(error=>{closeConnectionsV157Ready=null;throw error;});
+  }
+  return closeConnectionsV157Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureCloseConnectionsV157();next();}
+  catch(error){console.error('RedLibertad V1.57 close connections bootstrap failed:',error);res.status(500).json({error:'close_connections_bootstrap_failed'});}
+});
+
 let commentsV141Ready=null;
 async function ensureCommentsV141(){
   if(!commentsV141Ready){
