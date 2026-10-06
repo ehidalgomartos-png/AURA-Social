@@ -154,3 +154,25 @@
   .creator-automation-rule{grid-template-columns:1fr}
   .creator-automation-threshold{justify-content:flex-start}
 }
+
+/* V1.35 — Creator Hub 2.0 */
+.creator-hub-command{position:sticky;top:-1px;z-index:8;margin:10px 0 14px;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--paper);box-shadow:0 8px 20px rgba(13,34,56,.08)}
+.creator-hub-command-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.creator-hub-command-head b,.creator-hub-command-head small{display:block}
+.creator-hub-command-head b{font-size:14px;color:var(--navy);margin-top:2px}
+.creator-hub-command-head small{font-size:9px;color:var(--muted);margin-top:2px}
+.creator-hub-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:10px 0}
+.creator-hub-summary .creator-ops-metric{padding:8px 9px}
+.creator-hub-summary .creator-ops-metric b{font-size:15px}
+.creator-hub-nav{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.creator-hub-nav::-webkit-scrollbar{display:none}
+.creator-hub-nav button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:var(--paper);font-size:8px;font-weight:900;color:var(--muted)}
+.creator-hub-nav button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.creator-hub-area-hidden{display:none!important}
+@media(max-width:760px){
+  .creator-hub-command{padding:10px;margin-top:8px}
+  .creator-hub-command-head{align-items:center}
+  .creator-hub-summary{grid-template-columns:1fr 1fr}
+  .creator-hub-summary .creator-ops-metric b{font-size:14px}
+  .creator-hub-nav{margin-left:-2px;margin-right:-2px}
+}

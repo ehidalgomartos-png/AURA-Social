@@ -1,4 +1,4 @@
-# RedLibertad V1.34.0 — Community Automation
+# RedLibertad V1.35.0 — Creator Hub 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -904,4 +904,18 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Ejecución manual o automática cada hora.
 - source_key e inserciones idempotentes para evitar duplicados.
 - Nunca publica ni envía comunicaciones automáticamente.
+- Sin monetización activa.
+
+
+## V1.35.0 — Creator Hub 2.0
+
+- Centro de creador reorganizado en seis áreas: Resumen, Publicar, Comunidad, Relaciones, Comunicación y Analítica.
+- Panel de mando con seguidores, tareas, pendientes de comunidad, seguimientos, publicaciones y comunicaciones programadas.
+- Navegación por áreas que evita una pantalla interminable.
+- Refresco de Creator Ops al abrir el centro y botón de actualización manual.
+- Publicar agrupa calendario y borradores/programación.
+- Comunidad agrupa encuestas, preguntas, actividad y follow-up.
+- Relaciones agrupa tareas, CRM, segmentos, audiencia, VIP y automatizaciones.
+- Comunicación agrupa Communication Center y aviso rápido compatible.
+- Analítica agrupa engagement existente y analítica avanzada.
 - Sin monetización activa.

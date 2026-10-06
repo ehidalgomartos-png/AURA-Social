@@ -544,6 +544,66 @@ q('#creatorAutomationRun')?.addEventListener('click',async event=>{
   await Promise.all([loadAutomations(),loadTasks(),loadCrm()]);
 });
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments(),loadCommunications(),loadAdvancedAnalytics(),loadAutomations()]),150));
-window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,loadAdvancedAnalytics,loadAutomations,opsApi,notify,esc,metric};
+let creatorHubTab='overview';
+function setCreatorHubTab(tab){
+  creatorHubTab=tab||'overview';
+  qa('[data-creator-hub-tab]').forEach(button=>button.classList.toggle('active',button.dataset.creatorHubTab===creatorHubTab));
+  qa('[data-creator-hub-area]').forEach(section=>{
+    section.classList.toggle('creator-hub-area-hidden',section.dataset.creatorHubArea!==creatorHubTab);
+  });
+  const card=q('#creatorModal .creator-modal-card');
+  if(card)card.scrollTo({top:0,behavior:'smooth'});
+}
+async function loadCreatorHubSummary(){
+  const root=q('#creatorHubSummary');
+  if(!root)return;
+  const {response,data}=await opsApi('/api/creator/hub-summary');
+  if(response.status===403){q('#creatorHubCommand')?.classList.add('hidden');return;}
+  if(!response.ok){root.innerHTML='<div class="creator-ops-empty">No se pudo cargar el resumen.</div>';return;}
+  const s=data.summary||{};
+  root.innerHTML=[
+    metric('Seguidores',s.followers||0),
+    metric('Tareas abiertas',s.open_tasks||0),
+    metric('Tareas vencidas',s.overdue_tasks||0),
+    metric('Comunidad pendiente',s.pending_community||0),
+    metric('Seguimientos',s.active_followups||0),
+    metric('Posts programados',s.scheduled_posts||0),
+    metric('Comunicaciones programadas',s.scheduled_communications||0),
+    metric('Borradores de comunicación',s.communication_drafts||0)
+  ].join('');
+}
+async function refreshCreatorHubOps(){
+  await Promise.all([
+    loadCreatorHubSummary(),
+    loadTasks(),
+    loadCrm(),
+    loadSegments(),
+    loadCommunications(),
+    loadAdvancedAnalytics(),
+    loadAutomations()
+  ]);
+}
+qa('[data-creator-hub-tab]').forEach(button=>button.addEventListener('click',()=>{
+  setCreatorHubTab(button.dataset.creatorHubTab);
+}));
+q('#creatorHubRefresh')?.addEventListener('click',async event=>{
+  const button=event.currentTarget;
+  button.disabled=true;
+  await refreshCreatorHubOps();
+  button.disabled=false;
+  notify('Creator Hub actualizado');
+});
+const creatorModal=q('#creatorModal');
+if(creatorModal){
+  const observer=new MutationObserver(()=>{
+    if(!creatorModal.classList.contains('hidden')){
+      setCreatorHubTab(creatorHubTab);
+      refreshCreatorHubOps().catch(()=>{});
+    }
+  });
+  observer.observe(creatorModal,{attributes:true,attributeFilter:['class']});
+}
+
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{setCreatorHubTab('overview');loadCreatorHubSummary();},150));
+window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,loadAdvancedAnalytics,loadAutomations,loadCreatorHubSummary,refreshCreatorHubOps,setCreatorHubTab,opsApi,notify,esc,metric};
 })();

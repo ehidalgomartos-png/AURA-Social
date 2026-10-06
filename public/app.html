@@ -177,7 +177,23 @@
     <h2>Tu actividad como creador</h2>
     <p class="muted">Consulta el rendimiento de tu contenido y destaca hasta 3 publicaciones en la parte superior de tu perfil.</p>
 
-    <section class="creator-section creator-profile-section">
+    <section class="creator-hub-command" id="creatorHubCommand">
+      <div class="creator-hub-command-head">
+        <div><span class="eyebrow">CREATOR HUB 2.0</span><b>Panel de mando</b><small>Todo tu trabajo de creador organizado por áreas.</small></div>
+        <button id="creatorHubRefresh" type="button" class="tiny-action">Actualizar</button>
+      </div>
+      <div id="creatorHubSummary" class="creator-hub-summary"></div>
+      <nav class="creator-hub-nav" aria-label="Áreas del Centro de creador">
+        <button type="button" class="active" data-creator-hub-tab="overview">Resumen</button>
+        <button type="button" data-creator-hub-tab="publish">Publicar</button>
+        <button type="button" data-creator-hub-tab="community">Comunidad</button>
+        <button type="button" data-creator-hub-tab="relationships">Relaciones</button>
+        <button type="button" data-creator-hub-tab="communication">Comunicación</button>
+        <button type="button" data-creator-hub-tab="analytics">Analítica</button>
+      </nav>
+    </section>
+
+    <section class="creator-section creator-profile-section" data-creator-hub-area="overview">
       <div class="creator-section-head">
         <div>
           <b>Tu perfil de creador</b>
@@ -194,11 +210,11 @@
       </form>
     </section>
 
-    <div id="creatorMetrics" class="creator-metrics">
+    <div id="creatorMetrics" class="creator-metrics" data-creator-hub-area="overview">
       <div class="mini-loading">Cargando métricas...</div>
     </div>
 
-    <section class="creator-section creator-ops-section creator-tasks-section" id="creatorTasksSection">
+    <section class="creator-section creator-ops-section creator-tasks-section creator-hub-area-hidden" id="creatorTasksSection" data-creator-hub-area="relationships">
       <div class="creator-section-head">
         <div>
           <span class="eyebrow">CREATOR OPS</span>
@@ -230,7 +246,7 @@
       <div id="creatorTaskList" class="creator-ops-list"></div>
     </section>
 
-    <section class="creator-section creator-ops-section creator-crm-section" id="creatorCrmSection">
+    <section class="creator-section creator-ops-section creator-crm-section creator-hub-area-hidden" id="creatorCrmSection" data-creator-hub-area="relationships">
       <div class="creator-section-head">
         <div>
           <span class="eyebrow">CREATOR CRM</span>
@@ -248,7 +264,7 @@
       <div id="creatorCrmList" class="creator-ops-list"></div>
     </section>
 
-    <section class="creator-section creator-ops-section creator-segments-section" id="creatorSegmentsSection">
+    <section class="creator-section creator-ops-section creator-segments-section creator-hub-area-hidden" id="creatorSegmentsSection" data-creator-hub-area="relationships">
       <div class="creator-section-head">
         <div>
           <span class="eyebrow">AUDIENCE SEGMENTS</span>
@@ -266,7 +282,7 @@
       <div id="creatorSegmentMembers" class="creator-segment-members hidden"></div>
     </section>
 
-    <section class="creator-section creator-ops-section creator-communications-section" id="creatorCommunicationsSection">
+    <section class="creator-section creator-ops-section creator-communications-section creator-hub-area-hidden" id="creatorCommunicationsSection" data-creator-hub-area="communication">
       <div class="creator-section-head">
         <div>
           <span class="eyebrow">COMMUNICATION CENTER</span>
@@ -296,7 +312,7 @@
       <div id="creatorCommunicationHistory" class="creator-ops-list"></div>
     </section>
 
-    <section class="creator-section creator-broadcast-section">
+    <section class="creator-section creator-broadcast-section creator-hub-area-hidden" data-creator-hub-area="communication">
       <div class="creator-section-head">
         <div>
           <b>Aviso a tus seguidores</b>
@@ -314,7 +330,7 @@
       <div id="creatorBroadcastHistory" class="creator-broadcast-history"></div>
     </section>
 
-    <section class="creator-section creator-audience-section">
+    <section class="creator-section creator-audience-section creator-hub-area-hidden" data-creator-hub-area="relationships">
       <div class="creator-section-head">
         <div>
           <b>Tu audiencia</b>
@@ -324,7 +340,7 @@
       <div id="creatorAudience" class="creator-audience-list"></div>
     </section>
 
-    <section class="creator-section creator-engagement-section">
+    <section class="creator-section creator-engagement-section creator-hub-area-hidden" data-creator-hub-area="analytics">
       <div class="creator-section-head">
         <div>
           <b>Fans y engagement · 30 días</b>
@@ -344,7 +360,7 @@
       </div>
     </section>
 
-    <section class="creator-section creator-ops-section creator-automation-section" id="creatorAutomationSection">
+    <section class="creator-section creator-ops-section creator-automation-section creator-hub-area-hidden" id="creatorAutomationSection" data-creator-hub-area="relationships">
       <div class="creator-section-head">
         <div>
           <span class="eyebrow">COMMUNITY AUTOMATION</span>
@@ -356,7 +372,7 @@
       <div id="creatorAutomationRules" class="creator-automation-list"></div>
     </section>
 
-    <section class="creator-section creator-ops-section creator-advanced-analytics" id="creatorAdvancedAnalyticsSection">
+    <section class="creator-section creator-ops-section creator-advanced-analytics creator-hub-area-hidden" id="creatorAdvancedAnalyticsSection" data-creator-hub-area="analytics">
       <div class="creator-section-head">
         <div>
           <span class="eyebrow">ADVANCED ANALYTICS</span>
@@ -383,7 +399,7 @@
       </div>
     </section>
 
-    <section class="creator-section creator-vip-section">
+    <section class="creator-section creator-vip-section creator-hub-area-hidden" data-creator-hub-area="relationships">
       <div class="creator-section-head">
         <div>
           <b>Círculo VIP</b>
@@ -403,7 +419,7 @@
       <div id="creatorVipBroadcastHistory" class="creator-broadcast-history"></div>
     </section>
 
-    <section class="creator-section creator-community-section">
+    <section class="creator-section creator-community-section creator-hub-area-hidden" data-creator-hub-area="community">
       <div class="creator-section-head">
         <div>
           <b>Comunidad · gestión</b>
@@ -550,7 +566,7 @@
       </div>
     </section>
 
-    <section class="creator-section creator-calendar-section">
+    <section class="creator-section creator-calendar-section creator-hub-area-hidden" data-creator-hub-area="publish">
       <div class="creator-section-head creator-calendar-head">
         <div>
           <b>Calendario editorial</b>
@@ -584,7 +600,7 @@
       </div>
     </section>
 
-    <section class="creator-section creator-publishing-section">
+    <section class="creator-section creator-publishing-section creator-hub-area-hidden" data-creator-hub-area="publish">
       <div class="creator-section-head">
         <div>
           <b>Borradores y programación</b>
