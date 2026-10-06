@@ -387,7 +387,7 @@ function postHTML(p, options = {}) {
         'repost-profile-link'
       )}</div>`
     : '';
-  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''} ${options.immersive ? 'immersive-reel-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
+  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : privateAudience ? 'private-audience-post' : ''} ${options.immersive ? 'immersive-reel-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
     ${repostBanner}
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
@@ -2352,7 +2352,7 @@ function creatorTopContentHTML(posts = []) {
     <span class="creator-top-content-rank">${index + 1}</span>
     <span class="creator-top-content-media">${tileContentHTML(post)}</span>
     <span class="creator-top-content-copy">
-      <b>${post.audience === 'vip' ? '★ VIP · ' : ''}${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
+      <b>${post.audience === 'vip' ? '★ VIP · ' : post.audience === 'connections' ? '◎ Conexiones · ' : post.audience === 'circles' ? '◉ Círculos · ' : ''}${post.post_kind === 'reel' ? 'Reel' : 'Publicación'} · ${Number(post.engagement_count_30d || 0)} interacciones</b>
       <small>♥ ${Number(post.like_count_30d || 0)} · ◯ ${Number(post.comment_count_30d || 0)} · ⟳ ${Number(post.repost_count_30d || 0)} · ★ ${Number(post.save_count_30d || 0)} guardados</small>
     </span>
   </button>`).join('');
@@ -2413,7 +2413,7 @@ function creatorPostHTML(post) {
     <button type="button" class="creator-post-preview" data-open-post="${post.id}">
       <span class="creator-post-media">${tileContentHTML(post)}</span>
       <span class="creator-post-copy">
-        <b>${post.audience === 'vip' ? '★ Solo VIP · ' : ''}${post.featured ? 'Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
+        <b>${post.audience === 'vip' ? '★ Solo VIP · ' : post.audience === 'connections' ? '◎ Solo conexiones · ' : post.audience === 'circles' ? '◉ Círculos privados · ' : ''}${post.featured ? 'Destacada' : (post.post_kind === 'reel' ? 'Reel' : 'Publicación')}</b>
         <small>${compactTimeAgo(post.created_at)} · ${interactions} interacciones · ${Number(post.save_count || 0)} guardados</small>
       </span>
     </button>
