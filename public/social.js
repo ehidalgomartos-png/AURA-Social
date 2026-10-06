@@ -2023,6 +2023,7 @@ async function openCreatorModal() {
   if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
   if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='';
   if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
+  if($('#creatorQuestionSummaries'))$('#creatorQuestionSummaries').innerHTML='';
   if($('#creatorCalendarGrid'))$('#creatorCalendarGrid').innerHTML='<div class="mini-loading creator-calendar-loading">Cargando calendario...</div>';
   await loadCreatorCenter();
 }
@@ -2046,6 +2047,71 @@ $('#creatorCalendarToday')?.addEventListener('click',async()=>{
 });
 $('#creatorCalendarAudience')?.addEventListener('change',renderCreatorCalendar);
 $('#creatorCalendarLabel')?.addEventListener('change',renderCreatorCalendar);
+
+$('#creatorCommunityStatus')?.addEventListener('change',event=>{
+  creatorCommunityStatus=event.currentTarget.value || 'active';
+  if(creatorCommunityData)renderCreatorCommunity(creatorCommunityData);
+});
+$('#creatorCommunityStarredOnly')?.addEventListener('change',event=>{
+  creatorCommunityStarredOnly=event.currentTarget.checked===true;
+  if(creatorCommunityData)renderCreatorCommunity(creatorCommunityData);
+});
+
+document.addEventListener('click',async event=>{
+  const pollButton=event.target.closest('[data-community-poll-action]');
+  const questionButton=event.target.closest('[data-community-question-action]');
+  const starButton=event.target.closest('[data-community-star-response]');
+  const button=pollButton || questionButton || starButton;
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if(button.disabled)return;
+  button.disabled=true;
+
+  try{
+    if(pollButton){
+      const action=pollButton.dataset.communityPollAction;
+      const id=pollButton.dataset.communityPollId;
+      const { r,d }=await api(`/api/posts/creator/community/polls/${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action})
+      });
+      if(!r.ok)throw new Error(d.error==='poll_not_found' ? 'Encuesta no encontrada.' : 'No se pudo actualizar la encuesta.');
+      toast(action==='archive' ? 'Encuesta archivada' : action==='restore' ? 'Encuesta restaurada como cerrada' : action==='close' ? 'Encuesta cerrada' : 'Encuesta reabierta');
+    }else if(questionButton){
+      const action=questionButton.dataset.communityQuestionAction;
+      const id=questionButton.dataset.communityQuestionId;
+      const { r,d }=await api(`/api/posts/creator/community/questions/${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action})
+      });
+      if(!r.ok)throw new Error(d.error==='question_not_found' ? 'Pregunta no encontrada.' : 'No se pudo actualizar la pregunta.');
+      toast(action==='archive' ? 'Pregunta archivada' : action==='restore' ? 'Pregunta restaurada como cerrada' : action==='close' ? 'Pregunta cerrada' : 'Pregunta reabierta');
+    }else if(starButton){
+      const starred=starButton.dataset.starred==='1';
+      const { r,d }=await api(`/api/posts/creator/community/responses/${encodeURIComponent(starButton.dataset.communityStarResponse)}/star`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({starred:!starred})
+      });
+      if(!r.ok)throw new Error(d.error==='response_not_found' ? 'Respuesta no encontrada.' : 'No se pudo actualizar la respuesta.');
+      toast(starred ? 'Respuesta quitada de destacadas' : 'Respuesta destacada');
+    }
+
+    await Promise.all([
+      loadCreatorCenter(),
+      loadFeed(currentMode)
+    ]);
+    if(!$('#exploreView')?.classList.contains('hidden'))await loadDiscoveryContent(activeContentMode);
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar la comunidad.');
+  }finally{
+    button.disabled=false;
+  }
+});
 
 $('#creatorBroadcastForm textarea[name="body"]')?.addEventListener('input',event=>{
   const count=$('#creatorBroadcastCount');
