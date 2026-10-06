@@ -574,3 +574,19 @@ CREATE TABLE IF NOT EXISTS creator_communications (
 );
 CREATE INDEX IF NOT EXISTS idx_creator_communications_creator_status
   ON creator_communications(creator_id,status,scheduled_for,updated_at DESC);
+
+
+-- RedLibertad V1.34: automatizaciones privadas del creador
+CREATE TABLE IF NOT EXISTS creator_automation_rules (
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rule_key TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  threshold INTEGER NOT NULL DEFAULT 3,
+  last_run_at TIMESTAMPTZ,
+  last_result JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(creator_id,rule_key),
+  CONSTRAINT creator_automation_rule_key_check CHECK(rule_key IN ('overdue_task_priority','repeat_participant_task','overdue_followup_task','high_priority_contact_task'))
+);
+CREATE INDEX IF NOT EXISTS idx_creator_automation_enabled
+  ON creator_automation_rules(enabled,creator_id,updated_at DESC);
