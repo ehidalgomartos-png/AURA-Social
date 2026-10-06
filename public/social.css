@@ -4395,6 +4395,9 @@ select:focus-visible{
 .group-member-row small{display:block}
 .group-member-row b{color:var(--navy);font-size:11px}
 .group-member-row small{margin-top:2px;color:var(--muted);font-size:9px}
+.group-member-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.group-member-actions:empty{display:none}
+
 .group-manage-actions{
   display:flex;
   gap:8px;
