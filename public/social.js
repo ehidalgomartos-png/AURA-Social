@@ -185,18 +185,19 @@ async function apiFetchOnce(url,opts,timeoutMs){
       opts.signal.addEventListener('abort',externalAbort,{once:true});
     }
   }
-  const timer=setTimeout(()=>controller.abort(new DOMException('Request timed out','AbortError')),timeoutMs);
+  const timer=timeoutMs>0 ? setTimeout(()=>controller.abort(new DOMException('Request timed out','AbortError')),timeoutMs) : null;
   try{
     return await fetch(url,{...opts,signal:controller.signal});
   }finally{
-    clearTimeout(timer);
+    if(timer)clearTimeout(timer);
     if(externalAbort)opts.signal.removeEventListener('abort',externalAbort);
   }
 }
 
 async function performApi(url,opts={}){
   const method=String(opts.method||'GET').toUpperCase();
-  const timeoutMs=Math.max(3000,Number(opts.timeoutMs||API_TIMEOUT_MS));
+  const requestedTimeout=opts.timeoutMs!=null ? Number(opts.timeoutMs) : (method==='GET' ? API_TIMEOUT_MS : 0);
+  const timeoutMs=requestedTimeout>0 ? Math.max(3000,requestedTimeout) : 0;
   const requestOpts={...opts};
   delete requestOpts.timeoutMs;
   delete requestOpts.dedupe;
@@ -207,7 +208,7 @@ async function performApi(url,opts={}){
     try{
       r=await apiFetchOnce(url,requestOpts,timeoutMs);
     }catch(error){
-      if(attempt+1<attempts && navigator.onLine!==false){
+      if(attempt+1<attempts && navigator.onLine!==false && !opts.signal?.aborted){
         await apiSleep(250);
         continue;
       }
@@ -235,7 +236,7 @@ async function performApi(url,opts={}){
 
 async function api(url,opts={}){
   const method=String(opts.method||'GET').toUpperCase();
-  const dedupe=method==='GET' && opts.dedupe!==false && !opts.body && !opts.signal;
+  const dedupe=method==='GET' && opts.dedupe!==false && !opts.body && !opts.signal && !opts.headers;
   if(!dedupe)return performApi(url,opts);
 
   const key=method+' '+url;
