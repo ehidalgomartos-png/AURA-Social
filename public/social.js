@@ -4610,12 +4610,39 @@ $('#profileForm').addEventListener('submit', async e => {
 async function loadConsents() {
   const { d } = await api('/api/posts/consents/pending');
   const root = $('#consentRequests');
-  if (!d.requests.length) { root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Cuando alguien indique que apareces en una publicación, podrás revisarla aquí.</p></div>'; return; }
-  root.innerHTML = d.requests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
+  const consentRequests=Array.isArray(d.requests)?d.requests:[];
+  const collaborations=Array.isArray(d.collaborations)?d.collaborations:[];
+  if (!consentRequests.length && !collaborations.length) {
+    root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Los consentimientos de imagen y las invitaciones para colaborar aparecerán aquí.</p></div>';
+    return;
+  }
+
+  const consentCards=consentRequests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
+
+  const collaborationCards=collaborations.map(x=>`<article class="consent-card collaboration-request-card">
+    <div class="consent-head">${profileLink(x.username,`<span class="avatar">${x.avatar_url?`<img src="${esc(x.avatar_url)}">`:initials(x.display_name)}</span>`,'post-avatar-link')}<div>${profileLink(x.username,`<b>${esc(x.display_name)}</b>`,'post-name-link')}<small>${profileLink(x.username,`@${esc(x.username)}`,'post-username-link')} te invita a colaborar</small></div></div>
+    <div class="collaboration-request-label">🤝 PUBLICACIÓN COLABORATIVA · ${x.post_kind==='reel'?'REEL':'POST'}</div>
+    <div class="consent-media">${x.gated?`<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>`:mediaHTML(x)}</div>
+    ${x.caption?`<p>${esc(x.caption)}</p>`:''}
+    <div class="consent-actions">${x.collaboration_status==='pending'
+      ? `<button class="primary" data-collaboration="approved" data-post="${x.id}">Aceptar colaboración</button><button class="danger-outline" data-collaboration="rejected" data-post="${x.id}">Rechazar</button>`
+      : `<span class="approved-label">✓ Colaboración activa</span><button class="danger-outline" data-collaboration="revoked" data-post="${x.id}">Dejar colaboración</button>`}</div>
+  </article>`).join('');
+
+  root.innerHTML=collaborationCards+consentCards;
   all('[data-consent]', root).forEach(b => b.onclick = async () => {
     if (b.dataset.consent === 'approved' && !d.ageVerified && b.closest('.consent-card').querySelector('.gate')) return toast('Primero necesitas verificar tu mayoría de edad.');
     const { r } = await api(`/api/posts/${b.dataset.post}/consent`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: b.dataset.consent }) });
-    if (r.ok) { toast(b.dataset.consent === 'revoked' ? 'Consentimiento retirado' : 'Decisión guardada'); await loadConsents(); }
+    if (r.ok) { toast(b.dataset.consent === 'revoked' ? 'Consentimiento retirado' : 'Decisión guardada'); await loadConsents(); await loadProfile(); }
+  });
+  all('[data-collaboration]',root).forEach(b=>b.onclick=async()=>{
+    if(b.dataset.collaboration==='approved'&&!d.ageVerified&&b.closest('.consent-card').querySelector('.gate'))return toast('Primero necesitas verificar tu mayoría de edad.');
+    const {r,d:response}=await api(`/api/posts/${b.dataset.post}/collaboration`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:b.dataset.collaboration})});
+    if(!r.ok){
+      return toast(response.error==='verified_creator_required_for_nudity_collaboration'?'La colaboración con desnudez requiere cuenta de creador adulto verificada.':'No se pudo guardar la colaboración.');
+    }
+    toast(b.dataset.collaboration==='approved'?'Colaboración aceptada':b.dataset.collaboration==='revoked'?'Has dejado la colaboración':'Invitación rechazada');
+    await loadConsents();await loadProfile();await loadFeed(currentMode);
   });
 }
 
