@@ -344,6 +344,56 @@ CREATE INDEX IF NOT EXISTS idx_posts_creator_editorial_date
   ON posts(user_id,editorial_date);
 
 
+-- RedLibertad V1.22: herramientas de comunidad del creador
+CREATE TABLE IF NOT EXISTS creator_polls (
+  id BIGSERIAL PRIMARY KEY,
+  post_id BIGINT NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+  question VARCHAR(300) NOT NULL,
+  allow_change BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS creator_poll_options (
+  id BIGSERIAL PRIMARY KEY,
+  poll_id BIGINT NOT NULL REFERENCES creator_polls(id) ON DELETE CASCADE,
+  position SMALLINT NOT NULL,
+  label VARCHAR(120) NOT NULL,
+  UNIQUE(poll_id,position)
+);
+CREATE INDEX IF NOT EXISTS idx_creator_poll_options_poll
+  ON creator_poll_options(poll_id,position);
+
+CREATE TABLE IF NOT EXISTS creator_poll_votes (
+  poll_id BIGINT NOT NULL REFERENCES creator_polls(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  option_id BIGINT NOT NULL REFERENCES creator_poll_options(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(poll_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_option
+  ON creator_poll_votes(option_id);
+
+CREATE TABLE IF NOT EXISTS creator_questions (
+  id BIGSERIAL PRIMARY KEY,
+  post_id BIGINT NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+  prompt VARCHAR(300) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS creator_question_responses (
+  id BIGSERIAL PRIMARY KEY,
+  question_id BIGINT NOT NULL REFERENCES creator_questions(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(1000) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(question_id,user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_creator_question_responses_question_created
+  ON creator_question_responses(question_id,created_at DESC);
+
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
