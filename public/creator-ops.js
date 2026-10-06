@@ -444,6 +444,63 @@ q('#creatorCommunicationHistory')?.addEventListener('click',async event=>{
   }
 });
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments(),loadCommunications()]),150));
-window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,opsApi,notify,esc,metric};
+function analyticsDelta(current,previous){
+  const c=Number(current||0),p=Number(previous||0);
+  if(!p)return c>0?'+ nuevo':'0%';
+  const pct=Math.round(((c-p)/p)*100);
+  return (pct>0?'+':'')+pct+'%';
+}
+function analyticsComparisonRow(label,current,previous){
+  const delta=analyticsDelta(current,previous);
+  const positive=String(delta).startsWith('+');
+  return `<div class="creator-analytics-row"><span>${esc(label)}</span><b>${Number(current||0)}</b><small>antes ${Number(previous||0)}</small><em class="${positive?'positive':''}">${esc(delta)}</em></div>`;
+}
+async function loadAdvancedAnalytics(){
+  const metrics=q('#creatorAdvancedMetrics');
+  if(!metrics)return;
+  const days=Number(q('#creatorAnalyticsPeriod')?.value||30);
+  metrics.innerHTML='<div class="creator-ops-empty">Calculando analítica…</div>';
+  const {response,data}=await opsApi('/api/creator/analytics/advanced?days='+days);
+  if(response.status===403){q('#creatorAdvancedAnalyticsSection')?.classList.add('hidden');return;}
+  if(!response.ok){metrics.innerHTML='<div class="creator-ops-empty">No se pudo calcular la analítica.</div>';return;}
+  const c=data.current||{},p=data.previous||{};
+  const conversion=data.totalFollowers?Math.round((Number(c.followerParticipants||0)/Number(data.totalFollowers))*100):0;
+  const recurrence=Number(c.communityParticipants||0)?Math.round((Number(c.recurringParticipants||0)/Number(c.communityParticipants))*100):0;
+  metrics.innerHTML=[
+    metric('Seguidores totales',data.totalFollowers||0),
+    metric('Nuevos seguidores',c.followers||0),
+    metric('Interacciones',c.interactions||0),
+    metric('Personas únicas',c.uniqueInteractors||0),
+    metric('Conversión seguidor → participa',conversion+'%'),
+    metric('Participación recurrente',recurrence+'%'),
+    metric('Tareas completadas',c.tasksCompleted||0),
+    metric('Destinatarios comunicación',c.communicationRecipients||0)
+  ].join('');
+  const comparison=q('#creatorAnalyticsComparison');
+  if(comparison)comparison.innerHTML=[
+    analyticsComparisonRow('Nuevos seguidores',c.followers,p.followers),
+    analyticsComparisonRow('Publicaciones',c.posts,p.posts),
+    analyticsComparisonRow('Interacciones',c.interactions,p.interactions),
+    analyticsComparisonRow('Participación comunidad',c.communityParticipations,p.communityParticipations),
+    analyticsComparisonRow('Participantes recurrentes',c.recurringParticipants,p.recurringParticipants),
+    analyticsComparisonRow('Tareas completadas',c.tasksCompleted,p.tasksCompleted)
+  ].join('');
+  const trend=q('#creatorAdvancedTrend');
+  const points=data.trend||[];
+  if(trend){
+    const max=Math.max(1,...points.map(x=>Number(x.activity||0)));
+    trend.innerHTML=points.map(point=>{
+      const value=Number(point.activity||0);
+      const height=Math.max(4,Math.round((value/max)*100));
+      const label=new Date(point.day).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
+      return `<div class="creator-advanced-bar" title="${esc(label)} · ${value}"><i style="height:${height}%"></i><small>${esc(label)}</small></div>`;
+    }).join('');
+  }
+  const top=q('#creatorAdvancedTopContent');
+  if(top)top.innerHTML=(data.topContent||[]).length?(data.topContent||[]).map(item=>`<button type="button" class="creator-analytics-content" data-open-post="${item.id}"><b>${item.post_kind==='reel'?'Reel':'Publicación'} · ${Number(item.engagement||0)} interacciones</b><small>${esc(String(item.caption||'Sin texto').slice(0,100))}</small></button>`).join(''):'<div class="creator-ops-empty">Todavía no hay contenido suficiente.</div>';
+}
+q('#creatorAnalyticsPeriod')?.addEventListener('change',loadAdvancedAnalytics);
+
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm(),loadSegments(),loadCommunications(),loadAdvancedAnalytics()]),150));
+window.RedLibertadCreatorOps={loadTasks,loadCrm,loadSegments,loadCommunications,loadAdvancedAnalytics,opsApi,notify,esc,metric};
 })();
