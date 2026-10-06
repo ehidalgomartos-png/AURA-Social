@@ -2947,6 +2947,22 @@ function openPostManage(postId, caption = '') {
   setTimeout(() => $('#postEditCaption')?.focus(), 100);
 }
 
+async function refreshPostArticle(postId) {
+  const { r,d }=await api(`/api/posts/detail/${encodeURIComponent(postId)}`);
+  if(!r.ok || !d.post)return false;
+  const selector=`article.post[data-id="${CSS.escape(String(postId))}"]`;
+  const matches=[...document.querySelectorAll(selector)];
+  for(const current of matches){
+    const holder=document.createElement('div');
+    holder.innerHTML=postHTML(d.post);
+    const next=holder.firstElementChild;
+    if(!next)continue;
+    current.replaceWith(next);
+    bindPostActions(next);
+  }
+  return true;
+}
+
 function bindPostActions(root) {
   all('[data-like]', root).forEach(b => {
     b.onclick = async () => {
@@ -2974,6 +2990,87 @@ function bindPostActions(root) {
 
   all('[data-comments]', root).forEach(b => {
     b.onclick = () => openComments(b.dataset.comments);
+  });
+
+
+  all('[data-poll-vote]',root).forEach(button=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        const { r,d }=await api(`/api/posts/${encodeURIComponent(button.dataset.pollVote)}/poll-vote`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({optionId:button.dataset.pollOption})
+        });
+        if(!r.ok)throw new Error(d.error==='poll_vote_locked' ? 'Esta encuesta no permite cambiar el voto.' : 'No se pudo registrar el voto.');
+        await refreshPostArticle(button.dataset.pollVote);
+        tapFeedback();
+      }catch(error){
+        toast(error.message || 'No se pudo registrar el voto.');
+      }finally{
+        button.disabled=false;
+      }
+    };
+  });
+
+  all('[data-poll-remove]',root).forEach(button=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        const { r }=await api(`/api/posts/${encodeURIComponent(button.dataset.pollRemove)}/poll-vote`,{method:'DELETE'});
+        if(!r.ok)throw new Error('No se pudo retirar el voto.');
+        await refreshPostArticle(button.dataset.pollRemove);
+        toast('Voto retirado');
+      }catch(error){
+        toast(error.message || 'No se pudo retirar el voto.');
+      }finally{
+        button.disabled=false;
+      }
+    };
+  });
+
+  all('[data-question-response]',root).forEach(form=>{
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      const textarea=form.querySelector('textarea');
+      const body=String(textarea?.value || '').trim();
+      if(!body)return toast('Escribe una respuesta.');
+      const submit=form.querySelector('button[type="submit"]');
+      if(submit)submit.disabled=true;
+      try{
+        const { r,d }=await api(`/api/posts/${encodeURIComponent(form.dataset.questionResponse)}/question-response`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({body})
+        });
+        if(!r.ok)throw new Error(d.error==='invalid_question_response' ? 'La respuesta debe tener entre 1 y 1000 caracteres.' : 'No se pudo guardar la respuesta.');
+        await refreshPostArticle(form.dataset.questionResponse);
+        toast('Respuesta guardada para el creador');
+      }catch(error){
+        toast(error.message || 'No se pudo guardar la respuesta.');
+      }finally{
+        if(submit)submit.disabled=false;
+      }
+    };
+  });
+
+  all('[data-question-remove]',root).forEach(button=>{
+    button.onclick=async()=>{
+      if(button.disabled)return;
+      button.disabled=true;
+      try{
+        const { r }=await api(`/api/posts/${encodeURIComponent(button.dataset.questionRemove)}/question-response`,{method:'DELETE'});
+        if(!r.ok)throw new Error('No se pudo retirar la respuesta.');
+        await refreshPostArticle(button.dataset.questionRemove);
+        toast('Respuesta retirada');
+      }catch(error){
+        toast(error.message || 'No se pudo retirar la respuesta.');
+      }finally{
+        button.disabled=false;
+      }
+    };
   });
 
   all('[data-repost]', root).forEach(b => {
