@@ -91,6 +91,13 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
+-- RedLibertad V1.40: estado privado de retorno
+CREATE TABLE IF NOT EXISTS user_experience_state (
+  user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  last_home_seen_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- RedLibertad V1.39: vistas de Stories y Reels
 CREATE TABLE IF NOT EXISTS story_views (
   story_id BIGINT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
