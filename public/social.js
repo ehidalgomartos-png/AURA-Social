@@ -21,6 +21,7 @@ let activeExploreInterest = '';
 let connectionCircles=[];
 let activeConnectionCircleId=null;
 let activeCircleConnection=null;
+let activeConnectionContext=null;
 let connectionsCenterItems=[];
 let connectionsCenterFilter='all';
 let connectionsCenterSearch='';
@@ -525,10 +526,91 @@ function connectionCenterCardHTML(user){
       ${connectionCircleNamesHTML(user)}
     </div>
     <div class="connection-center-actions">
+      <button type="button" class="secondary" data-connection-context="${user.id}">Contexto</button>
       <button type="button" class="secondary" data-connection-organize="${user.id}" data-connection-display="${esc(user.display_name || user.username)}" data-connection-username="${esc(user.username)}">Círculos</button>
       <button type="button" class="primary" data-connection-message="${esc(user.username)}">Mensaje</button>
     </div>
   </article>`;
+}
+
+
+function closeConnectionContextModal(){
+  $('#connectionContextModal')?.classList.add('hidden');
+  activeConnectionContext=null;
+  const root=$('#connectionContextContent');
+  if(root)root.innerHTML='';
+}
+
+function connectionContextPersonHTML(person){
+  return profileLink(
+    person.username,
+    `<span class="connection-context-person-avatar">${avatarHTML(person)}</span><span><b>${esc(person.display_name)} ${person.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>@${esc(person.username)}</small></span>`,
+    'connection-context-person'
+  );
+}
+
+function renderConnectionContext(data){
+  const root=$('#connectionContextContent');
+  if(!root)return;
+  const connection=data.connection || {};
+  const interests=Array.isArray(data.shared_interests)?data.shared_interests:[];
+  const mutuals=Array.isArray(data.mutual_connections)?data.mutual_connections:[];
+  const posts=Array.isArray(data.recent_public_posts)?data.recent_public_posts:[];
+  const starters=Array.isArray(data.starters)?data.starters:[];
+
+  const sections=[];
+  if(interests.length || data.same_location){
+    sections.push(`<section class="connection-context-section">
+      <div class="connection-context-section-head"><b>Lo que tenéis en común</b><small>Solo información visible para ti</small></div>
+      ${interests.length ? `<div class="connection-context-pills">${interests.map(interest=>`<span>${esc(interest)}</span>`).join('')}</div>` : ''}
+      ${data.same_location && connection.location_label ? `<div class="connection-context-location">⌖ Misma zona · ${esc(connection.location_label)}</div>` : ''}
+    </section>`);
+  }
+
+  if(mutuals.length){
+    sections.push(`<section class="connection-context-section">
+      <div class="connection-context-section-head"><b>Conexiones mutuas</b><small>${mutuals.length} visible${mutuals.length===1?'':'s'}</small></div>
+      <div class="connection-context-people">${mutuals.map(connectionContextPersonHTML).join('')}</div>
+    </section>`);
+  }
+
+  if(posts.length){
+    sections.push(`<section class="connection-context-section">
+      <div class="connection-context-section-head"><b>Actividad pública reciente</b><small>Solo publicaciones públicas normales</small></div>
+      <div class="connection-context-posts">${posts.map(post=>`
+        <button type="button" class="connection-context-post" data-open-post="${post.id}">
+          <span>${post.post_kind==='reel'?'Reel':'Publicación'} · ${timeAgo(post.created_at)}</span>
+          <b>${esc(post.caption || 'Ver publicación')}</b>
+        </button>`).join('')}</div>
+    </section>`);
+  }
+
+  sections.push(`<section class="connection-context-section connection-context-starters">
+    <div class="connection-context-section-head"><b>Ideas para conversar</b><small>Se preparan como borrador, nunca se envían solas</small></div>
+    <div class="connection-starter-list">${starters.map(starter=>`
+      <button type="button" class="connection-starter" data-connection-starter="${encodeURIComponent(starter.text || '')}" data-connection-starter-username="${esc(connection.username || '')}">
+        <span>${esc(starter.label || 'Idea')}</span>
+        <b>${esc(starter.text || '')}</b>
+      </button>`).join('')}</div>
+  </section>`);
+
+  root.innerHTML=sections.join('');
+}
+
+async function openConnectionContext(userId){
+  const modal=$('#connectionContextModal');
+  const root=$('#connectionContextContent');
+  if(!modal || !root)return;
+  modal.classList.remove('hidden');
+  root.innerHTML='<div class="mini-loading">Cargando contexto…</div>';
+  const {r,d}=await api(`/api/profiles/connections/${encodeURIComponent(userId)}/context`);
+  if(!r.ok){
+    root.innerHTML='<div class="info-card"><b>No se pudo cargar el contexto de esta conexión.</b></div>';
+    return;
+  }
+  activeConnectionContext=d;
+  if($('#connectionContextTitle'))$('#connectionContextTitle').textContent=d.connection?.display_name || 'Conexión';
+  renderConnectionContext(d);
 }
 
 function renderConnectionsCenterCircleFilters(){
@@ -712,7 +794,7 @@ async function toggleFavoriteConnection(userId){
   await refreshConnectionSurfaces();
 }
 
-async function openConnectionMessage(username) {
+async function openConnectionMessage(username,draft='') {
   const clean=String(username || '').replace(/^@/,'').trim();
   if(!clean)return;
   const {r,d}=await api('/api/messages/conversations',{
@@ -730,6 +812,14 @@ async function openConnectionMessage(username) {
   }
   showView('messages');
   await loadConversations(d.conversationId);
+  if(draft){
+    const field=$('#messageBody');
+    if(field){
+      field.value=String(draft).slice(0,4000);
+      autosizeMessageBody();
+      field.focus();
+    }
+  }
 }
 
 function personCardHTML(user, compact = false) {
@@ -1847,6 +1937,10 @@ function closePostFocus() {
 }
 
 $('#refreshCommunityConversations')?.addEventListener('click',loadCommunityConversations);
+$('#closeConnectionContextModal')?.addEventListener('click',closeConnectionContextModal);
+$('#connectionContextModal')?.addEventListener('click',event=>{
+  if(event.target===$('#connectionContextModal'))closeConnectionContextModal();
+});
 $('#newConnectionCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
 $('#connectionsCenterNewCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
 $('#connectionsCenterSearch')?.addEventListener('input',event=>{
@@ -1883,6 +1977,24 @@ document.addEventListener('click', async event => {
     event.preventDefault();
     showView('messages');
     await openConversation(communityConversation.dataset.communityConversation);
+    return;
+  }
+
+  const contextButton=event.target.closest('[data-connection-context]');
+  if(contextButton){
+    event.preventDefault();
+    event.stopPropagation();
+    await openConnectionContext(Number(contextButton.dataset.connectionContext));
+    return;
+  }
+
+  const starterButton=event.target.closest('[data-connection-starter]');
+  if(starterButton){
+    event.preventDefault();
+    const draft=decodeURIComponent(starterButton.dataset.connectionStarter || '');
+    const username=starterButton.dataset.connectionStarterUsername || '';
+    closeConnectionContextModal();
+    await openConnectionMessage(username,draft);
     return;
   }
 
