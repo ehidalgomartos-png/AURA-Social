@@ -6813,7 +6813,7 @@ function renderAudienceCircleOptions(rootId,selectedIds=[]){
     ? circles.map(circle=>`
       <label class="circle-audience-option">
         <input type="checkbox" value="${circle.id}" ${selected.has(String(circle.id))?'checked':''}>
-        <span><b>${circle.is_favorites ? '★ ' : ''}${esc(circle.name)}</b><small>${Number(circle.member_count || 0)} conexiones</small></span>
+        <span><b>${circle.is_favorites ? '★ ' : circle.is_close ? '♥ ' : ''}${esc(circle.name)}</b><small>${Number(circle.member_count || 0)} conexiones</small></span>
       </label>`).join('')
     : '<div class="circle-audience-empty">Todavía no tienes círculos. Puedes crearlos desde Conexiones.</div>';
 }
@@ -6926,9 +6926,18 @@ $('#createForm').addEventListener('submit', async e => {
     const publishMode=String(e.submitter?.dataset?.publishMode || 'now');
     const communityType=String(fd.get('communityType') || 'none');
     const communityPrompt=String(fd.get('communityPrompt') || '').trim();
-    const audience=String(fd.get('audience') || 'public');
-    const audienceCircleIds=audience==='circles' ? selectedAudienceCircleIds('postCircleAudienceOptions') : [];
-    if(audience==='circles' && !audienceCircleIds.length)throw new Error('Selecciona al menos un círculo para esta audiencia.');
+    const requestedAudience=String(fd.get('audience') || 'public');
+    let audience=requestedAudience;
+    let audienceCircleIds=[];
+    if(requestedAudience==='close'){
+      const closeCircle=connectionCircles.find(circle=>circle.is_close);
+      if(!closeCircle)throw new Error('No se pudo preparar el círculo Cercanas.');
+      audience='circles';
+      audienceCircleIds=[Number(closeCircle.id)];
+    }else if(requestedAudience==='circles'){
+      audienceCircleIds=selectedAudienceCircleIds('postCircleAudienceOptions');
+      if(!audienceCircleIds.length)throw new Error('Selecciona al menos un círculo para esta audiencia.');
+    }
     const pollOptions=[1,2,3,4].map(index=>String(fd.get(`pollOption${index}`) || '').trim()).filter(Boolean);
 
     if (!file && !caption && communityType==='none') throw new Error('Escribe algo, selecciona una foto o añade una herramienta de comunidad.');
@@ -7047,9 +7056,18 @@ $('#storyForm').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('#storyMessage');
   try {
     msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#createForm [name="contentLevel"]').value;
-    const audience=$('#storyForm [name="audience"]')?.value || 'public';
-    const audienceCircleIds=audience==='circles' ? selectedAudienceCircleIds('storyCircleAudienceOptions') : [];
-    if(audience==='circles' && !audienceCircleIds.length)throw new Error('Selecciona al menos un círculo para esta Story.');
+    const requestedAudience=$('#storyForm [name="audience"]')?.value || 'public';
+    let audience=requestedAudience;
+    let audienceCircleIds=[];
+    if(requestedAudience==='close'){
+      const closeCircle=connectionCircles.find(circle=>circle.is_close);
+      if(!closeCircle)throw new Error('No se pudo preparar el círculo Cercanas.');
+      audience='circles';
+      audienceCircleIds=[Number(closeCircle.id)];
+    }else if(requestedAudience==='circles'){
+      audienceCircleIds=selectedAudienceCircleIds('storyCircleAudienceOptions');
+      if(!audienceCircleIds.length)throw new Error('Selecciona al menos un círculo para esta Story.');
+    }
     const { r, d } = await api('/api/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentLevel: level, audience, audienceCircleIds, mediaUrl: media.url, mediaType: media.mediaType, mediaProvider: media.provider, externalId: media.externalId, playbackUrl: media.playbackUrl }) });
     if (!r.ok) throw new Error(
       d.error === 'verified_creator_required_for_nudity'
@@ -7062,7 +7080,7 @@ $('#storyForm').addEventListener('submit', async e => {
           ? 'Uno de los círculos seleccionados ya no está disponible.'
           : 'No se pudo publicar.'
     );
-    toast(audience==='vip' ? 'Story VIP publicada durante 24 h' : audience==='circles' ? 'Story publicada para tus círculos' : audience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
+    toast(requestedAudience==='vip' ? 'Story VIP publicada durante 24 h' : requestedAudience==='close' ? 'Story publicada para Cercanas' : requestedAudience==='circles' ? 'Story publicada para tus círculos' : requestedAudience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
   } catch (err) { msg.textContent = err.message; }
 });
 $('#shareInternalForm')?.addEventListener('submit', async event => {
