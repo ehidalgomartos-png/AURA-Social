@@ -2042,6 +2042,14 @@ document.addEventListener('click', async event => {
   if(eventOpen){event.preventDefault();await openEventDetail(eventOpen.dataset.eventOpen);return;}
   const eventRespond=event.target.closest('[data-event-respond]');
   if(eventRespond){event.preventDefault();event.stopPropagation();await respondToEvent(eventRespond.dataset.eventRespond,eventRespond.dataset.eventStatus);return;}
+  const eventReminder=event.target.closest('[data-event-reminder]');
+  if(eventReminder){
+    event.preventDefault();
+    const enabled=eventReminder.dataset.reminderEnabled!=='1';
+    const {r}=await api(`/api/events/${eventReminder.dataset.eventReminder}/respond`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:eventReminder.dataset.eventStatus,reminderEnabled:enabled})});
+    if(r.ok){toast(enabled?'Recordatorio activado':'Recordatorio desactivado');await loadEvents();if(activeEventId)await openEventDetail(activeEventId);}
+    return;
+  }
   const eventClear=event.target.closest('[data-event-clear-response]');
   if(eventClear){event.preventDefault();const {r}=await api(`/api/events/${eventClear.dataset.eventClearResponse}/respond`,{method:'DELETE'});if(r.ok){toast('Respuesta eliminada');await loadEvents();if(activeEventId)await openEventDetail(activeEventId);}return;}
   const eventCancel=event.target.closest('[data-event-cancel]');
@@ -6910,7 +6918,7 @@ async function openEventDetail(id){
     <div class="event-detail-actions">
       <button class="secondary ${event.my_response==='interested'?'active':''}" data-event-respond="${event.id}" data-event-status="interested">☆ Me interesa</button>
       <button class="primary ${event.my_response==='going'?'active':''}" data-event-respond="${event.id}" data-event-status="going">✓ Voy</button>
-      ${event.my_response?`<button class="tiny-action" data-event-clear-response="${event.id}">Quitar respuesta</button>`:''}
+      ${event.my_response?`<button class="tiny-action" data-event-reminder="${event.id}" data-event-status="${event.my_response}" data-reminder-enabled="${event.reminder_enabled?'1':'0'}">${event.reminder_enabled?'🔔 Recordatorio activado':'🔕 Activar recordatorio'}</button><button class="tiny-action" data-event-clear-response="${event.id}">Quitar respuesta</button>`:''}
       ${mine?`<button class="danger" data-event-cancel="${event.id}">Cancelar evento</button>`:''}
     </div>
     <section class="event-attendees"><div class="community-section-head"><b>Asistentes</b><small>${d.attendees_visible?'Según su respuesta':'Lista privada según la configuración del evento'}</small></div>${d.attendees_visible?(attendees.length?attendees.map(eventAttendeeHTML).join(''):'<div class="empty-list">Todavía nadie ha respondido.</div>'):'<div class="empty-list">La lista de personas no es visible para ti.</div>'}</section>
