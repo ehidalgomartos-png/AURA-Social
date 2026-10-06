@@ -234,7 +234,7 @@ router.get('/',async(req,res)=>{
   const q=String(req.query.q||'').trim().slice(0,80);
   const result=await db.query(`
     SELECT
-      c.id,c.owner_id,c.name,c.description,c.avatar_url,c.privacy,c.conversation_id,c.created_at,c.updated_at,
+      c.id,c.owner_id,c.name,c.description,c.avatar_url,c.privacy,c.category,c.conversation_id,c.created_at,c.updated_at,
       owner.username AS owner_username,owner.display_name AS owner_display_name,owner.avatar_url AS owner_avatar_url,
       member.role AS viewer_role,
       request.status AS request_status,
@@ -271,6 +271,144 @@ router.get('/',async(req,res)=>{
     can_manage:['owner','admin'].includes(row.viewer_role),
     conversation_id:row.viewer_role ? row.conversation_id : null
   })),scope,q});
+});
+
+
+router.get('/discover',async(req,res)=>{
+  const mode=['recommended','connections','new','active'].includes(String(req.query.mode||'')) ? String(req.query.mode) : 'recommended';
+  const q=String(req.query.q||'').trim().slice(0,80);
+  const category=COMMUNITY_CATEGORIES.includes(String(req.query.category||'')) ? String(req.query.category) : '';
+  const result=await db.query(`
+    SELECT
+      c.id,c.owner_id,c.name,c.description,c.avatar_url,c.privacy,c.category,c.created_at,c.updated_at,
+      owner.username AS owner_username,owner.display_name AS owner_display_name,
+      request.status AS request_status,
+      (SELECT count(*)::int FROM community_members cm WHERE cm.community_id=c.id) AS member_count,
+      (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published') AS post_count,
+      (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published' AND cp.created_at>=now()-interval '14 days') AS recent_post_count,
+      (
+        SELECT count(*)::int
+          FROM community_interests ci
+         WHERE ci.community_id=c.id
+           AND ci.interest IN (SELECT ui.interest FROM user_interests ui WHERE ui.user_id=$1)
+      ) AS shared_interest_count,
+      COALESCE(
+        (SELECT array_agg(ci.interest ORDER BY ci.interest) FROM community_interests ci WHERE ci.community_id=c.id),
+        ARRAY[]::text[]
+      ) AS interests,
+      (
+        SELECT count(DISTINCT cm.user_id)::int
+          FROM community_members cm
+         WHERE cm.community_id=c.id
+           AND cm.user_id<>$1
+           AND EXISTS(
+             SELECT 1 FROM follows mine
+              WHERE mine.follower_id=$1 AND mine.following_id=cm.user_id
+           )
+           AND EXISTS(
+             SELECT 1 FROM follows theirs
+              WHERE theirs.follower_id=cm.user_id AND theirs.following_id=$1
+           )
+      ) AS connection_member_count
+    FROM communities c
+    JOIN users owner ON owner.id=c.owner_id
+    LEFT JOIN community_join_requests request ON request.community_id=c.id AND request.user_id=$1
+    WHERE owner.status='active'
+      AND NOT EXISTS(
+        SELECT 1 FROM community_members mine
+         WHERE mine.community_id=c.id AND mine.user_id=$1
+      )
+      AND NOT EXISTS(
+        SELECT 1 FROM community_hidden_suggestions hidden
+         WHERE hidden.user_id=$1 AND hidden.community_id=c.id
+      )
+      AND NOT EXISTS(
+        SELECT 1 FROM blocks b
+         WHERE (b.blocker_id=$1 AND b.blocked_id=c.owner_id)
+            OR (b.blocker_id=c.owner_id AND b.blocked_id=$1)
+      )
+      AND NOT EXISTS(
+        SELECT 1 FROM mutes m
+         WHERE m.muter_id=$1 AND m.muted_id=c.owner_id
+      )
+      AND ($2='' OR c.category=$2)
+      AND (
+        $3=''
+        OR c.name ILIKE '%' || $3 || '%'
+        OR c.description ILIKE '%' || $3 || '%'
+        OR EXISTS(
+          SELECT 1 FROM community_interests search_interest
+           WHERE search_interest.community_id=c.id
+             AND search_interest.interest ILIKE '%' || $3 || '%'
+        )
+      )
+    ORDER BY
+      CASE
+        WHEN $4='connections' THEN
+          CASE WHEN (
+            SELECT count(*) FROM community_members cmx
+             WHERE cmx.community_id=c.id
+               AND cmx.user_id<>$1
+               AND EXISTS(SELECT 1 FROM follows fa WHERE fa.follower_id=$1 AND fa.following_id=cmx.user_id)
+               AND EXISTS(SELECT 1 FROM follows fb WHERE fb.follower_id=cmx.user_id AND fb.following_id=$1)
+          )>0 THEN 0 ELSE 1 END
+        WHEN $4='new' THEN 0
+        WHEN $4='active' THEN 0
+        ELSE
+          CASE WHEN EXISTS(
+            SELECT 1 FROM community_interests ci2
+             WHERE ci2.community_id=c.id
+               AND ci2.interest IN (SELECT ui2.interest FROM user_interests ui2 WHERE ui2.user_id=$1)
+          ) THEN 0 ELSE 1 END
+      END,
+      CASE WHEN $4='new' THEN c.created_at END DESC NULLS LAST,
+      CASE WHEN $4='active' THEN (
+        SELECT max(cp2.created_at) FROM community_posts cp2
+         WHERE cp2.community_id=c.id AND cp2.moderation_status='published'
+      ) END DESC NULLS LAST,
+      shared_interest_count DESC,
+      connection_member_count DESC,
+      c.updated_at DESC,
+      c.id DESC
+    LIMIT 40
+  `,[req.user.id,category,q,mode]);
+
+  const communities=result.rows
+    .filter(row=>mode!=='connections' || Number(row.connection_member_count||0)>0)
+    .map(row=>{
+      const shared=Number(row.shared_interest_count||0);
+      const connections=Number(row.connection_member_count||0);
+      const recent=Number(row.recent_post_count||0);
+      let reason='Comunidad que podrías explorar';
+      if(shared>0)reason=`${shared} ${shared===1?'interés compartido':'intereses compartidos'}`;
+      else if(connections>0)reason=`${connections} ${connections===1?'conexión participa':'conexiones participan'}`;
+      else if(recent>0)reason=`Actividad reciente · ${recent} ${recent===1?'publicación':'publicaciones'}`;
+      else if(mode==='new')reason='Comunidad creada recientemente';
+      return {...row,reason};
+    });
+
+  res.json({communities,mode,q,category,categories:COMMUNITY_CATEGORIES});
+});
+
+router.post('/discover/:communityId/hide',async(req,res)=>{
+  const communityId=Number(req.params.communityId);
+  if(!Number.isInteger(communityId)||communityId<=0)return res.status(400).json({error:'invalid_community'});
+  const exists=await db.query('SELECT 1 FROM communities WHERE id=$1 LIMIT 1',[communityId]);
+  if(!exists.rowCount)return res.status(404).json({error:'community_not_found'});
+  await db.query(`
+    INSERT INTO community_hidden_suggestions(user_id,community_id,hidden_at)
+    VALUES ($1,$2,now())
+    ON CONFLICT(user_id,community_id) DO UPDATE SET hidden_at=now()
+  `,[req.user.id,communityId]);
+  res.json({ok:true});
+});
+
+router.delete('/discover/:communityId/hide',async(req,res)=>{
+  await db.query(
+    'DELETE FROM community_hidden_suggestions WHERE user_id=$1 AND community_id=$2',
+    [req.user.id,req.params.communityId]
+  );
+  res.json({ok:true});
 });
 
 router.post('/',async(req,res)=>{
@@ -333,7 +471,7 @@ router.get('/:id',async(req,res)=>{
   if(!state)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(404).json({error:'community_not_found'});
 
-  const [rules,members]=await Promise.all([
+  const [rules,members,interests]=await Promise.all([
     db.query('SELECT id,position,body FROM community_rules WHERE community_id=$1 ORDER BY position,id',[state.id]),
     db.query(`
       SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,cm.role,cm.joined_at
@@ -351,13 +489,14 @@ router.get('/:id',async(req,res)=>{
          )
        ORDER BY CASE cm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END,cm.joined_at,u.id
        LIMIT 100
-    `,[state.id,req.user.id])
+    `,[state.id,req.user.id]),
+    db.query('SELECT interest FROM community_interests WHERE community_id=$1 ORDER BY interest',[state.id])
   ]);
 
   res.json({
     community:{
       id:state.id,owner_id:state.owner_id,name:state.name,description:state.description,
-      avatar_url:state.avatar_url,privacy:state.privacy,created_at:state.created_at,updated_at:state.updated_at,
+      avatar_url:state.avatar_url,privacy:state.privacy,category:state.category,created_at:state.created_at,updated_at:state.updated_at,
       owner_username:state.owner_username,owner_display_name:state.owner_display_name,
       owner_avatar_url:state.owner_avatar_url,owner_creator_verified:state.owner_creator_verified,
       member_count:Number(state.member_count||0),post_count:Number(state.post_count||0),
@@ -367,6 +506,7 @@ router.get('/:id',async(req,res)=>{
       conversation_id:state.is_member ? state.conversation_id : null
     },
     rules:rules.rows,
+    interests:interests.rows.map(row=>row.interest),
     members:state.can_view_content ? members.rows : [],
     can_view_content:state.can_view_content
   });
