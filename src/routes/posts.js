@@ -815,6 +815,16 @@ router.get('/creator/publishing',requireAuth,async(req,res)=>{
       p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,
       p.content_level,p.post_kind,p.audience,p.creator_state,p.scheduled_for,
       p.editorial_date,p.editorial_label,
+      CASE
+        WHEN EXISTS(SELECT 1 FROM creator_polls cp WHERE cp.post_id=p.id) THEN 'poll'
+        WHEN EXISTS(SELECT 1 FROM creator_questions cq WHERE cq.post_id=p.id) THEN 'question'
+        ELSE 'none'
+      END AS community_type,
+      COALESCE(
+        (SELECT cp.question FROM creator_polls cp WHERE cp.post_id=p.id LIMIT 1),
+        (SELECT cq.prompt FROM creator_questions cq WHERE cq.post_id=p.id LIMIT 1),
+        ''
+      ) AS community_prompt,
       p.consent_state,p.moderation_status,p.created_at,p.updated_at,
       (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id) participant_count,
       (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id AND pp.consent_status<>'approved') pending_consent_count
@@ -1089,7 +1099,18 @@ router.get('/creator/calendar',requireAuth,async(req,res)=>{
     SELECT
       p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,
       p.content_level,p.post_kind,p.audience,p.creator_state,p.scheduled_for,
-      p.editorial_date,p.editorial_label,p.consent_state,p.moderation_status,
+      p.editorial_date,p.editorial_label,
+      CASE
+        WHEN EXISTS(SELECT 1 FROM creator_polls cp WHERE cp.post_id=p.id) THEN 'poll'
+        WHEN EXISTS(SELECT 1 FROM creator_questions cq WHERE cq.post_id=p.id) THEN 'question'
+        ELSE 'none'
+      END AS community_type,
+      COALESCE(
+        (SELECT cp.question FROM creator_polls cp WHERE cp.post_id=p.id LIMIT 1),
+        (SELECT cq.prompt FROM creator_questions cq WHERE cq.post_id=p.id LIMIT 1),
+        ''
+      ) AS community_prompt,
+      p.consent_state,p.moderation_status,
       p.created_at,p.updated_at,
       (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id AND pp.consent_status<>'approved') pending_consent_count
     FROM posts p
