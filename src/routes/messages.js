@@ -331,6 +331,183 @@ router.get('/conversations', async (req, res) => {
   });
 });
 
+
+router.get('/community-conversations', async (req,res)=>{
+  const conversationRows=await db.query(`
+    SELECT
+      c.id,c.conversation_type,c.title,c.updated_at,
+      cm.last_read_at,
+      last_message.created_at AS last_message_at,
+      last_message.sender_id AS last_sender_id,
+      COALESCE((
+        SELECT count(*)::int
+          FROM messages unread
+         WHERE unread.conversation_id=c.id
+           AND unread.sender_id<>$1
+           AND unread.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
+      ),0)::int AS unread_count,
+      direct_user.id AS other_user_id,
+      direct_user.username,
+      direct_user.display_name,
+      direct_user.avatar_url,
+      direct_user.creator_verified,
+      COALESCE(member_count.total,0)::int AS member_count
+    FROM conversation_members cm
+    JOIN conversations c ON c.id=cm.conversation_id
+    LEFT JOIN LATERAL (
+      SELECT created_at,sender_id
+        FROM messages
+       WHERE conversation_id=c.id
+       ORDER BY created_at DESC,id DESC
+       LIMIT 1
+    ) last_message ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+        FROM conversation_members other_member
+        JOIN users u ON u.id=other_member.user_id
+       WHERE other_member.conversation_id=c.id
+         AND other_member.user_id<>$1
+         AND u.status='active'
+       ORDER BY u.id
+       LIMIT 1
+    ) direct_user ON c.conversation_type='direct'
+    LEFT JOIN LATERAL (
+      SELECT count(*)::int AS total
+        FROM conversation_members member
+        JOIN users member_user ON member_user.id=member.user_id
+       WHERE member.conversation_id=c.id
+         AND member_user.status='active'
+    ) member_count ON TRUE
+    WHERE cm.user_id=$1
+      AND cm.is_archived=false
+      AND last_message.created_at IS NOT NULL
+      AND (
+        c.conversation_type='group'
+        OR (
+          direct_user.id IS NOT NULL
+          AND NOT EXISTS(
+            SELECT 1 FROM blocks b
+             WHERE (b.blocker_id=$1 AND b.blocked_id=direct_user.id)
+                OR (b.blocker_id=direct_user.id AND b.blocked_id=$1)
+          )
+        )
+      )
+    ORDER BY last_message.created_at DESC
+    LIMIT 80
+  `,[req.user.id]);
+
+  const now=Date.now();
+  const conversations=conversationRows.rows.map(row=>{
+    const at=row.last_message_at ? new Date(row.last_message_at).getTime() : 0;
+    const ageHours=at ? Math.max(0,(now-at)/3600000) : Infinity;
+    let kind=null;
+    if(Number(row.unread_count || 0)>0)kind='pending';
+    else if(String(row.last_sender_id)===String(req.user.id) && ageHours>=36 && ageHours<=24*14)kind='unanswered';
+    else if(ageHours>=24*3 && ageHours<=24*45)kind='resume';
+    if(!kind)return null;
+    return {
+      id:row.id,
+      is_group:row.conversation_type==='group',
+      title:row.title || null,
+      member_count:Number(row.member_count || 0),
+      other_user_id:row.other_user_id || null,
+      username:row.username || null,
+      display_name:row.display_name || null,
+      avatar_url:row.avatar_url || null,
+      creator_verified:row.creator_verified===true,
+      last_message_at:row.last_message_at,
+      unread_count:Number(row.unread_count || 0),
+      kind
+    };
+  }).filter(Boolean)
+    .sort((a,b)=>{
+      const priority={pending:0,unanswered:1,resume:2};
+      return (priority[a.kind]-priority[b.kind]) || (new Date(b.last_message_at)-new Date(a.last_message_at));
+    })
+    .slice(0,8);
+
+  const newConnections=await db.query(`
+    SELECT
+      u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,u.location_label,
+      GREATEST(mine.created_at,theirs.created_at) AS connection_since
+    FROM follows mine
+    JOIN follows theirs
+      ON theirs.follower_id=mine.following_id
+     AND theirs.following_id=mine.follower_id
+    JOIN users u ON u.id=mine.following_id
+    WHERE mine.follower_id=$1
+      AND u.status='active'
+      AND u.is_admin=false
+      AND GREATEST(mine.created_at,theirs.created_at)>=now()-interval '14 days'
+      AND NOT EXISTS(
+        SELECT 1 FROM blocks b
+         WHERE (b.blocker_id=$1 AND b.blocked_id=u.id)
+            OR (b.blocker_id=u.id AND b.blocked_id=$1)
+      )
+      AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=u.id)
+    ORDER BY connection_since DESC
+    LIMIT 6
+  `,[req.user.id]);
+
+  const relevantActivity=await db.query(`
+    SELECT
+      u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,u.location_label,
+      activity.last_activity_at
+    FROM follows mine
+    JOIN follows theirs
+      ON theirs.follower_id=mine.following_id
+     AND theirs.following_id=mine.follower_id
+    JOIN users u ON u.id=mine.following_id
+    CROSS JOIN LATERAL (
+      SELECT GREATEST(
+        COALESCE((SELECT max(p.created_at) FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published'),'epoch'::timestamptz),
+        COALESCE((SELECT max(comment.created_at) FROM comments comment WHERE comment.user_id=u.id),'epoch'::timestamptz),
+        COALESCE((SELECT max(story.created_at) FROM stories story WHERE story.user_id=u.id AND story.moderation_status='published'),'epoch'::timestamptz)
+      ) AS last_activity_at
+    ) activity
+    WHERE mine.follower_id=$1
+      AND u.status='active'
+      AND u.is_admin=false
+      AND u.show_activity=true
+      AND activity.last_activity_at>=now()-interval '7 days'
+      AND NOT EXISTS(
+        SELECT 1 FROM blocks b
+         WHERE (b.blocker_id=$1 AND b.blocked_id=u.id)
+            OR (b.blocker_id=u.id AND b.blocked_id=$1)
+      )
+      AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=u.id)
+      AND NOT EXISTS(
+        SELECT 1
+          FROM conversations recent_c
+          JOIN conversation_members self_member
+            ON self_member.conversation_id=recent_c.id AND self_member.user_id=$1
+          JOIN conversation_members other_member
+            ON other_member.conversation_id=recent_c.id AND other_member.user_id=u.id
+         WHERE recent_c.conversation_type='direct'
+           AND EXISTS(
+             SELECT 1 FROM messages recent_message
+              WHERE recent_message.conversation_id=recent_c.id
+                AND recent_message.created_at>=now()-interval '3 days'
+           )
+      )
+    ORDER BY activity.last_activity_at DESC
+    LIMIT 6
+  `,[req.user.id]);
+
+  res.json({
+    conversations,
+    new_connections:newConnections.rows,
+    relevant_activity:relevantActivity.rows,
+    summary:{
+      pending:conversations.filter(item=>item.kind==='pending').length,
+      unanswered:conversations.filter(item=>item.kind==='unanswered').length,
+      resume:conversations.filter(item=>item.kind==='resume').length,
+      new_connections:newConnections.rowCount,
+      relevant_activity:relevantActivity.rowCount
+    }
+  });
+});
+
 const createConversationSchema = z.object({ username: z.string().min(1).max(30) });
 router.post('/conversations', async (req, res) => {
   const parsed = createConversationSchema.safeParse(req.body);

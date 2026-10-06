@@ -1,4 +1,4 @@
-# RedLibertad V1.53.0 — Connections Center 2.0
+# RedLibertad V1.54.0 — Community Conversations
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1190,3 +1190,18 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - CTA directo a Mensaje y acceso a perfil.
 - Respeta bloqueos, silencios, actividad privada y relaciones de seguimiento mutuo.
 - Mobile-first y sin monetización.
+
+
+## V1.54.0 — Community Conversations
+
+- Continuidad social integrada en Mensajes, sin mecanismos adictivos.
+- Conversaciones con mensajes pendientes.
+- Conversaciones cuyo último mensaje propio lleva tiempo sin respuesta, mostradas sin presión.
+- Sugerencias para retomar conversaciones recientes que llevan unos días inactivas.
+- Conexiones nuevas de los últimos 14 días.
+- Actividad reciente de conexiones que permiten mostrar su actividad.
+- Bloqueos y silencios respetados en todas las sugerencias.
+- No se exponen cuerpos de mensajes en el panel de continuidad.
+- Datos derivados de relaciones y actividad existentes; no requiere nuevas tablas.
+- Mobile-first.
+- Sin monetización activa.
