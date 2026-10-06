@@ -1434,9 +1434,11 @@ function renderStoryViewer() {
       <span class="story-viewer-avatar">${avatarHTML(story)}</span>
       <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}${story.view_count!=null ? ` · ${Number(story.view_count||0)} vistas` : ''}</small></div>
       ${storyAudienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(story.audience)}">${esc(storyAudienceBadge)}</span>` : ''}
+      <button type="button" class="story-share-action" data-share-story="${story.id}" aria-label="Compartir Story">↗</button>
     </header>
     <div class="story-viewer-media">${media || '<div class="gate"><b>Story no disponible</b></div>'}</div>
   </article>`;
+  root.querySelector('[data-share-story]')?.addEventListener('click',()=>openShare(story.id,'story',{username:story.username,audience:story.audience||'public'}));
   if(!story.gated && me && String(story.user_id)!==String(me.id) && !story.viewed_by_me){
     markStoryViewed(story);
   }
