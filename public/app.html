@@ -285,9 +285,22 @@
           </div>
         </div>
         <div class="creator-activity-toolbar">
-          <button type="button" class="active" data-creator-activity-status="pending">Pendiente</button>
-          <button type="button" data-creator-activity-status="reviewed">Revisado</button>
-          <button type="button" data-creator-activity-status="all">Todo</button>
+          <div class="creator-activity-status-tabs">
+            <button type="button" class="active" data-creator-activity-status="pending">Pendiente</button>
+            <button type="button" data-creator-activity-status="reviewed">Revisado</button>
+            <button type="button" data-creator-activity-status="all">Todo</button>
+          </div>
+          <label class="creator-activity-focus-label">Enfoque
+            <select id="creatorActivityFocus">
+              <option value="all">Todas</option>
+              <option value="high">Prioridad alta</option>
+              <option value="followup">Seguimiento</option>
+            </select>
+          </label>
+          <div class="creator-activity-meta-counts">
+            <span id="creatorActivityHighCount">0 alta</span>
+            <span id="creatorActivityFollowUpCount">0 seguimiento</span>
+          </div>
         </div>
         <div id="creatorActivityGroups" class="creator-activity-groups"></div>
       </section>
