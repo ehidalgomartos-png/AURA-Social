@@ -177,11 +177,83 @@ async function attachRepostMeta(rows, viewerId=null, includeActor=false) {
     actorMap = new Map(actors.rows.map(row => [String(row.post_id),row]));
   }
 
-  return rows.map(row => ({
+  const withReposts=rows.map(row => ({
     ...row,
     repost_count: countMap.get(String(row.id))?.repost_count || 0,
     reposted_by_me: countMap.get(String(row.id))?.reposted_by_me === true,
     ...(actorMap.get(String(row.id)) || {})
+  }));
+  return attachCommunityMeta(withReposts,viewerId);
+}
+
+async function attachCommunityMeta(rows,viewerId=null){
+  if(!rows.length)return rows;
+  const ids=rows.map(row=>row.id);
+
+  const [pollRows,questionRows]=await Promise.all([
+    db.query(`
+      SELECT
+        cp.id AS poll_id,cp.post_id,cp.question,cp.allow_change,
+        o.id AS option_id,o.position,o.label,
+        count(v.user_id)::int AS vote_count,
+        ${viewerId ? 'EXISTS(SELECT 1 FROM creator_poll_votes myv WHERE myv.poll_id=cp.id AND myv.user_id=$2 AND myv.option_id=o.id)' : 'false'} AS voted_by_me
+      FROM creator_polls cp
+      JOIN creator_poll_options o ON o.poll_id=cp.id
+      LEFT JOIN creator_poll_votes v ON v.option_id=o.id
+      WHERE cp.post_id=ANY($1::bigint[])
+      GROUP BY cp.id,cp.post_id,cp.question,cp.allow_change,o.id,o.position,o.label
+      ORDER BY cp.post_id,o.position
+    `,viewerId ? [ids,viewerId] : [ids]),
+    db.query(`
+      SELECT
+        cq.id AS question_id,cq.post_id,cq.prompt,
+        count(r.id)::int AS response_count,
+        ${viewerId ? '(SELECT qr.body FROM creator_question_responses qr WHERE qr.question_id=cq.id AND qr.user_id=$2 LIMIT 1)' : 'NULL::text'} AS my_response
+      FROM creator_questions cq
+      LEFT JOIN creator_question_responses r ON r.question_id=cq.id
+      WHERE cq.post_id=ANY($1::bigint[])
+      GROUP BY cq.id,cq.post_id,cq.prompt
+    `,viewerId ? [ids,viewerId] : [ids])
+  ]);
+
+  const pollMap=new Map();
+  for(const row of pollRows.rows){
+    const key=String(row.post_id);
+    if(!pollMap.has(key)){
+      pollMap.set(key,{
+        id:row.poll_id,
+        question:row.question,
+        allow_change:row.allow_change,
+        total_votes:0,
+        options:[]
+      });
+    }
+    const poll=pollMap.get(key);
+    const count=Number(row.vote_count || 0);
+    poll.total_votes+=count;
+    poll.options.push({
+      id:row.option_id,
+      position:row.position,
+      label:row.label,
+      vote_count:count,
+      voted_by_me:row.voted_by_me===true
+    });
+  }
+
+  const questionMap=new Map(questionRows.rows.map(row=>[
+    String(row.post_id),
+    {
+      id:row.question_id,
+      prompt:row.prompt,
+      response_count:Number(row.response_count || 0),
+      my_response:row.my_response || ''
+    }
+  ]));
+
+  return rows.map(row=>({
+    ...row,
+    community_poll:pollMap.get(String(row.id)) || null,
+    community_question:questionMap.get(String(row.id)) || null
   }));
 }
 
@@ -379,6 +451,79 @@ router.use(async (_req,res,next)=>{
   }catch(error){
     console.error('RedLibertad V1.21 calendar bootstrap failed:',error);
     res.status(500).json({error:'creator_calendar_bootstrap_failed'});
+  }
+});
+
+
+let creatorCommunityV22Ready=null;
+async function ensureCreatorCommunityV22(){
+  if(!creatorCommunityV22Ready){
+    creatorCommunityV22Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_polls (
+          id BIGSERIAL PRIMARY KEY,
+          post_id BIGINT NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+          question VARCHAR(300) NOT NULL,
+          allow_change BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_poll_options (
+          id BIGSERIAL PRIMARY KEY,
+          poll_id BIGINT NOT NULL REFERENCES creator_polls(id) ON DELETE CASCADE,
+          position SMALLINT NOT NULL,
+          label VARCHAR(120) NOT NULL,
+          UNIQUE(poll_id,position)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_poll_options_poll ON creator_poll_options(poll_id,position)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_poll_votes (
+          poll_id BIGINT NOT NULL REFERENCES creator_polls(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          option_id BIGINT NOT NULL REFERENCES creator_poll_options(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(poll_id,user_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_option ON creator_poll_votes(option_id)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_questions (
+          id BIGSERIAL PRIMARY KEY,
+          post_id BIGINT NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE,
+          prompt VARCHAR(300) NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_question_responses (
+          id BIGSERIAL PRIMARY KEY,
+          question_id BIGINT NOT NULL REFERENCES creator_questions(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body VARCHAR(1000) NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          UNIQUE(question_id,user_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_question_responses_question_created ON creator_question_responses(question_id,created_at DESC)');
+    })().catch(error=>{
+      creatorCommunityV22Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV22Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV22();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.22 creator community bootstrap failed:',error);
+    res.status(500).json({error:'creator_community_bootstrap_failed'});
   }
 });
 
