@@ -24,6 +24,19 @@ async function ensureMessagePrivacy() {
         )
       `);
       await db.query("CREATE INDEX IF NOT EXISTS idx_user_chat_presence_active ON user_chat_presence(active_conversation_id,typing_until)");
+      await db.query("ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_message_id BIGINT REFERENCES messages(id) ON DELETE SET NULL");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_messages_reply_to ON messages(reply_to_message_id)");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS message_reactions (
+          message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          reaction TEXT NOT NULL CHECK(reaction IN ('heart','like','laugh','fire','wow','sad')),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(message_id,user_id)
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id,updated_at DESC)");
     })().catch(error => {
       messagePrivacyReady = null;
       throw error;
@@ -278,13 +291,50 @@ router.get('/conversations/:id/messages', async (req, res) => {
   const allowedFromOther = !!permission.rows?.[0]?.allowed && !!viewer?.age_verified;
 
   const r = await db.query(`
-    SELECT m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,m.content_level,m.created_at,
-           u.username,u.display_name,u.avatar_url
-      FROM messages m JOIN users u ON u.id=m.sender_id
+    SELECT
+           m.id,m.sender_id,m.body,m.media_url,m.media_type,m.media_provider,m.external_id,m.playback_url,
+           m.content_level,m.created_at,m.reply_to_message_id,
+           u.username,u.display_name,u.avatar_url,
+           reply.id AS reply_id,
+           reply.sender_id AS reply_sender_id,
+           reply.body AS reply_body,
+           reply.media_type AS reply_media_type,
+           reply.content_level AS reply_content_level,
+           reply_user.username AS reply_username,
+           reply_user.display_name AS reply_display_name
+      FROM messages m
+      JOIN users u ON u.id=m.sender_id
+      LEFT JOIN messages reply ON reply.id=m.reply_to_message_id AND reply.conversation_id=m.conversation_id
+      LEFT JOIN users reply_user ON reply_user.id=reply.sender_id
      WHERE m.conversation_id=$1
      ORDER BY m.created_at ASC
      LIMIT 300
   `, [id]);
+
+  const messageIds=r.rows.map(row=>String(row.id));
+  const reactionResult=messageIds.length
+    ? await db.query(`
+        SELECT
+          message_id,
+          reaction,
+          count(*)::int AS count,
+          bool_or(user_id=$2) AS reacted_by_me
+        FROM message_reactions
+        WHERE message_id=ANY($1::bigint[])
+        GROUP BY message_id,reaction
+        ORDER BY message_id,reaction
+      `,[messageIds,req.user.id])
+    : {rows:[]};
+  const reactionsByMessage=new Map();
+  for(const row of reactionResult.rows){
+    const key=String(row.message_id);
+    if(!reactionsByMessage.has(key))reactionsByMessage.set(key,[]);
+    reactionsByMessage.get(key).push({
+      reaction:row.reaction,
+      count:Number(row.count || 0),
+      reacted_by_me:row.reacted_by_me===true
+    });
+  }
 
   const otherReadState=await db.query(
     'SELECT last_read_at FROM conversation_members WHERE conversation_id=$1 AND user_id<>$2 LIMIT 1',
@@ -302,6 +352,32 @@ router.get('/conversations/:id/messages', async (req, res) => {
         otherLastReadAt &&
         new Date(m.created_at).getTime()<=new Date(otherLastReadAt).getTime()
       ),
+      reactions:reactionsByMessage.get(String(m.id)) || [],
+      reply_preview:m.reply_id ? (() => {
+        const replyIsOwn=String(m.reply_sender_id)===String(req.user.id);
+        const replyGated=!replyIsOwn && m.reply_content_level!=='normal' && !allowedFromOther;
+        let text='';
+        if(replyGated){
+          text='Contenido sensible';
+        }else if(String(m.reply_body || '').trim()){
+          const raw=String(m.reply_body).trim();
+          text=raw.length>160 ? raw.slice(0,157)+'…' : raw;
+        }else if(m.reply_media_type==='image'){
+          text='Foto';
+        }else if(m.reply_media_type==='video'){
+          text='Vídeo';
+        }else{
+          text='Mensaje';
+        }
+        return {
+          id:m.reply_id,
+          sender_id:m.reply_sender_id,
+          username:m.reply_username,
+          display_name:m.reply_display_name,
+          text,
+          gated:replyGated
+        };
+      })() : null,
       media_url: gated ? null : m.media_url,
       playback_url: gated ? null : m.playback_url,
       body: gated && m.media_url ? '' : m.body,
@@ -342,6 +418,7 @@ const messageSchema = z.object({
   mediaProvider: z.string().max(40).optional().nullable(),
   externalId: z.string().max(255).optional().nullable(),
   playbackUrl: z.string().max(4096).optional().nullable(),
+  replyToMessageId:z.coerce.number().int().positive().optional().nullable(),
   contentLevel: z.enum(['normal','sensitive','nudity']).default('normal')
 }).refine(v => v.body.trim() || v.mediaUrl, { message: 'message_empty' });
 
@@ -359,6 +436,17 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }
 
     const d = parsed.data;
+    let replyToMessageId=null;
+    if(d.replyToMessageId){
+      const replyTarget=await db.query(
+        'SELECT id FROM messages WHERE id=$1 AND conversation_id=$2 LIMIT 1',
+        [d.replyToMessageId,id]
+      );
+      if(!replyTarget.rowCount){
+        return res.status(400).json({error:'invalid_reply_message'});
+      }
+      replyToMessageId=replyTarget.rows[0].id;
+    }
     const sender = await userRow(req.user.id);
     const recipient = await otherMember(id, req.user.id);
 
@@ -406,9 +494,10 @@ router.post('/conversations/:id/messages', async (req, res) => {
           media_provider,
           external_id,
           playback_url,
-          content_level
+          content_level,
+          reply_to_message_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
         RETURNING *
       `, [
         id,
@@ -419,7 +508,8 @@ router.post('/conversations/:id/messages', async (req, res) => {
         d.mediaProvider,
         d.externalId,
         d.playbackUrl,
-        d.contentLevel
+        d.contentLevel,
+        replyToMessageId
       ]);
 
       await client.query(
@@ -480,6 +570,51 @@ router.post('/conversations/:id/messages', async (req, res) => {
     console.error('RedLibertad message send failed:', error);
     return res.status(500).json({ error: 'message_send_failed' });
   }
+});
+
+const reactionSchema=z.object({
+  reaction:z.enum(['heart','like','laugh','fire','wow','sad'])
+});
+
+router.put('/conversations/:id/messages/:messageId/reaction',async(req,res)=>{
+  if(!(await conversationForUser(req.params.id,req.user.id))){
+    return res.status(404).json({error:'conversation_not_found'});
+  }
+  const parsed=reactionSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_reaction'});
+
+  const message=await db.query(
+    'SELECT id FROM messages WHERE id=$1 AND conversation_id=$2 LIMIT 1',
+    [req.params.messageId,req.params.id]
+  );
+  if(!message.rowCount)return res.status(404).json({error:'message_not_found'});
+
+  await db.query(`
+    INSERT INTO message_reactions(message_id,user_id,reaction,created_at,updated_at)
+    VALUES ($1,$2,$3,now(),now())
+    ON CONFLICT(message_id,user_id) DO UPDATE
+      SET reaction=excluded.reaction,
+          updated_at=now()
+  `,[req.params.messageId,req.user.id,parsed.data.reaction]);
+
+  res.json({ok:true,reaction:parsed.data.reaction});
+});
+
+router.delete('/conversations/:id/messages/:messageId/reaction',async(req,res)=>{
+  if(!(await conversationForUser(req.params.id,req.user.id))){
+    return res.status(404).json({error:'conversation_not_found'});
+  }
+  await db.query(`
+    DELETE FROM message_reactions
+     WHERE message_id=$1
+       AND user_id=$2
+       AND EXISTS(
+         SELECT 1 FROM messages m
+          WHERE m.id=message_reactions.message_id
+            AND m.conversation_id=$3
+       )
+  `,[req.params.messageId,req.user.id,req.params.id]);
+  res.json({ok:true});
 });
 
 router.get('/users/:id/sensitive-permission', async (req, res) => {
