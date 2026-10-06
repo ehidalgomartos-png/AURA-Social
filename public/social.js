@@ -4744,7 +4744,7 @@ function openReport(postId) {
 
 let activeSharePostId = null;
 function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
-function shareText() { return 'Mira mi post en RedLibertad, donde la libertad es lo primero.'; }
+function shareText() { return 'Mira este post en RedLibertad, donde la libertad es lo primero.'; }
 
 async function loadShareConversations(){
   const root=$('#shareConversationList');
