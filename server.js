@@ -22,6 +22,7 @@ const trustRoutes = require('./src/routes/trust');
 const creatorWorkflowRoutes = require('./src/routes/creator-workflow');
 const liveRoutes = require('./src/routes/live');
 const pushRoutes = require('./src/routes/push');
+const communityRoutes = require('./src/routes/communities');
 const { startPushWorker, isPushConfigured } = require('./src/services/push');
 
 const app = express();
@@ -69,6 +70,7 @@ app.use('/api/trust', trustRoutes);
 app.use('/api/creator', creatorWorkflowRoutes);
 app.use('/api/live', liveRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/communities', communityRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
