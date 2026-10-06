@@ -141,6 +141,31 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
+-- RedLibertad V1.52: círculos privados de conexiones
+CREATE TABLE IF NOT EXISTS connection_circles (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(40) NOT NULL,
+  is_favorites BOOLEAN NOT NULL DEFAULT FALSE,
+  position SMALLINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_favorites
+  ON connection_circles(user_id)
+  WHERE is_favorites=true;
+CREATE INDEX IF NOT EXISTS idx_connection_circles_user_position
+  ON connection_circles(user_id,position,id);
+
+CREATE TABLE IF NOT EXISTS connection_circle_members (
+  circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+  connection_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(circle_id,connection_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_connection_circle_members_user
+  ON connection_circle_members(connection_user_id,circle_id);
+
 -- RedLibertad V1.48: notificaciones Web Push opcionales
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id BIGSERIAL PRIMARY KEY,

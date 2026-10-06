@@ -16,6 +16,9 @@ let messageConversationSearch = '';
 let messageConversationSearchTimer = null;
 let interestCatalog = [];
 let activeExploreInterest = '';
+let connectionCircles=[];
+let activeConnectionCircleId=null;
+let activeCircleConnection=null;
 let activeCommentsPostId = null;
 let activeCommentReply = null;
 let activeReportPostId = null;
@@ -405,6 +408,12 @@ function interestPillsHTML(interests = [], compact = false) {
   return `<div class="interest-pills ${compact ? 'compact' : ''}">${shown.map(i => `<span>${esc(i)}</span>`).join('')}</div>`;
 }
 
+function connectionCircleNamesHTML(user){
+  const names=Array.isArray(user.circle_names) ? user.circle_names : [];
+  if(!names.length)return '';
+  return `<div class="connection-circle-tags">${names.slice(0,3).map(name=>`<span>${esc(name)}</span>`).join('')}${names.length>3 ? `<span>+${names.length-3}</span>` : ''}</div>`;
+}
+
 function connectionCardHTML(user) {
   const shared=Number(user.shared_interest_count || 0);
   const activity=user.last_activity_at && new Date(user.last_activity_at).getFullYear()>1971
@@ -414,16 +423,44 @@ function connectionCardHTML(user) {
     ? `${shared} ${shared===1 ? 'interés' : 'intereses'} en común`
     : activity || 'Seguimiento mutuo';
 
-  return `<article class="connection-card">
+  return `<article class="connection-card" data-connection-card="${user.id}">
+    <button type="button" class="connection-favorite ${user.favorite ? 'active' : ''}" data-connection-favorite="${user.id}" aria-label="${user.favorite ? 'Quitar de favoritas' : 'Añadir a favoritas'}">${user.favorite ? '★' : '☆'}</button>
     ${profileLink(user.username,`<span class="connection-avatar">${avatarHTML(user)}</span>`,'connection-profile')}
     <div class="connection-copy">
       ${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'connection-name')}
       <small>@${esc(user.username)}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small>
       ${user.profile_status ? `<p>${esc(user.profile_status)}</p>` : ''}
       <span>${esc(reason)}</span>
+      ${connectionCircleNamesHTML(user)}
     </div>
-    <button type="button" class="connection-message" data-connection-message="${esc(user.username)}">Mensaje</button>
+    <div class="connection-card-actions">
+      <button type="button" class="connection-organize" data-connection-organize="${user.id}" data-connection-display="${esc(user.display_name || user.username)}" data-connection-username="${esc(user.username)}">Círculos</button>
+      <button type="button" class="connection-message" data-connection-message="${esc(user.username)}">Mensaje</button>
+    </div>
   </article>`;
+}
+
+function renderConnectionCircleFilters(){
+  const root=$('#connectionCircleFilters');
+  if(!root)return;
+  root.innerHTML=`
+    <button type="button" class="${activeConnectionCircleId===null ? 'active' : ''}" data-connection-circle-filter="">Todas</button>
+    ${connectionCircles.map(circle=>`
+      <button type="button" class="${String(activeConnectionCircleId)===String(circle.id) ? 'active' : ''}" data-connection-circle-filter="${circle.id}">
+        ${circle.is_favorites ? '★ ' : ''}${esc(circle.name)} <span>${Number(circle.member_count || 0)}</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+async function loadConnectionCircles(){
+  const {r,d}=await api('/api/profiles/connections/circles');
+  connectionCircles=r.ok && Array.isArray(d.circles) ? d.circles : [];
+  if(activeConnectionCircleId!==null && !connectionCircles.some(circle=>String(circle.id)===String(activeConnectionCircleId))){
+    activeConnectionCircleId=null;
+  }
+  renderConnectionCircleFilters();
+  return connectionCircles;
 }
 
 async function loadConnections() {
@@ -431,19 +468,133 @@ async function loadConnections() {
   const list=$('#connectionsList');
   if(!section || !list)return [];
 
-  const {r,d}=await api('/api/profiles/connections?limit=20');
+  await loadConnectionCircles();
+  const query=new URLSearchParams({limit:'50'});
+  if(activeConnectionCircleId!==null)query.set('circleId',String(activeConnectionCircleId));
+  const {r,d}=await api(`/api/profiles/connections?${query.toString()}`);
   const connections=r.ok && Array.isArray(d.connections) ? d.connections : [];
-  if(!connections.length){
+
+  if(!connections.length && activeConnectionCircleId===null){
     section.classList.add('hidden');
     list.innerHTML='';
     if($('#connectionsCount'))$('#connectionsCount').textContent='0';
     return [];
   }
 
-  list.innerHTML=connections.map(connectionCardHTML).join('');
-  if($('#connectionsCount'))$('#connectionsCount').textContent=String(connections.length);
   section.classList.remove('hidden');
+  list.innerHTML=connections.length ? connections.map(connectionCardHTML).join('') : '<div class="connections-empty">Este círculo todavía no tiene conexiones.</div>';
+  if($('#connectionsCount'))$('#connectionsCount').textContent=String(connections.length);
+  renderConnectionCircleFilters();
   return connections;
+}
+
+function closeConnectionCirclesModal(){
+  $('#connectionCirclesModal')?.classList.add('hidden');
+  activeCircleConnection=null;
+  $('#newCircleForm')?.reset();
+  if($('#newCircleStatus'))$('#newCircleStatus').textContent='';
+}
+
+function renderConnectionCircleManageList(){
+  const root=$('#connectionCircleManageList');
+  if(!root)return;
+  root.innerHTML=connectionCircles.map(circle=>`
+    <article class="connection-circle-manage-row">
+      <div><b>${circle.is_favorites ? '★ ' : ''}${esc(circle.name)}</b><small>${Number(circle.member_count || 0)} conexiones</small></div>
+      ${circle.is_favorites ? '<span class="connection-circle-fixed">Fijo</span>' : `
+        <div class="connection-circle-manage-actions">
+          <button type="button" class="tiny-action" data-circle-rename="${circle.id}" data-circle-name="${esc(circle.name)}">Renombrar</button>
+          <button type="button" class="tiny-action danger-outline" data-circle-delete="${circle.id}" data-circle-name="${esc(circle.name)}">Eliminar</button>
+        </div>
+      `}
+    </article>
+  `).join('');
+}
+
+async function loadConnectionMemberships(){
+  const root=$('#connectionCircleMemberships');
+  if(!root)return;
+  if(!activeCircleConnection){
+    root.innerHTML='<div class="connection-circle-neutral"><b>Crea y gestiona tus círculos.</b><p>Para asignar una persona, pulsa “Círculos” en su tarjeta.</p></div>';
+    renderConnectionCircleManageList();
+    return;
+  }
+
+  root.innerHTML='<div class="mini-loading">Cargando círculos…</div>';
+  const {r,d}=await api(`/api/profiles/connections/${activeCircleConnection.id}/circles`);
+  if(!r.ok){
+    root.innerHTML='<div class="info-card"><b>No se pudieron cargar los círculos.</b></div>';
+    return;
+  }
+  const memberships=Array.isArray(d.circles) ? d.circles : [];
+  root.innerHTML=memberships.map(circle=>`
+    <label class="connection-circle-membership">
+      <input type="checkbox" data-circle-membership="${circle.id}" ${circle.selected ? 'checked' : ''}>
+      <span><b>${circle.is_favorites ? '★ ' : ''}${esc(circle.name)}</b><small>${circle.is_favorites ? 'Tu lista rápida de favoritas.' : 'Círculo privado.'}</small></span>
+    </label>
+  `).join('');
+  all('[data-circle-membership]',root).forEach(input=>{
+    input.onchange=async()=>{
+      const selected=input.checked;
+      input.disabled=true;
+      const {r:response}=await api(
+        `/api/profiles/connections/circles/${input.dataset.circleMembership}/members/${activeCircleConnection.id}`,
+        {method:selected?'PUT':'DELETE'}
+      );
+      if(!response.ok){
+        input.checked=!selected;
+        toast('No se pudo actualizar el círculo.');
+      }else{
+        await loadConnectionCircles();
+        renderConnectionCircleManageList();
+        await loadConnections();
+      }
+      input.disabled=false;
+    };
+  });
+  renderConnectionCircleManageList();
+}
+
+async function openConnectionCirclesModal(connection=null){
+  activeCircleConnection=connection;
+  const modal=$('#connectionCirclesModal');
+  if(!modal)return;
+  modal.classList.remove('hidden');
+  $('#connectionCirclesModalTitle').textContent=connection ? `Organizar a ${connection.displayName}` : 'Gestionar círculos';
+  $('#connectionCirclesModalIntro').textContent=connection ? `Elige dónde guardar a @${connection.username}. Esta organización es privada.` : 'Crea, renombra o elimina círculos privados para ordenar tus conexiones.';
+  await loadConnectionCircles();
+  await loadConnectionMemberships();
+}
+
+async function createConnectionCircle(name){
+  const {r,d}=await api('/api/profiles/connections/circles',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name})
+  });
+  if(!r.ok){
+    return {ok:false,message:d.error==='circle_limit_reached' ? 'Puedes tener hasta 12 círculos personalizados.' : d.error==='circle_name_exists' ? 'Ya tienes un círculo con ese nombre.' : 'No se pudo crear el círculo.'};
+  }
+  await loadConnectionCircles();
+  await loadConnectionMemberships();
+  return {ok:true};
+}
+
+async function toggleFavoriteConnection(userId){
+  await loadConnectionCircles();
+  const favorite=connectionCircles.find(circle=>circle.is_favorites);
+  if(!favorite)return toast('No se pudo cargar Favoritas.');
+  const card=$(`[data-connection-card="${userId}"]`);
+  const button=card?.querySelector('[data-connection-favorite]');
+  const active=button?.classList.contains('active')===true;
+  if(button)button.disabled=true;
+  const {r}=await api(`/api/profiles/connections/circles/${favorite.id}/members/${userId}`,{method:active?'DELETE':'PUT'});
+  if(!r.ok){
+    if(button)button.disabled=false;
+    return toast('No se pudo actualizar Favoritas.');
+  }
+  toast(active ? 'Quitada de Favoritas' : 'Añadida a Favoritas');
+  await loadConnections();
 }
 
 async function openConnectionMessage(username) {
@@ -1580,12 +1731,93 @@ function closePostFocus() {
   if (root) root.innerHTML = '';
 }
 
+$('#newConnectionCircle')?.addEventListener('click',()=>openConnectionCirclesModal(null));
+$('#closeConnectionCirclesModal')?.addEventListener('click',closeConnectionCirclesModal);
+$('#connectionCirclesModal')?.addEventListener('click',event=>{
+  if(event.target===$('#connectionCirclesModal'))closeConnectionCirclesModal();
+});
+$('#newCircleForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const status=$('#newCircleStatus');
+  const name=String(new FormData(form).get('name') || '').trim();
+  if(!name)return;
+  status.textContent='Creando…';
+  const result=await createConnectionCircle(name);
+  if(!result.ok){status.textContent=result.message;return;}
+  form.reset();
+  status.textContent='Círculo creado.';
+  await loadConnections();
+});
+
 $('#closePostFocusModal')?.addEventListener('click', closePostFocus);
 $('#postFocusModal')?.addEventListener('click', event => {
   if (event.target === $('#postFocusModal')) closePostFocus();
 });
 
 document.addEventListener('click', async event => {
+  const circleFilter=event.target.closest('[data-connection-circle-filter]');
+  if(circleFilter){
+    event.preventDefault();
+    activeConnectionCircleId=circleFilter.dataset.connectionCircleFilter ? Number(circleFilter.dataset.connectionCircleFilter) : null;
+    await loadConnections();
+    return;
+  }
+
+  const favoriteButton=event.target.closest('[data-connection-favorite]');
+  if(favoriteButton){
+    event.preventDefault();
+    event.stopPropagation();
+    await toggleFavoriteConnection(Number(favoriteButton.dataset.connectionFavorite));
+    return;
+  }
+
+  const organizeButton=event.target.closest('[data-connection-organize]');
+  if(organizeButton){
+    event.preventDefault();
+    event.stopPropagation();
+    await openConnectionCirclesModal({
+      id:Number(organizeButton.dataset.connectionOrganize),
+      displayName:organizeButton.dataset.connectionDisplay,
+      username:organizeButton.dataset.connectionUsername
+    });
+    return;
+  }
+
+  const renameCircle=event.target.closest('[data-circle-rename]');
+  if(renameCircle){
+    event.preventDefault();
+    const next=window.prompt('Nuevo nombre del círculo:',renameCircle.dataset.circleName || '');
+    if(next===null)return;
+    const name=String(next).trim();
+    if(!name)return toast('Escribe un nombre.');
+    const {r,d}=await api(`/api/profiles/connections/circles/${renameCircle.dataset.circleRename}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name})
+    });
+    if(!r.ok)return toast(d.error==='circle_name_exists' ? 'Ya existe un círculo con ese nombre.' : 'No se pudo renombrar.');
+    await loadConnectionCircles();
+    await loadConnectionMemberships();
+    await loadConnections();
+    toast('Círculo renombrado');
+    return;
+  }
+
+  const deleteCircle=event.target.closest('[data-circle-delete]');
+  if(deleteCircle){
+    event.preventDefault();
+    if(!window.confirm(`¿Eliminar el círculo “${deleteCircle.dataset.circleName || ''}”? Las conexiones no se eliminarán.`))return;
+    const {r}=await api(`/api/profiles/connections/circles/${deleteCircle.dataset.circleDelete}`,{method:'DELETE'});
+    if(!r.ok)return toast('No se pudo eliminar el círculo.');
+    if(String(activeConnectionCircleId)===String(deleteCircle.dataset.circleDelete))activeConnectionCircleId=null;
+    await loadConnectionCircles();
+    await loadConnectionMemberships();
+    await loadConnections();
+    toast('Círculo eliminado');
+    return;
+  }
+
   const connectionMessage=event.target.closest('[data-connection-message]');
   if(connectionMessage){event.preventDefault();event.stopPropagation();await openConnectionMessage(connectionMessage.dataset.connectionMessage);return;}
 

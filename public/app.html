@@ -102,9 +102,13 @@
       </div>
       <section id="connectionsSection" class="connections-section hidden">
         <div class="connections-head">
-          <div><span class="eyebrow">TU RED</span><h2>Tus conexiones</h2><p>Personas con seguimiento mutuo. Hablar con ellas está a un toque.</p></div>
-          <span id="connectionsCount" class="connections-count">0</span>
+          <div><span class="eyebrow">TU RED</span><h2>Tus conexiones</h2><p>Organiza tu red en círculos privados. Solo tú puedes verlos.</p></div>
+          <div class="connections-head-actions">
+            <button id="newConnectionCircle" class="connection-circle-create" type="button">+ Círculo</button>
+            <span id="connectionsCount" class="connections-count">0</span>
+          </div>
         </div>
+        <div id="connectionCircleFilters" class="connection-circle-filters"></div>
         <div id="connectionsList" class="connections-strip"></div>
       </section>
       <section class="people-discovery">
@@ -777,6 +781,34 @@
         <div id="blockedList" class="privacy-person-list"></div>
       </section>
     </div>
+  </div>
+</div>
+
+<div id="connectionCirclesModal" class="modal hidden">
+  <div class="modal-card connection-circles-modal-card">
+    <button id="closeConnectionCirclesModal" class="modal-close" type="button">×</button>
+    <span class="eyebrow">CÍRCULOS PRIVADOS</span>
+    <h2 id="connectionCirclesModalTitle">Organizar conexión</h2>
+    <p id="connectionCirclesModalIntro" class="muted">Elige en qué círculos quieres guardar esta conexión. Nadie más puede ver esta información.</p>
+
+    <div id="connectionCircleMemberships" class="connection-circle-memberships"></div>
+
+    <form id="newCircleForm" class="connection-circle-form">
+      <label>Nuevo círculo
+        <div class="connection-circle-form-row">
+          <input name="name" maxlength="40" placeholder="Ej. Amigos cercanos" required>
+          <button class="primary" type="submit">Crear</button>
+        </div>
+      </label>
+      <p id="newCircleStatus" class="status"></p>
+    </form>
+
+    <section class="connection-circle-manage-section">
+      <div class="account-section-head">
+        <div><b>Gestionar círculos</b><small>Favoritas es un círculo fijo. Los demás se pueden renombrar o eliminar.</small></div>
+      </div>
+      <div id="connectionCircleManageList" class="connection-circle-manage-list"></div>
+    </section>
   </div>
 </div>
 
