@@ -23,6 +23,7 @@ let toastTimer = null;
 let ownProfileMode = 'posts';
 let activeNotificationFilter = 'all';
 let notificationCache = [];
+let returnPulseLoaded = false;
 const HOME_LAST_VISIT_KEY = 'redlibertad:last-home-visit';
 const VIP_LAST_VISIT_KEY = 'redlibertad:last-vip-visit';
 let visibleStories = [];
@@ -516,6 +517,75 @@ async function loadHomeMomentum() {
   updateLatestModeBadge(catchup.length);
   section.classList.remove('hidden');
   storeHomeVisit(new Date());
+}
+
+function returnPulseCard(label,value,action,detail='') {
+  const count=Number(value || 0);
+  if(!count)return '';
+  return `<button type="button" class="return-pulse-card" data-return-pulse-action="${esc(action)}">
+    <b>${count>99?'99+':count}</b>
+    <span>${esc(label)}</span>
+    ${detail ? `<small>${esc(detail)}</small>` : ''}
+    <i>›</i>
+  </button>`;
+}
+
+async function loadReturnPulse(force=false) {
+  const section=$('#returnPulse');
+  const grid=$('#returnPulseGrid');
+  if(!section || !grid)return;
+  if(returnPulseLoaded && !force)return;
+
+  const {r,d}=await api('/api/growth/pulse');
+  if(!r.ok){
+    section.classList.add('hidden');
+    return;
+  }
+
+  returnPulseLoaded=true;
+  const counts=d.counts || {};
+  const cards=[
+    returnPulseCard('Mensajes sin leer',counts.unread_messages,'messages','Continuar conversaciones'),
+    returnPulseCard('Notificaciones',counts.unread_notifications,'notifications','Actividad pendiente'),
+    returnPulseCard('Nuevos de personas que sigues',counts.following_posts,'following','Publicaciones desde tu última visita'),
+    returnPulseCard('Stories sin ver',counts.unseen_stories,'stories','Stories disponibles ahora'),
+    returnPulseCard('Reels sin ver',counts.unseen_reels,'reels','Vídeos que aún no has visto'),
+    returnPulseCard('Nuevos seguidores',counts.new_followers,'followers','Personas que han empezado a seguirte')
+  ].filter(Boolean);
+
+  const since=new Date(d.since || '');
+  if($('#returnPulseSince') && Number.isFinite(since.getTime())){
+    $('#returnPulseSince').textContent=`Desde ${since.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}`;
+  }
+
+  grid.innerHTML=cards.join('');
+  section.classList.toggle('hidden',cards.length===0);
+
+  try{
+    await api('/api/growth/pulse/seen',{method:'POST'});
+  }catch(_){}
+}
+
+async function handleReturnPulseAction(action) {
+  if(action==='messages'){showView('messages');return;}
+  if(action==='notifications'){showView('notifications');return;}
+  if(action==='following'){
+    showView('feed');
+    await loadFeed('following');
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  if(action==='stories'){
+    showView('feed');
+    document.querySelector('#stories')?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  if(action==='reels'){showView('reels');return;}
+  if(action==='followers'){
+    showView('profile');
+    if(!me)await loadMe();
+    await openSocialList(me.username,'followers');
+  }
 }
 
 function growthInviteUrl(code) {
@@ -1328,6 +1398,9 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const pulseAction=event.target.closest('[data-return-pulse-action]');
+  if(pulseAction){event.preventDefault();await handleReturnPulseAction(pulseAction.dataset.returnPulseAction);return;}
+
   const hidePerson=event.target.closest('[data-discovery-hide-person]');
   if(hidePerson){event.preventDefault();event.stopPropagation();await hideDiscoveryPerson(hidePerson);return;}
 
@@ -4757,6 +4830,11 @@ $('#clearPeopleSearch').onclick = async () => {
   await loadPeopleSuggestions(activeExploreInterest);
 };
 
+$('#returnPulseRefresh')?.addEventListener('click',async()=>{
+  returnPulseLoaded=false;
+  await loadReturnPulse(true);
+});
+
 function showView(name) {
   all('.view').forEach(v => v.classList.add('hidden'));
   const view = document.querySelector('#' + name + 'View');
@@ -4764,7 +4842,7 @@ function showView(name) {
   view.classList.remove('hidden');
   animateView(view);
   all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  if (name === 'feed') { loadHomeMomentum(); loadGrowthPanel(); }
+  if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
@@ -5056,7 +5134,7 @@ async function handleInitialDeepLink() {
   try {
     await loadMe();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadHomeMomentum(), loadGrowthPanel()]);
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
