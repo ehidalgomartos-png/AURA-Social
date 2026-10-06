@@ -290,10 +290,20 @@
             <button type="button" data-followup-window="later">Más adelante</button>
             <button type="button" data-followup-window="undated">Sin fecha</button>
           </div>
-          <label class="creator-followup-search">
-            <span>Buscar en notas privadas</span>
-            <input id="creatorFollowUpSearch" type="search" maxlength="120" placeholder="Ej. responder mañana, cliente VIP...">
-          </label>
+          <div class="creator-followup-filter-stack">
+            <label class="creator-followup-priority">
+              <span>Prioridad</span>
+              <select id="creatorFollowUpPriority">
+                <option value="all">Todas</option>
+                <option value="high">Alta</option>
+                <option value="normal">Normal</option>
+              </select>
+            </label>
+            <label class="creator-followup-search">
+              <span>Buscar en notas privadas</span>
+              <input id="creatorFollowUpSearch" type="search" maxlength="120" placeholder="Ej. responder mañana, cliente VIP...">
+            </label>
+          </div>
         </div>
         <div class="creator-followup-bulkbar">
           <label class="creator-followup-select-all">
