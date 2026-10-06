@@ -119,6 +119,54 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorV15Ready = null;
+async function ensureCreatorV15() {
+  if (!creatorV15Ready) {
+    creatorV15Ready = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_broadcasts (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body VARCHAR(280) NOT NULL,
+          recipient_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_broadcasts_user_created ON creator_broadcasts(user_id,created_at DESC)');
+      const constraint=await db.query(
+        "SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conname='notifications_type_check' AND conrelid='notifications'::regclass LIMIT 1"
+      );
+      const definition=String(constraint.rows[0]?.definition || '');
+      if(!definition.includes('creator_broadcast')){
+        await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
+        await db.query(`
+          ALTER TABLE notifications
+            ADD CONSTRAINT notifications_type_check
+            CHECK(type IN (
+              'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+              'like','comment','mention','repost','creator_broadcast','system'
+            ))
+        `);
+      }
+    })().catch(error => {
+      creatorV15Ready = null;
+      throw error;
+    });
+  }
+  return creatorV15Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorV15();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.15 creator audience bootstrap failed:',error);
+    res.status(500).json({error:'creator_audience_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
@@ -496,7 +544,48 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
      LIMIT 5
   `,[req.user.id]);
 
-  res.json({creator:account,posts:posts.rows,links:links.rows,featuredLimit:3,linkLimit:5});
+  const [audience,broadcasts,lastBroadcast]=await Promise.all([
+    db.query(`
+      SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,f.created_at AS followed_at
+        FROM follows f
+        JOIN users u ON u.id=f.follower_id
+       WHERE f.following_id=$1
+         AND u.status='active'
+       ORDER BY f.created_at DESC
+       LIMIT 20
+    `,[req.user.id]),
+    db.query(`
+      SELECT id,body,recipient_count,created_at
+        FROM creator_broadcasts
+       WHERE user_id=$1
+       ORDER BY created_at DESC
+       LIMIT 10
+    `,[req.user.id]),
+    db.query(`
+      SELECT created_at
+        FROM creator_broadcasts
+       WHERE user_id=$1
+       ORDER BY created_at DESC
+       LIMIT 1
+    `,[req.user.id])
+  ]);
+
+  const lastCreated=lastBroadcast.rows[0]?.created_at || null;
+  const nextBroadcastAt=lastCreated
+    ? new Date(new Date(lastCreated).getTime()+24*60*60*1000).toISOString()
+    : null;
+
+  res.json({
+    creator:account,
+    posts:posts.rows,
+    links:links.rows,
+    audience:audience.rows,
+    broadcasts:broadcasts.rows,
+    featuredLimit:3,
+    linkLimit:5,
+    broadcastLimitHours:24,
+    nextBroadcastAt
+  });
 });
 
 router.post('/me/creator/featured/:postId',requireAuth,async(req,res)=>{
@@ -678,6 +767,100 @@ router.post('/creator-links/:id/click',async(req,res)=>{
 
   if(!result.rowCount)return res.status(404).json({error:'creator_link_not_found'});
   res.json({ok:true,url:result.rows[0].url});
+});
+
+
+const creatorBroadcastSchema=z.object({
+  body:z.string().trim().min(1).max(280)
+});
+
+router.post('/me/creator-broadcasts',requireAuth,async(req,res)=>{
+  const parsed=creatorBroadcastSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_broadcast'});
+
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const account=await client.query(
+      'SELECT id,creator_verified FROM users WHERE id=$1 FOR UPDATE',
+      [req.user.id]
+    );
+    if(!account.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'user_not_found'});
+    }
+    if(!account.rows[0].creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required'});
+    }
+
+    const last=await client.query(`
+      SELECT created_at
+        FROM creator_broadcasts
+       WHERE user_id=$1
+       ORDER BY created_at DESC
+       LIMIT 1
+    `,[req.user.id]);
+
+    if(last.rowCount){
+      const nextAt=new Date(new Date(last.rows[0].created_at).getTime()+24*60*60*1000);
+      if(nextAt.getTime()>Date.now()){
+        await client.query('ROLLBACK');
+        return res.status(429).json({error:'broadcast_cooldown',nextBroadcastAt:nextAt.toISOString()});
+      }
+    }
+
+    const inserted=await client.query(`
+      INSERT INTO creator_broadcasts (user_id,body)
+      VALUES ($1,$2)
+      RETURNING id,body,created_at
+    `,[req.user.id,parsed.data.body]);
+    const broadcast=inserted.rows[0];
+
+    const recipients=await client.query(`
+      INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+      SELECT
+        f.follower_id,
+        $1,
+        'creator_broadcast',
+        'creator_broadcast',
+        $2,
+        $3
+      FROM follows f
+      JOIN users follower ON follower.id=f.follower_id
+      WHERE f.following_id=$1
+        AND follower.status='active'
+        AND NOT EXISTS (
+          SELECT 1 FROM mutes m
+           WHERE m.muter_id=f.follower_id
+             AND m.muted_id=$1
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blocks b
+           WHERE (b.blocker_id=f.follower_id AND b.blocked_id=$1)
+              OR (b.blocker_id=$1 AND b.blocked_id=f.follower_id)
+        )
+      RETURNING id
+    `,[req.user.id,broadcast.id,parsed.data.body]);
+
+    await client.query(
+      'UPDATE creator_broadcasts SET recipient_count=$2 WHERE id=$1',
+      [broadcast.id,recipients.rowCount]
+    );
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      ok:true,
+      broadcast:{...broadcast,recipient_count:recipients.rowCount},
+      nextBroadcastAt:new Date(new Date(broadcast.created_at).getTime()+24*60*60*1000).toISOString()
+    });
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad creator broadcast failed:',error);
+    res.status(500).json({error:'creator_broadcast_failed'});
+  }finally{
+    client.release();
+  }
 });
 
 router.get('/:username', optionalAuth, async (req,res)=>{
