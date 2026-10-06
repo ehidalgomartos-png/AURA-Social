@@ -70,6 +70,38 @@
 .chat-presence.online,.chat-presence.typing{color:var(--teal)}
 .chat-presence.typing{font-style:italic}
 .message-receipt{font-weight:800;opacity:.82}
+.message-reply-preview{
+  margin:0 0 7px;padding:7px 9px;border-left:3px solid currentColor;border-radius:8px;
+  background:rgba(255,255,255,.16);opacity:.92
+}
+.message-reply-preview small{display:block;font-size:9px;font-weight:900;opacity:.78}
+.message-reply-preview p{margin:2px 0 0!important;font-size:11px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.message-reply-preview.gated{font-style:italic}
+.message-bubble-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px}
+.message-reply-button{border:0;background:transparent;color:inherit;padding:2px 0;font-size:9px;font-weight:900;opacity:.72}
+.message-reaction-bar{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.message-reaction-bar button{
+  border:1px solid rgba(13,34,56,.09);background:rgba(255,255,255,.72);
+  border-radius:999px;padding:4px 6px;font-size:12px;line-height:1;cursor:pointer
+}
+.message-bubble.mine .message-reaction-bar button{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.22)}
+.message-reaction-bar button.active{box-shadow:0 0 0 2px rgba(43,183,169,.28);transform:translateY(-1px)}
+.message-reaction-bar button span{font-size:9px;font-weight:900}
+.message-reply-composer{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--soft);margin-bottom:8px
+}
+.message-reply-composer>div{min-width:0}
+.message-reply-composer small,.message-reply-composer b,.message-reply-composer p{display:block}
+.message-reply-composer small{font-size:8px;color:var(--muted);font-weight:900}
+.message-reply-composer b{color:var(--navy);font-size:11px}
+.message-reply-composer p{margin:2px 0 0;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
+@media(max-width:620px){
+  .message-reaction-bar{gap:3px}
+  .message-reaction-bar button{padding:5px;font-size:13px}
+  .message-reply-composer p{max-width:230px}
+}
+
 .message-bubble.mine .message-receipt{color:inherit}
 .conversation-muted{display:block;margin-top:2px;font-size:8px;font-style:normal;color:var(--muted)}
 .chat-conversation-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
