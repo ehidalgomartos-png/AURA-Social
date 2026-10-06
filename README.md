@@ -1,4 +1,4 @@
-# RedLibertad V1.63.0 — Community Moderation 3.0
+# RedLibertad V1.64.0 — Social Search 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1364,5 +1364,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Detección de ráfagas de reportes sobre el mismo objetivo.
 - Las señales coordinadas nunca sancionan automáticamente.
 - Los reportes del mismo objetivo se cierran conjuntamente al resolver el incidente.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.64.0 — Social Search 2.0
+
+- Búsqueda global desde Explorar.
+- Personas, posts, Reels, hashtags, comunidades y eventos.
+- Filtros por tipo de resultado.
+- Coincidencia textual y actualidad, sin ranking por likes/comentarios.
+- Posts y Reels globales limitados a contenido público.
+- Comunidades privadas solo si el usuario ya es miembro.
+- Eventos respetan audiencia Público / Conexiones / Círculos / Comunidad.
+- Bloqueos, silencios y discoverability respetados.
+- Historial opcional, guardado solo en localStorage del dispositivo.
+- Historial desactivado por defecto y borrable por el usuario.
 - Mobile-first.
 - Sin monetización.
