@@ -2750,21 +2750,32 @@ function gateRows(rows, viewer) {
 async function attachApprovedParticipants(rows) {
   if (!rows.length) return rows;
   const postIds = rows.map(row => row.id);
-  const result = await db.query(`
-    SELECT pp.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
-      FROM post_participants pp
-      JOIN users u ON u.id=pp.user_id
-     WHERE pp.post_id = ANY($1::bigint[])
-       AND pp.consent_status='approved'
-       AND u.status='active'
-     ORDER BY pp.requested_at ASC, u.username ASC
-  `, [postIds]);
+  const [participantResult,collaboratorResult] = await Promise.all([
+    db.query(`
+      SELECT pp.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
+        FROM post_participants pp
+        JOIN users u ON u.id=pp.user_id
+       WHERE pp.post_id = ANY($1::bigint[])
+         AND pp.consent_status='approved'
+         AND u.status='active'
+       ORDER BY pp.requested_at ASC, u.username ASC
+    `, [postIds]),
+    db.query(`
+      SELECT pc.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
+        FROM post_collaborators pc
+        JOIN users u ON u.id=pc.user_id
+       WHERE pc.post_id = ANY($1::bigint[])
+         AND pc.status='approved'
+         AND u.status='active'
+       ORDER BY pc.requested_at ASC, u.username ASC
+    `, [postIds])
+  ]);
 
-  const byPost = new Map();
-  for (const participant of result.rows) {
+  const participantsByPost = new Map();
+  for (const participant of participantResult.rows) {
     const key = String(participant.post_id);
-    if (!byPost.has(key)) byPost.set(key, []);
-    byPost.get(key).push({
+    if (!participantsByPost.has(key)) participantsByPost.set(key, []);
+    participantsByPost.get(key).push({
       id: participant.id,
       username: participant.username,
       display_name: participant.display_name,
@@ -2773,9 +2784,23 @@ async function attachApprovedParticipants(rows) {
     });
   }
 
+  const collaboratorsByPost = new Map();
+  for (const collaborator of collaboratorResult.rows) {
+    const key=String(collaborator.post_id);
+    if(!collaboratorsByPost.has(key))collaboratorsByPost.set(key,[]);
+    collaboratorsByPost.get(key).push({
+      id:collaborator.id,
+      username:collaborator.username,
+      display_name:collaborator.display_name,
+      avatar_url:collaborator.avatar_url,
+      creator_verified:collaborator.creator_verified
+    });
+  }
+
   return rows.map(row => ({
     ...row,
-    participants: byPost.get(String(row.id)) || []
+    participants: participantsByPost.get(String(row.id)) || [],
+    collaborators: collaboratorsByPost.get(String(row.id)) || []
   }));
 }
 
