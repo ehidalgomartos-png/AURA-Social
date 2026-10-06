@@ -12,6 +12,7 @@ let messageConversationSearchTimer = null;
 let interestCatalog = [];
 let activeExploreInterest = '';
 let activeCommentsPostId = null;
+let activeCommentReply = null;
 let activeReportPostId = null;
 let pendingDeleteComment = null;
 let activeManagePost = null;
@@ -3694,7 +3695,9 @@ async function loadConsents() {
 
 
 function commentHTML(comment) {
-  return `<article class="comment-item">
+  const reply=!!comment.parent_comment_id;
+  const replyCount=Number(comment.reply_count || 0);
+  return `<article class="comment-item ${reply ? 'comment-reply' : 'comment-root'}" data-comment-id="${comment.id}">
     ${profileLink(
       comment.username,
       `<span class="comment-avatar">${comment.avatar_url ? `<img src="${esc(comment.avatar_url)}">` : initials(comment.display_name)}</span>`,
@@ -3708,21 +3711,44 @@ function commentHTML(comment) {
             `<b>${esc(comment.display_name)} ${comment.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,
             'comment-name-link'
           )}
-          <small>${new Date(comment.created_at).toLocaleString()}</small>
+          <small>${reply ? 'Respuesta · ' : ''}${timeAgo(comment.created_at)}</small>
         </div>
         ${comment.can_delete ? `
-          <button
-            type="button"
-            class="comment-delete-button"
-            data-delete-comment="${comment.id}"
-            data-delete-comment-post="${activeCommentsPostId}"
-            aria-label="Eliminar comentario"
-            title="Eliminar comentario">Eliminar</button>
+          <button type="button" class="comment-delete-button" data-delete-comment="${comment.id}" data-delete-comment-post="${activeCommentsPostId}" aria-label="Eliminar comentario" title="Eliminar comentario">Eliminar</button>
         ` : ''}
       </div>
       <p>${captionHTML(comment.body)}</p>
+      <div class="comment-thread-actions">
+        ${!reply ? `<button type="button" data-reply-comment="${comment.id}" data-reply-username="${esc(comment.username)}" data-reply-display="${esc(comment.display_name)}">Responder</button>` : ''}
+        ${!reply && replyCount ? `<span>${replyCount} ${replyCount===1 ? 'respuesta' : 'respuestas'}</span>` : ''}
+      </div>
     </div>
   </article>`;
+}
+
+function clearCommentReply() {
+  activeCommentReply=null;
+  $('#commentReplyContext')?.classList.add('hidden');
+  if($('#commentReplyName'))$('#commentReplyName').textContent='';
+  if($('#commentBody'))$('#commentBody').placeholder='Escribe un comentario...';
+  const submit=$('#commentForm button[type="submit"]');
+  if(submit && !submit.disabled)submit.textContent='Comentar';
+}
+
+function startCommentReply(button) {
+  activeCommentReply={
+    id:Number(button.dataset.replyComment),
+    username:String(button.dataset.replyUsername || ''),
+    displayName:String(button.dataset.replyDisplay || button.dataset.replyUsername || '')
+  };
+  if($('#commentReplyName'))$('#commentReplyName').textContent=`@${activeCommentReply.username}`;
+  $('#commentReplyContext')?.classList.remove('hidden');
+  if($('#commentBody')){
+    $('#commentBody').placeholder=`Responde a ${activeCommentReply.displayName}...`;
+    $('#commentBody').focus();
+  }
+  const submit=$('#commentForm button[type="submit"]');
+  if(submit)submit.textContent='Responder';
 }
 
 async function loadComments(postId) {
@@ -3739,6 +3765,7 @@ async function loadComments(postId) {
     ? d.comments.map(commentHTML).join('')
     : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
 
+  all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
   list.scrollTop = list.scrollHeight;
 }
 
@@ -3746,6 +3773,7 @@ async function openComments(postId) {
   activeCommentsPostId = Number(postId);
   $('#commentBody').value = '';
   $('#commentStatus').textContent = '';
+  clearCommentReply();
   $('#commentsModal').classList.remove('hidden');
   await loadComments(activeCommentsPostId);
 }
@@ -4267,7 +4295,9 @@ $('#confirmDeleteComment').onclick = async () => {
 $('#closeCommentsModal').onclick = () => {
   $('#commentsModal').classList.add('hidden');
   activeCommentsPostId = null;
+  clearCommentReply();
 };
+$('#cancelCommentReply')?.addEventListener('click',clearCommentReply);
 
 $('#commentForm').addEventListener('submit', async event => {
   event.preventDefault();
@@ -4286,7 +4316,10 @@ $('#commentForm').addEventListener('submit', async event => {
     const { r, d } = await api(`/api/posts/${activeCommentsPostId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body })
+      body: JSON.stringify({
+        body,
+        parentCommentId:activeCommentReply?.id || null
+      })
     });
 
     if (!r.ok) {
@@ -4295,8 +4328,10 @@ $('#commentForm').addEventListener('submit', async event => {
         : 'No se pudo publicar el comentario.');
     }
 
+    const wasReply=!!activeCommentReply;
     $('#commentBody').value = '';
-    $('#commentStatus').textContent = 'Comentario publicado.';
+    clearCommentReply();
+    $('#commentStatus').textContent = wasReply ? 'Respuesta publicada.' : 'Comentario publicado.';
     await loadComments(activeCommentsPostId);
     await loadFeed(currentMode);
     if ($('#growthPanel')) await loadGrowthPanel();
