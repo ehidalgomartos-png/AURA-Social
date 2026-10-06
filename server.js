@@ -66,14 +66,14 @@ app.use('/api/trust', trustRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    version: '1.17.0',
+    version: '1.18.0',
     mode: 'redlibertad-social',
     media: process.env.MEDIA_STORAGE || 'local',
     features: [
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
       'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
-      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics','privacy-v1.9','message-privacy','discoverability-controls','activity-visibility','mute-users','block-management','muted-feed-filter','privacy-center','account-security-v1.10','revocable-sessions','password-change','logout-all-sessions','account-data-export','self-service-account-deletion','local-media-cleanup','trust-safety-v1.11','moderation-history','timed-suspensions','user-warnings','admin-user-actions','report-context','auto-suspension-expiry','verification-trust-v1.12','self-service-verification-requests','verification-review-queue','verification-history','public-trust-badges','creator-hub-v1.13','creator-analytics','featured-profile-posts','creator-profile-v1.14','creator-public-links','aggregate-link-clicks','creator-audience-v1.15','creator-broadcasts','broadcast-cooldown','broadcast-privacy-controls','creator-engagement-v1.16','active-audience-30d','private-top-fans','top-content-analytics','creator-vip-v1.17','private-vip-circle','vip-broadcasts','vip-follower-validation'
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics','privacy-v1.9','message-privacy','discoverability-controls','activity-visibility','mute-users','block-management','muted-feed-filter','privacy-center','account-security-v1.10','revocable-sessions','password-change','logout-all-sessions','account-data-export','self-service-account-deletion','local-media-cleanup','trust-safety-v1.11','moderation-history','timed-suspensions','user-warnings','admin-user-actions','report-context','auto-suspension-expiry','verification-trust-v1.12','self-service-verification-requests','verification-review-queue','verification-history','public-trust-badges','creator-hub-v1.13','creator-analytics','featured-profile-posts','creator-profile-v1.14','creator-public-links','aggregate-link-clicks','creator-audience-v1.15','creator-broadcasts','broadcast-cooldown','broadcast-privacy-controls','creator-engagement-v1.16','active-audience-30d','private-top-fans','top-content-analytics','creator-vip-v1.17','private-vip-circle','vip-broadcasts','vip-follower-validation','exclusive-content-v1.18','vip-post-audience','vip-access-enforcement','vip-share-protection'
     ]
   });
 });
@@ -89,13 +89,26 @@ function absoluteUrl(req, value='') {
   const base = configured || `${req.protocol}://${req.get('host')}`;
   return `${base}${value.startsWith('/') ? '' : '/'}${value}`;
 }
+
+let publicPostAudienceV18Ready=null;
+async function ensurePublicPostAudienceV18(){
+  if(!publicPostAudienceV18Ready){
+    publicPostAudienceV18Ready=db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'")
+      .catch(error=>{
+        publicPostAudienceV18Ready=null;
+        throw error;
+      });
+  }
+  return publicPostAudienceV18Ready;
+}
 app.get('/p/:id', async (req, res) => {
   try {
+    await ensurePublicPostAudienceV18();
     const result = await db.query(`
       SELECT p.id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
              u.username,u.display_name
         FROM posts p JOIN users u ON u.id=p.user_id
-       WHERE p.id=$1 AND p.moderation_status='published' AND u.status='active'
+       WHERE p.id=$1 AND p.moderation_status='published' AND p.audience='public' AND u.status='active'
        LIMIT 1
     `,[req.params.id]);
     if (!result.rowCount) return res.status(404).send('Publicación no encontrada.');
@@ -120,4 +133,4 @@ app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'ad
 app.get('/admin-recovery', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-recovery.html')));
 app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`RedLibertad V1.17.0 running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`RedLibertad V1.18.0 running on http://localhost:${PORT}`));

@@ -225,6 +225,37 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorExclusiveV18Ready = null;
+async function ensureCreatorExclusiveV18() {
+  if (!creatorExclusiveV18Ready) {
+    creatorExclusiveV18Ready = (async () => {
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='posts_audience_check' AND conrelid='posts'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_audience_created ON posts(audience,created_at DESC)');
+    })().catch(error => {
+      creatorExclusiveV18Ready = null;
+      throw error;
+    });
+  }
+  return creatorExclusiveV18Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorExclusiveV18();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.18 creator exclusive bootstrap failed:',error);
+    res.status(500).json({error:'creator_exclusive_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
@@ -569,7 +600,8 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       (SELECT COALESCE(sum(cl.click_count),0)::bigint FROM creator_links cl WHERE cl.user_id=u.id) link_click_count,
       (SELECT count(*)::int FROM creator_broadcasts cb WHERE cb.user_id=u.id) broadcast_count,
       (SELECT count(*)::int FROM creator_vips cv WHERE cv.creator_id=u.id) vip_count,
-      (SELECT count(*)::int FROM creator_vip_broadcasts cvb WHERE cvb.creator_id=u.id) vip_broadcast_count
+      (SELECT count(*)::int FROM creator_vip_broadcasts cvb WHERE cvb.creator_id=u.id) vip_broadcast_count,
+      (SELECT count(*)::int FROM posts vp WHERE vp.user_id=u.id AND vp.moderation_status='published' AND vp.audience='vip') vip_post_count
     FROM users u
     WHERE u.id=$1
     LIMIT 1
@@ -581,7 +613,7 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
 
   const posts=await db.query(`
     SELECT
-      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.created_at,
       EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) featured,
       (SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=$1 AND fp.post_id=p.id) featured_at,
       (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
@@ -744,7 +776,7 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       )
       ,post_stats AS (
         SELECT
-          p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+          p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.created_at,
           COALESCE(ls.n,0)::int AS like_count_30d,
           COALESCE(cs.n,0)::int AS comment_count_30d,
           COALESCE(rs.n,0)::int AS repost_count_30d,
@@ -1332,6 +1364,40 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     mutedByMe=!!mutedResult.rowCount;
     blockedByMe=!!blockedResult.rowCount;
   }
+
+  const visiblePostCount=req.user
+    ? await db.query(`
+        SELECT count(*)::int AS n
+          FROM posts p
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND (
+             p.audience='public'
+             OR p.user_id=$2
+             OR EXISTS(SELECT 1 FROM users viewer_admin WHERE viewer_admin.id=$2 AND viewer_admin.is_admin=true)
+             OR EXISTS(
+               SELECT 1
+                 FROM creator_vips cv
+                 JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+                WHERE cv.creator_id=p.user_id
+                  AND cv.fan_id=$2
+             )
+             OR EXISTS(
+               SELECT 1 FROM post_participants pp
+                WHERE pp.post_id=p.id
+                  AND pp.user_id=$2
+                  AND pp.consent_status='approved'
+             )
+           )
+      `,[profile.id,req.user.id])
+    : await db.query(`
+        SELECT count(*)::int AS n
+          FROM posts p
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND p.audience='public'
+      `,[profile.id]);
+  profile.post_count=visiblePostCount.rows[0]?.n || 0;
 
   let creatorLinks=[];
   if(profile.creator_verified){

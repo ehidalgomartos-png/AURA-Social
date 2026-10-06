@@ -59,7 +59,7 @@ async function ensureCommunityV15() {
           ADD CONSTRAINT notifications_type_check
           CHECK(type IN (
             'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-            'like','comment','mention','repost','system'
+            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast','system'
           ))
       `);
     })().catch(error => {
@@ -88,7 +88,7 @@ function extractMentions(value='') {
   return [...found];
 }
 
-async function notifyMentions({ actorId, text, entityType='post', entityId }) {
+async function notifyMentions({ actorId, text, entityType='post', entityId, audience='public' }) {
   const names = extractMentions(text);
   if (!names.length || !entityId) return;
 
@@ -103,7 +103,27 @@ async function notifyMentions({ actorId, text, entityType='post', entityId }) {
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$2
        )
-  `,[names,actorId]);
+       AND (
+         $3::text='public'
+         OR EXISTS(
+           SELECT 1
+             FROM posts mention_post
+             JOIN creator_vips cv
+               ON cv.creator_id=mention_post.user_id
+              AND cv.fan_id=u.id
+             JOIN follows f
+               ON f.follower_id=cv.fan_id
+              AND f.following_id=cv.creator_id
+            WHERE mention_post.id=$4
+              AND mention_post.audience='vip'
+         )
+         OR EXISTS(
+           SELECT 1 FROM post_participants pp
+            WHERE pp.post_id=$4
+              AND pp.user_id=u.id
+         )
+       )
+  `,[names,actorId,audience,entityId]);
 
   for (const user of result.rows) {
     await db.query(`
@@ -208,6 +228,91 @@ async function ensureCreatorFeaturedV13() {
   return creatorFeaturedV13Ready;
 }
 
+
+let creatorExclusiveV18Ready = null;
+async function ensureCreatorExclusiveV18() {
+  if (!creatorExclusiveV18Ready) {
+    creatorExclusiveV18Ready = (async () => {
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='posts_audience_check' AND conrelid='posts'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_audience_created ON posts(audience,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_vips (
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          fan_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(creator_id,fan_id),
+          CHECK(creator_id<>fan_id)
+        )
+      `);
+    })().catch(error => {
+      creatorExclusiveV18Ready = null;
+      throw error;
+    });
+  }
+  return creatorExclusiveV18Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorExclusiveV18();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.18 exclusive content bootstrap failed:',error);
+    res.status(500).json({error:'exclusive_content_bootstrap_failed'});
+  }
+});
+
+function postAudienceWhere(viewerParam=null, alias='p') {
+  if (!viewerParam) return `${alias}.audience='public'`;
+  return `(
+    ${alias}.audience='public'
+    OR ${alias}.user_id=${viewerParam}
+    OR EXISTS(SELECT 1 FROM users audience_admin WHERE audience_admin.id=${viewerParam} AND audience_admin.is_admin=true)
+    OR EXISTS(
+      SELECT 1
+        FROM creator_vips audience_vip
+        JOIN follows audience_follow
+          ON audience_follow.follower_id=audience_vip.fan_id
+         AND audience_follow.following_id=audience_vip.creator_id
+       WHERE audience_vip.creator_id=${alias}.user_id
+         AND audience_vip.fan_id=${viewerParam}
+    )
+    OR EXISTS(
+      SELECT 1 FROM post_participants audience_participant
+       WHERE audience_participant.post_id=${alias}.id
+         AND audience_participant.user_id=${viewerParam}
+         AND audience_participant.consent_status='approved'
+    )
+  )`;
+}
+
+async function accessiblePublishedPost(postId, viewerId) {
+  const result=await db.query(`
+    SELECT p.id,p.user_id,p.audience,p.content_level
+      FROM posts p
+     WHERE p.id=$1
+       AND p.moderation_status='published'
+       AND ${postAudienceWhere('$2','p')}
+       AND (
+         p.user_id=$2
+         OR EXISTS(SELECT 1 FROM users access_admin WHERE access_admin.id=$2 AND access_admin.is_admin=true)
+         OR p.user_id NOT IN (
+           SELECT blocked_id FROM blocks WHERE blocker_id=$2
+           UNION
+           SELECT blocker_id FROM blocks WHERE blocked_id=$2
+         )
+       )
+     LIMIT 1
+  `,[postId,viewerId]);
+  return result.rows[0] || null;
+}
+
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
   mediaUrl: z.string().max(4096).optional().default(''),
@@ -217,6 +322,7 @@ const createSchema = z.object({
   playbackUrl: z.string().max(4096).optional().nullable(),
   contentLevel: z.enum(['normal', 'sensitive', 'nudity']),
   kind: z.enum(['post', 'reel']).default('post'),
+  audience: z.enum(['public','vip']).default('public'),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
 });
 
@@ -242,6 +348,11 @@ router.post('/', requireAuth, async (req, res) => {
     if (!user.rows[0]?.creator_verified || !user.rows[0]?.age_verified) return res.status(403).json({ error: 'verified_creator_required_for_nudity' });
   }
 
+  if (data.audience === 'vip') {
+    const user = await db.query('SELECT creator_verified FROM users WHERE id=$1', [req.user.id]);
+    if (!user.rows[0]?.creator_verified) return res.status(403).json({ error: 'verified_creator_required_for_vip_content' });
+  }
+
   const names=[...new Set(data.participantUsernames.map(x=>x.trim().replace(/^@/,'').toLowerCase()).filter(Boolean))];
   let participants=[];
   if(names.length){
@@ -260,10 +371,10 @@ router.post('/', requireAuth, async (req, res) => {
     await client.query('BEGIN');
     const result = await client.query(`
       INSERT INTO posts
-        (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,moderation_status,consent_state)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,audience,moderation_status,consent_state)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
-    `, [req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,data.contentLevel,data.kind,needsConsent?'under_review':'published',needsConsent?'pending':'none']);
+    `, [req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,data.contentLevel,data.kind,data.audience,needsConsent?'under_review':'published',needsConsent?'pending':'none']);
     const post=result.rows[0];
     for(const p of participants){
       await client.query(`INSERT INTO post_participants (post_id,user_id,consent_status) VALUES ($1,$2,'pending') ON CONFLICT(post_id,user_id) DO NOTHING`,[post.id,p.id]);
@@ -271,7 +382,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
     await client.query('COMMIT');
     try {
-      await notifyMentions({actorId:req.user.id,text:data.caption,entityType:'post',entityId:post.id});
+      await notifyMentions({actorId:req.user.id,text:data.caption,entityType:'post',entityId:post.id,audience:data.audience});
     } catch (mentionError) {
       console.warn('RedLibertad mention notification failed:',mentionError?.message || mentionError);
     }
@@ -396,7 +507,7 @@ async function attachCommentPreviews(rows, viewer = null) {
 
 router.get('/consents/pending', requireAuth, async (req,res)=>{
   const r=await db.query(`
-    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            pp.consent_status,
            u.id AS owner_id,u.username,u.display_name,u.avatar_url
       FROM post_participants pp
@@ -447,6 +558,7 @@ router.get('/feed', optionalAuth, async (req, res) => {
   const where = [`p.moderation_status='published'`, `u.status='active'`];
   if (req.user) {
     params.push(req.user.id);
+    where.push(postAudienceWhere('$1','p'));
     where.push(`p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1)`);
     where.push(`p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`);
     if (mode === 'following') where.push(`(
@@ -458,9 +570,12 @@ router.get('/feed', optionalAuth, async (req, res) => {
          WHERE rp.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
       )
     )`);
-  } else if (mode === 'following') return res.json({ posts: [] });
+  } else {
+    where.push(postAudienceWhere(null,'p'));
+    if (mode === 'following') return res.json({ posts: [] });
+  }
   const result = await db.query(`
-    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.consent_state,p.created_at,
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id AS user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) AS like_count,
            ${req.user ? `EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)` : 'false'} AS liked_by_me,
@@ -494,7 +609,7 @@ router.get('/momentum', requireAuth, async (req,res)=>{
 
   const commonSelect=`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            EXISTS(SELECT 1 FROM follows mine WHERE mine.follower_id=$1 AND mine.following_id=u.id) from_following,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
@@ -511,7 +626,8 @@ router.get('/momentum', requireAuth, async (req,res)=>{
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
-       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND ${postAudienceWhere('$1','p')}`;
 
   const catchupResult=await db.query(`
     ${commonSelect}
@@ -569,14 +685,16 @@ router.get('/discover', optionalAuth, async (req, res) => {
   const params=[];
   let block='';
   let likedByMe='false';
+  let audienceFilter=postAudienceWhere(null,'p');
   if(req.user){
     params.push(req.user.id);
     block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)';
+    audienceFilter=postAudienceWhere('$1','p');
   }
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            ${likedByMe} AS liked_by_me
@@ -585,6 +703,7 @@ router.get('/discover', optionalAuth, async (req, res) => {
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${audienceFilter}
        ${block}
      ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC
      LIMIT 60
@@ -602,7 +721,7 @@ router.get('/search', requireAuth, async (req,res)=>{
   const likePattern=`%${q}%`;
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -612,6 +731,7 @@ router.get('/search', requireAuth, async (req,res)=>{
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -644,7 +764,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -654,6 +774,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
        AND p.created_at >= now() - interval '30 days'
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
@@ -679,6 +800,7 @@ router.get('/trends', requireAuth, async (req,res)=>{
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
+       AND ${postAudienceWhere('$1','p')}
        AND p.created_at >= now() - interval '30 days'
        AND p.caption <> ''
        AND p.user_id NOT IN (
@@ -714,10 +836,16 @@ router.get('/trends', requireAuth, async (req,res)=>{
 
 router.get('/saved/ids', requireAuth, async (req,res)=>{
   await ensureSavedPostsTable();
-  const result=await db.query(
-    'SELECT post_id FROM saved_posts WHERE user_id=$1 ORDER BY created_at DESC LIMIT 500',
-    [req.user.id]
-  );
+  const result=await db.query(`
+    SELECT sp.post_id
+      FROM saved_posts sp
+      JOIN posts p ON p.id=sp.post_id
+     WHERE sp.user_id=$1
+       AND p.moderation_status='published'
+       AND ${postAudienceWhere('$1','p')}
+     ORDER BY sp.created_at DESC
+     LIMIT 500
+  `,[req.user.id]);
   res.json({ids:result.rows.map(row=>String(row.post_id))});
 });
 
@@ -726,7 +854,7 @@ router.get('/saved', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -738,6 +866,7 @@ router.get('/saved', requireAuth, async (req,res)=>{
      WHERE sp.user_id=$1
        AND p.moderation_status='published'
        AND u.status='active'
+       AND ${postAudienceWhere('$1','p')}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -756,21 +885,13 @@ router.get('/saved', requireAuth, async (req,res)=>{
 
 router.post('/:id/save', requireAuth, async (req,res)=>{
   await ensureSavedPostsTable();
-  const inserted=await db.query(`
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post)return res.status(404).json({error:'post_not_found'});
+  await db.query(`
     INSERT INTO saved_posts (user_id,post_id)
-    SELECT $1,p.id
-      FROM posts p
-     WHERE p.id=$2
-       AND p.moderation_status='published'
+    VALUES ($1,$2)
     ON CONFLICT DO NOTHING
-    RETURNING post_id
   `,[req.user.id,req.params.id]);
-
-  if(!inserted.rowCount){
-    const exists=await db.query('SELECT 1 FROM posts WHERE id=$1 AND moderation_status=\'published\'',[req.params.id]);
-    if(!exists.rowCount) return res.status(404).json({error:'post_not_found'});
-  }
-
   res.json({ok:true,saved:true});
 });
 
@@ -789,9 +910,11 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
   const mode=['posts','reposts','media'].includes(String(req.query.mode||'')) ? String(req.query.mode) : 'posts';
   const params=[req.params.username];
   let likedByMe='false';
+  let audienceFilter=postAudienceWhere(null,'p');
   if(req.user){
     params.push(req.user.id);
     likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$2)';
+    audienceFilter=postAudienceWhere('$2','p');
   }
 
   const source = mode === 'reposts'
@@ -819,7 +942,7 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            ${likedByMe} AS liked_by_me,
@@ -829,6 +952,7 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
      WHERE ${ownerFilter}
        AND p.moderation_status='published'
        AND u.status='active'
+       AND ${audienceFilter}
        ${mediaFilter}
      ORDER BY ${orderBy}
      LIMIT 60
@@ -844,7 +968,7 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
-           p.content_level,p.post_kind,p.consent_state,p.created_at,
+           p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
@@ -854,6 +978,7 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
      WHERE p.id=$2
        AND p.moderation_status='published'
        AND u.status='active'
+       AND ${postAudienceWhere('$1','p')}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -871,12 +996,10 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
 });
 
 router.post('/:id/repost',requireAuth,async(req,res)=>{
-  const post=await db.query(
-    `SELECT id,user_id FROM posts WHERE id=$1 AND moderation_status='published' LIMIT 1`,
-    [req.params.id]
-  );
-  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
-  if(String(post.rows[0].user_id)===String(req.user.id)){
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post)return res.status(404).json({error:'post_not_found'});
+  if(post.audience==='vip')return res.status(403).json({error:'vip_post_cannot_be_reposted'});
+  if(String(post.user_id)===String(req.user.id)){
     return res.status(400).json({error:'cannot_repost_own_post'});
   }
 
@@ -892,7 +1015,7 @@ router.post('/:id/repost',requireAuth,async(req,res)=>{
       await db.query(`
         INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
         VALUES ($1,$2,'repost','post',$3,'Ha republicado tu publicación.')
-      `,[post.rows[0].user_id,req.user.id,req.params.id]);
+      `,[post.user_id,req.user.id,req.params.id]);
     }catch(notificationError){
       console.warn('RedLibertad repost notification failed:',notificationError?.message || notificationError);
     }
@@ -909,6 +1032,8 @@ router.delete('/:id/repost',requireAuth,async(req,res)=>{
 });
 
 router.post('/:id/like', requireAuth, async (req,res)=>{
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
   const inserted=await db.query(
     `INSERT INTO likes (user_id,post_id)
      VALUES ($1,$2)
@@ -929,7 +1054,7 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
           user_id,actor_id,type,entity_type,entity_id,text
         )
         VALUES ($1,$2,'like','post',$3,'Le gusta tu publicación.')
-      `,[owner.rows[0].user_id,req.user.id,req.params.id]);
+      `,[ownerId,req.user.id,req.params.id]);
     }
   }
 
@@ -937,7 +1062,9 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
   res.json({ok:true,liked:true,likeCount:count.rows[0]?.n || 0});
 });
 router.delete('/:id/like', requireAuth, async (req,res)=>{
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
   await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);
+  if(!visiblePost)return res.json({ok:true,liked:false,likeCount:null});
   const count=await db.query('SELECT count(*)::int AS n FROM likes WHERE post_id=$1',[req.params.id]);
   res.json({ok:true,liked:false,likeCount:count.rows[0]?.n || 0});
 });
@@ -992,16 +1119,8 @@ router.delete('/:id',requireAuth,async(req,res)=>{
 });
 
 router.get('/:id/comments', requireAuth, async (req,res)=>{
-  const post = await db.query(
-    `SELECT id,user_id
-       FROM posts
-      WHERE id=$1
-        AND moderation_status='published'
-      LIMIT 1`,
-    [req.params.id]
-  );
-
-  if(!post.rowCount){
+  const post=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!post){
     return res.status(404).json({error:'post_not_found'});
   }
 
@@ -1023,7 +1142,7 @@ router.get('/:id/comments', requireAuth, async (req,res)=>{
     LIMIT 250
   `,[req.params.id]);
 
-  const postOwnerId = post.rows[0].user_id;
+  const postOwnerId = post.user_id;
 
   const comments = result.rows.map(comment => ({
     ...comment,
@@ -1077,6 +1196,8 @@ const commentSchema=z.object({body:z.string().min(1).max(1000)});
 router.post('/:id/comments',requireAuth,async(req,res)=>{
   const parsed=commentSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_comment'});
+  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
+  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
   const result=await db.query(`
     INSERT INTO comments (user_id,post_id,body)
@@ -1084,12 +1205,9 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
     RETURNING id,user_id,post_id,body,created_at
   `,[req.user.id,req.params.id,parsed.data.body]);
 
-  const owner=await db.query(
-    `SELECT user_id FROM posts WHERE id=$1 AND moderation_status='published'`,
-    [req.params.id]
-  );
+  const ownerId=visiblePost.user_id;
 
-  if(owner.rowCount && String(owner.rows[0].user_id)!==String(req.user.id)){
+  if(String(ownerId)!==String(req.user.id)){
     await db.query(`
       INSERT INTO notifications (
         user_id,actor_id,type,entity_type,entity_id,text
@@ -1099,7 +1217,7 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
   }
 
   try {
-    await notifyMentions({actorId:req.user.id,text:parsed.data.body,entityType:'post',entityId:req.params.id});
+    await notifyMentions({actorId:req.user.id,text:parsed.data.body,entityType:'post',entityId:req.params.id,audience:visiblePost.audience});
   } catch (mentionError) {
     console.warn('RedLibertad comment mention notification failed:',mentionError?.message || mentionError);
   }

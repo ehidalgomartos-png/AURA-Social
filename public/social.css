@@ -3468,3 +3468,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .creator-fan-row .creator-vip-toggle{grid-column:1/-1;width:100%}
   .creator-vip-section{padding:13px}
 }
+
+
+/* RedLibertad V1.18 — Exclusive Creator Content */
+.vip-exclusive-post{box-shadow:inset 0 3px 0 #f59e0b,var(--shadow)}
+.vip-content-badge{display:inline-flex;align-items:center;width:max-content;margin-top:5px;padding:4px 8px;border-radius:999px;background:#f59e0b;color:#fff;font-size:9px;font-weight:900;letter-spacing:.08em}
+.profile-content-tile.is-vip-exclusive{outline:2px solid #f59e0b;outline-offset:-2px}
+.tile-vip{position:absolute;right:8px;top:8px;z-index:3;padding:5px 7px;border-radius:999px;background:#f59e0b;color:white;font-size:9px;font-weight:900;letter-spacing:.05em;box-shadow:var(--shadow)}
+.profile-content-tile.is-vip-exclusive .tile-featured{top:38px}
+.policy-note.compact{align-self:end;margin:0;padding:10px 12px;border-radius:14px}
+.policy-note.compact b,.policy-note.compact span{display:block}
+.policy-note.compact span{margin-top:3px;font-size:11px}
+.post-actions button:disabled{opacity:.48;cursor:not-allowed}
+@media (max-width:760px){
+  .vip-content-badge{font-size:8px}
+}

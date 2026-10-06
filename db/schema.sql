@@ -299,6 +299,19 @@ CREATE TABLE IF NOT EXISTS creator_vip_broadcasts (
 CREATE INDEX IF NOT EXISTS idx_creator_vip_broadcasts_creator_created
   ON creator_vip_broadcasts(creator_id,created_at DESC);
 
+-- RedLibertad V1.18: contenido exclusivo para círculo VIP
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public';
+
+DO $ BEGIN
+  ALTER TABLE posts
+    ADD CONSTRAINT posts_audience_check
+    CHECK(audience IN ('public','vip'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+CREATE INDEX IF NOT EXISTS idx_posts_audience_created
+  ON posts(audience,created_at DESC);
+
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check

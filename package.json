@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "private": true,
-  "description": "RedLibertad V1.17 Creator VIP Circle - círculo VIP privado y avisos exclusivos para seguidores seleccionados.",
+  "description": "RedLibertad V1.18 Exclusive Creator Content - publicaciones Solo VIP con control de acceso de extremo a extremo.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
