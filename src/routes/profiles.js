@@ -545,7 +545,7 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
      LIMIT 5
   `,[req.user.id]);
 
-  const [audience,broadcasts,lastBroadcast]=await Promise.all([
+  const [audience,broadcasts,lastBroadcast,engagementSummary,topFans,topContent]=await Promise.all([
     db.query(`
       SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,f.created_at AS followed_at
         FROM follows f
@@ -568,6 +568,109 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
        WHERE user_id=$1
        ORDER BY created_at DESC
        LIMIT 1
+    `,[req.user.id]),
+    db.query(`
+      WITH active_followers AS (
+        SELECT DISTINCT actor_id
+          FROM (
+            SELECT l.user_id AS actor_id
+              FROM likes l
+              JOIN posts p ON p.id=l.post_id
+              JOIN follows f ON f.follower_id=l.user_id AND f.following_id=$1
+             WHERE p.user_id=$1
+               AND p.moderation_status='published'
+               AND l.created_at>=now()-interval '30 days'
+            UNION
+            SELECT c.user_id AS actor_id
+              FROM comments c
+              JOIN posts p ON p.id=c.post_id
+              JOIN follows f ON f.follower_id=c.user_id AND f.following_id=$1
+             WHERE p.user_id=$1
+               AND p.moderation_status='published'
+               AND c.created_at>=now()-interval '30 days'
+            UNION
+            SELECT r.user_id AS actor_id
+              FROM reposts r
+              JOIN posts p ON p.id=r.post_id
+              JOIN follows f ON f.follower_id=r.user_id AND f.following_id=$1
+             WHERE p.user_id=$1
+               AND p.moderation_status='published'
+               AND r.created_at>=now()-interval '30 days'
+          ) activity
+      )
+      SELECT
+        (SELECT count(*)::int FROM active_followers) AS active_followers_30d,
+        (
+          (SELECT count(*) FROM likes l JOIN posts p ON p.id=l.post_id
+            WHERE p.user_id=$1 AND p.moderation_status='published' AND l.created_at>=now()-interval '30 days')
+          +
+          (SELECT count(*) FROM comments c JOIN posts p ON p.id=c.post_id
+            WHERE p.user_id=$1 AND p.moderation_status='published' AND c.created_at>=now()-interval '30 days')
+          +
+          (SELECT count(*) FROM reposts r JOIN posts p ON p.id=r.post_id
+            WHERE p.user_id=$1 AND p.moderation_status='published' AND r.created_at>=now()-interval '30 days')
+        )::int AS interactions_30d
+    `,[req.user.id]),
+    db.query(`
+      WITH fan_activity AS (
+        SELECT
+          f.follower_id AS user_id,
+          (SELECT count(*)::int
+             FROM likes l
+             JOIN posts p ON p.id=l.post_id
+            WHERE l.user_id=f.follower_id
+              AND p.user_id=$1
+              AND p.moderation_status='published'
+              AND l.created_at>=now()-interval '30 days') AS like_count,
+          (SELECT count(*)::int
+             FROM comments c
+             JOIN posts p ON p.id=c.post_id
+            WHERE c.user_id=f.follower_id
+              AND p.user_id=$1
+              AND p.moderation_status='published'
+              AND c.created_at>=now()-interval '30 days') AS comment_count,
+          (SELECT count(*)::int
+             FROM reposts r
+             JOIN posts p ON p.id=r.post_id
+            WHERE r.user_id=f.follower_id
+              AND p.user_id=$1
+              AND p.moderation_status='published'
+              AND r.created_at>=now()-interval '30 days') AS repost_count
+        FROM follows f
+        WHERE f.following_id=$1
+      )
+      SELECT
+        u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+        a.like_count,a.comment_count,a.repost_count,
+        (a.like_count+a.comment_count+a.repost_count)::int AS interaction_count
+      FROM fan_activity a
+      JOIN users u ON u.id=a.user_id
+      WHERE u.status='active'
+        AND (a.like_count+a.comment_count+a.repost_count)>0
+      ORDER BY interaction_count DESC,a.comment_count DESC,a.repost_count DESC,u.display_name ASC
+      LIMIT 10
+    `,[req.user.id]),
+    db.query(`
+      SELECT
+        p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+        (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id AND l.created_at>=now()-interval '30 days') AS like_count_30d,
+        (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id AND c.created_at>=now()-interval '30 days') AS comment_count_30d,
+        (SELECT count(*)::int FROM reposts r WHERE r.post_id=p.id AND r.created_at>=now()-interval '30 days') AS repost_count_30d,
+        (SELECT count(*)::int FROM saved_posts s WHERE s.post_id=p.id AND s.created_at>=now()-interval '30 days') AS save_count_30d,
+        (
+          (SELECT count(*) FROM likes l WHERE l.post_id=p.id AND l.created_at>=now()-interval '30 days')
+          +
+          (SELECT count(*) FROM comments c WHERE c.post_id=p.id AND c.created_at>=now()-interval '30 days')
+          +
+          (SELECT count(*) FROM reposts r WHERE r.post_id=p.id AND r.created_at>=now()-interval '30 days')
+          +
+          (SELECT count(*) FROM saved_posts s WHERE s.post_id=p.id AND s.created_at>=now()-interval '30 days')
+        )::int AS engagement_count_30d
+      FROM posts p
+      WHERE p.user_id=$1
+        AND p.moderation_status='published'
+      ORDER BY engagement_count_30d DESC,p.created_at DESC
+      LIMIT 5
     `,[req.user.id])
   ]);
 
@@ -576,12 +679,25 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
     ? new Date(new Date(lastCreated).getTime()+24*60*60*1000).toISOString()
     : null;
 
+  const followerCount=Number(account.follower_count || 0);
+  const activeFollowers30d=Number(engagementSummary.rows[0]?.active_followers_30d || 0);
+  const activeFollowerRate30d=followerCount
+    ? Math.round((activeFollowers30d/followerCount)*1000)/10
+    : 0;
+
   res.json({
     creator:account,
     posts:posts.rows,
     links:links.rows,
     audience:audience.rows,
     broadcasts:broadcasts.rows,
+    engagement:{
+      activeFollowers30d,
+      activeFollowerRate30d,
+      interactions30d:Number(engagementSummary.rows[0]?.interactions_30d || 0),
+      topFans:topFans.rows,
+      topContent:topContent.rows
+    },
     featuredLimit:3,
     linkLimit:5,
     broadcastLimitHours:24,
