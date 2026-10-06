@@ -1283,7 +1283,15 @@ router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
   if(!existing.rowCount && String(visiblePost.user_id)!==String(req.user.id)){
     await db.query(`
       INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
-      VALUES ($1,$2,'creator_poll_vote','post',$3,'Ha votado en tu encuesta.')
+      SELECT $1,$2,'creator_poll_vote','creator_community',$3,'Ha votado en tu encuesta.'
+      WHERE NOT EXISTS(
+        SELECT 1 FROM notifications
+         WHERE user_id=$1
+           AND actor_id=$2
+           AND type='creator_poll_vote'
+           AND entity_type='creator_community'
+           AND entity_id=$3
+      )
     `,[visiblePost.user_id,req.user.id,req.params.id]);
   }
 
@@ -1345,7 +1353,15 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
   if(!existingResponse.rowCount && String(visiblePost.user_id)!==String(req.user.id)){
     await db.query(`
       INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
-      VALUES ($1,$2,'creator_question_response','post',$3,'Ha respondido a tu pregunta.')
+      SELECT $1,$2,'creator_question_response','creator_community',$3,'Ha respondido a tu pregunta.'
+      WHERE NOT EXISTS(
+        SELECT 1 FROM notifications
+         WHERE user_id=$1
+           AND actor_id=$2
+           AND type='creator_question_response'
+           AND entity_type='creator_community'
+           AND entity_id=$3
+      )
     `,[visiblePost.user_id,req.user.id,req.params.id]);
   }
 
