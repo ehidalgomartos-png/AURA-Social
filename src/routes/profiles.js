@@ -1365,6 +1365,40 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     blockedByMe=!!blockedResult.rowCount;
   }
 
+  const visiblePostCount=req.user
+    ? await db.query(`
+        SELECT count(*)::int AS n
+          FROM posts p
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND (
+             p.audience='public'
+             OR p.user_id=$2
+             OR EXISTS(SELECT 1 FROM users viewer_admin WHERE viewer_admin.id=$2 AND viewer_admin.is_admin=true)
+             OR EXISTS(
+               SELECT 1
+                 FROM creator_vips cv
+                 JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+                WHERE cv.creator_id=p.user_id
+                  AND cv.fan_id=$2
+             )
+             OR EXISTS(
+               SELECT 1 FROM post_participants pp
+                WHERE pp.post_id=p.id
+                  AND pp.user_id=$2
+                  AND pp.consent_status='approved'
+             )
+           )
+      `,[profile.id,req.user.id])
+    : await db.query(`
+        SELECT count(*)::int AS n
+          FROM posts p
+         WHERE p.user_id=$1
+           AND p.moderation_status='published'
+           AND p.audience='public'
+      `,[profile.id]);
+  profile.post_count=visiblePostCount.rows[0]?.n || 0;
+
   let creatorLinks=[];
   if(profile.creator_verified){
     const links=await db.query(`
