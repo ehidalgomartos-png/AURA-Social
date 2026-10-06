@@ -266,6 +266,36 @@
       <div id="creatorSegmentMembers" class="creator-segment-members hidden"></div>
     </section>
 
+    <section class="creator-section creator-ops-section creator-communications-section" id="creatorCommunicationsSection">
+      <div class="creator-section-head">
+        <div>
+          <span class="eyebrow">COMMUNICATION CENTER</span>
+          <b>Comunicaciones a tu audiencia</b>
+          <small>Crea borradores, programa avisos y utiliza segmentos privados sin convertir RedLibertad en una plataforma de spam.</small>
+        </div>
+      </div>
+      <form id="creatorCommunicationForm" class="creator-communication-form">
+        <textarea name="body" maxlength="280" placeholder="Escribe un aviso para tu audiencia…" required></textarea>
+        <select id="creatorCommunicationAudience" name="audienceType" aria-label="Audiencia">
+          <option value="all">Todos mis seguidores</option>
+          <option value="vip">Círculo VIP</option>
+          <option value="recent_followers">Seguidores recientes</option>
+          <option value="active_30d">Más activos · 30 días</option>
+          <option value="inactive_30d">Sin interacción · 30 días</option>
+          <option value="high_priority">Prioridad alta CRM</option>
+        </select>
+        <select name="mode" id="creatorCommunicationMode" aria-label="Modo">
+          <option value="draft">Guardar borrador</option>
+          <option value="send">Enviar ahora</option>
+          <option value="schedule">Programar</option>
+        </select>
+        <input name="scheduledFor" id="creatorCommunicationSchedule" type="datetime-local" disabled>
+        <button class="primary" type="submit">Guardar / enviar</button>
+      </form>
+      <small id="creatorCommunicationHint" class="creator-communication-hint"></small>
+      <div id="creatorCommunicationHistory" class="creator-ops-list"></div>
+    </section>
+
     <section class="creator-section creator-broadcast-section">
       <div class="creator-section-head">
         <div>
