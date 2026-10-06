@@ -34,6 +34,10 @@ let activeEventId=null;
 let activeEventData=null;
 let interestCatalog = [];
 let activeExploreInterest = '';
+let globalSearchType='all';
+let globalSearchQuery='';
+const GLOBAL_SEARCH_HISTORY_KEY='redlibertad-search-history-v164';
+const GLOBAL_SEARCH_HISTORY_ENABLED_KEY='redlibertad-search-history-enabled-v164';
 let connectionCircles=[];
 let activeConnectionCircleId=null;
 let activeCircleConnection=null;
@@ -1551,6 +1555,15 @@ async function loadStories() {
   await refreshVipSignal(visibleStories);
 }
 
+$('#globalSearchForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  await runGlobalSearch($('#globalSearchInput')?.value||'',globalSearchType);
+});
+$('#globalSearchHistoryEnabled')?.addEventListener('change',event=>{
+  localStorage.setItem(GLOBAL_SEARCH_HISTORY_ENABLED_KEY,event.currentTarget.checked?'1':'0');
+  if(!event.currentTarget.checked)localStorage.removeItem(GLOBAL_SEARCH_HISTORY_KEY);
+  renderGlobalSearchHistory();
+});
 $('#closeStoryViewer')?.addEventListener('click',closeStoryViewer);
 $('#storyViewerModal')?.addEventListener('click',event=>{
   if(event.target===$('#storyViewerModal'))closeStoryViewer();
@@ -1561,6 +1574,75 @@ $('#storyPrev')?.addEventListener('click',()=>{
 $('#storyNext')?.addEventListener('click',()=>{
   if(activeStoryIndex<activeStoryGroup.length-1){activeStoryIndex++;renderStoryViewer();}
 });
+
+function globalSearchHistoryEnabled(){
+  return localStorage.getItem(GLOBAL_SEARCH_HISTORY_ENABLED_KEY)==='1';
+}
+function readGlobalSearchHistory(){
+  if(!globalSearchHistoryEnabled())return [];
+  try{return JSON.parse(localStorage.getItem(GLOBAL_SEARCH_HISTORY_KEY)||'[]').filter(item=>typeof item==='string').slice(0,8);}
+  catch{return [];}
+}
+function saveGlobalSearchHistory(query){
+  if(!globalSearchHistoryEnabled())return;
+  const clean=String(query||'').trim();
+  if(clean.length<2)return;
+  const next=[clean,...readGlobalSearchHistory().filter(item=>item.toLowerCase()!==clean.toLowerCase())].slice(0,8);
+  localStorage.setItem(GLOBAL_SEARCH_HISTORY_KEY,JSON.stringify(next));
+  renderGlobalSearchHistory();
+}
+function renderGlobalSearchHistory(){
+  const root=$('#globalSearchHistory');if(!root)return;
+  const items=readGlobalSearchHistory();
+  root.classList.toggle('hidden',!items.length);
+  root.innerHTML=items.length?`<div class="global-search-history-head"><b>Búsquedas recientes</b><button type="button" class="tiny-action" data-global-search-clear-history>Limpiar</button></div><div class="global-search-history-chips">${items.map(item=>`<button type="button" data-global-search-history-query="${esc(item)}">${esc(item)}</button>`).join('')}</div>`:'';
+}
+function globalSearchSection(title,items,renderer){
+  if(!items.length)return '';
+  return `<section class="global-search-section"><div class="community-section-head"><b>${esc(title)}</b><small>${items.length}</small></div><div class="global-search-section-grid">${items.map(renderer).join('')}</div></section>`;
+}
+function globalPersonResult(person){
+  return `<button type="button" class="global-search-person" data-global-search-profile="${esc(person.username)}"><span class="avatar">${avatarHTML(person)}</span><span><b>${esc(person.display_name)}</b><small>@${esc(person.username)}${person.location_label?` · ${esc(person.location_label)}`:''}</small></span></button>`;
+}
+function globalContentResult(post){
+  return `<button type="button" class="global-search-content" data-global-search-post="${post.id}"><span class="global-search-content-type">${post.post_kind==='reel'?'REEL':'POST'}</span><b>@${esc(post.username)}</b><p>${esc(String(post.caption||'Sin texto').slice(0,180))}</p><small>${timeAgo(post.created_at)}</small></button>`;
+}
+function globalCommunityResult(item){
+  return `<button type="button" class="global-search-community" data-global-search-community="${item.id}"><b>${esc(item.name)}</b><p>${esc(item.description||'Sin descripción')}</p><small>${item.privacy==='private'?'Privada · miembro':'Pública'} · ${Number(item.member_count||0)} miembros</small></button>`;
+}
+function globalEventResult(item){
+  return `<button type="button" class="global-search-event" data-global-search-event="${item.id}"><b>${esc(item.title)}</b><p>${esc(item.description||'Sin descripción')}</p><small>${eventDateLabel(item.starts_at)}${item.location_label?` · ${esc(item.location_label)}`:''}</small></button>`;
+}
+function renderGlobalSearchResults(data){
+  const root=$('#globalSearchResults');if(!root)return;
+  const sections=[
+    globalSearchSection('Personas',data.people||[],globalPersonResult),
+    globalSearchSection('Posts',data.posts||[],globalContentResult),
+    globalSearchSection('Reels',data.reels||[],globalContentResult),
+    globalSearchSection('Hashtags',data.hashtags||[],item=>`<button type="button" class="global-search-hashtag" data-global-search-hashtag="${esc(item.tag)}">#${esc(item.tag)} <small>${Number(item.count||0)}</small></button>`),
+    globalSearchSection('Comunidades',data.communities||[],globalCommunityResult),
+    globalSearchSection('Eventos',data.events||[],globalEventResult)
+  ].filter(Boolean);
+  root.classList.remove('hidden');
+  root.innerHTML=sections.length?sections.join(''):'<div class="info-card"><b>No encontramos resultados.</b><p>Prueba con otras palabras o cambia el filtro.</p></div>';
+}
+async function runGlobalSearch(query=globalSearchQuery,type=globalSearchType){
+  const clean=String(query||'').trim();
+  if(clean.length<2)return;
+  globalSearchQuery=clean;globalSearchType=type||'all';
+  all('[data-global-search-type]').forEach(button=>button.classList.toggle('active',button.dataset.globalSearchType===globalSearchType));
+  const root=$('#globalSearchResults');if(root){root.classList.remove('hidden');root.innerHTML='<div class="discovery-loading">Buscando en RedLibertad…</div>';}
+  const {r,d}=await api('/api/search?'+new URLSearchParams({q:clean,type:globalSearchType}).toString());
+  if(!r.ok){if(root)root.innerHTML='<div class="info-card"><b>No se pudo completar la búsqueda.</b></div>';return;}
+  saveGlobalSearchHistory(clean);
+  renderGlobalSearchResults(d);
+}
+function initGlobalSearch(){
+  const toggle=$('#globalSearchHistoryEnabled');
+  if(toggle)toggle.checked=globalSearchHistoryEnabled();
+  renderGlobalSearchHistory();
+}
+
 function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenido aquí.', emptyCopy = 'Vuelve pronto o publica algo para poner RedLibertad en movimiento.') {
   const root = $('#discoveryFeed');
   if (!root) return;
@@ -1649,6 +1731,7 @@ async function searchPosts(query) {
 }
 
 async function loadExplore() {
+  initGlobalSearch();
   await Promise.all([
     loadConnections(),
     loadPeopleSuggestions(activeExploreInterest),
@@ -2079,6 +2162,43 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const searchTypeButton=event.target.closest('[data-global-search-type]');
+  if(searchTypeButton){
+    event.preventDefault();
+    globalSearchType=searchTypeButton.dataset.globalSearchType||'all';
+    all('[data-global-search-type]').forEach(button=>button.classList.toggle('active',button===searchTypeButton));
+    if(globalSearchQuery)await runGlobalSearch(globalSearchQuery,globalSearchType);
+    return;
+  }
+  const historyQuery=event.target.closest('[data-global-search-history-query]');
+  if(historyQuery){
+    event.preventDefault();
+    const q=historyQuery.dataset.globalSearchHistoryQuery||'';
+    if($('#globalSearchInput'))$('#globalSearchInput').value=q;
+    await runGlobalSearch(q,globalSearchType);
+    return;
+  }
+  if(event.target.closest('[data-global-search-clear-history]')){
+    event.preventDefault();localStorage.removeItem(GLOBAL_SEARCH_HISTORY_KEY);renderGlobalSearchHistory();return;
+  }
+  const profileResult=event.target.closest('[data-global-search-profile]');
+  if(profileResult){event.preventDefault();await openPublicProfile(profileResult.dataset.globalSearchProfile);return;}
+  const postResult=event.target.closest('[data-global-search-post]');
+  if(postResult){event.preventDefault();await openPostFocus(postResult.dataset.globalSearchPost);return;}
+  const hashtagResult=event.target.closest('[data-global-search-hashtag]');
+  if(hashtagResult){
+    event.preventDefault();
+    const tag=hashtagResult.dataset.globalSearchHashtag||'';
+    if($('#postSearchInput'))$('#postSearchInput').value='#'+tag;
+    await searchPosts('#'+tag);
+    document.querySelector('.content-discovery')?.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  const communityResult=event.target.closest('[data-global-search-community]');
+  if(communityResult){event.preventDefault();showView('communities');await openCommunityDetail(communityResult.dataset.globalSearchCommunity);return;}
+  const eventResult=event.target.closest('[data-global-search-event]');
+  if(eventResult){event.preventDefault();showView('events');await openEventDetail(eventResult.dataset.globalSearchEvent);return;}
+
   const eventScopeButton=event.target.closest('[data-event-scope]');
   if(eventScopeButton){event.preventDefault();eventScope=eventScopeButton.dataset.eventScope||'upcoming';await loadEvents();return;}
   const eventOpen=event.target.closest('[data-event-open]');
