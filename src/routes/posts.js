@@ -1548,6 +1548,192 @@ router.patch('/creator/community/responses/:responseId/star',requireAuth,async(r
   res.json({ok:true,response:updated.rows[0]});
 });
 
+const creatorCommunityReviewSchema=z.object({
+  notificationIds:z.array(
+    z.union([z.string().regex(/^\d+$/),z.number().int().positive()]).transform(value=>String(value))
+  ).min(1).max(100)
+});
+
+router.get('/creator/community-activity',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+
+  const status=String(req.query.status || 'pending');
+  if(!['pending','reviewed','all'].includes(status)){
+    return res.status(400).json({error:'invalid_activity_status'});
+  }
+
+  const rows=await db.query(`
+    SELECT
+      n.id notification_id,n.type,n.created_at,n.read_at,
+      review.reviewed_at,
+      actor.id actor_id,actor.username actor_username,actor.display_name actor_display_name,
+      actor.avatar_url actor_avatar_url,actor.creator_verified actor_creator_verified,
+      p.id post_id,p.caption,p.audience,p.created_at post_created_at,
+      cp.id poll_id,cp.question poll_question,cp.status poll_status,cp.is_open poll_is_open,
+      poll_option.id current_option_id,poll_option.label current_option_label,
+      cq.id question_id,cq.prompt question_prompt,cq.status question_status,cq.is_open question_is_open,
+      qr.id response_id,qr.body current_response_body,qr.creator_starred response_starred,qr.updated_at response_updated_at
+    FROM notifications n
+    JOIN posts p
+      ON p.id=n.entity_id
+     AND p.user_id=$1
+    LEFT JOIN users actor ON actor.id=n.actor_id
+    LEFT JOIN creator_community_notification_reviews review
+      ON review.notification_id=n.id
+     AND review.creator_id=$1
+    LEFT JOIN creator_polls cp
+      ON cp.post_id=p.id
+     AND n.type='creator_poll_vote'
+    LEFT JOIN creator_poll_votes current_vote
+      ON current_vote.poll_id=cp.id
+     AND current_vote.user_id=n.actor_id
+    LEFT JOIN creator_poll_options poll_option
+      ON poll_option.id=current_vote.option_id
+    LEFT JOIN creator_questions cq
+      ON cq.post_id=p.id
+     AND n.type='creator_question_response'
+    LEFT JOIN creator_question_responses qr
+      ON qr.question_id=cq.id
+     AND qr.user_id=n.actor_id
+    WHERE n.user_id=$1
+      AND n.entity_type='creator_community'
+      AND n.type IN ('creator_poll_vote','creator_question_response')
+      AND (
+        $2='all'
+        OR ($2='pending' AND review.reviewed_at IS NULL)
+        OR ($2='reviewed' AND review.reviewed_at IS NOT NULL)
+      )
+    ORDER BY n.created_at DESC,n.id DESC
+    LIMIT 300
+  `,[req.user.id,status]);
+
+  const groups=new Map();
+  let pendingCount=0;
+  for(const row of rows.rows){
+    if(!row.reviewed_at)pendingCount++;
+    const kind=row.type==='creator_poll_vote' ? 'poll' : 'question';
+    const key=`${kind}:${row.post_id}`;
+    if(!groups.has(key)){
+      groups.set(key,{
+        key,
+        kind,
+        post_id:row.post_id,
+        prompt:kind==='poll' ? row.poll_question : row.question_prompt,
+        audience:row.audience,
+        tool_status:kind==='poll' ? row.poll_status : row.question_status,
+        tool_is_open:kind==='poll' ? row.poll_is_open===true : row.question_is_open===true,
+        total_count:0,
+        pending_count:0,
+        latest_at:row.created_at,
+        notification_ids:[],
+        items:[]
+      });
+    }
+    const group=groups.get(key);
+    group.total_count++;
+    if(!row.reviewed_at)group.pending_count++;
+    group.notification_ids.push(String(row.notification_id));
+    group.items.push({
+      notification_id:row.notification_id,
+      type:row.type,
+      created_at:row.created_at,
+      reviewed_at:row.reviewed_at,
+      actor:{
+        id:row.actor_id,
+        username:row.actor_username,
+        display_name:row.actor_display_name || row.actor_username || 'Cuenta eliminada',
+        avatar_url:row.actor_avatar_url,
+        creator_verified:row.actor_creator_verified===true
+      },
+      interaction:kind==='poll'
+        ? {
+            withdrawn:!row.current_option_id,
+            option_id:row.current_option_id,
+            option_label:row.current_option_label || ''
+          }
+        : {
+            withdrawn:!row.response_id,
+            response_id:row.response_id,
+            body:row.current_response_body || '',
+            starred:row.response_starred===true,
+            updated_at:row.response_updated_at
+          }
+    });
+  }
+
+  const allCount=await db.query(`
+    SELECT
+      count(*)::int total_count,
+      count(*) FILTER (WHERE review.reviewed_at IS NULL)::int pending_count
+    FROM notifications n
+    LEFT JOIN creator_community_notification_reviews review
+      ON review.notification_id=n.id
+     AND review.creator_id=$1
+    WHERE n.user_id=$1
+      AND n.entity_type='creator_community'
+      AND n.type IN ('creator_poll_vote','creator_question_response')
+  `,[req.user.id]);
+
+  res.json({
+    status,
+    totalCount:Number(allCount.rows[0]?.total_count || 0),
+    pendingCount:Number(allCount.rows[0]?.pending_count || 0),
+    groups:[...groups.values()]
+  });
+});
+
+router.post('/creator/community-activity/review',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=creatorCommunityReviewSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_activity_review'});
+
+  const ids=[...new Set(parsed.data.notificationIds)];
+  const result=await db.query(`
+    INSERT INTO creator_community_notification_reviews (notification_id,creator_id,reviewed_at)
+    SELECT n.id,$2,now()
+      FROM notifications n
+     WHERE n.id=ANY($1::bigint[])
+       AND n.user_id=$2
+       AND n.entity_type='creator_community'
+       AND n.type IN ('creator_poll_vote','creator_question_response')
+    ON CONFLICT(notification_id) DO UPDATE
+      SET creator_id=excluded.creator_id,
+          reviewed_at=excluded.reviewed_at
+    RETURNING notification_id
+  `,[ids,req.user.id]);
+
+  res.json({ok:true,reviewed:result.rows.map(row=>row.notification_id)});
+});
+
+router.post('/creator/community-activity/review-all',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+
+  const result=await db.query(`
+    INSERT INTO creator_community_notification_reviews (notification_id,creator_id,reviewed_at)
+    SELECT n.id,$1,now()
+      FROM notifications n
+      LEFT JOIN creator_community_notification_reviews review
+        ON review.notification_id=n.id
+       AND review.creator_id=$1
+     WHERE n.user_id=$1
+       AND n.entity_type='creator_community'
+       AND n.type IN ('creator_poll_vote','creator_question_response')
+       AND review.notification_id IS NULL
+    ON CONFLICT(notification_id) DO UPDATE
+      SET creator_id=excluded.creator_id,
+          reviewed_at=excluded.reviewed_at
+    RETURNING notification_id
+  `,[req.user.id]);
+
+  res.json({ok:true,reviewedCount:result.rowCount});
+});
+
 router.get('/creator/community-insights',requireAuth,async(req,res)=>{
   if(!await requireVerifiedCreator(req.user.id)){
     return res.status(403).json({error:'verified_creator_required_for_community_tools'});
