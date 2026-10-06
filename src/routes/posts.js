@@ -598,6 +598,7 @@ async function ensureCreatorCommunityV24(){
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_created ON creator_poll_votes(created_at DESC,poll_id)');
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_question_responses_created ON creator_question_responses(created_at DESC,question_id)');
+      await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_creator_community_once ON notifications(user_id,actor_id,type,entity_type,entity_id) WHERE type IN ('creator_poll_vote','creator_question_response')");
     })().catch(error=>{
       creatorCommunityV24Ready=null;
       throw error;
@@ -1292,6 +1293,7 @@ router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
            AND entity_type='creator_community'
            AND entity_id=$3
       )
+      ON CONFLICT DO NOTHING
     `,[visiblePost.user_id,req.user.id,req.params.id]);
   }
 
@@ -1362,6 +1364,7 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
            AND entity_type='creator_community'
            AND entity_id=$3
       )
+      ON CONFLICT DO NOTHING
     `,[visiblePost.user_id,req.user.id,req.params.id]);
   }
 
