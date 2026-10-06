@@ -191,7 +191,12 @@ router.get('/conversations', async (req, res) => {
     FROM conversation_members cm
     JOIN conversations c ON c.id=cm.conversation_id
     LEFT JOIN LATERAL (
-      SELECT body,content_level,created_at,sender_id
+      SELECT
+        CASE
+          WHEN shared_post_id IS NOT NULL AND btrim(body)='' THEN 'Publicación compartida'
+          ELSE body
+        END AS body,
+        content_level,created_at,sender_id
         FROM messages
        WHERE conversation_id=c.id
        ORDER BY created_at DESC,id DESC
@@ -921,8 +926,9 @@ const messageSchema = z.object({
   externalId: z.string().max(255).optional().nullable(),
   playbackUrl: z.string().max(4096).optional().nullable(),
   replyToMessageId:z.coerce.number().int().positive().optional().nullable(),
+  sharedPostId:z.coerce.number().int().positive().optional().nullable(),
   contentLevel: z.enum(['normal','sensitive','nudity']).default('normal')
-}).refine(v => v.body.trim() || v.mediaUrl, { message: 'message_empty' });
+}).refine(v => v.body.trim() || v.mediaUrl || v.sharedPostId, { message: 'message_empty' });
 
 router.post('/conversations/:id/messages', async (req, res) => {
   const id=req.params.id;
@@ -954,6 +960,32 @@ router.post('/conversations/:id/messages', async (req, res) => {
       replyToMessageId=replyTarget.rows[0].id;
     }
 
+    let sharedPostId=null;
+    if(d.sharedPostId){
+      const shareable=await db.query(`
+        SELECT p.id
+          FROM posts p
+          JOIN users author ON author.id=p.user_id
+         WHERE p.id=$1
+           AND p.moderation_status='published'
+           AND p.audience='public'
+           AND author.status='active'
+           AND (
+             p.user_id=$2
+             OR NOT EXISTS(
+               SELECT 1 FROM blocks b
+                WHERE (b.blocker_id=$2 AND b.blocked_id=p.user_id)
+                   OR (b.blocker_id=p.user_id AND b.blocked_id=$2)
+             )
+           )
+         LIMIT 1
+      `,[d.sharedPostId,req.user.id]);
+      if(!shareable.rowCount){
+        return res.status(400).json({error:'post_not_shareable'});
+      }
+      sharedPostId=shareable.rows[0].id;
+    }
+
     const sender=await userRow(req.user.id);
     if(
       d.contentLevel==='nudity' &&
@@ -981,9 +1013,10 @@ router.post('/conversations/:id/messages', async (req, res) => {
           external_id,
           playback_url,
           content_level,
-          reply_to_message_id
+          reply_to_message_id,
+          shared_post_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
         RETURNING *
       `,[
         id,
@@ -995,7 +1028,8 @@ router.post('/conversations/:id/messages', async (req, res) => {
         d.externalId,
         d.playbackUrl,
         d.contentLevel,
-        replyToMessageId
+        replyToMessageId,
+        sharedPostId
       ]);
 
       await client.query(
@@ -1021,17 +1055,23 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }
 
     try{
-      const text=details.is_group
+      const text=sharedPostId
         ? (
-            d.contentLevel==='normal'
-              ? `${sender?.display_name || sender?.username || 'Alguien'} ha escrito en “${details.title || 'Grupo'}”.`
-              : `${sender?.display_name || sender?.username || 'Alguien'} ha enviado contenido sensible en “${details.title || 'Grupo'}”.`
+            details.is_group
+              ? `${sender?.display_name || sender?.username || 'Alguien'} ha compartido una publicación en “${details.title || 'Grupo'}”.`
+              : 'Te ha compartido una publicación.'
           )
-        : (
-            d.contentLevel==='normal'
-              ? 'Te ha enviado un mensaje.'
-              : 'Te ha enviado contenido sensible.'
-          );
+        : details.is_group
+          ? (
+              d.contentLevel==='normal'
+                ? `${sender?.display_name || sender?.username || 'Alguien'} ha escrito en “${details.title || 'Grupo'}”.`
+                : `${sender?.display_name || sender?.username || 'Alguien'} ha enviado contenido sensible en “${details.title || 'Grupo'}”.`
+            )
+          : (
+              d.contentLevel==='normal'
+                ? 'Te ha enviado un mensaje.'
+                : 'Te ha enviado contenido sensible.'
+            );
 
       await db.query(`
         INSERT INTO notifications(
