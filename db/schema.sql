@@ -581,12 +581,19 @@ CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_us
 ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS discoverable BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS show_activity BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mention_privacy TEXT NOT NULL DEFAULT 'everyone';
 
 DO $$ BEGIN
   ALTER TABLE users
     ADD CONSTRAINT users_message_privacy_check
     CHECK(message_privacy IN ('everyone','following','no_one'));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
+
+DO $ BEGIN
+  ALTER TABLE users
+    ADD CONSTRAINT users_mention_privacy_check
+    CHECK(mention_privacy IN ('everyone','connections','no_one'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $;
 
 CREATE TABLE IF NOT EXISTS mutes (
   muter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
