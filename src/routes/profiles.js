@@ -20,7 +20,9 @@ async function ensureConnectionCirclesV152(){
           updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
+      await db.query("ALTER TABLE connection_circles ADD COLUMN IF NOT EXISTS is_close BOOLEAN NOT NULL DEFAULT FALSE");
       await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_favorites ON connection_circles(user_id) WHERE is_favorites=true");
+      await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_close ON connection_circles(user_id) WHERE is_close=true");
       await db.query("CREATE INDEX IF NOT EXISTS idx_connection_circles_user_position ON connection_circles(user_id,position,id)");
       await db.query(`
         CREATE TABLE IF NOT EXISTS connection_circle_members (
@@ -523,6 +525,26 @@ async function ensureFavoritesCircle(userId){
   return retry.rows[0] || null;
 }
 
+async function ensureCloseCircle(userId){
+  const existing=await db.query(
+    'SELECT id,name,is_favorites,is_close,position FROM connection_circles WHERE user_id=$1 AND is_close=true LIMIT 1',
+    [userId]
+  );
+  if(existing.rowCount)return existing.rows[0];
+  const created=await db.query(`
+    INSERT INTO connection_circles(user_id,name,is_favorites,is_close,position)
+    VALUES ($1,'Cercanas',false,true,-90)
+    ON CONFLICT DO NOTHING
+    RETURNING id,name,is_favorites,is_close,position
+  `,[userId]);
+  if(created.rowCount)return created.rows[0];
+  const retry=await db.query(
+    'SELECT id,name,is_favorites,is_close,position FROM connection_circles WHERE user_id=$1 AND is_close=true LIMIT 1',
+    [userId]
+  );
+  return retry.rows[0] || null;
+}
+
 async function isMutualConnection(userId,targetId){
   const result=await db.query(`
     SELECT 1
@@ -538,12 +560,13 @@ async function isMutualConnection(userId,targetId){
 }
 
 router.get('/connections/circles',requireAuth,async(req,res)=>{
-  await ensureFavoritesCircle(req.user.id);
+  await Promise.all([ensureFavoritesCircle(req.user.id),ensureCloseCircle(req.user.id)]);
   const result=await db.query(`
     SELECT
       circle.id,
       circle.name,
       circle.is_favorites,
+      circle.is_close,
       circle.position,
       circle.created_at,
       count(member.connection_user_id)::int AS member_count
@@ -551,7 +574,7 @@ router.get('/connections/circles',requireAuth,async(req,res)=>{
     LEFT JOIN connection_circle_members member ON member.circle_id=circle.id
     WHERE circle.user_id=$1
     GROUP BY circle.id
-    ORDER BY circle.is_favorites DESC,circle.position ASC,circle.id ASC
+    ORDER BY circle.is_favorites DESC,circle.is_close DESC,circle.position ASC,circle.id ASC
   `,[req.user.id]);
   res.json({circles:result.rows});
 });
@@ -564,7 +587,7 @@ router.post('/connections/circles',requireAuth,async(req,res)=>{
   const parsed=circleSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_circle'});
   const count=await db.query(
-    'SELECT count(*)::int AS n FROM connection_circles WHERE user_id=$1 AND is_favorites=false',
+    'SELECT count(*)::int AS n FROM connection_circles WHERE user_id=$1 AND is_favorites=false AND is_close=false',
     [req.user.id]
   );
   if(Number(count.rows[0]?.n || 0)>=12){
@@ -580,9 +603,9 @@ router.post('/connections/circles',requireAuth,async(req,res)=>{
     INSERT INTO connection_circles(user_id,name,is_favorites,position)
     VALUES(
       $1,$2,false,
-      COALESCE((SELECT max(position)+1 FROM connection_circles WHERE user_id=$1 AND is_favorites=false),0)
+      COALESCE((SELECT max(position)+1 FROM connection_circles WHERE user_id=$1 AND is_favorites=false AND is_close=false),0)
     )
-    RETURNING id,name,is_favorites,position,created_at
+    RETURNING id,name,is_favorites,is_close,position,created_at
   `,[req.user.id,parsed.data.name]);
 
   res.status(201).json({ok:true,circle:created.rows[0]});
@@ -593,11 +616,11 @@ router.patch('/connections/circles/:circleId',requireAuth,async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_circle'});
 
   const circle=await db.query(
-    'SELECT id,is_favorites FROM connection_circles WHERE id=$1 AND user_id=$2 LIMIT 1',
+    'SELECT id,is_favorites,is_close FROM connection_circles WHERE id=$1 AND user_id=$2 LIMIT 1',
     [req.params.circleId,req.user.id]
   );
   if(!circle.rowCount)return res.status(404).json({error:'circle_not_found'});
-  if(circle.rows[0].is_favorites)return res.status(400).json({error:'favorites_circle_locked'});
+  if(circle.rows[0].is_favorites || circle.rows[0].is_close)return res.status(400).json({error:'system_circle_locked'});
 
   const duplicate=await db.query(
     'SELECT 1 FROM connection_circles WHERE user_id=$1 AND id<>$2 AND lower(name)=lower($3) LIMIT 1',
@@ -609,7 +632,7 @@ router.patch('/connections/circles/:circleId',requireAuth,async(req,res)=>{
     UPDATE connection_circles
        SET name=$3,updated_at=now()
      WHERE id=$1 AND user_id=$2
-     RETURNING id,name,is_favorites,position,updated_at
+     RETURNING id,name,is_favorites,is_close,position,updated_at
   `,[req.params.circleId,req.user.id,parsed.data.name]);
   res.json({ok:true,circle:updated.rows[0]});
 });
@@ -620,6 +643,7 @@ router.delete('/connections/circles/:circleId',requireAuth,async(req,res)=>{
      WHERE id=$1
        AND user_id=$2
        AND is_favorites=false
+       AND is_close=false
      RETURNING id
   `,[req.params.circleId,req.user.id]);
   if(!deleted.rowCount)return res.status(404).json({error:'circle_not_found_or_locked'});
@@ -632,13 +656,14 @@ router.get('/connections/:connectionUserId/circles',requireAuth,async(req,res)=>
   if(!(await isMutualConnection(req.user.id,targetId))){
     return res.status(404).json({error:'connection_not_found'});
   }
-  await ensureFavoritesCircle(req.user.id);
+  await Promise.all([ensureFavoritesCircle(req.user.id),ensureCloseCircle(req.user.id)]);
 
   const result=await db.query(`
     SELECT
       circle.id,
       circle.name,
       circle.is_favorites,
+      circle.is_close,
       circle.position,
       EXISTS(
         SELECT 1 FROM connection_circle_members member
@@ -647,7 +672,7 @@ router.get('/connections/:connectionUserId/circles',requireAuth,async(req,res)=>
       ) AS selected
     FROM connection_circles circle
     WHERE circle.user_id=$1
-    ORDER BY circle.is_favorites DESC,circle.position ASC,circle.id ASC
+    ORDER BY circle.is_favorites DESC,circle.is_close DESC,circle.position ASC,circle.id ASC
   `,[req.user.id,targetId]);
 
   res.json({circles:result.rows});
@@ -685,8 +710,37 @@ router.delete('/connections/circles/:circleId/members/:connectionUserId',require
   res.json({ok:true,selected:false});
 });
 
+router.put('/connections/:connectionUserId/close',requireAuth,async(req,res)=>{
+  const targetId=Number(req.params.connectionUserId);
+  if(!Number.isInteger(targetId) || targetId<=0)return res.status(400).json({error:'invalid_connection'});
+  if(!(await isMutualConnection(req.user.id,targetId))){
+    return res.status(404).json({error:'connection_not_found'});
+  }
+  const closeCircle=await ensureCloseCircle(req.user.id);
+  if(!closeCircle)return res.status(500).json({error:'close_circle_unavailable'});
+  await db.query(`
+    INSERT INTO connection_circle_members(circle_id,connection_user_id)
+    VALUES ($1,$2)
+    ON CONFLICT DO NOTHING
+  `,[closeCircle.id,targetId]);
+  res.json({ok:true,close:true,circleId:closeCircle.id});
+});
+
+router.delete('/connections/:connectionUserId/close',requireAuth,async(req,res)=>{
+  const targetId=Number(req.params.connectionUserId);
+  if(!Number.isInteger(targetId) || targetId<=0)return res.status(400).json({error:'invalid_connection'});
+  const closeCircle=await ensureCloseCircle(req.user.id);
+  if(closeCircle){
+    await db.query(
+      'DELETE FROM connection_circle_members WHERE circle_id=$1 AND connection_user_id=$2',
+      [closeCircle.id,targetId]
+    );
+  }
+  res.json({ok:true,close:false,circleId:closeCircle?.id || null});
+});
+
 router.get('/connections', requireAuth, async (req,res)=>{
-  await ensureFavoritesCircle(req.user.id);
+  await Promise.all([ensureFavoritesCircle(req.user.id),ensureCloseCircle(req.user.id)]);
   const requestedLimit=Number(req.query.limit || 50);
   const limit=Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50,1),100);
   const circleId=req.query.circleId ? Number(req.query.circleId) : null;
@@ -752,9 +806,17 @@ router.get('/connections', requireAuth, async (req,res)=>{
            AND favorite_circle.is_favorites=true
            AND favorite_member.connection_user_id=u.id
       ) AS favorite,
+      EXISTS(
+        SELECT 1
+          FROM connection_circle_members close_member
+          JOIN connection_circles close_circle ON close_circle.id=close_member.circle_id
+         WHERE close_circle.user_id=$1
+           AND close_circle.is_close=true
+           AND close_member.connection_user_id=u.id
+      ) AS close_connection,
       COALESCE(
         (
-          SELECT array_agg(circle.name ORDER BY circle.is_favorites DESC,circle.position,circle.id)
+          SELECT array_agg(circle.name ORDER BY circle.is_favorites DESC,circle.is_close DESC,circle.position,circle.id)
             FROM connection_circle_members circle_member
             JOIN connection_circles circle ON circle.id=circle_member.circle_id
            WHERE circle.user_id=$1
@@ -1964,9 +2026,11 @@ router.get('/:username', optionalAuth, async (req,res)=>{
   let mutualCount=0;
   let mutedByMe=false;
   let blockedByMe=false;
+  let closeConnection=false;
 
   if(req.user){
-    const [followingResult,followsYouResult,mutualResult,mutualCountResult,mutedResult,blockedResult]=await Promise.all([
+    await ensureCloseCircle(req.user.id);
+    const [followingResult,followsYouResult,mutualResult,mutualCountResult,mutedResult,blockedResult,closeResult]=await Promise.all([
       db.query(
         'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2',
         [req.user.id,profile.id]
@@ -2000,7 +2064,16 @@ router.get('/:username', optionalAuth, async (req,res)=>{
            AND u.id<>$1
       `,[req.user.id,profile.id]),
       db.query('SELECT 1 FROM mutes WHERE muter_id=$1 AND muted_id=$2',[req.user.id,profile.id]),
-      db.query('SELECT 1 FROM blocks WHERE blocker_id=$1 AND blocked_id=$2',[req.user.id,profile.id])
+      db.query('SELECT 1 FROM blocks WHERE blocker_id=$1 AND blocked_id=$2',[req.user.id,profile.id]),
+      db.query(`
+        SELECT 1
+          FROM connection_circle_members member
+          JOIN connection_circles circle ON circle.id=member.circle_id
+         WHERE circle.user_id=$1
+           AND circle.is_close=true
+           AND member.connection_user_id=$2
+         LIMIT 1
+      `,[req.user.id,profile.id])
     ]);
     following=!!followingResult.rowCount;
     followsYou=!!followsYouResult.rowCount;
@@ -2008,6 +2081,7 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     mutualCount=mutualCountResult.rows[0]?.n || 0;
     mutedByMe=!!mutedResult.rowCount;
     blockedByMe=!!blockedResult.rowCount;
+    closeConnection=!!closeResult.rowCount;
   }
 
   const visiblePostCount=req.user
@@ -2072,7 +2146,7 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     creatorLinks=links.rows;
   }
 
-  res.json({profile,following,followsYou,connected:following&&followsYou,mutuals,mutualCount,mutedByMe,blockedByMe,creatorLinks});
+  res.json({profile,following,followsYou,connected:following&&followsYou,mutuals,mutualCount,mutedByMe,blockedByMe,closeConnection,creatorLinks});
 });
 
 router.get('/:username/followers',optionalAuth,async(req,res)=>{
