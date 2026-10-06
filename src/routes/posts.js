@@ -1280,6 +1280,13 @@ router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
           updated_at=now()
   `,[poll.rows[0].id,req.user.id,parsed.data.optionId]);
 
+  if(!existing.rowCount && String(visiblePost.user_id)!==String(req.user.id)){
+    await db.query(`
+      INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES ($1,$2,'creator_poll_vote','post',$3,'Ha votado en tu encuesta.')
+    `,[visiblePost.user_id,req.user.id,req.params.id]);
+  }
+
   const attached=await attachCommunityMeta([{id:req.params.id}],req.user.id);
   res.json({ok:true,poll:attached[0]?.community_poll || null});
 });
@@ -1321,6 +1328,11 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
   if(question.rows[0].status!=='active')return res.status(409).json({error:'question_archived'});
   if(!question.rows[0].is_open)return res.status(409).json({error:'question_closed'});
 
+  const existingResponse=await db.query(
+    'SELECT id FROM creator_question_responses WHERE question_id=$1 AND user_id=$2 LIMIT 1',
+    [question.rows[0].id,req.user.id]
+  );
+
   const response=await db.query(`
     INSERT INTO creator_question_responses (question_id,user_id,body)
     VALUES ($1,$2,$3)
@@ -1329,6 +1341,13 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
           updated_at=now()
     RETURNING id,question_id,user_id,body,created_at,updated_at
   `,[question.rows[0].id,req.user.id,parsed.data.body]);
+
+  if(!existingResponse.rowCount && String(visiblePost.user_id)!==String(req.user.id)){
+    await db.query(`
+      INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES ($1,$2,'creator_question_response','post',$3,'Ha respondido a tu pregunta.')
+    `,[visiblePost.user_id,req.user.id,req.params.id]);
+  }
 
   const count=await db.query(
     'SELECT count(*)::int n FROM creator_question_responses WHERE question_id=$1',
