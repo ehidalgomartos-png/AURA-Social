@@ -24,6 +24,14 @@ let toastTimer = null;
 let ownProfileMode = 'posts';
 let activeNotificationFilter = 'all';
 let notificationCache = [];
+let liveActivitySource = null;
+let liveActivityState = {
+  notificationUnread:null,
+  latestNotificationId:'0',
+  messageUnread:null,
+  latestIncomingMessageId:'0'
+};
+let liveActivityRefreshing = false;
 let returnPulseLoaded = false;
 const HOME_LAST_VISIT_KEY = 'redlibertad:last-home-visit';
 const VIP_LAST_VISIT_KEY = 'redlibertad:last-vip-visit';
@@ -4394,6 +4402,90 @@ $('#reportForm').addEventListener('submit', async event => {
   }
 });
 
+function updateMessageBadge(n) {
+  const safe=Math.max(0,Number(n || 0));
+  const value=safe>99 ? '99+' : String(safe);
+  ['#messageBadge','#messageBadgeMobile'].forEach(selector=>{
+    const badge=$(selector);
+    if(!badge)return;
+    badge.textContent=value;
+    badge.classList.toggle('hidden',!safe);
+  });
+}
+
+async function refreshActiveConversationLive() {
+  if(!activeConversationId || liveActivityRefreshing)return;
+  const conversationId=String(activeConversationId);
+  liveActivityRefreshing=true;
+  try{
+    const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`);
+    if(!r.ok || String(activeConversationId)!==conversationId)return;
+    activeConversationOther=d.other;
+    activeConversationSettings=d.settings || activeConversationSettings;
+    const thread=$('#messageThread');
+    if(thread){
+      const nearBottom=(thread.scrollHeight-thread.scrollTop-thread.clientHeight)<120;
+      thread.innerHTML=(Array.isArray(d.messages)?d.messages:[]).map(m=>messageHTML(m,d.other)).join('') || '<div class="empty-state"><p>Empieza la conversación.</p></div>';
+      all('[data-accept-sensitive]',thread).forEach(button=>button.onclick=acceptSensitiveMessages);
+      if(nearBottom)thread.scrollTop=thread.scrollHeight;
+    }
+    await loadConversations();
+  }catch(_){}
+  finally{liveActivityRefreshing=false;}
+}
+
+async function handleLiveActivity(payload,initial=false) {
+  const previous={...liveActivityState};
+  liveActivityState={
+    notificationUnread:Number(payload.notificationUnread || 0),
+    latestNotificationId:String(payload.latestNotificationId || '0'),
+    messageUnread:Number(payload.messageUnread || 0),
+    latestIncomingMessageId:String(payload.latestIncomingMessageId || '0')
+  };
+
+  updateNotificationBadge(liveActivityState.notificationUnread);
+  updateMessageBadge(liveActivityState.messageUnread);
+  if(initial)return;
+
+  const notificationChanged=
+    previous.latestNotificationId!==liveActivityState.latestNotificationId ||
+    previous.notificationUnread!==liveActivityState.notificationUnread;
+  const messageChanged=
+    previous.latestIncomingMessageId!==liveActivityState.latestIncomingMessageId ||
+    previous.messageUnread!==liveActivityState.messageUnread;
+
+  if(notificationChanged && !$('#notificationsView')?.classList.contains('hidden')){
+    await loadNotifications();
+  }
+  if(messageChanged && !$('#messagesView')?.classList.contains('hidden')){
+    if(activeConversationId)await refreshActiveConversationLive();
+    else await loadConversations();
+  }
+  if(notificationChanged || messageChanged){
+    returnPulseLoaded=false;
+  }
+}
+
+function startLiveActivity() {
+  if(liveActivitySource || !('EventSource' in window))return;
+  const source=new EventSource('/api/live/stream');
+  liveActivitySource=source;
+
+  source.addEventListener('snapshot',event=>{
+    try{handleLiveActivity(JSON.parse(event.data),true);}catch(_){}
+  });
+  source.addEventListener('activity',event=>{
+    try{handleLiveActivity(JSON.parse(event.data),false);}catch(_){}
+  });
+  source.addEventListener('stream-error',()=>{});
+  source.onerror=()=>{
+    if(source.readyState===EventSource.CLOSED){
+      liveActivitySource=null;
+      setTimeout(startLiveActivity,5000);
+    }
+  };
+}
+
 function updateNotificationBadge(n) {
   const value = n > 99 ? '99+' : String(n);
   ['#notificationBadge', '#notificationBadgeMobile'].forEach(selector => {
@@ -4527,6 +4619,8 @@ async function loadNotifications() {
   const { d } = await api('/api/notifications');
   notificationCache = Array.isArray(d.notifications) ? d.notifications : [];
   updateNotificationBadge(Number(d.unread || 0));
+  liveActivityState.notificationUnread=Number(d.unread || 0);
+  if(notificationCache.length)liveActivityState.latestNotificationId=String(notificationCache[0].id || liveActivityState.latestNotificationId);
   renderNotifications();
 }
 
@@ -4564,13 +4658,8 @@ async function loadConversations(openId = null) {
   const { d } = await api('/api/messages/conversations?'+params.toString());
   const conversations=Array.isArray(d.conversations)?d.conversations:[];
   const total = conversations.reduce((a, x) => a + Number(x.unread_count || 0), 0);
-  const badgeValue = total > 99 ? '99+' : String(total);
-  ['#messageBadge', '#messageBadgeMobile'].forEach(selector => {
-    const badge = $(selector);
-    if (!badge) return;
-    badge.textContent = badgeValue;
-    badge.classList.toggle('hidden', !total);
-  });
+  updateMessageBadge(total);
+  liveActivityState.messageUnread=total;
 
   all('[data-message-filter]').forEach(button=>{
     button.classList.toggle('active',button.dataset.messageFilter===messageConversationFilter);
@@ -5170,6 +5259,7 @@ async function handleInitialDeepLink() {
     await loadMe();
     await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
+    startLiveActivity();
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();

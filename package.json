@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.41.0",
+  "version": "1.42.0",
   "private": true,
-  "description": "RedLibertad V1.41 Comments 2.0 - respuestas anidadas de un nivel y conversaciones en comentarios, sin monetización.",
+  "description": "RedLibertad V1.42 Live Activity 2.0 - mensajes y notificaciones en vivo con Server-Sent Events, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
