@@ -6,6 +6,9 @@ let taskStatus='open';
 let taskPriority='all';
 let taskSearch='';
 let taskSearchTimer=null;
+let crmPriority='all';
+let crmSearch='';
+let crmSearchTimer=null;
 
 async function opsApi(url,options={}){
   const response=await fetch(url,options);
@@ -155,6 +158,104 @@ q('#creatorTaskList')?.addEventListener('change',async event=>{
   notify('Tarea reprogramada');
   await loadTasks();
 });
-document.addEventListener('DOMContentLoaded',()=>setTimeout(loadTasks,150));
-window.RedLibertadCreatorOps={loadTasks,opsApi,notify,esc,metric};
+function crmAvatar(contact){
+  if(contact.avatar_url)return `<img class="creator-crm-avatar" src="${esc(contact.avatar_url)}" alt="">`;
+  const initial=String(contact.display_name||contact.username||'?').trim().charAt(0).toUpperCase();
+  return `<span class="creator-crm-avatar creator-crm-avatar-fallback">${esc(initial)}</span>`;
+}
+function crmCard(contact){
+  const labels=Array.isArray(contact.labels)?contact.labels:[];
+  const last=contact.last_interaction_at?new Date(contact.last_interaction_at):null;
+  const lastLabel=last&&Number.isFinite(last.getTime())?last.toLocaleDateString('es-ES',{day:'2-digit',month:'short'}):'Sin actividad reciente';
+  return `<article class="creator-crm-card ${contact.priority==='high'?'high':''}" data-crm-id="${contact.id}" data-crm-user="${esc(contact.username)}">
+    <div class="creator-crm-head">
+      ${crmAvatar(contact)}
+      <div>
+        <b>${esc(contact.display_name||contact.username)} ${contact.creator_verified?'✓':''}</b>
+        <small>@${esc(contact.username)} · ${contact.is_follower?'Seguidor':'Participante'}${contact.is_vip?' · VIP':''}</small>
+      </div>
+      <button type="button" data-crm-create-task>+ Tarea</button>
+    </div>
+    <div class="creator-crm-signals">
+      <span>${Number(contact.interaction_count_30d||0)} interacciones · 30d</span>
+      <span>${esc(lastLabel)}</span>
+      <span>${Number(contact.open_task_count||0)} tareas abiertas</span>
+    </div>
+    <div class="creator-crm-editor">
+      <select data-crm-field="priority" aria-label="Prioridad CRM">
+        <option value="normal" ${contact.priority==='normal'?'selected':''}>Prioridad normal</option>
+        <option value="high" ${contact.priority==='high'?'selected':''}>Prioridad alta</option>
+      </select>
+      <input data-crm-field="labels" maxlength="320" value="${esc(labels.join(', '))}" placeholder="Etiquetas separadas por comas">
+      <textarea data-crm-field="note" maxlength="1000" placeholder="Nota privada…">${esc(contact.private_note||'')}</textarea>
+      <button type="button" class="primary-soft" data-crm-save>Guardar ficha</button>
+    </div>
+  </article>`;
+}
+async function loadCrm(){
+  const root=q('#creatorCrmList');
+  if(!root)return;
+  root.innerHTML='<div class="creator-ops-empty">Cargando relaciones…</div>';
+  const params=new URLSearchParams({priority:crmPriority,q:crmSearch});
+  const {response,data}=await opsApi('/api/creator/contacts?'+params.toString());
+  if(response.status===403){q('#creatorCrmSection')?.classList.add('hidden');return;}
+  if(!response.ok){root.innerHTML='<div class="creator-ops-empty">No se pudo cargar el CRM.</div>';return;}
+  const s=data.summary||{};
+  const summary=q('#creatorCrmSummary');
+  if(summary)summary.innerHTML=[
+    metric('Personas',s.total||0),
+    metric('Seguidores',s.followers||0),
+    metric('VIP',s.vip||0),
+    metric('Prioridad alta',s.high_priority||0)
+  ].join('');
+  qa('[data-crm-priority]').forEach(button=>button.classList.toggle('active',button.dataset.crmPriority===crmPriority));
+  root.innerHTML=(data.contacts||[]).length?(data.contacts||[]).map(crmCard).join(''):'<div class="creator-ops-empty">No hay personas en este filtro.</div>';
+}
+qa('[data-crm-priority]').forEach(button=>button.addEventListener('click',async()=>{
+  crmPriority=button.dataset.crmPriority||'all';
+  await loadCrm();
+}));
+q('#creatorCrmSearch')?.addEventListener('input',event=>{
+  crmSearch=String(event.currentTarget.value||'').trim();
+  clearTimeout(crmSearchTimer);
+  crmSearchTimer=setTimeout(loadCrm,260);
+});
+q('#creatorCrmList')?.addEventListener('click',async event=>{
+  const card=event.target.closest('[data-crm-id]');
+  if(!card)return;
+  const id=card.dataset.crmId;
+  if(event.target.closest('[data-crm-save]')){
+    const labels=String(q('[data-crm-field="labels"]',card)?.value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,10);
+    const payload={
+      priority:q('[data-crm-field="priority"]',card)?.value||'normal',
+      privateNote:String(q('[data-crm-field="note"]',card)?.value||'').trim(),
+      labels
+    };
+    const button=event.target.closest('[data-crm-save]');
+    button.disabled=true;
+    const {response}=await opsApi('/api/creator/contacts/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!response.ok){button.disabled=false;notify('No se pudo guardar la ficha');return;}
+    notify('Ficha privada guardada');
+    await loadCrm();
+    return;
+  }
+  if(event.target.closest('[data-crm-create-task]')){
+    const username=card.dataset.crmUser||'persona';
+    const button=event.target.closest('[data-crm-create-task]');
+    button.disabled=true;
+    const {response}=await opsApi('/api/creator/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      title:'Seguimiento con @'+username,
+      note:'Creada desde Creator CRM',
+      priority:'normal',
+      dueAt:null,
+      relatedUserId:id
+    })});
+    if(!response.ok){button.disabled=false;notify('No se pudo crear la tarea');return;}
+    notify('Tarea relacionada creada');
+    await Promise.all([loadCrm(),loadTasks()]);
+  }
+});
+
+document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>Promise.all([loadTasks(),loadCrm()]),150));
+window.RedLibertadCreatorOps={loadTasks,loadCrm,opsApi,notify,esc,metric};
 })();
