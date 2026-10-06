@@ -1211,12 +1211,14 @@ router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
   if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
   const poll=await db.query(`
-    SELECT cp.id,cp.allow_change
+    SELECT cp.id,cp.allow_change,cp.is_open,cp.status
       FROM creator_polls cp
      WHERE cp.post_id=$1
      LIMIT 1
   `,[req.params.id]);
   if(!poll.rowCount)return res.status(404).json({error:'poll_not_found'});
+  if(poll.rows[0].status!=='active')return res.status(409).json({error:'poll_archived'});
+  if(!poll.rows[0].is_open)return res.status(409).json({error:'poll_closed'});
 
   const option=await db.query(`
     SELECT id
@@ -1277,10 +1279,12 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
   if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
   const question=await db.query(
-    'SELECT id FROM creator_questions WHERE post_id=$1 LIMIT 1',
+    'SELECT id,is_open,status FROM creator_questions WHERE post_id=$1 LIMIT 1',
     [req.params.id]
   );
   if(!question.rowCount)return res.status(404).json({error:'question_not_found'});
+  if(question.rows[0].status!=='active')return res.status(409).json({error:'question_archived'});
+  if(!question.rows[0].is_open)return res.status(409).json({error:'question_closed'});
 
   const response=await db.query(`
     INSERT INTO creator_question_responses (question_id,user_id,body)
@@ -1324,6 +1328,120 @@ router.delete('/:id/question-response',requireAuth,async(req,res)=>{
   );
 
   res.json({ok:true,responseCount:Number(count.rows[0]?.n || 0)});
+});
+
+const communityManageSchema=z.object({
+  action:z.enum(['close','reopen','archive','restore'])
+});
+
+router.patch('/creator/community/polls/:pollId',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=communityManageSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_community_action'});
+
+  const found=await db.query(`
+    SELECT cp.id,cp.post_id,cp.status,cp.is_open
+      FROM creator_polls cp
+      JOIN posts p ON p.id=cp.post_id
+     WHERE cp.id=$1 AND p.user_id=$2
+     LIMIT 1
+  `,[req.params.pollId,req.user.id]);
+  if(!found.rowCount)return res.status(404).json({error:'poll_not_found'});
+
+  const action=parsed.data.action;
+  const updated=await db.query(`
+    UPDATE creator_polls
+       SET status=CASE
+             WHEN $2='archive' THEN 'archived'
+             WHEN $2='restore' THEN 'active'
+             ELSE status
+           END,
+           is_open=CASE
+             WHEN $2='close' THEN false
+             WHEN $2='reopen' THEN true
+             WHEN $2='archive' THEN false
+             ELSE is_open
+           END,
+           archived_at=CASE
+             WHEN $2='archive' THEN now()
+             WHEN $2='restore' THEN NULL
+             ELSE archived_at
+           END
+     WHERE id=$1
+     RETURNING id,post_id,status,is_open,archived_at
+  `,[req.params.pollId,action]);
+
+  res.json({ok:true,poll:updated.rows[0]});
+});
+
+router.patch('/creator/community/questions/:questionId',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=communityManageSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_community_action'});
+
+  const found=await db.query(`
+    SELECT cq.id,cq.post_id,cq.status,cq.is_open
+      FROM creator_questions cq
+      JOIN posts p ON p.id=cq.post_id
+     WHERE cq.id=$1 AND p.user_id=$2
+     LIMIT 1
+  `,[req.params.questionId,req.user.id]);
+  if(!found.rowCount)return res.status(404).json({error:'question_not_found'});
+
+  const action=parsed.data.action;
+  const updated=await db.query(`
+    UPDATE creator_questions
+       SET status=CASE
+             WHEN $2='archive' THEN 'archived'
+             WHEN $2='restore' THEN 'active'
+             ELSE status
+           END,
+           is_open=CASE
+             WHEN $2='close' THEN false
+             WHEN $2='reopen' THEN true
+             WHEN $2='archive' THEN false
+             ELSE is_open
+           END,
+           archived_at=CASE
+             WHEN $2='archive' THEN now()
+             WHEN $2='restore' THEN NULL
+             ELSE archived_at
+           END
+     WHERE id=$1
+     RETURNING id,post_id,status,is_open,archived_at
+  `,[req.params.questionId,action]);
+
+  res.json({ok:true,question:updated.rows[0]});
+});
+
+const responseStarSchema=z.object({starred:z.boolean()});
+
+router.patch('/creator/community/responses/:responseId/star',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=responseStarSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_star_state'});
+
+  const updated=await db.query(`
+    UPDATE creator_question_responses qr
+       SET creator_starred=$3,
+           starred_at=CASE WHEN $3 THEN now() ELSE NULL END,
+           updated_at=now()
+      FROM creator_questions cq
+      JOIN posts p ON p.id=cq.post_id
+     WHERE qr.id=$1
+       AND qr.question_id=cq.id
+       AND p.user_id=$2
+     RETURNING qr.id,qr.question_id,qr.creator_starred,qr.starred_at
+  `,[req.params.responseId,req.user.id,parsed.data.starred]);
+
+  if(!updated.rowCount)return res.status(404).json({error:'response_not_found'});
+  res.json({ok:true,response:updated.rows[0]});
 });
 
 router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
