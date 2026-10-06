@@ -3571,7 +3571,7 @@ async function togglePushNotifications(){
           p256dh:json.keys?.p256dh || '',
           auth:json.keys?.auth || ''
         },
-        userAgent:navigator.userAgent || ''
+        userAgent:String(navigator.userAgent || '').slice(0,500)
       })
     });
     if(!r.ok){
