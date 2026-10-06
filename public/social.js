@@ -2,6 +2,9 @@ const $ = (s, r = document) => r.querySelector(s);
 const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let currentMode = 'foryou';
+let activeViewName='feed';
+const viewScrollPositions=new Map();
+let connectivityHideTimer=null;
 let currentFileMedia = null;
 let activeConversationId = null;
 let activeConversationOther = null;
@@ -62,6 +65,73 @@ let creatorFollowUpSearch = '';
 let creatorFollowUpData = null;
 let creatorFollowUpSearchTimer = null;
 
+
+function syncVisualViewport(){
+  const viewport=window.visualViewport;
+  const height=Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
+  const offsetTop=Math.round(viewport?.offsetTop || 0);
+  const keyboardInset=Math.max(0,Math.round((window.innerHeight || height)-height-offsetTop));
+  document.documentElement.style.setProperty('--visual-vh',height ? `${height}px` : '100dvh');
+  document.documentElement.style.setProperty('--keyboard-inset',`${keyboardInset}px`);
+  document.body.classList.toggle('keyboard-open',keyboardInset>120);
+}
+
+function setConnectivityStatus(online,{initial=false}={}){
+  const banner=$('#connectivityBanner');
+  if(!banner)return;
+  clearTimeout(connectivityHideTimer);
+  document.body.classList.toggle('is-offline',!online);
+
+  if(!online){
+    banner.textContent='Sin conexión · Puedes seguir viendo contenido ya cargado.';
+    banner.classList.remove('hidden','reconnected');
+    banner.classList.add('offline');
+    return;
+  }
+
+  if(initial){
+    banner.classList.add('hidden');
+    banner.classList.remove('offline','reconnected');
+    return;
+  }
+
+  banner.textContent='Conexión recuperada';
+  banner.classList.remove('hidden','offline');
+  banner.classList.add('reconnected');
+  connectivityHideTimer=setTimeout(()=>{
+    banner.classList.add('hidden');
+    banner.classList.remove('reconnected');
+  },2200);
+}
+
+function saveCurrentViewScroll(){
+  if(!activeViewName)return;
+  viewScrollPositions.set(activeViewName,Math.max(0,window.scrollY || 0));
+}
+
+function restoreViewScroll(name){
+  const top=Number(viewScrollPositions.get(name) || 0);
+  const apply=()=>{
+    if(activeViewName===name)window.scrollTo({top,behavior:'auto'});
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(apply));
+  setTimeout(apply,120);
+}
+
+function autosizeMessageBody(){
+  const field=$('#messageBody');
+  if(!field)return;
+  field.style.height='auto';
+  field.style.height=`${Math.min(140,Math.max(46,field.scrollHeight))}px`;
+}
+
+syncVisualViewport();
+window.visualViewport?.addEventListener('resize',syncVisualViewport);
+window.visualViewport?.addEventListener('scroll',syncVisualViewport);
+window.addEventListener('resize',syncVisualViewport);
+window.addEventListener('online',()=>setConnectivityStatus(true));
+window.addEventListener('offline',()=>setConnectivityStatus(false));
+setConnectivityStatus(navigator.onLine,{initial:true});
 
 async function api(url, opts = {}) {
   const r = await fetch(url, opts);
@@ -4779,6 +4849,7 @@ function bindTypingPresence() {
   const input=$('#messageBody');
   if(!input)return;
   input.addEventListener('input',()=>{
+    autosizeMessageBody();
     if(!activeConversationId)return;
     const now=Date.now();
     if(now-lastTypingPingAt>2500){
@@ -5117,6 +5188,7 @@ async function openConversation(id) {
   $('#messageForm').onsubmit = sendMessage;
   bindMessageActions($('#messageThread'));
   bindTypingPresence();
+  autosizeMessageBody();
   sendChatPresence({typing:false,conversationId:id});
   updateActiveChatPresence();
   $('#messageFile').addEventListener('change', renderMessagePreview);
@@ -5397,14 +5469,21 @@ $('#returnPulseRefresh')?.addEventListener('click',async()=>{
 });
 
 function showView(name) {
+  if(name===activeViewName){
+    window.scrollTo({top:0,behavior:'smooth'});
+  }else{
+    saveCurrentViewScroll();
+  }
   if(name!=='messages' && activeConversationId)sendChatPresence({typing:false,conversationId:null});
   if(name!=='reels')pauseReelVideos();
   all('.view').forEach(v => v.classList.add('hidden'));
   const view = document.querySelector('#' + name + 'View');
   if (!view) return;
   view.classList.remove('hidden');
+  activeViewName=name;
   animateView(view);
   all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  restoreViewScroll(name);
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
@@ -5412,7 +5491,15 @@ function showView(name) {
   if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
   if (name === 'notifications') loadNotifications();
 }
-all('[data-view]').forEach(b => b.onclick = () => { tapFeedback(); showView(b.dataset.view); });
+all('[data-view]').forEach(b => b.onclick = () => {
+  tapFeedback();
+  const target=b.dataset.view;
+  if(target===activeViewName){
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  showView(target);
+});
 all('[data-mode]').forEach(b => b.onclick = () => { all('[data-mode]').forEach(x => x.classList.remove('active')); b.classList.add('active'); loadFeed(b.dataset.mode); });
 
 function updateCommunityComposeFields() {
@@ -5714,6 +5801,8 @@ async function handleInitialDeepLink() {
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
     startLiveActivity();
     startPresenceHeartbeat();
+    syncVisualViewport();
+    setConnectivityStatus(navigator.onLine,{initial:true});
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
