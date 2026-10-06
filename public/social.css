@@ -5396,3 +5396,18 @@ select:focus-visible{
 .relationship-tags,.relationship-communities{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.relationship-tags i,.relationship-communities i{padding:3px 6px;border-radius:999px;background:var(--soft);font-size:7px;font-style:normal;color:var(--muted)}
 .relationship-actions{display:flex;gap:5px;flex-wrap:wrap;padding:8px 10px;border-top:1px solid var(--line)}
 @media(max-width:760px){.relationship-suggestions{grid-template-columns:1fr}.relationship-intelligence{padding:12px;border-radius:16px}}
+
+
+/* =========================================================
+   RedLibertad V1.66 — Growth & Onboarding 2.0
+   ========================================================= */
+.growth-starter{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.growth-starter-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
+.growth-starter-head h3{margin:2px 0 0;color:var(--ink);font-size:14px}
+.growth-starter-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.growth-starter-list .person-card.compact{min-width:0}
+.growth-starter-list .person-card-actions{align-self:center}
+@media(max-width:760px){
+  .growth-starter-list{grid-template-columns:1fr}
+  .growth-starter-head{align-items:center}
+}
