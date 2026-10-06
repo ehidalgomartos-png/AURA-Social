@@ -4100,15 +4100,63 @@ function openReport(postId) {
 let activeSharePostId = null;
 function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
 function shareText() { return 'Mira mi post en RedLibertad, donde la libertad es lo primero.'; }
+
+async function loadShareConversations(){
+  const root=$('#shareConversationList');
+  if(!root || !activeSharePostId)return;
+  root.innerHTML='<div class="share-chat-loading">Cargando conversaciones…</div>';
+
+  const {r,d}=await api('/api/messages/conversations?filter=all&q=');
+  if(!r.ok){
+    root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus conversaciones.</div>';
+    return;
+  }
+
+  const conversations=(Array.isArray(d.conversations) ? d.conversations : []).slice(0,12);
+  if(!conversations.length){
+    root.innerHTML='<div class="share-chat-empty">Todavía no tienes conversaciones activas.</div>';
+    return;
+  }
+
+  root.innerHTML=conversations.map(conversation=>{
+    const identity=conversationListIdentity(conversation);
+    const subtitle=identity.isGroup
+      ? `${Number(conversation.member_count || 0)} miembros`
+      : identity.subtitle;
+    return `<button type="button" class="share-chat-option" data-share-conversation="${conversation.id}" data-share-label="${esc(identity.title)}">
+      <span class="share-chat-avatar ${identity.isGroup ? 'group-avatar' : ''}">${identity.avatar}</span>
+      <span class="share-chat-copy"><b>${esc(identity.title)}</b><small>${esc(subtitle || '')}</small></span>
+      <span class="share-chat-send">Enviar</span>
+    </button>`;
+  }).join('');
+
+  all('[data-share-conversation]',root).forEach(button=>{
+    button.onclick=()=>sendSharedPostToConversation(
+      button.dataset.shareConversation,
+      button.dataset.shareLabel
+    );
+  });
+}
+
 function openShare(postId) {
   activeSharePostId = Number(postId);
   const modal = $('#shareModal');
   if (modal) modal.classList.remove('hidden');
-  const status = $('#shareStatus'); if (status) status.textContent = '';
+  const status = $('#shareStatus');
+  if (status) status.textContent = '';
   const internalUsername = $('#shareInternalUsername');
   if (internalUsername) internalUsername.value = '';
+  loadShareConversations().catch(()=>{});
 }
-function closeShare() { const modal=$('#shareModal'); if(modal) modal.classList.add('hidden'); activeSharePostId=null; }
+
+function closeShare() {
+  const modal=$('#shareModal');
+  if(modal)modal.classList.add('hidden');
+  const list=$('#shareConversationList');
+  if(list)list.innerHTML='';
+  activeSharePostId=null;
+}
+
 async function writeClipboardText(value) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(value);
@@ -4144,56 +4192,76 @@ async function copyShareLink() {
     window.prompt('Copia este texto y enlace:', value);
   }
 }
-async function shareInsideRedLibertad(username) {
-  if (!activeSharePostId) return;
-  const clean = String(username || '').trim().replace(/^@/,'');
-  const status = $('#shareStatus');
+async function sendSharedPostToConversation(conversationId,label='chat'){
+  if(!activeSharePostId)return;
+  const status=$('#shareStatus');
+  if(status)status.textContent='Enviando publicación…';
 
-  if (!clean) {
-    if (status) status.textContent = 'Escribe un @usuario.';
+  const message=await api(
+    `/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,
+    {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        body:'',
+        contentLevel:'normal',
+        sharedPostId:activeSharePostId
+      })
+    }
+  );
+
+  if(!message.r.ok){
+    if(status){
+      status.textContent=message.d.error==='post_not_shareable'
+        ? 'Esta publicación ya no se puede compartir.'
+        : 'No se pudo enviar la publicación.';
+    }
     return;
   }
 
-  if (status) status.textContent = 'Abriendo conversación...';
+  const currentId=activeConversationId;
+  closeShare();
+  toast(`Publicación enviada a ${label}`);
+  await loadConversations();
+  if(currentId && String(currentId)===String(conversationId) && !$('#messagesView')?.classList.contains('hidden')){
+    await refreshActiveConversationLive();
+  }
+}
 
-  const conversation = await api('/api/messages/conversations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: clean })
+async function shareInsideRedLibertad(username) {
+  if (!activeSharePostId) return;
+  const clean=String(username || '').trim().replace(/^@/,'');
+  const status=$('#shareStatus');
+
+  if(!clean){
+    if(status)status.textContent='Escribe un @usuario.';
+    return;
+  }
+
+  if(status)status.textContent='Abriendo conversación…';
+
+  const conversation=await api('/api/messages/conversations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:clean})
   });
 
-  if (!conversation.r.ok) {
-    if (status) {
-      status.textContent = conversation.d.error === 'cannot_message_self'
+  if(!conversation.r.ok){
+    if(status){
+      status.textContent=conversation.d.error==='cannot_message_self'
         ? 'No puedes enviártelo a ti mismo.'
-        : conversation.d.error === 'message_privacy_denied'
+        : conversation.d.error==='message_privacy_denied'
           ? 'Esta persona no acepta nuevas conversaciones.'
-          : conversation.d.error === 'message_privacy_following_only'
+          : conversation.d.error==='message_privacy_following_only'
             ? 'Solo acepta mensajes de personas que sigue.'
-            : conversation.d.error === 'messaging_blocked'
+            : conversation.d.error==='messaging_blocked'
               ? 'No puedes iniciar esta conversación.'
               : 'No se pudo abrir la conversación.';
     }
     return;
   }
 
-  const message = await api(`/api/messages/conversations/${conversation.d.conversationId}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      body: `${shareText()} ${shareUrl(activeSharePostId)}`,
-      contentLevel: 'normal'
-    })
-  });
-
-  if (!message.r.ok) {
-    if (status) status.textContent = 'No se pudo enviar la publicación.';
-    return;
-  }
-
-  closeShare();
-  toast(`Publicación enviada a @${clean}`);
-  await loadConversations();
+  await sendSharedPostToConversation(conversation.d.conversationId,`@${clean}`);
 }
 
 async function nativeShare() {
