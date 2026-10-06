@@ -8058,16 +8058,24 @@ $('#shareInternalForm')?.addEventListener('submit', async event => {
   await shareInsideRedLibertad($('#shareInternalUsername')?.value);
 });
 $('#refreshShareChats')?.addEventListener('click',()=>loadShareConversations().catch(()=>{}));
+$('#clearShareHistory')?.addEventListener('click',async()=>{
+  const {r}=await api('/api/shares/history',{method:'DELETE'});
+  if(r.ok){toast('Historial privado borrado');await loadShareHistory();}
+});
 if ($('#closeShareModal')) $('#closeShareModal').onclick = closeShare;
 if ($('#shareNative')) $('#shareNative').onclick = nativeShare;
 if ($('#shareCopy')) $('#shareCopy').onclick = copyShareLink;
-if ($('#shareFacebook')) $('#shareFacebook').onclick = () => {
-  if (!activeSharePostId) return;
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl(activeSharePostId))}`, '_blank', 'noopener,noreferrer');
+if ($('#shareFacebook')) $('#shareFacebook').onclick = async () => {
+  if(!activeShareEntity||!canShareExternally())return;
+  await recordExternalShare('external','Facebook');
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl())}`,'_blank','noopener,noreferrer');
+  await loadShareHistory();
 };
-if ($('#shareWhatsApp')) $('#shareWhatsApp').onclick = () => {
-  if (!activeSharePostId) return;
-  window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl(activeSharePostId)}`)}`, '_blank', 'noopener,noreferrer');
+if ($('#shareWhatsApp')) $('#shareWhatsApp').onclick = async () => {
+  if(!activeShareEntity||!canShareExternally())return;
+  await recordExternalShare('external','WhatsApp');
+  window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl()}`)}`,'_blank','noopener,noreferrer');
+  await loadShareHistory();
 };
 $('#shareModal')?.addEventListener('click', e => { if (e.target === $('#shareModal')) closeShare(); });
 
@@ -8093,6 +8101,7 @@ async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
   const post = params.get('post');
+  const story = params.get('story');
   const view = params.get('view');
   const conversation = params.get('conversation');
   const trust = params.get('trust');
@@ -8104,6 +8113,11 @@ async function handleInitialDeepLink() {
 
   if (post) {
     await openPostFocus(post);
+    return;
+  }
+
+  if(story){
+    await openSharedStory(story);
     return;
   }
 
