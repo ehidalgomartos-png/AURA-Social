@@ -37,6 +37,35 @@ async function ensureMessagePrivacy() {
         )
       `);
       await db.query("CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id,updated_at DESC)");
+      await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct'");
+      await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120)");
+      await db.query("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
+      await db.query(`
+        DO $
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname='conversations_type_check'
+          ) THEN
+            ALTER TABLE conversations
+              ADD CONSTRAINT conversations_type_check
+              CHECK(conversation_type IN ('direct','group'));
+          END IF;
+        END $
+      `);
+      await db.query("ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS member_role TEXT NOT NULL DEFAULT 'member'");
+      await db.query(`
+        DO $
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname='conversation_members_role_check'
+          ) THEN
+            ALTER TABLE conversation_members
+              ADD CONSTRAINT conversation_members_role_check
+              CHECK(member_role IN ('owner','admin','member'));
+          END IF;
+        END $
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_conversations_type_updated ON conversations(conversation_type,updated_at DESC)");
     })().catch(error => {
       messagePrivacyReady = null;
       throw error;
