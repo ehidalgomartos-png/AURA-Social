@@ -24,6 +24,7 @@
     <nav class="side-nav">
       <button data-view="feed" class="active">⌂ <span>Inicio</span></button>
       <button data-view="explore">⌕ <span>Explorar</span></button>
+      <button data-view="connections">◎ <span>Conexiones</span></button>
       <button data-view="reels">▷ <span>Reels</span></button>
       <button data-view="messages">✉ <span>Mensajes</span><i id="messageBadge" class="nav-badge hidden"></i></button>
       <button data-view="notifications">♢ <span>Notificaciones</span><i id="notificationBadge" class="nav-badge hidden"></i></button>
@@ -104,6 +105,7 @@
         <div class="connections-head">
           <div><span class="eyebrow">TU RED</span><h2>Tus conexiones</h2><p>Organiza tu red en círculos privados. Solo tú puedes verlos.</p></div>
           <div class="connections-head-actions">
+            <button type="button" class="connection-center-open" data-view-jump="connections">Abrir centro</button>
             <button id="newConnectionCircle" class="connection-circle-create" type="button">+ Círculo</button>
             <span id="connectionsCount" class="connections-count">0</span>
           </div>
@@ -143,6 +145,41 @@
         <div id="discoveryFeed" class="feed discovery-feed"></div>
       </section>
     </section>
+    <section id="connectionsView" class="view hidden">
+      <div class="page-title connections-center-title">
+        <div><span class="eyebrow">TU RED</span><h1>Centro de conexiones</h1><p>Encuentra, organiza y retoma el contacto con tus conexiones sin presión artificial.</p></div>
+        <button id="connectionsCenterNewCircle" type="button" class="secondary">+ Círculo</button>
+      </div>
+      <section class="connections-center-summary" aria-label="Resumen de conexiones">
+        <article><b id="connectionsCenterTotal">0</b><span>conexiones</span></article>
+        <article><b id="connectionsCenterNew">0</b><span>nuevas</span></article>
+        <article><b id="connectionsCenterActive">0</b><span>activas</span></article>
+        <article><b id="connectionsCenterUnread">0</b><span>con mensajes pendientes</span></article>
+      </section>
+      <section class="connections-center-toolbar">
+        <label class="connections-center-search">
+          <span>Buscar en tus conexiones</span>
+          <input id="connectionsCenterSearch" type="search" maxlength="100" placeholder="Nombre, @usuario, ciudad o interés">
+        </label>
+        <div id="connectionsCenterFilters" class="connections-center-filters" role="tablist" aria-label="Filtrar conexiones">
+          <button type="button" class="active" data-connection-center-filter="all">Todas</button>
+          <button type="button" data-connection-center-filter="new">Nuevas</button>
+          <button type="button" data-connection-center-filter="active">Activas</button>
+          <button type="button" data-connection-center-filter="interests">Intereses</button>
+          <button type="button" data-connection-center-filter="recent">Conversación reciente</button>
+          <button type="button" data-connection-center-filter="unread">Pendientes</button>
+        </div>
+        <div id="connectionsCenterCircleFilters" class="connection-circle-filters"></div>
+      </section>
+      <section>
+        <div class="connections-center-heading">
+          <div><span class="eyebrow">PERSONAS</span><h2 id="connectionsCenterHeading">Todas tus conexiones</h2></div>
+          <span id="connectionsCenterVisibleCount" class="connections-count">0</span>
+        </div>
+        <div id="connectionsCenterList" class="connections-center-list"></div>
+      </section>
+    </section>
+
     <section id="reelsView" class="view hidden"><div class="page-title"><div><span class="eyebrow">VÍDEO VERTICAL</span><h1>Reels</h1><p class="reels-hint">Desliza para ver el siguiente · autoplay silenciado cuando el vídeo está en pantalla</p></div></div><div id="reelsFeed" class="reels-feed"></div></section>
 
     <section id="messagesView" class="view hidden">
