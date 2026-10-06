@@ -334,10 +334,18 @@ async function publishDueScheduledPosts(){
   }
 }
 
+let lastPublishingSweepAt=0;
+async function maybePublishDueScheduledPosts(){
+  const now=Date.now();
+  if(now-lastPublishingSweepAt<30*1000)return 0;
+  lastPublishingSweepAt=now;
+  return publishDueScheduledPosts();
+}
+
 router.use(async (_req,res,next)=>{
   try{
     await ensureCreatorPublishingV20();
-    await publishDueScheduledPosts();
+    await maybePublishDueScheduledPosts();
     next();
   }catch(error){
     console.error('RedLibertad V1.20 publishing bootstrap failed:',error);
