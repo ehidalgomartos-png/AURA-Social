@@ -1680,10 +1680,14 @@ function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones
 
   return posts.map(p => {
     const participants = Array.isArray(p.participants) ? p.participants : [];
+    const collaborators=Array.isArray(p.collaborators)?p.collaborators:[];
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''} ${p.audience === 'vip' ? 'is-vip-exclusive' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.audience === 'vip' ? '<span class="tile-vip">★ VIP</span>' : ''}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
+    const collaborationBadge=collaborators.length
+      ? `<span class="tile-collaboration" title="Colaboración con ${collaborators.map(x=>'@'+esc(x.username)).join(', ')}">🤝 COLAB</span>`
+      : '';
+    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''} ${p.audience === 'vip' ? 'is-vip-exclusive' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.audience === 'vip' ? '<span class="tile-vip">★ VIP</span>' : ''}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${collaborationBadge}${participantBadge}</button>`;
   }).join('');
 }
 
