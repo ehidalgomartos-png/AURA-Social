@@ -104,6 +104,27 @@
         <div><span class="eyebrow">DESCUBRE</span><h1>Explorar</h1></div>
         <button type="button" class="secondary" data-view-jump="communities">Comunidades</button>
       </div>
+      <section class="global-social-search">
+        <form id="globalSearchForm" class="global-search-form">
+          <label class="global-search-input"><span>Buscar en RedLibertad</span><input id="globalSearchInput" type="search" minlength="2" maxlength="100" placeholder="Personas, posts, Reels, #hashtags, comunidades o eventos"></label>
+          <button class="primary" type="submit">Buscar</button>
+        </form>
+        <div class="global-search-toolbar">
+          <div class="global-search-filters" role="tablist" aria-label="Tipo de búsqueda">
+            <button type="button" class="active" data-global-search-type="all">Todo</button>
+            <button type="button" data-global-search-type="people">Personas</button>
+            <button type="button" data-global-search-type="posts">Posts</button>
+            <button type="button" data-global-search-type="reels">Reels</button>
+            <button type="button" data-global-search-type="hashtags">Hashtags</button>
+            <button type="button" data-global-search-type="communities">Comunidades</button>
+            <button type="button" data-global-search-type="events">Eventos</button>
+          </div>
+          <label class="global-search-history-toggle"><input id="globalSearchHistoryEnabled" type="checkbox"><span>Guardar historial solo en este dispositivo</span></label>
+        </div>
+        <div id="globalSearchHistory" class="global-search-history hidden"></div>
+        <div id="globalSearchResults" class="global-search-results hidden"></div>
+      </section>
+
       <section id="connectionsSection" class="connections-section hidden">
         <div class="connections-head">
           <div><span class="eyebrow">TU RED</span><h2>Tus conexiones</h2><p>Organiza tu red en círculos privados. Solo tú puedes verlos.</p></div>
