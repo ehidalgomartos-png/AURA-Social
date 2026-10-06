@@ -564,6 +564,227 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
+const publishingScheduleSchema=z.object({
+  scheduledFor:z.string().datetime({offset:true})
+});
+
+async function requireVerifiedCreator(userId){
+  const result=await db.query(
+    'SELECT creator_verified FROM users WHERE id=$1 AND status=\'active\' LIMIT 1',
+    [userId]
+  );
+  return result.rows[0]?.creator_verified===true;
+}
+
+router.get('/creator/publishing',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_publishing_tools'});
+  }
+
+  const result=await db.query(`
+    SELECT
+      p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,
+      p.content_level,p.post_kind,p.audience,p.creator_state,p.scheduled_for,
+      p.consent_state,p.moderation_status,p.created_at,p.updated_at,
+      (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id) participant_count,
+      (SELECT count(*)::int FROM post_participants pp WHERE pp.post_id=p.id AND pp.consent_status<>'approved') pending_consent_count
+    FROM posts p
+    WHERE p.user_id=$1
+      AND p.creator_state IN ('draft','scheduled')
+    ORDER BY
+      CASE WHEN p.creator_state='scheduled' THEN 0 ELSE 1 END,
+      p.scheduled_for ASC NULLS LAST,
+      p.updated_at DESC
+    LIMIT 100
+  `,[req.user.id]);
+
+  const counts=await db.query(`
+    SELECT
+      count(*) FILTER (WHERE creator_state='draft')::int AS draft_count,
+      count(*) FILTER (WHERE creator_state='scheduled')::int AS scheduled_count
+    FROM posts
+    WHERE user_id=$1
+      AND creator_state IN ('draft','scheduled')
+  `,[req.user.id]);
+
+  res.json({
+    posts:result.rows,
+    summary:counts.rows[0] || {draft_count:0,scheduled_count:0},
+    scheduleMinMinutes:5,
+    scheduleMaxDays:90
+  });
+});
+
+router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_publishing_tools'});
+  }
+
+  const client=await db.pool.connect();
+  let publishedPost=null;
+  try{
+    await client.query('BEGIN');
+    const found=await client.query(`
+      SELECT id,user_id,caption,audience,creator_state,consent_state,moderation_status
+      FROM posts
+      WHERE id=$1 AND user_id=$2
+      FOR UPDATE
+    `,[req.params.id,req.user.id]);
+
+    if(!found.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'post_not_found'});
+    }
+
+    const post=found.rows[0];
+    if(!['draft','scheduled'].includes(post.creator_state)){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'post_not_pending'});
+    }
+    if(post.moderation_status==='rejected'){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'post_rejected'});
+    }
+
+    await sendPendingConsentRequests(post.id,req.user.id,client);
+    const pending=await client.query(
+      "SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'",
+      [post.id]
+    );
+    const participantCount=await client.query(
+      'SELECT count(*)::int n FROM post_participants WHERE post_id=$1',
+      [post.id]
+    );
+    const waiting=Number(pending.rows[0]?.n || 0)>0;
+    const hasParticipants=Number(participantCount.rows[0]?.n || 0)>0;
+
+    const updated=await client.query(`
+      UPDATE posts
+         SET creator_state='live',
+             scheduled_for=NULL,
+             moderation_status=$2,
+             consent_state=$3,
+             created_at=CASE WHEN $2='published' THEN now() ELSE created_at END,
+             updated_at=now()
+       WHERE id=$1
+       RETURNING *
+    `,[
+      post.id,
+      waiting ? 'under_review' : 'published',
+      hasParticipants ? (waiting ? 'pending' : 'approved') : 'none'
+    ]);
+
+    await client.query('COMMIT');
+    publishedPost=updated.rows[0];
+
+    if(!waiting){
+      try{
+        await notifyMentions({
+          actorId:req.user.id,
+          text:publishedPost.caption,
+          entityType:'post',
+          entityId:publishedPost.id,
+          audience:publishedPost.audience
+        });
+      }catch(error){
+        console.warn('RedLibertad V1.20 publish mention notification failed:',error?.message || error);
+      }
+    }
+
+    res.json({
+      ok:true,
+      post:publishedPost,
+      published:!waiting,
+      awaitingConsent:waiting
+    });
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad V1.20 publish now failed:',error);
+    res.status(500).json({error:'publish_now_failed'});
+  }finally{
+    client.release();
+  }
+});
+
+router.patch('/creator/publishing/:id/schedule',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_publishing_tools'});
+  }
+
+  const parsed=publishingScheduleSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_scheduled_time'});
+  const scheduledFor=parseScheduledFor(parsed.data.scheduledFor);
+  if(!validScheduleDate(scheduledFor)){
+    return res.status(400).json({error:'invalid_scheduled_time'});
+  }
+
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const found=await client.query(`
+      SELECT id,creator_state,moderation_status
+      FROM posts
+      WHERE id=$1 AND user_id=$2
+      FOR UPDATE
+    `,[req.params.id,req.user.id]);
+
+    if(!found.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'post_not_found'});
+    }
+    if(!['draft','scheduled'].includes(found.rows[0].creator_state)){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'post_not_pending'});
+    }
+    if(found.rows[0].moderation_status==='rejected'){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'post_rejected'});
+    }
+
+    await sendPendingConsentRequests(req.params.id,req.user.id,client);
+    const updated=await client.query(`
+      UPDATE posts
+         SET creator_state='scheduled',
+             scheduled_for=$2,
+             moderation_status='under_review',
+             updated_at=now()
+       WHERE id=$1
+       RETURNING *
+    `,[req.params.id,scheduledFor.toISOString()]);
+
+    await client.query('COMMIT');
+    res.json({ok:true,post:updated.rows[0]});
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad V1.20 schedule update failed:',error);
+    res.status(500).json({error:'schedule_update_failed'});
+  }finally{
+    client.release();
+  }
+});
+
+router.post('/creator/publishing/:id/draft',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_publishing_tools'});
+  }
+
+  const updated=await db.query(`
+    UPDATE posts
+       SET creator_state='draft',
+           scheduled_for=NULL,
+           moderation_status='under_review',
+           updated_at=now()
+     WHERE id=$1
+       AND user_id=$2
+       AND creator_state='scheduled'
+       AND moderation_status<>'rejected'
+     RETURNING *
+  `,[req.params.id,req.user.id]);
+
+  if(!updated.rowCount)return res.status(404).json({error:'post_not_pending'});
+  res.json({ok:true,post:updated.rows[0]});
+});
+
 async function viewerFrom(req) {
   if (!req.user) return null;
   const vr = await db.query(
