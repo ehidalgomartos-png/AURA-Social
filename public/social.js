@@ -1354,7 +1354,7 @@ async function loadCreatorCenter() {
     creatorMetric('Guardados',creator.save_count,creator.saves_30d),
     creatorMetric('Destacadas',creator.featured_count),
     creatorMetric('Clics en enlaces',creator.link_click_count),
-    creatorMetric('Avisos enviados',Array.isArray(d.broadcasts) ? d.broadcasts.length : 0)
+    creatorMetric('Avisos enviados',creator.broadcast_count)
   ].join('');
 
   const creatorForm=$('#creatorProfileForm');
