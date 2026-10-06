@@ -1,4 +1,4 @@
-# RedLibertad V1.19.0 — VIP Stories & Exclusive Feed
+# RedLibertad V1.20.0 — Creator Publishing Tools
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -411,3 +411,37 @@ V1.19 no incorpora monetización activa:
 - Sin paywalls de pago.
 
 La arquitectura public/vip queda reutilizable para una futura capa comercial, pero el acceso VIP actual depende exclusivamente del Círculo VIP gratuito gestionado por el creador.
+
+
+## V1.20.0 — Creator Publishing Tools
+
+- Nuevos borradores para creadores verificados.
+- Programación de publicaciones entre 5 minutos y 90 días.
+- Publicación automática desde el servidor.
+- Cola editorial dentro del Centro de creador.
+- Gestión de borradores y programadas:
+  - Publicar ahora.
+  - Programar.
+  - Reprogramar.
+  - Volver a borrador.
+  - Eliminar.
+- Los borradores nunca aparecen en feeds, perfiles ni búsquedas.
+- Las publicaciones programadas permanecen ocultas hasta su hora.
+- Al publicarse automáticamente reciben una nueva fecha de publicación para aparecer correctamente en “Nuevo”.
+- La programación funciona también con audiencia Solo VIP.
+- El consentimiento de personas etiquetadas tiene prioridad:
+  - un post programado no sale antes de estar aprobado,
+  - si se aprueba antes de la hora, espera a la hora,
+  - si la hora ya pasó, se publica al obtener la última aprobación.
+- Los borradores con participantes no envían solicitudes de consentimiento hasta programar o publicar.
+- Las menciones de borradores/programados no se notifican antes de publicar.
+- Se corrigen referencias heredadas en notificaciones de Me gusta y comentarios.
+- Nuevas columnas posts.creator_state y posts.scheduled_for.
+- Nuevo índice de cola de programación.
+- Bootstrap idempotente y scheduler interno cada 60 segundos.
+- /api/health actualizado a 1.20.0.
+- Caché PWA actualizada a V1.20.
+
+### Monetización
+
+V1.20 continúa sin monetización activa. No existen precios, planes, suscripciones, checkout, créditos, saldo ni pagos. Las herramientas editoriales funcionan igual para contenido público y VIP gratuito.

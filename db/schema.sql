@@ -302,11 +302,10 @@ CREATE INDEX IF NOT EXISTS idx_creator_vip_broadcasts_creator_created
 -- RedLibertad V1.18: contenido exclusivo para círculo VIP
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public';
 
-DO $ BEGIN
-  ALTER TABLE posts
-    ADD CONSTRAINT posts_audience_check
-    CHECK(audience IN ('public','vip'));
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_audience_check;
+ALTER TABLE posts
+  ADD CONSTRAINT posts_audience_check
+  CHECK(audience IN ('public','vip'));
 
 CREATE INDEX IF NOT EXISTS idx_posts_audience_created
   ON posts(audience,created_at DESC);
@@ -315,14 +314,26 @@ CREATE INDEX IF NOT EXISTS idx_posts_audience_created
 -- RedLibertad V1.19: Stories VIP y feed exclusivo
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public';
 
-DO $ BEGIN
-  ALTER TABLE stories
-    ADD CONSTRAINT stories_audience_check
-    CHECK(audience IN ('public','vip'));
-EXCEPTION WHEN duplicate_object THEN NULL; END $;
+ALTER TABLE stories DROP CONSTRAINT IF EXISTS stories_audience_check;
+ALTER TABLE stories
+  ADD CONSTRAINT stories_audience_check
+  CHECK(audience IN ('public','vip'));
 
 CREATE INDEX IF NOT EXISTS idx_stories_audience_active
   ON stories(audience,expires_at DESC,created_at DESC);
+
+
+-- RedLibertad V1.20: borradores y programación de publicaciones
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS creator_state TEXT NOT NULL DEFAULT 'live';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS scheduled_for TIMESTAMPTZ;
+
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_creator_state_check;
+ALTER TABLE posts
+  ADD CONSTRAINT posts_creator_state_check
+  CHECK(creator_state IN ('live','draft','scheduled'));
+
+CREATE INDEX IF NOT EXISTS idx_posts_creator_state_schedule
+  ON posts(creator_state,scheduled_for,user_id);
 
 
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;

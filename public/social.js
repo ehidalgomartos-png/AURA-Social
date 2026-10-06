@@ -1516,12 +1516,73 @@ function creatorPostHTML(post) {
   </article>`;
 }
 
+function toLocalDateTimeInput(value) {
+  const date=value ? new Date(value) : null;
+  if(!date || !Number.isFinite(date.getTime()))return '';
+  const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,16);
+}
+
+function creatorPublishingStateLabel(post) {
+  if(post.creator_state==='scheduled'){
+    return `Programada · ${new Date(post.scheduled_for).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}`;
+  }
+  return 'Borrador';
+}
+
+function creatorPublishingHTML(posts = []) {
+  if(!posts.length){
+    return '<div class="creator-empty compact">No tienes borradores ni publicaciones programadas.</div>';
+  }
+
+  return posts.map(post=>`<article class="creator-publishing-item ${post.creator_state}">
+    <div class="creator-publishing-preview">${tileContentHTML(post)}</div>
+    <div class="creator-publishing-copy">
+      <div class="creator-publishing-title">
+        <b>${creatorPublishingStateLabel(post)}</b>
+        <span>${post.audience==='vip' ? '★ VIP' : 'Público'}</span>
+      </div>
+      <p>${esc(String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel sin texto' : 'Publicación sin texto'))}</p>
+      <small>${post.content_level==='normal' ? 'Normal' : post.content_level==='sensitive' ? 'Sensible' : 'Desnudez'}${Number(post.pending_consent_count || 0)>0 ? ` · ${Number(post.pending_consent_count)} consentimientos pendientes` : ''}</small>
+      <div class="creator-publishing-schedule">
+        <input type="datetime-local" data-publishing-date="${post.id}" value="${toLocalDateTimeInput(post.scheduled_for)}">
+        <button type="button" class="secondary" data-publishing-schedule="${post.id}">${post.creator_state==='scheduled' ? 'Reprogramar' : 'Programar'}</button>
+      </div>
+      <div class="creator-publishing-actions-row">
+        <button type="button" class="primary" data-publishing-now="${post.id}">Publicar ahora</button>
+        ${post.creator_state==='scheduled' ? `<button type="button" class="secondary" data-publishing-draft="${post.id}">Volver a borrador</button>` : ''}
+        <button type="button" class="danger-outline" data-publishing-delete="${post.id}">Eliminar</button>
+      </div>
+    </div>
+  </article>`).join('');
+}
+
+function renderCreatorPublishing(data = {}) {
+  const summary=data.summary || {};
+  if($('#creatorPublishingSummary')){
+    $('#creatorPublishingSummary').innerHTML=[
+      creatorMetric('Borradores',summary.draft_count || 0),
+      creatorMetric('Programadas',summary.scheduled_count || 0)
+    ].join('');
+  }
+  if($('#creatorPublishingList')){
+    $('#creatorPublishingList').innerHTML=creatorPublishingHTML(Array.isArray(data.posts) ? data.posts : []);
+  }
+  if($('#creatorPublishingHint')){
+    $('#creatorPublishingHint').textContent='Guarda borradores o programa publicaciones entre 5 minutos y 90 días.';
+  }
+}
+
 async function loadCreatorCenter() {
   const metricsRoot = $('#creatorMetrics');
   const postsRoot = $('#creatorPosts');
   if (!metricsRoot || !postsRoot) return false;
 
-  const { r, d } = await api('/api/profiles/me/creator-center');
+  const [centerResponse,publishingResponse]=await Promise.all([
+    api('/api/profiles/me/creator-center'),
+    api('/api/posts/creator/publishing')
+  ]);
+  const { r, d }=centerResponse;
   if (!r.ok) {
     metricsRoot.innerHTML = '<div class="creator-empty">El Centro de creador requiere una cuenta de creador verificada.</div>';
     postsRoot.innerHTML = '';
@@ -1600,6 +1661,12 @@ async function loadCreatorCenter() {
   if(vipSubmit)vipSubmit.disabled=vipAvailability.blocked || Number(creator.vip_count || 0)===0;
   if(vipForm?.body)vipForm.body.disabled=vipAvailability.blocked || Number(creator.vip_count || 0)===0;
   if($('#creatorVipBroadcastStatus') && vipAvailability.blocked)$('#creatorVipBroadcastStatus').textContent=vipAvailability.label;
+
+  if(publishingResponse.r.ok){
+    renderCreatorPublishing(publishingResponse.d);
+  }else{
+    if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='<div class="creator-empty compact">No se pudo cargar la cola de publicación.</div>';
+  }
   return true;
 }
 
@@ -1618,6 +1685,8 @@ async function openCreatorModal() {
   if($('#creatorVipMembers'))$('#creatorVipMembers').innerHTML='<div class="mini-loading">Cargando círculo VIP...</div>';
   if($('#creatorVipBroadcastHistory'))$('#creatorVipBroadcastHistory').innerHTML='';
   if($('#creatorVipBroadcastStatus'))$('#creatorVipBroadcastStatus').textContent='';
+  if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
+  if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
   await loadCreatorCenter();
 }
 
@@ -1733,6 +1802,60 @@ document.addEventListener('click',async event=>{
   }
   toast(active ? 'Persona retirada del círculo VIP' : 'Persona añadida al círculo VIP');
   await loadCreatorCenter();
+});
+
+document.addEventListener('click',async event=>{
+  const publishNow=event.target.closest('[data-publishing-now]');
+  const schedule=event.target.closest('[data-publishing-schedule]');
+  const toDraft=event.target.closest('[data-publishing-draft]');
+  const remove=event.target.closest('[data-publishing-delete]');
+  const button=publishNow || schedule || toDraft || remove;
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  button.disabled=true;
+
+  try{
+    if(publishNow){
+      const { r,d }=await api(`/api/posts/creator/publishing/${encodeURIComponent(publishNow.dataset.publishingNow)}/publish`,{method:'POST'});
+      if(!r.ok)throw new Error('No se pudo publicar ahora.');
+      toast(d.awaitingConsent ? 'Esperando consentimientos antes de publicar' : 'Publicación publicada');
+    }else if(schedule){
+      const id=schedule.dataset.publishingSchedule;
+      const input=document.querySelector(`[data-publishing-date="${CSS.escape(String(id))}"]`);
+      const localValue=String(input?.value || '');
+      if(!localValue)throw new Error('Elige una fecha y hora.');
+      const date=new Date(localValue);
+      if(!Number.isFinite(date.getTime()))throw new Error('Fecha no válida.');
+      const { r,d }=await api(`/api/posts/creator/publishing/${encodeURIComponent(id)}/schedule`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({scheduledFor:date.toISOString()})
+      });
+      if(!r.ok){
+        throw new Error(d.error==='invalid_scheduled_time'
+          ? 'Programa entre 5 minutos y 90 días.'
+          : 'No se pudo programar.');
+      }
+      toast('Publicación programada');
+    }else if(toDraft){
+      const { r }=await api(`/api/posts/creator/publishing/${encodeURIComponent(toDraft.dataset.publishingDraft)}/draft`,{method:'POST'});
+      if(!r.ok)throw new Error('No se pudo volver a borrador.');
+      toast('Publicación devuelta a borrador');
+    }else if(remove){
+      if(!window.confirm('¿Eliminar este borrador o publicación programada?'))return;
+      const { r }=await api(`/api/posts/${encodeURIComponent(remove.dataset.publishingDelete)}`,{method:'DELETE'});
+      if(!r.ok)throw new Error('No se pudo eliminar.');
+      toast('Contenido eliminado');
+    }
+
+    await Promise.all([loadCreatorCenter(),loadFeed(currentMode),loadMe()]);
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar la publicación.');
+  }finally{
+    button.disabled=false;
+  }
 });
 
 $('#creatorProfileForm')?.addEventListener('submit',async event=>{
@@ -3296,6 +3419,19 @@ function openModal() {
       ? 'Elige quién puede ver este contenido.'
       : 'El contenido Solo VIP requiere una cuenta de creador verificada.';
   }
+
+  const publishingControls=$('#creatorPublishingControls');
+  if(publishingControls){
+    publishingControls.classList.toggle('hidden',!me?.creator_verified);
+    const scheduledInput=publishingControls.querySelector('[name="scheduledFor"]');
+    if(scheduledInput && me?.creator_verified){
+      const now=new Date();
+      const min=new Date(now.getTime()+5*60*1000);
+      const max=new Date(now.getTime()+90*24*60*60*1000);
+      scheduledInput.min=toLocalDateTimeInput(min);
+      scheduledInput.max=toLocalDateTimeInput(max);
+    }
+  }
   $('#modal').classList.remove('hidden');
   setTimeout(() => $('#createForm textarea')?.focus(), 120);
 }
@@ -3348,9 +3484,23 @@ $('#createForm').addEventListener('submit', async e => {
     const file = $('#mediaFile').files[0];
     const caption = String(fd.get('caption') || '').trim();
     const kind = String(fd.get('kind') || 'post');
+    const publishMode=String(e.submitter?.dataset?.publishMode || 'now');
 
     if (!file && !caption) throw new Error('Escribe algo o selecciona una foto o vídeo.');
     if (kind === 'reel' && !file) throw new Error('Los Reels necesitan una foto o vídeo.');
+
+    if(publishMode!=='now' && !me?.creator_verified){
+      throw new Error('Los borradores y la programación requieren una cuenta de creador verificada.');
+    }
+
+    let scheduledFor=null;
+    if(publishMode==='scheduled'){
+      const localValue=String(fd.get('scheduledFor') || '');
+      if(!localValue)throw new Error('Elige una fecha y hora para programar.');
+      const date=new Date(localValue);
+      if(!Number.isFinite(date.getTime()))throw new Error('Fecha de programación no válida.');
+      scheduledFor=date.toISOString();
+    }
 
     let media = null;
     if (file) {
@@ -3358,13 +3508,19 @@ $('#createForm').addEventListener('submit', async e => {
       media = await ensureUpload();
     }
 
-    msg.textContent = 'Publicando...';
+    msg.textContent = publishMode==='draft'
+      ? 'Guardando borrador...'
+      : publishMode==='scheduled'
+        ? 'Programando...'
+        : 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
     const payload = {
       caption,
       kind,
       contentLevel: fd.get('contentLevel'),
       audience: fd.get('audience') || 'public',
+      publishMode,
+      scheduledFor,
       participantUsernames: participants,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
@@ -3384,6 +3540,10 @@ $('#createForm').addEventListener('submit', async e => {
         ? 'Necesitas verificación de creador adulto para publicar desnudez.'
         : d.error === 'verified_creator_required_for_vip_content'
           ? 'Solo los creadores verificados pueden publicar contenido Solo VIP.'
+        : d.error === 'verified_creator_required_for_publishing_tools'
+          ? 'Los borradores y la programación requieren una cuenta de creador verificada.'
+        : d.error === 'invalid_scheduled_time'
+          ? 'La programación debe estar entre 5 minutos y 90 días.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
           : d.error === 'empty_post'
@@ -3393,12 +3553,18 @@ $('#createForm').addEventListener('submit', async e => {
               : 'No se pudo publicar.'
     );
 
-    toast(d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
+    const successMessage=publishMode==='draft'
+      ? 'Borrador guardado'
+      : publishMode==='scheduled'
+        ? (d.consentRequired ? 'Programada. Esperando consentimientos.' : 'Publicación programada')
+        : (d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
+
+    toast(successMessage);
     $('#modal').classList.add('hidden');
     e.target.reset();
     clearPostMedia();
     updateCreateCounter();
-    await loadFeed('latest');
+    await loadFeed(publishMode==='now' ? 'latest' : currentMode);
     await loadMe();
     await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
