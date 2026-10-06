@@ -1,4 +1,4 @@
-# RedLibertad V1.47.0 — Message Replies & Reactions
+# RedLibertad V1.48.0 — Push Notifications PWA
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1093,4 +1093,20 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Reacciones sincronizadas mediante el stream de actividad en vivo.
 - La referencia al mensaje original usa ON DELETE SET NULL para conservar la respuesta si el original desaparece.
 - Bootstrap/migraciones idempotentes para reply_to_message_id y message_reactions.
+- Sin monetización activa.
+
+
+## V1.48.0 — Push Notifications PWA
+
+- Web Push real con Service Worker y consentimiento explícito por dispositivo.
+- La app nunca solicita permiso automáticamente: el usuario lo activa desde Cuenta.
+- Suscripciones persistentes por usuario/dispositivo en push_subscriptions.
+- Cola push_jobs alimentada automáticamente desde la tabla notifications mediante trigger PostgreSQL.
+- Worker con reintentos, expiración de trabajos antiguos y limpieza de endpoints 404/410.
+- El push reutiliza el texto seguro de la notificación; no incluye cuerpos privados de mensajes ni multimedia sensible.
+- Respeta usuarios silenciados y bloqueados antes de entregar.
+- Deep links desde push a conversación, publicación, perfil, verificación o centro de notificaciones.
+- VAPID es opcional: si no está configurado, todo el resto de RedLibertad sigue funcionando sin cambios.
+- Variables de producción: PUSH_VAPID_PUBLIC_KEY, PUSH_VAPID_PRIVATE_KEY y PUSH_VAPID_SUBJECT.
+- Dependencia web-push 3.6.7.
 - Sin monetización activa.
