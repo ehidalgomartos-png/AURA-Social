@@ -27,6 +27,10 @@ let communityDiscoverySearchTimer=null;
 let communityDiscoveryItems=[];
 let activeCommunityId=null;
 let activeCommunityData=null;
+let eventScope='upcoming';
+let eventItems=[];
+let activeEventId=null;
+let activeEventData=null;
 let interestCatalog = [];
 let activeExploreInterest = '';
 let connectionCircles=[];
@@ -2032,6 +2036,17 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const eventScopeButton=event.target.closest('[data-event-scope]');
+  if(eventScopeButton){event.preventDefault();eventScope=eventScopeButton.dataset.eventScope||'upcoming';await loadEvents();return;}
+  const eventOpen=event.target.closest('[data-event-open]');
+  if(eventOpen){event.preventDefault();await openEventDetail(eventOpen.dataset.eventOpen);return;}
+  const eventRespond=event.target.closest('[data-event-respond]');
+  if(eventRespond){event.preventDefault();event.stopPropagation();await respondToEvent(eventRespond.dataset.eventRespond,eventRespond.dataset.eventStatus);return;}
+  const eventClear=event.target.closest('[data-event-clear-response]');
+  if(eventClear){event.preventDefault();const {r}=await api(`/api/events/${eventClear.dataset.eventClearResponse}/respond`,{method:'DELETE'});if(r.ok){toast('Respuesta eliminada');await loadEvents();if(activeEventId)await openEventDetail(activeEventId);}return;}
+  const eventCancel=event.target.closest('[data-event-cancel]');
+  if(eventCancel){event.preventDefault();if(!window.confirm('¿Cancelar este evento?'))return;const {r}=await api(`/api/events/${eventCancel.dataset.eventCancel}`,{method:'DELETE'});if(r.ok){toast('Evento cancelado');closeEventDetail();await loadEvents();}return;}
+
   const discoveryMode=event.target.closest('[data-community-discovery-mode]');
   if(discoveryMode){
     event.preventDefault();
@@ -5665,6 +5680,7 @@ function notificationIcon(type) {
     creator_vip_broadcast: '★',
     creator_poll_vote: '▥',
     creator_question_response: '?',
+    event_reminder: '🗓',
     system: 'R'
   })[type] || '•';
 }
@@ -5673,7 +5689,7 @@ function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
   if (filter === 'mentions') return notification.type === 'mention';
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
-  if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response'].includes(notification.type);
+  if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
   if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
   return true;
@@ -5714,6 +5730,12 @@ async function navigateNotification(notification) {
   const type = String(notification.type || '');
   const entityType = String(notification.entity_type || '');
   const entityId = notification.entity_id;
+
+  if (type === 'event_reminder' && entityType === 'event' && entityId) {
+    showView('events');
+    await loadEvents(entityId);
+    return;
+  }
 
   if (type === 'message' && entityType === 'conversation' && entityId) {
     showView('messages');
@@ -6781,6 +6803,126 @@ $('#returnPulseRefresh')?.addEventListener('click',async()=>{
 });
 
 
+
+function eventVisibilityLabel(event){
+  return event.visibility==='connections' ? 'Solo conexiones'
+    : event.visibility==='circles' ? 'Círculos privados'
+      : event.visibility==='community' ? (event.community_name ? `Comunidad · ${event.community_name}` : 'Comunidad')
+        : 'Público';
+}
+function eventTypeLabel(event){return event.event_type==='online'?'Online':'Presencial';}
+function eventDateLabel(value){
+  const date=new Date(value);
+  if(!Number.isFinite(date.getTime()))return '';
+  return date.toLocaleString('es-ES',{weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+function eventCardHTML(event){
+  const mine=String(event.creator_id)===String(me?.id);
+  return `<article class="event-card" data-event-card="${event.id}">
+    <button type="button" class="event-card-main" data-event-open="${event.id}">
+      <span class="event-card-date"><b>${new Date(event.starts_at).toLocaleDateString('es-ES',{day:'2-digit'})}</b><small>${new Date(event.starts_at).toLocaleDateString('es-ES',{month:'short'})}</small></span>
+      <span class="event-card-copy">
+        <span class="event-card-kicker">${esc(eventTypeLabel(event))} · ${esc(eventVisibilityLabel(event))}</span>
+        <b>${esc(event.title)}</b>
+        <p>${esc(event.description || 'Sin descripción.')}</p>
+        <small>${esc(eventDateLabel(event.starts_at))}${event.event_type==='in_person'&&event.location_label?` · ${esc(event.location_label)}`:''}</small>
+        <span class="event-card-stats">☆ ${Number(event.interested_count||0)} interesados · ✓ ${Number(event.going_count||0)} van${mine?' · Creado por ti':''}</span>
+      </span>
+    </button>
+    <div class="event-card-actions">
+      <button type="button" class="${event.my_response==='interested'?'active':''}" data-event-respond="${event.id}" data-event-status="interested">☆ Me interesa</button>
+      <button type="button" class="${event.my_response==='going'?'active':''}" data-event-respond="${event.id}" data-event-status="going">✓ Voy</button>
+    </div>
+  </article>`;
+}
+function renderEvents(){
+  const root=$('#eventsList');if(!root)return;
+  root.innerHTML=eventItems.length?eventItems.map(eventCardHTML).join(''):'<div class="communities-empty"><b>No hay eventos en este filtro.</b><p>Crea uno o vuelve a revisar más adelante.</p></div>';
+  all('[data-event-scope]').forEach(button=>button.classList.toggle('active',button.dataset.eventScope===eventScope));
+}
+async function loadEvents(openId=null){
+  const {r,d}=await api('/api/events?'+new URLSearchParams({scope:eventScope}).toString());
+  if(!r.ok)return;
+  eventItems=Array.isArray(d.events)?d.events:[];
+  renderEvents();
+  if(openId)await openEventDetail(openId);
+}
+function closeEventCreate(){
+  $('#eventCreateModal')?.classList.add('hidden');
+  $('#eventCreateForm')?.reset();
+  syncEventCreateFields();
+  if($('#eventCreateStatus'))$('#eventCreateStatus').textContent='';
+}
+function closeEventDetail(){
+  $('#eventDetailModal')?.classList.add('hidden');
+  activeEventId=null;activeEventData=null;
+  if($('#eventDetailContent'))$('#eventDetailContent').innerHTML='';
+}
+function syncEventCreateFields(){
+  const type=$('#eventType')?.value||'in_person';
+  const visibility=$('#eventVisibility')?.value||'public';
+  $('#eventLocationField')?.classList.toggle('hidden',type!=='in_person');
+  $('#eventOnlineField')?.classList.toggle('hidden',type!=='online');
+  $('#eventCirclePicker')?.classList.toggle('hidden',visibility!=='circles');
+  $('#eventCommunityField')?.classList.toggle('hidden',visibility!=='community');
+}
+async function prepareEventCreate(){
+  await loadConnectionCircles();
+  const circleRoot=$('#eventCircleOptions');
+  if(circleRoot)circleRoot.innerHTML=connectionCircles.length?connectionCircles.map(circle=>`<label class="circle-audience-option"><input type="checkbox" value="${circle.id}"><span><b>${circle.is_close?'♥ ':circle.is_favorites?'★ ':''}${esc(circle.name)}</b><small>${Number(circle.member_count||0)} conexiones</small></span></label>`).join(''):'<div class="circle-audience-empty">No tienes círculos todavía.</div>';
+  const {r,d}=await api('/api/communities?scope=joined&q=');
+  const select=$('#eventCommunitySelect');
+  if(select){
+    const adminCommunities=r.ok?(d.communities||[]).filter(item=>['owner','admin'].includes(item.viewer_role)):[];
+    select.innerHTML='<option value="">Selecciona una comunidad</option>'+adminCommunities.map(item=>`<option value="${item.id}">${esc(item.name)}</option>`).join('');
+  }
+  const start=$('#eventCreateForm [name="startsAt"]');
+  if(start){
+    const min=new Date(Date.now()+5*60*1000);
+    start.min=new Date(min.getTime()-min.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  }
+  syncEventCreateFields();
+}
+async function openEventCreate(){
+  $('#eventCreateModal')?.classList.remove('hidden');
+  await prepareEventCreate();
+  setTimeout(()=>$('#eventCreateForm [name="title"]')?.focus(),80);
+}
+function eventAttendeeHTML(person){
+  return `<article class="event-attendee">${profileLink(person.username,`<span class="event-attendee-avatar">${avatarHTML(person)}</span>`,'event-attendee-profile')}<div>${profileLink(person.username,`<b>${esc(person.display_name)} ${person.creator_verified?'<span class="verified">✓</span>':''}</b>`,'event-attendee-profile')}<small>@${esc(person.username)} · ${person.status==='going'?'Va':'Le interesa'}</small></div></article>`;
+}
+async function openEventDetail(id){
+  const eventId=Number(id);if(!Number.isInteger(eventId)||eventId<=0)return;
+  activeEventId=eventId;
+  $('#eventDetailModal')?.classList.remove('hidden');
+  const root=$('#eventDetailContent');if(root)root.innerHTML='<div class="mini-loading">Cargando evento…</div>';
+  const {r,d}=await api(`/api/events/${eventId}`);
+  if(!r.ok){if(root)root.innerHTML='<div class="info-card"><b>Este evento no está disponible.</b></div>';return;}
+  activeEventData=d;
+  const event=d.event,attendees=Array.isArray(d.attendees)?d.attendees:[];
+  const mine=String(event.creator_id)===String(me?.id);
+  root.innerHTML=`<section class="event-detail">
+    <span class="eyebrow">${esc(eventTypeLabel(event))} · ${esc(eventVisibilityLabel(event))}</span>
+    <h2>${esc(event.title)}</h2>
+    <p>${esc(event.description||'Sin descripción.')}</p>
+    <div class="event-detail-meta"><span>🗓 ${esc(eventDateLabel(event.starts_at))}</span>${event.ends_at?`<span>Hasta ${esc(eventDateLabel(event.ends_at))}</span>`:''}${event.event_type==='in_person'&&event.location_label?`<span>⌖ ${esc(event.location_label)}</span>`:''}${event.event_type==='online'&&event.online_url?`<a href="${esc(event.online_url)}" target="_blank" rel="noopener noreferrer">Abrir enlace online</a>`:''}</div>
+    <div class="event-detail-stats"><span>☆ ${Number(event.interested_count||0)} interesados</span><span>✓ ${Number(event.going_count||0)} van</span></div>
+    <div class="event-detail-actions">
+      <button class="secondary ${event.my_response==='interested'?'active':''}" data-event-respond="${event.id}" data-event-status="interested">☆ Me interesa</button>
+      <button class="primary ${event.my_response==='going'?'active':''}" data-event-respond="${event.id}" data-event-status="going">✓ Voy</button>
+      ${event.my_response?`<button class="tiny-action" data-event-clear-response="${event.id}">Quitar respuesta</button>`:''}
+      ${mine?`<button class="danger" data-event-cancel="${event.id}">Cancelar evento</button>`:''}
+    </div>
+    <section class="event-attendees"><div class="community-section-head"><b>Asistentes</b><small>${d.attendees_visible?'Según su respuesta':'Lista privada según la configuración del evento'}</small></div>${d.attendees_visible?(attendees.length?attendees.map(eventAttendeeHTML).join(''):'<div class="empty-list">Todavía nadie ha respondido.</div>'):'<div class="empty-list">La lista de personas no es visible para ti.</div>'}</section>
+  </section>`;
+}
+async function respondToEvent(id,status){
+  const {r,d}=await api(`/api/events/${id}/respond`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status,reminderEnabled:true})});
+  if(!r.ok)return toast('No se pudo guardar tu respuesta.');
+  toast(status==='going'?'Marcado: Voy':'Marcado: Me interesa');
+  await loadEvents();
+  if(activeEventId)await openEventDetail(activeEventId);
+}
 function communityAvatarHTML(community){
   return community?.avatar_url
     ? `<img src="${esc(community.avatar_url)}" alt="" loading="lazy" decoding="async">`
@@ -7112,6 +7254,13 @@ async function refreshActiveCommunity(){
   await loadCommunities();
 }
 
+$('#newEvent')?.addEventListener('click',openEventCreate);
+$('#closeEventCreate')?.addEventListener('click',closeEventCreate);
+$('#eventCreateModal')?.addEventListener('click',event=>{if(event.target===$('#eventCreateModal'))closeEventCreate();});
+$('#closeEventDetail')?.addEventListener('click',closeEventDetail);
+$('#eventDetailModal')?.addEventListener('click',event=>{if(event.target===$('#eventDetailModal'))closeEventDetail();});
+$('#eventType')?.addEventListener('change',syncEventCreateFields);
+$('#eventVisibility')?.addEventListener('change',syncEventCreateFields);
 $('#newCommunity')?.addEventListener('click',openCommunityCreateModal);
 $('#closeCommunityCreate')?.addEventListener('click',closeCommunityCreateModal);
 $('#communityCreateModal')?.addEventListener('click',event=>{
@@ -7133,6 +7282,28 @@ $('#communityDiscoverySearch')?.addEventListener('input',event=>{
   communityDiscoverySearch=event.currentTarget.value || '';
   clearTimeout(communityDiscoverySearchTimer);
   communityDiscoverySearchTimer=setTimeout(loadCommunityDiscovery,220);
+});
+
+$('#eventCreateForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,status=$('#eventCreateStatus'),submit=form.querySelector('button[type="submit"]');
+  submit.disabled=true;status.textContent='Creando evento…';
+  try{
+    const fd=new FormData(form),visibility=String(fd.get('visibility')||'public');
+    const circleIds=visibility==='circles'?all('input[type="checkbox"]:checked',$('#eventCircleOptions')).map(x=>Number(x.value)).filter(Number.isInteger):[];
+    const starts=new Date(String(fd.get('startsAt')||''));const endsValue=String(fd.get('endsAt')||'');const ends=endsValue?new Date(endsValue):null;
+    if(!Number.isFinite(starts.getTime()))throw new Error('Fecha de inicio no válida.');
+    const payload={
+      title:String(fd.get('title')||'').trim(),description:String(fd.get('description')||'').trim(),
+      eventType:String(fd.get('eventType')||'in_person'),startsAt:starts.toISOString(),endsAt:ends&&Number.isFinite(ends.getTime())?ends.toISOString():null,
+      locationLabel:String(fd.get('locationLabel')||'').trim(),onlineUrl:String(fd.get('onlineUrl')||'').trim(),
+      visibility,attendeeVisibility:String(fd.get('attendeeVisibility')||'responders'),circleIds,
+      communityId:visibility==='community'?Number(fd.get('communityId')||0)||null:null
+    };
+    const {r,d}=await api('/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok)throw new Error(d.error==='invalid_start'?'El evento debe empezar al menos dentro de 5 minutos.':d.error==='location_required'?'Indica el lugar del evento.':d.error==='online_url_required'?'Indica el enlace del evento online.':d.error==='circle_audience_required'?'Selecciona al menos un círculo.':d.error==='community_admin_required'?'Solo administradores pueden crear eventos para esa comunidad.':'No se pudo crear el evento.');
+    closeEventCreate();toast('Evento creado');eventScope='mine';showView('events');await loadEvents(d.event.id);
+  }catch(error){status.textContent=error.message;}finally{submit.disabled=false;}
 });
 
 $('#communityCreateForm')?.addEventListener('submit',async event=>{
@@ -7399,7 +7570,8 @@ function showView(name) {
     if(activeCommunityId)openCommunityDetail(activeCommunityId);
     else Promise.all([loadCommunities(),loadCommunityDiscovery()]);
   }
-  if (name === 'reels') loadReels();
+  if (name === 'events') loadEvents();
+    if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
   if (name === 'messages') {
     const layout=$('.messages-layout');
