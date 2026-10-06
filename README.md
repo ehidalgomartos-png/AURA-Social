@@ -1,4 +1,4 @@
-# RedLibertad V1.14.0 — Creator Profile & Links
+# RedLibertad V1.15.0 — Creator Audience & Broadcasts
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -297,3 +297,23 @@ No cambia el esquema de PostgreSQL; se puede desplegar sobre la misma base usada
 - Nueva tabla creator_links y nueva columna users.creator_headline.
 - Bootstrap idempotente, sin SQL manual.
 - Healthcheck actualizado a 1.14.0 y caché PWA V1.14.
+
+
+## V1.15.0 — Creator Audience & Broadcasts
+
+- Nueva sección de audiencia dentro del Centro de creador.
+- Muestra los 20 seguidores más recientes con acceso directo a sus perfiles.
+- Nuevo sistema de avisos internos para seguidores.
+- Avisos limitados a texto de hasta 280 caracteres.
+- Máximo un aviso cada 24 horas por creador.
+- El límite se valida dentro de una transacción bloqueando la cuenta del creador.
+- Los avisos se entregan mediante notificaciones internas.
+- No se envían avisos a seguidores que hayan silenciado o bloqueado al creador.
+- Historial de los últimos 10 avisos con número de destinatarios.
+- Métrica total de avisos enviados.
+- Los avisos aparecen dentro del filtro Comunidad de Notificaciones.
+- Tocar un aviso abre el perfil del creador.
+- Nueva tabla creator_broadcasts.
+- Nuevo tipo de notificación creator_broadcast.
+- Bootstrap idempotente y actualización automática de la constraint de notificaciones.
+- Healthcheck actualizado a 1.15.0 y caché PWA V1.15.
