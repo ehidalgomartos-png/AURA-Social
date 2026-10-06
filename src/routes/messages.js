@@ -71,20 +71,91 @@ async function conversationForUser(conversationId, userId) {
   return !!r.rowCount;
 }
 
-async function otherMember(conversationId, userId) {
-  const r = await db.query(`
+async function conversationDetails(conversationId,userId){
+  const conversation=await db.query(`
     SELECT
-      u.id,u.username,u.display_name,u.avatar_url,u.age_verified,u.creator_verified,
+      c.id,c.conversation_type,c.title,c.created_by,c.created_at,c.updated_at,
+      cm.member_role,cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at
+    FROM conversations c
+    JOIN conversation_members cm ON cm.conversation_id=c.id
+    WHERE c.id=$1 AND cm.user_id=$2
+    LIMIT 1
+  `,[conversationId,userId]);
+  if(!conversation.rowCount)return null;
+
+  const participants=await db.query(`
+    SELECT
+      u.id,u.username,u.display_name,u.avatar_url,u.age_verified,u.creator_verified,u.status,
+      cm.member_role,cm.joined_at,cm.last_read_at,
       p.last_seen_at,
       (p.last_seen_at>now()-interval '45 seconds') AS online,
-      (p.active_conversation_id=$1 AND p.typing_until>now()) AS typing
-      FROM conversation_members cm
-      JOIN users u ON u.id=cm.user_id
-      LEFT JOIN user_chat_presence p ON p.user_id=u.id
-     WHERE cm.conversation_id=$1 AND cm.user_id<>$2
+      (p.active_conversation_id=$1 AND p.typing_until>now()) AS typing,
+      EXISTS(
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_id=$2 AND b.blocked_id=u.id)
+           OR (b.blocker_id=u.id AND b.blocked_id=$2)
+      ) AS blocked_with_viewer
+    FROM conversation_members cm
+    JOIN users u ON u.id=cm.user_id
+    LEFT JOIN user_chat_presence p ON p.user_id=u.id
+    WHERE cm.conversation_id=$1
+    ORDER BY
+      CASE cm.member_role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END,
+      lower(u.display_name),
+      u.id
+  `,[conversationId,userId]);
+
+  const row=conversation.rows[0];
+  const members=participants.rows;
+  const isGroup=row.conversation_type==='group';
+  const other=isGroup ? null : members.find(member=>String(member.id)!==String(userId)) || null;
+  return {
+    ...row,
+    is_group:isGroup,
+    participants:members,
+    member_count:members.length,
+    other
+  };
+}
+
+async function otherMember(conversationId,userId){
+  const details=await conversationDetails(conversationId,userId);
+  return details?.other || null;
+}
+
+async function inviteEligibility(actorId,targetId){
+  if(String(actorId)===String(targetId))return {ok:false,error:'cannot_message_self'};
+  const target=await db.query(`
+    SELECT id,username,display_name,avatar_url,status,message_privacy
+      FROM users
+     WHERE id=$1
      LIMIT 1
-  `, [conversationId, userId]);
-  return r.rows[0] || null;
+  `,[targetId]);
+  if(!target.rowCount || target.rows[0].status!=='active'){
+    return {ok:false,error:'user_not_found'};
+  }
+
+  const blocked=await db.query(`
+    SELECT 1 FROM blocks
+     WHERE (blocker_id=$1 AND blocked_id=$2)
+        OR (blocker_id=$2 AND blocked_id=$1)
+     LIMIT 1
+  `,[actorId,targetId]);
+  if(blocked.rowCount)return {ok:false,error:'messaging_blocked'};
+
+  const user=target.rows[0];
+  if(user.message_privacy==='no_one'){
+    return {ok:false,error:'message_privacy_denied'};
+  }
+  if(user.message_privacy==='following'){
+    const follows=await db.query(
+      'SELECT 1 FROM follows WHERE follower_id=$1 AND following_id=$2 LIMIT 1',
+      [targetId,actorId]
+    );
+    if(!follows.rowCount)return {ok:false,error:'message_privacy_following_only'};
+  }
+
+  return {ok:true,user};
 }
 
 router.get('/conversations', async (req, res) => {
@@ -94,62 +165,131 @@ router.get('/conversations', async (req, res) => {
     return res.status(400).json({error:'invalid_conversation_filter'});
   }
 
-  const r = await db.query(`
-    SELECT c.id,c.updated_at,
-           cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at,
-           u.id AS other_user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
-           presence.last_seen_at AS other_last_seen_at,
-           (presence.last_seen_at>now()-interval '45 seconds') AS other_online,
-           m.body AS last_body,m.content_level AS last_content_level,m.created_at AS last_message_at,
-           (SELECT count(*)::int FROM messages mu
-              WHERE mu.conversation_id=c.id
-                AND mu.sender_id<>$1
-                AND mu.created_at>COALESCE(cm.last_read_at,to_timestamp(0))) AS unread_count
-      FROM conversation_members cm
-      JOIN conversations c ON c.id=cm.conversation_id
-      JOIN conversation_members om ON om.conversation_id=c.id AND om.user_id<>$1
-      JOIN users u ON u.id=om.user_id
-      LEFT JOIN user_chat_presence presence ON presence.user_id=u.id
-      LEFT JOIN LATERAL (
-        SELECT body,content_level,created_at
-          FROM messages
-         WHERE conversation_id=c.id
-         ORDER BY created_at DESC
-         LIMIT 1
-      ) m ON true
-     WHERE cm.user_id=$1
-       AND u.status='active'
-       AND u.id NOT IN (
-         SELECT blocked_id FROM blocks WHERE blocker_id=$1
-         UNION
-         SELECT blocker_id FROM blocks WHERE blocked_id=$1
-       )
-       AND (
-         ($2='all' AND cm.is_archived=false)
-         OR ($2='archived' AND cm.is_archived=true)
-         OR ($2='unread' AND cm.is_archived=false AND EXISTS(
-           SELECT 1 FROM messages um
-            WHERE um.conversation_id=c.id
-              AND um.sender_id<>$1
-              AND um.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
-         ))
-       )
-       AND (
-         $3=''
-         OR u.username ILIKE '%' || $3 || '%'
-         OR u.display_name ILIKE '%' || $3 || '%'
-       )
-     ORDER BY
-       cm.is_pinned DESC,
-       CASE WHEN EXISTS(
-         SELECT 1 FROM messages um
-          WHERE um.conversation_id=c.id
-            AND um.sender_id<>$1
-            AND um.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
-       ) THEN 0 ELSE 1 END,
-       COALESCE(m.created_at,c.updated_at) DESC
-     LIMIT 100
-  `, [req.user.id,filter,q]);
+  const result=await db.query(`
+    SELECT
+      c.id,c.conversation_type,c.title,c.created_by,c.updated_at,
+      cm.member_role,cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at,
+      last_message.body AS last_body,
+      last_message.content_level AS last_content_level,
+      last_message.created_at AS last_message_at,
+      last_message.sender_id AS last_sender_id,
+      last_sender.display_name AS last_sender_display_name,
+      (
+        SELECT count(*)::int
+          FROM messages unread
+         WHERE unread.conversation_id=c.id
+           AND unread.sender_id<>$1
+           AND unread.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
+      ) AS unread_count
+    FROM conversation_members cm
+    JOIN conversations c ON c.id=cm.conversation_id
+    LEFT JOIN LATERAL (
+      SELECT body,content_level,created_at,sender_id
+        FROM messages
+       WHERE conversation_id=c.id
+       ORDER BY created_at DESC,id DESC
+       LIMIT 1
+    ) last_message ON true
+    LEFT JOIN users last_sender ON last_sender.id=last_message.sender_id
+    WHERE cm.user_id=$1
+      AND (
+        ($2='all' AND cm.is_archived=false)
+        OR ($2='archived' AND cm.is_archived=true)
+        OR ($2='unread' AND cm.is_archived=false AND EXISTS(
+          SELECT 1 FROM messages unread
+           WHERE unread.conversation_id=c.id
+             AND unread.sender_id<>$1
+             AND unread.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
+        ))
+      )
+      AND (
+        c.conversation_type='group'
+        OR EXISTS(
+          SELECT 1
+            FROM conversation_members direct_member
+            JOIN users direct_user ON direct_user.id=direct_member.user_id
+           WHERE direct_member.conversation_id=c.id
+             AND direct_member.user_id<>$1
+             AND direct_user.status='active'
+             AND NOT EXISTS(
+               SELECT 1 FROM blocks b
+                WHERE (b.blocker_id=$1 AND b.blocked_id=direct_user.id)
+                   OR (b.blocker_id=direct_user.id AND b.blocked_id=$1)
+             )
+        )
+      )
+      AND (
+        $3=''
+        OR (c.conversation_type='group' AND COALESCE(c.title,'') ILIKE '%' || $3 || '%')
+        OR EXISTS(
+          SELECT 1
+            FROM conversation_members search_member
+            JOIN users search_user ON search_user.id=search_member.user_id
+           WHERE search_member.conversation_id=c.id
+             AND search_member.user_id<>$1
+             AND (
+               search_user.username ILIKE '%' || $3 || '%'
+               OR search_user.display_name ILIKE '%' || $3 || '%'
+             )
+        )
+      )
+    ORDER BY
+      cm.is_pinned DESC,
+      CASE WHEN EXISTS(
+        SELECT 1 FROM messages unread
+         WHERE unread.conversation_id=c.id
+           AND unread.sender_id<>$1
+           AND unread.created_at>COALESCE(cm.last_read_at,to_timestamp(0))
+      ) THEN 0 ELSE 1 END,
+      COALESCE(last_message.created_at,c.updated_at) DESC
+    LIMIT 100
+  `,[req.user.id,filter,q]);
+
+  const conversationIds=result.rows.map(row=>String(row.id));
+  const participantResult=conversationIds.length
+    ? await db.query(`
+        SELECT
+          cm.conversation_id,
+          cm.member_role,
+          u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,u.status,
+          p.last_seen_at,
+          (p.last_seen_at>now()-interval '45 seconds') AS online
+        FROM conversation_members cm
+        JOIN users u ON u.id=cm.user_id
+        LEFT JOIN user_chat_presence p ON p.user_id=u.id
+        WHERE cm.conversation_id=ANY($1::bigint[])
+          AND u.status='active'
+        ORDER BY cm.conversation_id,
+          CASE cm.member_role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END,
+          lower(u.display_name)
+      `,[conversationIds])
+    : {rows:[]};
+
+  const byConversation=new Map();
+  for(const participant of participantResult.rows){
+    const key=String(participant.conversation_id);
+    if(!byConversation.has(key))byConversation.set(key,[]);
+    byConversation.get(key).push(participant);
+  }
+
+  const conversations=result.rows.map(row=>{
+    const participants=byConversation.get(String(row.id)) || [];
+    const isGroup=row.conversation_type==='group';
+    const other=isGroup ? null : participants.find(p=>String(p.id)!==String(req.user.id)) || null;
+    return {
+      ...row,
+      is_group:isGroup,
+      member_count:participants.length,
+      participants:isGroup ? participants : undefined,
+      other_user_id:other?.id || null,
+      username:other?.username || null,
+      display_name:other?.display_name || null,
+      avatar_url:other?.avatar_url || null,
+      creator_verified:other?.creator_verified || false,
+      other_last_seen_at:other?.last_seen_at || null,
+      other_online:other?.online===true
+    };
+  });
 
   const summary=await db.query(`
     SELECT
@@ -158,10 +298,10 @@ router.get('/conversations', async (req, res) => {
       count(*) FILTER (
         WHERE is_archived=false
           AND EXISTS(
-            SELECT 1 FROM messages um
-             WHERE um.conversation_id=conversation_members.conversation_id
-               AND um.sender_id<>$1
-               AND um.created_at>COALESCE(conversation_members.last_read_at,to_timestamp(0))
+            SELECT 1 FROM messages unread
+             WHERE unread.conversation_id=conversation_members.conversation_id
+               AND unread.sender_id<>$1
+               AND unread.created_at>COALESCE(conversation_members.last_read_at,to_timestamp(0))
           )
       )::int unread,
       count(*) FILTER (WHERE is_archived=false AND is_pinned=true)::int pinned
@@ -169,8 +309,14 @@ router.get('/conversations', async (req, res) => {
     WHERE user_id=$1
   `,[req.user.id]);
 
-  res.json({filter,q,summary:summary.rows[0] || {active:0,archived:0,unread:0,pinned:0},conversations:r.rows});
+  res.json({
+    filter,
+    q,
+    summary:summary.rows[0] || {active:0,archived:0,unread:0,pinned:0},
+    conversations
+  });
 });
+
 const createConversationSchema = z.object({ username: z.string().min(1).max(30) });
 router.post('/conversations', async (req, res) => {
   const parsed = createConversationSchema.safeParse(req.body);
