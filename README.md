@@ -1,4 +1,4 @@
-# RedLibertad V1.33.0 — Advanced Creator Analytics
+# RedLibertad V1.34.0 — Community Automation
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -891,4 +891,17 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Tareas completadas y alcance de comunicaciones.
 - Tendencia diaria de 14 días y top contenido.
 - Cálculo sobre datos reales, sin tracking externo ni tabla duplicada de métricas.
+- Sin monetización activa.
+
+
+## V1.34.0 — Community Automation
+
+- Automatizaciones privadas, desactivadas por defecto.
+- Tareas vencidas → prioridad alta.
+- Participación recurrente → tarea mensual.
+- Seguimiento vencido → tarea relacionada.
+- Contacto CRM prioritario sin tarea abierta → tarea mensual.
+- Ejecución manual o automática cada hora.
+- source_key e inserciones idempotentes para evitar duplicados.
+- Nunca publica ni envía comunicaciones automáticamente.
 - Sin monetización activa.
