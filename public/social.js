@@ -432,7 +432,7 @@ function postHTML(p, options = {}) {
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
       <button class="${reposted ? 'reposted' : ''}" ${ownPost || collaboratingMe || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : collaboratingMe ? 'Ya apareces como colaborador en esta publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
-      <button class="share-action" ${privateAudience ? 'disabled title="El contenido de audiencia privada no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${privateAudience ? 'Privado' : 'Compartir'}</span></button>
+      <button class="share-action" data-share="${p.id}" data-share-type="${p.post_kind==='reel'?'reel':'post'}" data-share-audience="${esc(p.audience||'public')}" data-share-username="${esc(p.username||'')}">↗ <span class="share-label">Compartir</span></button>
       ${options.discovery && !ownPost ? `<button class="discovery-hide-action" data-discovery-hide-post="${p.id}" title="No me interesa" aria-label="No me interesa">−</button>` : ''}
       ${canManage
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
@@ -1705,7 +1705,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -1720,6 +1720,7 @@ async function loadProfile(mode = ownProfileMode) {
     if (r.ok) { me.show_sensitive = !me.show_sensitive; toast('Preferencia actualizada'); await loadProfile(ownProfileMode); await loadFeed(currentMode); }
   };
   $('#editProfile').onclick = openProfileModal;
+  if($('#shareOwnProfile'))$('#shareOwnProfile').onclick=()=>shareProfile(me);
   if ($('#creatorCenter')) $('#creatorCenter').onclick = openCreatorModal;
   $('#trustSettings').onclick = openTrustModal;
   $('#privacySettings').onclick = openPrivacyModal;
@@ -1767,25 +1768,8 @@ function creatorLinksHTML(profileData) {
   </section>`;
 }
 
-async function shareProfile(profile) {
-  const url = `${location.origin}/app?profile=${encodeURIComponent(profile.username)}`;
-  const text = `Mira el perfil de @${profile.username} en RedLibertad.`;
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: profile.display_name || 'RedLibertad', text, url });
-      return;
-    } catch (error) {
-      if (error?.name === 'AbortError') return;
-    }
-  }
-
-  try {
-    await writeClipboardText(`${text} ${url}`);
-    toast('Enlace del perfil copiado');
-  } catch (_) {
-    window.prompt('Copia este enlace:', url);
-  }
+function shareProfile(profile) {
+  openShare(profile.id,'profile',{username:profile.username,audience:'public'});
 }
 
 async function loadPublicProfileContent(username, mode = 'posts') {
@@ -5175,7 +5159,10 @@ function bindPostActions(root) {
   });
 
   all('[data-share]', root).forEach(b => {
-    b.onclick = () => openShare(b.dataset.share);
+    b.onclick = () => openShare(b.dataset.share,b.dataset.shareType||'post',{
+      audience:b.dataset.shareAudience||'public',
+      username:b.dataset.shareUsername||''
+    });
   });
 
   all('[data-manage-post]', root).forEach(b => {
