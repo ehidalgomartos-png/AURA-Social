@@ -5,6 +5,45 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let connectionCirclesV152Ready=null;
+async function ensureConnectionCirclesV152(){
+  if(!connectionCirclesV152Ready){
+    connectionCirclesV152Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS connection_circles (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name VARCHAR(40) NOT NULL,
+          is_favorites BOOLEAN NOT NULL DEFAULT FALSE,
+          position SMALLINT NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_connection_circles_favorites ON connection_circles(user_id) WHERE is_favorites=true");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_connection_circles_user_position ON connection_circles(user_id,position,id)");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS connection_circle_members (
+          circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+          connection_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(circle_id,connection_user_id)
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_connection_circle_members_user ON connection_circle_members(connection_user_id,circle_id)");
+    })().catch(error=>{connectionCirclesV152Ready=null;throw error;});
+  }
+  return connectionCirclesV152Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureConnectionCirclesV152();next();}
+  catch(error){
+    console.error('RedLibertad V1.52 connection circles bootstrap failed:',error);
+    res.status(500).json({error:'connection_circles_bootstrap_failed'});
+  }
+});
+
+
 let profilesV138Ready=null;
 async function ensureProfilesV138(){
   if(!profilesV138Ready){
@@ -464,9 +503,203 @@ router.get('/suggestions', requireAuth, async (req, res) => {
   res.json({ users: r.rows, interest, interests: INTERESTS });
 });
 
+async function ensureFavoritesCircle(userId){
+  const existing=await db.query(
+    'SELECT id,name,is_favorites,position FROM connection_circles WHERE user_id=$1 AND is_favorites=true LIMIT 1',
+    [userId]
+  );
+  if(existing.rowCount)return existing.rows[0];
+  const created=await db.query(`
+    INSERT INTO connection_circles(user_id,name,is_favorites,position)
+    VALUES ($1,'Favoritas',true,-100)
+    ON CONFLICT DO NOTHING
+    RETURNING id,name,is_favorites,position
+  `,[userId]);
+  if(created.rowCount)return created.rows[0];
+  const retry=await db.query(
+    'SELECT id,name,is_favorites,position FROM connection_circles WHERE user_id=$1 AND is_favorites=true LIMIT 1',
+    [userId]
+  );
+  return retry.rows[0] || null;
+}
+
+async function isMutualConnection(userId,targetId){
+  const result=await db.query(`
+    SELECT 1
+      FROM follows mine
+      JOIN follows theirs
+        ON theirs.follower_id=mine.following_id
+       AND theirs.following_id=mine.follower_id
+     WHERE mine.follower_id=$1
+       AND mine.following_id=$2
+     LIMIT 1
+  `,[userId,targetId]);
+  return !!result.rowCount;
+}
+
+router.get('/connections/circles',requireAuth,async(req,res)=>{
+  await ensureFavoritesCircle(req.user.id);
+  const result=await db.query(`
+    SELECT
+      circle.id,
+      circle.name,
+      circle.is_favorites,
+      circle.position,
+      circle.created_at,
+      count(member.connection_user_id)::int AS member_count
+    FROM connection_circles circle
+    LEFT JOIN connection_circle_members member ON member.circle_id=circle.id
+    WHERE circle.user_id=$1
+    GROUP BY circle.id
+    ORDER BY circle.is_favorites DESC,circle.position ASC,circle.id ASC
+  `,[req.user.id]);
+  res.json({circles:result.rows});
+});
+
+const circleSchema=z.object({
+  name:z.string().trim().min(1).max(40)
+});
+
+router.post('/connections/circles',requireAuth,async(req,res)=>{
+  const parsed=circleSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_circle'});
+  const count=await db.query(
+    'SELECT count(*)::int AS n FROM connection_circles WHERE user_id=$1 AND is_favorites=false',
+    [req.user.id]
+  );
+  if(Number(count.rows[0]?.n || 0)>=12){
+    return res.status(400).json({error:'circle_limit_reached'});
+  }
+  const duplicate=await db.query(
+    'SELECT 1 FROM connection_circles WHERE user_id=$1 AND lower(name)=lower($2) LIMIT 1',
+    [req.user.id,parsed.data.name]
+  );
+  if(duplicate.rowCount)return res.status(409).json({error:'circle_name_exists'});
+
+  const created=await db.query(`
+    INSERT INTO connection_circles(user_id,name,is_favorites,position)
+    VALUES(
+      $1,$2,false,
+      COALESCE((SELECT max(position)+1 FROM connection_circles WHERE user_id=$1 AND is_favorites=false),0)
+    )
+    RETURNING id,name,is_favorites,position,created_at
+  `,[req.user.id,parsed.data.name]);
+
+  res.status(201).json({ok:true,circle:created.rows[0]});
+});
+
+router.patch('/connections/circles/:circleId',requireAuth,async(req,res)=>{
+  const parsed=circleSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_circle'});
+
+  const circle=await db.query(
+    'SELECT id,is_favorites FROM connection_circles WHERE id=$1 AND user_id=$2 LIMIT 1',
+    [req.params.circleId,req.user.id]
+  );
+  if(!circle.rowCount)return res.status(404).json({error:'circle_not_found'});
+  if(circle.rows[0].is_favorites)return res.status(400).json({error:'favorites_circle_locked'});
+
+  const duplicate=await db.query(
+    'SELECT 1 FROM connection_circles WHERE user_id=$1 AND id<>$2 AND lower(name)=lower($3) LIMIT 1',
+    [req.user.id,req.params.circleId,parsed.data.name]
+  );
+  if(duplicate.rowCount)return res.status(409).json({error:'circle_name_exists'});
+
+  const updated=await db.query(`
+    UPDATE connection_circles
+       SET name=$3,updated_at=now()
+     WHERE id=$1 AND user_id=$2
+     RETURNING id,name,is_favorites,position,updated_at
+  `,[req.params.circleId,req.user.id,parsed.data.name]);
+  res.json({ok:true,circle:updated.rows[0]});
+});
+
+router.delete('/connections/circles/:circleId',requireAuth,async(req,res)=>{
+  const deleted=await db.query(`
+    DELETE FROM connection_circles
+     WHERE id=$1
+       AND user_id=$2
+       AND is_favorites=false
+     RETURNING id
+  `,[req.params.circleId,req.user.id]);
+  if(!deleted.rowCount)return res.status(404).json({error:'circle_not_found_or_locked'});
+  res.json({ok:true});
+});
+
+router.get('/connections/:connectionUserId/circles',requireAuth,async(req,res)=>{
+  const targetId=Number(req.params.connectionUserId);
+  if(!Number.isInteger(targetId) || targetId<=0)return res.status(400).json({error:'invalid_connection'});
+  if(!(await isMutualConnection(req.user.id,targetId))){
+    return res.status(404).json({error:'connection_not_found'});
+  }
+  await ensureFavoritesCircle(req.user.id);
+
+  const result=await db.query(`
+    SELECT
+      circle.id,
+      circle.name,
+      circle.is_favorites,
+      circle.position,
+      EXISTS(
+        SELECT 1 FROM connection_circle_members member
+         WHERE member.circle_id=circle.id
+           AND member.connection_user_id=$2
+      ) AS selected
+    FROM connection_circles circle
+    WHERE circle.user_id=$1
+    ORDER BY circle.is_favorites DESC,circle.position ASC,circle.id ASC
+  `,[req.user.id,targetId]);
+
+  res.json({circles:result.rows});
+});
+
+router.put('/connections/circles/:circleId/members/:connectionUserId',requireAuth,async(req,res)=>{
+  const targetId=Number(req.params.connectionUserId);
+  if(!Number.isInteger(targetId) || targetId<=0)return res.status(400).json({error:'invalid_connection'});
+  const circle=await db.query(
+    'SELECT id FROM connection_circles WHERE id=$1 AND user_id=$2 LIMIT 1',
+    [req.params.circleId,req.user.id]
+  );
+  if(!circle.rowCount)return res.status(404).json({error:'circle_not_found'});
+  if(!(await isMutualConnection(req.user.id,targetId))){
+    return res.status(404).json({error:'connection_not_found'});
+  }
+
+  await db.query(`
+    INSERT INTO connection_circle_members(circle_id,connection_user_id)
+    VALUES ($1,$2)
+    ON CONFLICT DO NOTHING
+  `,[req.params.circleId,targetId]);
+  res.json({ok:true,selected:true});
+});
+
+router.delete('/connections/circles/:circleId/members/:connectionUserId',requireAuth,async(req,res)=>{
+  await db.query(`
+    DELETE FROM connection_circle_members member
+     USING connection_circles circle
+     WHERE member.circle_id=circle.id
+       AND circle.id=$1
+       AND circle.user_id=$2
+       AND member.connection_user_id=$3
+  `,[req.params.circleId,req.user.id,req.params.connectionUserId]);
+  res.json({ok:true,selected:false});
+});
+
 router.get('/connections', requireAuth, async (req,res)=>{
-  const requestedLimit=Number(req.query.limit || 20);
-  const limit=Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 20,1),50);
+  await ensureFavoritesCircle(req.user.id);
+  const requestedLimit=Number(req.query.limit || 50);
+  const limit=Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50,1),100);
+  const circleId=req.query.circleId ? Number(req.query.circleId) : null;
+  if(circleId && (!Number.isInteger(circleId) || circleId<=0)){
+    return res.status(400).json({error:'invalid_circle'});
+  }
+  if(circleId){
+    const owned=await db.query(
+      'SELECT 1 FROM connection_circles WHERE id=$1 AND user_id=$2 LIMIT 1',
+      [circleId,req.user.id]
+    );
+    if(!owned.rowCount)return res.status(404).json({error:'circle_not_found'});
+  }
 
   const result=await db.query(`
     SELECT
@@ -490,6 +723,24 @@ router.get('/connections', requireAuth, async (req,res)=>{
               WHERE own_interest.user_id=$1
            )
       ) AS shared_interest_count,
+      EXISTS(
+        SELECT 1
+          FROM connection_circle_members favorite_member
+          JOIN connection_circles favorite_circle ON favorite_circle.id=favorite_member.circle_id
+         WHERE favorite_circle.user_id=$1
+           AND favorite_circle.is_favorites=true
+           AND favorite_member.connection_user_id=u.id
+      ) AS favorite,
+      COALESCE(
+        (
+          SELECT array_agg(circle.name ORDER BY circle.is_favorites DESC,circle.position,circle.id)
+            FROM connection_circle_members circle_member
+            JOIN connection_circles circle ON circle.id=circle_member.circle_id
+           WHERE circle.user_id=$1
+             AND circle_member.connection_user_id=u.id
+        ),
+        ARRAY[]::text[]
+      ) AS circle_names,
       COALESCE(
         (SELECT array_agg(ui.interest ORDER BY ui.interest)
            FROM user_interests ui
@@ -518,23 +769,33 @@ router.get('/connections', requireAuth, async (req,res)=>{
         SELECT blocker_id FROM blocks WHERE blocked_id=$1
       )
       AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+      AND (
+        $3::bigint IS NULL
+        OR EXISTS(
+          SELECT 1 FROM connection_circle_members selected_member
+           WHERE selected_member.circle_id=$3
+             AND selected_member.connection_user_id=u.id
+        )
+      )
     ORDER BY
+      favorite DESC,
       CASE WHEN u.show_activity THEN activity.last_activity_at ELSE NULL END DESC NULLS LAST,
       shared_interest_count DESC,
       connection_since DESC
     LIMIT $2
-  `,[req.user.id,limit]);
+  `,[req.user.id,limit,circleId]);
 
   const connections=result.rows.map(row=>{
     const lastActivity=row.last_activity_at ? new Date(row.last_activity_at) : null;
     return {
       ...row,
+      favorite:row.favorite===true,
       last_activity_at:lastActivity && Number.isFinite(lastActivity.getTime()) && lastActivity.getTime()>0
         ? row.last_activity_at
         : null
     };
   });
-  res.json({connections,count:connections.length});
+  res.json({connections,count:connections.length,circleId});
 });
 
 router.get('/search/users', requireAuth, async (req,res)=>{
@@ -1817,6 +2078,13 @@ router.delete('/:id/follow',requireAuth,async(req,res)=>{
     'DELETE FROM follows WHERE follower_id=$1 AND following_id=$2',
     [req.user.id,req.params.id]
   );
+  await db.query(`
+    DELETE FROM connection_circle_members member
+    USING connection_circles circle
+    WHERE member.circle_id=circle.id
+      AND circle.user_id=$1
+      AND member.connection_user_id=$2
+  `,[req.user.id,req.params.id]);
   res.json({ok:true});
 });
 
@@ -1841,6 +2109,13 @@ router.post('/:id/block',requireAuth,async(req,res)=>{
     'DELETE FROM mutes WHERE muter_id=$1 AND muted_id=$2',
     [req.user.id,req.params.id]
   );
+  await db.query(`
+    DELETE FROM connection_circle_members member
+    USING connection_circles circle
+    WHERE member.circle_id=circle.id
+      AND circle.user_id=$1
+      AND member.connection_user_id=$2
+  `,[req.user.id,req.params.id]);
 
   res.json({ok:true});
 });
