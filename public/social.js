@@ -1890,7 +1890,7 @@ $('#creatorFollowUpSearch')?.addEventListener('input',event=>{
 });
 
 $('#creatorFollowUpSelectAll')?.addEventListener('change',event=>{
-  all('[data-followup-select]','#creatorFollowUpList').forEach(box=>{
+  all('[data-followup-select]',$('#creatorFollowUpList')).forEach(box=>{
     box.checked=event.currentTarget.checked;
   });
   updateCreatorFollowUpBulkState();
@@ -1905,7 +1905,7 @@ document.addEventListener('change',event=>{
 $('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
   const button=$('#creatorFollowUpBulkApply');
   const action=$('#creatorFollowUpBulkAction')?.value || '';
-  const ids=all('[data-followup-select]:checked','#creatorFollowUpList').map(box=>box.dataset.followupSelect);
+  const ids=all('[data-followup-select]:checked',$('#creatorFollowUpList')).map(box=>box.dataset.followupSelect);
   if(!button || !action || !ids.length)return;
   if(action==='close_follow_up' && !window.confirm(`¿Cerrar ${ids.length} seguimientos seleccionados?`))return;
 
@@ -2050,13 +2050,13 @@ function creatorFollowUpItemHTML(item) {
 }
 
 function updateCreatorFollowUpBulkState() {
-  const selected=all('[data-followup-select]:checked','#creatorFollowUpList');
+  const selected=all('[data-followup-select]:checked',$('#creatorFollowUpList'));
   const count=selected.length;
   if($('#creatorFollowUpSelectedCount'))$('#creatorFollowUpSelectedCount').textContent=`${count} ${count===1 ? 'seleccionado' : 'seleccionados'}`;
   const action=$('#creatorFollowUpBulkAction')?.value || '';
   const apply=$('#creatorFollowUpBulkApply');
   if(apply)apply.disabled=!count || !action;
-  const allBoxes=all('[data-followup-select]','#creatorFollowUpList');
+  const allBoxes=all('[data-followup-select]',$('#creatorFollowUpList'));
   const selectAll=$('#creatorFollowUpSelectAll');
   if(selectAll){
     selectAll.checked=Boolean(allBoxes.length && count===allBoxes.length);
