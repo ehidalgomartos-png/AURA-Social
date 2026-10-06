@@ -1284,21 +1284,21 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
         (SELECT count(*)::int
            FROM creator_polls cp
            JOIN posts p ON p.id=cp.post_id
-          WHERE p.user_id=$1) poll_count,
+          WHERE p.user_id=$1 AND p.moderation_status='published') poll_count,
         (SELECT count(*)::int
            FROM creator_poll_votes v
            JOIN creator_polls cp ON cp.id=v.poll_id
            JOIN posts p ON p.id=cp.post_id
-          WHERE p.user_id=$1) vote_count,
+          WHERE p.user_id=$1 AND p.moderation_status='published') vote_count,
         (SELECT count(*)::int
            FROM creator_questions cq
            JOIN posts p ON p.id=cq.post_id
-          WHERE p.user_id=$1) question_count,
+          WHERE p.user_id=$1 AND p.moderation_status='published') question_count,
         (SELECT count(*)::int
            FROM creator_question_responses qr
            JOIN creator_questions cq ON cq.id=qr.question_id
            JOIN posts p ON p.id=cq.post_id
-          WHERE p.user_id=$1) response_count
+          WHERE p.user_id=$1 AND p.moderation_status='published') response_count
     `,[req.user.id]),
     db.query(`
       SELECT
@@ -1311,6 +1311,7 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
       JOIN posts p ON p.id=cq.post_id
       JOIN users u ON u.id=qr.user_id
       WHERE p.user_id=$1
+        AND p.moderation_status='published'
         AND u.status='active'
       ORDER BY qr.updated_at DESC
       LIMIT 100
@@ -1325,6 +1326,7 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
       JOIN creator_poll_options o ON o.poll_id=cp.id
       LEFT JOIN creator_poll_votes v ON v.option_id=o.id
       WHERE p.user_id=$1
+        AND p.moderation_status='published'
       GROUP BY cp.id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,o.id,o.position,o.label
       ORDER BY p.created_at DESC,o.position
       LIMIT 160
