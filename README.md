@@ -1,4 +1,4 @@
-# RedLibertad V1.36.0 — Messaging 2.0
+# RedLibertad V1.37.0 — Discovery 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -934,4 +934,16 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Al enviar en una conversación archivada por el remitente, vuelve automáticamente a Activas para ese usuario.
 - Mantiene consentimiento de contenido sensible, bloqueos y privacidad de mensajes.
 - Bootstrap idempotente y mobile-first.
+- Sin monetización activa.
+
+
+## V1.37.0 — Discovery 2.0
+
+- Nueva pestaña Para ti dentro de Explorar.
+- Ranking personalizado con personas seguidas, conexiones comunes e interacción del contenido.
+- “No me interesa” para publicaciones dentro de Explorar.
+- Ocultar sugerencias de personas sin bloquearlas ni silenciarlas.
+- El feedback es privado por usuario y se respeta en recomendaciones, tendencias y búsquedas relevantes.
+- Se mantienen bloqueos, silencios y discoverable.
+- Tabla idempotente discovery_hidden_items.
 - Sin monetización activa.

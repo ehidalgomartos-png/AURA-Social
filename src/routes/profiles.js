@@ -5,6 +5,35 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let discoveryProfilesV137Ready=null;
+async function ensureDiscoveryProfilesV137(){
+  if(!discoveryProfilesV137Ready){
+    discoveryProfilesV137Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS discovery_hidden_items (
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          item_type TEXT NOT NULL,
+          item_id BIGINT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(user_id,item_type,item_id)
+        )
+      `);
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='discovery_hidden_items_type_check' AND conrelid='discovery_hidden_items'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE discovery_hidden_items ADD CONSTRAINT discovery_hidden_items_type_check CHECK(item_type IN ('post','user'))");
+      }
+    })().catch(error=>{discoveryProfilesV137Ready=null;throw error;});
+  }
+  return discoveryProfilesV137Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureDiscoveryProfilesV137();next();}
+  catch(error){console.error('RedLibertad V1.37 profile discovery bootstrap failed:',error);res.status(500).json({error:'discovery_bootstrap_failed'});}
+});
+
+
 let privacyV19Ready = null;
 async function ensurePrivacyV19() {
   if (!privacyV19Ready) {
@@ -383,6 +412,10 @@ router.get('/suggestions', requireAuth, async (req, res) => {
         SELECT blocker_id FROM blocks WHERE blocked_id=$1
       )
       AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+      AND NOT EXISTS(
+        SELECT 1 FROM discovery_hidden_items hidden
+         WHERE hidden.user_id=$1 AND hidden.item_type='user' AND hidden.item_id=u.id
+      )
       AND (
         $2::text IS NULL
         OR EXISTS (
@@ -441,6 +474,10 @@ router.get('/search/users', requireAuth, async (req,res)=>{
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND NOT EXISTS(
+         SELECT 1 FROM discovery_hidden_items hidden
+          WHERE hidden.user_id=$1 AND hidden.item_type='user' AND hidden.item_id=u.id
+       )
        AND (
          lower(u.username) LIKE lower($2)
          OR lower(u.display_name) LIKE lower($2)
@@ -509,6 +546,10 @@ router.get('/active', requireAuth, async (req,res)=>{
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND NOT EXISTS(
+         SELECT 1 FROM discovery_hidden_items hidden
+          WHERE hidden.user_id=$1 AND hidden.item_type='user' AND hidden.item_id=u.id
+       )
        AND activity.last_activity_at >= now() - interval '7 days'
      ORDER BY
        EXISTS(
@@ -523,6 +564,21 @@ router.get('/active', requireAuth, async (req,res)=>{
   `,[req.user.id,limit]);
 
   res.json({users:result.rows});
+});
+
+router.post('/:id/discovery-hide',requireAuth,async(req,res)=>{
+  const target=await db.query(
+    "SELECT id FROM users WHERE id=$1 AND status='active' AND is_admin=false LIMIT 1",
+    [req.params.id]
+  );
+  if(!target.rowCount)return res.status(404).json({error:'user_not_found'});
+  if(String(target.rows[0].id)===String(req.user.id))return res.status(400).json({error:'cannot_hide_self'});
+  await db.query(`
+    INSERT INTO discovery_hidden_items(user_id,item_type,item_id)
+    VALUES ($1,'user',$2)
+    ON CONFLICT DO NOTHING
+  `,[req.user.id,req.params.id]);
+  res.json({ok:true,hidden:true});
 });
 
 const privacySchema=z.object({

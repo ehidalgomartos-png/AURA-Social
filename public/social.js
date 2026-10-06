@@ -16,7 +16,7 @@ let activeReportPostId = null;
 let pendingDeleteComment = null;
 let activeManagePost = null;
 let deletePostArmed = false;
-let activeContentMode = 'trending';
+let activeContentMode = 'foryou';
 let activePostSearch = '';
 let savedPostIds = new Set();
 let toastTimer = null;
@@ -265,7 +265,7 @@ function communityToolHTML(p) {
   return '';
 }
 
-function postHTML(p) {
+function postHTML(p, options = {}) {
   const media = mediaHTML(p);
   const textOnly = !media;
   const ownPost = !!me && String(me.id) === String(p.user_id);
@@ -300,6 +300,7 @@ function postHTML(p) {
       <button class="${reposted ? 'reposted' : ''}" ${ownPost || vipOnly ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${vipOnly ? 'El contenido VIP no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
       <button class="share-action" ${vipOnly ? 'disabled title="El contenido VIP no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${vipOnly ? 'VIP' : 'Compartir'}</span></button>
+      ${options.discovery && !ownPost ? `<button class="discovery-hide-action" data-discovery-hide-post="${p.id}" title="No me interesa" aria-label="No me interesa">−</button>` : ''}
       ${canManage
         ? `<button class="post-more" data-manage-post="${p.id}" data-caption="${encodeURIComponent(p.caption || '')}" aria-label="Gestionar publicación">⋯</button>`
         : `<button class="post-more" data-report="${p.id}" aria-label="Denunciar publicación">⋯</button>`}
@@ -333,14 +334,28 @@ function personCardHTML(user, compact = false) {
       ${!compact && user.bio ? `<p>${esc(user.bio)}</p>` : ''}
       ${interestPillsHTML(user.interests, compact)}
     </div>
-    <button
-      type="button"
-      class="person-follow ${user.following ? 'following' : ''}"
-      data-suggest-follow="${user.id}"
-      data-following="${user.following ? '1' : '0'}">
-      ${user.following ? 'Siguiendo' : 'Seguir'}
-    </button>
+    <div class="person-card-actions">
+      <button type="button" class="person-follow ${user.following ? 'following' : ''}" data-suggest-follow="${user.id}" data-following="${user.following ? '1' : '0'}">${user.following ? 'Siguiendo' : 'Seguir'}</button>
+      ${compact ? '' : `<button type="button" class="person-hide-suggestion" data-discovery-hide-person="${user.id}" title="Ocultar sugerencia" aria-label="Ocultar sugerencia">×</button>`}
+    </div>
   </article>`;
+}
+
+async function hideDiscoveryPerson(button) {
+  const card=button.closest('[data-person-card]');
+  button.disabled=true;
+  const {r}=await api(`/api/profiles/${button.dataset.discoveryHidePerson}/discovery-hide`,{method:'POST'});
+  if(!r.ok){button.disabled=false;return toast('No se pudo ocultar esta sugerencia.');}
+  card?.remove();
+  toast('Sugerencia ocultada');
+}
+async function hideDiscoveryPost(button) {
+  const article=button.closest('[data-id]');
+  button.disabled=true;
+  const {r}=await api(`/api/posts/${button.dataset.discoveryHidePost}/discovery-hide`,{method:'POST'});
+  if(!r.ok){button.disabled=false;return toast('No se pudo ajustar Explorar.');}
+  article?.remove();
+  toast('Ajustaremos tus recomendaciones');
 }
 
 async function toggleSuggestedFollow(button) {
@@ -842,7 +857,7 @@ function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenid
   const root = $('#discoveryFeed');
   if (!root) return;
   root.innerHTML = posts.length
-    ? posts.map(postHTML).join('')
+    ? posts.map(post=>postHTML(post,{discovery:true})).join('')
     : `<div class="info-card discovery-empty"><b>${emptyTitle}</b><p>${emptyCopy}</p></div>`;
   bindPostActions(root);
 }
@@ -871,7 +886,9 @@ async function loadDiscoveryContent(mode = activeContentMode) {
         ? '/api/posts/trending?sort=likes'
         : mode === 'commented'
           ? '/api/posts/trending?sort=comments'
-          : '/api/posts/trending?sort=score';
+          : mode === 'trending'
+            ? '/api/posts/trending?sort=score'
+            : '/api/posts/discover';
 
   if (title) {
     title.textContent = mode === 'saved'
@@ -882,7 +899,9 @@ async function loadDiscoveryContent(mode = activeContentMode) {
           ? 'Lo más gustado'
           : mode === 'commented'
             ? 'Lo más comentado'
-            : 'Tendencias';
+            : mode === 'trending'
+              ? 'Tendencias'
+              : 'Para ti';
   }
   const root = $('#discoveryFeed');
   if (root) root.innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
@@ -1272,6 +1291,9 @@ $('#postFocusModal')?.addEventListener('click', event => {
 });
 
 document.addEventListener('click', async event => {
+  const hidePerson=event.target.closest('[data-discovery-hide-person]');
+  if(hidePerson){event.preventDefault();event.stopPropagation();await hideDiscoveryPerson(hidePerson);return;}
+
   const growthStep = event.target.closest('[data-growth-action]');
   if (growthStep) {
     event.preventDefault();
@@ -3773,6 +3795,8 @@ async function refreshPostArticle(postId) {
 }
 
 function bindPostActions(root) {
+  all('[data-discovery-hide-post]',root).forEach(button=>button.onclick=()=>hideDiscoveryPost(button));
+
   all('[data-like]', root).forEach(b => {
     b.onclick = async () => {
       if (b.disabled) return;

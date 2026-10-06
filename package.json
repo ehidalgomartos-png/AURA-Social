@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.36.0",
+  "version": "1.37.0",
   "private": true,
-  "description": "RedLibertad V1.36 Messaging 2.0 - conversaciones fijadas, archivadas, silenciadas, búsqueda y filtros, sin monetización.",
+  "description": "RedLibertad V1.37 Discovery 2.0 - Explorar personalizado y feedback privado No me interesa, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
