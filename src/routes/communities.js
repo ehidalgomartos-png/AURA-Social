@@ -121,6 +121,7 @@ async function ensureCommunitiesV158(){
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_community_moderation_log_community ON community_moderation_log(community_id,created_at DESC)');
       await db.query("ALTER TABLE communities ADD COLUMN IF NOT EXISTS category VARCHAR(40) NOT NULL DEFAULT 'general'");
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS mention_privacy TEXT NOT NULL DEFAULT 'everyone'");
       await db.query('CREATE INDEX IF NOT EXISTS idx_communities_category_updated ON communities(category,updated_at DESC)');
       await db.query(`
         CREATE TABLE IF NOT EXISTS community_interests (
@@ -206,6 +207,50 @@ async function blockedBetween(a,b){
      LIMIT 1
   `,[a,b]);
   return !!result.rowCount;
+}
+
+
+function extractCommunityMentions(value=''){
+  const found=new Set();
+  for(const match of String(value||'').matchAll(/(^|\s)@([a-zA-Z0-9_.]{3,30})/g))found.add(match[2].toLowerCase());
+  return [...found];
+}
+async function notifyCommunityMentions({communityId,actorId,text}){
+  const names=extractCommunityMentions(text);
+  if(!names.length)return;
+  const state=await communityState(communityId,actorId);
+  if(!state)return;
+  const result=await db.query(`
+    SELECT u.id,u.username
+      FROM users u
+     WHERE lower(u.username)=ANY($1::text[])
+       AND u.status='active'
+       AND u.id<>$2
+       AND u.mention_privacy<>'no_one'
+       AND (
+         u.mention_privacy='everyone'
+         OR (
+           u.mention_privacy='connections'
+           AND EXISTS(SELECT 1 FROM follows mf1 WHERE mf1.follower_id=$2 AND mf1.following_id=u.id)
+           AND EXISTS(SELECT 1 FROM follows mf2 WHERE mf2.follower_id=u.id AND mf2.following_id=$2)
+         )
+       )
+       AND NOT EXISTS(
+         SELECT 1 FROM blocks b
+          WHERE (b.blocker_id=$2 AND b.blocked_id=u.id)
+             OR (b.blocker_id=u.id AND b.blocked_id=$2)
+       )
+       AND (
+         $3::text='public'
+         OR EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id=$4 AND cm.user_id=u.id)
+       )
+  `,[names,actorId,state.privacy,state.id]);
+  for(const user of result.rows){
+    await db.query(`
+      INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES($1,$2,'mention','community',$3,$4)
+    `,[user.id,actorId,state.id,`Te ha mencionado en la comunidad “${state.name}”.`]);
+  }
 }
 
 async function addChatMember(client,community,userId,role='member'){
@@ -957,11 +1002,20 @@ router.post('/:id/posts',async(req,res)=>{
     data.mediaUrl ? data.externalId : null,data.mediaUrl ? data.playbackUrl : null,data.contentLevel
   ]);
   await db.query('UPDATE communities SET updated_at=now() WHERE id=$1',[state.id]);
+  try{await notifyCommunityMentions({communityId:state.id,actorId:req.user.id,text:String(data.body||'')});}
+  catch(error){console.warn('RedLibertad community mention notification failed:',error?.message||error);}
   res.status(201).json({ok:true,post:result.rows[0]});
 });
 
+const communityShareSchema=z.object({
+  postId:z.coerce.number().int().positive(),
+  context:z.string().trim().max(500).optional().default('')
+});
 router.post('/:id/share-post',async(req,res)=>{
-  const sharedPostId=Number(req.body?.postId);
+  const parsed=communityShareSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_share'});
+  const sharedPostId=Number(parsed.data.postId);
+  const context=parsed.data.context;
   if(!Number.isInteger(sharedPostId)||sharedPostId<=0)return res.status(400).json({error:'invalid_post'});
   const state=await communityState(req.params.id,req.user.id);
   if(!state)return res.status(404).json({error:'community_not_found'});
@@ -986,15 +1040,19 @@ router.post('/:id/share-post',async(req,res)=>{
     await client.query('BEGIN');
     const created=await client.query(`
       INSERT INTO community_posts(community_id,user_id,body,content_level,shared_post_id,shared_post_ref_id)
-      VALUES($1,$2,'Publicación compartida','normal',$3,$3)
+      VALUES($1,$2,$3,'normal',$4,$4)
       RETURNING *
-    `,[state.id,req.user.id,sharedPostId]);
+    `,[state.id,req.user.id,context||'Publicación compartida',sharedPostId]);
     await client.query(`
       INSERT INTO social_share_history(user_id,entity_type,entity_id,target_type,target_id,target_label)
       VALUES($1,$2,$3,'community',$4,$5)
     `,[req.user.id,source.rows[0].post_kind==='reel'?'reel':'post',sharedPostId,state.id,state.name]);
     await client.query('UPDATE communities SET updated_at=now() WHERE id=$1',[state.id]);
     await client.query('COMMIT');
+    if(context){
+      try{await notifyCommunityMentions({communityId:state.id,actorId:req.user.id,text:context});}
+      catch(error){console.warn('RedLibertad community share mention failed:',error?.message||error);}
+    }
     res.status(201).json({ok:true,post:created.rows[0]});
   }catch(error){
     await client.query('ROLLBACK');
@@ -1047,6 +1105,8 @@ router.post('/:id/posts/:postId/comments',async(req,res)=>{
     VALUES ($1,$2,$3)
     RETURNING *
   `,[req.params.postId,req.user.id,parsed.data.body]);
+  try{await notifyCommunityMentions({communityId:state.id,actorId:req.user.id,text:parsed.data.body});}
+  catch(error){console.warn('RedLibertad community comment mention failed:',error?.message||error);}
   res.status(201).json({ok:true,comment:result.rows[0]});
 });
 
