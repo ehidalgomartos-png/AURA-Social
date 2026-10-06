@@ -176,6 +176,23 @@
     <h2>Tu actividad como creador</h2>
     <p class="muted">Consulta el rendimiento de tu contenido y destaca hasta 3 publicaciones en la parte superior de tu perfil.</p>
 
+    <section class="creator-section creator-profile-section">
+      <div class="creator-section-head">
+        <div>
+          <b>Tu perfil de creador</b>
+          <small>Añade un titular y hasta 5 enlaces públicos. Solo se registra el número total de clics.</small>
+        </div>
+      </div>
+      <form id="creatorProfileForm" class="creator-profile-form">
+        <label>Titular de creador
+          <input name="headline" maxlength="120" placeholder="Fotografía, lifestyle y creatividad">
+        </label>
+        <div id="creatorLinksFields" class="creator-links-fields"></div>
+        <button class="primary full" type="submit">Guardar perfil de creador</button>
+        <p id="creatorProfileStatus" class="status"></p>
+      </form>
+    </section>
+
     <div id="creatorMetrics" class="creator-metrics">
       <div class="mini-loading">Cargando métricas...</div>
     </div>

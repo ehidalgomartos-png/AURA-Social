@@ -82,6 +82,43 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorV14Ready = null;
+async function ensureCreatorV14() {
+  if (!creatorV14Ready) {
+    creatorV14Ready = (async () => {
+      await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS creator_headline VARCHAR(120) NOT NULL DEFAULT ''");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_links (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          label VARCHAR(40) NOT NULL,
+          url TEXT NOT NULL,
+          position SMALLINT NOT NULL DEFAULT 0,
+          click_count BIGINT NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_links_user_position ON creator_links(user_id,position,id)');
+    })().catch(error => {
+      creatorV14Ready = null;
+      throw error;
+    });
+  }
+  return creatorV14Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorV14();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.14 creator profile bootstrap failed:',error);
+    res.status(500).json({error:'creator_profile_bootstrap_failed'});
+  }
+});
+
 const INTERESTS = [
   'Arte',
   'Fotografía',
@@ -108,7 +145,7 @@ router.get('/interests', requireAuth, async (_req, res) => {
 
 router.get('/me/summary', requireAuth, async (req,res)=>{
   const r=await db.query(`
-    SELECT id,email,username,display_name,bio,avatar_url,cover_url,location_label,website_url,
+    SELECT id,email,username,display_name,bio,avatar_url,cover_url,location_label,website_url,creator_headline,
            is_admin,age_verified,creator_verified,show_sensitive,status,message_privacy,discoverable,show_activity,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
@@ -409,7 +446,7 @@ router.get('/me/blocked',requireAuth,async(req,res)=>{
 router.get('/me/creator-center',requireAuth,async(req,res)=>{
   const summary=await db.query(`
     SELECT
-      u.id,u.username,u.display_name,u.creator_verified,u.age_verified,
+      u.id,u.username,u.display_name,u.creator_verified,u.age_verified,u.creator_headline,
       (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published') post_count,
       (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published' AND p.post_kind='reel') reel_count,
       (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) follower_count,
@@ -422,7 +459,8 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       (SELECT count(*)::int FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND r.created_at>=now()-interval '30 days') reposts_30d,
       (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published') save_count,
       (SELECT count(*)::int FROM saved_posts s JOIN posts p ON p.id=s.post_id WHERE p.user_id=u.id AND p.moderation_status='published' AND s.created_at>=now()-interval '30 days') saves_30d,
-      (SELECT count(*)::int FROM creator_featured_posts fp WHERE fp.user_id=u.id) featured_count
+      (SELECT count(*)::int FROM creator_featured_posts fp WHERE fp.user_id=u.id) featured_count,
+      (SELECT COALESCE(sum(cl.click_count),0)::bigint FROM creator_links cl WHERE cl.user_id=u.id) link_click_count
     FROM users u
     WHERE u.id=$1
     LIMIT 1
@@ -450,7 +488,15 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
     LIMIT 24
   `,[req.user.id]);
 
-  res.json({creator:account,posts:posts.rows,featuredLimit:3});
+  const links=await db.query(`
+    SELECT id,label,url,position,click_count,created_at,updated_at
+      FROM creator_links
+     WHERE user_id=$1
+     ORDER BY position ASC,id ASC
+     LIMIT 5
+  `,[req.user.id]);
+
+  res.json({creator:account,posts:posts.rows,links:links.rows,featuredLimit:3,linkLimit:5});
 });
 
 router.post('/me/creator/featured/:postId',requireAuth,async(req,res)=>{
@@ -524,9 +570,119 @@ router.delete('/me/creator/featured/:postId',requireAuth,async(req,res)=>{
   res.json({ok:true,featured:false});
 });
 
+
+const creatorLinkSchema=z.object({
+  id:z.coerce.number().int().positive().optional(),
+  label:z.string().trim().min(1).max(40),
+  url:z.string().trim().url().max(2048).refine(value=>/^https?:\/\//i.test(value),{message:'http_url_required'})
+});
+const creatorProfileSchema=z.object({
+  headline:z.string().trim().max(120).optional().default(''),
+  links:z.array(creatorLinkSchema).max(5).optional().default([])
+});
+
+router.put('/me/creator-profile',requireAuth,async(req,res)=>{
+  const parsed=creatorProfileSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_creator_profile',details:parsed.error.flatten()});
+
+  const data=parsed.data;
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const account=await client.query(
+      'SELECT id,creator_verified FROM users WHERE id=$1 FOR UPDATE',
+      [req.user.id]
+    );
+    if(!account.rowCount){
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'user_not_found'});
+    }
+    if(!account.rows[0].creator_verified){
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'verified_creator_required'});
+    }
+
+    const existing=await client.query(
+      'SELECT id FROM creator_links WHERE user_id=$1',
+      [req.user.id]
+    );
+    const ownedIds=new Set(existing.rows.map(row=>Number(row.id)));
+    const keepIds=[];
+
+    await client.query(
+      'UPDATE users SET creator_headline=$2,updated_at=now() WHERE id=$1',
+      [req.user.id,data.headline]
+    );
+
+    for(let position=0;position<data.links.length;position+=1){
+      const link=data.links[position];
+      if(link.id && !ownedIds.has(Number(link.id))){
+        await client.query('ROLLBACK');
+        return res.status(400).json({error:'creator_link_not_owned'});
+      }
+
+      if(link.id){
+        await client.query(`
+          UPDATE creator_links
+             SET label=$3,url=$4,position=$5,updated_at=now()
+           WHERE id=$1 AND user_id=$2
+        `,[link.id,req.user.id,link.label,link.url,position]);
+        keepIds.push(Number(link.id));
+      }else{
+        const inserted=await client.query(`
+          INSERT INTO creator_links (user_id,label,url,position)
+          VALUES ($1,$2,$3,$4)
+          RETURNING id
+        `,[req.user.id,link.label,link.url,position]);
+        keepIds.push(Number(inserted.rows[0].id));
+      }
+    }
+
+    if(keepIds.length){
+      await client.query(
+        'DELETE FROM creator_links WHERE user_id=$1 AND NOT (id=ANY($2::bigint[]))',
+        [req.user.id,keepIds]
+      );
+    }else{
+      await client.query('DELETE FROM creator_links WHERE user_id=$1',[req.user.id]);
+    }
+
+    await client.query('COMMIT');
+  }catch(error){
+    await client.query('ROLLBACK');
+    console.error('RedLibertad creator profile update failed:',error);
+    return res.status(500).json({error:'creator_profile_update_failed'});
+  }finally{
+    client.release();
+  }
+
+  const links=await db.query(
+    'SELECT id,label,url,position,click_count FROM creator_links WHERE user_id=$1 ORDER BY position ASC,id ASC LIMIT 5',
+    [req.user.id]
+  );
+  res.json({ok:true,headline:data.headline,links:links.rows});
+});
+
+router.post('/creator-links/:id/click',async(req,res)=>{
+  const result=await db.query(`
+    UPDATE creator_links cl
+       SET click_count=cl.click_count+1,
+           updated_at=now()
+      FROM users u
+     WHERE cl.id=$1
+       AND u.id=cl.user_id
+       AND u.status='active'
+       AND u.creator_verified=true
+    RETURNING cl.id,cl.url
+  `,[req.params.id]);
+
+  if(!result.rowCount)return res.status(404).json({error:'creator_link_not_found'});
+  res.json({ok:true,url:result.rows[0].url});
+});
+
 router.get('/:username', optionalAuth, async (req,res)=>{
   const result=await db.query(`
-    SELECT id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,age_verified,creator_verified,created_at,
+    SELECT id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,creator_headline,age_verified,creator_verified,created_at,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
@@ -596,7 +752,19 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     blockedByMe=!!blockedResult.rowCount;
   }
 
-  res.json({profile,following,followsYou,mutuals,mutualCount,mutedByMe,blockedByMe});
+  let creatorLinks=[];
+  if(profile.creator_verified){
+    const links=await db.query(`
+      SELECT id,label,url,position
+        FROM creator_links
+       WHERE user_id=$1
+       ORDER BY position ASC,id ASC
+       LIMIT 5
+    `,[profile.id]);
+    creatorLinks=links.rows;
+  }
+
+  res.json({profile,following,followsYou,mutuals,mutualCount,mutedByMe,blockedByMe,creatorLinks});
 });
 
 router.get('/:username/followers',optionalAuth,async(req,res)=>{
