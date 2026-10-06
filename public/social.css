@@ -109,6 +109,28 @@
 }
 
 
+/* RedLibertad V1.40 — Return Pulse */
+.return-pulse{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:19px;background:linear-gradient(145deg,var(--paper),var(--soft))}
+.return-pulse-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.return-pulse-head h2{margin:2px 0 3px;font:800 19px/1.15 Manrope,sans-serif;color:var(--navy)}
+.return-pulse-head p{margin:0;color:var(--muted);font-size:10px}
+.return-pulse-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}
+.return-pulse-card{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;gap:2px 8px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--paper);text-align:left;color:var(--ink)}
+.return-pulse-card>b{grid-row:1/3;font:800 21px Manrope,sans-serif;color:var(--teal)}
+.return-pulse-card>span{font-size:10px;font-weight:900;color:var(--navy)}
+.return-pulse-card>small{font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.return-pulse-card>i{grid-column:3;grid-row:1/3;font-style:normal;color:var(--muted);font-size:17px}
+@media(max-width:900px){.return-pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){
+  .return-pulse{padding:11px}
+  .return-pulse-head{align-items:center}
+  .return-pulse-grid{grid-template-columns:1fr 1fr;gap:6px}
+  .return-pulse-card{grid-template-columns:auto minmax(0,1fr);padding:9px}
+  .return-pulse-card>b{font-size:18px}
+  .return-pulse-card>i{display:none}
+}
+@media(max-width:390px){.return-pulse-grid{grid-template-columns:1fr}}
+
 /* RedLibertad: discovery, interests and community */
 .suggestion-panel{
   background:var(--paper);
