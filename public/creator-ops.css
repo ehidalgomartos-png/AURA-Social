@@ -66,3 +66,29 @@
   .creator-crm-editor textarea{grid-column:auto}
   .creator-crm-editor button{width:100%}
 }
+
+/* V1.31 — Audience Segments */
+.creator-segment-create{display:flex;gap:8px;margin:10px 0 14px}
+.creator-segment-create input{flex:1;border:1px solid var(--line);border-radius:11px;padding:9px 10px;background:var(--paper);color:var(--ink)}
+.creator-ops-subtitle{margin:16px 0 8px;font-size:11px;color:var(--navy)}
+.creator-segment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.creator-segment-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:11px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.creator-segment-card b,.creator-segment-card small{display:block}
+.creator-segment-card b{font-size:11px;color:var(--navy)}
+.creator-segment-card small{margin-top:3px;font-size:9px;color:var(--muted)}
+.creator-segment-card>strong{font-size:20px;color:var(--navy)}
+.creator-segment-actions{grid-column:1/-1;display:flex;gap:6px}
+.creator-segment-actions button,.creator-segment-add button,.creator-segment-member button{border:1px solid var(--line);border-radius:9px;padding:6px 8px;background:var(--paper);font-size:9px;font-weight:900;color:var(--ink)}
+.creator-segment-add{grid-column:1/-1;display:flex;gap:6px}
+.creator-segment-add input{flex:1;border:1px solid var(--line);border-radius:9px;padding:7px 8px;background:var(--paper);color:var(--ink)}
+.creator-segment-members{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.creator-segment-members-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.creator-segment-members-head button{border:0;background:transparent;font-size:18px;color:var(--muted)}
+.creator-segment-member{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.creator-segment-member:last-child{border-bottom:0}
+.creator-segment-member b,.creator-segment-member small{display:block}
+.creator-segment-member b{font-size:10px}.creator-segment-member small{font-size:8px;color:var(--muted)}
+@media(max-width:760px){
+  .creator-segment-create{display:grid;grid-template-columns:1fr}
+  .creator-segment-grid{grid-template-columns:1fr}
+}
