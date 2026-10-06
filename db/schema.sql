@@ -394,6 +394,36 @@ CREATE INDEX IF NOT EXISTS idx_creator_question_responses_question_created
   ON creator_question_responses(question_id,created_at DESC);
 
 
+-- RedLibertad V1.23: gestión avanzada de comunidad
+ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+
+ALTER TABLE creator_polls DROP CONSTRAINT IF EXISTS creator_polls_status_check;
+ALTER TABLE creator_polls
+  ADD CONSTRAINT creator_polls_status_check
+  CHECK(status IN ('active','archived'));
+
+ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+
+ALTER TABLE creator_questions DROP CONSTRAINT IF EXISTS creator_questions_status_check;
+ALTER TABLE creator_questions
+  ADD CONSTRAINT creator_questions_status_check
+  CHECK(status IN ('active','archived'));
+
+ALTER TABLE creator_question_responses ADD COLUMN IF NOT EXISTS creator_starred BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE creator_question_responses ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_creator_polls_status
+  ON creator_polls(post_id,status,is_open);
+CREATE INDEX IF NOT EXISTS idx_creator_questions_status
+  ON creator_questions(post_id,status,is_open);
+CREATE INDEX IF NOT EXISTS idx_creator_question_responses_starred
+  ON creator_question_responses(question_id,creator_starred,updated_at DESC);
+
+
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
