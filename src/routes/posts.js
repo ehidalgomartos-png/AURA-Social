@@ -3587,10 +3587,10 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 
   const featuredSelect = mode === 'reposts'
     ? 'false'
-    : 'EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id)';
+    : "(lower(u.username)=lower($1) AND EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id))";
   const orderBy = mode === 'reposts'
     ? 'profile_reposts.created_at DESC'
-    : 'EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id) DESC, COALESCE((SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id),p.created_at) DESC';
+    : `${featuredSelect} DESC,p.created_at DESC`;
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
