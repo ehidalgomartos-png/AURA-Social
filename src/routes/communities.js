@@ -612,7 +612,7 @@ router.get('/:id',async(req,res)=>{
       owner_avatar_url:state.owner_avatar_url,owner_creator_verified:state.owner_creator_verified,
       member_count:Number(state.member_count||0),post_count:Number(state.post_count||0),
       viewer_role:state.viewer_role,request_status:state.request_status,
-      is_member:state.is_member,can_manage:state.can_manage,can_manage_roles:state.can_manage_roles,
+      is_member:state.is_member,can_manage:state.can_manage,can_moderate:state.can_moderate,can_manage_roles:state.can_manage_roles,
       pending_request_count:state.can_manage ? Number(state.pending_request_count||0) : 0,
       conversation_id:state.is_member ? state.conversation_id : null
     },
