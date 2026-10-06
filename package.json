@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.52.0",
+  "version": "1.53.0",
   "private": true,
-  "description": "RedLibertad V1.52 Connection Circles - círculos privados, favoritas y organización de conexiones sin monetización.",
+  "description": "RedLibertad V1.53 Connections Center 2.0 - centro de conexiones, filtros y señales sociales privadas, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
