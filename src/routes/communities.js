@@ -354,15 +354,15 @@ router.patch('/:id',async(req,res)=>{
     await client.query('BEGIN');
     const updated=await client.query(`
       UPDATE communities
-         SET name=COALESCE($3,name),
-             description=COALESCE($4,description),
-             avatar_url=CASE WHEN $5::boolean THEN $6 ELSE avatar_url END,
-             privacy=COALESCE($7,privacy),
+         SET name=COALESCE($2,name),
+             description=COALESCE($3,description),
+             avatar_url=CASE WHEN $4::boolean THEN $5 ELSE avatar_url END,
+             privacy=COALESCE($6,privacy),
              updated_at=now()
        WHERE id=$1
        RETURNING *
     `,[
-      state.id,req.user.id,
+      state.id,
       data.name||null,
       data.description===undefined?null:data.description,
       Object.prototype.hasOwnProperty.call(data,'avatarUrl'),
@@ -582,6 +582,7 @@ router.delete('/:id/members/:userId',async(req,res)=>{
 router.get('/:id/posts',async(req,res)=>{
   const state=await communityState(req.params.id,req.user.id);
   if(!state || !state.can_view_content)return res.status(404).json({error:'community_not_found'});
+  if(await blockedBetween(req.user.id,state.owner_id))return res.status(404).json({error:'community_not_found'});
   const viewer=await viewerRow(req.user.id);
   const result=await db.query(`
     SELECT
@@ -670,6 +671,7 @@ router.post('/:id/posts',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_post'});
   const state=await communityState(req.params.id,req.user.id);
   if(!state)return res.status(404).json({error:'community_not_found'});
+  if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
   if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
   const data=parsed.data;
   if(!String(data.body||'').trim() && !data.mediaUrl)return res.status(400).json({error:'empty_post'});
@@ -724,6 +726,7 @@ router.post('/:id/posts/:postId/comments',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_comment'});
   const state=await communityState(req.params.id,req.user.id);
   if(!state)return res.status(404).json({error:'community_not_found'});
+  if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
   if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
   const post=await db.query(
     "SELECT id FROM community_posts WHERE id=$1 AND community_id=$2 AND moderation_status='published' LIMIT 1",
