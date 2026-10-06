@@ -1,4 +1,4 @@
-# RedLibertad V1.30.0 — Creator CRM Lite
+# RedLibertad V1.31.0 — Audience Segments
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -860,3 +860,12 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Búsqueda por persona, nota o etiqueta.
 - Crear una tarea relacionada directamente desde la ficha CRM.
 - Todo privado del creador y sin monetización activa.
+
+
+## V1.31.0 — Audience Segments
+
+- Segmentos automáticos privados: seguidores recientes, activos 30 días, VIP, inactivos 30 días y prioridad alta.
+- Segmentos manuales privados, hasta 20 por creador.
+- Añadir/quitar miembros por @usuario y consultar miembros.
+- Base preparada para comunicaciones segmentadas de V1.32.
+- Sin monetización activa.

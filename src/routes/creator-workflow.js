@@ -108,6 +108,47 @@ router.use(async(_req,res,next)=>{
   }
 });
 
+let creatorSegmentsV131Ready=null;
+async function ensureCreatorSegmentsV131(){
+  if(!creatorSegmentsV131Ready){
+    creatorSegmentsV131Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_segments (
+          id BIGSERIAL PRIMARY KEY,
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name VARCHAR(60) NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_segment_members (
+          segment_id BIGINT NOT NULL REFERENCES creator_segments(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(segment_id,user_id)
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_creator_segments_creator ON creator_segments(creator_id,updated_at DESC)");
+      await db.query("CREATE INDEX IF NOT EXISTS idx_creator_segment_members_segment ON creator_segment_members(segment_id,created_at DESC)");
+    })().catch(error=>{
+      creatorSegmentsV131Ready=null;
+      throw error;
+    });
+  }
+  return creatorSegmentsV131Ready;
+}
+
+router.use(async(_req,res,next)=>{
+  try{
+    await ensureCreatorSegmentsV131();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.31 audience segments bootstrap failed:',error);
+    res.status(500).json({error:'creator_segments_bootstrap_failed'});
+  }
+});
+
 router.use(requireAuth);
 router.use(async(req,res,next)=>{
   if(!await requireVerifiedCreator(req.user.id)){
@@ -420,6 +461,193 @@ router.patch('/contacts/:id',async(req,res)=>{
     RETURNING *
   `,[req.user.id,req.params.id,parsed.data.privateNote,parsed.data.priority,JSON.stringify(labels)]);
   res.json({ok:true,meta:result.rows[0]});
+});
+
+
+const segmentCreateSchema=z.object({
+  name:z.string().trim().min(2).max(60)
+});
+const segmentMemberSchema=z.object({
+  username:z.string().trim().min(3).max(30).transform(value=>value.replace(/^@/,'').toLowerCase())
+});
+
+const automaticSegmentKeys=['recent_followers','active_30d','vip','inactive_30d','high_priority'];
+
+async function automaticSegmentCounts(creatorId){
+  const result=await db.query(`
+    SELECT
+      (SELECT count(*)::int FROM follows f JOIN users u ON u.id=f.follower_id AND u.status='active'
+        WHERE f.following_id=$1 AND f.created_at>=now()-interval '30 days') recent_followers,
+      (SELECT count(DISTINCT user_id)::int FROM (
+        SELECT l.user_id FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1 AND l.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT c.user_id FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1 AND c.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT r.user_id FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1 AND r.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT v.user_id FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1 AND v.created_at>=now()-interval '30 days'
+        UNION ALL
+        SELECT qr.user_id FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1 AND qr.created_at>=now()-interval '30 days'
+      ) active) active_30d,
+      (SELECT count(*)::int FROM creator_vips cv JOIN users u ON u.id=cv.fan_id AND u.status='active' WHERE cv.creator_id=$1) vip,
+      (SELECT count(*)::int
+         FROM follows f
+         JOIN users u ON u.id=f.follower_id AND u.status='active'
+        WHERE f.following_id=$1
+          AND NOT EXISTS(
+            SELECT 1 FROM (
+              SELECT l.user_id,l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1
+              UNION ALL SELECT c.user_id,c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1
+              UNION ALL SELECT r.user_id,r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1
+              UNION ALL SELECT v.user_id,v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1
+              UNION ALL SELECT qr.user_id,qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1
+            ) activity
+            WHERE activity.user_id=f.follower_id AND activity.created_at>=now()-interval '30 days'
+          )) inactive_30d,
+      (SELECT count(*)::int FROM creator_contact_meta meta JOIN users u ON u.id=meta.contact_id AND u.status='active'
+        WHERE meta.creator_id=$1 AND meta.priority='high') high_priority
+  `,[creatorId]);
+  return result.rows[0] || {};
+}
+
+function autoSegmentMembersSql(key){
+  if(key==='recent_followers')return `
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM follows f JOIN users u ON u.id=f.follower_id
+     WHERE f.following_id=$1 AND f.created_at>=now()-interval '30 days' AND u.status='active'
+     ORDER BY f.created_at DESC LIMIT 200
+  `;
+  if(key==='vip')return `
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM creator_vips cv JOIN users u ON u.id=cv.fan_id
+     WHERE cv.creator_id=$1 AND u.status='active'
+     ORDER BY cv.created_at DESC LIMIT 200
+  `;
+  if(key==='high_priority')return `
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM creator_contact_meta meta JOIN users u ON u.id=meta.contact_id
+     WHERE meta.creator_id=$1 AND meta.priority='high' AND u.status='active'
+     ORDER BY meta.updated_at DESC LIMIT 200
+  `;
+  if(key==='inactive_30d')return `
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM follows f JOIN users u ON u.id=f.follower_id
+     WHERE f.following_id=$1 AND u.status='active'
+       AND NOT EXISTS(
+         SELECT 1 FROM (
+           SELECT l.user_id,l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1
+           UNION ALL SELECT c.user_id,c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1
+           UNION ALL SELECT r.user_id,r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1
+           UNION ALL SELECT v.user_id,v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1
+           UNION ALL SELECT qr.user_id,qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1
+         ) a WHERE a.user_id=f.follower_id AND a.created_at>=now()-interval '30 days'
+       )
+     ORDER BY f.created_at DESC LIMIT 200
+  `;
+  return `
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+    FROM users u
+    JOIN (
+      SELECT user_id,count(*) interactions FROM (
+        SELECT l.user_id FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1 AND l.created_at>=now()-interval '30 days'
+        UNION ALL SELECT c.user_id FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1 AND c.created_at>=now()-interval '30 days'
+        UNION ALL SELECT r.user_id FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1 AND r.created_at>=now()-interval '30 days'
+        UNION ALL SELECT v.user_id FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1 AND v.created_at>=now()-interval '30 days'
+        UNION ALL SELECT qr.user_id FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1 AND qr.created_at>=now()-interval '30 days'
+      ) events GROUP BY user_id HAVING count(*)>=3
+    ) activity ON activity.user_id=u.id
+    WHERE u.status='active'
+    ORDER BY activity.interactions DESC,u.id DESC LIMIT 200
+  `;
+}
+
+router.get('/segments',async(req,res)=>{
+  const counts=await automaticSegmentCounts(req.user.id);
+  const custom=await db.query(`
+    SELECT s.id,s.name,s.created_at,s.updated_at,count(sm.user_id)::int member_count
+      FROM creator_segments s
+      LEFT JOIN creator_segment_members sm ON sm.segment_id=s.id
+     WHERE s.creator_id=$1
+     GROUP BY s.id
+     ORDER BY s.updated_at DESC,s.id DESC
+     LIMIT 50
+  `,[req.user.id]);
+  res.json({
+    automatic:[
+      {key:'recent_followers',name:'Seguidores recientes',description:'Te siguen desde hace menos de 30 días.',member_count:Number(counts.recent_followers||0)},
+      {key:'active_30d',name:'Más activos · 30 días',description:'Al menos 3 interacciones recientes.',member_count:Number(counts.active_30d||0)},
+      {key:'vip',name:'Círculo VIP',description:'Personas incluidas en tu círculo VIP.',member_count:Number(counts.vip||0)},
+      {key:'inactive_30d',name:'Sin interacción · 30 días',description:'Seguidores sin interacción reciente contigo.',member_count:Number(counts.inactive_30d||0)},
+      {key:'high_priority',name:'Prioridad alta',description:'Marcados como prioridad alta en Creator CRM.',member_count:Number(counts.high_priority||0)}
+    ],
+    custom:custom.rows
+  });
+});
+
+router.get('/segments/auto/:key/members',async(req,res)=>{
+  const key=String(req.params.key||'');
+  if(!automaticSegmentKeys.includes(key))return res.status(404).json({error:'automatic_segment_not_found'});
+  const result=await db.query(autoSegmentMembersSql(key),[req.user.id]);
+  res.json({key,members:result.rows});
+});
+
+router.post('/segments',async(req,res)=>{
+  const parsed=segmentCreateSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_creator_segment'});
+  const existing=await db.query("SELECT count(*)::int n FROM creator_segments WHERE creator_id=$1",[req.user.id]);
+  if(Number(existing.rows[0]?.n||0)>=20)return res.status(409).json({error:'creator_segment_limit'});
+  const result=await db.query(
+    "INSERT INTO creator_segments (creator_id,name) VALUES ($1,$2) RETURNING *",
+    [req.user.id,parsed.data.name]
+  );
+  res.status(201).json({ok:true,segment:result.rows[0]});
+});
+
+router.get('/segments/:id/members',async(req,res)=>{
+  const segment=await db.query("SELECT id,name FROM creator_segments WHERE id=$1 AND creator_id=$2 LIMIT 1",[req.params.id,req.user.id]);
+  if(!segment.rowCount)return res.status(404).json({error:'creator_segment_not_found'});
+  const members=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified,sm.created_at
+      FROM creator_segment_members sm
+      JOIN users u ON u.id=sm.user_id
+     WHERE sm.segment_id=$1 AND u.status='active'
+     ORDER BY sm.created_at DESC
+     LIMIT 250
+  `,[req.params.id]);
+  res.json({segment:segment.rows[0],members:members.rows});
+});
+
+router.post('/segments/:id/members',async(req,res)=>{
+  const parsed=segmentMemberSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_segment_member'});
+  const segment=await db.query("SELECT id FROM creator_segments WHERE id=$1 AND creator_id=$2 LIMIT 1",[req.params.id,req.user.id]);
+  if(!segment.rowCount)return res.status(404).json({error:'creator_segment_not_found'});
+  const user=await db.query("SELECT id,username FROM users WHERE lower(username)=$1 AND status='active' AND id<>$2 LIMIT 1",[parsed.data.username,req.user.id]);
+  if(!user.rowCount)return res.status(404).json({error:'segment_member_not_found'});
+  await db.query("INSERT INTO creator_segment_members (segment_id,user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",[req.params.id,user.rows[0].id]);
+  await db.query("UPDATE creator_segments SET updated_at=now() WHERE id=$1",[req.params.id]);
+  res.json({ok:true,user:user.rows[0]});
+});
+
+router.delete('/segments/:id/members/:userId',async(req,res)=>{
+  const result=await db.query(`
+    DELETE FROM creator_segment_members sm
+     USING creator_segments s
+     WHERE sm.segment_id=s.id
+       AND s.id=$1
+       AND s.creator_id=$2
+       AND sm.user_id=$3
+     RETURNING sm.user_id
+  `,[req.params.id,req.user.id,req.params.userId]);
+  if(!result.rowCount)return res.status(404).json({error:'segment_member_not_found'});
+  await db.query("UPDATE creator_segments SET updated_at=now() WHERE id=$1",[req.params.id]);
+  res.json({ok:true});
+});
+
+router.delete('/segments/:id',async(req,res)=>{
+  const result=await db.query("DELETE FROM creator_segments WHERE id=$1 AND creator_id=$2 RETURNING id",[req.params.id,req.user.id]);
+  if(!result.rowCount)return res.status(404).json({error:'creator_segment_not_found'});
+  res.json({ok:true});
 });
 
 module.exports = router;
