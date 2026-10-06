@@ -2488,7 +2488,7 @@ $('#creatorActivityReviewAll')?.addEventListener('click',async()=>{
     const { r }=await api('/api/posts/creator/community-activity/review-all',{method:'POST'});
     if(!r.ok)throw new Error('No se pudo marcar la actividad.');
     toast('Actividad marcada como revisada');
-    await loadCreatorCommunityActivity();
+    await Promise.all([loadCreatorCommunityActivity(),loadCreatorFollowUps()]);
   }catch(error){
     toast(error.message || 'No se pudo actualizar la actividad.');
   }finally{
@@ -2524,7 +2524,7 @@ document.addEventListener('click',async event=>{
     });
     if(!r.ok)throw new Error('No se pudo marcar la actividad como revisada.');
     toast(ids.length===1 ? 'Actividad revisada' : 'Grupo revisado');
-    await loadCreatorCommunityActivity();
+    await Promise.all([loadCreatorCommunityActivity(),loadCreatorFollowUps()]);
   }catch(error){
     toast(error.message || 'No se pudo actualizar la actividad.');
   }finally{
@@ -2575,7 +2575,7 @@ document.addEventListener('click',async event=>{
     }
 
     toast('Seguimiento privado guardado');
-    await loadCreatorCommunityActivity();
+    await Promise.all([loadCreatorCommunityActivity(),loadCreatorFollowUps()]);
   }catch(error){
     toast(error.message || 'No se pudo guardar el seguimiento.');
   }finally{
