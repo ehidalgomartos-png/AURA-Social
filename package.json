@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.24.0",
+  "version": "1.25.0",
   "private": true,
-  "description": "RedLibertad V1.24 Community Insights & Creator Notifications - avisos de primera participación e insights 7/30 días, sin monetización.",
+  "description": "RedLibertad V1.25 Community Activity Center - actividad pendiente agrupada y flujo privado de revisión para creadores, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
