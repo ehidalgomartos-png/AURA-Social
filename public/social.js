@@ -8053,13 +8053,24 @@ function showView(name) {
   }
   if(name!=='messages' && activeConversationId)sendChatPresence({typing:false,conversationId:null});
   if(name!=='reels')pauseReelVideos();
-  all('.view').forEach(v => v.classList.add('hidden'));
+  all('.view').forEach(v => { v.classList.add('hidden'); v.setAttribute('aria-hidden','true'); });
   const view = document.querySelector('#' + name + 'View');
   if (!view) return;
   view.classList.remove('hidden');
+  view.setAttribute('aria-hidden','false');
   activeViewName=name;
   animateView(view);
-  all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  all('[data-view]').forEach(b => {
+    const current=b.dataset.view===name;
+    b.classList.toggle('active',current);
+    if(current)b.setAttribute('aria-current','page');
+    else b.removeAttribute('aria-current');
+  });
+  const live=$('#a11yLive');
+  if(switching&&live){
+    const title=view.querySelector('h1,h2')?.textContent?.trim()||name;
+    live.textContent='Sección '+title;
+  }
   if(switching)restoreViewScroll(name);
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
@@ -8499,3 +8510,143 @@ async function handleInitialDeepLink() {
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
+
+
+// =========================================================
+// RedLibertad V1.67 — Accessibility & UX Quality 2.0
+// =========================================================
+const a11yDialogReturnFocus=new WeakMap();
+
+function visibleFocusable(root){
+  if(!root)return[];
+  const selector='a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  return [...root.querySelectorAll(selector)].filter(el=>{
+    const style=getComputedStyle(el);
+    return style.visibility!=='hidden' && style.display!=='none' && el.getClientRects().length>0;
+  });
+}
+
+function openA11yModal(){
+  return [...document.querySelectorAll('.modal:not(.hidden)')].pop()||null;
+}
+
+function syncModalAccessibility(modal,{focus=false}={}){
+  if(!modal)return;
+  const open=!modal.classList.contains('hidden');
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-modal','true');
+  modal.setAttribute('aria-hidden',open?'false':'true');
+
+  const heading=modal.querySelector('h1,h2,h3');
+  if(heading){
+    if(!heading.id)heading.id=(modal.id||'dialog')+'Title';
+    modal.setAttribute('aria-labelledby',heading.id);
+  }else if(!modal.hasAttribute('aria-label')){
+    modal.setAttribute('aria-label','Ventana de RedLibertad');
+  }
+
+  modal.querySelectorAll('.modal-close').forEach(button=>{
+    if(!button.getAttribute('aria-label'))button.setAttribute('aria-label','Cerrar ventana');
+  });
+
+  const shell=document.querySelector('.social-shell');
+  const anyOpen=Boolean(openA11yModal());
+  if(shell){
+    if(anyOpen)shell.setAttribute('inert','');
+    else shell.removeAttribute('inert');
+  }
+
+  if(open&&focus){
+    if(!a11yDialogReturnFocus.has(modal) && document.activeElement instanceof HTMLElement){
+      a11yDialogReturnFocus.set(modal,document.activeElement);
+    }
+    queueMicrotask(()=>{
+      if(modal.classList.contains('hidden'))return;
+      if(modal.contains(document.activeElement))return;
+      if(heading){
+        heading.tabIndex=-1;
+        heading.focus({preventScroll:true});
+      }else{
+        visibleFocusable(modal)[0]?.focus({preventScroll:true});
+      }
+    });
+  }
+
+  if(!open){
+    const previous=a11yDialogReturnFocus.get(modal);
+    if(previous instanceof HTMLElement && previous.isConnected && !openA11yModal()){
+      queueMicrotask(()=>previous.focus({preventScroll:true}));
+    }
+    a11yDialogReturnFocus.delete(modal);
+  }
+}
+
+function initializeAccessibility(){
+  document.querySelectorAll('.view').forEach(view=>{
+    view.setAttribute('aria-hidden',view.classList.contains('hidden')?'true':'false');
+  });
+  document.querySelectorAll('[data-view]').forEach(button=>{
+    const current=button.classList.contains('active');
+    if(current)button.setAttribute('aria-current','page');
+    else button.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.modal').forEach(modal=>syncModalAccessibility(modal));
+  document.querySelectorAll('img:not([alt])').forEach(img=>img.setAttribute('alt',''));
+
+  const observer=new MutationObserver(records=>{
+    for(const record of records){
+      const modal=record.target;
+      if(modal instanceof HTMLElement && modal.classList.contains('modal')){
+        syncModalAccessibility(modal,{focus:!modal.classList.contains('hidden')});
+      }
+    }
+  });
+  document.querySelectorAll('.modal').forEach(modal=>observer.observe(modal,{attributes:true,attributeFilter:['class']}));
+}
+
+document.addEventListener('keydown',event=>{
+  const modal=openA11yModal();
+  if(!modal)return;
+
+  if(event.key==='Escape'){
+    const close=modal.querySelector('.modal-close');
+    if(close instanceof HTMLElement){
+      event.preventDefault();
+      close.click();
+    }
+    return;
+  }
+
+  const formField=event.target instanceof HTMLElement && (
+    ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName) ||
+    event.target.isContentEditable
+  );
+  if(modal.id==='storyViewerModal' && !formField && (event.key==='ArrowLeft'||event.key==='ArrowRight')){
+    const button=event.key==='ArrowLeft' ? $('#storyPrev') : $('#storyNext');
+    if(button && !button.disabled){
+      event.preventDefault();
+      button.click();
+    }
+    return;
+  }
+
+  if(event.key!=='Tab')return;
+  const items=visibleFocusable(modal);
+  if(!items.length){
+    event.preventDefault();
+    return;
+  }
+  const first=items[0],last=items[items.length-1];
+  if(!items.includes(document.activeElement)){
+    event.preventDefault();
+    (event.shiftKey?last:first).focus();
+  }else if(event.shiftKey && document.activeElement===first){
+    event.preventDefault();
+    last.focus();
+  }else if(!event.shiftKey && document.activeElement===last){
+    event.preventDefault();
+    first.focus();
+  }
+});
+
+initializeAccessibility();

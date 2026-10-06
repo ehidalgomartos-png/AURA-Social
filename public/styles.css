@@ -185,3 +185,20 @@ body{
   margin-top:2px;
   font-size:11px;
 }
+
+
+/* RedLibertad V1.67 — Accessibility & UX Quality 2.0 */
+.skip-link{position:fixed;left:12px;top:10px;z-index:1000;transform:translateY(-160%);background:var(--navy);color:#fff;padding:10px 14px;border-radius:10px;font-weight:800;box-shadow:var(--shadow)}
+.skip-link:focus{transform:translateY(0)}
+:where(a,button,input,select,textarea):focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.card-form input:focus-visible{border-color:var(--teal);box-shadow:0 0 0 3px rgba(43,183,169,.18)}
+@media(pointer:coarse){
+  button,.button,input:not([type="checkbox"]):not([type="radio"]){min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+@media(forced-colors:active){
+  :where(a,button,input,select,textarea):focus-visible{outline:2px solid CanvasText}
+  .button{border:1px solid ButtonText}
+}

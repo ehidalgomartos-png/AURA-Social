@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.66.0",
+  "version": "1.67.0",
   "private": true,
-  "description": "RedLibertad V1.66 Growth & Onboarding 2.0 - invitaciones opacas, onboarding social, sugerencias de arranque y protección anti-abuso, sin monetización.",
+  "description": "RedLibertad V1.67 Accessibility & UX Quality 2.0 - navegación por teclado, foco accesible, diálogos semánticos y mejoras para lectores de pantalla, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

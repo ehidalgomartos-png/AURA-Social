@@ -1,4 +1,4 @@
-# RedLibertad V1.66.0 — Growth & Onboarding 2.0
+# RedLibertad V1.67.0 — Accessibility & UX Quality 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1410,5 +1410,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Personas sugeridas para empezar a construir red, respetando bloqueos, silencios y discoverability.
 - Límites específicos anti-abuso para registro e inicio de sesión.
 - Sin mensajes automáticos, presión, rachas ni incentivos artificiales.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.67.0 — Accessibility & UX Quality 2.0
+
+- Enlaces “Saltar al contenido principal” en landing y aplicación.
+- Navegaciones principal y móvil etiquetadas para tecnologías de asistencia.
+- Estado de sección actual con `aria-current`.
+- Cambios de sección y avisos anunciados mediante regiones `aria-live`.
+- Modales convertidos dinámicamente en diálogos accesibles con nombre semántico.
+- Gestión y restauración del foco al abrir/cerrar diálogos.
+- Foco atrapado dentro del modal para navegación por teclado.
+- Cierre de diálogos con Escape.
+- Stories navegables con flechas izquierda/derecha cuando el visor está abierto.
+- Foco visible consistente en enlaces, botones, formularios y controles.
+- Objetivos táctiles reforzados en dispositivos táctiles.
+- Soporte para `prefers-reduced-motion` y Forced Colors.
+- Formularios de registro/login con labels accesibles y autocomplete.
 - Mobile-first.
 - Sin monetización.

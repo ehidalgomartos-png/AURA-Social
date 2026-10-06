@@ -19,11 +19,12 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<a class="skip-link" href="#mainContent">Saltar al contenido principal</a>
 <header class="topbar">
   <a class="brand" href="/" aria-label="RedLibertad"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
-  <nav><a href="#libertad">Qué es</a><a href="#seguridad">Seguridad</a><a href="#acceso" class="button small ghost">Entrar</a></nav>
+  <nav aria-label="Navegación principal"><a href="#libertad">Qué es</a><a href="#seguridad">Seguridad</a><a href="#acceso" class="button small ghost">Entrar</a></nav>
 </header>
-<main>
+<main id="mainContent" tabindex="-1">
   <section class="hero">
     <div class="hero-copy">
       <span class="eyebrow">TU VOZ · TU ESPACIO · TU LIBERTAD</span>
@@ -56,8 +57,8 @@
   </section>
 
   <section class="auth-duo">
-    <form id="registerForm" class="card-form"><span class="eyebrow">NUEVA CUENTA</span><h2 id="registro">Tu voz empieza aquí.</h2><div id="inviteNotice" class="invite-notice hidden"></div><input name="displayName" placeholder="Nombre visible" required><input name="username" placeholder="Usuario" required minlength="3"><input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Contraseña (mín. 10 caracteres)" minlength="10" required><label>Fecha de nacimiento<input name="birthDate" type="date" required></label><label class="check"><input name="acceptTerms" type="checkbox" required><span>Confirmo que soy mayor de 18 años y acepto las condiciones.</span></label><input type="hidden" name="referralUsername" value=""><input type="hidden" name="referralToken" value=""><button class="button full" type="submit">Crear cuenta en RedLibertad</button><p id="formMessage" class="form-message"></p></form>
-    <form id="loginForm" class="card-form dark-card"><span class="eyebrow">REDLIBERTAD</span><h2 id="acceso">Bienvenido de nuevo.</h2><p>Entra y continúa compartiendo con libertad.</p><input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Contraseña" required><button class="button full coral" type="submit">Entrar</button><p id="loginMessage" class="form-message"></p><div class="mini-preview"><b>V1.66</b><span>Comunidad · Invitaciones · Onboarding · Privacidad · PWA</span></div></form>
+    <form id="registerForm" class="card-form" aria-labelledby="registro"><span class="eyebrow">NUEVA CUENTA</span><h2 id="registro">Tu voz empieza aquí.</h2><div id="inviteNotice" class="invite-notice hidden" role="status" aria-live="polite"></div><input name="displayName" placeholder="Nombre visible" aria-label="Nombre visible" autocomplete="name" required><input name="username" placeholder="Usuario" aria-label="Usuario" autocomplete="username" required minlength="3"><input name="email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" required><input name="password" type="password" placeholder="Contraseña (mín. 10 caracteres)" aria-label="Contraseña" autocomplete="new-password" minlength="10" required><label>Fecha de nacimiento<input name="birthDate" type="date" required></label><label class="check"><input name="acceptTerms" type="checkbox" required><span>Confirmo que soy mayor de 18 años y acepto las condiciones.</span></label><input type="hidden" name="referralUsername" value=""><input type="hidden" name="referralToken" value=""><button class="button full" type="submit">Crear cuenta en RedLibertad</button><p id="formMessage" class="form-message" role="status" aria-live="polite"></p></form>
+    <form id="loginForm" class="card-form dark-card" aria-labelledby="acceso"><span class="eyebrow">REDLIBERTAD</span><h2 id="acceso">Bienvenido de nuevo.</h2><p>Entra y continúa compartiendo con libertad.</p><input name="email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" required><input name="password" type="password" placeholder="Contraseña" aria-label="Contraseña" autocomplete="current-password" required><button class="button full coral" type="submit">Entrar</button><p id="loginMessage" class="form-message" role="status" aria-live="polite"></p><div class="mini-preview"><b>V1.67</b><span>Comunidad · Invitaciones · Onboarding · Privacidad · PWA</span></div></form>
   </section>
 </main>
 <footer><a class="brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><p>Donde la libertad es lo primero.</p></footer>

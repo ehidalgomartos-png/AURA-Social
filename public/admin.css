@@ -147,3 +147,9 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 @media(max-width:960px){
   .verification-list{grid-template-columns:1fr}
 }
+
+
+/* RedLibertad V1.67 — Accessibility polish */
+:where(a,button,input,select,textarea):focus-visible{outline:3px solid var(--teal,#2bb7a9);outline-offset:3px}
+@media(pointer:coarse){button,input:not([type="checkbox"]):not([type="radio"]),select{min-height:44px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
