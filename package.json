@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.48.0",
+  "version": "1.49.0",
   "private": true,
-  "description": "RedLibertad V1.48 Push Notifications PWA - Web Push opcional por dispositivo, seguro y sin monetización.",
+  "description": "RedLibertad V1.49 Mobile Social Polish - teclado, viewport, offline, scroll y accesibilidad táctil, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
