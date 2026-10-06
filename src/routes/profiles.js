@@ -525,7 +525,16 @@ router.get('/connections', requireAuth, async (req,res)=>{
     LIMIT $2
   `,[req.user.id,limit]);
 
-  res.json({connections:result.rows,count:result.rows.length});
+  const connections=result.rows.map(row=>{
+    const lastActivity=row.last_activity_at ? new Date(row.last_activity_at) : null;
+    return {
+      ...row,
+      last_activity_at:lastActivity && Number.isFinite(lastActivity.getTime()) && lastActivity.getTime()>0
+        ? row.last_activity_at
+        : null
+    };
+  });
+  res.json({connections,count:connections.length});
 });
 
 router.get('/search/users', requireAuth, async (req,res)=>{
