@@ -8,6 +8,7 @@ let connectivityHideTimer=null;
 let currentFileMedia = null;
 let activeConversationId = null;
 let activeConversationOther = null;
+let activeConversationMeta = null;
 let activeConversationSettings = null;
 let activeMessageReply = null;
 let messageConversationFilter = 'all';
@@ -4781,6 +4782,16 @@ function conversationPresence(id) {
 }
 
 function presenceLabel(state,fallback=null) {
+  if(state?.isGroup){
+    const typingNames=Array.isArray(state.typingNames) ? state.typingNames.filter(Boolean) : [];
+    if(typingNames.length===1)return `${typingNames[0]} está escribiendo…`;
+    if(typingNames.length>1)return `${typingNames.slice(0,2).join(' y ')} están escribiendo…`;
+    if(Number(state.onlineCount || 0)>0){
+      const n=Number(state.onlineCount || 0);
+      return `${n} ${n===1 ? 'persona en línea' : 'personas en línea'}`;
+    }
+    return '';
+  }
   if(state?.typing)return 'Escribiendo…';
   if(state?.online)return 'En línea';
   const last=state?.lastSeenAt || fallback?.last_seen_at;
@@ -4793,7 +4804,9 @@ function updateConversationPresenceBadges() {
     const dot=row.querySelector('.conversation-presence-dot');
     const label=row.querySelector('.conversation-presence-label');
     if(dot)dot.classList.toggle('online',state?.online===true);
-    if(label)label.textContent=state?.typing ? 'Escribiendo…' : state?.online ? 'En línea' : '';
+    if(label)label.textContent=state?.isGroup
+      ? presenceLabel(state)
+      : state?.typing ? 'Escribiendo…' : state?.online ? 'En línea' : '';
   });
 }
 
@@ -4802,21 +4815,23 @@ function updateActiveChatPresence() {
   const state=conversationPresence(activeConversationId);
   const label=$('#chatPresence');
   if(label){
-    const text=presenceLabel(state,activeConversationOther);
+    const text=presenceLabel(state,activeConversationMeta?.is_group ? null : activeConversationOther);
     label.textContent=text;
     label.classList.toggle('typing',state?.typing===true);
     label.classList.toggle('online',state?.online===true && !state?.typing);
   }
 
-  const readAt=state?.otherLastReadAt ? new Date(state.otherLastReadAt).getTime() : 0;
-  if(readAt){
-    all('#messageThread .message-bubble.mine[data-message-created]').forEach(bubble=>{
-      const created=new Date(bubble.dataset.messageCreated).getTime();
-      if(Number.isFinite(created) && created<=readAt){
-        const receipt=bubble.querySelector('.message-receipt');
-        if(receipt)receipt.textContent='Visto';
-      }
-    });
+  if(!activeConversationMeta?.is_group){
+    const readAt=state?.otherLastReadAt ? new Date(state.otherLastReadAt).getTime() : 0;
+    if(readAt){
+      all('#messageThread .message-bubble.mine[data-message-created]').forEach(bubble=>{
+        const created=new Date(bubble.dataset.messageCreated).getTime();
+        if(Number.isFinite(created) && created<=readAt){
+          const receipt=bubble.querySelector('.message-receipt');
+          if(receipt)receipt.textContent='Visto';
+        }
+      });
+    }
   }
 }
 
@@ -4884,11 +4899,12 @@ async function refreshActiveConversationLive() {
     const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`);
     if(!r.ok || String(activeConversationId)!==conversationId)return;
     activeConversationOther=d.other;
+    activeConversationMeta=d.conversation || activeConversationMeta;
     activeConversationSettings=d.settings || activeConversationSettings;
     const thread=$('#messageThread');
     if(thread){
       const nearBottom=(thread.scrollHeight-thread.scrollTop-thread.clientHeight)<120;
-      thread.innerHTML=(Array.isArray(d.messages)?d.messages:[]).map(m=>messageHTML(m,d.other)).join('') || '<div class="empty-state"><p>Empieza la conversación.</p></div>';
+      thread.innerHTML=(Array.isArray(d.messages)?d.messages:[]).map(m=>messageHTML(m,d.other,d.conversation)).join('') || '<div class="empty-state"><p>Empieza la conversación.</p></div>';
       bindMessageActions(thread);
       if(nearBottom)thread.scrollTop=thread.scrollHeight;
     }
@@ -4899,6 +4915,10 @@ async function refreshActiveConversationLive() {
 
 async function handleLiveActivity(payload,initial=false) {
   const previous={...liveActivityState};
+  const previousPresence=new Map(
+    (Array.isArray(previous.conversationPresence) ? previous.conversationPresence : [])
+      .map(item=>[String(item.conversationId),item])
+  );
   liveActivityState={
     notificationUnread:Number(payload.notificationUnread || 0),
     latestNotificationId:String(payload.latestNotificationId || '0'),
@@ -4925,10 +4945,21 @@ async function handleLiveActivity(payload,initial=false) {
     previous.messageUnread!==liveActivityState.messageUnread ||
     previous.latestReactionAt!==liveActivityState.latestReactionAt;
 
+  const previousActivePresence=activeConversationId
+    ? previousPresence.get(String(activeConversationId))
+    : null;
+  const nextActivePresence=activeConversationId
+    ? liveConversationPresence.get(String(activeConversationId))
+    : null;
+  const groupReadChanged=!!(
+    activeConversationMeta?.is_group &&
+    String(previousActivePresence?.readSignature || '')!==String(nextActivePresence?.readSignature || '')
+  );
+
   if(notificationChanged && !$('#notificationsView')?.classList.contains('hidden')){
     await loadNotifications();
   }
-  if(messageChanged && !$('#messagesView')?.classList.contains('hidden')){
+  if((messageChanged || groupReadChanged) && !$('#messagesView')?.classList.contains('hidden')){
     if(activeConversationId)await refreshActiveConversationLive();
     else await loadConversations();
   }
@@ -5106,6 +5137,8 @@ all('[data-message-filter]').forEach(button=>{
   button.onclick=async()=>{
     messageConversationFilter=button.dataset.messageFilter || 'all';
     activeConversationId=null;
+    activeConversationMeta=null;
+    activeConversationOther=null;
     $('.messages-layout')?.classList.remove('chat-open');
     await loadConversations();
   };
@@ -5124,18 +5157,57 @@ $('#readAllNotifications').onclick = async () => {
   toast('Notificaciones marcadas como leídas');
 };
 
+function conversationListIdentity(conversation){
+  const isGroup=conversation.is_group===true || conversation.conversation_type==='group';
+  if(isGroup){
+    const title=String(conversation.title || 'Grupo');
+    const participants=Array.isArray(conversation.participants) ? conversation.participants : [];
+    return {
+      isGroup:true,
+      title,
+      subtitle:`${Number(conversation.member_count || participants.length || 0)} miembros`,
+      avatar:`<span class="group-avatar-mark">${esc(initials(title))}</span>`,
+      verified:false
+    };
+  }
+  return {
+    isGroup:false,
+    title:String(conversation.display_name || conversation.username || 'Conversación'),
+    subtitle:conversation.username ? `@${conversation.username}` : '',
+    avatar:conversation.avatar_url
+      ? `<img src="${esc(conversation.avatar_url)}" alt="" decoding="async">`
+      : esc(initials(conversation.display_name || conversation.username || 'R')),
+    verified:conversation.creator_verified===true
+  };
+}
+
+function conversationPreviewText(conversation){
+  if(conversation.last_content_level && conversation.last_content_level!=='normal'){
+    return conversation.is_group && conversation.last_sender_display_name
+      ? `${conversation.last_sender_display_name}: Contenido sensible`
+      : 'Contenido sensible';
+  }
+  const body=String(conversation.last_body || '').trim();
+  if(!body)return 'Conversación nueva';
+  if(conversation.is_group && conversation.last_sender_display_name){
+    return `${conversation.last_sender_display_name}: ${body}`;
+  }
+  return body;
+}
+
 async function loadConversations(openId = null) {
   const params=new URLSearchParams({filter:messageConversationFilter,q:messageConversationSearch});
-  const { d } = await api('/api/messages/conversations?'+params.toString());
+  const {r,d}=await api('/api/messages/conversations?'+params.toString());
+  if(!r.ok)return;
   const conversations=Array.isArray(d.conversations)?d.conversations:[];
-  const total = conversations.reduce((a, x) => a + Number(x.unread_count || 0), 0);
+  const total=conversations.reduce((a,x)=>a+Number(x.unread_count || 0),0);
   updateMessageBadge(total);
   liveActivityState.messageUnread=total;
 
   all('[data-message-filter]').forEach(button=>{
     button.classList.toggle('active',button.dataset.messageFilter===messageConversationFilter);
   });
-  const summary=d.summary||{};
+  const summary=d.summary || {};
   if($('#messageInboxSummary')){
     $('#messageInboxSummary').textContent=`${Number(summary.unread||0)} no leídas · ${Number(summary.pinned||0)} fijadas · ${Number(summary.archived||0)} archivadas`;
   }
@@ -5143,62 +5215,157 @@ async function loadConversations(openId = null) {
     $('#messageConversationSearch').value=messageConversationSearch;
   }
 
-  $('#conversationList').innerHTML = conversations.length ? conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''} ${c.is_pinned?'pinned':''}" data-conversation="${c.id}">
-    <div class="avatar conversation-avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}<i class="conversation-presence-dot ${c.other_online?'online':''}"></i></div>
-    <div class="conversation-copy">
-      <b>${c.is_pinned?'★ ':''}${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
-      <small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small>
-      <span class="conversation-presence-label">${c.other_online?'En línea':''}</span>
-      ${c.notifications_muted?'<em class="conversation-muted">Silenciada</em>':''}
-    </div>
-    ${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}
-  </button>`).join('') : '<div class="empty-list">No hay conversaciones en este filtro.</div>';
-  all('[data-conversation]').forEach(b => b.onclick = () => openConversation(b.dataset.conversation));
-  if (openId) await openConversation(openId);
+  $('#conversationList').innerHTML=conversations.length
+    ? conversations.map(conversation=>{
+        const identity=conversationListIdentity(conversation);
+        const liveState=conversationPresence(conversation.id);
+        const serverOnline=identity.isGroup
+          ? (Array.isArray(conversation.participants) ? conversation.participants.filter(member=>member.online).length : 0)
+          : (conversation.other_online ? 1 : 0);
+        const presenceText=liveState
+          ? presenceLabel(liveState)
+          : identity.isGroup
+            ? (serverOnline ? `${serverOnline} ${serverOnline===1 ? 'persona en línea' : 'personas en línea'}` : '')
+            : conversation.other_online ? 'En línea' : '';
+
+        return `<button class="conversation-row ${String(conversation.id)===String(activeConversationId) ? 'active' : ''} ${conversation.is_pinned?'pinned':''} ${identity.isGroup?'group-conversation-row':''}" data-conversation="${conversation.id}">
+          <div class="avatar conversation-avatar ${identity.isGroup?'group-avatar':''}">
+            ${identity.avatar}
+            <i class="conversation-presence-dot ${(liveState?.online || serverOnline>0)?'online':''}"></i>
+          </div>
+          <div class="conversation-copy">
+            <b>${conversation.is_pinned?'★ ':''}${esc(identity.title)} ${identity.verified ? '<span class="verified">✓</span>' : ''}${identity.isGroup ? '<span class="group-chip">Grupo</span>' : ''}</b>
+            <small>${esc(conversationPreviewText(conversation))}</small>
+            <span class="conversation-presence-label">${esc(presenceText)}</span>
+            ${conversation.notifications_muted?'<em class="conversation-muted">Silenciada</em>':''}
+          </div>
+          ${Number(conversation.unread_count) ? `<i class="count-badge">${conversation.unread_count}</i>` : ''}
+        </button>`;
+      }).join('')
+    : '<div class="empty-list">No hay conversaciones en este filtro.</div>';
+
+  all('[data-conversation]').forEach(button=>{
+    button.onclick=()=>openConversation(button.dataset.conversation);
+  });
+  updateConversationPresenceBadges();
+  if(openId)await openConversation(openId);
 }
+
+function groupParticipantsSummary(group){
+  const participants=Array.isArray(group?.participants) ? group.participants : [];
+  const visible=participants
+    .filter(member=>String(member.id)!==String(me?.id))
+    .slice(0,3)
+    .map(member=>member.display_name || member.username);
+  if(!visible.length)return '';
+  const extra=Math.max(0,participants.length-1-visible.length);
+  return extra ? `${visible.join(', ')} y ${extra} más` : visible.join(', ');
+}
+
 async function openConversation(id) {
-  activeConversationId = id;
+  activeConversationId=id;
   clearMessageReply();
-  const layout = $('.messages-layout');
-  if (layout) layout.classList.add('chat-open');
-  const { d } = await api(`/api/messages/conversations/${id}/messages`);
-  activeConversationOther = d.other;
-  activeConversationSettings=d.settings || {is_pinned:false,is_archived:false,notifications_muted:false};
-  const messages = d.messages.map(m => messageHTML(m, d.other)).join('');
-  $('#chatPanel').className = 'chat-panel';
-  $('#chatPanel').innerHTML = `<header class="chat-head">
+  const layout=$('.messages-layout');
+  if(layout)layout.classList.add('chat-open');
+
+  const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(id)}/messages`);
+  if(!r.ok){
+    toast(
+      d.error==='messaging_blocked'
+        ? 'Esta conversación ya no está disponible.'
+        : 'No se pudo abrir la conversación.'
+    );
+    return;
+  }
+
+  activeConversationOther=d.other || null;
+  activeConversationMeta=d.conversation || null;
+  activeConversationSettings=d.settings || {
+    member_role:activeConversationMeta?.member_role || 'member',
+    is_pinned:false,
+    is_archived:false,
+    notifications_muted:false
+  };
+
+  const isGroup=activeConversationMeta?.is_group===true;
+  const title=isGroup
+    ? String(activeConversationMeta.title || 'Grupo')
+    : String(d.other?.display_name || d.other?.username || 'Conversación');
+  const subtitle=isGroup
+    ? `${Number(activeConversationMeta.member_count || 0)} miembros${groupParticipantsSummary(activeConversationMeta) ? ` · ${groupParticipantsSummary(activeConversationMeta)}` : ''}`
+    : `@${esc(d.other?.username || '')}`;
+  const headerAvatar=isGroup
+    ? `<span class="group-avatar-mark">${esc(initials(title))}</span>`
+    : avatarHTML(d.other);
+  const liveLabel=presenceLabel(
+    conversationPresence(id),
+    isGroup ? null : d.other
+  );
+  const messages=(Array.isArray(d.messages)?d.messages:[])
+    .map(message=>messageHTML(message,d.other,activeConversationMeta))
+    .join('');
+
+  $('#chatPanel').className='chat-panel';
+  $('#chatPanel').innerHTML=`<header class="chat-head">
     <button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Volver a conversaciones">‹</button>
-    <div class="avatar">${avatarHTML(d.other)}</div>
-    <div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)} · <span id="chatPresence" class="chat-presence">${esc(presenceLabel(conversationPresence(id),d.other))}</span></small></div>
+    <div class="avatar ${isGroup?'group-avatar':''}">${headerAvatar}</div>
+    <div class="chat-person">
+      <b>${esc(title)} ${isGroup?'<span class="group-chip">Grupo</span>':''}</b>
+      <small>${subtitle}${liveLabel ? ` · <span id="chatPresence" class="chat-presence">${esc(liveLabel)}</span>` : ' · <span id="chatPresence" class="chat-presence"></span>'}</small>
+    </div>
     <div class="chat-conversation-actions">
       <button type="button" class="tiny-action" data-conversation-setting="pinned">${activeConversationSettings.is_pinned?'★ Fijada':'☆ Fijar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="muted">${activeConversationSettings.notifications_muted?'Activar avisos':'Silenciar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="archived">${activeConversationSettings.is_archived?'Desarchivar':'Archivar'}</button>
-      ${d.sensitiveAllowed ? `<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>` : ''}
+      ${isGroup ? '<button id="manageGroup" type="button" class="tiny-action">Participantes</button>' : ''}
+      ${!isGroup && d.sensitiveAllowed ? '<button id="revokeSensitive" class="tiny-action">No recibir sensible</button>' : ''}
     </div>
-  </header><div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div><form id="messageForm" class="message-form"><div id="messageReplyComposer" class="message-reply-composer hidden"></div><div class="message-options"><label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label></div><div id="messagePreview" class="message-preview hidden"></div><div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="Escribe un mensaje..."></textarea><button class="primary" type="submit">Enviar</button></div><small class="message-hint">El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.</small></form>`;
-  const mobileBack = $('#mobileChatBack');
-  if (mobileBack) mobileBack.onclick = () => {
-    const messagesLayout = $('.messages-layout');
-    if (messagesLayout) messagesLayout.classList.remove('chat-open');
+  </header>
+  <div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div>
+  <form id="messageForm" class="message-form">
+    <div id="messageReplyComposer" class="message-reply-composer hidden"></div>
+    <div class="message-options">
+      <label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label>
+      <label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label>
+    </div>
+    <div id="messagePreview" class="message-preview hidden"></div>
+    <div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="${isGroup ? 'Escribe al grupo…' : 'Escribe un mensaje…'}"></textarea><button class="primary" type="submit">Enviar</button></div>
+    <small class="message-hint">${isGroup ? 'Cada persona decide si acepta el contenido sensible de cada remitente.' : 'El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.'}</small>
+  </form>`;
+
+  const mobileBack=$('#mobileChatBack');
+  if(mobileBack)mobileBack.onclick=()=>{
+    $('.messages-layout')?.classList.remove('chat-open');
     sendChatPresence({typing:false,conversationId:null});
-    activeConversationId = null;
+    activeConversationId=null;
+    activeConversationMeta=null;
+    activeConversationOther=null;
     loadConversations();
   };
-  $('#messageForm').onsubmit = sendMessage;
+
+  $('#messageForm').onsubmit=sendMessage;
   bindMessageActions($('#messageThread'));
   bindTypingPresence();
   autosizeMessageBody();
   sendChatPresence({typing:false,conversationId:id});
   updateActiveChatPresence();
-  $('#messageFile').addEventListener('change', renderMessagePreview);
-  $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
-  all('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
-  if ($('#revokeSensitive')) $('#revokeSensitive').onclick = async () => {
-    await api(`/api/messages/users/${d.other.id}/sensitive-permission`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow: false }) });
-    toast('Ya no recibirás contenido sensible visible de esta persona');
-    await openConversation(activeConversationId);
-  };
+
+  $('#messageFile').addEventListener('change',renderMessagePreview);
+  $('#messageLevel').addEventListener('change',updateMessagePreviewLevel);
+  if($('#manageGroup'))$('#manageGroup').onclick=openGroupManage;
+
+  if($('#revokeSensitive') && d.other){
+    $('#revokeSensitive').onclick=async()=>{
+      await api(`/api/messages/users/${d.other.id}/sensitive-permission`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({allow:false})
+      });
+      toast('Ya no recibirás contenido sensible visible de esta persona');
+      await openConversation(activeConversationId);
+    };
+  }
+
   all('[data-conversation-setting]',$('#chatPanel')).forEach(button=>{
     button.onclick=async()=>{
       const key=button.dataset.conversationSetting;
@@ -5207,17 +5374,34 @@ async function openConversation(id) {
         : key==='archived'
           ? {archived:!activeConversationSettings.is_archived}
           : {muted:!activeConversationSettings.notifications_muted};
+
       button.disabled=true;
-      const {r,d:settingsData}=await api(`/api/messages/conversations/${activeConversationId}/settings`,{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      });
-      if(!r.ok){button.disabled=false;return toast('No se pudo actualizar la conversación.');}
+      const {r:settingsResponse,d:settingsData}=await api(
+        `/api/messages/conversations/${activeConversationId}/settings`,
+        {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload)
+        }
+      );
+      if(!settingsResponse.ok){
+        button.disabled=false;
+        return toast('No se pudo actualizar la conversación.');
+      }
+
       activeConversationSettings=settingsData.settings || activeConversationSettings;
-      toast(key==='pinned'?(activeConversationSettings.is_pinned?'Conversación fijada':'Conversación desfijada'):key==='archived'?(activeConversationSettings.is_archived?'Conversación archivada':'Conversación recuperada'):(activeConversationSettings.notifications_muted?'Avisos silenciados':'Avisos activados'));
+      toast(
+        key==='pinned'
+          ? (activeConversationSettings.is_pinned?'Conversación fijada':'Conversación desfijada')
+          : key==='archived'
+            ? (activeConversationSettings.is_archived?'Conversación archivada':'Conversación recuperada')
+            : (activeConversationSettings.notifications_muted?'Avisos silenciados':'Avisos activados')
+      );
+
       if(key==='archived' && activeConversationSettings.is_archived){
         activeConversationId=null;
+        activeConversationMeta=null;
+        activeConversationOther=null;
         $('.messages-layout')?.classList.remove('chat-open');
         $('#chatPanel').className='chat-panel empty-chat';
         $('#chatPanel').innerHTML='<div class="empty-state"><b>Conversación archivada</b><p>Puedes recuperarla desde la pestaña Archivadas.</p></div>';
@@ -5227,17 +5411,27 @@ async function openConversation(id) {
       }
     };
   });
-  const thread = $('#messageThread'); thread.scrollTop = thread.scrollHeight;
+
+  const thread=$('#messageThread');
+  thread.scrollTop=thread.scrollHeight;
   await loadConversations();
 }
-function messageHTML(m, other) {
-  const mine = String(m.sender_id) === String(me.id);
-  let body = m.body ? `<p>${esc(m.body)}</p>` : '';
-  let media = '';
-  if (m.gated) {
-    media = `<div class="message-gate"><b>Contenido sensible oculto</b><span>${gateText(m.gate_reason)}</span>${m.gate_reason === 'permission_required' ? `<button class="secondary" data-accept-sensitive="${other.id}">Aceptar contenido sensible de @${esc(other.username)}</button>` : ''}</div>`;
-  } else if (m.media_url || m.playback_url) {
-    media = `<div class="message-media">${mediaHTML(m)}</div>`;
+
+function messageHTML(m,other,conversation=activeConversationMeta) {
+  const mine=String(m.sender_id)===String(me.id);
+  const isGroup=conversation?.is_group===true;
+  const senderName=String(m.display_name || m.username || 'Persona');
+  const senderLabel=isGroup && !mine
+    ? `<button type="button" class="message-sender-link" data-profile="${esc(m.username || '')}">${esc(senderName)}</button>`
+    : '';
+
+  let body=m.body ? `<p>${esc(m.body)}</p>` : '';
+  let media='';
+  if(m.gated){
+    const canAccept=m.gate_reason==='permission_required' && m.sender_id;
+    media=`<div class="message-gate"><b>Contenido sensible oculto</b><span>${gateText(m.gate_reason)}</span>${canAccept ? `<button class="secondary" data-accept-sensitive="${m.sender_id}">Aceptar contenido sensible de @${esc(m.username || '')}</button>` : ''}</div>`;
+  }else if(m.media_url || m.playback_url){
+    media=`<div class="message-media">${mediaHTML(m)}</div>`;
   }
 
   const reply=m.reply_preview
@@ -5251,19 +5445,32 @@ function messageHTML(m, other) {
     return `<button type="button" class="${item?.reacted_by_me ? 'active' : ''}" data-message-react="${m.id}" data-reaction="${key}" data-reacted="${item?.reacted_by_me ? '1' : '0'}" aria-label="Reaccionar ${emoji}">${emoji}${item?.count ? ` <span>${item.count}</span>` : ''}</button>`;
   }).join('')}</div>`;
 
-  const receipt=mine ? (m.seen_by_other ? 'Visto' : 'Enviado') : '';
-  const replyLabel=mine ? 'Tú' : (m.display_name || m.username || 'Mensaje');
+  const receipt=mine
+    ? isGroup
+      ? m.seen_by_all
+        ? 'Visto por todos'
+        : Number(m.seen_count || 0)>0
+          ? `Visto por ${Number(m.seen_count)}`
+          : 'Enviado'
+      : (m.seen_by_other ? 'Visto' : 'Enviado')
+    : '';
+
+  const replyLabel=mine ? 'Tú' : senderName;
   const replyText=m.gated
     ? 'Contenido sensible'
     : String(m.body || '').trim()
       ? String(m.body).trim().slice(0,160)
       : m.media_type==='image' ? 'Foto' : m.media_type==='video' ? 'Vídeo' : 'Mensaje';
 
-  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
+  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'} ${isGroup?'group-message':''}" data-message-created="${esc(m.created_at)}" data-message-id="${m.id}">
+    ${senderLabel}
     ${reply}
     ${body}
     ${media}
-    <div class="message-bubble-meta"><small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${m.content_level !== 'normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small><button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button></div>
+    <div class="message-bubble-meta">
+      <small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${m.content_level!=='normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small>
+      <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
+    </div>
     ${reactionBar}
   </div>`;
 }
@@ -5414,28 +5621,328 @@ async function sendMessage(e) {
     }
   }
 }
-$('#newConversation').onclick = () => $('#newMessageModal').classList.remove('hidden');
-$('#closeNewMessage').onclick = () => $('#newMessageModal').classList.add('hidden');
-$('#newMessageForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const fd = new FormData(e.target); const status = $('#newMessageStatus'); status.textContent = 'Abriendo...';
-  const username = String(fd.get('username') || '').replace(/^@/, '');
-  const { r, d } = await api('/api/messages/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
-  if (!r.ok) {
-    status.textContent = d.error === 'user_not_found'
+function setNewConversationMode(mode){
+  const group=mode==='group';
+  all('[data-new-conversation-mode]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.newConversationMode===mode);
+  });
+  $('#newMessageForm')?.classList.toggle('hidden',group);
+  $('#newGroupForm')?.classList.toggle('hidden',!group);
+  $('#newMessageStatus').textContent='';
+  $('#newGroupStatus').textContent='';
+}
+
+function openNewConversationModal(){
+  $('#newMessageModal').classList.remove('hidden');
+  setNewConversationMode('direct');
+  setTimeout(()=>$('#newMessageForm input[name="username"]')?.focus(),100);
+}
+
+function closeNewConversationModal(){
+  $('#newMessageModal').classList.add('hidden');
+  $('#newMessageForm')?.reset();
+  $('#newGroupForm')?.reset();
+  setNewConversationMode('direct');
+}
+
+function groupRoleLabel(role){
+  return role==='owner' ? 'Propietario' : role==='admin' ? 'Administrador' : 'Miembro';
+}
+
+function renderGroupManage(){
+  const group=activeConversationMeta;
+  if(!group?.is_group)return;
+
+  const canManage=group.can_manage_group===true;
+  const ownRole=String(group.member_role || 'member');
+  $('#groupManageTitle').textContent=group.title || 'Grupo';
+  $('#groupManageSummary').innerHTML=`<b>${Number(group.member_count || 0)} miembros</b><small>${canManage ? 'Puedes gestionar este grupo.' : 'Solo propietarios y administradores pueden cambiar participantes.'}</small>`;
+  $('#groupManageStatus').textContent='';
+
+  const renameForm=$('#groupRenameForm');
+  const addForm=$('#groupAddMemberForm');
+  renameForm?.classList.toggle('hidden',!canManage);
+  addForm?.classList.toggle('hidden',!canManage);
+  if(renameForm)renameForm.title.value=group.title || '';
+  addForm?.reset();
+
+  const participants=Array.isArray(group.participants) ? group.participants : [];
+  $('#groupMemberList').innerHTML=participants.map(member=>{
+    const self=String(member.id)===String(me?.id);
+    const removable=canManage &&
+      !self &&
+      member.member_role!=='owner' &&
+      !(ownRole==='admin' && member.member_role==='admin');
+    return `<article class="group-member-row">
+      <span class="group-member-avatar">${avatarHTML(member)}</span>
+      <div>
+        <b>${esc(member.display_name || member.username)} ${member.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
+        <small>@${esc(member.username)} · ${groupRoleLabel(member.member_role)}${self ? ' · Tú' : ''}${member.blocked_with_viewer ? ' · Bloqueado' : ''}</small>
+      </div>
+      <div class="group-member-actions">
+        ${member.sensitive_allowed && !self ? `<button type="button" class="tiny-action" data-revoke-group-sensitive="${member.id}" data-revoke-group-name="${esc(member.display_name || member.username)}">No sensible</button>` : ''}
+        ${removable ? `<button type="button" class="tiny-action" data-remove-group-member="${member.id}" data-remove-group-name="${esc(member.display_name || member.username)}">Quitar</button>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+
+  all('[data-revoke-group-sensitive]',$('#groupMemberList')).forEach(button=>{
+    button.onclick=async()=>{
+      button.disabled=true;
+      const {r}=await api(`/api/messages/users/${button.dataset.revokeGroupSensitive}/sensitive-permission`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({allow:false})
+      });
+      if(!r.ok){
+        $('#groupManageStatus').textContent='No se pudo revocar el contenido sensible.';
+        button.disabled=false;
+        return;
+      }
+      toast(`Contenido sensible de ${button.dataset.revokeGroupName || 'esta persona'} desactivado`);
+      await openConversation(activeConversationId);
+      renderGroupManage();
+    };
+  });
+
+  all('[data-remove-group-member]',$('#groupMemberList')).forEach(button=>{
+    button.onclick=async()=>{
+      const name=button.dataset.removeGroupName || 'esta persona';
+      if(!window.confirm(`¿Quitar a ${name} del grupo?`))return;
+      button.disabled=true;
+      const {r,d}=await api(
+        `/api/messages/conversations/${activeConversationId}/group/members/${button.dataset.removeGroupMember}`,
+        {method:'DELETE'}
+      );
+      if(!r.ok){
+        $('#groupManageStatus').textContent=d.error==='owner_required'
+          ? 'Solo el propietario puede quitar a otro administrador.'
+          : 'No se pudo quitar a esta persona.';
+        button.disabled=false;
+        return;
+      }
+      toast('Persona retirada del grupo');
+      await openConversation(activeConversationId);
+      renderGroupManage();
+    };
+  });
+
+  $('#leaveGroup').classList.toggle('hidden',ownRole==='owner');
+  $('#deleteGroup').classList.toggle('hidden',group.can_delete_group!==true);
+}
+
+function openGroupManage(){
+  if(!activeConversationMeta?.is_group)return;
+  $('#groupManageModal').classList.remove('hidden');
+  renderGroupManage();
+}
+
+function closeGroupManage(){
+  $('#groupManageModal').classList.add('hidden');
+}
+
+$('#newConversation').onclick=openNewConversationModal;
+$('#closeNewMessage').onclick=closeNewConversationModal;
+$('#newMessageModal')?.addEventListener('click',event=>{
+  if(event.target===$('#newMessageModal'))closeNewConversationModal();
+});
+all('[data-new-conversation-mode]').forEach(button=>{
+  button.onclick=()=>setNewConversationMode(button.dataset.newConversationMode);
+});
+
+$('#newMessageForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const fd=new FormData(event.target);
+  const status=$('#newMessageStatus');
+  status.textContent='Abriendo…';
+  const username=String(fd.get('username') || '').replace(/^@/,'');
+  const {r,d}=await api('/api/messages/conversations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username})
+  });
+  if(!r.ok){
+    status.textContent=d.error==='user_not_found'
       ? 'No encuentro ese usuario.'
-      : d.error === 'message_privacy_denied'
+      : d.error==='message_privacy_denied'
         ? 'Esta persona no acepta nuevas conversaciones.'
-        : d.error === 'message_privacy_following_only'
+        : d.error==='message_privacy_following_only'
           ? 'Solo acepta mensajes de personas que sigue.'
-          : d.error === 'messaging_blocked'
+          : d.error==='messaging_blocked'
             ? 'No puedes iniciar esta conversación.'
             : 'No se pudo abrir la conversación.';
     return;
   }
-  $('#newMessageModal').classList.add('hidden'); e.target.reset(); showView('messages'); await loadConversations(d.conversationId);
+  closeNewConversationModal();
+  showView('messages');
+  await loadConversations(d.conversationId);
 });
 
+$('#newGroupForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const fd=new FormData(event.currentTarget);
+  const status=$('#newGroupStatus');
+  const title=String(fd.get('title') || '').trim();
+  const usernames=[...new Set(
+    String(fd.get('usernames') || '')
+      .split(/[\s,;]+/)
+      .map(value=>value.replace(/^@/,'').trim())
+      .filter(Boolean)
+  )];
+
+  if(usernames.length<2){
+    status.textContent='Añade al menos 2 personas al grupo.';
+    return;
+  }
+
+  status.textContent='Creando grupo…';
+  const submit=event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled=true;
+  try{
+    const {r,d}=await api('/api/messages/groups',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,usernames})
+    });
+
+    if(!r.ok){
+      const label=d.username ? ` @${d.username}` : '';
+      status.textContent=
+        d.error==='group_user_not_found' || d.error==='user_not_found'
+          ? 'No encuentro una de las personas indicadas.'
+          : d.error==='messaging_blocked'
+            ? `No puedes crear el grupo con${label || ' una de esas personas'} por un bloqueo activo.`
+            : d.error==='message_privacy_denied'
+              ? `${label || 'Una persona'} no acepta nuevas conversaciones.`
+              : d.error==='message_privacy_following_only'
+                ? `${label || 'Una persona'} solo acepta mensajes de personas que sigue.`
+                : d.error==='group_requires_two_invitees'
+                  ? 'El grupo necesita al menos 2 personas además de ti.'
+                  : 'No se pudo crear el grupo.';
+      return;
+    }
+
+    closeNewConversationModal();
+    toast('Grupo creado');
+    showView('messages');
+    await loadConversations(d.conversationId);
+  }finally{
+    submit.disabled=false;
+  }
+});
+
+$('#closeGroupManage')?.addEventListener('click',closeGroupManage);
+$('#groupManageModal')?.addEventListener('click',event=>{
+  if(event.target===$('#groupManageModal'))closeGroupManage();
+});
+
+$('#groupRenameForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  const status=$('#groupManageStatus');
+  const fd=new FormData(event.currentTarget);
+  const title=String(fd.get('title') || '').trim();
+  status.textContent='Guardando nombre…';
+
+  const {r,d}=await api(`/api/messages/conversations/${activeConversationId}/group`,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({title})
+  });
+  if(!r.ok){
+    status.textContent=d.error==='group_admin_required'
+      ? 'No tienes permisos para cambiar el grupo.'
+      : 'No se pudo cambiar el nombre.';
+    return;
+  }
+
+  toast('Nombre del grupo actualizado');
+  await openConversation(activeConversationId);
+  renderGroupManage();
+});
+
+$('#groupAddMemberForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  const status=$('#groupManageStatus');
+  const fd=new FormData(event.currentTarget);
+  const username=String(fd.get('username') || '').replace(/^@/,'').trim();
+  status.textContent='Añadiendo persona…';
+
+  const {r,d}=await api(`/api/messages/conversations/${activeConversationId}/group/members`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username})
+  });
+
+  if(!r.ok){
+    status.textContent=
+      d.error==='user_not_found'
+        ? 'No encuentro ese usuario.'
+        : d.error==='already_group_member'
+          ? 'Esa persona ya forma parte del grupo.'
+          : d.error==='group_member_limit'
+            ? 'El grupo ya ha alcanzado el máximo de 20 miembros.'
+            : d.error==='messaging_blocked'
+              ? 'No puedes añadir a esa persona por un bloqueo activo.'
+              : d.error==='message_privacy_denied'
+                ? 'Esa persona no acepta nuevas conversaciones.'
+                : d.error==='message_privacy_following_only'
+                  ? 'Esa persona solo acepta mensajes de personas que sigue.'
+                  : 'No se pudo añadir a la persona.';
+    return;
+  }
+
+  event.currentTarget.reset();
+  toast('Persona añadida al grupo');
+  await openConversation(activeConversationId);
+  renderGroupManage();
+});
+
+$('#leaveGroup')?.addEventListener('click',async()=>{
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  if(!window.confirm('¿Salir de este grupo? Dejarás de recibir sus mensajes y avisos.'))return;
+
+  const id=activeConversationId;
+  const {r,d}=await api(`/api/messages/conversations/${id}/group/leave`,{method:'POST'});
+  if(!r.ok){
+    $('#groupManageStatus').textContent=d.error==='group_owner_cannot_leave'
+      ? 'El propietario no puede salir. Puede eliminar el grupo.'
+      : 'No se pudo salir del grupo.';
+    return;
+  }
+
+  closeGroupManage();
+  activeConversationId=null;
+  activeConversationMeta=null;
+  activeConversationOther=null;
+  $('.messages-layout')?.classList.remove('chat-open');
+  $('#chatPanel').className='chat-panel empty-chat';
+  $('#chatPanel').innerHTML='<div class="empty-state"><b>Has salido del grupo</b><p>Ya no recibirás nuevos mensajes de esta conversación.</p></div>';
+  await loadConversations();
+});
+
+$('#deleteGroup')?.addEventListener('click',async()=>{
+  if(!activeConversationId || !activeConversationMeta?.is_group)return;
+  if(!window.confirm('¿Eliminar definitivamente este grupo y todos sus mensajes? Esta acción no se puede deshacer.'))return;
+
+  const id=activeConversationId;
+  const {r}=await api(`/api/messages/conversations/${id}/group`,{method:'DELETE'});
+  if(!r.ok){
+    $('#groupManageStatus').textContent='No se pudo eliminar el grupo.';
+    return;
+  }
+
+  closeGroupManage();
+  activeConversationId=null;
+  activeConversationMeta=null;
+  activeConversationOther=null;
+  $('.messages-layout')?.classList.remove('chat-open');
+  $('#chatPanel').className='chat-panel empty-chat';
+  $('#chatPanel').innerHTML='<div class="empty-state"><b>Grupo eliminado</b><p>La conversación ya no está disponible.</p></div>';
+  toast('Grupo eliminado');
+  await loadConversations();
+});
 
 $('#postSearchForm')?.addEventListener('submit', async event => {
   event.preventDefault();
@@ -5489,7 +5996,14 @@ function showView(name) {
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
   if (name === 'profile') loadProfile();
-  if (name === 'messages') { const layout = $('.messages-layout'); if (layout) layout.classList.remove('chat-open'); activeConversationId = null; loadConversations(); }
+  if (name === 'messages') {
+    const layout=$('.messages-layout');
+    if(layout)layout.classList.remove('chat-open');
+    activeConversationId=null;
+    activeConversationMeta=null;
+    activeConversationOther=null;
+    loadConversations();
+  }
   if (name === 'notifications') loadNotifications();
 }
 all('[data-view]').forEach(b => b.onclick = () => {

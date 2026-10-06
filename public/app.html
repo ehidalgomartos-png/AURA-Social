@@ -142,7 +142,7 @@
     <section id="reelsView" class="view hidden"><div class="page-title"><div><span class="eyebrow">VÍDEO VERTICAL</span><h1>Reels</h1><p class="reels-hint">Desliza para ver el siguiente · autoplay silenciado cuando el vídeo está en pantalla</p></div></div><div id="reelsFeed" class="reels-feed"></div></section>
 
     <section id="messagesView" class="view hidden">
-      <div class="page-title"><div><span class="eyebrow">PRIVADO Y CON CONSENTIMIENTO</span><h1>Mensajes</h1></div><button id="newConversation" class="secondary">Nuevo mensaje</button></div>
+      <div class="page-title"><div><span class="eyebrow">PRIVADO Y CON CONSENTIMIENTO</span><h1>Mensajes</h1></div><button id="newConversation" class="secondary">Nueva conversación</button></div>
       <div class="message-inbox-tools">
         <div class="message-inbox-tabs">
           <button type="button" class="active" data-message-filter="all">Activas</button>
@@ -881,7 +881,57 @@
   </div>
 </div>
 
-<div id="newMessageModal" class="modal hidden"><div class="modal-card small-modal"><button id="closeNewMessage" class="modal-close">×</button><span class="eyebrow">NUEVA CONVERSACIÓN</span><h2>Hablar con alguien</h2><form id="newMessageForm"><label>Usuario<input name="username" placeholder="@usuario" required></label><button class="primary full" type="submit">Abrir conversación</button><p id="newMessageStatus" class="status"></p></form></div></div>
+<div id="newMessageModal" class="modal hidden">
+  <div class="modal-card small-modal">
+    <button id="closeNewMessage" class="modal-close">×</button>
+    <span class="eyebrow">NUEVA CONVERSACIÓN</span>
+    <h2>Hablar en RedLibertad</h2>
+    <div class="new-conversation-tabs">
+      <button type="button" class="active" data-new-conversation-mode="direct">Mensaje directo</button>
+      <button type="button" data-new-conversation-mode="group">Crear grupo</button>
+    </div>
+    <form id="newMessageForm">
+      <label>Usuario<input name="username" placeholder="@usuario" required></label>
+      <button class="primary full" type="submit">Abrir conversación</button>
+      <p id="newMessageStatus" class="status"></p>
+    </form>
+    <form id="newGroupForm" class="hidden">
+      <label>Nombre del grupo<input name="title" maxlength="120" placeholder="Ej. Amistades de Valencia" required></label>
+      <label>Participantes
+        <textarea name="usernames" maxlength="700" placeholder="@ana, @pedro" required></textarea>
+        <small>Añade al menos 2 personas. Máximo 20 miembros contando contigo.</small>
+      </label>
+      <button class="primary full" type="submit">Crear grupo</button>
+      <p id="newGroupStatus" class="status"></p>
+    </form>
+  </div>
+</div>
+
+<div id="groupManageModal" class="modal hidden">
+  <div class="modal-card group-manage-card">
+    <button id="closeGroupManage" class="modal-close" type="button">×</button>
+    <span class="eyebrow">CHAT DE GRUPO</span>
+    <h2 id="groupManageTitle">Gestionar grupo</h2>
+    <div id="groupManageSummary" class="group-manage-summary"></div>
+    <form id="groupRenameForm" class="group-admin-only">
+      <label>Nombre del grupo<input name="title" maxlength="120" required></label>
+      <button class="secondary full" type="submit">Guardar nombre</button>
+    </form>
+    <form id="groupAddMemberForm" class="group-admin-only">
+      <label>Añadir persona<input name="username" maxlength="30" placeholder="@usuario" required></label>
+      <button class="secondary full" type="submit">Añadir al grupo</button>
+    </form>
+    <div>
+      <b class="group-manage-label">Participantes</b>
+      <div id="groupMemberList" class="group-member-list"></div>
+    </div>
+    <div class="group-manage-actions">
+      <button id="leaveGroup" class="danger-outline" type="button">Salir del grupo</button>
+      <button id="deleteGroup" class="danger hidden" type="button">Eliminar grupo</button>
+    </div>
+    <p id="groupManageStatus" class="status"></p>
+  </div>
+</div>
 
 
 <div id="shareModal" class="modal hidden"><div class="modal-card share-modal-card"><button id="closeShareModal" class="modal-close" type="button">×</button><span class="eyebrow">COMPARTE TU VOZ</span><h2>Compartir publicación</h2><p class="muted share-copy">Mira mi post en RedLibertad, donde la libertad es lo primero.</p><div class="share-grid"><button id="shareNative" class="primary" type="button">↗ Compartir</button><button id="shareFacebook" class="secondary" type="button">Facebook</button><button id="shareWhatsApp" class="secondary" type="button">WhatsApp</button><button id="shareCopy" class="secondary" type="button">Copiar enlace</button></div><div class="internal-share"><b>Enviar dentro de RedLibertad</b><form id="shareInternalForm"><input id="shareInternalUsername" maxlength="30" placeholder="@usuario" autocomplete="off"><button class="secondary" type="submit">Enviar por mensaje</button></form><small>La publicación se enviará como enlace dentro de una conversación privada.</small></div><p id="shareStatus" class="status"></p></div></div>

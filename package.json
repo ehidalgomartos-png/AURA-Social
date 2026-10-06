@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.49.0",
+  "version": "1.50.0",
   "private": true,
-  "description": "RedLibertad V1.49 Mobile Social Polish - teclado, viewport, offline, scroll y accesibilidad táctil, sin monetización.",
+  "description": "RedLibertad V1.50 Group Chats 2.0 - grupos privados, presencia, consentimiento y gestión mobile-first sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

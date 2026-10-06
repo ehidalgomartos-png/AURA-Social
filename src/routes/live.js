@@ -34,7 +34,11 @@ async function snapshotFor(userId) {
     db.query(`
       SELECT
         mine.conversation_id,
+        c.conversation_type,
+        c.title,
         u.id AS user_id,
+        u.username,
+        u.display_name,
         p.last_seen_at,
         other_member.last_read_at AS other_last_read_at,
         (p.last_seen_at>now()-interval '45 seconds') AS online,
@@ -43,6 +47,7 @@ async function snapshotFor(userId) {
           AND p.typing_until>now()
         ) AS typing
       FROM conversation_members mine
+      JOIN conversations c ON c.id=mine.conversation_id
       JOIN conversation_members other_member
         ON other_member.conversation_id=mine.conversation_id
        AND other_member.user_id<>$1
@@ -68,20 +73,56 @@ async function snapshotFor(userId) {
     `,[userId])
   ]);
 
+  const presenceByConversation=new Map();
+  for(const row of presence.rows){
+    const key=String(row.conversation_id);
+    if(!presenceByConversation.has(key)){
+      presenceByConversation.set(key,{
+        conversationId:key,
+        isGroup:row.conversation_type==='group',
+        title:row.title || null,
+        users:[]
+      });
+    }
+    presenceByConversation.get(key).users.push({
+      userId:String(row.user_id),
+      username:row.username,
+      displayName:row.display_name,
+      online:row.online===true,
+      typing:row.typing===true,
+      lastSeenAt:row.last_seen_at || null,
+      lastReadAt:row.other_last_read_at || null
+    });
+  }
+
+  const conversationPresence=[...presenceByConversation.values()].map(item=>{
+    const typingUsers=item.users.filter(user=>user.typing);
+    const onlineUsers=item.users.filter(user=>user.online);
+    const directUser=!item.isGroup ? item.users[0] || null : null;
+    return {
+      conversationId:item.conversationId,
+      isGroup:item.isGroup,
+      title:item.title,
+      userId:directUser?.userId || null,
+      online:item.isGroup ? onlineUsers.length>0 : directUser?.online===true,
+      typing:item.isGroup ? typingUsers.length>0 : directUser?.typing===true,
+      onlineCount:item.isGroup ? onlineUsers.length : (directUser?.online ? 1 : 0),
+      typingNames:typingUsers.map(user=>user.displayName || user.username).slice(0,3),
+      readSignature:item.isGroup
+        ? item.users.map(user=>`${user.userId}:${user.lastReadAt || ''}`).join('|')
+        : '',
+      lastSeenAt:directUser?.lastSeenAt || null,
+      otherLastReadAt:directUser?.lastReadAt || null
+    };
+  });
+
   return {
     notificationUnread:Number(notifications.rows[0]?.unread || 0),
     latestNotificationId:String(notifications.rows[0]?.latest_id || '0'),
     messageUnread:Number(messages.rows[0]?.unread || 0),
     latestIncomingMessageId:String(messages.rows[0]?.latest_incoming_id || '0'),
     latestReactionAt:reactionActivity.rows[0]?.latest_reaction_at || null,
-    conversationPresence:presence.rows.map(row=>({
-      conversationId:String(row.conversation_id),
-      userId:String(row.user_id),
-      online:row.online===true,
-      typing:row.typing===true,
-      lastSeenAt:row.last_seen_at || null,
-      otherLastReadAt:row.other_last_read_at || null
-    })),
+    conversationPresence,
     serverTime:new Date().toISOString()
   };
 }
@@ -116,6 +157,9 @@ router.get('/stream',requireAuth,async(req,res)=>{
           item.conversationId,
           item.online,
           item.typing,
+          item.onlineCount,
+          (item.typingNames || []).join('|'),
+          item.readSignature || '',
           item.otherLastReadAt
         ])
       });

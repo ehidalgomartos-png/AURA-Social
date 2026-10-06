@@ -4224,3 +4224,195 @@ select:focus-visible{
   }
   .message-thread{scroll-behavior:auto!important}
 }
+
+
+/* =========================================================
+   RedLibertad V1.50 — Group Chats 2.0
+   ========================================================= */
+.new-conversation-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin:12px 0 16px;
+  padding:5px;
+  border-radius:14px;
+  background:var(--soft);
+}
+.new-conversation-tabs button{
+  min-height:40px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:var(--muted);
+  font-weight:900;
+}
+.new-conversation-tabs button.active{
+  background:var(--paper);
+  color:var(--navy);
+  box-shadow:0 3px 12px rgba(13,34,56,.08);
+}
+#newGroupForm{
+  display:grid;
+  gap:11px;
+}
+#newGroupForm.hidden{display:none}
+#newGroupForm label{
+  display:grid;
+  gap:6px;
+  color:var(--navy);
+  font-size:11px;
+  font-weight:800;
+}
+#newGroupForm input,
+#newGroupForm textarea{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:11px 12px;
+  background:white;
+}
+#newGroupForm textarea{min-height:92px;resize:vertical}
+#newGroupForm label small{color:var(--muted);font-weight:500;line-height:1.4}
+
+.group-avatar{
+  background:linear-gradient(145deg,var(--navy),var(--teal));
+  color:white;
+}
+.group-avatar-mark{
+  display:grid;
+  width:100%;
+  height:100%;
+  place-items:center;
+  border-radius:50%;
+  background:linear-gradient(145deg,var(--navy),var(--teal));
+  color:white;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+.group-chip{
+  display:inline-flex;
+  vertical-align:middle;
+  margin-left:5px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:rgba(43,183,169,.12);
+  color:var(--teal);
+  font-size:8px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.group-conversation-row .conversation-copy>b{display:flex;align-items:center;gap:3px}
+.message-sender-link{
+  display:block;
+  width:max-content;
+  max-width:100%;
+  margin:0 0 4px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--teal);
+  font-size:10px;
+  font-weight:900;
+  text-align:left;
+}
+.message-bubble.mine .message-sender-link{color:rgba(255,255,255,.82)}
+
+.group-manage-card{
+  width:min(620px,100%);
+  max-height:92dvh;
+  overflow:auto;
+}
+.group-manage-summary{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin:10px 0 14px;
+  padding:12px;
+  border-radius:15px;
+  background:var(--soft);
+}
+.group-manage-summary b,
+.group-manage-summary small{display:block}
+.group-manage-summary b{color:var(--navy)}
+.group-manage-summary small{color:var(--muted);font-size:10px;text-align:right}
+#groupRenameForm,
+#groupAddMemberForm{
+  display:grid;
+  gap:8px;
+  margin-bottom:12px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:15px;
+}
+#groupRenameForm.hidden,
+#groupAddMemberForm.hidden{display:none}
+#groupRenameForm label,
+#groupAddMemberForm label{
+  display:grid;
+  gap:5px;
+  color:var(--navy);
+  font-size:10px;
+  font-weight:900;
+}
+.group-manage-label{
+  display:block;
+  margin:16px 0 8px;
+  color:var(--navy);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.group-member-list{
+  display:grid;
+  gap:7px;
+}
+.group-member-row{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  gap:9px;
+  align-items:center;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--paper);
+}
+.group-member-avatar{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  background:var(--navy-soft);
+  color:var(--navy);
+  font-weight:900;
+}
+.group-member-avatar img{width:100%;height:100%;object-fit:cover}
+.group-member-row b,
+.group-member-row small{display:block}
+.group-member-row b{color:var(--navy);font-size:11px}
+.group-member-row small{margin-top:2px;color:var(--muted);font-size:9px}
+.group-member-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.group-member-actions:empty{display:none}
+
+.group-manage-actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  margin-top:16px;
+}
+.group-manage-actions .hidden{display:none}
+
+@media(max-width:620px){
+  .group-manage-card{width:100%;border-radius:24px 24px 0 0}
+  .group-manage-summary{display:grid}
+  .group-manage-summary small{text-align:left}
+  .group-member-row{grid-template-columns:38px minmax(0,1fr) auto}
+  .group-member-avatar{width:38px;height:38px}
+  .group-manage-actions{display:grid;grid-template-columns:1fr}
+  .group-manage-actions button{width:100%;min-height:44px}
+}
