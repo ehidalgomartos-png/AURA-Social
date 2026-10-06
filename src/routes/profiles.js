@@ -680,22 +680,27 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
          WHERE created_at>=now()-interval '30 days'
          GROUP BY post_id
       )
-      SELECT
-        p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
-        COALESCE(ls.n,0)::int AS like_count_30d,
-        COALESCE(cs.n,0)::int AS comment_count_30d,
-        COALESCE(rs.n,0)::int AS repost_count_30d,
-        COALESCE(ss.n,0)::int AS save_count_30d,
-        (COALESCE(ls.n,0)+COALESCE(cs.n,0)+COALESCE(rs.n,0)+COALESCE(ss.n,0))::int AS engagement_count_30d
-      FROM posts p
-      LEFT JOIN like_stats ls ON ls.post_id=p.id
-      LEFT JOIN comment_stats cs ON cs.post_id=p.id
-      LEFT JOIN repost_stats rs ON rs.post_id=p.id
-      LEFT JOIN save_stats ss ON ss.post_id=p.id
-      WHERE p.user_id=$1
-        AND p.moderation_status='published'
-      ORDER BY engagement_count_30d DESC,p.created_at DESC
-      LIMIT 5
+      ,post_stats AS (
+        SELECT
+          p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.created_at,
+          COALESCE(ls.n,0)::int AS like_count_30d,
+          COALESCE(cs.n,0)::int AS comment_count_30d,
+          COALESCE(rs.n,0)::int AS repost_count_30d,
+          COALESCE(ss.n,0)::int AS save_count_30d,
+          (COALESCE(ls.n,0)+COALESCE(cs.n,0)+COALESCE(rs.n,0)+COALESCE(ss.n,0))::int AS engagement_count_30d
+        FROM posts p
+        LEFT JOIN like_stats ls ON ls.post_id=p.id
+        LEFT JOIN comment_stats cs ON cs.post_id=p.id
+        LEFT JOIN repost_stats rs ON rs.post_id=p.id
+        LEFT JOIN save_stats ss ON ss.post_id=p.id
+        WHERE p.user_id=$1
+          AND p.moderation_status='published'
+      )
+      SELECT *
+        FROM post_stats
+       WHERE engagement_count_30d>0
+       ORDER BY engagement_count_30d DESC,created_at DESC
+       LIMIT 5
     `,[req.user.id])
   ]);
 
