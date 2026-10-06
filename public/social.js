@@ -1371,11 +1371,18 @@ function renderStoryViewer() {
   if(!story || !root)return;
 
   const media=mediaHTML(story);
-  root.innerHTML=`<article class="story-viewer-story ${story.audience==='vip' ? 'vip-story' : ''}">
+  const storyAudienceBadge=story.audience==='vip'
+    ? '★ SOLO VIP'
+    : story.audience==='connections'
+      ? '◎ SOLO CONEXIONES'
+      : story.audience==='circles'
+        ? '◉ CÍRCULOS PRIVADOS'
+        : '';
+  root.innerHTML=`<article class="story-viewer-story ${story.audience==='vip' ? 'vip-story' : story.audience!=='public' ? 'private-story' : ''}">
     <header>
       <span class="story-viewer-avatar">${avatarHTML(story)}</span>
       <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}${story.view_count!=null ? ` · ${Number(story.view_count||0)} vistas` : ''}</small></div>
-      ${story.audience==='vip' ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
+      ${storyAudienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(story.audience)}">${esc(storyAudienceBadge)}</span>` : ''}
     </header>
     <div class="story-viewer-media">${media || '<div class="gate"><b>Story no disponible</b></div>'}</div>
   </article>`;
@@ -1430,8 +1437,16 @@ async function loadStories() {
   $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + representatives.map(story => {
     const group=storyGroups.get(String(story.user_id)) || [];
     const hasVip=group.some(item=>item.audience==='vip');
+    const hasPrivate=group.some(item=>item.audience==='connections' || item.audience==='circles');
     const allSeen=group.every(item=>item.gated || item.viewed_by_me || (me && String(item.user_id)===String(me.id)));
-    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''} ${allSeen ? 'seen' : ''}" data-story-user="${story.user_id}" title="${story.gated ? gateText(story.gate_reason) : hasVip ? 'Story VIP disponible' : 'Story activa'}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
+    const storyTitle=story.gated
+      ? gateText(story.gate_reason)
+      : hasVip
+        ? 'Story VIP disponible'
+        : hasPrivate
+          ? 'Story para audiencia privada'
+          : 'Story activa';
+    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''} ${hasPrivate ? 'has-private-story' : ''} ${allSeen ? 'seen' : ''}" data-story-user="${story.user_id}" title="${storyTitle}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : hasPrivate ? '<span class="story-private-mark">◎</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
   }).join('');
 
   bindCreateButtons();
