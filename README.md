@@ -1,4 +1,4 @@
-# RedLibertad V1.62.0 — Advanced Mentions & Sharing
+# RedLibertad V1.63.0 — Community Moderation 3.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1345,5 +1345,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Historial de compartidos privado para el usuario.
 - Compartido externo solo para contenido público.
 - Audiencias privadas protegidas de fugas.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.63.0 — Community Moderation 3.0
+
+- Rol Moderador separado de Administrador.
+- Owner puede asignar Administrador / Moderador / Miembro.
+- Moderadores pueden retirar posts y comentarios sin editar la comunidad.
+- Cola privada de incidencias por comunidad.
+- Informes sobre posts, comentarios y miembros.
+- Reglas propias de comunidad conservadas como referencia de moderación.
+- Avisos, silencios y suspensiones temporales de hasta 7 días.
+- Las limitaciones bloquean posts, comentarios y compartidos dentro de la comunidad.
+- Historial privado de acciones de moderación.
+- Límite diario de incidencias por usuario.
+- Detección de ráfagas de reportes sobre el mismo objetivo.
+- Las señales coordinadas nunca sancionan automáticamente.
+- Los reportes del mismo objetivo se cierran conjuntamente al resolver el incidente.
 - Mobile-first.
 - Sin monetización.
