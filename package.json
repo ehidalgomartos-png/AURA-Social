@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "private": true,
-  "description": "RedLibertad V1.12 Verification & Trust - solicitudes de verificación, centro de confianza, revisión administrativa y badges públicos.",
+  "description": "RedLibertad V1.13 Creator Hub & Featured Content - métricas de creador y publicaciones destacadas.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
