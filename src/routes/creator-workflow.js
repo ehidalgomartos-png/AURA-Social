@@ -149,6 +149,56 @@ router.use(async(_req,res,next)=>{
   }
 });
 
+let creatorCommunicationsV132Ready=null;
+async function ensureCreatorCommunicationsV132(){
+  if(!creatorCommunicationsV132Ready){
+    creatorCommunicationsV132Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_communications (
+          id BIGSERIAL PRIMARY KEY,
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body VARCHAR(280) NOT NULL,
+          audience_type TEXT NOT NULL DEFAULT 'all',
+          segment_id BIGINT REFERENCES creator_segments(id) ON DELETE SET NULL,
+          status TEXT NOT NULL DEFAULT 'draft',
+          scheduled_for TIMESTAMPTZ,
+          recipient_count INTEGER NOT NULL DEFAULT 0,
+          sent_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_creator_communications_creator_status ON creator_communications(creator_id,status,scheduled_for,updated_at DESC)");
+      const audienceConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_communications_audience_check' AND conrelid='creator_communications'::regclass LIMIT 1"
+      );
+      if(!audienceConstraint.rowCount){
+        await db.query("ALTER TABLE creator_communications ADD CONSTRAINT creator_communications_audience_check CHECK(audience_type IN ('all','vip','segment','recent_followers','active_30d','inactive_30d','high_priority'))");
+      }
+      const statusConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_communications_status_check' AND conrelid='creator_communications'::regclass LIMIT 1"
+      );
+      if(!statusConstraint.rowCount){
+        await db.query("ALTER TABLE creator_communications ADD CONSTRAINT creator_communications_status_check CHECK(status IN ('draft','scheduled','sending','sent','cancelled'))");
+      }
+    })().catch(error=>{
+      creatorCommunicationsV132Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunicationsV132Ready;
+}
+
+router.use(async(_req,res,next)=>{
+  try{
+    await ensureCreatorCommunicationsV132();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.32 creator communications bootstrap failed:',error);
+    res.status(500).json({error:'creator_communications_bootstrap_failed'});
+  }
+});
+
 router.use(requireAuth);
 router.use(async(req,res,next)=>{
   if(!await requireVerifiedCreator(req.user.id)){
@@ -649,5 +699,224 @@ router.delete('/segments/:id',async(req,res)=>{
   if(!result.rowCount)return res.status(404).json({error:'creator_segment_not_found'});
   res.json({ok:true});
 });
+
+
+const communicationSchema=z.object({
+  body:z.string().trim().min(1).max(280),
+  audienceType:z.enum(['all','vip','segment','recent_followers','active_30d','inactive_30d','high_priority']).default('all'),
+  segmentId:z.union([taskId,z.null()]).optional(),
+  mode:z.enum(['draft','send','schedule']).default('draft'),
+  scheduledFor:z.string().datetime({offset:true}).nullable().optional()
+});
+
+async function creatorNextCommunicationAt(creatorId,client=db){
+  const result=await client.query(`
+    SELECT max(sent_at) last_sent
+    FROM (
+      SELECT created_at sent_at FROM creator_broadcasts WHERE user_id=$1
+      UNION ALL
+      SELECT sent_at FROM creator_communications WHERE creator_id=$1 AND status='sent' AND sent_at IS NOT NULL
+    ) sent
+  `,[creatorId]);
+  const last=result.rows[0]?.last_sent ? new Date(result.rows[0].last_sent) : null;
+  return last ? new Date(last.getTime()+24*60*60*1000) : null;
+}
+
+async function validateCommunicationAudience(creatorId,audienceType,segmentId,client=db){
+  if(audienceType!=='segment')return true;
+  if(!segmentId)return false;
+  const segment=await client.query("SELECT id FROM creator_segments WHERE id=$1 AND creator_id=$2 LIMIT 1",[segmentId,creatorId]);
+  return segment.rowCount>0;
+}
+
+function communicationRecipientSql(audienceType){
+  const common=`
+    JOIN users recipient ON recipient.id=f.follower_id AND recipient.status='active'
+    WHERE f.following_id=$1
+      AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=f.follower_id AND m.muted_id=$1)
+      AND NOT EXISTS(
+        SELECT 1 FROM blocks b
+         WHERE (b.blocker_id=f.follower_id AND b.blocked_id=$1)
+            OR (b.blocker_id=$1 AND b.blocked_id=f.follower_id)
+      )
+  `;
+  if(audienceType==='vip')return `
+    SELECT f.follower_id user_id FROM follows f
+    JOIN creator_vips cv ON cv.creator_id=$1 AND cv.fan_id=f.follower_id
+    ${common}
+  `;
+  if(audienceType==='segment')return `
+    SELECT f.follower_id user_id FROM follows f
+    JOIN creator_segment_members sm ON sm.user_id=f.follower_id AND sm.segment_id=$2
+    JOIN creator_segments s ON s.id=sm.segment_id AND s.creator_id=$1
+    ${common}
+  `;
+  if(audienceType==='recent_followers')return `
+    SELECT f.follower_id user_id FROM follows f
+    ${common}
+      AND f.created_at>=now()-interval '30 days'
+  `;
+  if(audienceType==='high_priority')return `
+    SELECT f.follower_id user_id FROM follows f
+    JOIN creator_contact_meta meta ON meta.creator_id=$1 AND meta.contact_id=f.follower_id AND meta.priority='high'
+    ${common}
+  `;
+  if(audienceType==='inactive_30d')return `
+    SELECT f.follower_id user_id FROM follows f
+    ${common}
+      AND NOT EXISTS(
+        SELECT 1 FROM (
+          SELECT l.user_id,l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1
+          UNION ALL SELECT c.user_id,c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1
+          UNION ALL SELECT r.user_id,r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1
+          UNION ALL SELECT v.user_id,v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1
+          UNION ALL SELECT qr.user_id,qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1
+        ) activity
+        WHERE activity.user_id=f.follower_id AND activity.created_at>=now()-interval '30 days'
+      )
+  `;
+  if(audienceType==='active_30d')return `
+    SELECT f.follower_id user_id FROM follows f
+    ${common}
+      AND (
+        SELECT count(*) FROM (
+          SELECT l.created_at FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.user_id=$1 AND l.user_id=f.follower_id AND l.created_at>=now()-interval '30 days'
+          UNION ALL SELECT c.created_at FROM comments c JOIN posts p ON p.id=c.post_id WHERE p.user_id=$1 AND c.user_id=f.follower_id AND c.created_at>=now()-interval '30 days'
+          UNION ALL SELECT r.created_at FROM reposts r JOIN posts p ON p.id=r.post_id WHERE p.user_id=$1 AND r.user_id=f.follower_id AND r.created_at>=now()-interval '30 days'
+          UNION ALL SELECT v.created_at FROM creator_poll_votes v JOIN creator_polls cp ON cp.id=v.poll_id JOIN posts p ON p.id=cp.post_id WHERE p.user_id=$1 AND v.user_id=f.follower_id AND v.created_at>=now()-interval '30 days'
+          UNION ALL SELECT qr.created_at FROM creator_question_responses qr JOIN creator_questions cq ON cq.id=qr.question_id JOIN posts p ON p.id=cq.post_id WHERE p.user_id=$1 AND qr.user_id=f.follower_id AND qr.created_at>=now()-interval '30 days'
+        ) events
+      )>=3
+  `;
+  return `SELECT f.follower_id user_id FROM follows f ${common}`;
+}
+
+async function dispatchCreatorCommunication(id,creatorId=null){
+  await ensureCreatorCommunicationsV132();
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const params=creatorId ? [id,creatorId] : [id];
+    const communication=await client.query(`
+      SELECT * FROM creator_communications
+       WHERE id=$1
+         ${creatorId ? 'AND creator_id=$2' : ''}
+         AND status IN ('draft','scheduled')
+       FOR UPDATE
+    `,params);
+    if(!communication.rowCount){
+      await client.query('ROLLBACK');
+      return {ok:false,error:'communication_not_sendable'};
+    }
+    const item=communication.rows[0];
+    if(item.status==='scheduled' && item.scheduled_for && new Date(item.scheduled_for).getTime()>Date.now()){
+      await client.query('ROLLBACK');
+      return {ok:false,error:'communication_not_due'};
+    }
+    const nextAt=await creatorNextCommunicationAt(item.creator_id,client);
+    if(nextAt && nextAt.getTime()>Date.now()){
+      if(item.status==='scheduled'){
+        await client.query("UPDATE creator_communications SET scheduled_for=$2,updated_at=now() WHERE id=$1",[item.id,nextAt.toISOString()]);
+        await client.query('COMMIT');
+        return {ok:false,error:'communication_cooldown',nextSendAt:nextAt.toISOString(),rescheduled:true};
+      }
+      await client.query('ROLLBACK');
+      return {ok:false,error:'communication_cooldown',nextSendAt:nextAt.toISOString()};
+    }
+    await client.query("UPDATE creator_communications SET status='sending',updated_at=now() WHERE id=$1",[item.id]);
+    const recipientParams=item.audience_type==='segment' ? [item.creator_id,item.segment_id] : [item.creator_id];
+    const recipients=await client.query(communicationRecipientSql(item.audience_type),recipientParams);
+    if(recipients.rowCount){
+      await client.query(`
+        INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text)
+        SELECT unnest($1::bigint[]),$2,'creator_broadcast','creator_communication',$3,$4
+      `,[recipients.rows.map(row=>row.user_id),item.creator_id,item.id,item.body]);
+    }
+    const sent=await client.query(`
+      UPDATE creator_communications
+         SET status='sent',recipient_count=$2,sent_at=now(),scheduled_for=NULL,updated_at=now()
+       WHERE id=$1
+       RETURNING *
+    `,[item.id,recipients.rowCount]);
+    await client.query('COMMIT');
+    return {ok:true,communication:sent.rows[0]};
+  }catch(error){
+    await client.query('ROLLBACK');
+    await db.query("UPDATE creator_communications SET status='draft',updated_at=now() WHERE id=$1 AND status='sending'",[id]).catch(()=>{});
+    throw error;
+  }finally{
+    client.release();
+  }
+}
+
+async function dispatchDueCreatorCommunications(){
+  await ensureCreatorCommunicationsV132();
+  const due=await db.query("SELECT id FROM creator_communications WHERE status='scheduled' AND scheduled_for<=now() ORDER BY scheduled_for ASC LIMIT 20");
+  for(const row of due.rows){
+    try{await dispatchCreatorCommunication(row.id);}catch(error){console.error('RedLibertad scheduled creator communication failed:',row.id,error?.message||error);}
+  }
+}
+
+router.get('/communications',async(req,res)=>{
+  await dispatchDueCreatorCommunications();
+  const result=await db.query(`
+    SELECT c.id,c.body,c.audience_type,c.segment_id,c.status,c.scheduled_for,c.recipient_count,c.sent_at,c.created_at,c.updated_at,
+           s.name segment_name
+      FROM creator_communications c
+      LEFT JOIN creator_segments s ON s.id=c.segment_id AND s.creator_id=c.creator_id
+     WHERE c.creator_id=$1
+     ORDER BY COALESCE(c.sent_at,c.scheduled_for,c.updated_at) DESC
+     LIMIT 100
+  `,[req.user.id]);
+  const nextAt=await creatorNextCommunicationAt(req.user.id);
+  res.json({communications:result.rows,nextSendAt:nextAt?.toISOString() || null});
+});
+
+router.post('/communications',async(req,res)=>{
+  const parsed=communicationSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_creator_communication'});
+  const data=parsed.data;
+  if(!await validateCommunicationAudience(req.user.id,data.audienceType,data.segmentId)){
+    return res.status(400).json({error:'invalid_communication_audience'});
+  }
+  const scheduledFor=data.scheduledFor ? new Date(data.scheduledFor) : null;
+  if(data.mode==='schedule' && (!scheduledFor || scheduledFor.getTime()<Date.now()+5*60*1000)){
+    return res.status(400).json({error:'invalid_communication_schedule'});
+  }
+  const status=data.mode==='schedule' ? 'scheduled' : 'draft';
+  const inserted=await db.query(`
+    INSERT INTO creator_communications (creator_id,body,audience_type,segment_id,status,scheduled_for)
+    VALUES ($1,$2,$3,$4,$5,$6)
+    RETURNING *
+  `,[req.user.id,data.body,data.audienceType,data.audienceType==='segment' ? data.segmentId : null,status,scheduledFor?.toISOString() || null]);
+  if(data.mode==='send'){
+    const sent=await dispatchCreatorCommunication(inserted.rows[0].id,req.user.id);
+    if(!sent.ok)return res.status(sent.error==='communication_cooldown'?429:409).json(sent);
+    return res.status(201).json(sent);
+  }
+  res.status(201).json({ok:true,communication:inserted.rows[0]});
+});
+
+router.post('/communications/:id/send',async(req,res)=>{
+  const sent=await dispatchCreatorCommunication(req.params.id,req.user.id);
+  if(!sent.ok)return res.status(sent.error==='communication_cooldown'?429:409).json(sent);
+  res.json(sent);
+});
+
+router.post('/communications/:id/cancel',async(req,res)=>{
+  const result=await db.query(`
+    UPDATE creator_communications
+       SET status='cancelled',updated_at=now()
+     WHERE id=$1 AND creator_id=$2 AND status IN ('draft','scheduled')
+     RETURNING *
+  `,[req.params.id,req.user.id]);
+  if(!result.rowCount)return res.status(404).json({error:'communication_not_cancellable'});
+  res.json({ok:true,communication:result.rows[0]});
+});
+
+const creatorCommunicationTimer=setInterval(()=>{
+  dispatchDueCreatorCommunications().catch(error=>console.error('RedLibertad V1.32 communication scheduler failed:',error?.message||error));
+},60*1000);
+if(typeof creatorCommunicationTimer.unref==='function')creatorCommunicationTimer.unref();
 
 module.exports = router;
