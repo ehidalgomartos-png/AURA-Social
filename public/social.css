@@ -4097,3 +4097,130 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .creator-followup-actor-row{display:grid;grid-template-columns:1fr}
   .creator-followup-due{text-align:left}
 }
+
+
+/* =========================================================
+   RedLibertad V1.49 — Mobile Social Polish
+   ========================================================= */
+:root{
+  --visual-vh:100dvh;
+  --keyboard-inset:0px;
+}
+.connectivity-banner{
+  position:fixed;
+  top:14px;
+  right:14px;
+  z-index:220;
+  max-width:min(420px,calc(100% - 28px));
+  padding:10px 13px;
+  border-radius:13px;
+  color:white;
+  background:var(--navy);
+  box-shadow:0 10px 32px rgba(13,34,56,.18);
+  font-size:11px;
+  font-weight:800;
+  text-align:center;
+}
+.connectivity-banner.offline{background:#9d3d3d}
+.connectivity-banner.reconnected{background:var(--teal)}
+.connectivity-banner.hidden{display:none!important}
+
+button,a,input,textarea,select{touch-action:manipulation}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible{
+  outline:3px solid rgba(43,183,169,.34);
+  outline-offset:2px;
+}
+
+@media(pointer:coarse){
+  .primary,.secondary,.tiny-action,
+  .post-actions button,
+  .message-reply-button,
+  .message-reaction-bar button,
+  .comment-thread-actions button{
+    min-height:44px;
+  }
+  .message-reaction-bar button{
+    min-width:40px;
+  }
+}
+
+@media(max-width:760px){
+  .connectivity-banner{
+    top:64px;
+    left:10px;
+    right:10px;
+    max-width:none;
+    border-radius:0 0 13px 13px;
+  }
+
+  .bottom-nav{
+    transition:transform .18s ease,opacity .18s ease;
+    will-change:transform;
+  }
+
+  body.keyboard-open .bottom-nav{
+    transform:translateY(120%);
+    opacity:0;
+    pointer-events:none;
+  }
+  body.keyboard-open .social-main{
+    padding-bottom:12px;
+  }
+
+  .messages-layout.chat-open{
+    min-height:0;
+  }
+  .messages-layout.chat-open .chat-panel{
+    height:max(360px,calc(var(--visual-vh) - 126px));
+    min-height:360px;
+    max-height:none;
+  }
+  .messages-layout.chat-open .message-thread{
+    overscroll-behavior:contain;
+    scroll-behavior:smooth;
+  }
+  .messages-layout.chat-open .message-form{
+    position:sticky;
+    bottom:0;
+    z-index:5;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  }
+  body.keyboard-open .messages-layout.chat-open .chat-panel{
+    height:max(320px,calc(var(--visual-vh) - 72px));
+  }
+  body.keyboard-open .messages-layout.chat-open .message-form{
+    padding-bottom:10px;
+  }
+
+  .modal-card{
+    max-height:calc(var(--visual-vh) - 8px);
+    overscroll-behavior:contain;
+  }
+  .comments-modal-card,
+  .public-profile-modal-card,
+  .share-modal-card,
+  .account-modal-card,
+  .privacy-modal-card,
+  .trust-modal-card{
+    border-radius:24px 24px 0 0;
+  }
+
+  .message-compose textarea{
+    overflow-y:auto;
+    transition:height .08s ease;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+  .message-thread{scroll-behavior:auto!important}
+}

@@ -1,4 +1,4 @@
-# RedLibertad V1.48.0 — Push Notifications PWA
+# RedLibertad V1.49.0 — Mobile Social Polish
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1109,4 +1109,19 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - VAPID es opcional: si no está configurado, todo el resto de RedLibertad sigue funcionando sin cambios.
 - Variables de producción: PUSH_VAPID_PUBLIC_KEY, PUSH_VAPID_PRIVATE_KEY y PUSH_VAPID_SUBJECT.
 - Dependencia web-push 3.6.7.
+- Sin monetización activa.
+
+
+## V1.49.0 — Mobile Social Polish
+
+- Uso de VisualViewport para adaptar el chat a la altura real disponible cuando aparece el teclado móvil.
+- La barra inferior se oculta temporalmente mientras el teclado ocupa la pantalla para no tapar el compositor.
+- El textarea de mensajes crece automáticamente hasta un límite cómodo.
+- Safe areas reforzadas en chat y modales tipo bottom sheet.
+- Estado de conectividad global: Sin conexión y Conexión recuperada.
+- La navegación recuerda la posición de scroll de Inicio, Explorar, Perfil, Mensajes y Notificaciones.
+- Al tocar de nuevo la pestaña activa se vuelve suavemente al inicio.
+- Touch targets reforzados para dispositivos táctiles.
+- Estados :focus-visible claros para navegación con teclado.
+- prefers-reduced-motion desactiva animaciones y transiciones no esenciales.
 - Sin monetización activa.
