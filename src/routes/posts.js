@@ -581,6 +581,41 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorCommunityV24Ready=null;
+async function ensureCreatorCommunityV24(){
+  if(!creatorCommunityV24Ready){
+    creatorCommunityV24Ready=(async()=>{
+      await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
+      await db.query(`
+        ALTER TABLE notifications
+          ADD CONSTRAINT notifications_type_check
+          CHECK(type IN (
+            'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
+            'creator_poll_vote','creator_question_response','system'
+          ))
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_created ON creator_poll_votes(created_at DESC,poll_id)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_question_responses_created ON creator_question_responses(created_at DESC,question_id)');
+    })().catch(error=>{
+      creatorCommunityV24Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV24Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV24();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.24 community insights bootstrap failed:',error);
+    res.status(500).json({error:'community_insights_bootstrap_failed'});
+  }
+});
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
