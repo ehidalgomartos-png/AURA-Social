@@ -1,4 +1,4 @@
-# RedLibertad V1.35.0 — Creator Hub 2.0
+# RedLibertad V1.36.0 — Messaging 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -918,4 +918,20 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Relaciones agrupa tareas, CRM, segmentos, audiencia, VIP y automatizaciones.
 - Comunicación agrupa Communication Center y aviso rápido compatible.
 - Analítica agrupa engagement existente y analítica avanzada.
+- Sin monetización activa.
+
+
+## V1.36.0 — Messaging 2.0
+
+- Organización privada del inbox por usuario.
+- Fijar/desfijar conversaciones.
+- Archivar/desarchivar conversaciones sin borrar mensajes.
+- Silenciar/reactivar avisos de una conversación como preferencia privada.
+- Filtros Activas / No leídas / Archivadas.
+- Búsqueda de conversaciones por nombre y @usuario.
+- Ordena primero conversaciones fijadas y no leídas.
+- Resumen de no leídas, fijadas y archivadas.
+- Al enviar en una conversación archivada por el remitente, vuelve automáticamente a Activas para ese usuario.
+- Mantiene consentimiento de contenido sensible, bloqueos y privacidad de mensajes.
+- Bootstrap idempotente y mobile-first.
 - Sin monetización activa.
