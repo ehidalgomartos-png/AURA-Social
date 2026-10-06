@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
@@ -18,6 +19,22 @@ async function ensureGrowthTables() {
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_user_id,created_at DESC)');
       await db.query(`
+        CREATE TABLE IF NOT EXISTS growth_invite_links (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token VARCHAR(64) NOT NULL UNIQUE,
+          open_count INTEGER NOT NULL DEFAULT 0,
+          join_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          last_used_at TIMESTAMPTZ,
+          disabled_at TIMESTAMPTZ
+        )
+      `);
+      await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_growth_invite_links_active_user ON growth_invite_links(user_id) WHERE disabled_at IS NULL');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_growth_invite_links_token_active ON growth_invite_links(token) WHERE disabled_at IS NULL');
+      await db.query('ALTER TABLE referrals ADD COLUMN IF NOT EXISTS invite_link_id BIGINT REFERENCES growth_invite_links(id) ON DELETE SET NULL');
+      await db.query("ALTER TABLE referrals ADD COLUMN IF NOT EXISTS attribution TEXT NOT NULL DEFAULT 'legacy_username'");
+      await db.query(`
         CREATE TABLE IF NOT EXISTS user_experience_state (
           user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
           last_home_seen_at TIMESTAMPTZ,
@@ -32,6 +49,36 @@ async function ensureGrowthTables() {
   return growthReady;
 }
 
+function createInviteToken(){ return crypto.randomBytes(18).toString('base64url'); }
+async function ensurePersonalInvite(userId){
+  const existing=await db.query(`
+    SELECT id,token,open_count,join_count,created_at,last_used_at
+    FROM growth_invite_links
+    WHERE user_id=$1 AND disabled_at IS NULL
+    ORDER BY id DESC LIMIT 1
+  `,[userId]);
+  if(existing.rowCount)return existing.rows[0];
+  for(let attempt=0;attempt<4;attempt+=1){
+    try{
+      const created=await db.query(`
+        INSERT INTO growth_invite_links(user_id,token) VALUES($1,$2)
+        RETURNING id,token,open_count,join_count,created_at,last_used_at
+      `,[userId,createInviteToken()]);
+      return created.rows[0];
+    }catch(error){
+      if(error?.code!=='23505')throw error;
+      const raced=await db.query(`
+        SELECT id,token,open_count,join_count,created_at,last_used_at
+        FROM growth_invite_links
+        WHERE user_id=$1 AND disabled_at IS NULL
+        ORDER BY id DESC LIMIT 1
+      `,[userId]);
+      if(raced.rowCount)return raced.rows[0];
+    }
+  }
+  throw new Error('invite_link_creation_failed');
+}
+
 router.use(async (_req,res,next)=>{
   try{
     await ensureGrowthTables();
@@ -42,12 +89,39 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+router.get('/invites/:token', async (req,res)=>{
+  const token=String(req.params.token||'').trim();
+  if(!/^[A-Za-z0-9_-]{16,64}$/.test(token))return res.status(404).json({error:'invite_not_found'});
+  const result=await db.query(`
+    SELECT l.token,u.id AS inviter_id,u.username,u.display_name,u.avatar_url
+    FROM growth_invite_links l JOIN users u ON u.id=l.user_id
+    WHERE l.token=$1 AND l.disabled_at IS NULL AND u.status='active' AND u.is_admin=false
+    LIMIT 1
+  `,[token]);
+  if(!result.rowCount)return res.status(404).json({error:'invite_not_found'});
+  const row=result.rows[0];
+  res.json({invite:{token:row.token,inviter:{id:row.inviter_id,username:row.username,display_name:row.display_name,avatar_url:row.avatar_url}}});
+});
+router.post('/invites/:token/open', async (req,res)=>{
+  const token=String(req.params.token||'').trim();
+  if(!/^[A-Za-z0-9_-]{16,64}$/.test(token))return res.status(404).json({error:'invite_not_found'});
+  const result=await db.query(`
+    UPDATE growth_invite_links l SET open_count=open_count+1,last_used_at=now()
+    FROM users u
+    WHERE l.token=$1 AND l.disabled_at IS NULL AND u.id=l.user_id AND u.status='active' AND u.is_admin=false
+    RETURNING l.id
+  `,[token]);
+  if(!result.rowCount)return res.status(404).json({error:'invite_not_found'});
+  res.json({ok:true});
+});
+
 router.get('/me', requireAuth, async (req,res)=>{
   const profile=await db.query(`
     SELECT
       u.id,u.username,u.display_name,u.avatar_url,u.bio,
       (SELECT count(*)::int FROM user_interests ui WHERE ui.user_id=u.id) interest_count,
       (SELECT count(*)::int FROM follows f WHERE f.follower_id=u.id) following_count,
+      (SELECT count(*)::int FROM community_members cm WHERE cm.user_id=u.id) community_count,
       (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published') post_count,
       (
         (SELECT count(*) FROM likes l WHERE l.user_id=u.id)
@@ -96,6 +170,12 @@ router.get('/me', requireAuth, async (req,res)=>{
       action:'explore'
     },
     {
+      id:'community',
+      label:'Únete al menos a una comunidad',
+      done:Number(user.community_count||0)>=1,
+      action:'communities'
+    },
+    {
       id:'post',
       label:'Publica tu primera idea, foto o vídeo',
       done:Number(user.post_count||0)>=1,
@@ -111,9 +191,33 @@ router.get('/me', requireAuth, async (req,res)=>{
 
   const completed=steps.filter(step=>step.done).length;
   const progress=Math.round((completed/steps.length)*100);
+  const inviteLink=await ensurePersonalInvite(req.user.id);
+  const starterProfiles=await db.query(`
+    SELECT u.id,u.username,u.display_name,u.avatar_url,u.bio,u.creator_verified,u.location_label,
+           false AS following,
+           (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) AS follower_count,
+           (SELECT count(*)::int FROM user_interests ti
+             WHERE ti.user_id=u.id AND ti.interest IN
+             (SELECT oi.interest FROM user_interests oi WHERE oi.user_id=$1)) AS shared_interest_count,
+           COALESCE((SELECT array_agg(x.interest ORDER BY x.interest) FROM (
+             SELECT ti.interest FROM user_interests ti
+             WHERE ti.user_id=u.id AND ti.interest IN
+             (SELECT oi.interest FROM user_interests oi WHERE oi.user_id=$1)
+             ORDER BY ti.interest LIMIT 4
+           ) x),ARRAY[]::text[]) AS interests
+    FROM users u
+    WHERE u.id<>$1 AND u.status='active' AND u.is_admin=false AND u.discoverable=true
+      AND NOT EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=$1 AND f.following_id=u.id)
+      AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=$1))
+      AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=u.id)
+    ORDER BY shared_interest_count DESC,follower_count DESC,u.created_at DESC
+    LIMIT 6
+  `,[req.user.id]);
 
   res.json({
     inviteCode:user.username,
+    inviteLink:{token:inviteLink.token,path:'/?invite='+encodeURIComponent(inviteLink.token)+'#registro',opens:Number(inviteLink.open_count||0),joins:Number(inviteLink.join_count||0)},
+    starterProfiles:starterProfiles.rows,
     steps,
     completed,
     totalSteps:steps.length,
