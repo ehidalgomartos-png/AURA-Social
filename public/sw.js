@@ -1,4 +1,4 @@
-const CACHE='redlibertad-v140-shell';
+const CACHE='redlibertad-v141-shell';
 const ASSETS=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/icons/redlibertad-192.png','/icons/redlibertad-512.png'];
 
 self.addEventListener('install',event=>{
