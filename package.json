@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
-  "description": "RedLibertad V1.14 Creator Profile & Links - perfil público de creador, enlaces y métricas agregadas de clics.",
+  "description": "RedLibertad V1.15 Creator Audience & Broadcasts - audiencia de creadores y avisos internos a seguidores.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

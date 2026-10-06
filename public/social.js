@@ -1281,6 +1281,36 @@ function creatorProfilePayload(form) {
   };
 }
 
+function creatorAudienceHTML(users = []) {
+  if (!users.length) return '<div class="creator-empty">Todavía no tienes seguidores.</div>';
+  return users.map(user=>`<article class="creator-audience-person">
+    ${profileLink(user.username,`<span class="creator-audience-avatar">${avatarHTML(user)}</span>`,'creator-audience-profile')}
+    <div>
+      ${profileLink(user.username,`<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`,'creator-audience-profile')}
+      <small>@${esc(user.username)} · te sigue desde ${timeAgo(user.followed_at)}</small>
+    </div>
+  </article>`).join('');
+}
+
+function creatorBroadcastHistoryHTML(items = []) {
+  if (!items.length) return '<div class="creator-empty compact">Todavía no has enviado avisos.</div>';
+  return items.map(item=>`<article class="creator-broadcast-item">
+    <p>${esc(item.body)}</p>
+    <small>${timeAgo(item.created_at)} · ${Number(item.recipient_count || 0)} destinatarios</small>
+  </article>`).join('');
+}
+
+function creatorBroadcastAvailability(nextBroadcastAt) {
+  const next = nextBroadcastAt ? new Date(nextBroadcastAt) : null;
+  const blocked = !!next && Number.isFinite(next.getTime()) && next.getTime() > Date.now();
+  return {
+    blocked,
+    label: blocked
+      ? `Próximo aviso disponible: ${next.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}`
+      : 'Puedes enviar un aviso de texto cada 24 horas.'
+  };
+}
+
 function creatorMetric(label,total,recent=null) {
   return `<article class="creator-metric"><span>${esc(label)}</span><b>${Number(total || 0)}</b>${recent === null ? '' : `<small>+${Number(recent || 0)} · últimos 30 días</small>`}</article>`;
 }
@@ -1323,7 +1353,8 @@ async function loadCreatorCenter() {
     creatorMetric('Republicaciones',creator.repost_count,creator.reposts_30d),
     creatorMetric('Guardados',creator.save_count,creator.saves_30d),
     creatorMetric('Destacadas',creator.featured_count),
-    creatorMetric('Clics en enlaces',creator.link_click_count)
+    creatorMetric('Clics en enlaces',creator.link_click_count),
+    creatorMetric('Avisos enviados',creator.broadcast_count)
   ].join('');
 
   const creatorForm=$('#creatorProfileForm');
@@ -1340,6 +1371,24 @@ async function loadCreatorCenter() {
 
   const hint = $('#creatorFeaturedHint');
   if (hint) hint.textContent = `${Number(creator.featured_count || 0)} de ${Number(d.featuredLimit || 3)} publicaciones destacadas.`;
+
+  const audienceRoot=$('#creatorAudience');
+  if(audienceRoot){
+    audienceRoot.innerHTML=creatorAudienceHTML(Array.isArray(d.audience) ? d.audience : []);
+  }
+
+  const historyRoot=$('#creatorBroadcastHistory');
+  if(historyRoot){
+    historyRoot.innerHTML=creatorBroadcastHistoryHTML(Array.isArray(d.broadcasts) ? d.broadcasts : []);
+  }
+
+  const availability=creatorBroadcastAvailability(d.nextBroadcastAt);
+  const broadcastHint=$('#creatorBroadcastHint');
+  const broadcastSubmit=$('#creatorBroadcastSubmit');
+  const broadcastForm=$('#creatorBroadcastForm');
+  if(broadcastHint)broadcastHint.textContent=availability.label;
+  if(broadcastSubmit)broadcastSubmit.disabled=availability.blocked;
+  if(broadcastForm?.body)broadcastForm.body.disabled=availability.blocked;
   return true;
 }
 
@@ -1349,12 +1398,65 @@ async function openCreatorModal() {
   modal.classList.remove('hidden');
   $('#creatorMetrics').innerHTML = '<div class="mini-loading">Cargando métricas...</div>';
   $('#creatorPosts').innerHTML = '';
+  if($('#creatorAudience'))$('#creatorAudience').innerHTML='<div class="mini-loading">Cargando audiencia...</div>';
+  if($('#creatorBroadcastHistory'))$('#creatorBroadcastHistory').innerHTML='';
+  if($('#creatorBroadcastStatus'))$('#creatorBroadcastStatus').textContent='';
   await loadCreatorCenter();
 }
 
 function closeCreatorModal() {
   $('#creatorModal')?.classList.add('hidden');
 }
+
+$('#creatorBroadcastForm textarea[name="body"]')?.addEventListener('input',event=>{
+  const count=$('#creatorBroadcastCount');
+  if(count)count.textContent=`${String(event.currentTarget.value || '').length} / 280`;
+});
+
+$('#creatorBroadcastForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const body=String(form.body?.value || '').trim();
+  const status=$('#creatorBroadcastStatus');
+  const submit=$('#creatorBroadcastSubmit');
+  if(!body){
+    status.textContent='Escribe un aviso antes de enviarlo.';
+    return;
+  }
+
+  submit.disabled=true;
+  status.textContent='Enviando aviso...';
+  try{
+    const { r, d }=await api('/api/profiles/me/creator-broadcasts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({body})
+    });
+    if(!r.ok){
+      if(d.error==='broadcast_cooldown'){
+        const availability=creatorBroadcastAvailability(d.nextBroadcastAt);
+        status.textContent=availability.label;
+        if($('#creatorBroadcastHint'))$('#creatorBroadcastHint').textContent=availability.label;
+        if(form.body)form.body.disabled=true;
+        return;
+      }
+      status.textContent=d.error==='invalid_broadcast'
+        ? 'El aviso debe tener entre 1 y 280 caracteres.'
+        : 'No se pudo enviar el aviso.';
+      submit.disabled=false;
+      return;
+    }
+
+    form.reset();
+    if($('#creatorBroadcastCount'))$('#creatorBroadcastCount').textContent='0 / 280';
+    status.textContent=`Aviso enviado a ${Number(d.broadcast?.recipient_count || 0)} seguidores.`;
+    toast('Aviso enviado a tus seguidores');
+    await Promise.all([loadCreatorCenter(),loadNotifications()]);
+  }catch(_){
+    status.textContent='No se pudo enviar el aviso.';
+    submit.disabled=false;
+  }
+});
 
 $('#creatorProfileForm')?.addEventListener('submit',async event=>{
   event.preventDefault();
@@ -2524,6 +2626,7 @@ function notificationIcon(type) {
     consent_approved: '✓',
     consent_rejected: '×',
     consent_revoked: '↶',
+    creator_broadcast: '📣',
     system: 'R'
   })[type] || '•';
 }
@@ -2532,7 +2635,7 @@ function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
   if (filter === 'mentions') return notification.type === 'mention';
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
-  if (filter === 'community') return notification.type === 'follow';
+  if (filter === 'community') return ['follow','creator_broadcast'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
   if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
   return true;
@@ -2581,6 +2684,11 @@ async function navigateNotification(notification) {
   }
 
   if (type === 'follow' && notification.actor_username) {
+    await openPublicProfile(notification.actor_username);
+    return;
+  }
+
+  if (type === 'creator_broadcast' && notification.actor_username) {
     await openPublicProfile(notification.actor_username);
     return;
   }

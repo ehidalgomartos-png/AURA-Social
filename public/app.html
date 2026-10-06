@@ -197,6 +197,34 @@
       <div class="mini-loading">Cargando métricas...</div>
     </div>
 
+    <section class="creator-section creator-broadcast-section">
+      <div class="creator-section-head">
+        <div>
+          <b>Aviso a tus seguidores</b>
+          <small id="creatorBroadcastHint">Puedes enviar un aviso de texto cada 24 horas.</small>
+        </div>
+      </div>
+      <form id="creatorBroadcastForm" class="creator-broadcast-form">
+        <div class="compose-text-wrap">
+          <textarea name="body" maxlength="280" placeholder="Comparte una novedad con quienes te siguen..." required></textarea>
+          <small id="creatorBroadcastCount" class="char-counter">0 / 280</small>
+        </div>
+        <button id="creatorBroadcastSubmit" class="primary full" type="submit">Enviar aviso</button>
+        <p id="creatorBroadcastStatus" class="status"></p>
+      </form>
+      <div id="creatorBroadcastHistory" class="creator-broadcast-history"></div>
+    </section>
+
+    <section class="creator-section creator-audience-section">
+      <div class="creator-section-head">
+        <div>
+          <b>Tu audiencia</b>
+          <small>Seguidores más recientes. Los bloqueos y silencios siguen aplicándose a los avisos.</small>
+        </div>
+      </div>
+      <div id="creatorAudience" class="creator-audience-list"></div>
+    </section>
+
     <section class="creator-section">
       <div class="creator-section-head">
         <div>
