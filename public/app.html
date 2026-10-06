@@ -25,6 +25,7 @@
       <button data-view="feed" class="active">⌂ <span>Inicio</span></button>
       <button data-view="explore">⌕ <span>Explorar</span></button>
       <button data-view="connections">◎ <span>Conexiones</span></button>
+      <button data-view="communities">◇ <span>Comunidades</span></button>
       <button data-view="reels">▷ <span>Reels</span></button>
       <button data-view="messages">✉ <span>Mensajes</span><i id="messageBadge" class="nav-badge hidden"></i></button>
       <button data-view="notifications">♢ <span>Notificaciones</span><i id="notificationBadge" class="nav-badge hidden"></i></button>
@@ -100,6 +101,7 @@
     <section id="exploreView" class="view hidden">
       <div class="page-title">
         <div><span class="eyebrow">DESCUBRE</span><h1>Explorar</h1></div>
+        <button type="button" class="secondary" data-view-jump="communities">Comunidades</button>
       </div>
       <section id="connectionsSection" class="connections-section hidden">
         <div class="connections-head">
@@ -177,6 +179,76 @@
           <span id="connectionsCenterVisibleCount" class="connections-count">0</span>
         </div>
         <div id="connectionsCenterList" class="connections-center-list"></div>
+      </section>
+    </section>
+
+    <section id="communitiesView" class="view hidden">
+      <div class="page-title communities-title">
+        <div><span class="eyebrow">ESPACIOS COMPARTIDOS</span><h1>Comunidades</h1><p>Grupos públicos o privados con sus propias reglas, conversación y moderación.</p></div>
+        <button id="newCommunity" type="button" class="primary">+ Crear comunidad</button>
+      </div>
+
+      <div id="communitiesDirectory">
+        <section class="communities-toolbar">
+          <div class="communities-scope-tabs" role="tablist" aria-label="Filtrar comunidades">
+            <button type="button" class="active" data-community-scope="all">Todas</button>
+            <button type="button" data-community-scope="joined">Mis comunidades</button>
+            <button type="button" data-community-scope="mine">Creadas por mí</button>
+          </div>
+          <label class="communities-search"><span>Buscar</span><input id="communitySearch" type="search" maxlength="80" placeholder="Nombre o descripción"></label>
+        </section>
+        <div id="communityList" class="community-grid"><div class="mini-loading">Cargando comunidades…</div></div>
+      </div>
+
+      <section id="communityDetail" class="community-detail hidden">
+        <button id="backToCommunities" type="button" class="tiny-action">← Todas las comunidades</button>
+        <div id="communityHero" class="community-hero"></div>
+        <div id="communityRules" class="community-rules"></div>
+
+        <section id="communityAdminPanel" class="community-admin-panel hidden">
+          <details>
+            <summary>Administrar comunidad</summary>
+            <form id="communityEditForm" class="community-admin-form">
+              <div class="form-row">
+                <label>Nombre<input name="name" maxlength="80" required></label>
+                <label>Privacidad<select name="privacy"><option value="public">Pública</option><option value="private">Privada</option></select></label>
+              </div>
+              <label>Descripción<textarea name="description" maxlength="1000"></textarea></label>
+              <label>Nuevo avatar (opcional)<input id="communityEditAvatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
+              <label>Reglas<textarea name="rules" maxlength="3000" placeholder="Una regla por línea"></textarea><small>Máximo 10 reglas.</small></label>
+              <button class="secondary full" type="submit">Guardar comunidad</button>
+              <p id="communityEditStatus" class="status"></p>
+            </form>
+            <div class="community-admin-columns">
+              <section><div class="community-section-head"><b>Solicitudes</b><small id="communityRequestCount">0 pendientes</small></div><div id="communityRequests" class="community-request-list"></div></section>
+              <section><div class="community-section-head"><b>Moderación reciente</b><small>Privado para administradores</small></div><div id="communityModerationLog" class="community-moderation-list"></div></section>
+            </div>
+            <button id="deleteCommunity" type="button" class="danger hidden">Eliminar comunidad</button>
+          </details>
+        </section>
+
+        <section id="communityMembersSection" class="community-members-section">
+          <div class="community-section-head"><b>Miembros</b><small id="communityMemberCount">0 miembros</small></div>
+          <div id="communityMembers" class="community-member-list"></div>
+        </section>
+
+        <section id="communityComposeSection" class="community-compose hidden">
+          <div class="community-section-head"><div><b>Publicar en la comunidad</b><small>Visible dentro de este espacio.</small></div></div>
+          <form id="communityPostForm">
+            <textarea name="body" maxlength="2200" placeholder="Comparte algo con la comunidad…"></textarea>
+            <div class="form-row">
+              <label>Foto o vídeo<input id="communityPostFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label>
+              <label>Clasificación<select name="contentLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label>
+            </div>
+            <button class="primary" type="submit">Publicar</button>
+            <p id="communityPostStatus" class="status"></p>
+          </form>
+        </section>
+
+        <section class="community-posts-section">
+          <div class="community-section-head"><b>Publicaciones</b><small id="communityPostCount">0 publicaciones</small></div>
+          <div id="communityPosts" class="community-post-list"></div>
+        </section>
       </section>
     </section>
 
@@ -841,6 +913,27 @@
         <div id="blockedList" class="privacy-person-list"></div>
       </section>
     </div>
+  </div>
+</div>
+
+<div id="communityCreateModal" class="modal hidden">
+  <div class="modal-card community-create-modal-card">
+    <button id="closeCommunityCreate" class="modal-close" type="button">×</button>
+    <span class="eyebrow">NUEVA COMUNIDAD</span>
+    <h2>Crea un espacio compartido</h2>
+    <p class="muted">Puedes hacerla pública o privada. El chat de grupo es opcional.</p>
+    <form id="communityCreateForm">
+      <label>Nombre<input name="name" maxlength="80" required placeholder="Ej. Fotografía en Valencia"></label>
+      <label>Descripción<textarea name="description" maxlength="1000" placeholder="¿De qué trata esta comunidad?"></textarea></label>
+      <div class="form-row">
+        <label>Privacidad<select name="privacy"><option value="public">Pública · cualquiera puede leer y unirse</option><option value="private">Privada · requiere aprobación</option></select></label>
+        <label>Avatar<input id="communityAvatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      </div>
+      <label>Reglas<textarea name="rules" maxlength="3000" placeholder="Una regla por línea&#10;Respeta a los demás&#10;No publiques spam"></textarea><small>Hasta 10 reglas, una por línea.</small></label>
+      <label class="privacy-toggle"><input type="checkbox" name="createChat" checked><span><b>Crear chat de grupo</b><small>Los miembros aprobados se sincronizan automáticamente con el chat.</small></span></label>
+      <button class="primary full" type="submit">Crear comunidad</button>
+      <p id="communityCreateStatus" class="status"></p>
+    </form>
   </div>
 </div>
 
