@@ -89,13 +89,26 @@ function absoluteUrl(req, value='') {
   const base = configured || `${req.protocol}://${req.get('host')}`;
   return `${base}${value.startsWith('/') ? '' : '/'}${value}`;
 }
+
+let publicPostAudienceV18Ready=null;
+async function ensurePublicPostAudienceV18(){
+  if(!publicPostAudienceV18Ready){
+    publicPostAudienceV18Ready=db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'")
+      .catch(error=>{
+        publicPostAudienceV18Ready=null;
+        throw error;
+      });
+  }
+  return publicPostAudienceV18Ready;
+}
 app.get('/p/:id', async (req, res) => {
   try {
+    await ensurePublicPostAudienceV18();
     const result = await db.query(`
       SELECT p.id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
              u.username,u.display_name
         FROM posts p JOIN users u ON u.id=p.user_id
-       WHERE p.id=$1 AND p.moderation_status='published' AND u.status='active'
+       WHERE p.id=$1 AND p.moderation_status='published' AND p.audience='public' AND u.status='active'
        LIMIT 1
     `,[req.params.id]);
     if (!result.rowCount) return res.status(404).send('Publicación no encontrada.');
