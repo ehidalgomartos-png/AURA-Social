@@ -75,7 +75,8 @@ async function conversationDetails(conversationId,userId){
   const conversation=await db.query(`
     SELECT
       c.id,c.conversation_type,c.title,c.created_by,c.created_at,c.updated_at,
-      cm.member_role,cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at
+      cm.member_role,cm.joined_at AS viewer_joined_at,
+      cm.is_pinned,cm.is_archived,cm.notifications_muted,cm.last_read_at
     FROM conversations c
     JOIN conversation_members cm ON cm.conversation_id=c.id
     WHERE c.id=$1 AND cm.user_id=$2
@@ -704,6 +705,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
       reply.body AS reply_body,
       reply.media_type AS reply_media_type,
       reply.content_level AS reply_content_level,
+      reply.created_at AS reply_created_at,
       reply_user.username AS reply_username,
       reply_user.display_name AS reply_display_name
     FROM messages m
@@ -711,6 +713,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
     LEFT JOIN messages reply ON reply.id=m.reply_to_message_id AND reply.conversation_id=m.conversation_id
     LEFT JOIN users reply_user ON reply_user.id=reply.sender_id
     WHERE m.conversation_id=$1
+      AND m.created_at >= $3
       AND (
         m.sender_id=$2
         OR NOT EXISTS(
@@ -721,7 +724,11 @@ router.get('/conversations/:id/messages', async (req, res) => {
       )
     ORDER BY m.created_at ASC,m.id ASC
     LIMIT 300
-  `,[id,req.user.id]);
+  `,[
+    id,
+    req.user.id,
+    details.is_group ? details.viewer_joined_at : new Date(0)
+  ]);
 
   const messageIds=r.rows.map(row=>String(row.id));
   const reactionResult=messageIds.length
@@ -750,29 +757,46 @@ router.get('/conversations/:id/messages', async (req, res) => {
   }
 
   const readStateResult=await db.query(`
-    SELECT user_id,last_read_at
+    SELECT user_id,last_read_at,joined_at
       FROM conversation_members
      WHERE conversation_id=$1
        AND user_id<>$2
   `,[id,req.user.id]);
   const readStates=readStateResult.rows.map(row=>({
     userId:String(row.user_id),
-    at:row.last_read_at ? new Date(row.last_read_at).getTime() : 0
+    at:row.last_read_at ? new Date(row.last_read_at).getTime() : 0,
+    joinedAt:row.joined_at ? new Date(row.joined_at).getTime() : 0
   }));
-  const otherMemberCount=details.participants.filter(member=>
-    member.status==='active' && String(member.id)!==String(req.user.id)
-  ).length;
 
   const messages=r.rows.map(m=>{
     const isOwn=String(m.sender_id)===String(req.user.id);
     const senderAllowed=isOwn || allowedSenders.has(String(m.sender_id));
     const gated=!isOwn && m.content_level!=='normal' && !senderAllowed;
     const createdAt=new Date(m.created_at).getTime();
+    const eligibleReaders=isOwn
+      ? readStates.filter(state=>!state.joinedAt || state.joinedAt<=createdAt)
+      : [];
     const seenCount=isOwn
-      ? readStates.filter(state=>state.at && state.at>=createdAt).length
+      ? eligibleReaders.filter(state=>state.at && state.at>=createdAt).length
       : 0;
 
     const replyPreview=m.reply_id ? (() => {
+      const replyBeforeJoin=!!(
+        details.is_group &&
+        m.reply_created_at &&
+        new Date(m.reply_created_at).getTime()<new Date(details.viewer_joined_at).getTime()
+      );
+      if(replyBeforeJoin){
+        return {
+          id:m.reply_id,
+          sender_id:m.reply_sender_id,
+          username:null,
+          display_name:null,
+          text:'Mensaje anterior a tu incorporación',
+          gated:true
+        };
+      }
+
       const replyBlocked=blockedSenders.has(String(m.reply_sender_id));
       if(replyBlocked){
         return {
@@ -815,7 +839,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
       ...m,
       seen_count:seenCount,
       seen_by_other:!details.is_group && seenCount>0,
-      seen_by_all:details.is_group && otherMemberCount>0 && seenCount>=otherMemberCount,
+      seen_by_all:details.is_group && eligibleReaders.length>0 && seenCount>=eligibleReaders.length,
       reactions:reactionsByMessage.get(String(m.id)) || [],
       reply_preview:replyPreview,
       media_url:gated ? null : m.media_url,
