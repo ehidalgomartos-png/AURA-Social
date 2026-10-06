@@ -263,6 +263,29 @@ CREATE TABLE IF NOT EXISTS community_moderation_log (
 CREATE INDEX IF NOT EXISTS idx_community_moderation_log_community
   ON community_moderation_log(community_id,created_at DESC);
 
+
+-- RedLibertad V1.59: descubrimiento explicable de comunidades
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS category VARCHAR(40) NOT NULL DEFAULT 'general';
+CREATE INDEX IF NOT EXISTS idx_communities_category_updated
+  ON communities(category,updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_interests (
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  interest VARCHAR(80) NOT NULL,
+  PRIMARY KEY(community_id,interest)
+);
+CREATE INDEX IF NOT EXISTS idx_community_interests_interest
+  ON community_interests(interest,community_id);
+
+CREATE TABLE IF NOT EXISTS community_hidden_suggestions (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  hidden_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(user_id,community_id)
+);
+CREATE INDEX IF NOT EXISTS idx_community_hidden_suggestions_user
+  ON community_hidden_suggestions(user_id,hidden_at DESC);
+
 -- RedLibertad V1.48: notificaciones Web Push opcionales
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id BIGSERIAL PRIMARY KEY,

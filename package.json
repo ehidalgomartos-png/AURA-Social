@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.58.0",
+  "version": "1.59.0",
   "private": true,
-  "description": "RedLibertad V1.58 Social Communities - comunidades públicas y privadas con miembros, moderación, publicaciones y chat opcional, sin monetización.",
+  "description": "RedLibertad V1.59 Community Discovery - descubrimiento explicable por intereses, conexiones y actividad, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

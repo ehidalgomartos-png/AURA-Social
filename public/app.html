@@ -197,6 +197,29 @@
           </div>
           <label class="communities-search"><span>Buscar</span><input id="communitySearch" type="search" maxlength="80" placeholder="Nombre o descripción"></label>
         </section>
+        <section class="community-discovery">
+          <div class="community-discovery-head">
+            <div><span class="eyebrow">DESCUBRIR</span><h2>Comunidades para ti</h2><p>Sugerencias explicables por intereses, conexiones o actividad reciente. Puedes ocultar cualquiera.</p></div>
+          </div>
+          <div class="community-discovery-controls">
+            <div class="community-discovery-tabs" role="tablist" aria-label="Descubrir comunidades">
+              <button type="button" class="active" data-community-discovery-mode="recommended">Recomendadas</button>
+              <button type="button" data-community-discovery-mode="connections">Tus conexiones</button>
+              <button type="button" data-community-discovery-mode="new">Nuevas</button>
+              <button type="button" data-community-discovery-mode="active">Activas</button>
+            </div>
+            <select id="communityDiscoveryCategory" aria-label="Categoría de comunidades">
+              <option value="">Todas las categorías</option>
+              <option value="general">General</option><option value="amistad">Amistad</option><option value="ocio">Ocio</option>
+              <option value="musica">Música</option><option value="cine">Cine</option><option value="deporte">Deporte</option>
+              <option value="tecnologia">Tecnología</option><option value="arte">Arte</option><option value="viajes">Viajes</option>
+              <option value="local">Local</option><option value="creadores">Creadores</option><option value="debate">Debate</option>
+            </select>
+            <input id="communityDiscoverySearch" type="search" maxlength="80" placeholder="Buscar por nombre, descripción o interés">
+          </div>
+          <div id="communityDiscoveryList" class="community-discovery-list"><div class="mini-loading">Preparando sugerencias…</div></div>
+        </section>
+        <div class="community-directory-heading"><b>Directorio</b><small>Todas las comunidades disponibles para tu cuenta</small></div>
         <div id="communityList" class="community-grid"><div class="mini-loading">Cargando comunidades…</div></div>
       </div>
 
@@ -212,6 +235,10 @@
               <div class="form-row">
                 <label>Nombre<input name="name" maxlength="80" required></label>
                 <label>Privacidad<select name="privacy"><option value="public">Pública</option><option value="private">Privada</option></select></label>
+              </div>
+              <div class="form-row">
+                <label>Categoría<select name="category"><option value="general">General</option><option value="amistad">Amistad</option><option value="ocio">Ocio</option><option value="musica">Música</option><option value="cine">Cine</option><option value="deporte">Deporte</option><option value="tecnologia">Tecnología</option><option value="arte">Arte</option><option value="viajes">Viajes</option><option value="local">Local</option><option value="creadores">Creadores</option><option value="debate">Debate</option></select></label>
+                <label>Intereses<input name="interests" maxlength="500" placeholder="música, viajes, fotografía"><small>Hasta 8, separados por comas.</small></label>
               </div>
               <label>Descripción<textarea name="description" maxlength="1000"></textarea></label>
               <label>Nuevo avatar (opcional)<input id="communityEditAvatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
@@ -928,6 +955,10 @@
       <div class="form-row">
         <label>Privacidad<select name="privacy"><option value="public">Pública · cualquiera puede leer y unirse</option><option value="private">Privada · requiere aprobación</option></select></label>
         <label>Avatar<input id="communityAvatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      </div>
+      <div class="form-row">
+        <label>Categoría<select name="category"><option value="general">General</option><option value="amistad">Amistad</option><option value="ocio">Ocio</option><option value="musica">Música</option><option value="cine">Cine</option><option value="deporte">Deporte</option><option value="tecnologia">Tecnología</option><option value="arte">Arte</option><option value="viajes">Viajes</option><option value="local">Local</option><option value="creadores">Creadores</option><option value="debate">Debate</option></select></label>
+        <label>Intereses<input name="interests" maxlength="500" placeholder="música, viajes, fotografía"><small>Hasta 8, separados por comas.</small></label>
       </div>
       <label>Reglas<textarea name="rules" maxlength="3000" placeholder="Una regla por línea&#10;Respeta a los demás&#10;No publiques spam"></textarea><small>Hasta 10 reglas, una por línea.</small></label>
       <label class="privacy-toggle"><input type="checkbox" name="createChat" checked><span><b>Crear chat de grupo</b><small>Los miembros aprobados se sincronizan automáticamente con el chat.</small></span></label>
