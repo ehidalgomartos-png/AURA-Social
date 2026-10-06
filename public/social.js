@@ -30,6 +30,8 @@ let creatorCalendarPosts = [];
 let creatorCommunityStatus = 'active';
 let creatorCommunityStarredOnly = false;
 let creatorCommunityData = null;
+let creatorCommunityActivityStatus = 'pending';
+let creatorCommunityActivityData = null;
 
 
 async function api(url, opts = {}) {
@@ -1780,6 +1782,108 @@ async function loadCreatorCalendar() {
   renderCreatorCalendar();
 }
 
+function creatorActivityActorHTML(actor = {}) {
+  const name=actor.display_name || actor.username || 'Cuenta eliminada';
+  const avatar=actor.avatar_url ? `<img src="${esc(actor.avatar_url)}" alt="">` : initials(name);
+  if(actor.username){
+    return `<button type="button" class="creator-activity-actor" data-profile-username="${esc(actor.username)}">
+      <span class="creator-activity-avatar">${avatar}</span>
+      <span><b>${esc(name)} ${actor.creator_verified ? '<span class="verified">✓</span>' : ''}</b><small>@${esc(actor.username)}</small></span>
+    </button>`;
+  }
+  return `<div class="creator-activity-actor">
+    <span class="creator-activity-avatar">${avatar}</span>
+    <span><b>${esc(name)}</b><small>Cuenta no disponible</small></span>
+  </div>`;
+}
+
+function creatorActivityItemHTML(group,item) {
+  const isPoll=group.kind==='poll';
+  let detail='';
+  if(isPoll){
+    detail=item.interaction?.withdrawn
+      ? '<span class="creator-activity-withdrawn">Voto retirado</span>'
+      : `Votó: <b>${esc(item.interaction?.option_label || 'Opción')}</b>`;
+  }else{
+    detail=item.interaction?.withdrawn
+      ? '<span class="creator-activity-withdrawn">Respuesta retirada</span>'
+      : `<span class="creator-activity-response-copy">${esc(item.interaction?.body || '')}</span>`;
+  }
+  return `<div class="creator-activity-item ${item.reviewed_at ? 'reviewed' : 'pending'}">
+    ${creatorActivityActorHTML(item.actor)}
+    <div class="creator-activity-item-copy">
+      <p>${detail}</p>
+      <small>${timeAgo(item.created_at)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}</small>
+    </div>
+    ${item.reviewed_at ? '' : `<button type="button" class="tiny-action" data-creator-activity-review-id="${item.notification_id}">Revisado</button>`}
+  </div>`;
+}
+
+function renderCreatorCommunityActivity(data = {}) {
+  creatorCommunityActivityData=data;
+  const pending=Number(data.pendingCount || 0);
+  const badge=$('#creatorActivityPendingBadge');
+  if(badge){
+    badge.textContent=`${pending} ${pending===1 ? 'pendiente' : 'pendientes'}`;
+    badge.classList.toggle('hidden',pending===0);
+  }
+  const reviewAll=$('#creatorActivityReviewAll');
+  if(reviewAll)reviewAll.disabled=pending===0;
+
+  all('[data-creator-activity-status]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.creatorActivityStatus===creatorCommunityActivityStatus);
+  });
+
+  const root=$('#creatorActivityGroups');
+  if(!root)return;
+  const groups=Array.isArray(data.groups) ? data.groups : [];
+  if(!groups.length){
+    root.innerHTML=creatorCommunityActivityStatus==='pending'
+      ? '<div class="creator-empty compact">No tienes participación pendiente de revisar.</div>'
+      : '<div class="creator-empty compact">No hay actividad en este filtro.</div>';
+    return;
+  }
+
+  root.innerHTML=groups.map(group=>{
+    const items=Array.isArray(group.items) ? group.items : [];
+    const visible=items.slice(0,6);
+    const extra=Math.max(0,items.length-visible.length);
+    const state=group.tool_status==='archived'
+      ? 'Archivada'
+      : group.tool_is_open ? 'Abierta' : 'Cerrada';
+    return `<article class="creator-activity-group ${group.pending_count ? 'has-pending' : 'reviewed'}">
+      <div class="creator-activity-group-head">
+        <div>
+          <span class="eyebrow">${group.kind==='poll' ? 'ENCUESTA' : 'PREGUNTA ABIERTA'} · ${group.audience==='vip' ? '★ VIP' : 'PÚBLICO'}</span>
+          <b>${esc(group.prompt || 'Actividad de comunidad')}</b>
+          <small>${state} · ${Number(group.total_count || 0)} participaciones · ${Number(group.pending_count || 0)} pendientes</small>
+        </div>
+        <div class="creator-activity-group-actions">
+          <button type="button" class="tiny-action" data-open-post="${group.post_id}">Ver publicación</button>
+          ${group.pending_count ? `<button type="button" class="tiny-action primary-soft" data-creator-activity-review-group="${esc(group.key)}">Marcar grupo revisado</button>` : ''}
+        </div>
+      </div>
+      <div class="creator-activity-items">
+        ${visible.map(item=>creatorActivityItemHTML(group,item)).join('')}
+        ${extra ? `<small class="creator-activity-more">+${extra} participaciones agrupadas</small>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+async function loadCreatorCommunityActivity() {
+  const root=$('#creatorActivityGroups');
+  if(root)root.innerHTML='<div class="mini-loading">Cargando actividad...</div>';
+  const qs=new URLSearchParams({status:creatorCommunityActivityStatus});
+  const { r,d }=await api(`/api/posts/creator/community-activity?${qs.toString()}`);
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="creator-empty compact">No se pudo cargar el centro de actividad.</div>';
+    return false;
+  }
+  renderCreatorCommunityActivity(d);
+  return true;
+}
+
 function communityStateBadge(status,isOpen) {
   if(status==='archived')return '<span class="creator-community-state archived">Archivada</span>';
   return isOpen
@@ -2068,7 +2172,7 @@ async function loadCreatorCenter() {
     if($('#creatorCommunityTopTools'))$('#creatorCommunityTopTools').innerHTML='';
   }
 
-  await loadCreatorCalendar();
+  await Promise.all([loadCreatorCommunityActivity(),loadCreatorCalendar()]);
   return true;
 }
 
@@ -2090,6 +2194,7 @@ async function openCreatorModal() {
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
   if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
+  if($('#creatorActivityGroups'))$('#creatorActivityGroups').innerHTML='<div class="mini-loading">Cargando actividad...</div>';
   if($('#creatorCommunityInsights'))$('#creatorCommunityInsights').innerHTML='<div class="mini-loading">Calculando insights...</div>';
   if($('#creatorCommunityTrend'))$('#creatorCommunityTrend').innerHTML='';
   if($('#creatorCommunityTopTools'))$('#creatorCommunityTopTools').innerHTML='';
