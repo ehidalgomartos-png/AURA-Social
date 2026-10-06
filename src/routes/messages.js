@@ -87,6 +87,7 @@ async function conversationDetails(conversationId,userId){
     SELECT
       u.id,u.username,u.display_name,u.avatar_url,u.age_verified,u.creator_verified,u.status,
       cm.member_role,cm.joined_at,cm.last_read_at,
+      COALESCE(permission.allowed,false) AS sensitive_allowed,
       p.last_seen_at,
       (p.last_seen_at>now()-interval '45 seconds') AS online,
       (p.active_conversation_id=$1 AND p.typing_until>now()) AS typing,
@@ -97,6 +98,9 @@ async function conversationDetails(conversationId,userId){
       ) AS blocked_with_viewer
     FROM conversation_members cm
     JOIN users u ON u.id=cm.user_id
+    LEFT JOIN sensitive_message_permissions permission
+      ON permission.receiver_id=$2
+     AND permission.sender_id=u.id
     LEFT JOIN user_chat_presence p ON p.user_id=u.id
     WHERE cm.conversation_id=$1
     ORDER BY
@@ -865,6 +869,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
         avatar_url:member.avatar_url,
         creator_verified:member.creator_verified,
         member_role:member.member_role,
+        sensitive_allowed:member.sensitive_allowed===true,
         online:member.online===true,
         typing:member.typing===true,
         blocked_with_viewer:member.blocked_with_viewer===true
