@@ -5469,7 +5469,8 @@ $('#returnPulseRefresh')?.addEventListener('click',async()=>{
 });
 
 function showView(name) {
-  if(name===activeViewName){
+  const switching=name!==activeViewName;
+  if(!switching){
     window.scrollTo({top:0,behavior:'smooth'});
   }else{
     saveCurrentViewScroll();
@@ -5483,7 +5484,7 @@ function showView(name) {
   activeViewName=name;
   animateView(view);
   all('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  restoreViewScroll(name);
+  if(switching)restoreViewScroll(name);
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
   if (name === 'explore') loadExplore();
   if (name === 'reels') loadReels();
