@@ -466,4 +466,24 @@ CREATE INDEX IF NOT EXISTS idx_creator_community_reviews_creator
   ON creator_community_notification_reviews(creator_id,reviewed_at DESC);
 
 
+-- RedLibertad V1.26: seguimiento y notas privadas de actividad
+CREATE TABLE IF NOT EXISTS creator_community_activity_meta (
+  notification_id BIGINT PRIMARY KEY REFERENCES notifications(id) ON DELETE CASCADE,
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  priority TEXT NOT NULL DEFAULT 'normal',
+  private_note VARCHAR(1000) NOT NULL DEFAULT '',
+  follow_up BOOLEAN NOT NULL DEFAULT FALSE,
+  follow_up_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE creator_community_activity_meta DROP CONSTRAINT IF EXISTS creator_community_activity_priority_check;
+ALTER TABLE creator_community_activity_meta
+  ADD CONSTRAINT creator_community_activity_priority_check
+  CHECK(priority IN ('normal','high'));
+
+CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator
+  ON creator_community_activity_meta(creator_id,follow_up,priority,updated_at DESC);
+
+
 

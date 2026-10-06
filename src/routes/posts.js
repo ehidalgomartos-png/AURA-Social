@@ -648,6 +648,47 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorCommunityV26Ready=null;
+async function ensureCreatorCommunityV26(){
+  if(!creatorCommunityV26Ready){
+    creatorCommunityV26Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_community_activity_meta (
+          notification_id BIGINT PRIMARY KEY REFERENCES notifications(id) ON DELETE CASCADE,
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          priority TEXT NOT NULL DEFAULT 'normal',
+          private_note VARCHAR(1000) NOT NULL DEFAULT '',
+          follow_up BOOLEAN NOT NULL DEFAULT FALSE,
+          follow_up_at TIMESTAMPTZ,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      const priorityConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_community_activity_priority_check' AND conrelid='creator_community_activity_meta'::regclass LIMIT 1"
+      );
+      if(!priorityConstraint.rowCount){
+        await db.query("ALTER TABLE creator_community_activity_meta ADD CONSTRAINT creator_community_activity_priority_check CHECK(priority IN ('normal','high'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_activity_meta_creator ON creator_community_activity_meta(creator_id,follow_up,priority,updated_at DESC)');
+    })().catch(error=>{
+      creatorCommunityV26Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV26Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV26();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.26 community follow-up bootstrap failed:',error);
+    res.status(500).json({error:'community_follow_up_bootstrap_failed'});
+  }
+});
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
@@ -1560,14 +1601,23 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
   }
 
   const status=String(req.query.status || 'pending');
+  const focus=String(req.query.focus || 'all');
   if(!['pending','reviewed','all'].includes(status)){
     return res.status(400).json({error:'invalid_activity_status'});
+  }
+  if(!['all','high','followup'].includes(focus)){
+    return res.status(400).json({error:'invalid_activity_focus'});
   }
 
   const rows=await db.query(`
     SELECT
       n.id notification_id,n.type,n.created_at,n.read_at,
       review.reviewed_at,
+      COALESCE(meta.priority,'normal') activity_priority,
+      COALESCE(meta.private_note,'') activity_note,
+      COALESCE(meta.follow_up,false) activity_follow_up,
+      meta.follow_up_at activity_follow_up_at,
+      meta.updated_at activity_meta_updated_at,
       actor.id actor_id,actor.username actor_username,actor.display_name actor_display_name,
       actor.avatar_url actor_avatar_url,actor.creator_verified actor_creator_verified,
       p.id post_id,p.caption,p.audience,p.created_at post_created_at,
@@ -1583,6 +1633,9 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
     LEFT JOIN creator_community_notification_reviews review
       ON review.notification_id=n.id
      AND review.creator_id=$1
+    LEFT JOIN creator_community_activity_meta meta
+      ON meta.notification_id=n.id
+     AND meta.creator_id=$1
     LEFT JOIN creator_polls cp
       ON cp.post_id=p.id
      AND n.type='creator_poll_vote'
@@ -1605,9 +1658,17 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
         OR ($2='pending' AND review.reviewed_at IS NULL)
         OR ($2='reviewed' AND review.reviewed_at IS NOT NULL)
       )
-    ORDER BY n.created_at DESC,n.id DESC
+      AND (
+        $3='all'
+        OR ($3='high' AND COALESCE(meta.priority,'normal')='high')
+        OR ($3='followup' AND COALESCE(meta.follow_up,false)=true)
+      )
+    ORDER BY
+      COALESCE(meta.priority,'normal')='high' DESC,
+      COALESCE(meta.follow_up,false) DESC,
+      n.created_at DESC,n.id DESC
     LIMIT 300
-  `,[req.user.id,status]);
+  `,[req.user.id,status,focus]);
 
   const groups=new Map();
   let pendingCount=0;
@@ -1642,6 +1703,13 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
       type:row.type,
       created_at:row.created_at,
       reviewed_at:row.reviewed_at,
+      management:{
+        priority:row.activity_priority || 'normal',
+        note:row.activity_note || '',
+        follow_up:row.activity_follow_up===true,
+        follow_up_at:row.activity_follow_up_at || null,
+        updated_at:row.activity_meta_updated_at || null
+      },
       actor:{
         id:row.actor_id,
         username:row.actor_username,
@@ -1668,7 +1736,9 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
   const allCount=await db.query(`
     SELECT
       count(*)::int total_count,
-      count(*) FILTER (WHERE review.reviewed_at IS NULL)::int pending_count
+      count(*) FILTER (WHERE review.reviewed_at IS NULL)::int pending_count,
+      count(*) FILTER (WHERE COALESCE(meta.priority,'normal')='high')::int high_priority_count,
+      count(*) FILTER (WHERE COALESCE(meta.follow_up,false)=true)::int follow_up_count
     FROM notifications n
     JOIN posts activity_post
       ON activity_post.id=n.entity_id
@@ -1676,6 +1746,9 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
     LEFT JOIN creator_community_notification_reviews review
       ON review.notification_id=n.id
      AND review.creator_id=$1
+    LEFT JOIN creator_community_activity_meta meta
+      ON meta.notification_id=n.id
+     AND meta.creator_id=$1
     WHERE n.user_id=$1
       AND n.entity_type='creator_community'
       AND n.type IN ('creator_poll_vote','creator_question_response')
@@ -1683,8 +1756,11 @@ router.get('/creator/community-activity',requireAuth,async(req,res)=>{
 
   res.json({
     status,
+    focus,
     totalCount:Number(allCount.rows[0]?.total_count || 0),
     pendingCount:Number(allCount.rows[0]?.pending_count || 0),
+    highPriorityCount:Number(allCount.rows[0]?.high_priority_count || 0),
+    followUpCount:Number(allCount.rows[0]?.follow_up_count || 0),
     groups:[...groups.values()]
   });
 });
@@ -1737,6 +1813,56 @@ router.post('/creator/community-activity/review-all',requireAuth,async(req,res)=
   `,[req.user.id]);
 
   res.json({ok:true,reviewedCount:result.rowCount});
+});
+
+const creatorActivityMetaSchema=z.object({
+  priority:z.enum(['normal','high']).default('normal'),
+  privateNote:z.string().trim().max(1000).default(''),
+  followUp:z.boolean().default(false),
+  followUpAt:z.string().datetime({offset:true}).nullable().optional()
+});
+
+router.patch('/creator/community-activity/:notificationId/meta',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=creatorActivityMetaSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_activity_meta'});
+
+  const data=parsed.data;
+  const followUpAt=data.followUp && data.followUpAt ? new Date(data.followUpAt) : null;
+  if(followUpAt && !Number.isFinite(followUpAt.getTime())){
+    return res.status(400).json({error:'invalid_follow_up_date'});
+  }
+
+  const result=await db.query(`
+    INSERT INTO creator_community_activity_meta
+      (notification_id,creator_id,priority,private_note,follow_up,follow_up_at,updated_at)
+    SELECT n.id,$2,$3,$4,$5,$6,now()
+      FROM notifications n
+     WHERE n.id=$1
+       AND n.user_id=$2
+       AND n.entity_type='creator_community'
+       AND n.type IN ('creator_poll_vote','creator_question_response')
+    ON CONFLICT(notification_id) DO UPDATE
+      SET creator_id=excluded.creator_id,
+          priority=excluded.priority,
+          private_note=excluded.private_note,
+          follow_up=excluded.follow_up,
+          follow_up_at=excluded.follow_up_at,
+          updated_at=now()
+    RETURNING notification_id,priority,private_note,follow_up,follow_up_at,updated_at
+  `,[
+    req.params.notificationId,
+    req.user.id,
+    data.priority,
+    data.privateNote,
+    data.followUp,
+    followUpAt ? followUpAt.toISOString() : null
+  ]);
+
+  if(!result.rowCount)return res.status(404).json({error:'activity_not_found'});
+  res.json({ok:true,meta:result.rows[0]});
 });
 
 router.get('/creator/community-insights',requireAuth,async(req,res)=>{

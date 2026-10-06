@@ -31,6 +31,7 @@ let creatorCommunityStatus = 'active';
 let creatorCommunityStarredOnly = false;
 let creatorCommunityData = null;
 let creatorCommunityActivityStatus = 'pending';
+let creatorCommunityActivityFocus = 'all';
 let creatorCommunityActivityData = null;
 
 
@@ -1799,6 +1800,10 @@ function creatorActivityActorHTML(actor = {}) {
 
 function creatorActivityItemHTML(group,item) {
   const isPoll=group.kind==='poll';
+  const management=item.management || {};
+  const priority=management.priority==='high' ? 'high' : 'normal';
+  const followUp=management.follow_up===true;
+  const followUpValue=management.follow_up_at ? toLocalDateTimeInput(management.follow_up_at) : '';
   let detail='';
   if(isPoll){
     detail=item.interaction?.withdrawn
@@ -1809,13 +1814,41 @@ function creatorActivityItemHTML(group,item) {
       ? '<span class="creator-activity-withdrawn">Respuesta retirada</span>'
       : `<span class="creator-activity-response-copy">${esc(item.interaction?.body || '')}</span>`;
   }
-  return `<div class="creator-activity-item ${item.reviewed_at ? 'reviewed' : 'pending'}">
+  return `<div class="creator-activity-item ${item.reviewed_at ? 'reviewed' : 'pending'} ${priority==='high' ? 'high-priority' : ''} ${followUp ? 'follow-up' : ''}">
     ${creatorActivityActorHTML(item.actor)}
     <div class="creator-activity-item-copy">
+      <div class="creator-activity-private-flags">
+        ${priority==='high' ? '<span class="creator-activity-priority-badge">Prioridad alta</span>' : ''}
+        ${followUp ? `<span class="creator-activity-followup-badge">Seguimiento${followUpValue ? ` · ${esc(new Date(management.follow_up_at).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))}` : ''}</span>` : ''}
+      </div>
       <p>${detail}</p>
-      <small>${timeAgo(item.created_at)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}</small>
+      <small>${timeAgo(item.created_at)}${item.reviewed_at ? ' · Revisado' : ' · Pendiente'}${management.note ? ' · Nota privada' : ''}</small>
     </div>
-    ${item.reviewed_at ? '' : `<button type="button" class="tiny-action" data-creator-activity-review-id="${item.notification_id}">Revisado</button>`}
+    <div class="creator-activity-item-actions">
+      ${item.reviewed_at ? '' : `<button type="button" class="tiny-action" data-creator-activity-review-id="${item.notification_id}">Revisado</button>`}
+      <details class="creator-activity-private-editor">
+        <summary>Gestionar</summary>
+        <div class="creator-activity-private-form">
+          <label>Prioridad
+            <select data-activity-priority="${item.notification_id}">
+              <option value="normal" ${priority==='normal' ? 'selected' : ''}>Normal</option>
+              <option value="high" ${priority==='high' ? 'selected' : ''}>Alta</option>
+            </select>
+          </label>
+          <label class="creator-activity-followup-toggle">
+            <input type="checkbox" data-activity-followup="${item.notification_id}" ${followUp ? 'checked' : ''}>
+            Dejar en seguimiento
+          </label>
+          <label>Recordar para
+            <input type="datetime-local" data-activity-followup-at="${item.notification_id}" value="${esc(followUpValue)}" ${followUp ? '' : 'disabled'}>
+          </label>
+          <label>Nota privada
+            <textarea maxlength="1000" data-activity-note="${item.notification_id}" placeholder="Solo tú puedes ver esta nota...">${esc(management.note || '')}</textarea>
+          </label>
+          <button type="button" class="tiny-action primary-soft" data-activity-meta-save="${item.notification_id}">Guardar seguimiento</button>
+        </div>
+      </details>
+    </div>
   </div>`;
 }
 
@@ -1829,6 +1862,15 @@ function renderCreatorCommunityActivity(data = {}) {
   }
   const reviewAll=$('#creatorActivityReviewAll');
   if(reviewAll)reviewAll.disabled=pending===0;
+  if($('#creatorActivityHighCount')){
+    const count=Number(data.highPriorityCount || 0);
+    $('#creatorActivityHighCount').textContent=`${count} ${count===1 ? 'alta' : 'altas'}`;
+  }
+  if($('#creatorActivityFollowUpCount')){
+    const count=Number(data.followUpCount || 0);
+    $('#creatorActivityFollowUpCount').textContent=`${count} seguimiento`;
+  }
+  if($('#creatorActivityFocus'))$('#creatorActivityFocus').value=creatorCommunityActivityFocus;
 
   all('[data-creator-activity-status]').forEach(button=>{
     button.classList.toggle('active',button.dataset.creatorActivityStatus===creatorCommunityActivityStatus);
@@ -1874,7 +1916,10 @@ function renderCreatorCommunityActivity(data = {}) {
 async function loadCreatorCommunityActivity() {
   const root=$('#creatorActivityGroups');
   if(root)root.innerHTML='<div class="mini-loading">Cargando actividad...</div>';
-  const qs=new URLSearchParams({status:creatorCommunityActivityStatus});
+  const qs=new URLSearchParams({
+    status:creatorCommunityActivityStatus,
+    focus:creatorCommunityActivityFocus
+  });
   const { r,d }=await api(`/api/posts/creator/community-activity?${qs.toString()}`);
   if(!r.ok){
     if(root)root.innerHTML='<div class="creator-empty compact">No se pudo cargar el centro de actividad.</div>';
@@ -2241,6 +2286,19 @@ all('[data-creator-activity-status]').forEach(button=>{
   });
 });
 
+$('#creatorActivityFocus')?.addEventListener('change',async event=>{
+  creatorCommunityActivityFocus=event.currentTarget.value || 'all';
+  await loadCreatorCommunityActivity();
+});
+
+document.addEventListener('change',event=>{
+  const checkbox=event.target.closest('[data-activity-followup]');
+  if(!checkbox)return;
+  const item=checkbox.closest('.creator-activity-item');
+  const dateInput=item?.querySelector('[data-activity-followup-at]');
+  if(dateInput)dateInput.disabled=!checkbox.checked;
+});
+
 $('#creatorActivityReviewAll')?.addEventListener('click',async()=>{
   const button=$('#creatorActivityReviewAll');
   if(!button || button.disabled)return;
@@ -2288,6 +2346,57 @@ document.addEventListener('click',async event=>{
     await loadCreatorCommunityActivity();
   }catch(error){
     toast(error.message || 'No se pudo actualizar la actividad.');
+  }finally{
+    button.disabled=false;
+  }
+});
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-activity-meta-save]');
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if(button.disabled)return;
+  button.disabled=true;
+
+  try{
+    const id=button.dataset.activityMetaSave;
+    const item=button.closest('.creator-activity-item');
+    const priority=item?.querySelector(`[data-activity-priority="${CSS.escape(String(id))}"]`)?.value || 'normal';
+    const followUp=item?.querySelector(`[data-activity-followup="${CSS.escape(String(id))}"]`)?.checked===true;
+    const followUpRaw=String(item?.querySelector(`[data-activity-followup-at="${CSS.escape(String(id))}"]`)?.value || '');
+    const privateNote=String(item?.querySelector(`[data-activity-note="${CSS.escape(String(id))}"]`)?.value || '').trim();
+    let followUpAt=null;
+
+    if(followUp && followUpRaw){
+      const date=new Date(followUpRaw);
+      if(!Number.isFinite(date.getTime()))throw new Error('La fecha de seguimiento no es válida.');
+      followUpAt=date.toISOString();
+    }
+
+    const { r,d }=await api(`/api/posts/creator/community-activity/${encodeURIComponent(id)}/meta`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        priority,
+        privateNote,
+        followUp,
+        followUpAt
+      })
+    });
+    if(!r.ok){
+      throw new Error(
+        d.error==='invalid_activity_meta' ? 'Revisa prioridad, nota o seguimiento.' :
+        d.error==='activity_not_found' ? 'Esta actividad ya no está disponible.' :
+        'No se pudo guardar el seguimiento.'
+      );
+    }
+
+    toast('Seguimiento privado guardado');
+    await loadCreatorCommunityActivity();
+  }catch(error){
+    toast(error.message || 'No se pudo guardar el seguimiento.');
   }finally{
     button.disabled=false;
   }
