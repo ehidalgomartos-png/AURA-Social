@@ -182,6 +182,15 @@ async function notifyMentions({ actorId, text, entityType='post', entityId, audi
      WHERE lower(u.username)=ANY($1::text[])
        AND u.status='active'
        AND u.id<>$2
+       AND u.mention_privacy<>'no_one'
+       AND (
+         u.mention_privacy='everyone'
+         OR (
+           u.mention_privacy='connections'
+           AND EXISTS(SELECT 1 FROM follows mp1 WHERE mp1.follower_id=$2 AND mp1.following_id=u.id)
+           AND EXISTS(SELECT 1 FROM follows mp2 WHERE mp2.follower_id=u.id AND mp2.following_id=$2)
+         )
+       )
        AND u.id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$2
          UNION
@@ -901,6 +910,7 @@ async function ensureCollaborativeV161(){
   if(!collaborativeV161Ready){
     collaborativeV161Ready=(async()=>{
       await db.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS mention_privacy TEXT NOT NULL DEFAULT 'everyone';
         CREATE TABLE IF NOT EXISTS post_collaborators (
           post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
           user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -949,6 +959,15 @@ async function notifyCircleMentions(postId,actorId){
       JOIN users u ON u.id=member.connection_user_id AND u.status='active'
      WHERE mention.post_id=$1
        AND member.connection_user_id<>$2
+       AND u.mention_privacy<>'no_one'
+       AND (
+         u.mention_privacy='everyone'
+         OR (
+           u.mention_privacy='connections'
+           AND EXISTS(SELECT 1 FROM follows cmf1 WHERE cmf1.follower_id=$2 AND cmf1.following_id=u.id)
+           AND EXISTS(SELECT 1 FROM follows cmf2 WHERE cmf2.follower_id=u.id AND cmf2.following_id=$2)
+         )
+       )
   `,[postId,actorId]);
 
   for(const row of members.rows){
