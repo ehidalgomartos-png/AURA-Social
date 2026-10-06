@@ -29,8 +29,13 @@ let liveActivityState = {
   notificationUnread:null,
   latestNotificationId:'0',
   messageUnread:null,
-  latestIncomingMessageId:'0'
+  latestIncomingMessageId:'0',
+  conversationPresence:[]
 };
+let liveConversationPresence=new Map();
+let presenceHeartbeatTimer=null;
+let typingClearTimer=null;
+let lastTypingPingAt=0;
 let liveActivityRefreshing = false;
 let returnPulseLoaded = false;
 const HOME_LAST_VISIT_KEY = 'redlibertad:last-home-visit';
@@ -4506,6 +4511,94 @@ $('#reportForm').addEventListener('submit', async event => {
   }
 });
 
+function conversationPresence(id) {
+  return liveConversationPresence.get(String(id)) || null;
+}
+
+function presenceLabel(state,fallback=null) {
+  if(state?.typing)return 'Escribiendo…';
+  if(state?.online)return 'En línea';
+  const last=state?.lastSeenAt || fallback?.last_seen_at;
+  return last ? `Activo ${timeAgo(last)}` : '';
+}
+
+function updateConversationPresenceBadges() {
+  all('[data-conversation]').forEach(row=>{
+    const state=conversationPresence(row.dataset.conversation);
+    const dot=row.querySelector('.conversation-presence-dot');
+    const label=row.querySelector('.conversation-presence-label');
+    if(dot)dot.classList.toggle('online',state?.online===true);
+    if(label)label.textContent=state?.typing ? 'Escribiendo…' : state?.online ? 'En línea' : '';
+  });
+}
+
+function updateActiveChatPresence() {
+  if(!activeConversationId)return;
+  const state=conversationPresence(activeConversationId);
+  const label=$('#chatPresence');
+  if(label){
+    const text=presenceLabel(state,activeConversationOther);
+    label.textContent=text;
+    label.classList.toggle('typing',state?.typing===true);
+    label.classList.toggle('online',state?.online===true && !state?.typing);
+  }
+
+  const readAt=state?.otherLastReadAt ? new Date(state.otherLastReadAt).getTime() : 0;
+  if(readAt){
+    all('#messageThread .message-bubble.mine[data-message-created]').forEach(bubble=>{
+      const created=new Date(bubble.dataset.messageCreated).getTime();
+      if(Number.isFinite(created) && created<=readAt){
+        const receipt=bubble.querySelector('.message-receipt');
+        if(receipt)receipt.textContent='Visto';
+      }
+    });
+  }
+}
+
+async function sendChatPresence({typing=false,conversationId=activeConversationId}={}) {
+  if(document.visibilityState==='hidden' && !typing)return;
+  try{
+    await api('/api/messages/presence',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        conversationId:conversationId ? Number(conversationId) : null,
+        typing:typing===true
+      })
+    });
+  }catch(_){}
+}
+
+function startPresenceHeartbeat() {
+  if(presenceHeartbeatTimer)return;
+  sendChatPresence({typing:false});
+  presenceHeartbeatTimer=setInterval(()=>{
+    if(document.visibilityState==='visible')sendChatPresence({typing:false});
+  },20000);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')sendChatPresence({typing:false});
+  });
+}
+
+function bindTypingPresence() {
+  const input=$('#messageBody');
+  if(!input)return;
+  input.addEventListener('input',()=>{
+    if(!activeConversationId)return;
+    const now=Date.now();
+    if(now-lastTypingPingAt>2500){
+      lastTypingPingAt=now;
+      sendChatPresence({typing:true});
+    }
+    clearTimeout(typingClearTimer);
+    typingClearTimer=setTimeout(()=>sendChatPresence({typing:false}),4200);
+  });
+  input.addEventListener('blur',()=>{
+    clearTimeout(typingClearTimer);
+    sendChatPresence({typing:false});
+  });
+}
+
 function updateMessageBadge(n) {
   const safe=Math.max(0,Number(n || 0));
   const value=safe>99 ? '99+' : String(safe);
@@ -4544,11 +4637,17 @@ async function handleLiveActivity(payload,initial=false) {
     notificationUnread:Number(payload.notificationUnread || 0),
     latestNotificationId:String(payload.latestNotificationId || '0'),
     messageUnread:Number(payload.messageUnread || 0),
-    latestIncomingMessageId:String(payload.latestIncomingMessageId || '0')
+    latestIncomingMessageId:String(payload.latestIncomingMessageId || '0'),
+    conversationPresence:Array.isArray(payload.conversationPresence) ? payload.conversationPresence : []
   };
+  liveConversationPresence=new Map(
+    liveActivityState.conversationPresence.map(item=>[String(item.conversationId),item])
+  );
 
   updateNotificationBadge(liveActivityState.notificationUnread);
   updateMessageBadge(liveActivityState.messageUnread);
+  updateConversationPresenceBadges();
+  updateActiveChatPresence();
   if(initial)return;
 
   const notificationChanged=
@@ -4777,10 +4876,11 @@ async function loadConversations(openId = null) {
   }
 
   $('#conversationList').innerHTML = conversations.length ? conversations.map(c => `<button class="conversation-row ${String(c.id) === String(activeConversationId) ? 'active' : ''} ${c.is_pinned?'pinned':''}" data-conversation="${c.id}">
-    <div class="avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}</div>
+    <div class="avatar conversation-avatar">${c.avatar_url ? `<img src="${esc(c.avatar_url)}">` : initials(c.display_name)}<i class="conversation-presence-dot ${c.other_online?'online':''}"></i></div>
     <div class="conversation-copy">
       <b>${c.is_pinned?'★ ':''}${esc(c.display_name)} ${c.creator_verified ? '<span class="verified">✓</span>' : ''}</b>
       <small>${c.last_content_level && c.last_content_level !== 'normal' ? 'Contenido sensible' : esc(c.last_body || 'Conversación nueva')}</small>
+      <span class="conversation-presence-label">${c.other_online?'En línea':''}</span>
       ${c.notifications_muted?'<em class="conversation-muted">Silenciada</em>':''}
     </div>
     ${Number(c.unread_count) ? `<i class="count-badge">${c.unread_count}</i>` : ''}
@@ -4800,7 +4900,7 @@ async function openConversation(id) {
   $('#chatPanel').innerHTML = `<header class="chat-head">
     <button id="mobileChatBack" class="mobile-chat-back" type="button" aria-label="Volver a conversaciones">‹</button>
     <div class="avatar">${avatarHTML(d.other)}</div>
-    <div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)}</small></div>
+    <div class="chat-person"><b>${esc(d.other.display_name)}</b><small>@${esc(d.other.username)} · <span id="chatPresence" class="chat-presence">${esc(presenceLabel(conversationPresence(id),d.other))}</span></small></div>
     <div class="chat-conversation-actions">
       <button type="button" class="tiny-action" data-conversation-setting="pinned">${activeConversationSettings.is_pinned?'★ Fijada':'☆ Fijar'}</button>
       <button type="button" class="tiny-action" data-conversation-setting="muted">${activeConversationSettings.notifications_muted?'Activar avisos':'Silenciar'}</button>
@@ -4812,10 +4912,14 @@ async function openConversation(id) {
   if (mobileBack) mobileBack.onclick = () => {
     const messagesLayout = $('.messages-layout');
     if (messagesLayout) messagesLayout.classList.remove('chat-open');
+    sendChatPresence({typing:false,conversationId:null});
     activeConversationId = null;
     loadConversations();
   };
   $('#messageForm').onsubmit = sendMessage;
+  bindTypingPresence();
+  sendChatPresence({typing:false,conversationId:id});
+  updateActiveChatPresence();
   $('#messageFile').addEventListener('change', renderMessagePreview);
   $('#messageLevel').addEventListener('change', updateMessagePreviewLevel);
   all('[data-accept-sensitive]').forEach(b => b.onclick = acceptSensitiveMessages);
@@ -4864,7 +4968,8 @@ function messageHTML(m, other) {
   } else if (m.media_url || m.playback_url) {
     media = `<div class="message-media">${mediaHTML(m)}</div>`;
   }
-  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'}">${body}${media}<small>${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${m.content_level !== 'normal' ? ' · 18+' : ''}</small></div>`;
+  const receipt=mine ? (m.seen_by_other ? 'Visto' : 'Enviado') : '';
+  return `<div class="message-bubble ${mine ? 'mine' : 'theirs'}" data-message-created="${esc(m.created_at)}">${body}${media}<small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${m.content_level !== 'normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small></div>`;
 }
 async function acceptSensitiveMessages(e) {
   const senderId = e.currentTarget.dataset.acceptSensitive;
@@ -4989,6 +5094,8 @@ async function sendMessage(e) {
     }
 
     // The server has confirmed persistence at this point.
+    clearTimeout(typingClearTimer);
+    sendChatPresence({typing:false});
     toast('Mensaje enviado');
     clearMessagePreview();
 
@@ -5064,6 +5171,7 @@ $('#returnPulseRefresh')?.addEventListener('click',async()=>{
 });
 
 function showView(name) {
+  if(name!=='messages' && activeConversationId)sendChatPresence({typing:false,conversationId:null});
   if(name!=='reels')pauseReelVideos();
   all('.view').forEach(v => v.classList.add('hidden'));
   const view = document.querySelector('#' + name + 'View');
@@ -5365,6 +5473,7 @@ async function handleInitialDeepLink() {
     await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
     startLiveActivity();
+    startPresenceHeartbeat();
     await handleInitialDeepLink();
   } catch (e) { console.error(e); }
 })();
