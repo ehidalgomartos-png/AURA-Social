@@ -1,4 +1,4 @@
-# RedLibertad V1.58.0 — Social Communities
+# RedLibertad V1.59.0 — Community Discovery
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1277,5 +1277,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Los chats enlazados no permiten gestionar miembros desde Mensajes.
 - Comunidades privadas muestran ficha/reglas, pero ocultan publicaciones y miembros hasta la aprobación.
 - Bloqueos existentes se respetan en listados y contenido.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.59.0 — Community Discovery
+
+- Descubrimiento de comunidades separado del directorio general.
+- Categorías de comunidad.
+- Hasta 8 intereses por comunidad.
+- Modos Recomendadas / Tus conexiones / Nuevas / Activas.
+- Búsqueda por nombre, descripción o interés.
+- Filtro por categoría.
+- Recomendaciones explicables con motivo visible.
+- Señales: intereses compartidos, conexiones que participan y actividad reciente.
+- Sin ranking por engagement, rachas o presión artificial.
+- Ocultar sugerencias de forma privada por usuario.
+- Bloqueos y silencios respetados.
 - Mobile-first.
 - Sin monetización.
