@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/social.css">
+  <link rel="stylesheet" href="/creator-ops.css">
 </head>
 <body>
 <div class="social-shell">
@@ -196,6 +197,38 @@
     <div id="creatorMetrics" class="creator-metrics">
       <div class="mini-loading">Cargando métricas...</div>
     </div>
+
+    <section class="creator-section creator-ops-section creator-tasks-section" id="creatorTasksSection">
+      <div class="creator-section-head">
+        <div>
+          <span class="eyebrow">CREATOR OPS</span>
+          <b>Tareas y recordatorios</b>
+          <small>Organiza trabajo privado sin mezclarlo con tus publicaciones ni hacerlo visible a tu comunidad.</small>
+        </div>
+      </div>
+      <div id="creatorTasksSummary" class="creator-ops-metrics"></div>
+      <form id="creatorTaskForm" class="creator-ops-form">
+        <input name="title" maxlength="160" placeholder="Nueva tarea privada…" required>
+        <select name="priority" aria-label="Prioridad">
+          <option value="normal">Prioridad normal</option>
+          <option value="high">Prioridad alta</option>
+        </select>
+        <input name="dueAt" type="datetime-local" aria-label="Fecha y hora">
+        <textarea name="note" maxlength="1000" placeholder="Nota privada opcional"></textarea>
+        <button class="primary" type="submit">Añadir tarea</button>
+      </form>
+      <div class="creator-ops-toolbar">
+        <button type="button" class="active" data-task-status="open">Pendientes</button>
+        <button type="button" data-task-status="completed">Completadas</button>
+        <select id="creatorTaskPriority" aria-label="Filtrar prioridad">
+          <option value="all">Todas las prioridades</option>
+          <option value="high">Alta</option>
+          <option value="normal">Normal</option>
+        </select>
+        <input id="creatorTaskSearch" type="search" maxlength="120" placeholder="Buscar en tareas…">
+      </div>
+      <div id="creatorTaskList" class="creator-ops-list"></div>
+    </section>
 
     <section class="creator-section creator-broadcast-section">
       <div class="creator-section-head">
@@ -708,5 +741,5 @@
 </div>
 
 <div id="toast" class="toast hidden"></div>
-<script src="/pwa.js"></script><script src="/social.js"></script>
+<script src="/pwa.js"></script><script src="/social.js"></script><script src="/creator-ops.js"></script>
 </body></html>
