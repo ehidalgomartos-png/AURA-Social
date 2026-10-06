@@ -8,6 +8,7 @@ let connectivityHideTimer=null;
 let currentFileMedia = null;
 let activeConversationId = null;
 let activeConversationOther = null;
+let activeConversationMeta = null;
 let activeConversationSettings = null;
 let activeMessageReply = null;
 let messageConversationFilter = 'all';
@@ -4781,6 +4782,16 @@ function conversationPresence(id) {
 }
 
 function presenceLabel(state,fallback=null) {
+  if(state?.isGroup){
+    const typingNames=Array.isArray(state.typingNames) ? state.typingNames.filter(Boolean) : [];
+    if(typingNames.length===1)return `${typingNames[0]} está escribiendo…`;
+    if(typingNames.length>1)return `${typingNames.slice(0,2).join(' y ')} están escribiendo…`;
+    if(Number(state.onlineCount || 0)>0){
+      const n=Number(state.onlineCount || 0);
+      return `${n} ${n===1 ? 'persona en línea' : 'personas en línea'}`;
+    }
+    return '';
+  }
   if(state?.typing)return 'Escribiendo…';
   if(state?.online)return 'En línea';
   const last=state?.lastSeenAt || fallback?.last_seen_at;
@@ -4793,7 +4804,9 @@ function updateConversationPresenceBadges() {
     const dot=row.querySelector('.conversation-presence-dot');
     const label=row.querySelector('.conversation-presence-label');
     if(dot)dot.classList.toggle('online',state?.online===true);
-    if(label)label.textContent=state?.typing ? 'Escribiendo…' : state?.online ? 'En línea' : '';
+    if(label)label.textContent=state?.isGroup
+      ? presenceLabel(state)
+      : state?.typing ? 'Escribiendo…' : state?.online ? 'En línea' : '';
   });
 }
 
@@ -4802,21 +4815,23 @@ function updateActiveChatPresence() {
   const state=conversationPresence(activeConversationId);
   const label=$('#chatPresence');
   if(label){
-    const text=presenceLabel(state,activeConversationOther);
+    const text=presenceLabel(state,activeConversationMeta?.is_group ? null : activeConversationOther);
     label.textContent=text;
     label.classList.toggle('typing',state?.typing===true);
     label.classList.toggle('online',state?.online===true && !state?.typing);
   }
 
-  const readAt=state?.otherLastReadAt ? new Date(state.otherLastReadAt).getTime() : 0;
-  if(readAt){
-    all('#messageThread .message-bubble.mine[data-message-created]').forEach(bubble=>{
-      const created=new Date(bubble.dataset.messageCreated).getTime();
-      if(Number.isFinite(created) && created<=readAt){
-        const receipt=bubble.querySelector('.message-receipt');
-        if(receipt)receipt.textContent='Visto';
-      }
-    });
+  if(!activeConversationMeta?.is_group){
+    const readAt=state?.otherLastReadAt ? new Date(state.otherLastReadAt).getTime() : 0;
+    if(readAt){
+      all('#messageThread .message-bubble.mine[data-message-created]').forEach(bubble=>{
+        const created=new Date(bubble.dataset.messageCreated).getTime();
+        if(Number.isFinite(created) && created<=readAt){
+          const receipt=bubble.querySelector('.message-receipt');
+          if(receipt)receipt.textContent='Visto';
+        }
+      });
+    }
   }
 }
 
