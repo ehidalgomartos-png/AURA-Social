@@ -5,6 +5,31 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let profileCollaborationsV161Ready=null;
+async function ensureProfileCollaborationsV161(){
+  if(!profileCollaborationsV161Ready){
+    profileCollaborationsV161Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_collaborators (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','revoked')),
+          requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          responded_at TIMESTAMPTZ,
+          PRIMARY KEY(post_id,user_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status ON post_collaborators(user_id,status,requested_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status ON post_collaborators(post_id,status,requested_at)');
+    })().catch(error=>{profileCollaborationsV161Ready=null;throw error;});
+  }
+  return profileCollaborationsV161Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureProfileCollaborationsV161();next();}
+  catch(error){console.error('RedLibertad V1.61 profile collaboration bootstrap failed:',error);res.status(500).json({error:'profile_collaboration_bootstrap_failed'});}
+});
+
 let connectionCirclesV152Ready=null;
 async function ensureConnectionCirclesV152(){
   if(!connectionCirclesV152Ready){
