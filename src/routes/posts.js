@@ -617,6 +617,37 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+
+let creatorCommunityV25Ready=null;
+async function ensureCreatorCommunityV25(){
+  if(!creatorCommunityV25Ready){
+    creatorCommunityV25Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_community_notification_reviews (
+          notification_id BIGINT PRIMARY KEY REFERENCES notifications(id) ON DELETE CASCADE,
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_community_reviews_creator ON creator_community_notification_reviews(creator_id,reviewed_at DESC)');
+    })().catch(error=>{
+      creatorCommunityV25Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV25Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV25();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.25 activity center bootstrap failed:',error);
+    res.status(500).json({error:'community_activity_bootstrap_failed'});
+  }
+});
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
