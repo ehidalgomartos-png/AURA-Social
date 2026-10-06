@@ -883,8 +883,6 @@ router.post('/:id/save', requireAuth, async (req,res)=>{
 
 router.delete('/:id/save', requireAuth, async (req,res)=>{
   await ensureSavedPostsTable();
-  const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
-  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
   await db.query(
     'DELETE FROM saved_posts WHERE user_id=$1 AND post_id=$2',
     [req.user.id,req.params.id]
@@ -1051,8 +1049,8 @@ router.post('/:id/like', requireAuth, async (req,res)=>{
 });
 router.delete('/:id/like', requireAuth, async (req,res)=>{
   const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
-  if(!visiblePost)return res.status(404).json({error:'post_not_found'});
   await db.query('DELETE FROM likes WHERE user_id=$1 AND post_id=$2',[req.user.id,req.params.id]);
+  if(!visiblePost)return res.json({ok:true,liked:false,likeCount:null});
   const count=await db.query('SELECT count(*)::int AS n FROM likes WHERE post_id=$1',[req.params.id]);
   res.json({ok:true,liked:false,likeCount:count.rows[0]?.n || 0});
 });
