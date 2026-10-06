@@ -5,6 +5,20 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let profilesV138Ready=null;
+async function ensureProfilesV138(){
+  if(!profilesV138Ready){
+    profilesV138Ready=db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_status VARCHAR(80) NOT NULL DEFAULT ''")
+      .catch(error=>{profilesV138Ready=null;throw error;});
+  }
+  return profilesV138Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureProfilesV138();next();}
+  catch(error){console.error('RedLibertad V1.38 profile bootstrap failed:',error);res.status(500).json({error:'profile_v138_bootstrap_failed'});}
+});
+
+
 let discoveryProfilesV137Ready=null;
 async function ensureDiscoveryProfilesV137(){
   if(!discoveryProfilesV137Ready){
@@ -345,7 +359,7 @@ router.get('/interests', requireAuth, async (_req, res) => {
 
 router.get('/me/summary', requireAuth, async (req,res)=>{
   const r=await db.query(`
-    SELECT id,email,username,display_name,bio,avatar_url,cover_url,location_label,website_url,creator_headline,
+    SELECT id,email,username,display_name,bio,profile_status,avatar_url,cover_url,location_label,website_url,creator_headline,
            is_admin,age_verified,creator_verified,show_sensitive,status,message_privacy,discoverable,show_activity,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
@@ -1387,7 +1401,7 @@ router.post('/me/creator-vip-broadcasts',requireAuth,async(req,res)=>{
 
 router.get('/:username', optionalAuth, async (req,res)=>{
   const result=await db.query(`
-    SELECT id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,creator_headline,age_verified,creator_verified,created_at,
+    SELECT id,username,display_name,bio,profile_status,avatar_url,cover_url,location_label,website_url,creator_headline,age_verified,creator_verified,show_activity,created_at,
            (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count,
            (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
            (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
@@ -1491,6 +1505,22 @@ router.get('/:username', optionalAuth, async (req,res)=>{
       `,[profile.id]);
   profile.post_count=visiblePostCount.rows[0]?.n || 0;
 
+  if(profile.show_activity){
+    const activity=await db.query(`
+      SELECT GREATEST(
+        COALESCE((SELECT max(p.created_at) FROM posts p WHERE p.user_id=$1 AND p.moderation_status='published'),'epoch'::timestamptz),
+        COALESCE((SELECT max(c.created_at) FROM comments c WHERE c.user_id=$1),'epoch'::timestamptz),
+        COALESCE((SELECT max(r.created_at) FROM reposts r WHERE r.user_id=$1),'epoch'::timestamptz),
+        COALESCE((SELECT max(s.created_at) FROM stories s WHERE s.user_id=$1 AND s.moderation_status='published'),'epoch'::timestamptz)
+      ) last_activity_at
+    `,[profile.id]);
+    const value=activity.rows[0]?.last_activity_at;
+    profile.last_activity_at=value && new Date(value).getTime()>0 ? value : null;
+  }else{
+    profile.last_activity_at=null;
+  }
+  delete profile.show_activity;
+
   let creatorLinks=[];
   if(profile.creator_verified){
     const links=await db.query(`
@@ -1583,6 +1613,7 @@ router.get('/:username/following',optionalAuth,async(req,res)=>{
 const updateSchema=z.object({
   displayName:z.string().min(1).max(80).optional(),
   bio:z.string().max(500).optional(),
+  profileStatus:z.string().trim().max(80).optional(),
   avatarUrl:z.string().max(4096).optional(),
   coverUrl:z.string().max(4096).optional(),
   locationLabel:z.string().max(120).optional(),
@@ -1621,19 +1652,21 @@ router.patch('/me/profile',requireAuth,async(req,res)=>{
       UPDATE users
          SET display_name=$2,
              bio=$3,
-             avatar_url=$4,
-             cover_url=$5,
-             location_label=$6,
-             website_url=$7,
-             show_sensitive=$8,
+             profile_status=$4,
+             avatar_url=$5,
+             cover_url=$6,
+             location_label=$7,
+             website_url=$8,
+             show_sensitive=$9,
              updated_at=now()
        WHERE id=$1
-       RETURNING id,username,display_name,bio,avatar_url,cover_url,location_label,website_url,
+       RETURNING id,username,display_name,bio,profile_status,avatar_url,cover_url,location_label,website_url,
                  show_sensitive,creator_verified,age_verified
     `,[
       req.user.id,
       d.displayName??u.display_name,
       d.bio??u.bio,
+      d.profileStatus??u.profile_status,
       d.avatarUrl??u.avatar_url,
       d.coverUrl??u.cover_url,
       d.locationLabel??u.location_label,
