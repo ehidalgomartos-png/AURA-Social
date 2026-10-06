@@ -4926,6 +4926,31 @@ function closePostManage() {
   if (button) button.textContent = 'Eliminar publicación';
   const status = $('#postEditStatus');
   if (status) status.textContent = '';
+  if($('#postCollaboratorStatus'))$('#postCollaboratorStatus').textContent='';
+  if($('#postCollaboratorList'))$('#postCollaboratorList').innerHTML='';
+  $('#postCollaboratorForm')?.reset();
+}
+
+function collaboratorStatusLabel(status){
+  return status==='approved'?'Aceptada':status==='pending'?'Pendiente':status==='rejected'?'Rechazada':'Retirada';
+}
+async function loadPostCollaborators(){
+  const root=$('#postCollaboratorList');
+  if(!root||!activeManagePost)return;
+  root.innerHTML='<div class="mini-loading">Cargando colaboradores…</div>';
+  const {r,d}=await api(`/api/posts/${activeManagePost}/collaborators`);
+  if(!r.ok){root.innerHTML='<div class="empty-list">No se pudieron cargar los colaboradores.</div>';return;}
+  const items=Array.isArray(d.collaborators)?d.collaborators:[];
+  root.innerHTML=items.length?items.map(item=>`<article class="post-collaborator-row">
+    <span class="post-collaborator-avatar">${item.avatar_url?`<img src="${esc(item.avatar_url)}">`:initials(item.display_name)}</span>
+    <div><b>${esc(item.display_name)} ${item.creator_verified?'<span class="verified">✓</span>':''}</b><small>@${esc(item.username)} · ${esc(collaboratorStatusLabel(item.status))}</small></div>
+    <button type="button" class="tiny-action danger-outline" data-remove-collaborator="${item.user_id}">Quitar</button>
+  </article>`).join(''):'<div class="empty-list">No hay colaboradores.</div>';
+  all('[data-remove-collaborator]',root).forEach(button=>button.onclick=async()=>{
+    const {r}=await api(`/api/posts/${activeManagePost}/collaborators/${button.dataset.removeCollaborator}`,{method:'DELETE'});
+    if(r.ok){toast('Colaborador eliminado');await loadPostCollaborators();await loadFeed(currentMode);if(!$('#profileView').classList.contains('hidden'))await loadProfile();}
+    else toast('No se pudo quitar el colaborador.');
+  });
 }
 
 function openPostManage(postId, caption = '') {
@@ -4936,6 +4961,7 @@ function openPostManage(postId, caption = '') {
   $('#deletePostButton').textContent = 'Eliminar publicación';
   updatePostEditCounter();
   $('#postManageModal').classList.remove('hidden');
+  loadPostCollaborators();
   setTimeout(() => $('#postEditCaption')?.focus(), 100);
 }
 
@@ -5159,6 +5185,25 @@ if ($('#closePostManageModal')) $('#closePostManageModal').onclick = closePostMa
 if ($('#postEditCaption')) $('#postEditCaption').addEventListener('input', updatePostEditCounter);
 if ($('#postManageModal')) $('#postManageModal').addEventListener('click', event => {
   if (event.target === $('#postManageModal')) closePostManage();
+});
+
+if ($('#postCollaboratorForm')) $('#postCollaboratorForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeManagePost)return;
+  const status=$('#postCollaboratorStatus');
+  const fd=new FormData(event.currentTarget);
+  const usernames=String(fd.get('usernames')||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!usernames.length){status.textContent='Escribe al menos un @usuario.';return;}
+  status.textContent='Enviando invitación…';
+  const {r,d}=await api(`/api/posts/${activeManagePost}/collaborators`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usernames})});
+  if(!r.ok){
+    status.textContent=d.error==='collaborator_not_found'?`No encontramos: ${(d.missing||[]).join(', ')}`:d.error==='collaborator_unavailable'?'Alguna persona no está disponible para colaborar.':'No se pudo enviar la invitación.';
+    return;
+  }
+  event.currentTarget.reset();
+  status.textContent='Invitación enviada.';
+  toast('Invitación de colaboración enviada');
+  await loadPostCollaborators();
 });
 
 if ($('#postEditForm')) $('#postEditForm').addEventListener('submit', async event => {
