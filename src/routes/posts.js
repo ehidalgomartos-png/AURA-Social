@@ -88,7 +88,7 @@ function extractMentions(value='') {
   return [...found];
 }
 
-async function notifyMentions({ actorId, text, entityType='post', entityId }) {
+async function notifyMentions({ actorId, text, entityType='post', entityId, audience='public' }) {
   const names = extractMentions(text);
   if (!names.length || !entityId) return;
 
@@ -103,7 +103,22 @@ async function notifyMentions({ actorId, text, entityType='post', entityId }) {
          UNION
          SELECT blocker_id FROM blocks WHERE blocked_id=$2
        )
-  `,[names,actorId]);
+       AND (
+         $3::text='public'
+         OR EXISTS(
+           SELECT 1
+             FROM creator_vips cv
+             JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+            WHERE cv.creator_id=$2
+              AND cv.fan_id=u.id
+         )
+         OR EXISTS(
+           SELECT 1 FROM post_participants pp
+            WHERE pp.post_id=$4
+              AND pp.user_id=u.id
+         )
+       )
+  `,[names,actorId,audience,entityId]);
 
   for (const user of result.rows) {
     await db.query(`
@@ -208,6 +223,82 @@ async function ensureCreatorFeaturedV13() {
   return creatorFeaturedV13Ready;
 }
 
+
+let creatorExclusiveV18Ready = null;
+async function ensureCreatorExclusiveV18() {
+  if (!creatorExclusiveV18Ready) {
+    creatorExclusiveV18Ready = (async () => {
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='posts_audience_check' AND conrelid='posts'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_audience_created ON posts(audience,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS creator_vips (
+          creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          fan_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(creator_id,fan_id),
+          CHECK(creator_id<>fan_id)
+        )
+      `);
+    })().catch(error => {
+      creatorExclusiveV18Ready = null;
+      throw error;
+    });
+  }
+  return creatorExclusiveV18Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorExclusiveV18();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.18 exclusive content bootstrap failed:',error);
+    res.status(500).json({error:'exclusive_content_bootstrap_failed'});
+  }
+});
+
+function postAudienceWhere(viewerParam=null, alias='p') {
+  if (!viewerParam) return `${alias}.audience='public'`;
+  return `(
+    ${alias}.audience='public'
+    OR ${alias}.user_id=${viewerParam}
+    OR EXISTS(SELECT 1 FROM users audience_admin WHERE audience_admin.id=${viewerParam} AND audience_admin.is_admin=true)
+    OR EXISTS(
+      SELECT 1
+        FROM creator_vips audience_vip
+        JOIN follows audience_follow
+          ON audience_follow.follower_id=audience_vip.fan_id
+         AND audience_follow.following_id=audience_vip.creator_id
+       WHERE audience_vip.creator_id=${alias}.user_id
+         AND audience_vip.fan_id=${viewerParam}
+    )
+    OR EXISTS(
+      SELECT 1 FROM post_participants audience_participant
+       WHERE audience_participant.post_id=${alias}.id
+         AND audience_participant.user_id=${viewerParam}
+         AND audience_participant.consent_status='approved'
+    )
+  )`;
+}
+
+async function accessiblePublishedPost(postId, viewerId) {
+  const result=await db.query(`
+    SELECT p.id,p.user_id,p.audience,p.content_level
+      FROM posts p
+     WHERE p.id=$1
+       AND p.moderation_status='published'
+       AND ${postAudienceWhere('$2','p')}
+     LIMIT 1
+  `,[postId,viewerId]);
+  return result.rows[0] || null;
+}
+
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
   mediaUrl: z.string().max(4096).optional().default(''),
@@ -217,6 +308,7 @@ const createSchema = z.object({
   playbackUrl: z.string().max(4096).optional().nullable(),
   contentLevel: z.enum(['normal', 'sensitive', 'nudity']),
   kind: z.enum(['post', 'reel']).default('post'),
+  audience: z.enum(['public','vip']).default('public'),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
 });
 
@@ -242,6 +334,11 @@ router.post('/', requireAuth, async (req, res) => {
     if (!user.rows[0]?.creator_verified || !user.rows[0]?.age_verified) return res.status(403).json({ error: 'verified_creator_required_for_nudity' });
   }
 
+  if (data.audience === 'vip') {
+    const user = await db.query('SELECT creator_verified FROM users WHERE id=$1', [req.user.id]);
+    if (!user.rows[0]?.creator_verified) return res.status(403).json({ error: 'verified_creator_required_for_vip_content' });
+  }
+
   const names=[...new Set(data.participantUsernames.map(x=>x.trim().replace(/^@/,'').toLowerCase()).filter(Boolean))];
   let participants=[];
   if(names.length){
@@ -260,10 +357,10 @@ router.post('/', requireAuth, async (req, res) => {
     await client.query('BEGIN');
     const result = await client.query(`
       INSERT INTO posts
-        (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,moderation_status,consent_state)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,audience,moderation_status,consent_state)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
-    `, [req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,data.contentLevel,data.kind,needsConsent?'under_review':'published',needsConsent?'pending':'none']);
+    `, [req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,data.contentLevel,data.kind,data.audience,needsConsent?'under_review':'published',needsConsent?'pending':'none']);
     const post=result.rows[0];
     for(const p of participants){
       await client.query(`INSERT INTO post_participants (post_id,user_id,consent_status) VALUES ($1,$2,'pending') ON CONFLICT(post_id,user_id) DO NOTHING`,[post.id,p.id]);
@@ -271,7 +368,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
     await client.query('COMMIT');
     try {
-      await notifyMentions({actorId:req.user.id,text:data.caption,entityType:'post',entityId:post.id});
+      await notifyMentions({actorId:req.user.id,text:data.caption,entityType:'post',entityId:post.id,audience:data.audience});
     } catch (mentionError) {
       console.warn('RedLibertad mention notification failed:',mentionError?.message || mentionError);
     }
