@@ -4754,3 +4754,99 @@ select:focus-visible{
   .connection-center-actions button{min-height:44px}
   .connections-center-toolbar{padding:11px}
 }
+
+
+/* =========================================================
+   RedLibertad V1.54 — Community Conversations
+   ========================================================= */
+.community-conversations{
+  margin:0 0 16px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:linear-gradient(145deg,var(--paper),var(--soft));
+}
+.community-conversations-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.community-conversations-head h2{margin:2px 0 4px;font:800 19px/1.15 Manrope,sans-serif;color:var(--navy)}
+.community-conversations-head p{margin:0;max-width:640px;color:var(--muted);font-size:10px;line-height:1.45}
+.community-conversation-summary{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.community-conversation-summary span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  min-height:28px;
+  padding:5px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--paper);
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+}
+.community-conversation-summary b{color:var(--navy)}
+.community-conversation-block{margin-top:15px}
+.community-conversation-block-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:8px}
+.community-conversation-block-head b{color:var(--navy);font-size:11px}
+.community-conversation-block-head small{color:var(--muted);font-size:9px;text-align:right}
+.community-conversation-list{display:grid;gap:7px}
+.community-conversation-card{
+  width:100%;
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--paper);
+  color:inherit;
+  text-align:left;
+}
+.community-conversation-card:hover{border-color:rgba(43,183,169,.45)}
+.community-conversation-avatar{
+  width:44px;height:44px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:var(--navy-soft);
+  color:var(--navy);font-size:10px;font-weight:900;
+}
+.community-conversation-avatar img{width:100%;height:100%;object-fit:cover}
+.community-conversation-copy{min-width:0}
+.community-conversation-copy b,.community-conversation-copy small,.community-conversation-copy em{display:block}
+.community-conversation-copy b{color:var(--ink);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.community-conversation-copy small{margin-top:2px;color:var(--muted);font-size:9px}
+.community-conversation-kind{margin-top:5px;color:var(--muted);font-size:9px;font-style:normal;font-weight:700}
+.community-conversation-kind.pending{color:var(--teal)}
+.community-conversation-kind.unanswered{color:#8b6a18}
+.community-conversation-open{font-size:9px;font-weight:900;color:var(--teal)}
+.community-person-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.community-person-card{
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) auto;
+  gap:8px;align-items:center;
+  padding:9px;border:1px solid var(--line);border-radius:13px;background:var(--paper);
+}
+.community-person-avatar{
+  width:40px;height:40px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:var(--navy-soft);
+}
+.community-person-avatar img{width:100%;height:100%;object-fit:cover}
+.community-person-copy{min-width:0}
+.community-person-copy b,.community-person-copy small,.community-person-copy span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.community-person-copy b{font-size:10px;color:var(--ink)}
+.community-person-copy small,.community-person-copy span{margin-top:2px;font-size:8px;color:var(--muted)}
+@media(max-width:760px){
+  .community-conversations{padding:12px;border-radius:16px}
+  .community-conversations-head{display:grid;grid-template-columns:1fr}
+  .community-conversations-head .tiny-action{justify-self:start}
+  .community-conversation-block-head{display:grid;grid-template-columns:1fr}
+  .community-conversation-block-head small{text-align:left}
+  .community-person-strip{grid-template-columns:1fr}
+  .community-person-card{grid-template-columns:40px minmax(0,1fr)}
+  .community-person-card>.tiny-action{grid-column:1/-1;width:100%;min-height:42px}
+  .community-conversation-card{grid-template-columns:42px minmax(0,1fr)}
+  .community-conversation-open{grid-column:2}
+}
