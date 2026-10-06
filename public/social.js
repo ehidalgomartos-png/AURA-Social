@@ -2286,6 +2286,19 @@ all('[data-creator-activity-status]').forEach(button=>{
   });
 });
 
+$('#creatorActivityFocus')?.addEventListener('change',async event=>{
+  creatorCommunityActivityFocus=event.currentTarget.value || 'all';
+  await loadCreatorCommunityActivity();
+});
+
+document.addEventListener('change',event=>{
+  const checkbox=event.target.closest('[data-activity-followup]');
+  if(!checkbox)return;
+  const item=checkbox.closest('.creator-activity-item');
+  const dateInput=item?.querySelector('[data-activity-followup-at]');
+  if(dateInput)dateInput.disabled=!checkbox.checked;
+});
+
 $('#creatorActivityReviewAll')?.addEventListener('click',async()=>{
   const button=$('#creatorActivityReviewAll');
   if(!button || button.disabled)return;
@@ -2333,6 +2346,57 @@ document.addEventListener('click',async event=>{
     await loadCreatorCommunityActivity();
   }catch(error){
     toast(error.message || 'No se pudo actualizar la actividad.');
+  }finally{
+    button.disabled=false;
+  }
+});
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-activity-meta-save]');
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if(button.disabled)return;
+  button.disabled=true;
+
+  try{
+    const id=button.dataset.activityMetaSave;
+    const item=button.closest('.creator-activity-item');
+    const priority=item?.querySelector(`[data-activity-priority="${CSS.escape(String(id))}"]`)?.value || 'normal';
+    const followUp=item?.querySelector(`[data-activity-followup="${CSS.escape(String(id))}"]`)?.checked===true;
+    const followUpRaw=String(item?.querySelector(`[data-activity-followup-at="${CSS.escape(String(id))}"]`)?.value || '');
+    const privateNote=String(item?.querySelector(`[data-activity-note="${CSS.escape(String(id))}"]`)?.value || '').trim();
+    let followUpAt=null;
+
+    if(followUp && followUpRaw){
+      const date=new Date(followUpRaw);
+      if(!Number.isFinite(date.getTime()))throw new Error('La fecha de seguimiento no es válida.');
+      followUpAt=date.toISOString();
+    }
+
+    const { r,d }=await api(`/api/posts/creator/community-activity/${encodeURIComponent(id)}/meta`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        priority,
+        privateNote,
+        followUp,
+        followUpAt
+      })
+    });
+    if(!r.ok){
+      throw new Error(
+        d.error==='invalid_activity_meta' ? 'Revisa prioridad, nota o seguimiento.' :
+        d.error==='activity_not_found' ? 'Esta actividad ya no está disponible.' :
+        'No se pudo guardar el seguimiento.'
+      );
+    }
+
+    toast('Seguimiento privado guardado');
+    await loadCreatorCommunityActivity();
+  }catch(error){
+    toast(error.message || 'No se pudo guardar el seguimiento.');
   }finally{
     button.disabled=false;
   }
