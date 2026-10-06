@@ -2394,6 +2394,38 @@ router.post('/:id/block',requireAuth,async(req,res)=>{
       )
   `,[req.user.id,req.params.id]);
 
+  const communityTables=await db.query(
+    "SELECT to_regclass('public.communities') AS communities, to_regclass('public.community_members') AS members"
+  );
+  if(communityTables.rows[0]?.communities && communityTables.rows[0]?.members){
+    const affected=await db.query(`
+      SELECT id,conversation_id,
+             CASE WHEN owner_id=$1 THEN $2::bigint WHEN owner_id=$2 THEN $1::bigint ELSE NULL END AS remove_user_id
+        FROM communities
+       WHERE owner_id=$1 OR owner_id=$2
+    `,[req.user.id,req.params.id]);
+    for(const community of affected.rows){
+      if(!community.remove_user_id)continue;
+      await db.query(
+        "DELETE FROM community_members WHERE community_id=$1 AND user_id=$2 AND role<>'owner'",
+        [community.id,community.remove_user_id]
+      );
+      if(community.conversation_id){
+        await db.query(
+          'DELETE FROM conversation_members WHERE conversation_id=$1 AND user_id=$2',
+          [community.conversation_id,community.remove_user_id]
+        );
+      }
+      await db.query(`
+        UPDATE community_join_requests
+           SET status='cancelled',reviewed_at=now(),reviewed_by=NULL
+         WHERE community_id=$1 AND user_id=$2
+      `,[community.id,community.remove_user_id]).catch(error=>{
+        if(error?.code!=='42P01')throw error;
+      });
+    }
+  }
+
   res.json({ok:true});
 });
 
