@@ -1,4 +1,4 @@
-# RedLibertad V1.20.0 — Creator Publishing Tools
+# RedLibertad V1.21.0 — Creator Content Calendar
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -445,3 +445,38 @@ La arquitectura public/vip queda reutilizable para una futura capa comercial, pe
 ### Monetización
 
 V1.20 continúa sin monetización activa. No existen precios, planes, suscripciones, checkout, créditos, saldo ni pagos. Las herramientas editoriales funcionan igual para contenido público y VIP gratuito.
+
+
+## V1.21.0 — Creator Content Calendar
+
+- Nuevo calendario editorial privado dentro del Centro de creador.
+- Vista mensual con estados:
+  - Borrador.
+  - Programado.
+  - Publicado.
+- Navegación mes anterior / hoy / mes siguiente.
+- Filtro por audiencia Público / Solo VIP.
+- Filtro por etiqueta editorial interna.
+- Nueva fecha editorial privada por publicación.
+- Nueva etiqueta interna privada de hasta 40 caracteres.
+- Un borrador puede aparecer en calendario sin estar programado.
+- Si no hay fecha editorial:
+  - un programado usa scheduled_for,
+  - un publicado usa created_at.
+- La fecha editorial nunca cambia la fecha pública del post.
+- Las etiquetas editoriales nunca se muestran públicamente.
+- Fecha/etiqueta pueden editarse en borradores, programados y contenido ya publicado.
+- Los posts publicados pueden abrirse directamente desde el calendario.
+- Los borradores/programados llevan a su tarjeta de gestión.
+- El compositor permite definir fecha editorial y etiqueta al crear contenido.
+- Nuevo endpoint privado /api/posts/creator/calendar.
+- Nuevo endpoint privado /api/posts/creator/editorial/:id.
+- Nuevas columnas posts.editorial_date y posts.editorial_label.
+- Índice idx_posts_creator_editorial_date.
+- Bootstrap idempotente desde posts y profiles.
+- /api/health actualizado a 1.21.0.
+- Caché PWA actualizada a V1.21.
+
+### Monetización
+
+V1.21 continúa sin monetización activa. El calendario y la organización editorial funcionan igual con contenido público y VIP gratuito.
