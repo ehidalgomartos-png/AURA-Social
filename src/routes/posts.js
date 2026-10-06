@@ -193,7 +193,7 @@ async function attachCommunityMeta(rows,viewerId=null){
   const [pollRows,questionRows]=await Promise.all([
     db.query(`
       SELECT
-        cp.id AS poll_id,cp.post_id,cp.question,cp.allow_change,
+        cp.id AS poll_id,cp.post_id,cp.question,cp.allow_change,cp.is_open,cp.status,
         o.id AS option_id,o.position,o.label,
         count(v.user_id)::int AS vote_count,
         ${viewerId ? 'EXISTS(SELECT 1 FROM creator_poll_votes myv WHERE myv.poll_id=cp.id AND myv.user_id=$2 AND myv.option_id=o.id)' : 'false'} AS voted_by_me
@@ -201,18 +201,20 @@ async function attachCommunityMeta(rows,viewerId=null){
       JOIN creator_poll_options o ON o.poll_id=cp.id
       LEFT JOIN creator_poll_votes v ON v.option_id=o.id
       WHERE cp.post_id=ANY($1::bigint[])
-      GROUP BY cp.id,cp.post_id,cp.question,cp.allow_change,o.id,o.position,o.label
+        AND cp.status='active'
+      GROUP BY cp.id,cp.post_id,cp.question,cp.allow_change,cp.is_open,cp.status,o.id,o.position,o.label
       ORDER BY cp.post_id,o.position
     `,viewerId ? [ids,viewerId] : [ids]),
     db.query(`
       SELECT
-        cq.id AS question_id,cq.post_id,cq.prompt,
+        cq.id AS question_id,cq.post_id,cq.prompt,cq.is_open,cq.status,
         count(r.id)::int AS response_count,
         ${viewerId ? '(SELECT qr.body FROM creator_question_responses qr WHERE qr.question_id=cq.id AND qr.user_id=$2 LIMIT 1)' : 'NULL::text'} AS my_response
       FROM creator_questions cq
       LEFT JOIN creator_question_responses r ON r.question_id=cq.id
       WHERE cq.post_id=ANY($1::bigint[])
-      GROUP BY cq.id,cq.post_id,cq.prompt
+        AND cq.status='active'
+      GROUP BY cq.id,cq.post_id,cq.prompt,cq.is_open,cq.status
     `,viewerId ? [ids,viewerId] : [ids])
   ]);
 
@@ -224,6 +226,8 @@ async function attachCommunityMeta(rows,viewerId=null){
         id:row.poll_id,
         question:row.question,
         allow_change:row.allow_change,
+        is_open:row.is_open===true,
+        status:row.status,
         total_votes:0,
         options:[]
       });
@@ -245,6 +249,8 @@ async function attachCommunityMeta(rows,viewerId=null){
     {
       id:row.question_id,
       prompt:row.prompt,
+      is_open:row.is_open===true,
+      status:row.status,
       response_count:Number(row.response_count || 0),
       my_response:row.my_response || ''
     }
@@ -524,6 +530,54 @@ router.use(async (_req,res,next)=>{
   }catch(error){
     console.error('RedLibertad V1.22 creator community bootstrap failed:',error);
     res.status(500).json({error:'creator_community_bootstrap_failed'});
+  }
+});
+
+
+let creatorCommunityV23Ready=null;
+async function ensureCreatorCommunityV23(){
+  if(!creatorCommunityV23Ready){
+    creatorCommunityV23Ready=(async()=>{
+      await db.query("ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'");
+      await db.query("ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query("ALTER TABLE creator_polls ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ");
+      const pollConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_polls_status_check' AND conrelid='creator_polls'::regclass LIMIT 1"
+      );
+      if(!pollConstraint.rowCount){
+        await db.query("ALTER TABLE creator_polls ADD CONSTRAINT creator_polls_status_check CHECK(status IN ('active','archived'))");
+      }
+
+      await db.query("ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'");
+      await db.query("ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT TRUE");
+      await db.query("ALTER TABLE creator_questions ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ");
+      const questionConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='creator_questions_status_check' AND conrelid='creator_questions'::regclass LIMIT 1"
+      );
+      if(!questionConstraint.rowCount){
+        await db.query("ALTER TABLE creator_questions ADD CONSTRAINT creator_questions_status_check CHECK(status IN ('active','archived'))");
+      }
+
+      await db.query("ALTER TABLE creator_question_responses ADD COLUMN IF NOT EXISTS creator_starred BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("ALTER TABLE creator_question_responses ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ");
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_polls_status ON creator_polls(post_id,status,is_open)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_questions_status ON creator_questions(post_id,status,is_open)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_creator_question_responses_starred ON creator_question_responses(question_id,creator_starred,updated_at DESC)');
+    })().catch(error=>{
+      creatorCommunityV23Ready=null;
+      throw error;
+    });
+  }
+  return creatorCommunityV23Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCommunityV23();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.23 community management bootstrap failed:',error);
+    res.status(500).json({error:'community_management_bootstrap_failed'});
   }
 });
 
@@ -1157,12 +1211,14 @@ router.post('/:id/poll-vote',requireAuth,async(req,res)=>{
   if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
   const poll=await db.query(`
-    SELECT cp.id,cp.allow_change
+    SELECT cp.id,cp.allow_change,cp.is_open,cp.status
       FROM creator_polls cp
      WHERE cp.post_id=$1
      LIMIT 1
   `,[req.params.id]);
   if(!poll.rowCount)return res.status(404).json({error:'poll_not_found'});
+  if(poll.rows[0].status!=='active')return res.status(409).json({error:'poll_archived'});
+  if(!poll.rows[0].is_open)return res.status(409).json({error:'poll_closed'});
 
   const option=await db.query(`
     SELECT id
@@ -1223,10 +1279,12 @@ router.post('/:id/question-response',requireAuth,async(req,res)=>{
   if(!visiblePost)return res.status(404).json({error:'post_not_found'});
 
   const question=await db.query(
-    'SELECT id FROM creator_questions WHERE post_id=$1 LIMIT 1',
+    'SELECT id,is_open,status FROM creator_questions WHERE post_id=$1 LIMIT 1',
     [req.params.id]
   );
   if(!question.rowCount)return res.status(404).json({error:'question_not_found'});
+  if(question.rows[0].status!=='active')return res.status(409).json({error:'question_archived'});
+  if(!question.rows[0].is_open)return res.status(409).json({error:'question_closed'});
 
   const response=await db.query(`
     INSERT INTO creator_question_responses (question_id,user_id,body)
@@ -1272,18 +1330,140 @@ router.delete('/:id/question-response',requireAuth,async(req,res)=>{
   res.json({ok:true,responseCount:Number(count.rows[0]?.n || 0)});
 });
 
+const communityManageSchema=z.object({
+  action:z.enum(['close','reopen','archive','restore'])
+});
+
+router.patch('/creator/community/polls/:pollId',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=communityManageSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_community_action'});
+
+  const found=await db.query(`
+    SELECT cp.id,cp.post_id,cp.status,cp.is_open
+      FROM creator_polls cp
+      JOIN posts p ON p.id=cp.post_id
+     WHERE cp.id=$1 AND p.user_id=$2
+     LIMIT 1
+  `,[req.params.pollId,req.user.id]);
+  if(!found.rowCount)return res.status(404).json({error:'poll_not_found'});
+
+  const action=parsed.data.action;
+  const updated=await db.query(`
+    UPDATE creator_polls
+       SET status=CASE
+             WHEN $2='archive' THEN 'archived'
+             WHEN $2='restore' THEN 'active'
+             ELSE status
+           END,
+           is_open=CASE
+             WHEN $2='close' THEN false
+             WHEN $2='reopen' THEN true
+             WHEN $2='archive' THEN false
+             ELSE is_open
+           END,
+           archived_at=CASE
+             WHEN $2='archive' THEN now()
+             WHEN $2='restore' THEN NULL
+             ELSE archived_at
+           END
+     WHERE id=$1
+     RETURNING id,post_id,status,is_open,archived_at
+  `,[req.params.pollId,action]);
+
+  res.json({ok:true,poll:updated.rows[0]});
+});
+
+router.patch('/creator/community/questions/:questionId',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=communityManageSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_community_action'});
+
+  const found=await db.query(`
+    SELECT cq.id,cq.post_id,cq.status,cq.is_open
+      FROM creator_questions cq
+      JOIN posts p ON p.id=cq.post_id
+     WHERE cq.id=$1 AND p.user_id=$2
+     LIMIT 1
+  `,[req.params.questionId,req.user.id]);
+  if(!found.rowCount)return res.status(404).json({error:'question_not_found'});
+
+  const action=parsed.data.action;
+  const updated=await db.query(`
+    UPDATE creator_questions
+       SET status=CASE
+             WHEN $2='archive' THEN 'archived'
+             WHEN $2='restore' THEN 'active'
+             ELSE status
+           END,
+           is_open=CASE
+             WHEN $2='close' THEN false
+             WHEN $2='reopen' THEN true
+             WHEN $2='archive' THEN false
+             ELSE is_open
+           END,
+           archived_at=CASE
+             WHEN $2='archive' THEN now()
+             WHEN $2='restore' THEN NULL
+             ELSE archived_at
+           END
+     WHERE id=$1
+     RETURNING id,post_id,status,is_open,archived_at
+  `,[req.params.questionId,action]);
+
+  res.json({ok:true,question:updated.rows[0]});
+});
+
+const responseStarSchema=z.object({starred:z.boolean()});
+
+router.patch('/creator/community/responses/:responseId/star',requireAuth,async(req,res)=>{
+  if(!await requireVerifiedCreator(req.user.id)){
+    return res.status(403).json({error:'verified_creator_required_for_community_tools'});
+  }
+  const parsed=responseStarSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_star_state'});
+
+  const updated=await db.query(`
+    UPDATE creator_question_responses qr
+       SET creator_starred=$3,
+           starred_at=CASE WHEN $3 THEN now() ELSE NULL END,
+           updated_at=now()
+      FROM creator_questions cq
+      JOIN posts p ON p.id=cq.post_id
+     WHERE qr.id=$1
+       AND qr.question_id=cq.id
+       AND p.user_id=$2
+     RETURNING qr.id,qr.question_id,qr.creator_starred,qr.starred_at
+  `,[req.params.responseId,req.user.id,parsed.data.starred]);
+
+  if(!updated.rowCount)return res.status(404).json({error:'response_not_found'});
+  res.json({ok:true,response:updated.rows[0]});
+});
+
 router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
   if(!await requireVerifiedCreator(req.user.id)){
     return res.status(403).json({error:'verified_creator_required_for_community_tools'});
   }
 
-  const [summary,responses,polls]=await Promise.all([
+  const [summary,responses,polls,questions]=await Promise.all([
     db.query(`
       SELECT
         (SELECT count(*)::int
            FROM creator_polls cp
            JOIN posts p ON p.id=cp.post_id
           WHERE p.user_id=$1 AND p.moderation_status='published') poll_count,
+        (SELECT count(*)::int
+           FROM creator_polls cp
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cp.status='active') active_poll_count,
+        (SELECT count(*)::int
+           FROM creator_polls cp
+           JOIN posts p ON p.id=cp.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cp.status='archived') archived_poll_count,
         (SELECT count(*)::int
            FROM creator_poll_votes v
            JOIN creator_polls cp ON cp.id=v.poll_id
@@ -1294,15 +1474,28 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
            JOIN posts p ON p.id=cq.post_id
           WHERE p.user_id=$1 AND p.moderation_status='published') question_count,
         (SELECT count(*)::int
+           FROM creator_questions cq
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cq.status='active') active_question_count,
+        (SELECT count(*)::int
+           FROM creator_questions cq
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND cq.status='archived') archived_question_count,
+        (SELECT count(*)::int
            FROM creator_question_responses qr
            JOIN creator_questions cq ON cq.id=qr.question_id
            JOIN posts p ON p.id=cq.post_id
-          WHERE p.user_id=$1 AND p.moderation_status='published') response_count
+          WHERE p.user_id=$1 AND p.moderation_status='published') response_count,
+        (SELECT count(*)::int
+           FROM creator_question_responses qr
+           JOIN creator_questions cq ON cq.id=qr.question_id
+           JOIN posts p ON p.id=cq.post_id
+          WHERE p.user_id=$1 AND p.moderation_status='published' AND qr.creator_starred=true) starred_response_count
     `,[req.user.id]),
     db.query(`
       SELECT
-        qr.id,qr.body,qr.created_at,qr.updated_at,
-        cq.id question_id,cq.prompt,
+        qr.id,qr.body,qr.created_at,qr.updated_at,qr.creator_starred,qr.starred_at,
+        cq.id question_id,cq.prompt,cq.status question_status,cq.is_open question_is_open,
         p.id post_id,p.caption,p.audience,
         u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified
       FROM creator_question_responses qr
@@ -1312,12 +1505,13 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
       WHERE p.user_id=$1
         AND p.moderation_status='published'
         AND u.status='active'
-      ORDER BY qr.updated_at DESC
-      LIMIT 100
+      ORDER BY qr.creator_starred DESC,qr.starred_at DESC NULLS LAST,qr.updated_at DESC
+      LIMIT 150
     `,[req.user.id]),
     db.query(`
       SELECT
-        cp.id poll_id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,
+        cp.id poll_id,cp.question,cp.post_id,cp.status,cp.is_open,cp.archived_at,
+        p.caption,p.audience,p.created_at,
         o.id option_id,o.position,o.label,
         count(v.user_id)::int vote_count
       FROM creator_polls cp
@@ -1326,9 +1520,24 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
       LEFT JOIN creator_poll_votes v ON v.option_id=o.id
       WHERE p.user_id=$1
         AND p.moderation_status='published'
-      GROUP BY cp.id,cp.question,cp.post_id,p.caption,p.audience,p.created_at,o.id,o.position,o.label
-      ORDER BY p.created_at DESC,o.position
-      LIMIT 160
+      GROUP BY cp.id,cp.question,cp.post_id,cp.status,cp.is_open,cp.archived_at,p.caption,p.audience,p.created_at,o.id,o.position,o.label
+      ORDER BY (cp.status='active') DESC,p.created_at DESC,o.position
+      LIMIT 240
+    `,[req.user.id]),
+    db.query(`
+      SELECT
+        cq.id question_id,cq.prompt,cq.post_id,cq.status,cq.is_open,cq.archived_at,
+        p.caption,p.audience,p.created_at,
+        count(qr.id)::int response_count,
+        count(qr.id) FILTER (WHERE qr.creator_starred=true)::int starred_count
+      FROM creator_questions cq
+      JOIN posts p ON p.id=cq.post_id
+      LEFT JOIN creator_question_responses qr ON qr.question_id=cq.id
+      WHERE p.user_id=$1
+        AND p.moderation_status='published'
+      GROUP BY cq.id,cq.prompt,cq.post_id,cq.status,cq.is_open,cq.archived_at,p.caption,p.audience,p.created_at
+      ORDER BY (cq.status='active') DESC,p.created_at DESC
+      LIMIT 100
     `,[req.user.id])
   ]);
 
@@ -1343,6 +1552,9 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
         caption:row.caption,
         audience:row.audience,
         created_at:row.created_at,
+        status:row.status,
+        is_open:row.is_open===true,
+        archived_at:row.archived_at,
         total_votes:0,
         options:[]
       });
@@ -1359,12 +1571,16 @@ router.get('/creator/community-inbox',requireAuth,async(req,res)=>{
   }
 
   res.json({
-    summary:summary.rows[0] || {poll_count:0,vote_count:0,question_count:0,response_count:0},
+    summary:summary.rows[0] || {
+      poll_count:0,active_poll_count:0,archived_poll_count:0,vote_count:0,
+      question_count:0,active_question_count:0,archived_question_count:0,
+      response_count:0,starred_response_count:0
+    },
     responses:responses.rows,
-    polls:[...pollMap.values()].slice(0,20)
+    polls:[...pollMap.values()].slice(0,40),
+    questions:questions.rows
   });
 });
-
 async function viewerFrom(req) {
   if (!req.user) return null;
   const vr = await db.query(

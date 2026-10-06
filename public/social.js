@@ -27,6 +27,9 @@ let activeStoryGroup = [];
 let activeStoryIndex = 0;
 let creatorCalendarMonth = new Date(new Date().getFullYear(),new Date().getMonth(),1);
 let creatorCalendarPosts = [];
+let creatorCommunityStatus = 'active';
+let creatorCommunityStarredOnly = false;
+let creatorCommunityData = null;
 
 
 async function api(url, opts = {}) {
@@ -202,9 +205,10 @@ function communityPollHTML(postId,poll) {
   if(!poll)return '';
   const total=Number(poll.total_votes || 0);
   const selected=poll.options?.find(option=>option.voted_by_me);
-  return `<section class="community-tool community-poll" data-community-poll-container="${postId}">
+  const closed=poll.is_open===false;
+  return `<section class="community-tool community-poll ${closed ? 'closed' : ''}" data-community-poll-container="${postId}">
     <div class="community-tool-head">
-      <span>ENCUESTA</span>
+      <span>ENCUESTA${closed ? ' · CERRADA' : ''}</span>
       <small>${total} ${total===1 ? 'voto' : 'votos'} · resultados agregados</small>
     </div>
     <h4>${esc(poll.question)}</h4>
@@ -212,7 +216,7 @@ function communityPollHTML(postId,poll) {
       ${(poll.options || []).map(option=>{
         const count=Number(option.vote_count || 0);
         const pct=total ? Math.round((count/total)*100) : 0;
-        return `<button type="button" class="community-poll-option ${option.voted_by_me ? 'selected' : ''}" data-poll-vote="${postId}" data-poll-option="${option.id}">
+        return `<button type="button" class="community-poll-option ${option.voted_by_me ? 'selected' : ''}" ${closed ? 'disabled title="Encuesta cerrada"' : `data-poll-vote="${postId}" data-poll-option="${option.id}"`}>
           <span class="community-poll-option-bar" style="width:${pct}%"></span>
           <span class="community-poll-option-copy"><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span>
         </button>`;
@@ -225,16 +229,17 @@ function communityPollHTML(postId,poll) {
 function communityQuestionHTML(postId,question) {
   if(!question)return '';
   const response=String(question.my_response || '');
-  return `<section class="community-tool community-question" data-community-question-container="${postId}">
+  const closed=question.is_open===false;
+  return `<section class="community-tool community-question ${closed ? 'closed' : ''}" data-community-question-container="${postId}">
     <div class="community-tool-head">
-      <span>PREGUNTA ABIERTA</span>
+      <span>PREGUNTA ABIERTA${closed ? ' · CERRADA' : ''}</span>
       <small>${Number(question.response_count || 0)} ${Number(question.response_count || 0)===1 ? 'respuesta' : 'respuestas'} · privadas para el creador</small>
     </div>
     <h4>${esc(question.prompt)}</h4>
     <form class="community-question-form" data-question-response="${postId}">
-      <textarea maxlength="1000" placeholder="Escribe tu respuesta...">${esc(response)}</textarea>
+      <textarea maxlength="1000" placeholder="${closed ? 'Pregunta cerrada' : 'Escribe tu respuesta...'}" ${closed ? 'disabled' : ''}>${esc(response)}</textarea>
       <div class="community-question-actions">
-        <button class="secondary" type="submit">${response ? 'Actualizar respuesta' : 'Responder'}</button>
+        <button class="secondary" type="submit" ${closed ? 'disabled' : ''}>${response ? 'Actualizar respuesta' : 'Responder'}</button>
         ${response ? `<button class="tiny-action" type="button" data-question-remove="${postId}">Retirar mi respuesta</button>` : ''}
       </div>
     </form>
@@ -1775,9 +1780,16 @@ async function loadCreatorCalendar() {
   renderCreatorCalendar();
 }
 
+function communityStateBadge(status,isOpen) {
+  if(status==='archived')return '<span class="creator-community-state archived">Archivada</span>';
+  return isOpen
+    ? '<span class="creator-community-state open">Abierta</span>'
+    : '<span class="creator-community-state closed">Cerrada</span>';
+}
+
 function creatorQuestionResponsesHTML(items = []) {
-  if(!items.length)return '<div class="creator-empty compact">Todavía no tienes respuestas abiertas.</div>';
-  return items.map(item=>`<article class="creator-community-response">
+  if(!items.length)return '<div class="creator-empty compact">No hay respuestas para este filtro.</div>';
+  return items.map(item=>`<article class="creator-community-response ${item.creator_starred ? 'starred' : ''}">
     <div class="creator-community-response-head">
       ${profileLink(item.username,`<span class="creator-audience-avatar">${avatarHTML(item)}</span>`,'creator-audience-profile')}
       <div>
@@ -1786,22 +1798,33 @@ function creatorQuestionResponsesHTML(items = []) {
       </div>
       <span class="creator-community-audience">${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
     </div>
+    <div class="creator-community-response-state">
+      ${communityStateBadge(item.question_status,item.question_is_open)}
+      ${item.creator_starred ? '<span class="creator-community-star">★ Destacada</span>' : ''}
+    </div>
     <strong>${esc(item.prompt)}</strong>
     <p>${esc(item.body)}</p>
-    <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+    <div class="creator-community-actions">
+      <button type="button" class="tiny-action" data-community-star-response="${item.id}" data-starred="${item.creator_starred ? '1' : '0'}">${item.creator_starred ? 'Quitar destacada' : '★ Destacar'}</button>
+      <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+    </div>
   </article>`).join('');
 }
 
 function creatorPollSummariesHTML(items = []) {
-  if(!items.length)return '<div class="creator-empty compact">Todavía no has creado encuestas.</div>';
+  if(!items.length)return '<div class="creator-empty compact">No hay encuestas para este filtro.</div>';
   return items.map(item=>{
     const total=Number(item.total_votes || 0);
-    return `<article class="creator-poll-summary">
+    const archived=item.status==='archived';
+    return `<article class="creator-poll-summary ${archived ? 'archived' : ''}">
       <div class="creator-poll-summary-head">
         <b>${esc(item.question)}</b>
         <span>${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
       </div>
-      <small>${total} ${total===1 ? 'voto' : 'votos'} · ${timeAgo(item.created_at)}</small>
+      <div class="creator-community-response-state">
+        ${communityStateBadge(item.status,item.is_open)}
+        <small>${total} ${total===1 ? 'voto' : 'votos'} · ${timeAgo(item.created_at)}</small>
+      </div>
       <div class="creator-poll-summary-options">
         ${(item.options || []).map(option=>{
           const count=Number(option.vote_count || 0);
@@ -1809,28 +1832,69 @@ function creatorPollSummariesHTML(items = []) {
           return `<div><span><b>${esc(option.label)}</b><small>${pct}% · ${count}</small></span><i><em style="width:${pct}%"></em></i></div>`;
         }).join('')}
       </div>
-      <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+      <div class="creator-community-actions">
+        ${archived
+          ? `<button type="button" class="tiny-action" data-community-poll-action="restore" data-community-poll-id="${item.id}">Restaurar</button>`
+          : `<button type="button" class="tiny-action" data-community-poll-action="${item.is_open ? 'close' : 'reopen'}" data-community-poll-id="${item.id}">${item.is_open ? 'Cerrar' : 'Reabrir'}</button>
+             <button type="button" class="tiny-action danger-soft" data-community-poll-action="archive" data-community-poll-id="${item.id}">Archivar</button>`}
+        <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function creatorQuestionSummariesHTML(items = []) {
+  if(!items.length)return '<div class="creator-empty compact">No hay preguntas para este filtro.</div>';
+  return items.map(item=>{
+    const archived=item.status==='archived';
+    return `<article class="creator-question-summary ${archived ? 'archived' : ''}">
+      <div class="creator-poll-summary-head">
+        <b>${esc(item.prompt)}</b>
+        <span>${item.audience==='vip' ? '★ VIP' : 'Público'}</span>
+      </div>
+      <div class="creator-community-response-state">
+        ${communityStateBadge(item.status,item.is_open)}
+        <small>${Number(item.response_count || 0)} respuestas · ★ ${Number(item.starred_count || 0)}</small>
+      </div>
+      <div class="creator-community-actions">
+        ${archived
+          ? `<button type="button" class="tiny-action" data-community-question-action="restore" data-community-question-id="${item.question_id}">Restaurar</button>`
+          : `<button type="button" class="tiny-action" data-community-question-action="${item.is_open ? 'close' : 'reopen'}" data-community-question-id="${item.question_id}">${item.is_open ? 'Cerrar' : 'Reabrir'}</button>
+             <button type="button" class="tiny-action danger-soft" data-community-question-action="archive" data-community-question-id="${item.question_id}">Archivar</button>`}
+        <button type="button" class="tiny-action" data-open-post="${item.post_id}">Ver publicación</button>
+      </div>
     </article>`;
   }).join('');
 }
 
 function renderCreatorCommunity(data = {}) {
+  creatorCommunityData=data;
   const summary=data.summary || {};
+
   if($('#creatorCommunitySummary')){
     $('#creatorCommunitySummary').innerHTML=[
-      creatorMetric('Encuestas',summary.poll_count || 0),
-      creatorMetric('Votos recibidos',summary.vote_count || 0),
-      creatorMetric('Preguntas',summary.question_count || 0),
-      creatorMetric('Respuestas',summary.response_count || 0)
+      creatorMetric('Activas',Number(summary.active_poll_count || 0)+Number(summary.active_question_count || 0)),
+      creatorMetric('Archivadas',Number(summary.archived_poll_count || 0)+Number(summary.archived_question_count || 0)),
+      creatorMetric('Participaciones',Number(summary.vote_count || 0)+Number(summary.response_count || 0)),
+      creatorMetric('Respuestas destacadas',summary.starred_response_count || 0)
     ].join('');
   }
-  if($('#creatorQuestionResponses')){
-    $('#creatorQuestionResponses').innerHTML=creatorQuestionResponsesHTML(Array.isArray(data.responses) ? data.responses : []);
-  }
-  if($('#creatorPollSummaries')){
-    $('#creatorPollSummaries').innerHTML=creatorPollSummariesHTML(Array.isArray(data.polls) ? data.polls : []);
-  }
+
+  const status=creatorCommunityStatus;
+  const statusMatch=item=>status==='all' || item.status===status;
+  const responseStatusMatch=item=>status==='all' || item.question_status===status;
+
+  const responses=(Array.isArray(data.responses) ? data.responses : [])
+    .filter(item=>responseStatusMatch(item))
+    .filter(item=>!creatorCommunityStarredOnly || item.creator_starred===true);
+  const polls=(Array.isArray(data.polls) ? data.polls : []).filter(statusMatch);
+  const questions=(Array.isArray(data.questions) ? data.questions : []).filter(statusMatch);
+
+  if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML=creatorQuestionResponsesHTML(responses);
+  if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML=creatorPollSummariesHTML(polls);
+  if($('#creatorQuestionSummaries'))$('#creatorQuestionSummaries').innerHTML=creatorQuestionSummariesHTML(questions);
 }
+
 
 async function loadCreatorCenter() {
   const metricsRoot = $('#creatorMetrics');
@@ -1959,6 +2023,7 @@ async function openCreatorModal() {
   if($('#creatorCommunitySummary'))$('#creatorCommunitySummary').innerHTML='<div class="mini-loading">Cargando comunidad...</div>';
   if($('#creatorQuestionResponses'))$('#creatorQuestionResponses').innerHTML='';
   if($('#creatorPollSummaries'))$('#creatorPollSummaries').innerHTML='';
+  if($('#creatorQuestionSummaries'))$('#creatorQuestionSummaries').innerHTML='';
   if($('#creatorCalendarGrid'))$('#creatorCalendarGrid').innerHTML='<div class="mini-loading creator-calendar-loading">Cargando calendario...</div>';
   await loadCreatorCenter();
 }
@@ -1982,6 +2047,71 @@ $('#creatorCalendarToday')?.addEventListener('click',async()=>{
 });
 $('#creatorCalendarAudience')?.addEventListener('change',renderCreatorCalendar);
 $('#creatorCalendarLabel')?.addEventListener('change',renderCreatorCalendar);
+
+$('#creatorCommunityStatus')?.addEventListener('change',event=>{
+  creatorCommunityStatus=event.currentTarget.value || 'active';
+  if(creatorCommunityData)renderCreatorCommunity(creatorCommunityData);
+});
+$('#creatorCommunityStarredOnly')?.addEventListener('change',event=>{
+  creatorCommunityStarredOnly=event.currentTarget.checked===true;
+  if(creatorCommunityData)renderCreatorCommunity(creatorCommunityData);
+});
+
+document.addEventListener('click',async event=>{
+  const pollButton=event.target.closest('[data-community-poll-action]');
+  const questionButton=event.target.closest('[data-community-question-action]');
+  const starButton=event.target.closest('[data-community-star-response]');
+  const button=pollButton || questionButton || starButton;
+  if(!button)return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  if(button.disabled)return;
+  button.disabled=true;
+
+  try{
+    if(pollButton){
+      const action=pollButton.dataset.communityPollAction;
+      const id=pollButton.dataset.communityPollId;
+      const { r,d }=await api(`/api/posts/creator/community/polls/${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action})
+      });
+      if(!r.ok)throw new Error(d.error==='poll_not_found' ? 'Encuesta no encontrada.' : 'No se pudo actualizar la encuesta.');
+      toast(action==='archive' ? 'Encuesta archivada' : action==='restore' ? 'Encuesta restaurada como cerrada' : action==='close' ? 'Encuesta cerrada' : 'Encuesta reabierta');
+    }else if(questionButton){
+      const action=questionButton.dataset.communityQuestionAction;
+      const id=questionButton.dataset.communityQuestionId;
+      const { r,d }=await api(`/api/posts/creator/community/questions/${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action})
+      });
+      if(!r.ok)throw new Error(d.error==='question_not_found' ? 'Pregunta no encontrada.' : 'No se pudo actualizar la pregunta.');
+      toast(action==='archive' ? 'Pregunta archivada' : action==='restore' ? 'Pregunta restaurada como cerrada' : action==='close' ? 'Pregunta cerrada' : 'Pregunta reabierta');
+    }else if(starButton){
+      const starred=starButton.dataset.starred==='1';
+      const { r,d }=await api(`/api/posts/creator/community/responses/${encodeURIComponent(starButton.dataset.communityStarResponse)}/star`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({starred:!starred})
+      });
+      if(!r.ok)throw new Error(d.error==='response_not_found' ? 'Respuesta no encontrada.' : 'No se pudo actualizar la respuesta.');
+      toast(starred ? 'Respuesta quitada de destacadas' : 'Respuesta destacada');
+    }
+
+    await Promise.all([
+      loadCreatorCenter(),
+      loadFeed(currentMode)
+    ]);
+    if(!$('#exploreView')?.classList.contains('hidden'))await loadDiscoveryContent(activeContentMode);
+  }catch(error){
+    toast(error.message || 'No se pudo actualizar la comunidad.');
+  }finally{
+    button.disabled=false;
+  }
+});
 
 $('#creatorBroadcastForm textarea[name="body"]')?.addEventListener('input',event=>{
   const count=$('#creatorBroadcastCount');
@@ -3003,7 +3133,12 @@ function bindPostActions(root) {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({optionId:button.dataset.pollOption})
         });
-        if(!r.ok)throw new Error(d.error==='poll_vote_locked' ? 'Esta encuesta no permite cambiar el voto.' : 'No se pudo registrar el voto.');
+        if(!r.ok)throw new Error(
+          d.error==='poll_closed' ? 'Esta encuesta está cerrada.' :
+          d.error==='poll_archived' ? 'Esta encuesta ya no está disponible.' :
+          d.error==='poll_vote_locked' ? 'Esta encuesta no permite cambiar el voto.' :
+          'No se pudo registrar el voto.'
+        );
         await refreshPostArticle(button.dataset.pollVote);
         tapFeedback();
       }catch(error){
@@ -3045,7 +3180,12 @@ function bindPostActions(root) {
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({body})
         });
-        if(!r.ok)throw new Error(d.error==='invalid_question_response' ? 'La respuesta debe tener entre 1 y 1000 caracteres.' : 'No se pudo guardar la respuesta.');
+        if(!r.ok)throw new Error(
+          d.error==='question_closed' ? 'Esta pregunta está cerrada.' :
+          d.error==='question_archived' ? 'Esta pregunta ya no está disponible.' :
+          d.error==='invalid_question_response' ? 'La respuesta debe tener entre 1 y 1000 caracteres.' :
+          'No se pudo guardar la respuesta.'
+        );
         await refreshPostArticle(form.dataset.questionResponse);
         toast('Respuesta guardada para el creador');
       }catch(error){

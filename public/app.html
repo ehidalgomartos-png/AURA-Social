@@ -268,19 +268,36 @@
     <section class="creator-section creator-community-section">
       <div class="creator-section-head">
         <div>
-          <b>Comunidad · respuestas y encuestas</b>
-          <small>Las respuestas abiertas son privadas para ti. Las encuestas solo muestran identidades agregadas.</small>
+          <b>Comunidad · gestión</b>
+          <small>Cierra o archiva participación sin borrar datos. Las respuestas destacadas siguen siendo privadas para ti.</small>
         </div>
       </div>
       <div id="creatorCommunitySummary" class="creator-community-summary"></div>
-      <div class="creator-community-columns">
+      <div class="creator-community-toolbar">
+        <label>Estado
+          <select id="creatorCommunityStatus">
+            <option value="active">Activas</option>
+            <option value="archived">Archivadas</option>
+            <option value="all">Todas</option>
+          </select>
+        </label>
+        <label class="creator-community-star-filter">
+          <input id="creatorCommunityStarredOnly" type="checkbox">
+          Solo respuestas destacadas
+        </label>
+      </div>
+      <div class="creator-community-columns creator-community-columns-v23">
         <div>
-          <h3>Respuestas recientes</h3>
+          <h3>Respuestas</h3>
           <div id="creatorQuestionResponses" class="creator-question-responses"></div>
         </div>
         <div>
-          <h3>Encuestas recientes</h3>
+          <h3>Encuestas</h3>
           <div id="creatorPollSummaries" class="creator-poll-summaries"></div>
+        </div>
+        <div>
+          <h3>Preguntas</h3>
+          <div id="creatorQuestionSummaries" class="creator-question-summaries"></div>
         </div>
       </div>
     </section>
