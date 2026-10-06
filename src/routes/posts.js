@@ -859,7 +859,6 @@ router.get('/saved', requireAuth, async (req,res)=>{
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
-       AND ${postAudienceWhere('$1','p')}
      ORDER BY sp.created_at DESC
      LIMIT 100
   `,[req.user.id]);
