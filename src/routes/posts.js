@@ -1879,10 +1879,14 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
   }
 
   const window=String(req.query.window || 'all');
+  const priority=String(req.query.priority || 'all');
   const q=String(req.query.q || '').trim().slice(0,120);
   const localDayEnd=new Date(String(req.query.dayEnd || ''));
   if(!['all','overdue','today','week','later','undated'].includes(window)){
     return res.status(400).json({error:'invalid_follow_up_window'});
+  }
+  if(!['all','high','normal'].includes(priority)){
+    return res.status(400).json({error:'invalid_follow_up_priority'});
   }
   if(!Number.isFinite(localDayEnd.getTime())){
     return res.status(400).json({error:'invalid_follow_up_day_end'});
@@ -1901,7 +1905,7 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       CASE
         WHEN meta.follow_up_at IS NULL THEN 'undated'
         WHEN meta.follow_up_at < now() THEN 'overdue'
-        WHEN meta.follow_up_at < $4::timestamptz THEN 'today'
+        WHEN meta.follow_up_at < $5::timestamptz THEN 'today'
         WHEN meta.follow_up_at < now() + interval '7 days' THEN 'week'
         ELSE 'later'
       END follow_up_window
@@ -1929,18 +1933,19 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       AND (
         $2='all'
         OR ($2='overdue' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at<now())
-        OR ($2='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<$4::timestamptz)
-        OR ($2='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=$4::timestamptz AND meta.follow_up_at<now()+interval '7 days')
+        OR ($2='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<$5::timestamptz)
+        OR ($2='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=$5::timestamptz AND meta.follow_up_at<now()+interval '7 days')
         OR ($2='later' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now()+interval '7 days')
         OR ($2='undated' AND meta.follow_up_at IS NULL)
       )
       AND ($3='' OR meta.private_note ILIKE '%' || $3 || '%')
+      AND ($4='all' OR meta.priority=$4)
     ORDER BY
       meta.priority='high' DESC,
       meta.follow_up_at ASC NULLS LAST,
       meta.updated_at DESC
     LIMIT 250
-  `,[req.user.id,window,q,localDayEnd.toISOString()]);
+  `,[req.user.id,window,q,priority,localDayEnd.toISOString()]);
 
   const summary=await db.query(`
     SELECT
@@ -1949,11 +1954,11 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       count(*) FILTER (
         WHERE follow_up_at IS NOT NULL
           AND follow_up_at>=now()
-          AND follow_up_at<date_trunc('day',now())+interval '1 day'
+          AND follow_up_at<$2::timestamptz
       )::int today,
       count(*) FILTER (
         WHERE follow_up_at IS NOT NULL
-          AND follow_up_at>=date_trunc('day',now())+interval '1 day'
+          AND follow_up_at>=$2::timestamptz
           AND follow_up_at<now()+interval '7 days'
       )::int week,
       count(*) FILTER (WHERE follow_up_at IS NOT NULL AND follow_up_at>=now()+interval '7 days')::int later,
@@ -1970,10 +1975,11 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
      AND p.user_id=$1
     WHERE meta.creator_id=$1
       AND meta.follow_up=true
-  `,[req.user.id]);
+  `,[req.user.id,localDayEnd.toISOString()]);
 
   res.json({
     window,
+    priority,
     q,
     summary:summary.rows[0] || {total:0,overdue:0,today:0,week:0,later:0,undated:0,high_priority:0},
     items:result.rows.map(row=>({
