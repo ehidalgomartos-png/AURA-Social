@@ -26,6 +26,7 @@
       <button data-view="explore">⌕ <span>Explorar</span></button>
       <button data-view="connections">◎ <span>Conexiones</span></button>
       <button data-view="communities">◇ <span>Comunidades</span></button>
+      <button data-view="events">⌁ <span>Eventos</span></button>
       <button data-view="reels">▷ <span>Reels</span></button>
       <button data-view="messages">✉ <span>Mensajes</span><i id="messageBadge" class="nav-badge hidden"></i></button>
       <button data-view="notifications">♢ <span>Notificaciones</span><i id="notificationBadge" class="nav-badge hidden"></i></button>
@@ -277,6 +278,22 @@
           <div id="communityPosts" class="community-post-list"></div>
         </section>
       </section>
+    </section>
+
+    <section id="eventsView" class="view hidden">
+      <div class="page-title events-title">
+        <div><span class="eyebrow">PLANES Y ENCUENTROS</span><h1>Eventos</h1><p>Organiza encuentros online o presenciales con la audiencia que tú elijas.</p></div>
+        <button id="newEvent" type="button" class="primary">+ Crear evento</button>
+      </div>
+      <section class="events-toolbar">
+        <div class="events-scope-tabs" role="tablist" aria-label="Filtrar eventos">
+          <button type="button" class="active" data-event-scope="upcoming">Próximos</button>
+          <button type="button" data-event-scope="going">Voy</button>
+          <button type="button" data-event-scope="interested">Me interesa</button>
+          <button type="button" data-event-scope="mine">Creados por mí</button>
+        </div>
+      </section>
+      <div id="eventsList" class="events-grid"><div class="mini-loading">Cargando eventos…</div></div>
     </section>
 
     <section id="reelsView" class="view hidden"><div class="page-title"><div><span class="eyebrow">VÍDEO VERTICAL</span><h1>Reels</h1><p class="reels-hint">Desliza para ver el siguiente · autoplay silenciado cuando el vídeo está en pantalla</p></div></div><div id="reelsFeed" class="reels-feed"></div></section>
@@ -940,6 +957,41 @@
         <div id="blockedList" class="privacy-person-list"></div>
       </section>
     </div>
+  </div>
+</div>
+
+<div id="eventCreateModal" class="modal hidden">
+  <div class="modal-card event-create-modal-card">
+    <button id="closeEventCreate" class="modal-close" type="button">×</button>
+    <span class="eyebrow">NUEVO EVENTO</span>
+    <h2>Organiza un encuentro</h2>
+    <p class="muted">Elige quién puede verlo y cuánto quieres mostrar de la lista de asistentes.</p>
+    <form id="eventCreateForm">
+      <label>Título<input name="title" maxlength="120" required placeholder="Ej. Quedada de fotografía"></label>
+      <label>Descripción<textarea name="description" maxlength="2000" placeholder="Cuenta de qué trata el evento"></textarea></label>
+      <div class="form-row">
+        <label>Tipo<select id="eventType" name="eventType"><option value="in_person">Presencial</option><option value="online">Online</option></select></label>
+        <label>Quién puede verlo<select id="eventVisibility" name="visibility"><option value="public">Público</option><option value="connections">Solo conexiones</option><option value="circles">Uno o varios círculos</option><option value="community">Una comunidad</option></select></label>
+      </div>
+      <div class="form-row">
+        <label>Empieza<input name="startsAt" type="datetime-local" required></label>
+        <label>Termina (opcional)<input name="endsAt" type="datetime-local"></label>
+      </div>
+      <label id="eventLocationField">Lugar<input name="locationLabel" maxlength="240" placeholder="Valencia, plaza, local…"></label>
+      <label id="eventOnlineField" class="hidden">Enlace online<input name="onlineUrl" type="url" maxlength="4096" placeholder="https://..."></label>
+      <div id="eventCirclePicker" class="circle-audience-picker hidden"><div class="circle-audience-picker-head"><b>Elige círculos</b><small>Solo miembros actuales de esos círculos podrán ver el evento.</small></div><div id="eventCircleOptions" class="circle-audience-options"></div></div>
+      <label id="eventCommunityField" class="hidden">Comunidad<select id="eventCommunitySelect" name="communityId"><option value="">Selecciona una comunidad</option></select><small>Solo puedes crear eventos para comunidades que administras.</small></label>
+      <label>Privacidad de asistentes<select name="attendeeVisibility"><option value="responders">Solo quienes respondan</option><option value="public">Visible para quienes pueden ver el evento</option><option value="private">Solo yo</option></select></label>
+      <button class="primary full" type="submit">Crear evento</button>
+      <p id="eventCreateStatus" class="status"></p>
+    </form>
+  </div>
+</div>
+
+<div id="eventDetailModal" class="modal hidden">
+  <div class="modal-card event-detail-modal-card">
+    <button id="closeEventDetail" class="modal-close" type="button">×</button>
+    <div id="eventDetailContent"></div>
   </div>
 </div>
 
