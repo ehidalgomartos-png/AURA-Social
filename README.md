@@ -1,4 +1,4 @@
-# RedLibertad V1.44.0 — Connections 2.0
+# RedLibertad V1.45.0 — PWA & Performance 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1050,4 +1050,20 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Perfil propio muestra el número de conexiones.
 - Perfil público distingue claramente “✓ Conexión” de “Te sigue”.
 - Mantiene bloqueos y silencios fuera del listado de conexiones recomendado.
+- Sin monetización activa.
+
+
+## V1.45.0 — PWA & Performance 2.0
+
+- Service Worker dividido en caché de shell y caché de recursos estáticos.
+- Navegación HTML network-first con fallback offline a /app o portada.
+- Recursos estáticos same-origin usan stale-while-revalidate.
+- APIs, /uploads, páginas públicas /p/ y recursos externos quedan fuera del caché del Service Worker.
+- Elimina automáticamente cachés antiguas de RedLibertad durante activate.
+- Registro del Service Worker con updateViaCache:none y comprobación de actualización al volver a primer plano.
+- Añade creator-ops.css/js y favicon al shell offline.
+- Feeds largos usan content-visibility cuando el navegador lo soporta para reducir trabajo de render fuera de pantalla.
+- Imágenes de contenido usan loading=lazy + decoding=async; avatares usan decoding=async.
+- Precarga el logo crítico de la aplicación.
+- No cachea mensajes privados ni multimedia subida por usuarios.
 - Sin monetización activa.

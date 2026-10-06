@@ -1,46 +1,106 @@
-const CACHE='redlibertad-v144-shell';
-const ASSETS=['/','/app','/styles.css','/social.css','/app.js','/social.js','/pwa.js','/manifest.webmanifest','/assets/logo-mark.svg','/icons/redlibertad-192.png','/icons/redlibertad-512.png'];
+const SHELL_CACHE='redlibertad-v145-shell';
+const STATIC_CACHE='redlibertad-v145-static';
+const CACHE_PREFIX='redlibertad-';
+
+const SHELL_ASSETS=[
+  '/',
+  '/app',
+  '/styles.css',
+  '/social.css',
+  '/creator-ops.css',
+  '/app.js',
+  '/social.js',
+  '/creator-ops.js',
+  '/pwa.js',
+  '/manifest.webmanifest',
+  '/assets/logo-mark.svg',
+  '/assets/favicon.svg',
+  '/icons/redlibertad-192.png',
+  '/icons/redlibertad-512.png'
+];
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
+  event.waitUntil(
+    caches.open(SHELL_CACHE)
+      .then(cache=>cache.addAll(SHELL_ASSETS))
+      .then(()=>self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate',event=>{
   event.waitUntil(
     caches.keys()
-      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(keys=>Promise.all(
+        keys
+          .filter(key=>key.startsWith(CACHE_PREFIX) && ![SHELL_CACHE,STATIC_CACHE].includes(key))
+          .map(key=>caches.delete(key))
+      ))
       .then(()=>self.clients.claim())
   );
 });
 
-self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET')return;
-
-  const url=new URL(event.request.url);
-  const privateOrDynamic=
-    url.origin!==self.location.origin ||
+function shouldBypass(url,request){
+  if(request.method!=='GET')return true;
+  if(url.origin!==self.location.origin)return true;
+  return (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/uploads/') ||
-    url.pathname.startsWith('/p/');
-
-  if(privateOrDynamic)return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then(response=>{
-        if(response.ok && response.type==='basic'){
-          const copy=response.clone();
-          caches.open(CACHE).then(cache=>cache.put(event.request,copy)).catch(()=>{});
-        }
-        return response;
-      })
-      .catch(async()=>{
-        const cached=await caches.match(event.request);
-        if(cached)return cached;
-        if(event.request.mode==='navigate'){
-          return (await caches.match('/app')) || (await caches.match('/'));
-        }
-        return Response.error();
-      })
+    url.pathname.startsWith('/p/')
   );
+}
+
+function isStaticAsset(url,request){
+  if(['style','script','image','font'].includes(request.destination))return true;
+  return /\.(?:css|js|svg|png|jpg|jpeg|webp|ico|webmanifest)$/i.test(url.pathname);
+}
+
+async function networkFirstNavigation(request,url){
+  try{
+    const response=await fetch(request);
+    if(response.ok && response.type==='basic'){
+      const cache=await caches.open(SHELL_CACHE);
+      cache.put(request,response.clone()).catch(()=>{});
+    }
+    return response;
+  }catch(_){
+    const exact=await caches.match(request);
+    if(exact)return exact;
+    if(url.pathname.startsWith('/app'))return (await caches.match('/app')) || (await caches.match('/'));
+    return (await caches.match('/')) || Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request){
+  const cache=await caches.open(STATIC_CACHE);
+  const cached=await cache.match(request);
+  const network=fetch(request)
+    .then(response=>{
+      if(response.ok && response.type==='basic'){
+        cache.put(request,response.clone()).catch(()=>{});
+      }
+      return response;
+    })
+    .catch(()=>null);
+
+  if(cached){
+    network.catch(()=>{});
+    return cached;
+  }
+
+  return (await network) || Response.error();
+}
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  const url=new URL(request.url);
+  if(shouldBypass(url,request))return;
+
+  if(request.mode==='navigate'){
+    event.respondWith(networkFirstNavigation(request,url));
+    return;
+  }
+
+  if(isStaticAsset(url,request)){
+    event.respondWith(staleWhileRevalidate(request));
+  }
 });

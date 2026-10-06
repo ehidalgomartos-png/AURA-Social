@@ -100,7 +100,7 @@ function initials(n = 'R') {
   return n.trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
 }
 function avatarHTML(p) {
-  return p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="">` : initials(p?.display_name || p?.username || 'A');
+  return p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" decoding="async">` : initials(p?.display_name || p?.username || 'A');
 }
 function esc(s = '') {
   return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
@@ -156,7 +156,7 @@ function mediaHTML(p, compact = false) {
   if (p.gated) return `<div class="${compact ? 'tile-gate' : 'gate'}"><div>${compact ? '18+' : `<span class="badge">18+</span><b>Contenido sensible</b><p>${gateText(p.gate_reason)}</p>`}</div></div>`;
   const url = p.playback_url || p.media_url;
   if (!url) return '';
-  if (p.media_type === 'image') return `<img src="${esc(url)}" loading="lazy" alt="Contenido de ${esc(p.username || '')}">`;
+  if (p.media_type === 'image') return `<img src="${esc(url)}" loading="lazy" decoding="async" alt="Contenido de ${esc(p.username || '')}">`;
   if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
   return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
 }
