@@ -5727,6 +5727,10 @@ function notificationIcon(type) {
     creator_poll_vote: '▥',
     creator_question_response: '?',
     event_reminder: '🗓',
+    collaboration_request: '🤝',
+    collaboration_approved: '✓',
+    collaboration_rejected: '×',
+    collaboration_revoked: '↶',
     system: 'R'
   })[type] || '•';
 }
@@ -5737,7 +5741,7 @@ function notificationMatches(notification, filter) {
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
-  if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
+  if (filter === 'consent') return String(notification.type || '').startsWith('consent_') || String(notification.type || '').startsWith('collaboration_');
   return true;
 }
 
@@ -5776,6 +5780,17 @@ async function navigateNotification(notification) {
   const type = String(notification.type || '');
   const entityType = String(notification.entity_type || '');
   const entityId = notification.entity_id;
+
+  if (type === 'collaboration_request') {
+    showView('profile');
+    setTimeout(() => document.querySelector('.consent-section')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
+    return;
+  }
+
+  if (type.startsWith('collaboration_') && entityType === 'post' && entityId) {
+    await openPostFocus(entityId);
+    return;
+  }
 
   if (type === 'event_reminder' && entityType === 'event' && entityId) {
     showView('events');
