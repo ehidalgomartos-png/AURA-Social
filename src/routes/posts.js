@@ -634,8 +634,9 @@ router.post('/', requireAuth, async (req, res) => {
   const data = parsed.data;
   const hasText = Boolean(String(data.caption || '').trim());
   const hasMedia = Boolean(String(data.mediaUrl || '').trim());
+  const hasCommunity = data.communityType !== 'none';
 
-  if (!hasText && !hasMedia) {
+  if (!hasText && !hasMedia && !hasCommunity) {
     return res.status(400).json({ error: 'empty_post' });
   }
   if (data.kind === 'reel' && !hasMedia) {
