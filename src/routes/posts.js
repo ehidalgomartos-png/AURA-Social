@@ -482,6 +482,7 @@ async function publishDueScheduledPosts(){
   schedulerRunning=true;
   try{
     await ensureCreatorPublishingV20();
+    await ensureCollaborativeV161();
     const result=await db.query(`
       UPDATE posts p
          SET creator_state='live',
@@ -494,6 +495,10 @@ async function publishDueScheduledPosts(){
          AND p.scheduled_for<=now()
          AND p.moderation_status<>'rejected'
          AND p.consent_state IN ('none','approved')
+         AND NOT EXISTS(
+           SELECT 1 FROM post_collaborators pending_collab
+            WHERE pending_collab.post_id=p.id AND pending_collab.status='pending'
+         )
          AND u.id=p.user_id
          AND u.status='active'
          AND (p.audience<>'vip' OR u.creator_verified=true)
@@ -862,6 +867,12 @@ function postAudienceWhere(viewerParam=null, alias='p') {
          AND audience_participant.user_id=${viewerParam}
          AND audience_participant.consent_status='approved'
     )
+    OR EXISTS(
+      SELECT 1 FROM post_collaborators audience_collaborator
+       WHERE audience_collaborator.post_id=${alias}.id
+         AND audience_collaborator.user_id=${viewerParam}
+         AND audience_collaborator.status='approved'
+    )
   )`;
 }
 
@@ -886,6 +897,125 @@ async function accessiblePublishedPost(postId, viewerId) {
   return result.rows[0] || null;
 }
 
+let collaborativeV161Ready=null;
+async function ensureCollaborativeV161(){
+  if(!collaborativeV161Ready){
+    collaborativeV161Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_collaborators (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','revoked')),
+          requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          responded_at TIMESTAMPTZ,
+          PRIMARY KEY(post_id,user_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status ON post_collaborators(user_id,status,requested_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status ON post_collaborators(post_id,status,requested_at)');
+      await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
+      await db.query(`
+        ALTER TABLE notifications ADD CONSTRAINT notifications_type_check CHECK(type IN (
+          'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+          'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
+          'creator_poll_vote','creator_question_response','event_reminder',
+          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked','system'
+        ))
+      `);
+    })().catch(error=>{collaborativeV161Ready=null;throw error;});
+  }
+  return collaborativeV161Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureCollaborativeV161();next();}
+  catch(error){console.error('RedLibertad V1.61 collaboration bootstrap failed:',error);res.status(500).json({error:'collaboration_bootstrap_failed'});}
+});
+
+async function sendPendingCollaborationRequests(postId,actorId,client=db){
+  const result=await client.query(`
+    SELECT pc.user_id
+      FROM post_collaborators pc
+     WHERE pc.post_id=$1 AND pc.status='pending'
+       AND NOT EXISTS(
+         SELECT 1 FROM notifications n
+          WHERE n.user_id=pc.user_id AND n.actor_id=$2
+            AND n.type='collaboration_request' AND n.entity_type='post' AND n.entity_id=$1
+            AND n.created_at>=pc.requested_at
+       )
+  `,[postId,actorId]);
+  for(const collaborator of result.rows){
+    await client.query(`
+      INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+      VALUES($1,$2,'collaboration_request','post',$3,'Te invita a colaborar en una publicación.')
+    `,[collaborator.user_id,actorId,postId]);
+  }
+}
+
+async function resolveCollaborators(userId,usernames){
+  const names=[...new Set((usernames||[]).map(x=>String(x||'').trim().replace(/^@/,'').toLowerCase()).filter(Boolean))].slice(0,5);
+  if(!names.length)return {collaborators:[],missing:[],blocked:[]};
+  const found=await db.query(
+    `SELECT id,username,display_name,avatar_url,creator_verified
+       FROM users
+      WHERE lower(username)=ANY($1::text[]) AND status='active' AND id<>$2`,
+    [names,userId]
+  );
+  const foundNames=new Set(found.rows.map(x=>String(x.username).toLowerCase()));
+  const missing=names.filter(name=>!foundNames.has(name));
+  if(missing.length)return {collaborators:[],missing,blocked:[]};
+  const ids=found.rows.map(x=>Number(x.id));
+  const blockedResult=await db.query(`
+    SELECT CASE WHEN blocker_id=$1 THEN blocked_id ELSE blocker_id END AS user_id
+      FROM blocks
+     WHERE (blocker_id=$1 AND blocked_id=ANY($2::bigint[]))
+        OR (blocked_id=$1 AND blocker_id=ANY($2::bigint[]))
+  `,[userId,ids]);
+  const blockedIds=new Set(blockedResult.rows.map(x=>String(x.user_id)));
+  return {
+    collaborators:found.rows.filter(x=>!blockedIds.has(String(x.id))),
+    missing:[],
+    blocked:found.rows.filter(x=>blockedIds.has(String(x.id))).map(x=>x.username)
+  };
+}
+
+async function maybePublishAfterApprovals(postId){
+  const found=await db.query(`
+    SELECT p.*,u.creator_verified,u.age_verified
+      FROM posts p JOIN users u ON u.id=p.user_id
+     WHERE p.id=$1 LIMIT 1
+  `,[postId]);
+  if(!found.rowCount)return {published:false};
+  const post=found.rows[0];
+  if(post.moderation_status==='rejected'||['rejected','revoked'].includes(post.consent_state))return {published:false};
+  const [participantPending,participantCount,collaborationPending]=await Promise.all([
+    db.query("SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'",[postId]),
+    db.query('SELECT count(*)::int n FROM post_participants WHERE post_id=$1',[postId]),
+    db.query("SELECT count(*)::int n FROM post_collaborators WHERE post_id=$1 AND status='pending'",[postId])
+  ]);
+  if(Number(participantPending.rows[0]?.n||0)>0||Number(collaborationPending.rows[0]?.n||0)>0)return {published:false};
+  const scheduledDue=post.creator_state==='scheduled'&&post.scheduled_for&&new Date(post.scheduled_for).getTime()<=Date.now();
+  const eligibleAudience=post.audience!=='vip'||post.creator_verified===true;
+  const eligibleContent=post.content_level!=='nudity'||(post.creator_verified===true&&post.age_verified===true);
+  const shouldPublish=(post.creator_state==='live'||scheduledDue)&&eligibleAudience&&eligibleContent;
+  if(!shouldPublish)return {published:false};
+  const hasParticipants=Number(participantCount.rows[0]?.n||0)>0;
+  const updated=await db.query(`
+    UPDATE posts
+       SET moderation_status='published',
+           consent_state=CASE WHEN $2::boolean THEN 'approved' ELSE consent_state END,
+           creator_state=CASE WHEN $3::boolean THEN 'live' ELSE creator_state END,
+           created_at=CASE WHEN moderation_status<>'published' THEN now() ELSE created_at END,
+           updated_at=now()
+     WHERE id=$1 AND moderation_status<>'published'
+     RETURNING id,user_id,caption,audience
+  `,[postId,hasParticipants,scheduledDue]);
+  if(updated.rowCount){
+    try{await notifyMentions({actorId:updated.rows[0].user_id,text:updated.rows[0].caption,entityType:'post',entityId:updated.rows[0].id,audience:updated.rows[0].audience});}
+    catch(error){console.warn('RedLibertad V1.61 collaboration publish mention failed:',error?.message||error);}
+  }
+  return {published:updated.rowCount>0};
+}
+
 const createSchema = z.object({
   caption: z.string().max(2200).default(''),
   mediaUrl: z.string().max(4096).optional().default(''),
@@ -904,7 +1034,8 @@ const createSchema = z.object({
   communityType: z.enum(['none','poll','question']).optional().default('none'),
   communityPrompt: z.string().trim().max(300).optional().default(''),
   pollOptions: z.array(z.string().trim().min(1).max(120)).max(4).optional().default([]),
-  participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
+  participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([]),
+  collaboratorUsernames: z.array(z.string().min(1).max(30)).max(5).optional().default([])
 });
 
 function parseScheduledFor(value){
@@ -1031,13 +1162,18 @@ router.post('/', requireAuth, async (req, res) => {
     }
   }
 
+  const collaborationResolution=await resolveCollaborators(req.user.id,data.collaboratorUsernames);
+  if(collaborationResolution.missing.length)return res.status(400).json({error:'collaborator_not_found',missing:collaborationResolution.missing});
+  if(collaborationResolution.blocked.length)return res.status(400).json({error:'collaborator_unavailable',usernames:collaborationResolution.blocked});
+  const collaborators=collaborationResolution.collaborators;
   const needsConsent=participants.length>0;
+  const needsCollaborationApproval=collaborators.length>0;
   const creatorState=data.publishMode==='draft'
     ? 'draft'
     : data.publishMode==='scheduled'
       ? 'scheduled'
       : 'live';
-  const shouldPublishNow=creatorState==='live' && !needsConsent;
+  const shouldPublishNow=creatorState==='live' && !needsConsent && !needsCollaborationApproval;
   const moderationStatus=shouldPublishNow ? 'published' : 'under_review';
 
   const client=await db.pool.connect();
@@ -1093,8 +1229,19 @@ router.post('/', requireAuth, async (req, res) => {
       `,[post.id,participant.id]);
     }
 
+    for(const collaborator of collaborators){
+      await client.query(`
+        INSERT INTO post_collaborators(post_id,user_id,status)
+        VALUES($1,$2,'pending')
+        ON CONFLICT(post_id,user_id) DO UPDATE SET status='pending',requested_at=now(),responded_at=NULL
+      `,[post.id,collaborator.id]);
+    }
+
     if(creatorState!=='draft' && needsConsent){
       await sendPendingConsentRequests(post.id,req.user.id,client);
+    }
+    if(creatorState!=='draft' && needsCollaborationApproval){
+      await sendPendingCollaborationRequests(post.id,req.user.id,client);
     }
 
     await client.query('COMMIT');
@@ -1117,7 +1264,9 @@ router.post('/', requireAuth, async (req, res) => {
       ok:true,
       post,
       consentRequired:needsConsent,
+      collaborationRequired:needsCollaborationApproval,
       participants,
+      collaborators,
       publishMode:data.publishMode,
       communityType:data.communityType,
       audienceCircleIds
@@ -1235,6 +1384,7 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
     }
 
     await sendPendingConsentRequests(post.id,req.user.id,client);
+    await sendPendingCollaborationRequests(post.id,req.user.id,client);
     const pending=await client.query(
       "SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'",
       [post.id]
@@ -1243,7 +1393,11 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
       'SELECT count(*)::int n FROM post_participants WHERE post_id=$1',
       [post.id]
     );
-    const waiting=Number(pending.rows[0]?.n || 0)>0;
+    const collaborationPending=await client.query(
+      "SELECT count(*)::int n FROM post_collaborators WHERE post_id=$1 AND status='pending'",
+      [post.id]
+    );
+    const waiting=Number(pending.rows[0]?.n || 0)>0 || Number(collaborationPending.rows[0]?.n || 0)>0;
     const hasParticipants=Number(participantCount.rows[0]?.n || 0)>0;
 
     const updated=await client.query(`
@@ -2598,21 +2752,32 @@ function gateRows(rows, viewer) {
 async function attachApprovedParticipants(rows) {
   if (!rows.length) return rows;
   const postIds = rows.map(row => row.id);
-  const result = await db.query(`
-    SELECT pp.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
-      FROM post_participants pp
-      JOIN users u ON u.id=pp.user_id
-     WHERE pp.post_id = ANY($1::bigint[])
-       AND pp.consent_status='approved'
-       AND u.status='active'
-     ORDER BY pp.requested_at ASC, u.username ASC
-  `, [postIds]);
+  const [participantResult,collaboratorResult] = await Promise.all([
+    db.query(`
+      SELECT pp.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
+        FROM post_participants pp
+        JOIN users u ON u.id=pp.user_id
+       WHERE pp.post_id = ANY($1::bigint[])
+         AND pp.consent_status='approved'
+         AND u.status='active'
+       ORDER BY pp.requested_at ASC, u.username ASC
+    `, [postIds]),
+    db.query(`
+      SELECT pc.post_id, u.id, u.username, u.display_name, u.avatar_url, u.creator_verified
+        FROM post_collaborators pc
+        JOIN users u ON u.id=pc.user_id
+       WHERE pc.post_id = ANY($1::bigint[])
+         AND pc.status='approved'
+         AND u.status='active'
+       ORDER BY pc.requested_at ASC, u.username ASC
+    `, [postIds])
+  ]);
 
-  const byPost = new Map();
-  for (const participant of result.rows) {
+  const participantsByPost = new Map();
+  for (const participant of participantResult.rows) {
     const key = String(participant.post_id);
-    if (!byPost.has(key)) byPost.set(key, []);
-    byPost.get(key).push({
+    if (!participantsByPost.has(key)) participantsByPost.set(key, []);
+    participantsByPost.get(key).push({
       id: participant.id,
       username: participant.username,
       display_name: participant.display_name,
@@ -2621,9 +2786,23 @@ async function attachApprovedParticipants(rows) {
     });
   }
 
+  const collaboratorsByPost = new Map();
+  for (const collaborator of collaboratorResult.rows) {
+    const key=String(collaborator.post_id);
+    if(!collaboratorsByPost.has(key))collaboratorsByPost.set(key,[]);
+    collaboratorsByPost.get(key).push({
+      id:collaborator.id,
+      username:collaborator.username,
+      display_name:collaborator.display_name,
+      avatar_url:collaborator.avatar_url,
+      creator_verified:collaborator.creator_verified
+    });
+  }
+
   return rows.map(row => ({
     ...row,
-    participants: byPost.get(String(row.id)) || []
+    participants: participantsByPost.get(String(row.id)) || [],
+    collaborators: collaboratorsByPost.get(String(row.id)) || []
   }));
 }
 
@@ -2701,13 +2880,28 @@ router.get('/consents/pending', requireAuth, async (req,res)=>{
      ORDER BY pp.requested_at DESC
      LIMIT 100
   `,[req.user.id]);
-  const viewer=await db.query('SELECT age_verified FROM users WHERE id=$1',[req.user.id]);
+  const collaborationResult=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.playback_url,p.content_level,p.post_kind,p.audience,p.created_at,
+           pc.status AS collaboration_status,
+           u.id AS owner_id,u.username,u.display_name,u.avatar_url
+      FROM post_collaborators pc
+      JOIN posts p ON p.id=pc.post_id
+      JOIN users u ON u.id=p.user_id
+     WHERE pc.user_id=$1 AND pc.status IN ('pending','approved')
+     ORDER BY pc.requested_at DESC
+     LIMIT 100
+  `,[req.user.id]);
+  const viewer=await db.query('SELECT age_verified,creator_verified FROM users WHERE id=$1',[req.user.id]);
   const ageVerified=!!viewer.rows[0]?.age_verified;
   const requests=r.rows.map(x=>{
     const gated=x.content_level!=='normal'&&!ageVerified;
     return {...x,media_url:gated?null:x.media_url,playback_url:gated?null:x.playback_url,gated,gate_reason:gated?'age_verification_required':null};
   });
-  res.json({requests,ageVerified});
+  const collaborations=collaborationResult.rows.map(x=>{
+    const gated=x.content_level!=='normal'&&!ageVerified;
+    return {...x,media_url:gated?null:x.media_url,playback_url:gated?null:x.playback_url,gated,gate_reason:gated?'age_verification_required':null};
+  });
+  res.json({requests,collaborations,ageVerified,creatorVerified:!!viewer.rows[0]?.creator_verified});
 });
 
 const consentSchema=z.object({decision:z.enum(['approved','rejected','revoked'])});
@@ -2737,54 +2931,124 @@ router.post('/:id/consent', requireAuth, async (req,res)=>{
       `SELECT count(*)::int n FROM post_participants WHERE post_id=$1 AND consent_status<>'approved'`,
       [req.params.id]
     );
-
-    let publishedNow=false;
     if(Number(remaining.rows[0]?.n || 0)===0){
-      const source=post.rows[0];
-      const scheduledDue=
-        source.creator_state==='scheduled' &&
-        source.scheduled_for &&
-        new Date(source.scheduled_for).getTime()<=Date.now();
-      const eligibleForAudience=source.audience!=='vip' || source.owner_creator_verified===true;
-      const eligibleForContent=source.content_level!=='nudity' || (
-        source.owner_creator_verified===true && source.owner_age_verified===true
-      );
-      const shouldPublish=(source.creator_state==='live' || scheduledDue) && eligibleForAudience && eligibleForContent;
-
-      const updated=await db.query(`
-        UPDATE posts
-           SET consent_state='approved',
-               moderation_status=$2,
-               creator_state=CASE WHEN $3::boolean THEN 'live' ELSE creator_state END,
-               created_at=CASE WHEN $2='published' THEN now() ELSE created_at END,
-               updated_at=now()
-         WHERE id=$1
-         RETURNING id,user_id,caption,audience,creator_state,moderation_status
-      `,[
-        req.params.id,
-        shouldPublish ? 'published' : 'under_review',
-        scheduledDue
-      ]);
-
-      publishedNow=updated.rows[0]?.moderation_status==='published';
-      if(publishedNow){
-        try{
-          await notifyMentions({
-            actorId:updated.rows[0].user_id,
-            text:updated.rows[0].caption,
-            entityType:'post',
-            entityId:updated.rows[0].id,
-            audience:updated.rows[0].audience
-          });
-        }catch(error){
-          console.warn('RedLibertad consent publish mention notification failed:',error?.message || error);
-        }
-      }
+      await db.query("UPDATE posts SET consent_state='approved',updated_at=now() WHERE id=$1",[req.params.id]);
+      await maybePublishAfterApprovals(req.params.id);
     }
-
     await db.query(`INSERT INTO notifications (user_id,actor_id,type,entity_type,entity_id,text) VALUES ($1,$2,'consent_approved','post',$3,'Ha aprobado aparecer en tu publicación.')`,[ownerId,req.user.id,req.params.id]);
   }
   res.json({ok:true,decision});
+});
+
+
+const collaborationDecisionSchema=z.object({decision:z.enum(['approved','rejected','revoked'])});
+router.post('/:id/collaboration',requireAuth,async(req,res)=>{
+  const parsed=collaborationDecisionSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_decision'});
+  const post=await db.query(`
+    SELECT p.id,p.user_id,p.content_level,p.creator_state,p.moderation_status,u.username owner_username
+      FROM posts p JOIN users u ON u.id=p.user_id
+     WHERE p.id=$1 LIMIT 1
+  `,[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  const relation=await db.query(
+    'SELECT status FROM post_collaborators WHERE post_id=$1 AND user_id=$2 LIMIT 1',
+    [req.params.id,req.user.id]
+  );
+  if(!relation.rowCount)return res.status(403).json({error:'not_a_collaborator'});
+  const decision=parsed.data.decision;
+  const current=relation.rows[0].status;
+  if(decision==='revoked'&&current!=='approved')return res.status(400).json({error:'collaboration_not_approved'});
+  if(['approved','rejected'].includes(decision)&&current!=='pending')return res.status(409).json({error:'collaboration_already_answered'});
+
+  if(decision==='approved'){
+    const viewer=await db.query('SELECT age_verified,creator_verified FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+    if(post.rows[0].content_level!=='normal'&&!viewer.rows[0]?.age_verified){
+      return res.status(403).json({error:'age_verification_required'});
+    }
+    if(post.rows[0].content_level==='nudity'&&!viewer.rows[0]?.creator_verified){
+      return res.status(403).json({error:'verified_creator_required_for_nudity_collaboration'});
+    }
+  }
+
+  await db.query(
+    'UPDATE post_collaborators SET status=$3,responded_at=now() WHERE post_id=$1 AND user_id=$2',
+    [req.params.id,req.user.id,decision]
+  );
+  const ownerId=post.rows[0].user_id;
+  const notificationType=decision==='approved'?'collaboration_approved':decision==='rejected'?'collaboration_rejected':'collaboration_revoked';
+  const notificationText=decision==='approved'
+    ? 'Ha aceptado colaborar en tu publicación.'
+    : decision==='rejected'
+      ? 'Ha rechazado la invitación para colaborar en tu publicación.'
+      : 'Ha dejado de colaborar en tu publicación.';
+  await db.query(`
+    INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+    VALUES($1,$2,$3,'post',$4,$5)
+  `,[ownerId,req.user.id,notificationType,req.params.id,notificationText]);
+
+  const outcome=await maybePublishAfterApprovals(req.params.id);
+  res.json({ok:true,decision,published:outcome.published});
+});
+
+router.get('/:id/collaborators',requireAuth,async(req,res)=>{
+  const post=await db.query('SELECT id,user_id FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  if(String(post.rows[0].user_id)!==String(req.user.id)&&req.user.isAdmin!==true){
+    return res.status(403).json({error:'post_manage_not_allowed'});
+  }
+  const result=await db.query(`
+    SELECT pc.user_id,pc.status,pc.requested_at,pc.responded_at,
+           u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM post_collaborators pc JOIN users u ON u.id=pc.user_id
+     WHERE pc.post_id=$1
+     ORDER BY pc.requested_at,u.username
+  `,[req.params.id]);
+  res.json({collaborators:result.rows});
+});
+
+const collaboratorManageSchema=z.object({
+  usernames:z.array(z.string().min(1).max(30)).min(1).max(5)
+});
+router.post('/:id/collaborators',requireAuth,async(req,res)=>{
+  const parsed=collaboratorManageSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_collaborators'});
+  const post=await db.query('SELECT id,user_id,moderation_status FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  if(String(post.rows[0].user_id)!==String(req.user.id)&&req.user.isAdmin!==true){
+    return res.status(403).json({error:'post_manage_not_allowed'});
+  }
+  const resolved=await resolveCollaborators(post.rows[0].user_id,parsed.data.usernames);
+  if(resolved.missing.length)return res.status(400).json({error:'collaborator_not_found',missing:resolved.missing});
+  if(resolved.blocked.length)return res.status(400).json({error:'collaborator_unavailable',usernames:resolved.blocked});
+  const existing=await db.query(
+    "SELECT user_id FROM post_collaborators WHERE post_id=$1 AND status IN ('pending','approved')",
+    [req.params.id]
+  );
+  const combined=new Set(existing.rows.map(row=>String(row.user_id)));
+  resolved.collaborators.forEach(item=>combined.add(String(item.id)));
+  if(combined.size>5)return res.status(400).json({error:'collaborator_limit'});
+  for(const collaborator of resolved.collaborators){
+    await db.query(`
+      INSERT INTO post_collaborators(post_id,user_id,status,requested_at,responded_at)
+      VALUES($1,$2,'pending',now(),NULL)
+      ON CONFLICT(post_id,user_id) DO UPDATE
+        SET status='pending',requested_at=now(),responded_at=NULL
+    `,[req.params.id,collaborator.id]);
+  }
+  await sendPendingCollaborationRequests(req.params.id,post.rows[0].user_id);
+  res.json({ok:true,collaborators:resolved.collaborators});
+});
+
+router.delete('/:id/collaborators/:userId',requireAuth,async(req,res)=>{
+  const post=await db.query('SELECT id,user_id FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  const sameUser=String(req.params.userId)===String(req.user.id);
+  const canManage=String(post.rows[0].user_id)===String(req.user.id)||req.user.isAdmin===true;
+  if(!canManage&&!sameUser)return res.status(403).json({error:'post_manage_not_allowed'});
+  await db.query('DELETE FROM post_collaborators WHERE post_id=$1 AND user_id=$2',[req.params.id,req.params.userId]);
+  const outcome=await maybePublishAfterApprovals(req.params.id);
+  res.json({ok:true,published:outcome.published});
 });
 
 router.get('/feed', optionalAuth, async (req, res) => {
@@ -2822,6 +3086,12 @@ router.get('/feed', optionalAuth, async (req, res) => {
     if (mode === 'following') where.push(`(
       p.user_id=$1
       OR p.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
+      OR p.id IN (
+        SELECT pc.post_id
+          FROM post_collaborators pc
+         WHERE pc.status='approved'
+           AND pc.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)
+      )
       OR p.id IN (
         SELECT rp.post_id
           FROM reposts rp
@@ -3299,7 +3569,17 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 
   const ownerFilter = mode === 'reposts'
     ? `lower(profile_owner.username)=lower($1)`
-    : `lower(u.username)=lower($1)`;
+    : `(
+        lower(u.username)=lower($1)
+        OR EXISTS(
+          SELECT 1
+            FROM post_collaborators profile_collab
+            JOIN users profile_collab_user ON profile_collab_user.id=profile_collab.user_id
+           WHERE profile_collab.post_id=p.id
+             AND profile_collab.status='approved'
+             AND lower(profile_collab_user.username)=lower($1)
+        )
+      )`;
 
   const mediaFilter = mode === 'media'
     ? `AND (COALESCE(p.media_url,'')<>'' OR COALESCE(p.playback_url,'')<>'')`
@@ -3307,10 +3587,10 @@ router.get('/user/:username', optionalAuth, async (req, res) => {
 
   const featuredSelect = mode === 'reposts'
     ? 'false'
-    : 'EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id)';
+    : "(lower(u.username)=lower($1) AND EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id))";
   const orderBy = mode === 'reposts'
     ? 'profile_reposts.created_at DESC'
-    : 'EXISTS(SELECT 1 FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id) DESC, COALESCE((SELECT fp.featured_at FROM creator_featured_posts fp WHERE fp.user_id=p.user_id AND fp.post_id=p.id),p.created_at) DESC';
+    : `${featuredSelect} DESC,p.created_at DESC`;
 
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
@@ -3373,6 +3653,13 @@ router.post('/:id/repost',requireAuth,async(req,res)=>{
   if(post.audience!=='public')return res.status(403).json({error:'private_post_cannot_be_reposted'});
   if(String(post.user_id)===String(req.user.id)){
     return res.status(400).json({error:'cannot_repost_own_post'});
+  }
+  const collaborator=await db.query(
+    "SELECT 1 FROM post_collaborators WHERE post_id=$1 AND user_id=$2 AND status='approved' LIMIT 1",
+    [req.params.id,req.user.id]
+  );
+  if(collaborator.rowCount){
+    return res.status(400).json({error:'cannot_repost_collaboration'});
   }
 
   const inserted=await db.query(`

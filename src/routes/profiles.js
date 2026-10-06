@@ -5,6 +5,31 @@ const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+let profileCollaborationsV161Ready=null;
+async function ensureProfileCollaborationsV161(){
+  if(!profileCollaborationsV161Ready){
+    profileCollaborationsV161Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_collaborators (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','revoked')),
+          requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          responded_at TIMESTAMPTZ,
+          PRIMARY KEY(post_id,user_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_user_status ON post_collaborators(user_id,status,requested_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_collaborators_post_status ON post_collaborators(post_id,status,requested_at)');
+    })().catch(error=>{profileCollaborationsV161Ready=null;throw error;});
+  }
+  return profileCollaborationsV161Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureProfileCollaborationsV161();next();}
+  catch(error){console.error('RedLibertad V1.61 profile collaboration bootstrap failed:',error);res.status(500).json({error:'profile_collaboration_bootstrap_failed'});}
+});
+
 let connectionCirclesV152Ready=null;
 async function ensureConnectionCirclesV152(){
   if(!connectionCirclesV152Ready){
@@ -412,7 +437,16 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
                 AND back.following_id=mine.follower_id
               WHERE mine.follower_id=users.id
            ) connection_count,
-           (SELECT count(*)::int FROM posts WHERE user_id=users.id AND moderation_status='published') post_count,
+           (SELECT count(*)::int FROM posts p
+             WHERE p.moderation_status='published'
+               AND (
+                 p.user_id=users.id
+                 OR EXISTS(
+                   SELECT 1 FROM post_collaborators pc
+                    WHERE pc.post_id=p.id AND pc.user_id=users.id AND pc.status='approved'
+                 )
+               )
+           ) post_count,
            (SELECT count(*)::int FROM notifications n WHERE n.user_id=users.id AND n.read_at IS NULL AND (n.actor_id IS NULL OR n.actor_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=users.id))) notification_count,
            COALESCE(
              (SELECT array_agg(ui.interest ORDER BY ui.interest)
@@ -2088,7 +2122,15 @@ router.get('/:username', optionalAuth, async (req,res)=>{
     ? await db.query(`
         SELECT count(*)::int AS n
           FROM posts p
-         WHERE p.user_id=$1
+         WHERE (
+             p.user_id=$1
+             OR EXISTS(
+               SELECT 1 FROM post_collaborators profile_collab
+                WHERE profile_collab.post_id=p.id
+                  AND profile_collab.user_id=$1
+                  AND profile_collab.status='approved'
+             )
+           )
            AND p.moderation_status='published'
            AND (
              p.audience='public'
@@ -2107,12 +2149,26 @@ router.get('/:username', optionalAuth, async (req,res)=>{
                   AND pp.user_id=$2
                   AND pp.consent_status='approved'
              )
+             OR EXISTS(
+               SELECT 1 FROM post_collaborators viewer_collab
+                WHERE viewer_collab.post_id=p.id
+                  AND viewer_collab.user_id=$2
+                  AND viewer_collab.status='approved'
+             )
            )
       `,[profile.id,req.user.id])
     : await db.query(`
         SELECT count(*)::int AS n
           FROM posts p
-         WHERE p.user_id=$1
+         WHERE (
+             p.user_id=$1
+             OR EXISTS(
+               SELECT 1 FROM post_collaborators profile_collab
+                WHERE profile_collab.post_id=p.id
+                  AND profile_collab.user_id=$1
+                  AND profile_collab.status='approved'
+             )
+           )
            AND p.moderation_status='published'
            AND p.audience='public'
       `,[profile.id]);

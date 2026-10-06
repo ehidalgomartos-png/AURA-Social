@@ -280,6 +280,15 @@ function participantsHTML(p) {
   return `<div class="post-participants"><span class="participants-label">Con ${visible.join(', ')}${extra}</span>${taggedMe ? '<span class="tagged-me">✓ Estás etiquetado</span>' : ''}</div>`;
 }
 
+function collaboratorsHTML(p) {
+  const collaborators=Array.isArray(p.collaborators)?p.collaborators:[];
+  if(!collaborators.length)return '';
+  const visible=collaborators.slice(0,3).map(x=>profileLink(x.username,`@${esc(x.username)}`,'collaborator-link'));
+  const extra=collaborators.length>3?` <span class="participants-extra">y ${collaborators.length-3} más</span>`:'';
+  const collaboratingMe=me&&collaborators.some(x=>String(x.id)===String(me.id));
+  return `<div class="post-collaborators"><span class="collaborators-label">🤝 Colaboración con ${visible.join(', ')}${extra}</span>${collaboratingMe?'<span class="collaborating-me">✓ Colaboras</span>':''}</div>`;
+}
+
 
 function inlineCommentsHTML(p) {
   const comments = Array.isArray(p.latest_comments) ? p.latest_comments : [];
@@ -383,6 +392,7 @@ function postHTML(p, options = {}) {
   const media = mediaHTML(p);
   const textOnly = !media;
   const ownPost = !!me && String(me.id) === String(p.user_id);
+  const collaboratingMe=!!me && Array.isArray(p.collaborators) && p.collaborators.some(x=>String(x.id)===String(me.id));
   const canManage = !!me && (ownPost || me.is_admin === true);
   const vipOnly = p.audience === 'vip';
   const privateAudience = p.audience && p.audience !== 'public';
@@ -410,6 +420,7 @@ function postHTML(p, options = {}) {
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
         <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span>${p.post_kind==='reel' && p.view_count!=null ? ` · <span class="reel-view-count">▶ ${Number(p.view_count||0)} vistas</span>` : ''}</small>
         ${audienceBadge ? `<span class="vip-content-badge private-audience-badge ${esc(p.audience)}">${esc(audienceBadge)}</span>` : ''}
+        ${collaboratorsHTML(p)}
         ${participantsHTML(p)}
       </div>
     </div>
@@ -419,7 +430,7 @@ function postHTML(p, options = {}) {
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
       <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
-      <button class="${reposted ? 'reposted' : ''}" ${ownPost || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
+      <button class="${reposted ? 'reposted' : ''}" ${ownPost || collaboratingMe || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : collaboratingMe ? 'Ya apareces como colaborador en esta publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
       <button class="share-action" ${privateAudience ? 'disabled title="El contenido de audiencia privada no se puede compartir"' : `data-share="${p.id}"`}>↗ <span class="share-label">${privateAudience ? 'Privado' : 'Compartir'}</span></button>
       ${options.discovery && !ownPost ? `<button class="discovery-hide-action" data-discovery-hide-post="${p.id}" title="No me interesa" aria-label="No me interesa">−</button>` : ''}
@@ -1669,10 +1680,14 @@ function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones
 
   return posts.map(p => {
     const participants = Array.isArray(p.participants) ? p.participants : [];
+    const collaborators=Array.isArray(p.collaborators)?p.collaborators:[];
     const participantBadge = participants.length
       ? `<span class="tile-participants" title="Con ${participants.map(x => '@' + esc(x.username)).join(', ')}">👥 ${participants.length}</span>`
       : '';
-    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''} ${p.audience === 'vip' ? 'is-vip-exclusive' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.audience === 'vip' ? '<span class="tile-vip">★ VIP</span>' : ''}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${participantBadge}</button>`;
+    const collaborationBadge=collaborators.length
+      ? `<span class="tile-collaboration" title="Colaboración con ${collaborators.map(x=>'@'+esc(x.username)).join(', ')}">🤝 COLAB</span>`
+      : '';
+    return `<button type="button" class="tile tile-button profile-content-tile ${p.featured ? 'is-featured' : ''} ${p.audience === 'vip' ? 'is-vip-exclusive' : ''}" data-open-post="${p.id}">${tileContentHTML(p)}${p.audience === 'vip' ? '<span class="tile-vip">★ VIP</span>' : ''}${p.featured ? '<span class="tile-featured">★ DESTACADO</span>' : ''}${p.post_kind === 'reel' ? '<span class="tile-label">REEL</span>' : ''}${collaborationBadge}${participantBadge}</button>`;
   }).join('');
 }
 
@@ -4599,12 +4614,39 @@ $('#profileForm').addEventListener('submit', async e => {
 async function loadConsents() {
   const { d } = await api('/api/posts/consents/pending');
   const root = $('#consentRequests');
-  if (!d.requests.length) { root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Cuando alguien indique que apareces en una publicación, podrás revisarla aquí.</p></div>'; return; }
-  root.innerHTML = d.requests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
+  const consentRequests=Array.isArray(d.requests)?d.requests:[];
+  const collaborations=Array.isArray(d.collaborations)?d.collaborations:[];
+  if (!consentRequests.length && !collaborations.length) {
+    root.innerHTML = '<div class="info-card"><b>No tienes solicitudes pendientes.</b><p>Los consentimientos de imagen y las invitaciones para colaborar aparecerán aquí.</p></div>';
+    return;
+  }
+
+  const consentCards=consentRequests.map(x => `<article class="consent-card"><div class="consent-head">${profileLink(x.username, `<span class="avatar">${x.avatar_url ? `<img src="${esc(x.avatar_url)}">` : initials(x.display_name)}</span>`, 'post-avatar-link')}<div>${profileLink(x.username, `<b>${esc(x.display_name)}</b>`, 'post-name-link')}<small>${profileLink(x.username, `@${esc(x.username)}`, 'post-username-link')} solicita tu consentimiento</small></div></div><div class="consent-media">${x.gated ? `<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>` : mediaHTML(x)}</div>${x.caption ? `<p>${esc(x.caption)}</p>` : ''}<div class="consent-actions">${x.consent_status === 'pending' ? `<button class="primary" data-consent="approved" data-post="${x.id}">Autorizar</button><button class="danger-outline" data-consent="rejected" data-post="${x.id}">Rechazar</button>` : `<span class="approved-label">✓ Autorizado</span><button class="danger-outline" data-consent="revoked" data-post="${x.id}">Retirar autorización</button>`}</div></article>`).join('');
+
+  const collaborationCards=collaborations.map(x=>`<article class="consent-card collaboration-request-card">
+    <div class="consent-head">${profileLink(x.username,`<span class="avatar">${x.avatar_url?`<img src="${esc(x.avatar_url)}">`:initials(x.display_name)}</span>`,'post-avatar-link')}<div>${profileLink(x.username,`<b>${esc(x.display_name)}</b>`,'post-name-link')}<small>${profileLink(x.username,`@${esc(x.username)}`,'post-username-link')} te invita a colaborar</small></div></div>
+    <div class="collaboration-request-label">🤝 PUBLICACIÓN COLABORATIVA · ${x.post_kind==='reel'?'REEL':'POST'}</div>
+    <div class="consent-media">${x.gated?`<div class="gate"><span class="badge">18+</span><b>Verificación necesaria</b><p>${gateText(x.gate_reason)}</p></div>`:mediaHTML(x)}</div>
+    ${x.caption?`<p>${esc(x.caption)}</p>`:''}
+    <div class="consent-actions">${x.collaboration_status==='pending'
+      ? `<button class="primary" data-collaboration="approved" data-post="${x.id}">Aceptar colaboración</button><button class="danger-outline" data-collaboration="rejected" data-post="${x.id}">Rechazar</button>`
+      : `<span class="approved-label">✓ Colaboración activa</span><button class="danger-outline" data-collaboration="revoked" data-post="${x.id}">Dejar colaboración</button>`}</div>
+  </article>`).join('');
+
+  root.innerHTML=collaborationCards+consentCards;
   all('[data-consent]', root).forEach(b => b.onclick = async () => {
     if (b.dataset.consent === 'approved' && !d.ageVerified && b.closest('.consent-card').querySelector('.gate')) return toast('Primero necesitas verificar tu mayoría de edad.');
     const { r } = await api(`/api/posts/${b.dataset.post}/consent`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: b.dataset.consent }) });
-    if (r.ok) { toast(b.dataset.consent === 'revoked' ? 'Consentimiento retirado' : 'Decisión guardada'); await loadConsents(); }
+    if (r.ok) { toast(b.dataset.consent === 'revoked' ? 'Consentimiento retirado' : 'Decisión guardada'); await loadConsents(); await loadProfile(); }
+  });
+  all('[data-collaboration]',root).forEach(b=>b.onclick=async()=>{
+    if(b.dataset.collaboration==='approved'&&!d.ageVerified&&b.closest('.consent-card').querySelector('.gate'))return toast('Primero necesitas verificar tu mayoría de edad.');
+    const {r,d:response}=await api(`/api/posts/${b.dataset.post}/collaboration`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:b.dataset.collaboration})});
+    if(!r.ok){
+      return toast(response.error==='verified_creator_required_for_nudity_collaboration'?'La colaboración con desnudez requiere cuenta de creador adulto verificada.':'No se pudo guardar la colaboración.');
+    }
+    toast(b.dataset.collaboration==='approved'?'Colaboración aceptada':b.dataset.collaboration==='revoked'?'Has dejado la colaboración':'Invitación rechazada');
+    await loadConsents();await loadProfile();await loadFeed(currentMode);
   });
 }
 
@@ -4702,7 +4744,7 @@ function openReport(postId) {
 
 let activeSharePostId = null;
 function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
-function shareText() { return 'Mira mi post en RedLibertad, donde la libertad es lo primero.'; }
+function shareText() { return 'Mira este post en RedLibertad, donde la libertad es lo primero.'; }
 
 async function loadShareConversations(){
   const root=$('#shareConversationList');
@@ -4888,6 +4930,31 @@ function closePostManage() {
   if (button) button.textContent = 'Eliminar publicación';
   const status = $('#postEditStatus');
   if (status) status.textContent = '';
+  if($('#postCollaboratorStatus'))$('#postCollaboratorStatus').textContent='';
+  if($('#postCollaboratorList'))$('#postCollaboratorList').innerHTML='';
+  $('#postCollaboratorForm')?.reset();
+}
+
+function collaboratorStatusLabel(status){
+  return status==='approved'?'Aceptada':status==='pending'?'Pendiente':status==='rejected'?'Rechazada':'Retirada';
+}
+async function loadPostCollaborators(){
+  const root=$('#postCollaboratorList');
+  if(!root||!activeManagePost)return;
+  root.innerHTML='<div class="mini-loading">Cargando colaboradores…</div>';
+  const {r,d}=await api(`/api/posts/${activeManagePost}/collaborators`);
+  if(!r.ok){root.innerHTML='<div class="empty-list">No se pudieron cargar los colaboradores.</div>';return;}
+  const items=Array.isArray(d.collaborators)?d.collaborators:[];
+  root.innerHTML=items.length?items.map(item=>`<article class="post-collaborator-row">
+    <span class="post-collaborator-avatar">${item.avatar_url?`<img src="${esc(item.avatar_url)}">`:initials(item.display_name)}</span>
+    <div><b>${esc(item.display_name)} ${item.creator_verified?'<span class="verified">✓</span>':''}</b><small>@${esc(item.username)} · ${esc(collaboratorStatusLabel(item.status))}</small></div>
+    <button type="button" class="tiny-action danger-outline" data-remove-collaborator="${item.user_id}">Quitar</button>
+  </article>`).join(''):'<div class="empty-list">No hay colaboradores.</div>';
+  all('[data-remove-collaborator]',root).forEach(button=>button.onclick=async()=>{
+    const {r}=await api(`/api/posts/${activeManagePost}/collaborators/${button.dataset.removeCollaborator}`,{method:'DELETE'});
+    if(r.ok){toast('Colaborador eliminado');await loadPostCollaborators();await loadFeed(currentMode);if(!$('#profileView').classList.contains('hidden'))await loadProfile();}
+    else toast('No se pudo quitar el colaborador.');
+  });
 }
 
 function openPostManage(postId, caption = '') {
@@ -4898,6 +4965,7 @@ function openPostManage(postId, caption = '') {
   $('#deletePostButton').textContent = 'Eliminar publicación';
   updatePostEditCounter();
   $('#postManageModal').classList.remove('hidden');
+  loadPostCollaborators();
   setTimeout(() => $('#postEditCaption')?.focus(), 100);
 }
 
@@ -5121,6 +5189,25 @@ if ($('#closePostManageModal')) $('#closePostManageModal').onclick = closePostMa
 if ($('#postEditCaption')) $('#postEditCaption').addEventListener('input', updatePostEditCounter);
 if ($('#postManageModal')) $('#postManageModal').addEventListener('click', event => {
   if (event.target === $('#postManageModal')) closePostManage();
+});
+
+if ($('#postCollaboratorForm')) $('#postCollaboratorForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!activeManagePost)return;
+  const status=$('#postCollaboratorStatus');
+  const fd=new FormData(event.currentTarget);
+  const usernames=String(fd.get('usernames')||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!usernames.length){status.textContent='Escribe al menos un @usuario.';return;}
+  status.textContent='Enviando invitación…';
+  const {r,d}=await api(`/api/posts/${activeManagePost}/collaborators`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usernames})});
+  if(!r.ok){
+    status.textContent=d.error==='collaborator_not_found'?`No encontramos: ${(d.missing||[]).join(', ')}`:d.error==='collaborator_unavailable'?'Alguna persona no está disponible para colaborar.':d.error==='collaborator_limit'?'Puedes tener como máximo 5 colaboradores activos.':'No se pudo enviar la invitación.';
+    return;
+  }
+  event.currentTarget.reset();
+  status.textContent='Invitación enviada.';
+  toast('Invitación de colaboración enviada');
+  await loadPostCollaborators();
 });
 
 if ($('#postEditForm')) $('#postEditForm').addEventListener('submit', async event => {
@@ -5689,6 +5776,10 @@ function notificationIcon(type) {
     creator_poll_vote: '▥',
     creator_question_response: '?',
     event_reminder: '🗓',
+    collaboration_request: '🤝',
+    collaboration_approved: '✓',
+    collaboration_rejected: '×',
+    collaboration_revoked: '↶',
     system: 'R'
   })[type] || '•';
 }
@@ -5699,7 +5790,7 @@ function notificationMatches(notification, filter) {
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
   if (filter === 'messages') return notification.type === 'message';
-  if (filter === 'consent') return String(notification.type || '').startsWith('consent_');
+  if (filter === 'consent') return String(notification.type || '').startsWith('consent_') || String(notification.type || '').startsWith('collaboration_');
   return true;
 }
 
@@ -5738,6 +5829,17 @@ async function navigateNotification(notification) {
   const type = String(notification.type || '');
   const entityType = String(notification.entity_type || '');
   const entityId = notification.entity_id;
+
+  if (type === 'collaboration_request') {
+    showView('profile');
+    setTimeout(() => document.querySelector('.consent-section')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
+    return;
+  }
+
+  if (type.startsWith('collaboration_') && entityType === 'post' && entityId) {
+    await openPostFocus(entityId);
+    return;
+  }
 
   if (type === 'event_reminder' && entityType === 'event' && entityId) {
     showView('events');
@@ -7800,6 +7902,7 @@ $('#createForm').addEventListener('submit', async e => {
         ? 'Programando...'
         : 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
+    const collaborators = String(fd.get('collaborators') || '').split(',').map(x => x.trim()).filter(Boolean);
     const payload = {
       caption,
       kind,
@@ -7814,6 +7917,7 @@ $('#createForm').addEventListener('submit', async e => {
       communityPrompt,
       pollOptions,
       participantUsernames: participants,
+      collaboratorUsernames: collaborators,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
       mediaProvider: media?.provider || 'local',
@@ -7848,6 +7952,10 @@ $('#createForm').addEventListener('submit', async e => {
           ? 'La pregunta abierta necesita un enunciado.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
+        : d.error === 'collaborator_not_found'
+          ? `No encontramos estos colaboradores: ${(d.missing || []).join(', ')}`
+        : d.error === 'collaborator_unavailable'
+          ? `No puedes invitar a colaborar a: ${(d.usernames || []).join(', ')}`
           : d.error === 'empty_post'
             ? 'Escribe algo o selecciona una foto o vídeo.'
             : d.error === 'reel_media_required'
@@ -7855,11 +7963,12 @@ $('#createForm').addEventListener('submit', async e => {
               : 'No se pudo publicar.'
     );
 
+    const waitingApprovals=d.consentRequired||d.collaborationRequired;
     const successMessage=publishMode==='draft'
       ? 'Borrador guardado'
       : publishMode==='scheduled'
-        ? (d.consentRequired ? 'Programada. Esperando consentimientos.' : 'Publicación programada')
-        : (d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
+        ? (waitingApprovals ? 'Programada. Esperando aprobaciones.' : 'Publicación programada')
+        : (waitingApprovals ? 'Publicación guardada. Esperando aprobaciones.' : 'Publicado');
 
     toast(successMessage);
     $('#modal').classList.add('hidden');

@@ -5257,3 +5257,28 @@ select:focus-visible{
   .event-detail-actions{display:grid;grid-template-columns:1fr 1fr}
   .event-detail-actions button{width:100%}
 }
+
+
+/* =========================================================
+   RedLibertad V1.61 — Collaborative Posts
+   ========================================================= */
+.post-collaborators{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:4px;font-size:9px}
+.collaborators-label{color:var(--teal);font-weight:900}
+.collaborator-link{font:inherit;color:var(--teal);padding:0}
+.collaborating-me{display:inline-flex;padding:3px 6px;border-radius:999px;background:var(--teal-soft);color:var(--teal);font-size:8px;font-weight:900}
+.collaboration-request-card{border-color:color-mix(in srgb,var(--teal) 32%,var(--line))}
+.collaboration-request-label{display:inline-flex;margin:8px 0;padding:4px 7px;border-radius:999px;background:var(--teal-soft);color:var(--teal);font-size:8px;font-weight:900}
+.post-collaboration-manage{margin:16px 0;padding:13px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.post-collaborator-list{display:grid;gap:7px;margin:9px 0}
+.post-collaborator-row{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.post-collaborator-avatar{width:38px;height:38px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--navy-soft);font-weight:900}
+.post-collaborator-avatar img{width:100%;height:100%;object-fit:cover}
+.post-collaborator-row b,.post-collaborator-row small{display:block}.post-collaborator-row b{font-size:10px}.post-collaborator-row small{margin-top:2px;color:var(--muted);font-size:8px}
+.post-collaborator-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.post-collaborator-form input{min-height:40px}
+.tile-collaboration{position:absolute;left:8px;bottom:8px;padding:4px 6px;border-radius:999px;background:rgba(10,43,60,.88);color:white;font-size:7px;font-weight:900;letter-spacing:.03em}
+@media(max-width:760px){
+  .post-collaborator-row{grid-template-columns:34px minmax(0,1fr) auto}
+  .post-collaborator-avatar{width:34px;height:34px}
+  .post-collaborator-form{grid-template-columns:1fr}
+  .post-collaborator-form button{width:100%}
+}
