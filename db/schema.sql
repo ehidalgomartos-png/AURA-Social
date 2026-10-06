@@ -629,6 +629,24 @@ CREATE TABLE IF NOT EXISTS referrals (
 );
 CREATE INDEX IF NOT EXISTS idx_referrals_inviter_created ON referrals(inviter_user_id,created_at DESC);
 
+-- RedLibertad V1.66: Growth & Onboarding 2.0
+CREATE TABLE IF NOT EXISTS growth_invite_links (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token VARCHAR(64) NOT NULL UNIQUE,
+  open_count INTEGER NOT NULL DEFAULT 0,
+  join_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_used_at TIMESTAMPTZ,
+  disabled_at TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_growth_invite_links_active_user
+  ON growth_invite_links(user_id) WHERE disabled_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_growth_invite_links_token_active
+  ON growth_invite_links(token) WHERE disabled_at IS NULL;
+ALTER TABLE referrals ADD COLUMN IF NOT EXISTS invite_link_id BIGINT REFERENCES growth_invite_links(id) ON DELETE SET NULL;
+ALTER TABLE referrals ADD COLUMN IF NOT EXISTS attribution TEXT NOT NULL DEFAULT 'legacy_username';
+
 
 -- RedLibertad V1.9: privacidad y control
 ALTER TABLE users ADD COLUMN IF NOT EXISTS message_privacy TEXT NOT NULL DEFAULT 'everyone';
