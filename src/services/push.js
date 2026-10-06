@@ -5,9 +5,15 @@ const VAPID_PUBLIC_KEY=String(process.env.PUSH_VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE_KEY=String(process.env.PUSH_VAPID_PRIVATE_KEY || '').trim();
 const VAPID_SUBJECT=String(process.env.PUSH_VAPID_SUBJECT || '').trim();
 const PUSH_CONFIGURED=!!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_SUBJECT);
+let PUSH_READY=false;
 
 if(PUSH_CONFIGURED){
-  webpush.setVapidDetails(VAPID_SUBJECT,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY);
+  try{
+    webpush.setVapidDetails(VAPID_SUBJECT,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY);
+    PUSH_READY=true;
+  }catch(error){
+    console.error('RedLibertad VAPID configuration is invalid:',error?.message || error);
+  }
 }
 
 let schemaReady=null;
@@ -70,13 +76,13 @@ async function ensurePushSchema(){
 }
 
 function isPushConfigured(){
-  return PUSH_CONFIGURED;
+  return PUSH_READY;
 }
 
 function publicPushConfig(){
   return {
-    enabled:PUSH_CONFIGURED,
-    publicKey:PUSH_CONFIGURED ? VAPID_PUBLIC_KEY : null
+    enabled:PUSH_READY,
+    publicKey:PUSH_READY ? VAPID_PUBLIC_KEY : null
   };
 }
 
@@ -116,7 +122,7 @@ async function markJob(jobId,status,attempts=0){
 
 let processing=false;
 async function processPushJobs(){
-  if(!PUSH_CONFIGURED || processing)return;
+  if(!PUSH_READY || processing)return;
   processing=true;
   try{
     await ensurePushSchema();
@@ -223,7 +229,7 @@ async function processPushJobs(){
 let workerTimer=null;
 async function startPushWorker(){
   await ensurePushSchema();
-  if(!PUSH_CONFIGURED)return {enabled:false};
+  if(!PUSH_READY)return {enabled:false};
   if(workerTimer)return {enabled:true};
   processPushJobs().catch(error=>console.error('RedLibertad push worker:',error));
   workerTimer=setInterval(()=>{
