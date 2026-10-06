@@ -3687,3 +3687,40 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .creator-community-columns-v23{grid-template-columns:1fr}
   .creator-community-columns-v23>div:first-child{grid-column:auto}
 }
+
+
+/* RedLibertad V1.24 — Community Insights & Creator Notifications */
+.creator-community-insights-block{margin:12px 0 16px;padding:13px;border:1px solid var(--line);border-radius:16px;background:var(--soft)}
+.creator-community-insights-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.creator-community-insights-head b{display:block;color:var(--navy);font-size:15px;margin-top:2px}
+.creator-community-insights{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:12px}
+.creator-community-insights-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:12px}
+.creator-community-insights-grid h3{margin:0 0 7px;font-size:12px;color:var(--navy)}
+.creator-community-trend{height:156px;display:grid;grid-template-columns:repeat(14,minmax(12px,1fr));gap:4px;align-items:end;padding:10px 7px 4px;border:1px solid var(--line);border-radius:13px;background:var(--paper);overflow:hidden}
+.creator-community-trend-day{height:100%;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:4px;align-items:end;min-width:0}
+.creator-community-trend-bar{align-self:end;width:100%;min-height:2px;border-radius:5px 5px 2px 2px;overflow:hidden;background:#e6ebef;display:flex;flex-direction:column;justify-content:flex-end}
+.creator-community-trend-bar i{display:block;width:100%}
+.creator-community-trend-bar .votes{background:var(--teal)}
+.creator-community-trend-bar .responses{background:#7e9dc7}
+.creator-community-trend-bar .empty{background:#dfe5ea}
+.creator-community-trend-day small{font-size:7px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:center}
+.creator-community-top-tools{display:grid;gap:6px}
+.creator-community-top-tool{display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:11px;background:var(--paper);text-align:left;cursor:pointer}
+.creator-community-top-tool:hover{border-color:rgba(43,183,169,.45)}
+.creator-community-top-rank{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:var(--soft);font-size:10px;font-weight:900;color:var(--navy)}
+.creator-community-top-copy{min-width:0}
+.creator-community-top-copy b,.creator-community-top-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.creator-community-top-copy b{font-size:10px;color:var(--ink)}
+.creator-community-top-copy small{font-size:9px;color:var(--muted);margin-top:2px}
+.notification-item[data-notification-type="creator_poll_vote"] .notification-symbol,
+.notification-item[data-notification-type="creator_question_response"] .notification-symbol{background:rgba(43,183,169,.12);color:var(--teal)}
+@media (max-width:900px){
+  .creator-community-insights{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .creator-community-insights-grid{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .creator-community-insights-block{padding:11px}
+  .creator-community-insights{grid-template-columns:1fr 1fr}
+  .creator-community-trend{height:132px;gap:3px;padding-inline:5px}
+  .creator-community-trend-day small{font-size:6px}
+}
