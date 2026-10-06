@@ -1,4 +1,4 @@
-# RedLibertad V1.51.0 — Share to Chat
+# RedLibertad V1.52.0 — Connection Circles
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1159,4 +1159,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Se conserva un ID histórico independiente de la FK para no dejar mensajes vacíos tras borrado.
 - Tarjetas con autor, tipo Post/Reel, multimedia, extracto y acceso al post original.
 - La previsualización del inbox muestra “Publicación compartida”.
+- Sin monetización activa.
+
+
+## V1.52.0 — Connection Circles
+
+- Círculos privados para organizar conexiones mutuas.
+- Círculo fijo “Favoritas” creado automáticamente por usuario.
+- Hasta 12 círculos personalizados.
+- Crear, renombrar y eliminar círculos sin afectar relaciones sociales.
+- Añadir o quitar una conexión de uno o varios círculos.
+- Filtro de “Tus conexiones” por círculo.
+- Favoritas aparecen primero en el listado general.
+- Etiquetas privadas de círculos visibles solo para el propietario.
+- Las membresías no se exponen a la otra persona ni a feeds/perfiles públicos.
+- Solo conexiones mutuas activas pueden añadirse a círculos.
+- Al romper el seguimiento mutuo o bloquear, se limpian membresías en ambos sentidos para evitar estados antiguos que puedan revivir.
+- Bootstrap y migraciones idempotentes.
 - Sin monetización activa.
