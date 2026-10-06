@@ -482,6 +482,7 @@ async function publishDueScheduledPosts(){
   schedulerRunning=true;
   try{
     await ensureCreatorPublishingV20();
+    await ensureCollaborativeV161();
     const result=await db.query(`
       UPDATE posts p
          SET creator_state='live',
@@ -3019,6 +3020,13 @@ router.post('/:id/collaborators',requireAuth,async(req,res)=>{
   const resolved=await resolveCollaborators(post.rows[0].user_id,parsed.data.usernames);
   if(resolved.missing.length)return res.status(400).json({error:'collaborator_not_found',missing:resolved.missing});
   if(resolved.blocked.length)return res.status(400).json({error:'collaborator_unavailable',usernames:resolved.blocked});
+  const existing=await db.query(
+    "SELECT user_id FROM post_collaborators WHERE post_id=$1 AND status IN ('pending','approved')",
+    [req.params.id]
+  );
+  const combined=new Set(existing.rows.map(row=>String(row.user_id)));
+  resolved.collaborators.forEach(item=>combined.add(String(item.id)));
+  if(combined.size>5)return res.status(400).json({error:'collaborator_limit'});
   for(const collaborator of resolved.collaborators){
     await db.query(`
       INSERT INTO post_collaborators(post_id,user_id,status,requested_at,responded_at)
