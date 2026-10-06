@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.46.0",
+  "version": "1.47.0",
   "private": true,
-  "description": "RedLibertad V1.46 Chat Presence & Read Receipts - presencia privada, escribiendo y visto sin monetización.",
+  "description": "RedLibertad V1.47 Message Replies & Reactions - citas protegidas y reacciones rápidas en chat, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
