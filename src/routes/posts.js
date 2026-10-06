@@ -1880,8 +1880,12 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
 
   const window=String(req.query.window || 'all');
   const q=String(req.query.q || '').trim().slice(0,120);
+  const localDayEnd=new Date(String(req.query.dayEnd || ''));
   if(!['all','overdue','today','week','later','undated'].includes(window)){
     return res.status(400).json({error:'invalid_follow_up_window'});
+  }
+  if(!Number.isFinite(localDayEnd.getTime())){
+    return res.status(400).json({error:'invalid_follow_up_day_end'});
   }
 
   const result=await db.query(`
@@ -1897,7 +1901,7 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       CASE
         WHEN meta.follow_up_at IS NULL THEN 'undated'
         WHEN meta.follow_up_at < now() THEN 'overdue'
-        WHEN meta.follow_up_at < date_trunc('day',now()) + interval '1 day' THEN 'today'
+        WHEN meta.follow_up_at < $4::timestamptz THEN 'today'
         WHEN meta.follow_up_at < now() + interval '7 days' THEN 'week'
         ELSE 'later'
       END follow_up_window
@@ -1925,8 +1929,8 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       AND (
         $2='all'
         OR ($2='overdue' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at<now())
-        OR ($2='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<date_trunc('day',now())+interval '1 day')
-        OR ($2='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=date_trunc('day',now())+interval '1 day' AND meta.follow_up_at<now()+interval '7 days')
+        OR ($2='today' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now() AND meta.follow_up_at<$4::timestamptz)
+        OR ($2='week' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=$4::timestamptz AND meta.follow_up_at<now()+interval '7 days')
         OR ($2='later' AND meta.follow_up_at IS NOT NULL AND meta.follow_up_at>=now()+interval '7 days')
         OR ($2='undated' AND meta.follow_up_at IS NULL)
       )
@@ -1936,7 +1940,7 @@ router.get('/creator/community-follow-ups',requireAuth,async(req,res)=>{
       meta.follow_up_at ASC NULLS LAST,
       meta.updated_at DESC
     LIMIT 250
-  `,[req.user.id,window,q]);
+  `,[req.user.id,window,q,localDayEnd.toISOString()]);
 
   const summary=await db.query(`
     SELECT
