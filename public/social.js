@@ -4743,176 +4743,180 @@ function openReport(postId) {
 }
 
 let activeSharePostId = null;
-function shareUrl(postId) { return `${location.origin}/p/${encodeURIComponent(postId)}`; }
-function shareText() { return 'Mira este post en RedLibertad, donde la libertad es lo primero.'; }
+let activeShareEntity=null;
+
+function shareUrl(){
+  if(!activeShareEntity)return '';
+  if(['post','reel'].includes(activeShareEntity.type))return `${location.origin}/p/${encodeURIComponent(activeShareEntity.id)}`;
+  if(activeShareEntity.type==='profile')return `${location.origin}/app?profile=${encodeURIComponent(activeShareEntity.username||'')}`;
+  if(activeShareEntity.type==='story')return `${location.origin}/app?story=${encodeURIComponent(activeShareEntity.id)}`;
+  return location.origin+'/app';
+}
+function shareText(){
+  if(!activeShareEntity)return 'Mira esto en RedLibertad.';
+  if(activeShareEntity.type==='profile')return `Mira el perfil de @${activeShareEntity.username||''} en RedLibertad.`;
+  if(activeShareEntity.type==='story')return `Mira esta Story de @${activeShareEntity.username||''} en RedLibertad.`;
+  if(activeShareEntity.type==='reel')return 'Mira este Reel en RedLibertad, donde la libertad es lo primero.';
+  return 'Mira este post en RedLibertad, donde la libertad es lo primero.';
+}
+function shareEntityLabel(){
+  return activeShareEntity?.type==='profile'?'perfil':activeShareEntity?.type==='story'?'Story':activeShareEntity?.type==='reel'?'Reel':'publicación';
+}
+function canShareExternally(){
+  return activeShareEntity?.type==='profile'||activeShareEntity?.audience==='public';
+}
+async function recordExternalShare(targetType,targetLabel=''){
+  if(!activeShareEntity||!['external','copy'].includes(targetType))return;
+  await api('/api/shares/record',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      entityType:activeShareEntity.type,entityId:activeShareEntity.id,targetType,targetLabel
+    })
+  }).catch(()=>{});
+}
 
 async function loadShareConversations(){
   const root=$('#shareConversationList');
-  if(!root || !activeSharePostId)return;
+  if(!root || !activeShareEntity)return;
   root.innerHTML='<div class="share-chat-loading">Cargando conversaciones…</div>';
-
   const {r,d}=await api('/api/messages/conversations?filter=all&q=');
-  if(!r.ok){
-    root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus conversaciones.</div>';
-    return;
-  }
-
-  const conversations=(Array.isArray(d.conversations) ? d.conversations : []).slice(0,12);
-  if(!conversations.length){
-    root.innerHTML='<div class="share-chat-empty">Todavía no tienes conversaciones activas.</div>';
-    return;
-  }
-
+  if(!r.ok){root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus conversaciones.</div>';return;}
+  const conversations=(Array.isArray(d.conversations)?d.conversations:[]).slice(0,12);
+  if(!conversations.length){root.innerHTML='<div class="share-chat-empty">Todavía no tienes conversaciones activas.</div>';return;}
   root.innerHTML=conversations.map(conversation=>{
     const identity=conversationListIdentity(conversation);
-    const subtitle=identity.isGroup
-      ? `${Number(conversation.member_count || 0)} miembros`
-      : identity.subtitle;
+    const subtitle=identity.isGroup?`${Number(conversation.member_count||0)} miembros · se comprobará el acceso de todos`:identity.subtitle;
     return `<button type="button" class="share-chat-option" data-share-conversation="${conversation.id}" data-share-label="${esc(identity.title)}">
-      <span class="share-chat-avatar ${identity.isGroup ? 'group-avatar' : ''}">${identity.avatar}</span>
-      <span class="share-chat-copy"><b>${esc(identity.title)}</b><small>${esc(subtitle || '')}</small></span>
+      <span class="share-chat-avatar ${identity.isGroup?'group-avatar':''}">${identity.avatar}</span>
+      <span class="share-chat-copy"><b>${esc(identity.title)}</b><small>${esc(subtitle||'')}</small></span>
       <span class="share-chat-send">Enviar</span>
     </button>`;
   }).join('');
-
   all('[data-share-conversation]',root).forEach(button=>{
-    button.onclick=()=>sendSharedPostToConversation(
-      button.dataset.shareConversation,
-      button.dataset.shareLabel
-    );
+    button.onclick=()=>sendSharedEntityToConversation(button.dataset.shareConversation,button.dataset.shareLabel);
   });
 }
 
-function openShare(postId) {
-  activeSharePostId = Number(postId);
-  const modal = $('#shareModal');
-  if (modal) modal.classList.remove('hidden');
-  const status = $('#shareStatus');
-  if (status) status.textContent = '';
-  const internalUsername = $('#shareInternalUsername');
-  if (internalUsername) internalUsername.value = '';
-  loadShareConversations().catch(()=>{});
+async function loadShareCommunities(){
+  const section=$('#shareCommunitySection'),root=$('#shareCommunityList');
+  const eligible=!!activeShareEntity&&['post','reel'].includes(activeShareEntity.type)&&activeShareEntity.audience==='public';
+  section?.classList.toggle('hidden',!eligible);
+  if(!eligible||!root)return;
+  root.innerHTML='<div class="share-chat-loading">Cargando comunidades…</div>';
+  const {r,d}=await api('/api/communities?scope=joined&q=');
+  if(!r.ok){root.innerHTML='<div class="share-chat-empty">No se pudieron cargar tus comunidades.</div>';return;}
+  const communities=(Array.isArray(d.communities)?d.communities:[]).filter(item=>item.is_member).slice(0,12);
+  root.innerHTML=communities.length?communities.map(item=>`<button type="button" class="share-chat-option" data-share-community="${item.id}" data-share-label="${esc(item.name)}">
+    <span class="share-chat-avatar">${communityAvatarHTML(item)}</span>
+    <span class="share-chat-copy"><b>${esc(item.name)}</b><small>${item.privacy==='private'?'Comunidad privada':'Comunidad pública'}</small></span>
+    <span class="share-chat-send">Compartir</span>
+  </button>`).join(''):'<div class="share-chat-empty">No perteneces a ninguna comunidad disponible.</div>';
+  all('[data-share-community]',root).forEach(button=>button.onclick=async()=>{
+    const status=$('#shareStatus');if(status)status.textContent='Compartiendo en la comunidad…';
+    const {r,d}=await api(`/api/communities/${button.dataset.shareCommunity}/share-post`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({postId:activeShareEntity.id})
+    });
+    if(!r.ok){if(status)status.textContent=d.error==='post_not_shareable_to_community'?'Solo se pueden compartir aquí posts/Reels públicos.':'No se pudo compartir en la comunidad.';return;}
+    toast(`${shareEntityLabel()} compartido en ${button.dataset.shareLabel}`);
+    await loadShareHistory();
+  });
 }
 
-function closeShare() {
-  const modal=$('#shareModal');
-  if(modal)modal.classList.add('hidden');
-  const list=$('#shareConversationList');
-  if(list)list.innerHTML='';
-  activeSharePostId=null;
+function shareHistoryLabel(item){
+  const entity=({post:'Post',reel:'Reel',story:'Story',profile:'Perfil'})[item.entity_type]||'Contenido';
+  const target=({conversation:'Chat/grupo',community:'Comunidad',external:'Compartido fuera',copy:'Enlace copiado'})[item.target_type]||item.target_type;
+  return `${entity} · ${target}${item.target_label?` · ${item.target_label}`:''}`;
+}
+async function loadShareHistory(){
+  const root=$('#shareHistoryList');if(!root)return;
+  const {r,d}=await api('/api/shares/history');
+  if(!r.ok){root.innerHTML='<div class="share-chat-empty">No se pudo cargar el historial.</div>';return;}
+  const items=Array.isArray(d.items)?d.items:[];
+  root.innerHTML=items.length?items.slice(0,12).map(item=>`<div class="share-history-row"><span>${esc(shareHistoryLabel(item))}</span><small>${timeAgo(item.created_at)}</small></div>`).join(''):'<div class="share-chat-empty">Aún no has compartido nada desde RedLibertad.</div>';
+}
+
+function openShare(entityId,type='post',meta={}){
+  activeShareEntity={
+    id:Number(entityId),
+    type:['post','reel','story','profile'].includes(type)?type:'post',
+    username:String(meta.username||''),
+    audience:String(meta.audience||'public')
+  };
+  activeSharePostId=['post','reel'].includes(activeShareEntity.type)?activeShareEntity.id:null;
+  const modal=$('#shareModal');if(modal)modal.classList.remove('hidden');
+  if($('#shareModalTitle'))$('#shareModalTitle').textContent=`Compartir ${shareEntityLabel()}`;
+  if($('#shareModalCopy'))$('#shareModalCopy').textContent=canShareExternally()
+    ? 'Puedes compartir fuera o dentro de RedLibertad.'
+    : 'Este contenido tiene audiencia privada: solo se puede enviar a chats o grupos cuyos miembros ya tengan acceso.';
+  $('#shareExternalActions')?.classList.toggle('hidden',!canShareExternally());
+  if($('#shareStatus'))$('#shareStatus').textContent='';
+  if($('#shareInternalUsername'))$('#shareInternalUsername').value='';
+  Promise.all([loadShareConversations(),loadShareCommunities(),loadShareHistory()]).catch(()=>{});
+}
+function closeShare(){
+  $('#shareModal')?.classList.add('hidden');
+  if($('#shareConversationList'))$('#shareConversationList').innerHTML='';
+  if($('#shareCommunityList'))$('#shareCommunityList').innerHTML='';
+  activeSharePostId=null;activeShareEntity=null;
 }
 
 async function writeClipboardText(value) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(value);
-    return true;
-  }
-
-  const area = document.createElement('textarea');
-  area.value = value;
-  area.setAttribute('readonly', '');
-  area.style.position = 'fixed';
-  area.style.left = '-9999px';
-  area.style.top = '0';
-  document.body.appendChild(area);
-  area.focus();
-  area.select();
-  area.setSelectionRange(0, area.value.length);
-
-  let copied = false;
-  try { copied = document.execCommand('copy'); } catch (_) {}
-  area.remove();
-
-  if (!copied) throw new Error('clipboard_unavailable');
-  return true;
+  if (navigator.clipboard && window.isSecureContext) {await navigator.clipboard.writeText(value);return true;}
+  const area=document.createElement('textarea');area.value=value;area.setAttribute('readonly','');area.style.position='fixed';area.style.left='-9999px';area.style.top='0';document.body.appendChild(area);area.focus();area.select();area.setSelectionRange(0,area.value.length);
+  let copied=false;try{copied=document.execCommand('copy');}catch(_){}
+  area.remove();if(!copied)throw new Error('clipboard_unavailable');return true;
 }
-
-async function copyShareLink() {
-  if (!activeSharePostId) return;
-  const value = `${shareText()} ${shareUrl(activeSharePostId)}`;
-  try {
-    await writeClipboardText(value);
-    toast('Texto y enlace copiados');
-  } catch (_) {
-    window.prompt('Copia este texto y enlace:', value);
-  }
+async function copyShareLink(){
+  if(!activeShareEntity||!canShareExternally())return;
+  const value=`${shareText()} ${shareUrl()}`;
+  try{await writeClipboardText(value);await recordExternalShare('copy','Copiado');toast('Texto y enlace copiados');await loadShareHistory();}
+  catch(_){window.prompt('Copia este texto y enlace:',value);}
 }
-async function sendSharedPostToConversation(conversationId,label='chat'){
-  if(!activeSharePostId)return;
-  const status=$('#shareStatus');
-  if(status)status.textContent='Enviando publicación…';
-
-  const message=await api(
-    `/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,
-    {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        body:'',
-        contentLevel:'normal',
-        sharedPostId:activeSharePostId
-      })
-    }
-  );
-
+async function sendSharedEntityToConversation(conversationId,label='chat'){
+  if(!activeShareEntity)return;
+  const status=$('#shareStatus');if(status)status.textContent=`Enviando ${shareEntityLabel()}…`;
+  const payload={body:'',contentLevel:'normal'};
+  if(['post','reel'].includes(activeShareEntity.type))payload.sharedPostId=activeShareEntity.id;
+  else if(activeShareEntity.type==='story')payload.sharedStoryId=activeShareEntity.id;
+  else if(activeShareEntity.type==='profile')payload.sharedProfileId=activeShareEntity.id;
+  const message=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+  });
   if(!message.r.ok){
     if(status){
-      status.textContent=message.d.error==='post_not_shareable'
-        ? 'Esta publicación ya no se puede compartir.'
-        : 'No se pudo enviar la publicación.';
+      const errors={
+        post_not_shareable_with_conversation:'No todos los miembros de ese chat pueden ver esta publicación.',
+        story_not_shareable_with_conversation:'No todos los miembros de ese chat pueden ver esta Story.',
+        profile_not_shareable_with_conversation:'Ese perfil no es accesible para todos los miembros del chat.'
+      };
+      status.textContent=errors[message.d.error]||`No se pudo enviar ${shareEntityLabel()}.`;
     }
     return;
   }
-
   const currentId=activeConversationId;
-  closeShare();
-  toast(`Publicación enviada a ${label}`);
-  await loadConversations();
-  if(currentId && String(currentId)===String(conversationId) && !$('#messagesView')?.classList.contains('hidden')){
-    await refreshActiveConversationLive();
-  }
+  toast(`${shareEntityLabel()} enviado a ${label}`);
+  await Promise.all([loadConversations(),loadShareHistory()]);
+  if(currentId&&String(currentId)===String(conversationId)&&!$('#messagesView')?.classList.contains('hidden'))await refreshActiveConversationLive();
 }
-
-async function shareInsideRedLibertad(username) {
-  if (!activeSharePostId) return;
-  const clean=String(username || '').trim().replace(/^@/,'');
-  const status=$('#shareStatus');
-
-  if(!clean){
-    if(status)status.textContent='Escribe un @usuario.';
-    return;
-  }
-
+async function shareInsideRedLibertad(username){
+  if(!activeShareEntity)return;
+  const clean=String(username||'').trim().replace(/^@/,'');const status=$('#shareStatus');
+  if(!clean){if(status)status.textContent='Escribe un @usuario.';return;}
   if(status)status.textContent='Abriendo conversación…';
-
-  const conversation=await api('/api/messages/conversations',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:clean})
-  });
-
+  const conversation=await api('/api/messages/conversations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:clean})});
   if(!conversation.r.ok){
-    if(status){
-      status.textContent=conversation.d.error==='cannot_message_self'
-        ? 'No puedes enviártelo a ti mismo.'
-        : conversation.d.error==='message_privacy_denied'
-          ? 'Esta persona no acepta nuevas conversaciones.'
-          : conversation.d.error==='message_privacy_following_only'
-            ? 'Solo acepta mensajes de personas que sigue.'
-            : conversation.d.error==='messaging_blocked'
-              ? 'No puedes iniciar esta conversación.'
-              : 'No se pudo abrir la conversación.';
-    }
+    if(status)status.textContent=conversation.d.error==='cannot_message_self'?'No puedes enviártelo a ti mismo.':conversation.d.error==='message_privacy_denied'?'Esta persona no acepta nuevas conversaciones.':conversation.d.error==='message_privacy_following_only'?'Solo acepta mensajes de personas que sigue.':conversation.d.error==='messaging_blocked'?'No puedes iniciar esta conversación.':'No se pudo abrir la conversación.';
     return;
   }
-
-  await sendSharedPostToConversation(conversation.d.conversationId,`@${clean}`);
+  await sendSharedEntityToConversation(conversation.d.conversationId,`@${clean}`);
 }
-
-async function nativeShare() {
-  if (!activeSharePostId) return;
-  const url=shareUrl(activeSharePostId), text=shareText();
-  if (navigator.share) { try { await navigator.share({title:'RedLibertad',text,url}); closeShare(); return; } catch(e){ if(e?.name==='AbortError') return; } }
+async function nativeShare(){
+  if(!activeShareEntity||!canShareExternally())return;
+  const url=shareUrl(),text=shareText();
+  if(navigator.share){
+    try{await navigator.share({title:'RedLibertad',text,url});await recordExternalShare('external','Compartir');toast('Compartido');await loadShareHistory();return;}
+    catch(e){if(e?.name==='AbortError')return;}
+  }
   await copyShareLink();
 }
 
