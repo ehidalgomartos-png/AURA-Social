@@ -20,6 +20,7 @@ const notificationRoutes = require('./src/routes/notifications');
 const growthRoutes = require('./src/routes/growth');
 const trustRoutes = require('./src/routes/trust');
 const creatorWorkflowRoutes = require('./src/routes/creator-workflow');
+const liveRoutes = require('./src/routes/live');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -64,6 +65,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/growth', growthRoutes);
 app.use('/api/trust', trustRoutes);
 app.use('/api/creator', creatorWorkflowRoutes);
+app.use('/api/live', liveRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
