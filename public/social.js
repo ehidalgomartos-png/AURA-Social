@@ -46,6 +46,8 @@ let connectionsCenterItems=[];
 let connectionsCenterFilter='all';
 let connectionsCenterSearch='';
 let connectionsCenterSearchTimer=null;
+let relationshipMode='all';
+let relationshipSuggestions=[];
 let activeCommentsPostId = null;
 let activeCommentReply = null;
 let activeReportPostId = null;
@@ -753,6 +755,48 @@ async function refreshConnectionSurfaces(){
   if(activeViewName==='connections')await loadConnectionsCenter();
 }
 
+
+function relationshipSuggestionCardHTML(item){
+  const interests=Array.isArray(item.shared_interests)?item.shared_interests:[];
+  const communities=Array.isArray(item.shared_communities)?item.shared_communities:[];
+  return `<article class="relationship-card" data-relationship-card="${item.id}">
+    <button type="button" class="relationship-card-main" data-relationship-profile="${esc(item.username)}">
+      <span class="relationship-avatar">${avatarHTML(item)}</span>
+      <span class="relationship-copy">
+        <b>${esc(item.display_name)} ${item.creator_verified?'<span class="verified">✓</span>':''}</b>
+        <small>@${esc(item.username)}${item.location_label?` · ${esc(item.location_label)}`:''}</small>
+        <em>${esc(item.reason||'Conexión de tu red')}</em>
+        ${interests.length?`<span class="relationship-tags">${interests.slice(0,3).map(value=>`<i>${esc(value)}</i>`).join('')}</span>`:''}
+        ${communities.length?`<span class="relationship-communities">${communities.slice(0,2).map(value=>`<i>◇ ${esc(value)}</i>`).join('')}</span>`:''}
+      </span>
+    </button>
+    <div class="relationship-actions">
+      ${item.direct_conversation_id?`<button type="button" class="tiny-action" data-relationship-message="${item.direct_conversation_id}">Retomar chat</button>`:''}
+      <button type="button" class="tiny-action" data-relationship-context="${item.id}">Ver contexto</button>
+      <button type="button" class="tiny-action" data-relationship-hide="${item.id}" title="Ocultar sugerencia">Ocultar</button>
+    </div>
+  </article>`;
+}
+function renderRelationshipSuggestions(){
+  const root=$('#relationshipSuggestions');if(!root)return;
+  root.innerHTML=relationshipSuggestions.length
+    ? relationshipSuggestions.map(relationshipSuggestionCardHTML).join('')
+    : '<div class="connections-center-empty"><b>No hay sugerencias con este filtro.</b><p>Tu red seguirá disponible sin presión ni recordatorios artificiales.</p></div>';
+  all('[data-relationship-mode]').forEach(button=>button.classList.toggle('active',button.dataset.relationshipMode===relationshipMode));
+}
+async function loadRelationshipSuggestions(){
+  const root=$('#relationshipSuggestions');
+  if(root && !relationshipSuggestions.length)root.innerHTML='<div class="mini-loading">Preparando sugerencias…</div>';
+  const {r,d}=await api('/api/relationships/suggestions?'+new URLSearchParams({mode:relationshipMode}).toString());
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="info-card"><b>No se pudieron cargar las sugerencias.</b></div>';
+    return [];
+  }
+  relationshipSuggestions=Array.isArray(d.suggestions)?d.suggestions:[];
+  renderRelationshipSuggestions();
+  return relationshipSuggestions;
+}
+
 async function loadConnectionsCenter(){
   await loadConnectionCircles();
   const query=new URLSearchParams({limit:'100'});
@@ -764,6 +808,7 @@ async function loadConnectionsCenter(){
   if($('#connectionsCenterActive'))$('#connectionsCenterActive').textContent=String(connectionsCenterItems.filter(user=>user.is_active_connection).length);
   if($('#connectionsCenterUnread'))$('#connectionsCenterUnread').textContent=String(connectionsCenterItems.filter(user=>Number(user.unread_message_count || 0)>0).length);
   renderConnectionsCenter();
+  await loadRelationshipSuggestions();
   return connectionsCenterItems;
 }
 
@@ -3321,6 +3366,33 @@ $('#creatorFollowUpBulkApply')?.addEventListener('click',async()=>{
 });
 
 document.addEventListener('click',async event=>{
+  const relationshipModeButton=event.target.closest('[data-relationship-mode]');
+  if(relationshipModeButton){
+    event.preventDefault();
+    relationshipMode=relationshipModeButton.dataset.relationshipMode||'all';
+    await loadRelationshipSuggestions();
+    return;
+  }
+  const relationshipProfile=event.target.closest('[data-relationship-profile]');
+  if(relationshipProfile){event.preventDefault();await openPublicProfile(relationshipProfile.dataset.relationshipProfile);return;}
+  const relationshipMessage=event.target.closest('[data-relationship-message]');
+  if(relationshipMessage){event.preventDefault();showView('messages');await loadConversations(relationshipMessage.dataset.relationshipMessage);return;}
+  const relationshipContext=event.target.closest('[data-relationship-context]');
+  if(relationshipContext){event.preventDefault();await openConnectionContext(relationshipContext.dataset.relationshipContext);return;}
+  const relationshipHide=event.target.closest('[data-relationship-hide]');
+  if(relationshipHide){
+    event.preventDefault();
+    const userId=Number(relationshipHide.dataset.relationshipHide);
+    if(Number.isInteger(userId)&&userId>0){
+      const {r}=await api(`/api/relationships/suggestions/${userId}/hide`,{method:'POST'});
+      if(r.ok){
+        relationshipSuggestions=relationshipSuggestions.filter(item=>Number(item.id)!==userId);
+        renderRelationshipSuggestions();
+        toast('Sugerencia ocultada');
+      }else toast('No se pudo ocultar la sugerencia.');
+    }
+    return;
+  }
   const workflowButton=event.target.closest('[data-followup-complete],[data-followup-reopen]');
   if(workflowButton){
     event.preventDefault();
