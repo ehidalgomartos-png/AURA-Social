@@ -381,13 +381,17 @@ async function ensureCreatorExclusiveV18() {
   if (!creatorExclusiveV18Ready) {
     creatorExclusiveV18Ready = (async () => {
       await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
-      const constraint=await db.query(
-        "SELECT 1 FROM pg_constraint WHERE conname='posts_audience_check' AND conrelid='posts'::regclass LIMIT 1"
-      );
-      if(!constraint.rowCount){
-        await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip'))");
-      }
+      await db.query("ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_audience_check");
+      await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip','connections','circles'))");
       await db.query('CREATE INDEX IF NOT EXISTS idx_posts_audience_created ON posts(audience,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS post_circle_audiences (
+          post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+          PRIMARY KEY(post_id,circle_id)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_post_circle_audiences_circle ON post_circle_audiences(circle_id,post_id)');
       await db.query(`
         CREATE TABLE IF NOT EXISTS creator_vips (
           creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -768,14 +772,44 @@ function postAudienceWhere(viewerParam=null, alias='p') {
     ${alias}.audience='public'
     OR ${alias}.user_id=${viewerParam}
     OR EXISTS(SELECT 1 FROM users audience_admin WHERE audience_admin.id=${viewerParam} AND audience_admin.is_admin=true)
-    OR EXISTS(
-      SELECT 1
-        FROM creator_vips audience_vip
-        JOIN follows audience_follow
-          ON audience_follow.follower_id=audience_vip.fan_id
-         AND audience_follow.following_id=audience_vip.creator_id
-       WHERE audience_vip.creator_id=${alias}.user_id
-         AND audience_vip.fan_id=${viewerParam}
+    OR (
+      ${alias}.audience='vip'
+      AND EXISTS(
+        SELECT 1
+          FROM creator_vips audience_vip
+          JOIN follows audience_follow
+            ON audience_follow.follower_id=audience_vip.fan_id
+           AND audience_follow.following_id=audience_vip.creator_id
+         WHERE audience_vip.creator_id=${alias}.user_id
+           AND audience_vip.fan_id=${viewerParam}
+      )
+    )
+    OR (
+      ${alias}.audience='connections'
+      AND EXISTS(
+        SELECT 1 FROM follows connection_out
+         WHERE connection_out.follower_id=${alias}.user_id
+           AND connection_out.following_id=${viewerParam}
+      )
+      AND EXISTS(
+        SELECT 1 FROM follows connection_in
+         WHERE connection_in.follower_id=${viewerParam}
+           AND connection_in.following_id=${alias}.user_id
+      )
+    )
+    OR (
+      ${alias}.audience='circles'
+      AND EXISTS(
+        SELECT 1
+          FROM post_circle_audiences circle_audience
+          JOIN connection_circles audience_circle
+            ON audience_circle.id=circle_audience.circle_id
+           AND audience_circle.user_id=${alias}.user_id
+          JOIN connection_circle_members audience_member
+            ON audience_member.circle_id=audience_circle.id
+           AND audience_member.connection_user_id=${viewerParam}
+         WHERE circle_audience.post_id=${alias}.id
+      )
     )
     OR EXISTS(
       SELECT 1 FROM post_participants audience_participant
@@ -816,7 +850,8 @@ const createSchema = z.object({
   playbackUrl: z.string().max(4096).optional().nullable(),
   contentLevel: z.enum(['normal', 'sensitive', 'nudity']),
   kind: z.enum(['post', 'reel']).default('post'),
-  audience: z.enum(['public','vip']).default('public'),
+  audience: z.enum(['public','vip','connections','circles']).default('public'),
+  audienceCircleIds: z.array(z.coerce.number().int().positive()).max(12).optional().default([]),
   publishMode: z.enum(['now','draft','scheduled']).default('now'),
   scheduledFor: z.string().datetime({offset:true}).optional().nullable(),
   editorialDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
@@ -893,6 +928,19 @@ router.post('/', requireAuth, async (req, res) => {
   if (data.audience === 'vip' && !user.creator_verified) {
     return res.status(403).json({ error: 'verified_creator_required_for_vip_content' });
   }
+  const requestedCircleIds=[...new Set(data.audienceCircleIds.map(Number).filter(Number.isInteger))];
+  let audienceCircleIds=[];
+  if(data.audience==='circles'){
+    if(!requestedCircleIds.length)return res.status(400).json({error:'circle_audience_required'});
+    const ownedCircles=await db.query(
+      'SELECT id FROM connection_circles WHERE user_id=$1 AND id=ANY($2::bigint[])',
+      [req.user.id,requestedCircleIds]
+    );
+    audienceCircleIds=ownedCircles.rows.map(row=>Number(row.id));
+    if(audienceCircleIds.length!==requestedCircleIds.length){
+      return res.status(400).json({error:'invalid_circle_audience'});
+    }
+  }
   if (data.publishMode !== 'now' && !user.creator_verified) {
     return res.status(403).json({ error: 'verified_creator_required_for_publishing_tools' });
   }
@@ -964,6 +1012,15 @@ router.post('/', requireAuth, async (req, res) => {
     ]);
     const post=result.rows[0];
 
+    if(data.audience==='circles'){
+      for(const circleId of audienceCircleIds){
+        await client.query(
+          'INSERT INTO post_circle_audiences(post_id,circle_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+          [post.id,circleId]
+        );
+      }
+    }
+
     if(data.communityType==='poll'){
       const poll=await client.query(`
         INSERT INTO creator_polls (post_id,question)
@@ -1017,7 +1074,8 @@ router.post('/', requireAuth, async (req, res) => {
       consentRequired:needsConsent,
       participants,
       publishMode:data.publishMode,
-      communityType:data.communityType
+      communityType:data.communityType,
+      audienceCircleIds
     });
   }catch(e){
     await client.query('ROLLBACK');
@@ -3246,7 +3304,7 @@ router.get('/detail/:id', requireAuth, async (req,res)=>{
 router.post('/:id/repost',requireAuth,async(req,res)=>{
   const post=await accessiblePublishedPost(req.params.id,req.user.id);
   if(!post)return res.status(404).json({error:'post_not_found'});
-  if(post.audience==='vip')return res.status(403).json({error:'vip_post_cannot_be_reposted'});
+  if(post.audience!=='public')return res.status(403).json({error:'private_post_cannot_be_reposted'});
   if(String(post.user_id)===String(req.user.id)){
     return res.status(400).json({error:'cannot_repost_own_post'});
   }
