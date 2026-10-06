@@ -238,6 +238,14 @@ async function ensureCreatorExclusiveV18() {
         await db.query("ALTER TABLE posts ADD CONSTRAINT posts_audience_check CHECK(audience IN ('public','vip'))");
       }
       await db.query('CREATE INDEX IF NOT EXISTS idx_posts_audience_created ON posts(audience,created_at DESC)');
+      await db.query("ALTER TABLE stories ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'public'");
+      const storyConstraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='stories_audience_check' AND conrelid='stories'::regclass LIMIT 1"
+      );
+      if(!storyConstraint.rowCount){
+        await db.query("ALTER TABLE stories ADD CONSTRAINT stories_audience_check CHECK(audience IN ('public','vip'))");
+      }
+      await db.query('CREATE INDEX IF NOT EXISTS idx_stories_audience_active ON stories(audience,expires_at DESC,created_at DESC)');
     })().catch(error => {
       creatorExclusiveV18Ready = null;
       throw error;
@@ -601,7 +609,8 @@ router.get('/me/creator-center',requireAuth,async(req,res)=>{
       (SELECT count(*)::int FROM creator_broadcasts cb WHERE cb.user_id=u.id) broadcast_count,
       (SELECT count(*)::int FROM creator_vips cv WHERE cv.creator_id=u.id) vip_count,
       (SELECT count(*)::int FROM creator_vip_broadcasts cvb WHERE cvb.creator_id=u.id) vip_broadcast_count,
-      (SELECT count(*)::int FROM posts vp WHERE vp.user_id=u.id AND vp.moderation_status='published' AND vp.audience='vip') vip_post_count
+      (SELECT count(*)::int FROM posts vp WHERE vp.user_id=u.id AND vp.moderation_status='published' AND vp.audience='vip') vip_post_count,
+      (SELECT count(*)::int FROM stories vs WHERE vs.user_id=u.id AND vs.moderation_status='published' AND vs.audience='vip' AND vs.expires_at>now()) vip_story_count
     FROM users u
     WHERE u.id=$1
     LIMIT 1
