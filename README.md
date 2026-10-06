@@ -1,4 +1,4 @@
-# RedLibertad V1.27.0 — Follow-up Dashboard
+# RedLibertad V1.27.1 — Follow-up Dashboard Hotfix
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -795,3 +795,13 @@ V1.26 continúa completamente sin monetización activa: sin pagos, suscripciones
 ### Monetización
 
 V1.27 continúa completamente sin monetización activa: sin pagos, suscripciones, precios, checkout, créditos, saldos ni paywalls.
+
+
+## V1.27.1 — Follow-up Dashboard Hotfix
+
+- Corrige el resumen de “Hoy” y “Próximos 7 días” para usar el mismo límite de día local del navegador que el listado.
+- Evita registrar repetidamente los listeners del dashboard al refrescar el Centro de actividad.
+- Añade filtro combinable de prioridad: Todas / Alta / Normal.
+- Añade acción individual “Completar seguimiento”.
+- Conserva búsqueda privada, acciones masivas, orden por prioridad/fecha y privacidad por creador.
+- Sin cambios de esquema adicionales y sin monetización activa.
