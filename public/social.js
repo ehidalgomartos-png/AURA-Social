@@ -1818,6 +1818,7 @@ async function loadCreatorCenter() {
   }else{
     if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='<div class="creator-empty compact">No se pudo cargar la cola de publicación.</div>';
   }
+  await loadCreatorCalendar();
   return true;
 }
 
@@ -1838,12 +1839,29 @@ async function openCreatorModal() {
   if($('#creatorVipBroadcastStatus'))$('#creatorVipBroadcastStatus').textContent='';
   if($('#creatorPublishingSummary'))$('#creatorPublishingSummary').innerHTML='<div class="mini-loading">Cargando cola...</div>';
   if($('#creatorPublishingList'))$('#creatorPublishingList').innerHTML='';
+  if($('#creatorCalendarGrid'))$('#creatorCalendarGrid').innerHTML='<div class="mini-loading creator-calendar-loading">Cargando calendario...</div>';
   await loadCreatorCenter();
 }
 
 function closeCreatorModal() {
   $('#creatorModal')?.classList.add('hidden');
 }
+
+$('#creatorCalendarPrev')?.addEventListener('click',async()=>{
+  creatorCalendarMonth=new Date(creatorCalendarMonth.getFullYear(),creatorCalendarMonth.getMonth()-1,1);
+  await loadCreatorCalendar();
+});
+$('#creatorCalendarNext')?.addEventListener('click',async()=>{
+  creatorCalendarMonth=new Date(creatorCalendarMonth.getFullYear(),creatorCalendarMonth.getMonth()+1,1);
+  await loadCreatorCalendar();
+});
+$('#creatorCalendarToday')?.addEventListener('click',async()=>{
+  const now=new Date();
+  creatorCalendarMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  await loadCreatorCalendar();
+});
+$('#creatorCalendarAudience')?.addEventListener('change',renderCreatorCalendar);
+$('#creatorCalendarLabel')?.addEventListener('change',renderCreatorCalendar);
 
 $('#creatorBroadcastForm textarea[name="body"]')?.addEventListener('input',event=>{
   const count=$('#creatorBroadcastCount');
