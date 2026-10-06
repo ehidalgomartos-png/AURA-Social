@@ -440,8 +440,20 @@ ALTER TABLE notifications
     'repost',
     'creator_broadcast',
     'creator_vip_broadcast',
+    'creator_poll_vote',
+    'creator_question_response',
     'system'
   ));
+
+-- RedLibertad V1.24: insights y notificaciones de comunidad
+CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_created
+  ON creator_poll_votes(created_at DESC,poll_id);
+CREATE INDEX IF NOT EXISTS idx_creator_question_responses_created
+  ON creator_question_responses(created_at DESC,question_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_creator_community_once
+  ON notifications(user_id,actor_id,type,entity_type,entity_id)
+  WHERE type IN ('creator_poll_vote','creator_question_response');
 
 
 
