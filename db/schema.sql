@@ -520,3 +520,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_creator_tasks_source_key
   ON creator_tasks(creator_id,source_key) WHERE source_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_creator_tasks_open_due
   ON creator_tasks(creator_id,status,priority,due_at,updated_at DESC);
+
+
+-- RedLibertad V1.30: CRM privado del creador
+CREATE TABLE IF NOT EXISTS creator_contact_meta (
+  creator_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  contact_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  private_note VARCHAR(1000) NOT NULL DEFAULT '',
+  priority TEXT NOT NULL DEFAULT 'normal',
+  labels JSONB NOT NULL DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(creator_id,contact_id),
+  CHECK(creator_id<>contact_id),
+  CONSTRAINT creator_contact_meta_priority_check CHECK(priority IN ('normal','high'))
+);
+CREATE INDEX IF NOT EXISTS idx_creator_contact_meta_creator_priority
+  ON creator_contact_meta(creator_id,priority,updated_at DESC);

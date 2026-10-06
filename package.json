@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.29.0",
+  "version": "1.30.0",
   "private": true,
-  "description": "RedLibertad V1.29 Creator Tasks & Reminders - tareas privadas, prioridades y recordatorios para creadores, sin monetización.",
+  "description": "RedLibertad V1.30 Creator CRM Lite - fichas privadas de comunidad, etiquetas, prioridad e integración con tareas, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
