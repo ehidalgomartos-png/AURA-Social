@@ -7811,6 +7811,7 @@ $('#createForm').addEventListener('submit', async e => {
         ? 'Programando...'
         : 'Publicando...';
     const participants = String(fd.get('participants') || '').split(',').map(x => x.trim()).filter(Boolean);
+    const collaborators = String(fd.get('collaborators') || '').split(',').map(x => x.trim()).filter(Boolean);
     const payload = {
       caption,
       kind,
@@ -7825,6 +7826,7 @@ $('#createForm').addEventListener('submit', async e => {
       communityPrompt,
       pollOptions,
       participantUsernames: participants,
+      collaboratorUsernames: collaborators,
       mediaUrl: media?.url || '',
       mediaType: media?.mediaType || 'image',
       mediaProvider: media?.provider || 'local',
@@ -7859,6 +7861,10 @@ $('#createForm').addEventListener('submit', async e => {
           ? 'La pregunta abierta necesita un enunciado.'
         : d.error === 'participant_not_found'
           ? `No encontramos: ${(d.missing || []).join(', ')}`
+        : d.error === 'collaborator_not_found'
+          ? `No encontramos estos colaboradores: ${(d.missing || []).join(', ')}`
+        : d.error === 'collaborator_unavailable'
+          ? `No puedes invitar a colaborar a: ${(d.usernames || []).join(', ')}`
           : d.error === 'empty_post'
             ? 'Escribe algo o selecciona una foto o vídeo.'
             : d.error === 'reel_media_required'
@@ -7866,11 +7872,12 @@ $('#createForm').addEventListener('submit', async e => {
               : 'No se pudo publicar.'
     );
 
+    const waitingApprovals=d.consentRequired||d.collaborationRequired;
     const successMessage=publishMode==='draft'
       ? 'Borrador guardado'
       : publishMode==='scheduled'
-        ? (d.consentRequired ? 'Programada. Esperando consentimientos.' : 'Publicación programada')
-        : (d.consentRequired ? 'Publicación guardada. Esperando consentimientos.' : 'Publicado');
+        ? (waitingApprovals ? 'Programada. Esperando aprobaciones.' : 'Publicación programada')
+        : (waitingApprovals ? 'Publicación guardada. Esperando aprobaciones.' : 'Publicado');
 
     toast(successMessage);
     $('#modal').classList.add('hidden');
