@@ -191,7 +191,7 @@ function inlineCommentsHTML(p) {
 function tileContentHTML(p) {
   const media = mediaHTML(p, true);
   if (media) return media;
-  const communityText=String(p.community_poll?.question || p.community_question?.prompt || '').trim();
+  const communityText=String(p.community_poll?.question || p.community_question?.prompt || p.community_prompt || '').trim();
   const text = String(p.caption || communityText || '').trim();
   if (!text) return '<div class="text-tile"><span>Publicación</span></div>';
   const shortText = text.length > 150 ? text.slice(0, 147) + '…' : text;
@@ -268,7 +268,7 @@ function postHTML(p) {
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
-        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
+        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
         ${vipOnly ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
         ${participantsHTML(p)}
       </div>
@@ -1600,8 +1600,8 @@ function creatorPublishingHTML(posts = []) {
         <b>${creatorPublishingStateLabel(post)}</b>
         <span>${post.audience==='vip' ? '★ VIP' : 'Público'}</span>
       </div>
-      <p>${esc(String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel sin texto' : 'Publicación sin texto'))}</p>
-      <small>${post.content_level==='normal' ? 'Normal' : post.content_level==='sensitive' ? 'Sensible' : 'Desnudez'}${Number(post.pending_consent_count || 0)>0 ? ` · ${Number(post.pending_consent_count)} consentimientos pendientes` : ''}</small>
+      <p>${esc(String(post.caption || post.community_prompt || '').trim() || (post.post_kind==='reel' ? 'Reel sin texto' : 'Publicación sin texto'))}</p>
+      <small>${post.community_type==='poll' ? 'Encuesta · ' : post.community_type==='question' ? 'Pregunta · ' : ''}${post.content_level==='normal' ? 'Normal' : post.content_level==='sensitive' ? 'Sensible' : 'Desnudez'}${Number(post.pending_consent_count || 0)>0 ? ` · ${Number(post.pending_consent_count)} consentimientos pendientes` : ''}</small>
       <div class="creator-editorial-fields">
         <input type="date" data-editorial-date="${post.id}" value="${esc(post.editorial_date || '')}" title="Fecha editorial privada">
         <input type="text" maxlength="40" data-editorial-label="${post.id}" value="${esc(post.editorial_label || '')}" placeholder="Etiqueta interna">
@@ -1719,7 +1719,7 @@ function renderCreatorCalendar() {
         ${visible.map(post=>{
           const state=creatorCalendarState(post);
           const labelText=String(post.editorial_label || '').trim();
-          const title=String(post.caption || '').trim() || (post.post_kind==='reel' ? 'Reel' : 'Publicación');
+          const title=String(post.caption || post.community_prompt || '').trim() || (post.post_kind==='reel' ? 'Reel' : 'Publicación');
           return `<button type="button" class="creator-calendar-event ${state} ${post.audience==='vip' ? 'vip' : ''}" data-calendar-post="${post.id}" data-calendar-state="${state}" title="${esc(title)}">
             <b>${post.audience==='vip' ? '★ ' : ''}${esc(title.slice(0,34))}</b>
             ${labelText ? `<small>${esc(labelText)}</small>` : ''}
