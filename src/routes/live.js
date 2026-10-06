@@ -108,6 +108,9 @@ async function snapshotFor(userId) {
       typing:item.isGroup ? typingUsers.length>0 : directUser?.typing===true,
       onlineCount:item.isGroup ? onlineUsers.length : (directUser?.online ? 1 : 0),
       typingNames:typingUsers.map(user=>user.displayName || user.username).slice(0,3),
+      readSignature:item.isGroup
+        ? item.users.map(user=>`${user.userId}:${user.lastReadAt || ''}`).join('|')
+        : '',
       lastSeenAt:directUser?.lastSeenAt || null,
       otherLastReadAt:directUser?.lastReadAt || null
     };
@@ -156,6 +159,7 @@ router.get('/stream',requireAuth,async(req,res)=>{
           item.typing,
           item.onlineCount,
           (item.typingNames || []).join('|'),
+          item.readSignature || '',
           item.otherLastReadAt
         ])
       });
