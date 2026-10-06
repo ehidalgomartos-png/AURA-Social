@@ -6,6 +6,36 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let discoveryV137Ready=null;
+async function ensureDiscoveryV137(){
+  if(!discoveryV137Ready){
+    discoveryV137Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS discovery_hidden_items (
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          item_type TEXT NOT NULL,
+          item_id BIGINT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(user_id,item_type,item_id)
+        )
+      `);
+      const constraint=await db.query(
+        "SELECT 1 FROM pg_constraint WHERE conname='discovery_hidden_items_type_check' AND conrelid='discovery_hidden_items'::regclass LIMIT 1"
+      );
+      if(!constraint.rowCount){
+        await db.query("ALTER TABLE discovery_hidden_items ADD CONSTRAINT discovery_hidden_items_type_check CHECK(item_type IN ('post','user'))");
+      }
+      await db.query("CREATE INDEX IF NOT EXISTS idx_discovery_hidden_items_user ON discovery_hidden_items(user_id,item_type,created_at DESC)");
+    })().catch(error=>{discoveryV137Ready=null;throw error;});
+  }
+  return discoveryV137Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{await ensureDiscoveryV137();next();}
+  catch(error){console.error('RedLibertad V1.37 discovery bootstrap failed:',error);res.status(500).json({error:'discovery_bootstrap_failed'});}
+});
+
+
 let mutePrivacyReady = null;
 async function ensureMutePrivacy() {
   if (!mutePrivacyReady) {
@@ -2746,36 +2776,85 @@ router.get('/momentum', requireAuth, async (req,res)=>{
 
 router.get('/discover', optionalAuth, async (req, res) => {
   const viewer = await viewerFrom(req);
-  const params=[];
-  let block='';
-  let likedByMe='false';
-  let audienceFilter=postAudienceWhere(null,'p');
-  if(req.user){
-    params.push(req.user.id);
-    block=`AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=$1 UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1) AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)`;
-    likedByMe='EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)';
-    audienceFilter=postAudienceWhere('$1','p');
+  if(!req.user){
+    const result=await db.query(`
+      SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
+             p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
+             u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
+             (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+             false AS liked_by_me,
+             (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+        FROM posts p JOIN users u ON u.id=p.user_id
+       WHERE p.moderation_status='published' AND u.status='active' AND u.discoverable=true
+         AND ${postAudienceWhere(null,'p')}
+       ORDER BY ((SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id)*2 + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id)*3) DESC,p.created_at DESC
+       LIMIT 60
+    `);
+    const participantPosts=await attachApprovedParticipants(result.rows);
+    const posts=await attachRepostMeta(participantPosts,null);
+    return res.json({posts:gateRows(posts,viewer)});
   }
+
   const result=await db.query(`
     SELECT p.id,p.caption,p.media_url,p.media_type,p.media_provider,p.external_id,p.playback_url,
            p.content_level,p.post_kind,p.audience,p.consent_state,p.created_at,
            u.id user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
-           ${likedByMe} AS liked_by_me
+           EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
+           (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count,
+           EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=$1 AND f.following_id=p.user_id) from_following,
+           (
+             SELECT count(*)::int
+               FROM follows common_me
+               JOIN follows common_them ON common_them.following_id=common_me.following_id
+              WHERE common_me.follower_id=$1
+                AND common_them.follower_id=p.user_id
+           ) mutual_following_count
       FROM posts p
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
-       AND ${audienceFilter}
-       ${block}
-     ORDER BY (SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,p.created_at DESC
+       AND ${postAudienceWhere('$1','p')}
+       AND p.user_id<>$1
+       AND p.user_id NOT IN (
+         SELECT blocked_id FROM blocks WHERE blocker_id=$1
+         UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1
+       )
+       AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND NOT EXISTS(
+         SELECT 1 FROM discovery_hidden_items hidden
+          WHERE hidden.user_id=$1
+            AND (
+              (hidden.item_type='post' AND hidden.item_id=p.id)
+              OR (hidden.item_type='user' AND hidden.item_id=p.user_id)
+            )
+       )
+     ORDER BY
+       from_following DESC,
+       mutual_following_count DESC,
+       ((SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id)*2 + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id)*3 + (SELECT count(*) FROM reposts r2 WHERE r2.post_id=p.id)*3) DESC,
+       p.created_at DESC
      LIMIT 60
-  `,params);
+  `,[req.user.id]);
   const participantPosts=await attachApprovedParticipants(result.rows);
-  const posts=await attachRepostMeta(participantPosts,req.user?.id || null);
-  res.json({posts:gateRows(posts,viewer)});
+  const posts=await attachCommentPreviews(participantPosts,viewer);
+  const repostPosts=await attachRepostMeta(posts,req.user.id);
+  res.json({posts:gateRows(repostPosts,viewer)});
 });
+
+router.post('/:id/discovery-hide',requireAuth,async(req,res)=>{
+  const post=await db.query('SELECT id,user_id FROM posts WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
+  if(String(post.rows[0].user_id)===String(req.user.id))return res.status(400).json({error:'cannot_hide_own_post'});
+  await db.query(`
+    INSERT INTO discovery_hidden_items(user_id,item_type,item_id)
+    VALUES ($1,'post',$2)
+    ON CONFLICT DO NOTHING
+  `,[req.user.id,req.params.id]);
+  res.json({ok:true,hidden:true});
+});
+
 
 router.get('/search', requireAuth, async (req,res)=>{
   const q=String(req.query.q||'').trim().slice(0,80);
@@ -2802,6 +2881,11 @@ router.get('/search', requireAuth, async (req,res)=>{
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND NOT EXISTS(
+         SELECT 1 FROM discovery_hidden_items hidden
+          WHERE hidden.user_id=$1
+            AND ((hidden.item_type='post' AND hidden.item_id=p.id) OR (hidden.item_type='user' AND hidden.item_id=p.user_id))
+       )
        AND (
          p.caption ILIKE $2
          OR u.username ILIKE $2
@@ -2846,6 +2930,11 @@ router.get('/trending', requireAuth, async (req,res)=>{
          SELECT blocker_id FROM blocks WHERE blocked_id=$1
        )
        AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       AND NOT EXISTS(
+         SELECT 1 FROM discovery_hidden_items hidden
+          WHERE hidden.user_id=$1
+            AND ((hidden.item_type='post' AND hidden.item_id=p.id) OR (hidden.item_type='user' AND hidden.item_id=p.user_id))
+       )
      ORDER BY ${orderBy}, p.created_at DESC
      LIMIT 40
   `,[req.user.id]);
