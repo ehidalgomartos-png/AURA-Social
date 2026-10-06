@@ -5309,3 +5309,30 @@ select:focus-visible{
   .mention-suggestions{position:relative;top:auto;margin-top:4px}
   .share-context-field textarea{min-height:68px}
 }
+
+
+/* =========================================================
+   RedLibertad V1.63 — Community Moderation 3.0
+   ========================================================= */
+.community-moderation-3{display:grid;gap:14px;margin-top:14px}
+.community-moderation-3>section{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.moderation-private-chip{padding:4px 7px;border-radius:999px;background:var(--soft);color:var(--muted);font-size:8px;font-weight:900}
+.community-moderation-queue,.community-sanctions-list{display:grid;gap:8px;margin-top:8px}
+.community-report-row,.community-sanction-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;
+  padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--soft);
+}
+.community-report-row.coordinated{border-style:dashed;box-shadow:inset 3px 0 0 var(--warning)}
+.community-report-row b,.community-sanction-row b{display:block;font-size:10px;color:var(--ink)}
+.community-report-row small,.community-sanction-row small{display:block;margin-top:3px;font-size:8px;color:var(--muted);line-height:1.4}
+.community-report-row p,.community-sanction-row p{margin:6px 0 0;font-size:9px;line-height:1.45;color:var(--ink)}
+.community-report-row>div:last-child{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.community-role-select{min-height:32px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font-size:8px;font-weight:800;padding:4px 6px}
+.community-post-head-actions,.community-comment-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.community-report-modal-card textarea{min-height:100px;resize:vertical}
+@media(max-width:760px){
+  .community-report-row,.community-sanction-row{grid-template-columns:1fr}
+  .community-report-row>div:last-child{justify-content:flex-start}
+  .community-member-actions{gap:5px;flex-wrap:wrap}
+  .community-role-select{width:100%}
+}
