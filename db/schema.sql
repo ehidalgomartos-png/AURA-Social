@@ -64,28 +64,10 @@ CREATE TABLE IF NOT EXISTS conversations (
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS conversation_type TEXT NOT NULL DEFAULT 'direct';
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS title VARCHAR(120);
 ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_by BIGINT REFERENCES users(id) ON DELETE SET NULL;
-DO $
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname='conversations_type_check'
-  ) THEN
-    ALTER TABLE conversations
-      ADD CONSTRAINT conversations_type_check
-      CHECK(conversation_type IN ('direct','group'));
-  END IF;
-END $;
-
-ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS member_role TEXT NOT NULL DEFAULT 'member';
-DO $
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname='conversation_members_role_check'
-  ) THEN
-    ALTER TABLE conversation_members
-      ADD CONSTRAINT conversation_members_role_check
-      CHECK(member_role IN ('owner','admin','member'));
-  END IF;
-END $;
+ALTER TABLE conversations DROP CONSTRAINT IF EXISTS conversations_type_check;
+ALTER TABLE conversations
+  ADD CONSTRAINT conversations_type_check
+  CHECK(conversation_type IN ('direct','group'));
 CREATE INDEX IF NOT EXISTS idx_conversations_type_updated
   ON conversations(conversation_type,updated_at DESC);
 
@@ -97,6 +79,12 @@ CREATE TABLE IF NOT EXISTS conversation_members (
   PRIMARY KEY(conversation_id,user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id,conversation_id);
+ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS member_role TEXT NOT NULL DEFAULT 'member';
+ALTER TABLE conversation_members DROP CONSTRAINT IF EXISTS conversation_members_role_check;
+ALTER TABLE conversation_members
+  ADD CONSTRAINT conversation_members_role_check
+  CHECK(member_role IN ('owner','admin','member'));
+
 
 -- RedLibertad V1.36: organización privada de conversaciones
 ALTER TABLE conversation_members ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT FALSE;
@@ -174,14 +162,14 @@ CREATE INDEX IF NOT EXISTS idx_push_jobs_queue
   ON push_jobs(status,next_attempt_at,created_at);
 
 CREATE OR REPLACE FUNCTION redlibertad_enqueue_push_notification()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS '
 BEGIN
   INSERT INTO push_jobs(notification_id,user_id)
   VALUES (NEW.id,NEW.user_id)
   ON CONFLICT(notification_id) DO NOTHING;
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+' LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_redlibertad_push_notification ON notifications;
 CREATE TRIGGER trg_redlibertad_push_notification
