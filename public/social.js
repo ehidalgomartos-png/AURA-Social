@@ -1839,7 +1839,7 @@ async function openPublicProfile(username) {
         </button>
         <button type="button" class="secondary" data-message-profile="${esc(profile.username)}" ${profileData.blockedByMe ? 'disabled' : ''}>Mensaje</button>
         ${profileData.connected ? `<button type="button" class="secondary connection-close-toggle ${profileData.closeConnection ? 'active' : ''}" data-close-connection="${profile.id}" data-close="${profileData.closeConnection ? '1' : '0'}">${profileData.closeConnection ? '♥ Cercana' : '♡ Cercana'}</button>` : ''}
-        <button type="button" class="secondary" data-share-profile="${esc(profile.username)}">Compartir perfil</button>
+        <button type="button" class="secondary" data-share-profile="${esc(profile.username)}" ${profileData.blockedByMe ? 'disabled' : ''}>Compartir perfil</button>
         <button type="button" class="secondary ${profileData.mutedByMe ? 'active-control' : ''}" data-mute-profile="${profile.id}" data-muted="${profileData.mutedByMe ? '1' : '0'}">${profileData.mutedByMe ? 'Silenciado' : 'Silenciar'}</button>
         <button type="button" class="danger-outline" data-block-profile="${profile.id}" data-blocked="${profileData.blockedByMe ? '1' : '0'}">${profileData.blockedByMe ? 'Desbloquear' : 'Bloquear'}</button>
       </div>
