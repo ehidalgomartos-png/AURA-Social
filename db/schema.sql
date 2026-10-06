@@ -209,6 +209,11 @@ CREATE TABLE IF NOT EXISTS community_members (
 CREATE INDEX IF NOT EXISTS idx_community_members_user
   ON community_members(user_id,joined_at DESC);
 
+ALTER TABLE community_members DROP CONSTRAINT IF EXISTS community_members_role_check;
+ALTER TABLE community_members
+  ADD CONSTRAINT community_members_role_check
+  CHECK(role IN ('owner','admin','moderator','member'));
+
 CREATE TABLE IF NOT EXISTS community_join_requests (
   community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -278,6 +283,42 @@ CREATE TABLE IF NOT EXISTS community_moderation_log (
 );
 CREATE INDEX IF NOT EXISTS idx_community_moderation_log_community
   ON community_moderation_log(community_id,created_at DESC);
+
+
+-- RedLibertad V1.63: Community Moderation 3.0
+CREATE TABLE IF NOT EXISTS community_reports (
+  id BIGSERIAL PRIMARY KEY,
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL CHECK(target_type IN ('post','comment','member')),
+  target_id BIGINT NOT NULL,
+  reason TEXT NOT NULL CHECK(reason IN ('spam','harassment','threats','rules','sensitive','other')),
+  details VARCHAR(1000) NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','resolved','dismissed')),
+  reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_community_reports_queue
+  ON community_reports(community_id,status,created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_community_reports_open_target
+  ON community_reports(community_id,reporter_id,target_type,target_id)
+  WHERE status='open';
+
+CREATE TABLE IF NOT EXISTS community_member_sanctions (
+  id BIGSERIAL PRIMARY KEY,
+  community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  actor_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL CHECK(action IN ('warning','mute','suspend')),
+  note VARCHAR(500) NOT NULL DEFAULT '',
+  starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_community_member_sanctions_active
+  ON community_member_sanctions(community_id,user_id,action,expires_at,revoked_at);
 
 
 -- RedLibertad V1.59: descubrimiento explicable de comunidades

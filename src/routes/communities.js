@@ -40,6 +40,8 @@ async function ensureCommunitiesV158(){
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id,joined_at DESC)');
+      await db.query('ALTER TABLE community_members DROP CONSTRAINT IF EXISTS community_members_role_check');
+      await db.query("ALTER TABLE community_members ADD CONSTRAINT community_members_role_check CHECK(role IN ('owner','admin','moderator','member'))");
       await db.query(`
         CREATE TABLE IF NOT EXISTS community_join_requests (
           community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
@@ -120,6 +122,38 @@ async function ensureCommunitiesV158(){
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_community_moderation_log_community ON community_moderation_log(community_id,created_at DESC)');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS community_reports (
+          id BIGSERIAL PRIMARY KEY,
+          community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+          reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          target_type TEXT NOT NULL CHECK(target_type IN ('post','comment','member')),
+          target_id BIGINT NOT NULL,
+          reason TEXT NOT NULL CHECK(reason IN ('spam','harassment','threats','rules','sensitive','other')),
+          details VARCHAR(1000) NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','resolved','dismissed')),
+          reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+          reviewed_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_community_reports_queue ON community_reports(community_id,status,created_at DESC)');
+      await db.query("CREATE UNIQUE INDEX IF NOT EXISTS uq_community_reports_open_target ON community_reports(community_id,reporter_id,target_type,target_id) WHERE status='open'");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS community_member_sanctions (
+          id BIGSERIAL PRIMARY KEY,
+          community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          actor_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          action TEXT NOT NULL CHECK(action IN ('warning','mute','suspend')),
+          note VARCHAR(500) NOT NULL DEFAULT '',
+          starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          expires_at TIMESTAMPTZ,
+          revoked_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_community_member_sanctions_active ON community_member_sanctions(community_id,user_id,action,expires_at,revoked_at)');
       await db.query("ALTER TABLE communities ADD COLUMN IF NOT EXISTS category VARCHAR(40) NOT NULL DEFAULT 'general'");
       await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS mention_privacy TEXT NOT NULL DEFAULT 'everyone'");
       await db.query('CREATE INDEX IF NOT EXISTS idx_communities_category_updated ON communities(category,updated_at DESC)');
@@ -194,6 +228,7 @@ async function communityState(communityId,userId){
   const row=result.rows[0];
   row.is_member=!!row.viewer_role;
   row.can_manage=!row.blocked_with_owner && ['owner','admin'].includes(row.viewer_role);
+  row.can_moderate=!row.blocked_with_owner && ['owner','admin','moderator'].includes(row.viewer_role);
   row.can_manage_roles=!row.blocked_with_owner && row.viewer_role==='owner';
   row.can_view_content=!row.blocked_with_owner && (row.privacy==='public' || row.is_member);
   return row;
@@ -207,6 +242,21 @@ async function blockedBetween(a,b){
      LIMIT 1
   `,[a,b]);
   return !!result.rowCount;
+}
+
+
+async function activeCommunityRestriction(communityId,userId){
+  const result=await db.query(`
+    SELECT action,expires_at
+      FROM community_member_sanctions
+     WHERE community_id=$1 AND user_id=$2
+       AND revoked_at IS NULL
+       AND action IN ('mute','suspend')
+       AND (expires_at IS NULL OR expires_at>now())
+     ORDER BY CASE action WHEN 'suspend' THEN 0 ELSE 1 END,created_at DESC
+     LIMIT 1
+  `,[communityId,userId]);
+  return result.rows[0]||null;
 }
 
 
@@ -562,7 +612,7 @@ router.get('/:id',async(req,res)=>{
       owner_avatar_url:state.owner_avatar_url,owner_creator_verified:state.owner_creator_verified,
       member_count:Number(state.member_count||0),post_count:Number(state.post_count||0),
       viewer_role:state.viewer_role,request_status:state.request_status,
-      is_member:state.is_member,can_manage:state.can_manage,can_manage_roles:state.can_manage_roles,
+      is_member:state.is_member,can_manage:state.can_manage,can_moderate:state.can_moderate,can_manage_roles:state.can_manage_roles,
       pending_request_count:state.can_manage ? Number(state.pending_request_count||0) : 0,
       conversation_id:state.is_member ? state.conversation_id : null
     },
@@ -766,7 +816,7 @@ router.post('/:id/requests/:userId',async(req,res)=>{
   }finally{client.release();}
 });
 
-const roleSchema=z.object({role:z.enum(['admin','member'])});
+const roleSchema=z.object({role:z.enum(['admin','moderator','member'])});
 router.patch('/:id/members/:userId',async(req,res)=>{
   const parsed=roleSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_role'});
@@ -791,7 +841,7 @@ router.patch('/:id/members/:userId',async(req,res)=>{
     if(state.conversation_id){
       await client.query(
         'UPDATE conversation_members SET member_role=$3 WHERE conversation_id=$1 AND user_id=$2',
-        [state.conversation_id,targetId,parsed.data.role]
+        [state.conversation_id,targetId,parsed.data.role==='moderator'?'member':parsed.data.role]
       );
     }
     await logModeration(client,state.id,req.user.id,'member_role_'+parsed.data.role,'user',targetId);
@@ -957,14 +1007,14 @@ router.get('/:id/posts',async(req,res)=>{
       playback_url:gate.allowed ? post.playback_url : null,
       gated:!gate.allowed,
       gate_reason:gate.reason||null,
-      can_delete:String(post.user_id)===String(req.user.id) || state.can_manage,
+      can_delete:String(post.user_id)===String(req.user.id) || state.can_moderate,
       comments:(commentsByPost.get(String(post.id))||[]).map(comment=>({
         ...comment,
-        can_delete:String(comment.user_id)===String(req.user.id) || state.can_manage
+        can_delete:String(comment.user_id)===String(req.user.id) || state.can_moderate
       }))
     };
   });
-  res.json({posts,can_post:state.is_member,can_manage:state.can_manage});
+  res.json({posts,can_post:state.is_member,can_manage:state.can_manage,can_moderate:state.can_moderate});
 });
 
 const communityPostSchema=z.object({
@@ -984,6 +1034,8 @@ router.post('/:id/posts',async(req,res)=>{
   if(!state)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
   if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
+  const restriction=await activeCommunityRestriction(state.id,req.user.id);
+  if(restriction)return res.status(403).json({error:'community_posting_restricted',restriction:restriction.action,expiresAt:restriction.expires_at});
   const data=parsed.data;
   if(!String(data.body||'').trim() && !data.mediaUrl)return res.status(400).json({error:'empty_post'});
   const viewer=await viewerRow(req.user.id);
@@ -1021,6 +1073,8 @@ router.post('/:id/share-post',async(req,res)=>{
   if(!state)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
   if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
+  const restriction=await activeCommunityRestriction(state.id,req.user.id);
+  if(restriction)return res.status(403).json({error:'community_posting_restricted',restriction:restriction.action,expiresAt:restriction.expires_at});
   const source=await db.query(`
     SELECT p.id,p.user_id,p.post_kind
       FROM posts p JOIN users u ON u.id=p.user_id
@@ -1070,7 +1124,7 @@ router.delete('/:id/posts/:postId',async(req,res)=>{
   );
   if(!post.rowCount)return res.status(404).json({error:'post_not_found'});
   const own=String(post.rows[0].user_id)===String(req.user.id);
-  if(!own && !state.can_manage)return res.status(403).json({error:'community_admin_required'});
+  if(!own && !state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
   const client=await db.pool.connect();
   try{
     await client.query('BEGIN');
@@ -1095,6 +1149,8 @@ router.post('/:id/posts/:postId/comments',async(req,res)=>{
   if(!state)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
   if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
+  const restriction=await activeCommunityRestriction(state.id,req.user.id);
+  if(restriction)return res.status(403).json({error:'community_posting_restricted',restriction:restriction.action,expiresAt:restriction.expires_at});
   const post=await db.query(
     "SELECT id FROM community_posts WHERE id=$1 AND community_id=$2 AND moderation_status='published' LIMIT 1",
     [req.params.postId,state.id]
@@ -1122,7 +1178,7 @@ router.delete('/:id/posts/:postId/comments/:commentId',async(req,res)=>{
   `,[req.params.commentId,req.params.postId,state.id]);
   if(!comment.rowCount)return res.status(404).json({error:'comment_not_found'});
   const own=String(comment.rows[0].user_id)===String(req.user.id);
-  if(!own && !state.can_manage)return res.status(403).json({error:'community_admin_required'});
+  if(!own && !state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
   const client=await db.pool.connect();
   try{
     await client.query('BEGIN');
@@ -1134,6 +1190,133 @@ router.delete('/:id/posts/:postId/comments/:commentId',async(req,res)=>{
     await client.query('ROLLBACK');
     res.status(500).json({error:'comment_remove_failed'});
   }finally{client.release();}
+});
+
+
+const communityReportSchema=z.object({
+  targetType:z.enum(['post','comment','member']),
+  targetId:z.coerce.number().int().positive(),
+  reason:z.enum(['spam','harassment','threats','rules','sensitive','other']),
+  details:z.string().trim().max(1000).optional().default('')
+});
+router.post('/:id/reports',async(req,res)=>{
+  const parsed=communityReportSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_report'});
+  const state=await communityState(req.params.id,req.user.id);
+  if(!state||!state.can_view_content)return res.status(404).json({error:'community_not_found'});
+  const data=parsed.data;
+  const recent=await db.query("SELECT count(*)::int n FROM community_reports WHERE community_id=$1 AND reporter_id=$2 AND created_at>=now()-interval '24 hours'",[state.id,req.user.id]);
+  if(Number(recent.rows[0]?.n||0)>=12)return res.status(429).json({error:'community_report_rate_limited'});
+  let targetExists=false;
+  if(data.targetType==='post'){
+    const r=await db.query("SELECT 1 FROM community_posts WHERE id=$1 AND community_id=$2 AND moderation_status='published' LIMIT 1",[data.targetId,state.id]);targetExists=!!r.rowCount;
+  }else if(data.targetType==='comment'){
+    const r=await db.query("SELECT 1 FROM community_comments cc JOIN community_posts cp ON cp.id=cc.community_post_id WHERE cc.id=$1 AND cp.community_id=$2 LIMIT 1",[data.targetId,state.id]);targetExists=!!r.rowCount;
+  }else{
+    const r=await db.query("SELECT 1 FROM community_members WHERE community_id=$1 AND user_id=$2 LIMIT 1",[state.id,data.targetId]);targetExists=!!r.rowCount;
+  }
+  if(!targetExists)return res.status(404).json({error:'report_target_not_found'});
+  const duplicate=await db.query("SELECT id FROM community_reports WHERE community_id=$1 AND reporter_id=$2 AND target_type=$3 AND target_id=$4 AND status='open' LIMIT 1",[state.id,req.user.id,data.targetType,data.targetId]);
+  if(duplicate.rowCount)return res.status(409).json({error:'report_already_open'});
+  const result=await db.query(`
+    INSERT INTO community_reports(community_id,reporter_id,target_type,target_id,reason,details)
+    VALUES($1,$2,$3,$4,$5,$6) RETURNING id,status,created_at
+  `,[state.id,req.user.id,data.targetType,data.targetId,data.reason,data.details]);
+  res.status(201).json({ok:true,report:result.rows[0]});
+});
+
+router.get('/:id/moderation/reports',async(req,res)=>{
+  const state=await communityState(req.params.id,req.user.id);
+  if(!state)return res.status(404).json({error:'community_not_found'});
+  if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
+  const result=await db.query(`
+    SELECT r.id,r.target_type,r.target_id,r.reason,r.details,r.status,r.created_at,
+           reporter.username AS reporter_username,reporter.display_name AS reporter_display_name,
+           (SELECT count(*)::int FROM community_reports same_target WHERE same_target.community_id=r.community_id AND same_target.target_type=r.target_type AND same_target.target_id=r.target_id AND same_target.status='open') AS target_report_count,
+           (SELECT count(*)::int FROM community_reports burst WHERE burst.community_id=r.community_id AND burst.target_type=r.target_type AND burst.target_id=r.target_id AND burst.status='open' AND burst.created_at>=now()-interval '10 minutes') AS burst_report_count
+      FROM community_reports r
+      JOIN users reporter ON reporter.id=r.reporter_id
+     WHERE r.community_id=$1 AND r.status='open'
+     ORDER BY target_report_count DESC,r.created_at ASC
+     LIMIT 100
+  `,[state.id]);
+  res.json({reports:result.rows.map(row=>({...row,coordinated_signal:Number(row.burst_report_count||0)>=4}))});
+});
+
+const reportReviewSchema=z.object({decision:z.enum(['resolved','dismissed']),note:z.string().trim().max(300).optional().default('')});
+router.patch('/:id/moderation/reports/:reportId',async(req,res)=>{
+  const parsed=reportReviewSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_decision'});
+  const state=await communityState(req.params.id,req.user.id);if(!state)return res.status(404).json({error:'community_not_found'});
+  if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
+  const target=await db.query(
+    "SELECT target_type,target_id FROM community_reports WHERE id=$1 AND community_id=$2 AND status='open' LIMIT 1",
+    [req.params.reportId,state.id]
+  );
+  if(!target.rowCount)return res.status(404).json({error:'report_not_found'});
+  const item=target.rows[0];
+  const updated=await db.query(`
+    UPDATE community_reports SET status=$4,reviewed_by=$5,reviewed_at=now()
+     WHERE community_id=$1 AND target_type=$2 AND target_id=$3 AND status='open'
+     RETURNING id
+  `,[state.id,item.target_type,item.target_id,parsed.data.decision,req.user.id]);
+  await logModeration(db,state.id,req.user.id,'report_'+parsed.data.decision,item.target_type,Number(item.target_id),parsed.data.note);
+  res.json({ok:true,closed_reports:updated.rowCount});
+});
+
+const sanctionSchema=z.object({
+  userId:z.coerce.number().int().positive(),
+  action:z.enum(['warning','mute','suspend']),
+  durationHours:z.coerce.number().int().min(1).max(168).optional().nullable(),
+  note:z.string().trim().max(500).optional().default('')
+});
+router.post('/:id/moderation/sanctions',async(req,res)=>{
+  const parsed=sanctionSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'invalid_sanction'});
+  const state=await communityState(req.params.id,req.user.id);if(!state)return res.status(404).json({error:'community_not_found'});
+  if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
+  const data=parsed.data;
+  const target=await db.query('SELECT role FROM community_members WHERE community_id=$1 AND user_id=$2 LIMIT 1',[state.id,data.userId]);
+  if(!target.rowCount)return res.status(404).json({error:'member_not_found'});
+  const targetRole=target.rows[0].role;
+  if(targetRole==='owner')return res.status(403).json({error:'owner_protected'});
+  if(state.viewer_role==='moderator'&&targetRole!=='member')return res.status(403).json({error:'moderator_scope_denied'});
+  if(state.viewer_role==='admin'&&['admin'].includes(targetRole))return res.status(403).json({error:'owner_required_for_admin'});
+  const hours=data.action==='warning'?null:(data.durationHours||24);
+  const expiresAt=hours?new Date(Date.now()+hours*60*60*1000).toISOString():null;
+  const created=await db.query(`
+    INSERT INTO community_member_sanctions(community_id,user_id,actor_id,action,note,expires_at)
+    VALUES($1,$2,$3,$4,$5,$6) RETURNING *
+  `,[state.id,data.userId,req.user.id,data.action,data.note,expiresAt]);
+  await logModeration(db,state.id,req.user.id,'member_'+data.action,'user',data.userId,data.note);
+  const text=data.action==='warning'
+    ? `Has recibido un aviso de moderación en “${state.name}”.`
+    : `Tu participación en “${state.name}” se ha limitado temporalmente.`;
+  await db.query("INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text) VALUES($1,$2,'system','community',$3,$4)",[data.userId,req.user.id,state.id,text]);
+  res.status(201).json({ok:true,sanction:created.rows[0]});
+});
+
+router.get('/:id/moderation/sanctions',async(req,res)=>{
+  const state=await communityState(req.params.id,req.user.id);if(!state)return res.status(404).json({error:'community_not_found'});
+  if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
+  const result=await db.query(`
+    SELECT s.*,u.username,u.display_name,actor.username AS actor_username
+      FROM community_member_sanctions s
+      JOIN users u ON u.id=s.user_id
+      JOIN users actor ON actor.id=s.actor_id
+     WHERE s.community_id=$1
+       AND s.revoked_at IS NULL
+       AND (s.action='warning' OR s.expires_at IS NULL OR s.expires_at>now())
+     ORDER BY s.created_at DESC LIMIT 100
+  `,[state.id]);
+  res.json({items:result.rows});
+});
+
+router.delete('/:id/moderation/sanctions/:sanctionId',async(req,res)=>{
+  const state=await communityState(req.params.id,req.user.id);if(!state)return res.status(404).json({error:'community_not_found'});
+  if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
+  const updated=await db.query('UPDATE community_member_sanctions SET revoked_at=now() WHERE id=$1 AND community_id=$2 AND revoked_at IS NULL RETURNING user_id,action',[req.params.sanctionId,state.id]);
+  if(!updated.rowCount)return res.status(404).json({error:'sanction_not_found'});
+  await logModeration(db,state.id,req.user.id,'sanction_revoked','user',Number(updated.rows[0].user_id),updated.rows[0].action);
+  res.json({ok:true});
 });
 
 router.delete('/:id',async(req,res)=>{
@@ -1163,7 +1346,7 @@ router.delete('/:id',async(req,res)=>{
 router.get('/:id/moderation-log',async(req,res)=>{
   const state=await communityState(req.params.id,req.user.id);
   if(!state)return res.status(404).json({error:'community_not_found'});
-  if(!state.can_manage)return res.status(403).json({error:'community_admin_required'});
+  if(!state.can_moderate)return res.status(403).json({error:'community_moderator_required'});
   const result=await db.query(`
     SELECT log.id,log.action,log.target_type,log.target_id,log.note,log.created_at,
            actor.username AS actor_username,actor.display_name AS actor_display_name

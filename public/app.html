@@ -231,7 +231,8 @@
 
         <section id="communityAdminPanel" class="community-admin-panel hidden">
           <details>
-            <summary>Administrar comunidad</summary>
+            <summary>Moderación y administración</summary>
+            <div id="communityManagementOnly">
             <form id="communityEditForm" class="community-admin-form">
               <div class="form-row">
                 <label>Nombre<input name="name" maxlength="80" required></label>
@@ -248,10 +249,24 @@
               <p id="communityEditStatus" class="status"></p>
             </form>
             <div class="community-admin-columns">
-              <section><div class="community-section-head"><b>Solicitudes</b><small id="communityRequestCount">0 pendientes</small></div><div id="communityRequests" class="community-request-list"></div></section>
-              <section><div class="community-section-head"><b>Moderación reciente</b><small>Privado para administradores</small></div><div id="communityModerationLog" class="community-moderation-list"></div></section>
+              <section id="communityRequestsSection"><div class="community-section-head"><b>Solicitudes</b><small id="communityRequestCount">0 pendientes</small></div><div id="communityRequests" class="community-request-list"></div></section>
             </div>
             <button id="deleteCommunity" type="button" class="danger hidden">Eliminar comunidad</button>
+            </div>
+            <div class="community-moderation-3">
+              <section>
+                <div class="community-section-head"><div><b>Cola de incidencias</b><small id="communityModerationQueueCount">0 abiertas</small></div><span class="moderation-private-chip">Privado</span></div>
+                <div id="communityModerationQueue" class="community-moderation-queue"></div>
+              </section>
+              <section>
+                <div class="community-section-head"><div><b>Sanciones activas</b><small>Avisos y limitaciones temporales</small></div></div>
+                <div id="communitySanctions" class="community-sanctions-list"></div>
+              </section>
+              <section>
+                <div class="community-section-head"><div><b>Moderación reciente</b><small>Registro privado del equipo</small></div></div>
+                <div id="communityModerationLog" class="community-moderation-list"></div>
+              </section>
+            </div>
           </details>
         </section>
 
@@ -965,6 +980,30 @@
         <div id="blockedList" class="privacy-person-list"></div>
       </section>
     </div>
+  </div>
+</div>
+
+<div id="communityReportModal" class="modal hidden">
+  <div class="modal-card small-modal community-report-modal-card">
+    <button id="closeCommunityReport" class="modal-close" type="button">×</button>
+    <span class="eyebrow">MODERACIÓN DE COMUNIDAD</span>
+    <h2>Informar de un problema</h2>
+    <p id="communityReportTargetLabel" class="muted">Selecciona el motivo.</p>
+    <form id="communityReportForm">
+      <label>Motivo
+        <select name="reason" required>
+          <option value="rules">Incumple las reglas</option>
+          <option value="spam">Spam</option>
+          <option value="harassment">Acoso</option>
+          <option value="threats">Amenazas</option>
+          <option value="sensitive">Contenido sensible mal clasificado</option>
+          <option value="other">Otro</option>
+        </select>
+      </label>
+      <label>Detalles (opcional)<textarea name="details" maxlength="1000" placeholder="Explica brevemente qué ocurre."></textarea></label>
+      <button class="primary full" type="submit">Enviar incidencia</button>
+      <p id="communityReportStatus" class="status"></p>
+    </form>
   </div>
 </div>
 
