@@ -508,10 +508,9 @@ async function publishDueScheduledPosts(){
 
     for(const post of result.rows){
       try{
-        await notifyMentions({
+        await notifyPostPublicationSignals({
           actorId:post.user_id,
           text:post.caption,
-          entityType:'post',
           entityId:post.id,
           audience:post.audience
         });
@@ -968,6 +967,12 @@ async function notifyCircleMentions(postId,actorId){
   }
 }
 
+
+async function notifyPostPublicationSignals({actorId,text,entityId,audience}){
+  await notifyMentions({actorId,text,entityType:'post',entityId,audience});
+  await notifyCircleMentions(entityId,actorId);
+}
+
 async function sendPendingCollaborationRequests(postId,actorId,client=db){
   const result=await client.query(`
     SELECT pc.user_id
@@ -1047,7 +1052,7 @@ async function maybePublishAfterApprovals(postId){
      RETURNING id,user_id,caption,audience
   `,[postId,hasParticipants,scheduledDue]);
   if(updated.rowCount){
-    try{await notifyMentions({actorId:updated.rows[0].user_id,text:updated.rows[0].caption,entityType:'post',entityId:updated.rows[0].id,audience:updated.rows[0].audience});}
+    try{await notifyPostPublicationSignals({actorId:updated.rows[0].user_id,text:updated.rows[0].caption,entityId:updated.rows[0].id,audience:updated.rows[0].audience});}
     catch(error){console.warn('RedLibertad V1.61 collaboration publish mention failed:',error?.message||error);}
   }
   return {published:updated.rowCount>0};
@@ -1304,10 +1309,9 @@ router.post('/', requireAuth, async (req, res) => {
 
     if(shouldPublishNow){
       try{
-        await notifyMentions({
+        await notifyPostPublicationSignals({
           actorId:req.user.id,
           text:data.caption,
-          entityType:'post',
           entityId:post.id,
           audience:data.audience
         });
@@ -1478,10 +1482,9 @@ router.post('/creator/publishing/:id/publish',requireAuth,async(req,res)=>{
 
     if(!waiting){
       try{
-        await notifyMentions({
+        await notifyPostPublicationSignals({
           actorId:req.user.id,
           text:publishedPost.caption,
-          entityType:'post',
           entityId:publishedPost.id,
           audience:publishedPost.audience
         });
