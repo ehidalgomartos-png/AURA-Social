@@ -1249,4 +1249,29 @@ const creatorAutomationTimer=setInterval(()=>{
 },60*60*1000);
 if(typeof creatorAutomationTimer.unref==='function')creatorAutomationTimer.unref();
 
+
+router.get('/hub-summary',async(req,res)=>{
+  const result=await db.query(`
+    SELECT
+      (SELECT count(*)::int FROM follows WHERE following_id=$1) followers,
+      (SELECT count(*)::int FROM creator_tasks WHERE creator_id=$1 AND status='open') open_tasks,
+      (SELECT count(*)::int FROM creator_tasks WHERE creator_id=$1 AND status='open' AND due_at IS NOT NULL AND due_at<now()) overdue_tasks,
+      (SELECT count(*)::int FROM creator_contact_meta WHERE creator_id=$1 AND priority='high') high_priority_contacts,
+      (SELECT count(*)::int FROM creator_segments WHERE creator_id=$1) custom_segments,
+      (SELECT count(*)::int FROM creator_communications WHERE creator_id=$1 AND status='draft') communication_drafts,
+      (SELECT count(*)::int FROM creator_communications WHERE creator_id=$1 AND status='scheduled') scheduled_communications,
+      (SELECT count(*)::int FROM posts WHERE user_id=$1 AND creator_state='scheduled') scheduled_posts,
+      (SELECT count(*)::int FROM creator_community_activity_meta meta
+         JOIN notifications n ON n.id=meta.notification_id AND n.user_id=$1
+        WHERE meta.creator_id=$1 AND meta.follow_up=true) active_followups,
+      (SELECT count(*)::int
+         FROM notifications n
+         LEFT JOIN creator_community_notification_reviews r ON r.notification_id=n.id AND r.creator_id=$1
+        WHERE n.user_id=$1 AND n.entity_type='creator_community'
+          AND n.type IN ('creator_poll_vote','creator_question_response')
+          AND r.notification_id IS NULL) pending_community
+  `,[req.user.id]);
+  res.json({summary:result.rows[0] || {}});
+});
+
 module.exports = router;
