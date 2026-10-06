@@ -481,10 +481,19 @@ ALTER TABLE posts ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'publi
 ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_audience_check;
 ALTER TABLE posts
   ADD CONSTRAINT posts_audience_check
-  CHECK(audience IN ('public','vip'));
+  CHECK(audience IN ('public','vip','connections','circles'));
 
 CREATE INDEX IF NOT EXISTS idx_posts_audience_created
   ON posts(audience,created_at DESC);
+
+-- RedLibertad V1.56: audiencias privadas por círculos
+CREATE TABLE IF NOT EXISTS post_circle_audiences (
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+  PRIMARY KEY(post_id,circle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_post_circle_audiences_circle
+  ON post_circle_audiences(circle_id,post_id);
 
 
 -- RedLibertad V1.19: Stories VIP y feed exclusivo
@@ -493,10 +502,18 @@ ALTER TABLE stories ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'pub
 ALTER TABLE stories DROP CONSTRAINT IF EXISTS stories_audience_check;
 ALTER TABLE stories
   ADD CONSTRAINT stories_audience_check
-  CHECK(audience IN ('public','vip'));
+  CHECK(audience IN ('public','vip','connections','circles'));
 
 CREATE INDEX IF NOT EXISTS idx_stories_audience_active
   ON stories(audience,expires_at DESC,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS story_circle_audiences (
+  story_id BIGINT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  circle_id BIGINT NOT NULL REFERENCES connection_circles(id) ON DELETE CASCADE,
+  PRIMARY KEY(story_id,circle_id)
+);
+CREATE INDEX IF NOT EXISTS idx_story_circle_audiences_circle
+  ON story_circle_audiences(circle_id,story_id);
 
 
 -- RedLibertad V1.20: borradores y programación de publicaciones
