@@ -356,6 +356,32 @@ router.use(async (_req,res,next)=>{
 setTimeout(()=>publishDueScheduledPosts().catch(error=>console.error('RedLibertad V1.20 initial scheduler failed:',error)),5000).unref?.();
 setInterval(()=>publishDueScheduledPosts().catch(error=>console.error('RedLibertad V1.20 scheduler failed:',error)),60*1000).unref?.();
 
+
+let creatorCalendarV21Ready=null;
+async function ensureCreatorCalendarV21(){
+  if(!creatorCalendarV21Ready){
+    creatorCalendarV21Ready=(async()=>{
+      await db.query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS editorial_date DATE');
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS editorial_label VARCHAR(40) NOT NULL DEFAULT ''");
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_creator_editorial_date ON posts(user_id,editorial_date)');
+    })().catch(error=>{
+      creatorCalendarV21Ready=null;
+      throw error;
+    });
+  }
+  return creatorCalendarV21Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureCreatorCalendarV21();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.21 calendar bootstrap failed:',error);
+    res.status(500).json({error:'creator_calendar_bootstrap_failed'});
+  }
+});
+
 function postAudienceWhere(viewerParam=null, alias='p') {
   if (!viewerParam) return `${alias}.audience='public'`;
   return `(
@@ -413,6 +439,8 @@ const createSchema = z.object({
   audience: z.enum(['public','vip']).default('public'),
   publishMode: z.enum(['now','draft','scheduled']).default('now'),
   scheduledFor: z.string().datetime({offset:true}).optional().nullable(),
+  editorialDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  editorialLabel: z.string().trim().max(40).optional().default(''),
   participantUsernames: z.array(z.string().min(1).max(30)).max(10).optional().default([])
 });
 
@@ -523,12 +551,13 @@ router.post('/', requireAuth, async (req, res) => {
     const result = await client.query(`
       INSERT INTO posts
         (user_id,caption,media_url,media_type,media_provider,external_id,playback_url,content_level,post_kind,audience,
-         creator_state,scheduled_for,moderation_status,consent_state)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         creator_state,scheduled_for,editorial_date,editorial_label,moderation_status,consent_state)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *
     `,[
       req.user.id,data.caption,data.mediaUrl,data.mediaType,data.mediaProvider,data.externalId,data.playbackUrl,
       data.contentLevel,data.kind,data.audience,creatorState,scheduledFor?.toISOString() || null,
+      data.editorialDate || null,data.editorialLabel || '',
       moderationStatus,needsConsent?'pending':'none'
     ]);
     const post=result.rows[0];
