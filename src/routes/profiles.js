@@ -845,6 +845,156 @@ router.get('/connections', requireAuth, async (req,res)=>{
   res.json({connections,count:connections.length,circleId});
 });
 
+
+router.get('/connections/:connectionUserId/context',requireAuth,async(req,res)=>{
+  const targetId=Number(req.params.connectionUserId);
+  if(!Number.isInteger(targetId) || targetId<=0)return res.status(400).json({error:'invalid_connection'});
+  if(!(await isMutualConnection(req.user.id,targetId))){
+    return res.status(404).json({error:'connection_not_found'});
+  }
+
+  const restricted=await db.query(`
+    SELECT
+      EXISTS(
+        SELECT 1 FROM blocks b
+         WHERE (b.blocker_id=$1 AND b.blocked_id=$2)
+            OR (b.blocker_id=$2 AND b.blocked_id=$1)
+      ) AS blocked,
+      EXISTS(
+        SELECT 1 FROM mutes m
+         WHERE m.muter_id=$1 AND m.muted_id=$2
+      ) AS muted
+  `,[req.user.id,targetId]);
+  if(restricted.rows[0]?.blocked || restricted.rows[0]?.muted){
+    return res.status(404).json({error:'connection_not_found'});
+  }
+
+  const [people,sharedInterests,mutuals,recentPosts]=await Promise.all([
+    db.query(`
+      SELECT
+        target.id,target.username,target.display_name,target.avatar_url,target.creator_verified,target.location_label,
+        viewer.location_label AS viewer_location_label
+      FROM users target
+      JOIN users viewer ON viewer.id=$1
+      WHERE target.id=$2 AND target.status='active' AND target.is_admin=false
+      LIMIT 1
+    `,[req.user.id,targetId]),
+    db.query(`
+      SELECT target_interest.interest
+        FROM user_interests target_interest
+        JOIN user_interests own_interest
+          ON own_interest.user_id=$1
+         AND own_interest.interest=target_interest.interest
+       WHERE target_interest.user_id=$2
+       ORDER BY target_interest.interest
+       LIMIT 8
+    `,[req.user.id,targetId]),
+    db.query(`
+      SELECT u.id,u.username,u.display_name,u.avatar_url,u.creator_verified
+        FROM users u
+       WHERE u.status='active'
+         AND u.is_admin=false
+         AND u.id<>$1
+         AND u.id<>$2
+         AND EXISTS(
+           SELECT 1 FROM follows a
+            WHERE a.follower_id=$1 AND a.following_id=u.id
+         )
+         AND EXISTS(
+           SELECT 1 FROM follows b
+            WHERE b.follower_id=u.id AND b.following_id=$1
+         )
+         AND EXISTS(
+           SELECT 1 FROM follows c
+            WHERE c.follower_id=$2 AND c.following_id=u.id
+         )
+         AND EXISTS(
+           SELECT 1 FROM follows d
+            WHERE d.follower_id=u.id AND d.following_id=$2
+         )
+         AND NOT EXISTS(
+           SELECT 1 FROM blocks block_rel
+            WHERE (block_rel.blocker_id=$1 AND block_rel.blocked_id=u.id)
+               OR (block_rel.blocker_id=u.id AND block_rel.blocked_id=$1)
+         )
+         AND NOT EXISTS(
+           SELECT 1 FROM mutes muted_rel
+            WHERE muted_rel.muter_id=$1 AND muted_rel.muted_id=u.id
+         )
+       ORDER BY u.creator_verified DESC,lower(u.display_name),u.id
+       LIMIT 6
+    `,[req.user.id,targetId]),
+    db.query(`
+      SELECT id,post_kind,caption,created_at
+        FROM posts
+       WHERE user_id=$1
+         AND moderation_status='published'
+         AND audience='public'
+         AND content_level='normal'
+       ORDER BY created_at DESC,id DESC
+       LIMIT 3
+    `,[targetId])
+  ]);
+
+  if(!people.rowCount)return res.status(404).json({error:'connection_not_found'});
+  const person=people.rows[0];
+  const interests=sharedInterests.rows.map(row=>row.interest);
+  const viewerLocation=String(person.viewer_location_label || '').trim();
+  const targetLocation=String(person.location_label || '').trim();
+  const sameLocation=!!viewerLocation && !!targetLocation && viewerLocation.localeCompare(targetLocation,undefined,{sensitivity:'accent'})===0;
+
+  const starters=[];
+  for(const interest of interests.slice(0,2)){
+    starters.push({
+      kind:'interest',
+      label:`Interés compartido · ${interest}`,
+      text:`¿Qué es lo que más te gusta de ${interest}?`
+    });
+  }
+  if(sameLocation){
+    starters.push({
+      kind:'location',
+      label:`Misma zona · ${targetLocation}`,
+      text:`¿Qué sitio de ${targetLocation} recomendarías?`
+    });
+  }
+  if(recentPosts.rowCount){
+    starters.push({
+      kind:'public_activity',
+      label:'Publicación reciente',
+      text:'Vi tu publicación reciente. ¿Qué te inspiró a compartirla?'
+    });
+  }
+  if(!starters.length){
+    starters.push({
+      kind:'general',
+      label:'Conversación abierta',
+      text:'¿Cómo va todo últimamente?'
+    });
+  }
+
+  res.json({
+    connection:{
+      id:person.id,
+      username:person.username,
+      display_name:person.display_name,
+      avatar_url:person.avatar_url,
+      creator_verified:person.creator_verified===true,
+      location_label:person.location_label || null
+    },
+    shared_interests:interests,
+    same_location:sameLocation,
+    mutual_connections:mutuals.rows,
+    recent_public_posts:recentPosts.rows.map(post=>({
+      id:post.id,
+      post_kind:post.post_kind,
+      caption:String(post.caption || '').slice(0,180),
+      created_at:post.created_at
+    })),
+    starters:starters.slice(0,4)
+  });
+});
+
 router.get('/search/users', requireAuth, async (req,res)=>{
   const q=String(req.query.q||'').trim();
   if(q.length<2) return res.json({users:[]});
