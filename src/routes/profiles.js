@@ -2082,8 +2082,11 @@ router.delete('/:id/follow',requireAuth,async(req,res)=>{
     DELETE FROM connection_circle_members member
     USING connection_circles circle
     WHERE member.circle_id=circle.id
-      AND circle.user_id=$1
-      AND member.connection_user_id=$2
+      AND (
+        (circle.user_id=$1 AND member.connection_user_id=$2)
+        OR
+        (circle.user_id=$2 AND member.connection_user_id=$1)
+      )
   `,[req.user.id,req.params.id]);
   res.json({ok:true});
 });
@@ -2113,8 +2116,11 @@ router.post('/:id/block',requireAuth,async(req,res)=>{
     DELETE FROM connection_circle_members member
     USING connection_circles circle
     WHERE member.circle_id=circle.id
-      AND circle.user_id=$1
-      AND member.connection_user_id=$2
+      AND (
+        (circle.user_id=$1 AND member.connection_user_id=$2)
+        OR
+        (circle.user_id=$2 AND member.connection_user_id=$1)
+      )
   `,[req.user.id,req.params.id]);
 
   res.json({ok:true});
