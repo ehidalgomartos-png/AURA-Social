@@ -1,4 +1,4 @@
-# RedLibertad V1.40.0 — Retention & Growth 2.0
+# RedLibertad V1.41.0 — Comments 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -992,4 +992,19 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Respeta bloqueos, silencios, audiencia VIP y preferencias de contenido sensible.
 - Corrige un bug heredado de V1.36: silenciar una conversación impide ahora crear nuevas notificaciones de mensaje para esa conversación; los mensajes siguen llegando y siguen contando como no leídos dentro del inbox.
 - Bootstrap idempotente con user_experience_state.
+- Sin monetización activa.
+
+
+## V1.41.0 — Comments 2.0
+
+- Respuestas a comentarios con un nivel de profundidad para mantener conversaciones legibles.
+- Contexto visual “Respondiendo a @usuario” antes de publicar.
+- Contador de respuestas por comentario raíz.
+- Las respuestas permanecen agrupadas bajo su comentario raíz.
+- Notificación específica al autor del comentario respondido.
+- Evita duplicar la notificación cuando el autor del comentario también es propietario de la publicación.
+- Mantiene notificaciones al propietario de la publicación y menciones existentes.
+- El borrado de un comentario raíz elimina también sus respuestas mediante integridad referencial.
+- Las previsualizaciones del feed muestran comentarios raíz para evitar respuestas sin contexto.
+- Bootstrap idempotente.
 - Sin monetización activa.
