@@ -3819,6 +3819,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 }
 
 
+/* RedLibertad V1.28 — Follow-up Workflow & History */
+.creator-followup-status-tabs{display:inline-flex;gap:6px;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--soft);margin-top:10px}
+.creator-followup-status-tabs button{border:0;background:transparent;border-radius:999px;padding:7px 12px;font-size:9px;font-weight:900;color:var(--muted)}
+.creator-followup-status-tabs button.active{background:var(--navy);color:#fff;box-shadow:0 3px 10px rgba(16,39,64,.14)}
+.creator-followup-window-tabs.is-disabled{opacity:.45}
+.creator-followup-window-tabs button:disabled{cursor:not-allowed}
+.creator-followup-item.completed{opacity:.9;border-style:dashed}
+.creator-followup-item.completed .creator-followup-window-badge{background:var(--teal-soft);color:var(--teal)}
+.creator-followup-reschedule{border:1px solid var(--line);border-radius:9px;padding:6px 8px;background:var(--paper);color:var(--ink);font-size:9px;font-weight:800}
+
 /* RedLibertad V1.27 — Follow-up Dashboard */
 .creator-followup-dashboard{margin:12px 0 16px;padding:14px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,var(--paper),rgba(255,255,255,.78))}
 .creator-followup-head b,.creator-followup-head small{display:block}
@@ -3866,6 +3876,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   .creator-followup-filter-stack{grid-template-columns:1fr}
 }
 @media (max-width:760px){
+  .creator-followup-status-tabs{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .creator-followup-status-tabs button{width:100%}
+  .creator-followup-reschedule{width:100%}
   .creator-followup-dashboard{padding:12px}
   .creator-followup-summary{grid-template-columns:1fr 1fr}
   .creator-followup-window-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
