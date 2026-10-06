@@ -29,6 +29,7 @@ let visibleStories = [];
 let storyGroups = new Map();
 let activeStoryGroup = [];
 let activeStoryIndex = 0;
+let recordedReelViews = new Set();
 let creatorCalendarMonth = new Date(new Date().getFullYear(),new Date().getMonth(),1);
 let creatorCalendarPosts = [];
 let creatorCommunityStatus = 'active';
@@ -280,13 +281,13 @@ function postHTML(p, options = {}) {
         'repost-profile-link'
       )}</div>`
     : '';
-  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''}" data-id="${p.id}">
+  return `<article class="post ${textOnly ? 'text-only-post' : ''} ${vipOnly ? 'vip-exclusive-post' : ''}" data-id="${p.id}" ${p.post_kind==='reel' ? `data-reel-observe="${p.id}"` : ''}>
     ${repostBanner}
     <div class="post-head">
       ${profileLink(p.username, `<span class="avatar">${avatarHTML(p)}</span>`, 'post-avatar-link')}
       <div class="post-user">
         ${profileLink(p.username, `<b>${esc(p.display_name)} ${p.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'post-name-link')}
-        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span></small>
+        <small>${profileLink(p.username, `@${esc(p.username)}`, 'post-username-link')} · ${p.community_poll ? 'Encuesta' : p.community_question ? 'Pregunta' : p.post_kind === 'reel' ? 'Reel' : 'Publicación'} · <span class="post-time">${timeAgo(p.created_at)}</span>${p.post_kind==='reel' && p.view_count!=null ? ` · <span class="reel-view-count">▶ ${Number(p.view_count||0)} vistas</span>` : ''}</small>
         ${vipOnly ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
         ${participantsHTML(p)}
       </div>
@@ -791,15 +792,29 @@ function renderStoryViewer() {
   root.innerHTML=`<article class="story-viewer-story ${story.audience==='vip' ? 'vip-story' : ''}">
     <header>
       <span class="story-viewer-avatar">${avatarHTML(story)}</span>
-      <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}</small></div>
+      <div><b>${esc(story.display_name)}</b><small>@${esc(story.username)} · ${timeAgo(story.created_at)}${story.view_count!=null ? ` · ${Number(story.view_count||0)} vistas` : ''}</small></div>
       ${story.audience==='vip' ? '<span class="vip-content-badge">★ SOLO VIP</span>' : ''}
     </header>
     <div class="story-viewer-media">${media || '<div class="gate"><b>Story no disponible</b></div>'}</div>
   </article>`;
+  if(!story.gated && me && String(story.user_id)!==String(me.id) && !story.viewed_by_me){
+    markStoryViewed(story);
+  }
 
   if($('#storyPrev'))$('#storyPrev').disabled=activeStoryIndex<=0;
   if($('#storyNext'))$('#storyNext').disabled=activeStoryIndex>=activeStoryGroup.length-1;
   if(story.audience==='vip')markVipSeen();
+}
+
+async function markStoryViewed(story){
+  if(!story || story.gated || story.viewed_by_me)return;
+  const {r}=await api(`/api/stories/${encodeURIComponent(story.id)}/view`,{method:'POST'});
+  if(!r.ok)return;
+  story.viewed_by_me=true;
+  const group=storyGroups.get(String(story.user_id)) || [];
+  const allSeen=group.every(item=>item.gated || item.viewed_by_me || (me && String(item.user_id)===String(me.id)));
+  const button=document.querySelector(`[data-story-user="${CSS.escape(String(story.user_id))}"]`);
+  button?.classList.toggle('seen',allSeen);
 }
 
 function openStoryViewer(userId,index=0) {
@@ -833,7 +848,8 @@ async function loadStories() {
   $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + representatives.map(story => {
     const group=storyGroups.get(String(story.user_id)) || [];
     const hasVip=group.some(item=>item.audience==='vip');
-    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''}" data-story-user="${story.user_id}" title="${story.gated ? gateText(story.gate_reason) : hasVip ? 'Story VIP disponible' : 'Story activa'}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
+    const allSeen=group.every(item=>item.gated || item.viewed_by_me || (me && String(item.user_id)===String(me.id)));
+    return `<button type="button" class="story ${hasVip ? 'has-vip-story' : ''} ${allSeen ? 'seen' : ''}" data-story-user="${story.user_id}" title="${story.gated ? gateText(story.gate_reason) : hasVip ? 'Story VIP disponible' : 'Story activa'}"><div class="story-ring"><div>${story.avatar_url ? `<img src="${esc(story.avatar_url)}">` : initials(story.display_name)}</div>${hasVip ? '<span class="story-vip-star">★</span>' : ''}</div><small>${esc(story.username)}</small></button>`;
   }).join('');
 
   bindCreateButtons();
@@ -948,10 +964,27 @@ async function loadExplore() {
   ]);
 }
 async function loadReels() {
-  const { d } = await api('/api/posts/feed?mode=latest');
-  const reels = d.posts.filter(p => p.post_kind === 'reel');
+  const { r,d } = await api('/api/posts/reels');
+  const reels = r.ok && Array.isArray(d.posts) ? d.posts : [];
   $('#reelsFeed').innerHTML = reels.map(postHTML).join('') || '<div class="info-card"><b>Todavía no hay Reels.</b><p>Publica el primero usando Crear → Reel.</p></div>';
   bindPostActions($('#reelsFeed'));
+  observeReelViews();
+}
+
+function observeReelViews(){
+  const root=$('#reelsFeed');
+  if(!root || !('IntersectionObserver' in window))return;
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting || entry.intersectionRatio<0.6)return;
+      const id=entry.target.dataset.reelObserve;
+      if(!id || recordedReelViews.has(String(id)))return;
+      recordedReelViews.add(String(id));
+      api(`/api/posts/${encodeURIComponent(id)}/reel-view`,{method:'POST'}).catch(()=>{recordedReelViews.delete(String(id));});
+      observer.unobserve(entry.target);
+    });
+  },{threshold:[0.6]});
+  all('[data-reel-observe]',root).forEach(article=>observer.observe(article));
 }
 
 function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones visibles.') {

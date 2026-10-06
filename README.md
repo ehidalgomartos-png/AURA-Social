@@ -1,4 +1,4 @@
-# RedLibertad V1.38.0 — Profiles 2.0
+# RedLibertad V1.39.0 — Stories & Reels 2.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -958,5 +958,18 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Actividad reciente únicamente si el usuario mantiene activado “mostrar actividad”.
 - Mantiene intereses, ubicación, web, conexiones mutuas, badges y Creator Profile.
 - Sin registro de visitas de perfil ni tracking de quién consulta a quién.
+- Bootstrap idempotente.
+- Sin monetización activa.
+
+
+## V1.39.0 — Stories & Reels 2.0
+
+- Stories recuerdan si ya las has visto y muestran un anillo atenuado al completar el grupo.
+- Las vistas se registran una sola vez por Story/persona y se actualiza viewed_at al volver a verla.
+- El autor puede ver el contador agregado de vistas de su propia Story; no se añade lista pública de espectadores.
+- Reels incorpora endpoint dedicado y prioriza Reels no vistos antes de repetir contenido.
+- Las vistas de Reel son únicas por usuario y solo se registran al alcanzar visibilidad suficiente en pantalla.
+- Los Reels muestran contador de vistas agregado.
+- Se mantienen contenido sensible, VIP, bloqueos, silencios y feedback de descubrimiento.
 - Bootstrap idempotente.
 - Sin monetización activa.

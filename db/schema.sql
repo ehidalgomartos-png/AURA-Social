@@ -91,6 +91,23 @@ CREATE TABLE IF NOT EXISTS sensitive_message_permissions (
 );
 
 
+-- RedLibertad V1.39: vistas de Stories y Reels
+CREATE TABLE IF NOT EXISTS story_views (
+  story_id BIGINT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  viewer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(story_id,viewer_id)
+);
+CREATE INDEX IF NOT EXISTS idx_story_views_story ON story_views(story_id,viewed_at DESC);
+
+CREATE TABLE IF NOT EXISTS reel_views (
+  post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  viewer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(post_id,viewer_id)
+);
+CREATE INDEX IF NOT EXISTS idx_reel_views_post ON reel_views(post_id,viewed_at DESC);
+
 -- RedLibertad V1.38: identidad breve de perfil
 ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_status VARCHAR(80) NOT NULL DEFAULT '';
 

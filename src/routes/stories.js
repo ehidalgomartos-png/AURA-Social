@@ -6,6 +6,25 @@ const { canViewerSee } = require('../services/contentPolicy');
 
 const router = express.Router();
 
+let storiesV139Ready=null;
+async function ensureStoriesV139(){
+  if(!storiesV139Ready){
+    storiesV139Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS story_views (
+          story_id BIGINT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+          viewer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY(story_id,viewer_id)
+        )
+      `);
+      await db.query("CREATE INDEX IF NOT EXISTS idx_story_views_story ON story_views(story_id,viewed_at DESC)");
+    })().catch(error=>{storiesV139Ready=null;throw error;});
+  }
+  return storiesV139Ready;
+}
+
+
 let mutePrivacyReady = null;
 async function ensureMutePrivacy() {
   if (!mutePrivacyReady) {
@@ -56,7 +75,7 @@ async function ensureVipStoriesV19() {
 
 router.use(async (_req,res,next)=>{
   try{
-    await Promise.all([ensureMutePrivacy(),ensureVipStoriesV19()]);
+    await Promise.all([ensureMutePrivacy(),ensureVipStoriesV19(),ensureStoriesV139()]);
     next();
   }catch(error){
     console.error('RedLibertad V1.19 stories bootstrap failed:',error);
@@ -167,6 +186,18 @@ router.get('/', optionalAuth, async (req,res) => {
      LIMIT 150
   `,params);
 
+  let viewedIds=new Set();
+  let viewCounts=new Map();
+  if(req.user && r.rows.length){
+    const ids=r.rows.map(row=>String(row.id));
+    const [viewed,counted]=await Promise.all([
+      db.query('SELECT story_id FROM story_views WHERE viewer_id=$1 AND story_id=ANY($2::bigint[])',[req.user.id,ids]),
+      db.query('SELECT story_id,count(*)::int n FROM story_views WHERE story_id=ANY($1::bigint[]) GROUP BY story_id',[ids])
+    ]);
+    viewedIds=new Set(viewed.rows.map(row=>String(row.story_id)));
+    viewCounts=new Map(counted.rows.map(row=>[String(row.story_id),Number(row.n||0)]));
+  }
+
   const stories=r.rows.map(story=>{
     const gate=canViewerSee({postLevel:story.content_level,viewer});
     return {
@@ -174,11 +205,66 @@ router.get('/', optionalAuth, async (req,res) => {
       media_url:gate.allowed ? story.media_url : null,
       playback_url:gate.allowed ? story.playback_url : null,
       gated:!gate.allowed,
-      gate_reason:gate.reason || null
+      gate_reason:gate.reason || null,
+      viewed_by_me:req.user ? viewedIds.has(String(story.id)) : false,
+      view_count:req.user && String(story.user_id)===String(req.user.id) ? (viewCounts.get(String(story.id)) || 0) : null
     };
   });
 
   res.json({stories});
+});
+
+router.post('/:id/view',requireAuth,async(req,res)=>{
+  const found=await db.query(`
+    SELECT s.id,s.user_id,s.content_level,s.audience
+      FROM stories s
+      JOIN users owner ON owner.id=s.user_id
+     WHERE s.id=$1
+       AND s.expires_at>now()
+       AND s.moderation_status='published'
+       AND owner.status='active'
+       AND (
+         s.audience='public'
+         OR s.user_id=$2
+         OR EXISTS(SELECT 1 FROM users admin WHERE admin.id=$2 AND admin.is_admin=true)
+         OR EXISTS(
+           SELECT 1 FROM creator_vips cv
+           JOIN follows f ON f.follower_id=cv.fan_id AND f.following_id=cv.creator_id
+            WHERE cv.creator_id=s.user_id AND cv.fan_id=$2
+         )
+       )
+       AND (
+         s.user_id=$2
+         OR s.user_id NOT IN (
+           SELECT blocked_id FROM blocks WHERE blocker_id=$2
+           UNION SELECT blocker_id FROM blocks WHERE blocked_id=$2
+         )
+       )
+     LIMIT 1
+  `,[req.params.id,req.user.id]);
+  if(!found.rowCount)return res.status(404).json({error:'story_not_found'});
+  const story=found.rows[0];
+  if(String(story.user_id)===String(req.user.id))return res.json({ok:true,viewed:false,own:true});
+
+  const viewerRow=await db.query('SELECT age_verified,show_sensitive,is_admin FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+  const gate=canViewerSee({
+    postLevel:story.content_level,
+    viewer:{
+      id:req.user.id,
+      ageVerified:viewerRow.rows[0]?.age_verified,
+      showSensitive:viewerRow.rows[0]?.show_sensitive,
+      isAdmin:viewerRow.rows[0]?.is_admin
+    }
+  });
+  if(!gate.allowed)return res.status(403).json({error:'story_content_gated',reason:gate.reason});
+
+  const inserted=await db.query(`
+    INSERT INTO story_views(story_id,viewer_id)
+    VALUES ($1,$2)
+    ON CONFLICT(story_id,viewer_id) DO UPDATE SET viewed_at=now()
+    RETURNING story_id
+  `,[story.id,req.user.id]);
+  res.json({ok:true,viewed:inserted.rowCount>0});
 });
 
 module.exports=router;

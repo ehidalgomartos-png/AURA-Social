@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.38.0",
+  "version": "1.39.0",
   "private": true,
-  "description": "RedLibertad V1.38 Profiles 2.0 - estado breve, contexto social y actividad reciente respetando privacidad, sin monetización.",
+  "description": "RedLibertad V1.39 Stories & Reels 2.0 - señales de visto y contadores privados/únicos, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
