@@ -249,4 +249,34 @@ CREATE TABLE IF NOT EXISTS creator_links (
 CREATE INDEX IF NOT EXISTS idx_creator_links_user_position
   ON creator_links(user_id,position,id);
 
+-- RedLibertad V1.15: audiencia de creador y avisos a seguidores
+CREATE TABLE IF NOT EXISTS creator_broadcasts (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body VARCHAR(280) NOT NULL,
+  recipient_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_creator_broadcasts_user_created
+  ON creator_broadcasts(user_id,created_at DESC);
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK(type IN (
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'mention',
+    'repost',
+    'creator_broadcast',
+    'system'
+  ));
+
+
 
