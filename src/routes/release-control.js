@@ -65,8 +65,19 @@ async function inTransaction(work){
   }
 }
 
+function stableSnapshotValue(value){
+  if(Array.isArray(value))return value.map(stableSnapshotValue);
+  if(value&&typeof value==='object'){
+    return Object.keys(value).sort().reduce((out,key)=>{
+      out[key]=stableSnapshotValue(value[key]);
+      return out;
+    },{});
+  }
+  return value;
+}
+
 function sameSnapshot(left,right){
-  return JSON.stringify(left??null)===JSON.stringify(right??null);
+  return JSON.stringify(stableSnapshotValue(left??null))===JSON.stringify(stableSnapshotValue(right??null));
 }
 
 async function snapshotFeature(client,key){
@@ -231,12 +242,20 @@ router.post('/admin/cohorts',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_cohort'});
   const d=parsed.data;
   try{
-    const result=await db.query(`
-      INSERT INTO beta_cohorts(cohort_key,name,description,created_by)
-      VALUES($1,$2,$3,$4)
-      RETURNING *
-    `,[d.key,d.name,d.description,req.user.id]);
-    res.status(201).json({cohort:result.rows[0]});
+    const result=await inTransaction(async client=>{
+      const created=await client.query(`
+        INSERT INTO beta_cohorts(cohort_key,name,description,created_by)
+        VALUES($1,$2,$3,$4)
+        RETURNING *
+      `,[d.key,d.name,d.description,req.user.id]);
+      const after=await snapshotCohort(client,created.rows[0].id);
+      await writeAudit(client,{
+        targetType:'cohort',targetKey:d.key,action:'cohort_create',
+        beforeState:null,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+      return created.rows[0];
+    });
+    res.status(201).json({cohort:result});
   }catch(error){
     if(error?.code==='23505')return res.status(409).json({error:'cohort_key_exists'});
     throw error;
@@ -246,39 +265,79 @@ router.post('/admin/cohorts',async(req,res)=>{
 router.patch('/admin/cohorts/:id',async(req,res)=>{
   const parsed=cohortUpdateSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_cohort_update'});
-  const current=await db.query('SELECT * FROM beta_cohorts WHERE id=$1 LIMIT 1',[req.params.id]);
-  if(!current.rowCount)return res.status(404).json({error:'cohort_not_found'});
-  const d=parsed.data,row=current.rows[0];
-  const result=await db.query(`
-    UPDATE beta_cohorts
-       SET name=$2,description=$3,enabled=$4,updated_at=now()
-     WHERE id=$1
-     RETURNING *
-  `,[req.params.id,d.name??row.name,d.description??row.description,d.enabled??row.enabled]);
-  res.json({cohort:result.rows[0]});
+  const result=await inTransaction(async client=>{
+    const before=await snapshotCohort(client,req.params.id);
+    if(!before)return null;
+    const d=parsed.data;
+    await client.query(`
+      UPDATE beta_cohorts
+         SET name=$2,description=$3,enabled=$4,updated_at=now()
+       WHERE id=$1
+    `,[
+      req.params.id,
+      d.name??before.name,
+      d.description??before.description,
+      d.enabled??before.enabled
+    ]);
+    const after=await snapshotCohort(client,req.params.id);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'cohort',targetKey:before.cohort_key,action:'cohort_update',
+        beforeState:before,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+    }
+    return after;
+  });
+  if(!result)return res.status(404).json({error:'cohort_not_found'});
+  res.json({cohort:result});
 });
 
 router.post('/admin/cohorts/:id/members',async(req,res)=>{
   const parsed=memberSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_member'});
-  const cohort=await db.query('SELECT id FROM beta_cohorts WHERE id=$1 LIMIT 1',[req.params.id]);
-  if(!cohort.rowCount)return res.status(404).json({error:'cohort_not_found'});
-  const user=await db.query(`
-    SELECT id,username,display_name FROM users
-     WHERE lower(username)=lower($1) AND status='active'
-     LIMIT 1
-  `,[parsed.data.username.replace(/^@/,'')]);
-  if(!user.rowCount)return res.status(404).json({error:'user_not_found'});
-  await db.query(`
-    INSERT INTO beta_cohort_members(cohort_id,user_id,added_by)
-    VALUES($1,$2,$3)
-    ON CONFLICT(cohort_id,user_id) DO NOTHING
-  `,[req.params.id,user.rows[0].id,req.user.id]);
-  res.json({ok:true,user:user.rows[0]});
+  const result=await inTransaction(async client=>{
+    const before=await snapshotCohort(client,req.params.id);
+    if(!before)return {error:'cohort_not_found'};
+    const user=await client.query(`
+      SELECT id,username,display_name FROM users
+       WHERE lower(username)=lower($1) AND status='active'
+       LIMIT 1
+    `,[parsed.data.username.replace(/^@/,'')]);
+    if(!user.rowCount)return {error:'user_not_found'};
+    await client.query(`
+      INSERT INTO beta_cohort_members(cohort_id,user_id,added_by)
+      VALUES($1,$2,$3)
+      ON CONFLICT(cohort_id,user_id) DO NOTHING
+    `,[req.params.id,user.rows[0].id,req.user.id]);
+    const after=await snapshotCohort(client,req.params.id);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'cohort',targetKey:before.cohort_key,action:'member_add',
+        beforeState:before,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+    }
+    return {user:user.rows[0]};
+  });
+  if(result.error==='cohort_not_found')return res.status(404).json({error:'cohort_not_found'});
+  if(result.error==='user_not_found')return res.status(404).json({error:'user_not_found'});
+  res.json({ok:true,user:result.user});
 });
 
 router.delete('/admin/cohorts/:id/members/:userId',async(req,res)=>{
-  await db.query('DELETE FROM beta_cohort_members WHERE cohort_id=$1 AND user_id=$2',[req.params.id,req.params.userId]);
+  const result=await inTransaction(async client=>{
+    const before=await snapshotCohort(client,req.params.id);
+    if(!before)return null;
+    await client.query('DELETE FROM beta_cohort_members WHERE cohort_id=$1 AND user_id=$2',[req.params.id,req.params.userId]);
+    const after=await snapshotCohort(client,req.params.id);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'cohort',targetKey:before.cohort_key,action:'member_remove',
+        beforeState:before,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+    }
+    return after;
+  });
+  if(!result)return res.status(404).json({error:'cohort_not_found'});
   res.json({ok:true});
 });
 
@@ -287,12 +346,20 @@ router.post('/admin/features',async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_feature'});
   const d=parsed.data;
   try{
-    const result=await db.query(`
-      INSERT INTO release_features(feature_key,name,description,enabled,default_enabled,updated_by)
-      VALUES($1,$2,$3,$4,$5,$6)
-      RETURNING *
-    `,[d.key,d.name,d.description,d.enabled,d.defaultEnabled,req.user.id]);
-    res.status(201).json({feature:result.rows[0]});
+    const result=await inTransaction(async client=>{
+      const created=await client.query(`
+        INSERT INTO release_features(feature_key,name,description,enabled,default_enabled,updated_by)
+        VALUES($1,$2,$3,$4,$5,$6)
+        RETURNING *
+      `,[d.key,d.name,d.description,d.enabled,d.defaultEnabled,req.user.id]);
+      const after=await snapshotFeature(client,d.key);
+      await writeAudit(client,{
+        targetType:'feature',targetKey:d.key,action:'feature_create',
+        beforeState:null,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+      return created.rows[0];
+    });
+    res.status(201).json({feature:result});
   }catch(error){
     if(error?.code==='23505')return res.status(409).json({error:'feature_key_exists'});
     throw error;
@@ -302,39 +369,135 @@ router.post('/admin/features',async(req,res)=>{
 router.patch('/admin/features/:key',async(req,res)=>{
   const parsed=featureUpdateSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_feature_update'});
-  const current=await db.query('SELECT * FROM release_features WHERE feature_key=$1 LIMIT 1',[req.params.key]);
-  if(!current.rowCount)return res.status(404).json({error:'feature_not_found'});
-  const d=parsed.data,row=current.rows[0];
-  const result=await db.query(`
-    UPDATE release_features
-       SET name=$2,description=$3,enabled=$4,default_enabled=$5,updated_by=$6,updated_at=now()
-     WHERE feature_key=$1
-     RETURNING *
-  `,[
-    req.params.key,d.name??row.name,d.description??row.description,
-    d.enabled??row.enabled,d.defaultEnabled??row.default_enabled,req.user.id
-  ]);
-  res.json({feature:result.rows[0]});
+  const result=await inTransaction(async client=>{
+    const before=await snapshotFeature(client,req.params.key);
+    if(!before)return null;
+    const d=parsed.data;
+    await client.query(`
+      UPDATE release_features
+         SET name=$2,description=$3,enabled=$4,default_enabled=$5,updated_by=$6,updated_at=now()
+       WHERE feature_key=$1
+    `,[
+      req.params.key,
+      d.name??before.name,
+      d.description??before.description,
+      d.enabled??before.enabled,
+      d.defaultEnabled??before.default_enabled,
+      req.user.id
+    ]);
+    const after=await snapshotFeature(client,req.params.key);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'feature',targetKey:req.params.key,action:'feature_update',
+        beforeState:before,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+    }
+    return after;
+  });
+  if(!result)return res.status(404).json({error:'feature_not_found'});
+  res.json({feature:result});
 });
 
 router.post('/admin/features/:key/cohorts/:cohortId',async(req,res)=>{
-  const [feature,cohort]=await Promise.all([
-    db.query('SELECT feature_key FROM release_features WHERE feature_key=$1 LIMIT 1',[req.params.key]),
-    db.query('SELECT id FROM beta_cohorts WHERE id=$1 LIMIT 1',[req.params.cohortId])
-  ]);
-  if(!feature.rowCount)return res.status(404).json({error:'feature_not_found'});
-  if(!cohort.rowCount)return res.status(404).json({error:'cohort_not_found'});
-  await db.query(`
-    INSERT INTO release_feature_cohorts(feature_key,cohort_id,enabled)
-    VALUES($1,$2,TRUE)
-    ON CONFLICT(feature_key,cohort_id) DO UPDATE SET enabled=TRUE
-  `,[req.params.key,req.params.cohortId]);
+  const result=await inTransaction(async client=>{
+    const before=await snapshotFeature(client,req.params.key);
+    if(!before)return {error:'feature_not_found'};
+    const cohort=await client.query('SELECT id FROM beta_cohorts WHERE id=$1 LIMIT 1',[req.params.cohortId]);
+    if(!cohort.rowCount)return {error:'cohort_not_found'};
+    await client.query(`
+      INSERT INTO release_feature_cohorts(feature_key,cohort_id,enabled)
+      VALUES($1,$2,TRUE)
+      ON CONFLICT(feature_key,cohort_id) DO UPDATE SET enabled=TRUE
+    `,[req.params.key,req.params.cohortId]);
+    const after=await snapshotFeature(client,req.params.key);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'feature',targetKey:req.params.key,action:'cohort_assign',
+        beforeState:before,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+    }
+    return {after};
+  });
+  if(result.error==='feature_not_found')return res.status(404).json({error:'feature_not_found'});
+  if(result.error==='cohort_not_found')return res.status(404).json({error:'cohort_not_found'});
   res.json({ok:true});
 });
 
 router.delete('/admin/features/:key/cohorts/:cohortId',async(req,res)=>{
-  await db.query('DELETE FROM release_feature_cohorts WHERE feature_key=$1 AND cohort_id=$2',[req.params.key,req.params.cohortId]);
+  const result=await inTransaction(async client=>{
+    const before=await snapshotFeature(client,req.params.key);
+    if(!before)return null;
+    await client.query('DELETE FROM release_feature_cohorts WHERE feature_key=$1 AND cohort_id=$2',[req.params.key,req.params.cohortId]);
+    const after=await snapshotFeature(client,req.params.key);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'feature',targetKey:req.params.key,action:'cohort_remove',
+        beforeState:before,afterState:after,actorId:req.user.id,requestId:req.requestId
+      });
+    }
+    return after;
+  });
+  if(!result)return res.status(404).json({error:'feature_not_found'});
   res.json({ok:true});
 });
 
+router.post('/admin/audit/:id/rollback',async(req,res)=>{
+  const outcome=await inTransaction(async client=>{
+    const auditResult=await client.query(`
+      SELECT *
+        FROM release_change_audit
+       WHERE id=$1
+       FOR UPDATE
+    `,[req.params.id]);
+    if(!auditResult.rowCount)return {error:'audit_not_found'};
+    const entry=auditResult.rows[0];
+    if(!entry.before_state||!entry.after_state)return {error:'rollback_not_supported'};
+    if(entry.rolled_back_at)return {error:'already_rolled_back'};
+
+    const current=entry.target_type==='feature'
+      ? await snapshotFeature(client,entry.target_key)
+      : await snapshotCohort(client,entry.before_state.id);
+
+    if(!sameSnapshot(current,entry.after_state)){
+      return {error:'rollback_conflict',current};
+    }
+
+    if(entry.target_type==='feature'){
+      await restoreFeature(client,entry.before_state,req.user.id);
+    }else{
+      await restoreCohort(client,entry.before_state,req.user.id);
+    }
+
+    const restored=entry.target_type==='feature'
+      ? await snapshotFeature(client,entry.target_key)
+      : await snapshotCohort(client,entry.before_state.id);
+
+    const rollbackAudit=await writeAudit(client,{
+      targetType:entry.target_type,
+      targetKey:entry.target_key,
+      action:'rollback',
+      beforeState:current,
+      afterState:restored,
+      actorId:req.user.id,
+      requestId:req.requestId,
+      rollbackOf:entry.id
+    });
+
+    await client.query(`
+      UPDATE release_change_audit
+         SET rolled_back_at=now(),rolled_back_by=$2
+       WHERE id=$1
+    `,[entry.id,req.user.id]);
+
+    return {ok:true,restored,auditId:rollbackAudit.id};
+  });
+
+  if(outcome.error==='audit_not_found')return res.status(404).json({error:'audit_not_found'});
+  if(outcome.error==='rollback_not_supported')return res.status(400).json({error:'rollback_not_supported'});
+  if(outcome.error==='already_rolled_back')return res.status(409).json({error:'already_rolled_back'});
+  if(outcome.error==='rollback_conflict')return res.status(409).json({error:'rollback_conflict'});
+  res.json(outcome);
+});
+
 module.exports=router;
+
