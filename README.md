@@ -1849,3 +1849,28 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin migraciones de base de datos.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.87.0 — Public Share & Social Preview Polish
+
+- Nuevo helper compartido `/public-share-v187.js`.
+- Añade Compartir nativo con `navigator.share` en dispositivos compatibles.
+- Fallback automático a copiar el enlace canónico cuando no existe share nativo.
+- Botón Compartir en:
+  - perfil público,
+  - publicación pública,
+  - comunidad pública,
+  - evento público,
+  - Reel público,
+  - página de tema,
+  - Story pública activa.
+- Las publicaciones públicas normales con imagen usan esa imagen como `og:image` cuando el autor es descubrible y no-admin.
+- Las comunidades públicas elegibles usan su avatar como preview social cuando existe.
+- Reels y Stories conservan soporte de `og:video`.
+- Se normalizan `twitter:title`, `twitter:description` y `twitter:image` en Comunidad, Evento, Reel, Tema y Story.
+- Los enlaces compartidos usan siempre la URL canónica de la página.
+- No se altera contenido privado, sensible, nudity, VIP, connections o circles.
+- Sin migraciones de base de datos.
+- Sin cambios en las APIs privadas.
+- Mobile-first.
+- Sin monetización.
