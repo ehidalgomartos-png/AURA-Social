@@ -7,6 +7,8 @@ function validPublicEntry(value){
   const type=String(value?.type||'').trim().toLowerCase();
   const key=String(value?.key||'').trim().slice(0,120);
   const path=String(value?.path||'').trim();
+  const ts=Number(value?.ts||0);
+  if(ts && (Date.now()-ts>2*60*60*1000 || ts>Date.now()+60*1000))return null;
   const patterns={
     profile:{key:/^[A-Za-z0-9_.]{3,30}$/,path:/^\/perfil\/[A-Za-z0-9_.]{3,30}$/},
     post:{key:/^\d+$/,path:/^\/p\/\d+$/},
@@ -17,7 +19,7 @@ function validPublicEntry(value){
     story:{key:/^\d+$/,path:/^\/historia\/\d+$/}
   };
   const rule=patterns[type];
-  return rule&&rule.key.test(key)&&rule.path.test(path)?{type,key,path}:null;
+  return rule&&rule.key.test(key)&&rule.path.test(path)?{type,key,path,ts:ts||Date.now()}:null;
 }
 function loadPublicEntry(){
   const params=new URLSearchParams(location.search);
