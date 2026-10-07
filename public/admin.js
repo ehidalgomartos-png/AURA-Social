@@ -102,6 +102,101 @@ function renderIncidents(){
     : '<div class="empty-admin">No hay incidencias operativas registradas.</div>';
 }
 
+function growthSourceTypeLabel(type){
+  return ({
+    profile:'Perfil',
+    post:'Publicación',
+    community:'Comunidad',
+    event:'Evento',
+    reel:'Reel',
+    topic:'Tema',
+    story:'Historia'
+  })[type] || type || 'Origen';
+}
+
+function growthSourceLabel(item){
+  const type=growthSourceTypeLabel(item?.sourceType);
+  const key=String(item?.sourceKey||'');
+  if(item?.sourceType==='profile')return '@'+key;
+  if(item?.sourceType==='topic')return 'Tema · '+key;
+  return type+' #'+key;
+}
+
+async function growthAttribution(){
+  const days=String($('#growthAttributionDays')?.value||'30')==='7'?'7':'30';
+  const metricsRoot=$('#growthAttributionMetrics');
+  const typeRoot=$('#growthAttributionTypes');
+  const sourceRoot=$('#growthAttributionSources');
+  const dailyRoot=$('#growthAttributionDaily');
+  const coverageRoot=$('#growthAttributionCoverage');
+
+  if(metricsRoot)metricsRoot.innerHTML='<div class="empty-admin">Cargando atribución...</div>';
+  if(typeRoot)typeRoot.innerHTML='';
+  if(sourceRoot)sourceRoot.innerHTML='';
+  if(dailyRoot)dailyRoot.innerHTML='';
+
+  const {r,d}=await api('/api/admin/growth-attribution?days='+encodeURIComponent(days));
+  if(!r.ok){
+    if(metricsRoot)metricsRoot.innerHTML='<div class="empty-admin">No se pudo cargar la atribución de altas.</div>';
+    return;
+  }
+
+  const m=d.metrics||{};
+  const cards=[
+    ['Altas · '+d.windowDays+' días',m.newUsers],
+    ['Con origen público',m.attributedSignups],
+    ['Atribución',Number(m.attributionRate||0)+'%'],
+    ['Atribuidas activadas',m.activatedAttributed],
+    ['Activación atribuida',Number(m.activationRate||0)+'%'],
+    ['Con invitación',m.invitedSignups]
+  ];
+  if(metricsRoot){
+    metricsRoot.innerHTML=cards.map(([label,value])=>'<div class="beta-metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>').join('');
+  }
+
+  const byType=Array.isArray(d.byType)?d.byType:[];
+  if(typeRoot){
+    typeRoot.innerHTML=byType.length
+      ? byType.map(item=>{
+          const signups=Number(item.signups||0);
+          const activated=Number(item.activated||0);
+          const rate=signups?Math.round((activated/signups)*100):0;
+          return '<article class="growth-type-card"><div><b>'+esc(growthSourceTypeLabel(item.sourceType))+'</b><small>'+signups+' altas · '+activated+' activadas</small></div><span>'+rate+'%</span></article>';
+        }).join('')
+      : '<div class="empty-admin">Todavía no hay altas atribuidas en este periodo.</div>';
+  }
+
+  const topSources=Array.isArray(d.topSources)?d.topSources:[];
+  if(sourceRoot){
+    sourceRoot.innerHTML=topSources.length
+      ? topSources.map(item=>{
+          const signups=Number(item.signups||0);
+          const activated=Number(item.activated||0);
+          const rate=signups?Math.round((activated/signups)*100):0;
+          const path=String(item.sourcePath||'');
+          return '<article class="growth-source-card"><div><span class="growth-source-type">'+esc(growthSourceTypeLabel(item.sourceType))+'</span><b>'+esc(growthSourceLabel(item))+'</b><small>'+signups+' altas · '+activated+' activadas · '+rate+'% activación</small></div>'+(path.startsWith('/')?'<a href="'+esc(path)+'" target="_blank" rel="noopener">Abrir origen ↗</a>':'')+'</article>';
+        }).join('')
+      : '<div class="empty-admin">Aún no hay orígenes suficientes para ordenar.</div>';
+  }
+
+  const daily=Array.isArray(d.daily)?d.daily:[];
+  if(dailyRoot){
+    const max=Math.max(1,...daily.map(item=>Number(item.signups||0)));
+    dailyRoot.innerHTML=daily.map(item=>{
+      const n=Number(item.signups||0);
+      const date=new Date(item.day);
+      const label=Number.isNaN(date.getTime())?String(item.day||''):date.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});
+      const height=n?Math.max(8,Math.round((n/max)*100)):4;
+      return '<div class="growth-day" title="'+esc(label+' · '+n+' altas')+'"><b style="height:'+height+'%"></b><span>'+esc(label)+'</span><small>'+n+'</small></div>';
+    }).join('');
+  }
+
+  if(coverageRoot){
+    const started=d.coverage?.firstAttributionAt?timeLabel(d.coverage.firstAttributionAt):'sin altas atribuidas todavía';
+    coverageRoot.textContent='Cobertura desde '+started+'. No es retroactiva. “Con invitación” puede solaparse con “Con origen público”. Sin tracking externo ni datos personales en este panel.';
+  }
+}
+
 async function betaOps(){
   const metricsRoot=$('#betaOpsMetrics');
   const healthRoot=$('#betaHealth');
@@ -985,6 +1080,8 @@ $('#incidentForm')?.addEventListener('submit',async event=>{
   }
 });
 $('#reloadBetaOps')?.addEventListener('click',betaOps);
+$('#reloadGrowthAttribution')?.addEventListener('click',growthAttribution);
+$('#growthAttributionDays')?.addEventListener('change',growthAttribution);
 
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
@@ -996,5 +1093,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), betaOps(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([metrics(), betaOps(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
