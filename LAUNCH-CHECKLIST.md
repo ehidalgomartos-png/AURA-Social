@@ -537,3 +537,17 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar una tarjeta con texto y otra con imagen/vídeo.
 - Confirmar que tiempo e interacciones siguen visibles.
 - Revisar móvil y escritorio.
+
+
+## 43. Mobile Interaction Polish
+- Confirmar `/api/health` con versión 1.95.0 y features `profile-media-preview-v1.95`, `mobile-pull-to-refresh-v1.95`, `post-edit-live-refresh-v1.95` y `comment-icon-polish-v1.95`.
+- En Editar perfil, confirmar preview de avatar y portada actuales.
+- Seleccionar una nueva foto de perfil y confirmar preview antes de guardar.
+- Seleccionar una nueva portada y confirmar preview antes de guardar.
+- Cancelar/cerrar el modal y volver a abrir para comprobar que no queda un preview temporal antiguo.
+- En móvil, desde arriba del todo en Inicio, deslizar hacia abajo y comprobar “Suelta para actualizar” / “Actualizando…”.
+- Confirmar que el pull-to-refresh recarga feed, Stories y resumen sin activar al tocar formularios o botones.
+- Editar una publicación desde feed y confirmar cambio inmediato.
+- Editar una publicación con el detalle abierto y confirmar que el detalle muestra el nuevo texto sin salir y volver.
+- Confirmar que comentarios muestra 💬 y sigue abriendo el modal de comentarios.
+- Revisar móvil y escritorio.
