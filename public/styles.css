@@ -300,3 +300,58 @@ body{
     font-size:9px;
   }
 }
+
+
+/* RedLibertad V1.94 — Legal & Transparency Center */
+.card-form .legal-consent a{
+  color:var(--navy);
+  font-weight:800;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.site-footer{
+  display:grid;
+  gap:14px;
+}
+.site-footer-main{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.site-footer-main p{
+  margin:0;
+}
+.site-footer-legal{
+  display:flex;
+  gap:8px 16px;
+  flex-wrap:wrap;
+}
+.site-footer-legal a{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+}
+.site-footer-legal a:hover{
+  color:var(--navy);
+  text-decoration:underline;
+}
+@media(max-width:620px){
+  .site-footer-main{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:8px;
+  }
+  .site-footer-legal{
+    gap:10px 14px;
+  }
+  .site-footer-legal a{
+    font-size:11px;
+  }
+  .card-form .legal-consent span{
+    font-size:12px;
+    line-height:1.45;
+  }
+}
