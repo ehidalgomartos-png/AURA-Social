@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.75.2",
+  "version": "1.75.3",
   "private": true,
-  "description": "RedLibertad V1.75.2 Reply + Profile Layer Hotfix - respuesta propia correcta y avatar visible sobre portada en escritorio.",
+  "description": "RedLibertad V1.75.3 Message Own Actions Hotfix - responder y reaccionar solo en mensajes recibidos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
