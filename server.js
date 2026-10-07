@@ -304,8 +304,11 @@ app.get('/p/:id', async (req, res) => {
   try {
     await ensurePublicPostAudienceV18();
     const result = await db.query(`
-      SELECT p.id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
-             u.username,u.display_name,u.avatar_url,u.creator_verified,u.discoverable,u.is_admin
+      SELECT p.id,p.user_id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
+             u.username,u.display_name,u.avatar_url,u.creator_verified,u.discoverable,u.is_admin,
+             (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+             (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count,
+             (SELECT count(*)::int FROM reposts rp WHERE rp.post_id=p.id) repost_count
         FROM posts p JOIN users u ON u.id=p.user_id
        WHERE p.id=$1 AND p.moderation_status='published' AND p.audience='public' AND u.status='active'
        LIMIT 1
@@ -337,6 +340,36 @@ app.get('/p/:id', async (req, res) => {
         ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">`
         : `<div class="shared-lock"><div><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div></div>`;
     const caption=!textOnly&&post.caption?`<p class="shared-caption">${escapeHtml(post.caption)}</p>`:'';
+    const socialProof=`<div class="shared-social-proof" aria-label="Actividad pública"><span><b>${Number(post.like_count||0)}</b><small>Me gusta</small></span><span><b>${Number(post.comment_count||0)}</b><small>Comentarios</small></span><span><b>${Number(post.repost_count||0)}</b><small>Republicaciones</small></span></div>`;
+    let relatedHtml='';
+    if(indexable){
+      const relatedResult=await db.query(`
+        SELECT p.id,p.caption,p.media_url,p.media_type,p.post_kind,p.created_at,
+               (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
+               (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+          FROM posts p
+         WHERE p.user_id=$1
+           AND p.id<>$2
+           AND p.moderation_status='published'
+           AND p.audience='public'
+           AND p.content_level='normal'
+         ORDER BY p.created_at DESC,p.id DESC
+         LIMIT 3
+      `,[post.user_id,post.id]);
+      if(relatedResult.rowCount){
+        const relatedCards=relatedResult.rows.map(item=>{
+          const href=publicContentPathV190({...item,display_name:post.display_name,username:post.username});
+          const label=item.post_kind==='reel'?'REEL':'PUBLICACIÓN';
+          const copy=String(item.caption||'Contenido de '+post.display_name).replace(/\\s+/g,' ').trim();
+          const excerpt=copy.length>90?copy.slice(0,89).trimEnd()+'…':copy;
+          const thumb=item.media_type==='image'&&item.media_url
+            ? `<img src="${escapeHtml(absoluteUrl(req,item.media_url))}" loading="lazy" decoding="async" alt="">`
+            : `<span class="shared-related-placeholder">${item.post_kind==='reel'?'▶':'R'}</span>`;
+          return `<a class="shared-related-card" href="${escapeHtml(href)}"><span class="shared-related-media">${thumb}</span><span class="shared-related-copy"><small>${label}</small><b>${escapeHtml(excerpt||label)}</b><em>${Number(item.like_count||0)} me gusta · ${Number(item.comment_count||0)} comentarios</em></span></a>`;
+        }).join('');
+        relatedHtml=`<section class="shared-related"><div class="shared-related-head"><div><small>SEGUIR DESCUBRIENDO</small><h2>Más de ${escapeHtml(post.display_name)}</h2></div><a href="/perfil/${encodeURIComponent(post.username)}">Ver perfil →</a></div><div class="shared-related-grid">${relatedCards}</div></section>`;
+      }
+    }
     res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><script defer src="/public-share-v187.js"></script><style>
 .shared-page{min-height:100vh;padding:0 18px 28px;background:radial-gradient(circle at 92% 3%,rgba(239,94,85,.11),transparent 28rem),linear-gradient(180deg,#f8f5ef 0%,var(--ivory) 100%)}
 .shared-shell{width:min(760px,100%);margin:0 auto;padding-top:14px}
@@ -352,8 +385,10 @@ app.get('/p/:id', async (req, res) => {
 .shared-copy{padding:18px 20px 20px}.shared-caption{margin:0 0 16px;line-height:1.65;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
 .shared-join{margin:4px 0 14px;padding:13px 14px;border:1px solid rgba(43,183,169,.16);border-radius:15px;background:rgba(43,183,169,.06)}.shared-join b,.shared-join span{display:block}.shared-join b{color:var(--navy);font-size:13px}.shared-join span{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.45}
 .shared-copy .button{width:100%}.shared-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.shared-actions .button{min-width:0}
-@media(max-width:620px){.shared-page{padding:0 10px 18px}.shared-shell{padding-top:8px}.shared-topbar{margin-bottom:10px;border-radius:15px}.shared-card{border-radius:20px}.shared-head{padding:14px}.shared-avatar{width:42px;height:42px;flex-basis:42px}.shared-text-post{margin:0 12px 2px;min-height:160px;padding:24px 18px;border-radius:17px}.shared-text-post p{font-size:clamp(22px,7vw,30px)}.shared-copy{padding:14px}.shared-join{margin-top:2px}.shared-actions{grid-template-columns:1fr}.shared-public-label{font-size:8px}}
-</style></head><body><main class="shared-page"><div class="shared-shell"><header class="shared-topbar"><a class="shared-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><span class="shared-public-label">Contenido público</span></header><article class="shared-card"><div class="shared-head">${authorAvatar}<div class="shared-author"><div class="shared-author-line">${authorName}${creatorBadge}</div><small>@${escapeHtml(post.username)}${publishedLabel?' · '+escapeHtml(publishedLabel):''}</small></div></div>${media}<div class="shared-copy">${caption}<div class="shared-join"><b>Participa en la conversación</b><span>Crea tu cuenta para responder, seguir a este creador y descubrir más contenido.</span></div><span class="public-entry-inline-v192"><a class="button" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id)))}">Crear cuenta para participar</a><a class="button ghost" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id),'acceso'))}">Entrar y volver aquí</a></span><div class="shared-actions"><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></div></article></div></main>${publicEntryBarV192('post',post.id,'/p/'+encodeURIComponent(post.id))}</body></html>`);
+.shared-social-proof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 14px}.shared-social-proof span{padding:10px 8px;border-radius:13px;background:#f5f6f3;text-align:center}.shared-social-proof b,.shared-social-proof small{display:block}.shared-social-proof b{color:var(--navy);font-size:16px}.shared-social-proof small{margin-top:2px;color:var(--muted);font-size:9px}
+.shared-related{margin-top:16px;padding:18px;border:1px solid var(--line);border-radius:22px;background:rgba(255,253,249,.88)}.shared-related-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:12px}.shared-related-head small{color:var(--teal);font-size:8px;font-weight:900;letter-spacing:.12em}.shared-related-head h2{margin:3px 0 0;color:var(--navy);font:800 19px Manrope,sans-serif}.shared-related-head>a{font-size:11px;font-weight:800}.shared-related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.shared-related-card{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:var(--paper);color:inherit;text-decoration:none}.shared-related-media{height:88px;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,var(--navy),#173d58)}.shared-related-media img{width:100%;height:100%;object-fit:cover}.shared-related-placeholder{color:#fff;font:900 24px Manrope,sans-serif}.shared-related-copy{display:block;padding:10px}.shared-related-copy small,.shared-related-copy b,.shared-related-copy em{display:block}.shared-related-copy small{color:var(--teal);font-size:7px;font-weight:900;letter-spacing:.1em}.shared-related-copy b{margin-top:4px;color:var(--navy);font-size:11px;line-height:1.35}.shared-related-copy em{margin-top:6px;color:var(--muted);font-size:8px;font-style:normal}
+@media(max-width:620px){.shared-page{padding:0 10px 18px}.shared-shell{padding-top:8px}.shared-topbar{margin-bottom:10px;border-radius:15px}.shared-card{border-radius:20px}.shared-head{padding:14px}.shared-avatar{width:42px;height:42px;flex-basis:42px}.shared-text-post{margin:0 12px 2px;min-height:160px;padding:24px 18px;border-radius:17px}.shared-text-post p{font-size:clamp(22px,7vw,30px)}.shared-copy{padding:14px}.shared-join{margin-top:2px}.shared-actions{grid-template-columns:1fr}.shared-related{padding:14px;border-radius:18px}.shared-related-grid{grid-template-columns:1fr}.shared-related-card{display:grid;grid-template-columns:82px 1fr}.shared-related-media{height:100%;min-height:82px}.shared-public-label{font-size:8px}}
+</style></head><body><main class="shared-page"><div class="shared-shell"><header class="shared-topbar"><a class="shared-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><span class="shared-public-label">Contenido público</span></header><article class="shared-card"><div class="shared-head">${authorAvatar}<div class="shared-author"><div class="shared-author-line">${authorName}${creatorBadge}</div><small>@${escapeHtml(post.username)}${publishedLabel?' · '+escapeHtml(publishedLabel):''}</small></div></div>${media}<div class="shared-copy">${caption}${socialProof}<div class="shared-join"><b>Participa en la conversación</b><span>Crea tu cuenta para responder, seguir a este creador y descubrir más contenido.</span></div><span class="public-entry-inline-v192"><a class="button" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id)))}">Crear cuenta para participar</a><a class="button ghost" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id),'acceso'))}">Entrar y volver aquí</a></span><div class="shared-actions"><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></div></article>${relatedHtml}</div></main>${publicEntryBarV192('post',post.id,'/p/'+encodeURIComponent(post.id))}</body></html>`);
   } catch (error) {
     console.error('RedLibertad public post error:', error);
     res.status(500).send('No se pudo cargar la publicación.');
