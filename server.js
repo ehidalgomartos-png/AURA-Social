@@ -35,7 +35,7 @@ const { startPushWorker, isPushConfigured } = require('./src/services/push');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='1.78.0';
+const APP_VERSION='1.79.0';
 
 function configurationStatus(){
   const missing=[];
@@ -173,7 +173,7 @@ app.get('/api/health', (_req, res) => {
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
       'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
-      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics','privacy-v1.9','message-privacy','discoverability-controls','activity-visibility','mute-users','block-management','muted-feed-filter','privacy-center','account-security-v1.10','revocable-sessions','password-change','logout-all-sessions','account-data-export','self-service-account-deletion','local-media-cleanup','trust-safety-v1.11','moderation-history','timed-suspensions','user-warnings','admin-user-actions','report-context','auto-suspension-expiry','verification-trust-v1.12','self-service-verification-requests','verification-review-queue','verification-history','public-trust-badges','creator-hub-v1.13','creator-analytics','featured-profile-posts','creator-profile-v1.14','creator-public-links','aggregate-link-clicks','creator-audience-v1.15','creator-broadcasts','broadcast-cooldown','broadcast-privacy-controls','creator-engagement-v1.16','active-audience-30d','private-top-fans','top-content-analytics','creator-vip-v1.17','private-vip-circle','vip-broadcasts','vip-follower-validation','exclusive-content-v1.18','vip-post-audience','vip-access-enforcement','vip-share-protection','vip-stories-v1.19','exclusive-vip-feed','vip-new-content-signal','vip-story-viewer','vip-free-access','creator-publishing-v1.20','creator-drafts','scheduled-posts','publishing-queue','consent-aware-scheduling','server-publish-scheduler','creator-calendar-v1.21','private-editorial-date','private-editorial-labels','calendar-audience-filter','creator-community-v1.22','creator-polls','open-creator-questions','private-community-inbox','aggregate-poll-results','community-management-v1.23','close-community-tools','archive-community-tools','private-starred-responses','community-status-filters','community-insights-v1.24','creator-community-notifications','first-participation-dedup','community-7d-30d-metrics','community-14d-trend','community-activity-v1.25','community-review-state','grouped-community-activity','review-all-community-activity','community-follow-up-v1.26','private-activity-notes','activity-priority','activity-follow-up','activity-focus-filters','follow-up-dashboard-v1.27','follow-up-due-windows','private-note-search','bulk-follow-up-actions','follow-up-date-index','follow-up-local-day-summary','follow-up-priority-filter','follow-up-quick-complete','follow-up-history-v1.28','follow-up-completed-at','follow-up-reopen','follow-up-reschedule-presets','follow-up-bulk-reschedule','creator-tasks-v1.29','creator-reminders','private-task-priority','creator-task-relations','creator-crm-v1.30','private-contact-notes','creator-contact-labels','creator-contact-priority','audience-segments-v1.31','automatic-audience-segments','manual-audience-segments','creator-communications-v1.32','communication-drafts','scheduled-communications','segmented-communications','communication-history','advanced-creator-analytics-v1.33','period-comparison','creator-growth-analytics','community-recurrence','community-automation-v1.34','creator-automation-rules','automation-hourly-runner','automation-idempotent-tasks','creator-hub-2-v1.35','creator-hub-command-center','creator-hub-area-navigation','creator-hub-live-summary','messaging-2-v1.36','conversation-pin','conversation-archive','conversation-mute','conversation-search','conversation-unread-filter','discovery-2-v1.37','personalized-explore','discovery-hide-post','discovery-hide-person','profiles-2-v1.38','profile-status','profile-social-context','profile-consented-activity','stories-reels-2-v1.39','story-view-signals','story-seen-rings','reel-view-signals','reel-ranked-feed','retention-growth-2-v1.40','cross-device-return-summary','return-pulse','unseen-story-reel-counts','muted-message-notification-fix','comments-2-v1.41','comment-replies','comment-thread-context','reply-notifications','live-activity-2-v1.42','server-sent-events','live-message-badges','live-notification-badges','live-active-chat-refresh','reels-immersive-2-v1.43','vertical-reel-snap','reel-autoplay-muted','reel-auto-pause','reduced-motion-safe-reels','connections-2-v1.44','mutual-follow-connections','connections-explore','connection-direct-message','connection-profile-signal','pwa-performance-2-v1.45','safe-shell-cache','static-stale-while-revalidate','offline-app-navigation','feed-content-visibility','async-image-decoding','chat-presence-v1.46','private-online-status','typing-indicator','message-read-receipts','message-replies-v1.47','message-reactions','sensitive-safe-reply-preview','live-reaction-sync','web-push-v1.48','push-device-opt-in','push-deep-links','push-job-queue','vapid-optional','mobile-social-polish-v1.49','visual-viewport-chat','per-view-scroll-memory','connectivity-banner','coarse-pointer-targets','reduced-motion-polish','group-chats-2-v1.50','group-membership','group-live-presence','group-read-receipts','group-sensitive-consent','group-history-privacy','share-to-chat-v1.51','connection-circles-v1.52','private-connection-circles','favorite-connections','connection-circle-filters','structured-shared-posts','share-chat-picker','shared-post-privacy-gate','shared-post-unavailable-marker','connections-center-2-v1.53','connection-search','connection-social-filters','connection-recent-conversation-signal','community-conversations-v1.54','conversation-resume-signals','gentle-social-continuity','connection-context-v1.55','shared-connection-context','conversation-starter-drafts','public-activity-context','private-audiences-v1.56','connections-audience','circle-audience-posts','circle-audience-stories','private-audience-share-protection','close-connections-v1.57','private-close-circle','close-connections-feed','close-audience-shortcut','social-communities-v1.58','community-discovery-v1.59','community-categories','community-interests','community-suggestion-hide','explainable-community-ranking','public-private-communities','community-membership','community-join-requests','community-rules','community-posts-comments','community-moderation','community-group-chat','events-meetups-v1.60','event-rsvp','event-private-audiences','event-reminders','event-attendee-privacy','collaborative-posts-v1.61','collaborative-reels','collaboration-approval','collaboration-profile-surface','collaboration-revocation','collaborator-management','advanced-mentions-sharing-v1.62','mention-privacy','mention-autocomplete','private-circle-mentions','audience-safe-sharing','profile-story-sharing','community-post-sharing','private-share-history','share-context','community-moderation-3-v1.63','social-search-2-v1.64','relationship-intelligence-v1.65','relationship-shared-interests','relationship-shared-communities','relationship-reconnect-signals','explainable-relationship-suggestions','private-relationship-hide','growth-onboarding-2-v1.66','opaque-invite-links','starter-connection-suggestions','auth-abuse-rate-limits','legacy-referral-compatibility','accessibility-ux-quality-2-v1.67','skip-links','dialog-focus-trap','keyboard-dialog-controls','visible-focus','screen-reader-live-regions','forced-colors-support','performance-reliability-2-v1.68','api-timeout-retry','get-request-deduplication','feed-race-guard','lazy-avatar-loading','database-pool-hardening','performance-query-indexes','readiness-check','graceful-shutdown','slow-api-observability','mobile-ux-final-polish-3-v1.69','mobile-safe-area-polish','mobile-bottom-sheet-polish','horizontal-filter-strips','mobile-retry-states','mobile-form-zoom-guard','product-maturity-launch-readiness-v1.70','request-id-tracing','api-no-store','api-json-404','safe-api-error-envelope','configuration-readiness','launch-checklist','beta-launch-real-user-operations-v1.71','aggregate-activation-metrics','privacy-preserving-product-metrics','admin-operational-incidents','beta-health-console','beta-feedback-support-center-v1.72','user-feedback-center','support-status-tracking','safe-technical-context','admin-feedback-queue','feedback-rate-limit','beta-cohorts-release-control-v1.73','release-feature-kill-switch','cohort-targeting','per-user-feature-evaluation','admin-release-console','support-center-release-gate','release-audit-safe-rollback-v1.74','release-before-after-snapshots','release-actor-audit','rollback-conflict-guard','transactional-release-rollback','release-request-correlation','controlled-rollout-waves-v1.75','deterministic-percentage-rollout','rollout-freeze','beta-graduation','rollout-stage-audit','message-profile-ui-hotfix-v1.75.1','collapsed-message-reactions','received-message-reaction-picker','desktop-profile-header-fix','reply-profile-layer-hotfix-v1.75.2','own-reply-label-fix','desktop-profile-avatar-layer-fix','message-own-actions-hotfix-v1.75.3','received-message-actions-only','production-domain-public-launch-polish-v1.76','canonical-public-origin','canonical-share-links','public-robots-sitemap','public-post-canonical','sensitive-post-noindex','stable-pwa-id','public-profiles-profile-seo-v1.77','clean-public-profile-urls','profile-canonical-og','profile-person-structured-data','discoverability-profile-noindex','profile-sitemap','clean-profile-share-links','public-discovery-seo-hub-v1.78','public-profiles-directory','public-profile-search-noindex','public-profile-pagination','public-itemlist-structured-data','sitemap-index','public-internal-profile-links','global-search','search-private-content-guard','local-search-history','community-moderators','community-report-queue','temporary-community-sanctions','coordinated-report-signals','private-community-moderation-log'
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics','privacy-v1.9','message-privacy','discoverability-controls','activity-visibility','mute-users','block-management','muted-feed-filter','privacy-center','account-security-v1.10','revocable-sessions','password-change','logout-all-sessions','account-data-export','self-service-account-deletion','local-media-cleanup','trust-safety-v1.11','moderation-history','timed-suspensions','user-warnings','admin-user-actions','report-context','auto-suspension-expiry','verification-trust-v1.12','self-service-verification-requests','verification-review-queue','verification-history','public-trust-badges','creator-hub-v1.13','creator-analytics','featured-profile-posts','creator-profile-v1.14','creator-public-links','aggregate-link-clicks','creator-audience-v1.15','creator-broadcasts','broadcast-cooldown','broadcast-privacy-controls','creator-engagement-v1.16','active-audience-30d','private-top-fans','top-content-analytics','creator-vip-v1.17','private-vip-circle','vip-broadcasts','vip-follower-validation','exclusive-content-v1.18','vip-post-audience','vip-access-enforcement','vip-share-protection','vip-stories-v1.19','exclusive-vip-feed','vip-new-content-signal','vip-story-viewer','vip-free-access','creator-publishing-v1.20','creator-drafts','scheduled-posts','publishing-queue','consent-aware-scheduling','server-publish-scheduler','creator-calendar-v1.21','private-editorial-date','private-editorial-labels','calendar-audience-filter','creator-community-v1.22','creator-polls','open-creator-questions','private-community-inbox','aggregate-poll-results','community-management-v1.23','close-community-tools','archive-community-tools','private-starred-responses','community-status-filters','community-insights-v1.24','creator-community-notifications','first-participation-dedup','community-7d-30d-metrics','community-14d-trend','community-activity-v1.25','community-review-state','grouped-community-activity','review-all-community-activity','community-follow-up-v1.26','private-activity-notes','activity-priority','activity-follow-up','activity-focus-filters','follow-up-dashboard-v1.27','follow-up-due-windows','private-note-search','bulk-follow-up-actions','follow-up-date-index','follow-up-local-day-summary','follow-up-priority-filter','follow-up-quick-complete','follow-up-history-v1.28','follow-up-completed-at','follow-up-reopen','follow-up-reschedule-presets','follow-up-bulk-reschedule','creator-tasks-v1.29','creator-reminders','private-task-priority','creator-task-relations','creator-crm-v1.30','private-contact-notes','creator-contact-labels','creator-contact-priority','audience-segments-v1.31','automatic-audience-segments','manual-audience-segments','creator-communications-v1.32','communication-drafts','scheduled-communications','segmented-communications','communication-history','advanced-creator-analytics-v1.33','period-comparison','creator-growth-analytics','community-recurrence','community-automation-v1.34','creator-automation-rules','automation-hourly-runner','automation-idempotent-tasks','creator-hub-2-v1.35','creator-hub-command-center','creator-hub-area-navigation','creator-hub-live-summary','messaging-2-v1.36','conversation-pin','conversation-archive','conversation-mute','conversation-search','conversation-unread-filter','discovery-2-v1.37','personalized-explore','discovery-hide-post','discovery-hide-person','profiles-2-v1.38','profile-status','profile-social-context','profile-consented-activity','stories-reels-2-v1.39','story-view-signals','story-seen-rings','reel-view-signals','reel-ranked-feed','retention-growth-2-v1.40','cross-device-return-summary','return-pulse','unseen-story-reel-counts','muted-message-notification-fix','comments-2-v1.41','comment-replies','comment-thread-context','reply-notifications','live-activity-2-v1.42','server-sent-events','live-message-badges','live-notification-badges','live-active-chat-refresh','reels-immersive-2-v1.43','vertical-reel-snap','reel-autoplay-muted','reel-auto-pause','reduced-motion-safe-reels','connections-2-v1.44','mutual-follow-connections','connections-explore','connection-direct-message','connection-profile-signal','pwa-performance-2-v1.45','safe-shell-cache','static-stale-while-revalidate','offline-app-navigation','feed-content-visibility','async-image-decoding','chat-presence-v1.46','private-online-status','typing-indicator','message-read-receipts','message-replies-v1.47','message-reactions','sensitive-safe-reply-preview','live-reaction-sync','web-push-v1.48','push-device-opt-in','push-deep-links','push-job-queue','vapid-optional','mobile-social-polish-v1.49','visual-viewport-chat','per-view-scroll-memory','connectivity-banner','coarse-pointer-targets','reduced-motion-polish','group-chats-2-v1.50','group-membership','group-live-presence','group-read-receipts','group-sensitive-consent','group-history-privacy','share-to-chat-v1.51','connection-circles-v1.52','private-connection-circles','favorite-connections','connection-circle-filters','structured-shared-posts','share-chat-picker','shared-post-privacy-gate','shared-post-unavailable-marker','connections-center-2-v1.53','connection-search','connection-social-filters','connection-recent-conversation-signal','community-conversations-v1.54','conversation-resume-signals','gentle-social-continuity','connection-context-v1.55','shared-connection-context','conversation-starter-drafts','public-activity-context','private-audiences-v1.56','connections-audience','circle-audience-posts','circle-audience-stories','private-audience-share-protection','close-connections-v1.57','private-close-circle','close-connections-feed','close-audience-shortcut','social-communities-v1.58','community-discovery-v1.59','community-categories','community-interests','community-suggestion-hide','explainable-community-ranking','public-private-communities','community-membership','community-join-requests','community-rules','community-posts-comments','community-moderation','community-group-chat','events-meetups-v1.60','event-rsvp','event-private-audiences','event-reminders','event-attendee-privacy','collaborative-posts-v1.61','collaborative-reels','collaboration-approval','collaboration-profile-surface','collaboration-revocation','collaborator-management','advanced-mentions-sharing-v1.62','mention-privacy','mention-autocomplete','private-circle-mentions','audience-safe-sharing','profile-story-sharing','community-post-sharing','private-share-history','share-context','community-moderation-3-v1.63','social-search-2-v1.64','relationship-intelligence-v1.65','relationship-shared-interests','relationship-shared-communities','relationship-reconnect-signals','explainable-relationship-suggestions','private-relationship-hide','growth-onboarding-2-v1.66','opaque-invite-links','starter-connection-suggestions','auth-abuse-rate-limits','legacy-referral-compatibility','accessibility-ux-quality-2-v1.67','skip-links','dialog-focus-trap','keyboard-dialog-controls','visible-focus','screen-reader-live-regions','forced-colors-support','performance-reliability-2-v1.68','api-timeout-retry','get-request-deduplication','feed-race-guard','lazy-avatar-loading','database-pool-hardening','performance-query-indexes','readiness-check','graceful-shutdown','slow-api-observability','mobile-ux-final-polish-3-v1.69','mobile-safe-area-polish','mobile-bottom-sheet-polish','horizontal-filter-strips','mobile-retry-states','mobile-form-zoom-guard','product-maturity-launch-readiness-v1.70','request-id-tracing','api-no-store','api-json-404','safe-api-error-envelope','configuration-readiness','launch-checklist','beta-launch-real-user-operations-v1.71','aggregate-activation-metrics','privacy-preserving-product-metrics','admin-operational-incidents','beta-health-console','beta-feedback-support-center-v1.72','user-feedback-center','support-status-tracking','safe-technical-context','admin-feedback-queue','feedback-rate-limit','beta-cohorts-release-control-v1.73','release-feature-kill-switch','cohort-targeting','per-user-feature-evaluation','admin-release-console','support-center-release-gate','release-audit-safe-rollback-v1.74','release-before-after-snapshots','release-actor-audit','rollback-conflict-guard','transactional-release-rollback','release-request-correlation','controlled-rollout-waves-v1.75','deterministic-percentage-rollout','rollout-freeze','beta-graduation','rollout-stage-audit','message-profile-ui-hotfix-v1.75.1','collapsed-message-reactions','received-message-reaction-picker','desktop-profile-header-fix','reply-profile-layer-hotfix-v1.75.2','own-reply-label-fix','desktop-profile-avatar-layer-fix','message-own-actions-hotfix-v1.75.3','received-message-actions-only','production-domain-public-launch-polish-v1.76','canonical-public-origin','canonical-share-links','public-robots-sitemap','public-post-canonical','sensitive-post-noindex','stable-pwa-id','public-profiles-profile-seo-v1.77','clean-public-profile-urls','profile-canonical-og','profile-person-structured-data','discoverability-profile-noindex','profile-sitemap','clean-profile-share-links','public-discovery-seo-hub-v1.78','public-profiles-directory','public-profile-search-noindex','public-profile-pagination','public-itemlist-structured-data','sitemap-index','public-internal-profile-links','public-content-discovery-seo-v1.79','public-posts-directory','public-post-search-noindex','public-hashtag-pages','public-hashtag-sitemap','discoverability-post-noindex','public-content-itemlist','public-content-pagination','global-search','search-private-content-guard','local-search-history','community-moderators','community-report-queue','temporary-community-sanctions','coordinated-report-signals','private-community-moderation-log'
     ]
   });
 });
@@ -259,7 +259,7 @@ app.get('/p/:id', async (req, res) => {
     await ensurePublicPostAudienceV18();
     const result = await db.query(`
       SELECT p.id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
-             u.username,u.display_name
+             u.username,u.display_name,u.discoverable,u.is_admin
         FROM posts p JOIN users u ON u.id=p.user_id
        WHERE p.id=$1 AND p.moderation_status='published' AND p.audience='public' AND u.status='active'
        LIMIT 1
@@ -268,12 +268,13 @@ app.get('/p/:id', async (req, res) => {
     const post=result.rows[0];
     const origin=publicOrigin(req);
     const publicUrl=`${origin}/p/${encodeURIComponent(post.id)}`;
+    const indexable=post.content_level==='normal' && post.discoverable===true && post.is_admin===false;
     const title='Mira mi post en RedLibertad';
     const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
     const ogImage=`${origin}/assets/og-redlibertad.png`;
     const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
     const media=!post.media_url ? '' : mediaAllowed ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">` : `<div class="shared-lock"><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div>`;
-    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${post.content_level==='normal'?'index,follow':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div><b>${escapeHtml(post.display_name)}</b><small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a></div></article></main></body></html>`);
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div>${post.discoverable===true&&!post.is_admin?`<a href="/perfil/${encodeURIComponent(post.username)}"><b>${escapeHtml(post.display_name)}</b></a>`:`<b>${escapeHtml(post.display_name)}</b>`}<small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></article></main></body></html>`);
   } catch (error) {
     console.error('RedLibertad public post error:', error);
     res.status(500).send('No se pudo cargar la publicación.');
@@ -308,7 +309,8 @@ app.get('/perfil/:username',async(req,res)=>{
         (SELECT count(*)::int FROM posts p
           WHERE p.user_id=u.id
             AND p.moderation_status='published'
-            AND p.audience='public') public_post_count
+            AND p.audience='public'
+            AND p.content_level='normal') public_post_count
       FROM users u
       WHERE lower(u.username)=lower($1)
         AND u.status='active'
@@ -410,6 +412,7 @@ app.get('/perfil/:username',async(req,res)=>{
         <div class="public-profile-actions">
           <a class="button" href="/app?profile=${encodeURIComponent(profile.username)}">Ver perfil en RedLibertad</a>
           <a class="button ghost" href="/perfiles">Descubrir perfiles</a>
+          <a class="button ghost" href="/publicaciones">Publicaciones públicas</a>
           <a class="button ghost" href="/#registro">Crear cuenta</a>
         </div>
         ${!indexable?'<p class="public-profile-note">Este perfil no participa en la indexación pública de RedLibertad.</p>':''}
@@ -483,7 +486,8 @@ app.get('/perfiles',async(req,res)=>{
         (SELECT count(*)::int FROM posts p
           WHERE p.user_id=u.id
             AND p.moderation_status='published'
-            AND p.audience='public') public_post_count
+            AND p.audience='public'
+            AND p.content_level='normal') public_post_count
       FROM users u
       WHERE u.status='active'
         AND u.is_admin=false
@@ -619,6 +623,7 @@ app.get('/perfiles',async(req,res)=>{
     <header class="directory-top">
       <a class="directory-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
       <div class="directory-top-actions">
+        <a class="button small ghost" href="/publicaciones">Publicaciones</a>
         <a class="button small ghost" href="/#acceso">Entrar</a>
         <a class="button small" href="/#registro">Crear cuenta</a>
       </div>
@@ -655,10 +660,329 @@ app.get('/perfiles',async(req,res)=>{
   }
 });
 
+
+let publicContentSeoV179Ready=null;
+async function ensurePublicContentSeoV179(){
+  await ensurePublicPostAudienceV18();
+  if(!publicContentSeoV179Ready){
+    publicContentSeoV179Ready=db.query(`
+      CREATE INDEX IF NOT EXISTS idx_posts_public_discovery_v179
+        ON posts(created_at DESC,user_id)
+        WHERE moderation_status='published'
+          AND audience='public'
+          AND content_level='normal'
+    `).catch(error=>{
+      publicContentSeoV179Ready=null;
+      throw error;
+    });
+  }
+  return publicContentSeoV179Ready;
+}
+
+function extractPublicHashtagsV179(value=''){
+  const tags=[];
+  const seen=new Set();
+  for(const match of String(value||'').matchAll(/#([\p{L}\p{N}_]{2,40})/gu)){
+    const tag=match[1].normalize('NFC').toLowerCase();
+    if(!seen.has(tag)){seen.add(tag);tags.push(tag);}
+  }
+  return tags;
+}
+
+function publicCaptionHtmlV179(value=''){
+  const source=String(value||'');
+  const token=/(^|\s)#([\p{L}\p{N}_]{2,40})/gu;
+  let out='',last=0;
+  for(const match of source.matchAll(token)){
+    out+=escapeHtml(source.slice(last,match.index));
+    out+=escapeHtml(match[1]||'');
+    const tag=match[2].normalize('NFC').toLowerCase();
+    out+=`<a class="public-tag-link" href="/hashtag/${encodeURIComponent(tag)}">#${escapeHtml(match[2])}</a>`;
+    last=match.index+match[0].length;
+  }
+  out+=escapeHtml(source.slice(last));
+  return out.replace(/\n/g,'<br>');
+}
+
+function publicPostCardV179(req,post){
+  const avatar=post.avatar_url ? absoluteUrl(req,post.avatar_url) : '';
+  const image=post.media_type==='image' && post.media_url
+    ? `<a class="public-post-media" href="/p/${encodeURIComponent(post.id)}"><img src="${escapeHtml(absoluteUrl(req,post.media_url))}" loading="lazy" decoding="async" alt="Publicación de ${escapeHtml(post.display_name)}"></a>`
+    : post.media_type==='video' && post.media_url
+      ? `<a class="public-post-media public-video-placeholder" href="/p/${encodeURIComponent(post.id)}"><span>▶</span><b>Vídeo público</b></a>`
+      : '';
+  const date=new Date(post.created_at).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+  return `<article class="public-post-card">
+    <div class="public-post-head">
+      <a class="public-post-author" href="/perfil/${encodeURIComponent(post.username)}">
+        ${avatar
+          ? `<img src="${escapeHtml(avatar)}" loading="lazy" decoding="async" alt="">`
+          : `<span class="public-post-avatar">${escapeHtml(String(post.display_name||post.username).slice(0,2).toUpperCase())}</span>`}
+        <span><b>${escapeHtml(post.display_name)}</b><small>@${escapeHtml(post.username)} · ${escapeHtml(date)}</small></span>
+      </a>
+      ${post.creator_verified?'<span class="public-post-badge">✓ Creador</span>':''}
+    </div>
+    ${image}
+    <div class="public-post-copy">
+      ${post.caption?`<p>${publicCaptionHtmlV179(post.caption)}</p>`:'<p class="muted">Publicación sin texto.</p>'}
+      <a class="public-post-open" href="/p/${encodeURIComponent(post.id)}">Abrir publicación →</a>
+    </div>
+  </article>`;
+}
+
+async function trendingPublicHashtagsV179(limit=12){
+  const recent=await db.query(`
+    SELECT p.caption,p.created_at
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND p.audience='public'
+       AND p.content_level='normal'
+       AND u.status='active'
+       AND u.is_admin=false
+       AND u.discoverable=true
+       AND p.caption IS NOT NULL
+       AND p.caption LIKE '%#%'
+     ORDER BY p.created_at DESC
+     LIMIT 500
+  `);
+  const map=new Map();
+  for(const row of recent.rows){
+    for(const tag of extractPublicHashtagsV179(row.caption)){
+      const current=map.get(tag)||{tag,count:0,lastmod:row.created_at};
+      current.count+=1;
+      if(new Date(row.created_at)>new Date(current.lastmod))current.lastmod=row.created_at;
+      map.set(tag,current);
+    }
+  }
+  return [...map.values()].sort((a,b)=>b.count-a.count || String(b.lastmod).localeCompare(String(a.lastmod))).slice(0,limit);
+}
+
+async function renderPublicContentV179(req,res,{tag=null}={}){
+  await Promise.all([ensurePublicContentSeoV179(),ensurePublicProfileSeoV177()]);
+  const origin=publicOrigin(req);
+  const rawQuery=tag ? '' : String(req.query.q||'').trim().slice(0,80);
+  const requestedPage=Math.max(1,Math.min(500,Number.parseInt(req.query.page||'1',10)||1));
+  const pageSize=24;
+  const searchPattern=rawQuery ? `%${rawQuery.toLowerCase()}%` : null;
+  const tagPattern=tag ? `(^|[^[:alnum:]_])#${tag}([^[:alnum:]_]|$)` : null;
+
+  const params=[searchPattern,tagPattern];
+  const filterSql=`
+    p.moderation_status='published'
+    AND p.audience='public'
+    AND p.content_level='normal'
+    AND u.status='active'
+    AND u.is_admin=false
+    AND u.discoverable=true
+    AND ($1::text IS NULL OR lower(COALESCE(p.caption,'')) LIKE $1 OR lower(u.username) LIKE $1 OR lower(u.display_name) LIKE $1)
+    AND ($2::text IS NULL OR COALESCE(p.caption,'') ~* $2)
+  `;
+
+  const countResult=await db.query(`
+    SELECT count(*)::int AS n
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE ${filterSql}
+  `,params);
+  const total=Number(countResult.rows[0]?.n||0);
+  const totalPages=Math.max(1,Math.ceil(total/pageSize));
+  const page=Math.min(requestedPage,totalPages);
+  const offset=(page-1)*pageSize;
+
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.post_kind,p.created_at,
+           u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE ${filterSql}
+     ORDER BY p.created_at DESC,p.id DESC
+     LIMIT $3 OFFSET $4
+  `,[...params,pageSize,offset]);
+
+  const basePath=tag ? `/hashtag/${encodeURIComponent(tag)}` : '/publicaciones';
+  const canonical=page>1 ? `${origin}${basePath}?page=${page}` : `${origin}${basePath}`;
+  const indexable=tag ? total>=2 : !rawQuery;
+  const title=tag
+    ? `#${tag} — Publicaciones en RedLibertad`
+    : rawQuery
+      ? `Buscar publicaciones: ${rawQuery} — RedLibertad`
+      : page>1
+        ? `Publicaciones públicas — Página ${page} — RedLibertad`
+        : 'Publicaciones públicas — RedLibertad';
+  const description=tag
+    ? `Publicaciones públicas con #${tag} en RedLibertad.`
+    : rawQuery
+      ? `Resultados públicos para “${rawQuery}” en RedLibertad.`
+      : 'Descubre publicaciones públicas normales compartidas por personas que participan en el descubrimiento público de RedLibertad.';
+
+  const querySuffix=rawQuery ? `&q=${encodeURIComponent(rawQuery)}` : '';
+  const previous=page>1
+    ? `${basePath}?${page-1>1?`page=${page-1}${querySuffix}`:rawQuery?`q=${encodeURIComponent(rawQuery)}`:''}`
+    : '';
+  const next=page<totalPages ? `${basePath}?page=${page+1}${querySuffix}` : '';
+  const cards=result.rows.map(post=>publicPostCardV179(req,post)).join('');
+  const trending=tag ? [] : await trendingPublicHashtagsV179(12);
+  const tagNav=trending.length
+    ? `<div class="public-tag-cloud">${trending.map(item=>`<a href="/hashtag/${encodeURIComponent(item.tag)}">#${escapeHtml(item.tag)} <span>${item.count}</span></a>`).join('')}</div>`
+    : '';
+
+  const listStructured=indexable && page===1 ? `<script type="application/ld+json">${JSON.stringify({
+    '@context':'https://schema.org',
+    '@type':'ItemList',
+    name:tag?`Publicaciones #${tag} en RedLibertad`:'Publicaciones públicas en RedLibertad',
+    itemListElement:result.rows.map((post,index)=>({
+      '@type':'ListItem',
+      position:index+1,
+      url:`${origin}/p/${encodeURIComponent(post.id)}`,
+      name:String(post.caption||`Publicación de ${post.display_name}`).slice(0,100)
+    }))
+  }).replace(/</g,'\\u003c')}</script>` : '';
+
+  res.type('html').send(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,follow'}">
+  <link rel="canonical" href="${escapeHtml(canonical)}">
+  ${previous?`<link rel="prev" href="${escapeHtml(origin+previous)}">`:''}
+  ${next?`<link rel="next" href="${escapeHtml(origin+next)}">`:''}
+  <meta property="og:site_name" content="RedLibertad">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonical)}">
+  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  ${listStructured}
+  <style>
+    .public-content-page{min-height:100vh;background:var(--bg);color:var(--navy)}
+    .public-content-top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px max(20px,calc((100vw - 1180px)/2));border-bottom:1px solid var(--line);background:rgba(255,253,249,.94);backdrop-filter:blur(16px)}
+    .public-content-brand{display:flex;align-items:center;gap:9px;color:var(--navy);font-weight:900}.public-content-brand img{width:34px;height:34px}
+    .public-content-top-actions{display:flex;align-items:center;gap:8px}
+    .public-content-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:44px 0 72px}
+    .public-content-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:24px;align-items:end}
+    .public-content-hero h1{margin:5px 0 8px;font:800 clamp(30px,5vw,52px) Manrope,sans-serif}
+    .public-content-hero p{margin:0;color:var(--muted);line-height:1.6}
+    .public-content-search{display:flex;gap:8px;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}
+    .public-content-search input{min-width:0;flex:1;border:0;background:transparent;padding:10px 12px;font:inherit;color:var(--navy);outline:0}
+    .public-content-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .public-tag-cloud{display:flex;gap:7px;flex-wrap:wrap;margin:22px 0}
+    .public-tag-cloud a,.public-tag-link{color:#0c675b;font-weight:800}.public-tag-cloud a{padding:7px 9px;border-radius:999px;background:rgba(43,183,169,.10);font-size:10px}.public-tag-cloud span{opacity:.62}
+    .public-content-count{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:22px 0 14px;color:var(--muted);font-size:12px}
+    .public-post-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+    .public-post-card{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 9px 26px rgba(13,34,56,.05)}
+    .public-post-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px}
+    .public-post-author{min-width:0;display:flex;align-items:center;gap:9px}.public-post-author img,.public-post-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,var(--navy),var(--teal))}
+    .public-post-avatar{display:grid;place-items:center;color:white;font-weight:900}.public-post-author span{min-width:0}.public-post-author b,.public-post-author small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.public-post-author small{margin-top:2px;color:var(--muted);font-size:9px}
+    .public-post-badge{padding:4px 6px;border-radius:999px;background:rgba(43,183,169,.12);color:#0c675b;font-size:8px;font-weight:900}
+    .public-post-media{display:block;aspect-ratio:4/3;background:#101923;overflow:hidden}.public-post-media img{width:100%;height:100%;object-fit:cover;display:block}.public-video-placeholder{display:grid;place-items:center;color:white}.public-video-placeholder span{font-size:28px}.public-video-placeholder b{font-size:11px}
+    .public-post-copy{padding:13px}.public-post-copy p{margin:0;color:var(--ink);font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}.public-post-open{display:inline-block;margin-top:10px;color:var(--navy);font-size:10px;font-weight:900}
+    .public-content-empty{padding:38px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:var(--paper)}
+    .public-content-pagination{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:24px}.public-content-page-label{padding:8px 10px;color:var(--muted);font-size:11px}
+    @media(max-width:900px){.public-post-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.public-content-hero{grid-template-columns:1fr}}
+    @media(max-width:620px){.public-content-shell{width:min(100% - 20px,1180px);padding-top:28px}.public-post-grid{grid-template-columns:1fr}.public-content-top{padding:10px 12px}.public-content-top-actions .button.ghost{display:none}.public-content-search{display:grid;grid-template-columns:1fr auto}.public-post-card{border-radius:16px}}
+  </style>
+</head>
+<body>
+  <main class="public-content-page">
+    <header class="public-content-top">
+      <a class="public-content-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
+      <div class="public-content-top-actions"><a class="button small ghost" href="/perfiles">Personas</a><a class="button small" href="/#registro">Crear cuenta</a></div>
+    </header>
+    <div class="public-content-shell">
+      <section class="public-content-hero">
+        <div>
+          <span class="eyebrow">${tag?'HASHTAG PÚBLICO':'CONTENIDO PÚBLICO'}</span>
+          <h1>${tag?`#${escapeHtml(tag)}`:'Publicaciones públicas'}</h1>
+          <p>${escapeHtml(description)}</p>
+          <div class="public-content-links">${tag?'<a class="button ghost small" href="/publicaciones">Todas las publicaciones</a>':''}<a class="button ghost small" href="/perfiles">Descubrir personas</a></div>
+        </div>
+        ${tag?'':`<form class="public-content-search" method="get" action="/publicaciones"><input name="q" value="${escapeHtml(rawQuery)}" maxlength="80" placeholder="Buscar texto, nombre o usuario" aria-label="Buscar publicaciones"><button class="button" type="submit">Buscar</button></form>`}
+      </section>
+      ${tagNav}
+      <div class="public-content-count"><span>${rawQuery?`${total} resultados para “${escapeHtml(rawQuery)}”`:tag?`${total} publicaciones con #${escapeHtml(tag)}`:`${total} publicaciones públicas`}</span>${rawQuery?'<a href="/publicaciones">Limpiar búsqueda</a>':''}</div>
+      ${cards?`<section class="public-post-grid" aria-label="Publicaciones públicas">${cards}</section>`:'<div class="public-content-empty"><b>No encontramos publicaciones.</b><p>Prueba otra búsqueda o vuelve más tarde.</p></div>'}
+      <nav class="public-content-pagination" aria-label="Paginación de publicaciones">${previous?`<a class="button ghost small" rel="prev" href="${escapeHtml(previous)}">← Anterior</a>`:''}<span class="public-content-page-label">Página ${page} de ${totalPages}</span>${next?`<a class="button ghost small" rel="next" href="${escapeHtml(next)}">Siguiente →</a>`:''}</nav>
+    </div>
+  </main>
+</body>
+</html>`);
+}
+
+app.get('/publicaciones',async(req,res)=>{
+  try{
+    await renderPublicContentV179(req,res);
+  }catch(error){
+    console.error('RedLibertad public content directory error:',error);
+    res.status(500).send('No se pudo cargar el directorio de publicaciones.');
+  }
+});
+
+app.get('/hashtag/:tag',async(req,res)=>{
+  try{
+    const tag=String(req.params.tag||'').normalize('NFC').toLowerCase();
+    if(!/^[\p{L}\p{N}_]{2,40}$/u.test(tag))return res.status(404).send('Hashtag no encontrado.');
+    if(req.params.tag!==tag)return res.redirect(301,`/hashtag/${encodeURIComponent(tag)}`);
+    await renderPublicContentV179(req,res,{tag});
+  }catch(error){
+    console.error('RedLibertad public hashtag error:',error);
+    res.status(500).send('No se pudo cargar el hashtag.');
+  }
+});
+
+app.get('/sitemap-hashtags.xml',async(req,res)=>{
+  try{
+    await ensurePublicContentSeoV179();
+    const origin=publicOrigin(req);
+    const rows=await db.query(`
+      SELECT p.caption,p.created_at
+        FROM posts p
+        JOIN users u ON u.id=p.user_id
+       WHERE p.moderation_status='published'
+         AND p.audience='public'
+         AND p.content_level='normal'
+         AND u.status='active'
+         AND u.is_admin=false
+         AND u.discoverable=true
+         AND p.caption IS NOT NULL
+         AND p.caption LIKE '%#%'
+       ORDER BY p.created_at DESC
+       LIMIT 5000
+    `);
+    const map=new Map();
+    for(const row of rows.rows){
+      for(const tag of extractPublicHashtagsV179(row.caption)){
+        const current=map.get(tag)||{count:0,lastmod:row.created_at};
+        current.count+=1;
+        if(new Date(row.created_at)>new Date(current.lastmod))current.lastmod=row.created_at;
+        map.set(tag,current);
+      }
+    }
+    const urls=[...map.entries()]
+      .filter(([,data])=>data.count>=2)
+      .sort((a,b)=>b[1].count-a[1].count)
+      .slice(0,1000)
+      .map(([tag,data])=>`<url><loc>${escapeHtml(origin+'/hashtag/'+encodeURIComponent(tag))}</loc><lastmod>${new Date(data.lastmod).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>`);
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
+  }catch(error){
+    console.error('RedLibertad hashtag sitemap error:',error);
+    res.status(500).type('text/plain').send('Hashtag sitemap unavailable');
+  }
+});
+
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -669,6 +993,8 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /p/',
     'Allow: /perfil/',
     'Allow: /perfiles',
+    'Allow: /publicaciones',
+    'Allow: /hashtag/',
     'Disallow: /app',
     'Disallow: /admin',
     'Disallow: /admin-recovery',
@@ -676,7 +1002,8 @@ app.get('/robots.txt',(req,res)=>{
     'Disallow: /uploads/',
     `Sitemap: ${origin}/sitemap-index.xml`,
     `Sitemap: ${origin}/sitemap.xml`,
-    `Sitemap: ${origin}/sitemap-profiles.xml`
+    `Sitemap: ${origin}/sitemap-profiles.xml`,
+    `Sitemap: ${origin}/sitemap-hashtags.xml`
   ].join('\n'));
 });
 
@@ -692,12 +1019,15 @@ app.get('/sitemap.xml',async(req,res)=>{
          AND p.audience='public'
          AND p.content_level='normal'
          AND u.status='active'
+         AND u.is_admin=false
+         AND u.discoverable=true
        ORDER BY p.created_at DESC
        LIMIT 10000
     `);
     const urls=[
       `<url><loc>${escapeHtml(origin+'/')}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/perfiles')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/publicaciones')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       ...posts.rows.map(post=>`<url><loc>${escapeHtml(origin+'/p/'+encodeURIComponent(post.id))}</loc><lastmod>${new Date(post.created_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`)
     ];
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
@@ -723,7 +1053,7 @@ app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
 
-const server=app.listen(PORT, () => console.log(`RedLibertad V1.78.0 running on http://localhost:${PORT}`));
+const server=app.listen(PORT, () => console.log(`RedLibertad V1.79.0 running on http://localhost:${PORT}`));
 server.keepAliveTimeout=5000;
 server.headersTimeout=65000;
 server.requestTimeout=120000;

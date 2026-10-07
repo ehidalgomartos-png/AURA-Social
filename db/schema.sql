@@ -1249,3 +1249,11 @@ UPDATE release_features
 CREATE INDEX IF NOT EXISTS idx_users_public_profile_seo
   ON users(discoverable,updated_at DESC)
   WHERE status='active' AND is_admin=false;
+
+
+-- RedLibertad V1.79: public content discovery & SEO
+CREATE INDEX IF NOT EXISTS idx_posts_public_discovery_v179
+  ON posts(created_at DESC,user_id)
+  WHERE moderation_status='published'
+    AND audience='public'
+    AND content_level='normal';
