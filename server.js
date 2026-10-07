@@ -321,7 +321,7 @@ app.get('/p/:id', async (req, res) => {
     const title='Mira mi post en RedLibertad';
     const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
     const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
-    const ogImage=indexable && mediaAllowed ? absoluteUrl(req,post.media_url) : `${origin}/assets/og-redlibertad.png`;
+    const ogImage=indexable && mediaAllowed ? absoluteUrl(req,post.media_url) : `${origin}/assets/og-redlibertad-v1922.jpg`;
     const publishedLabel=(()=>{try{return new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(post.created_at));}catch(_){return '';}})();
     const authorAvatar=post.avatar_url
       ? `<img class="shared-avatar" src="${escapeHtml(absoluteUrl(req,post.avatar_url))}" alt="Foto de ${escapeHtml(post.display_name)}">`
@@ -404,7 +404,7 @@ app.get('/perfil/:username',async(req,res)=>{
     const indexable=profile.discoverable===true;
     const title=`${profile.display_name} (@${profile.username}) — RedLibertad`;
     const description=String(profile.creator_headline || profile.bio || 'Perfil en RedLibertad — Donde la libertad es lo primero.').trim().slice(0,180);
-    const defaultOg=`${origin}/assets/og-redlibertad.png`;
+    const defaultOg=`${origin}/assets/og-redlibertad-v1922.jpg`;
     const avatar=profile.avatar_url ? absoluteUrl(req,profile.avatar_url) : '';
     const cover=profile.cover_url ? absoluteUrl(req,profile.cover_url) : '';
     const ogImage=indexable && avatar ? avatar : defaultOg;
@@ -660,11 +660,11 @@ app.get('/perfiles',async(req,res)=>{
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
-  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
-  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   ${listStructured}
@@ -944,11 +944,11 @@ async function renderPublicContentV179(req,res,{tag=null}={}){
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
-  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
-  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   ${listStructured}
