@@ -1702,3 +1702,26 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL específicos para descubrimiento público de comunidades y posts normales.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.81.0 — Public Events & Event SEO
+
+- Nuevo directorio público `/eventos` para próximos eventos.
+- Solo se exponen eventos con `visibility='public'`, no cancelados y creados por perfiles activos, no-admin y descubribles.
+- Un evento asociado a una comunidad solo puede entrar en la capa pública si esa comunidad también es pública y su propietario sigue siendo elegible.
+- Búsqueda por título, descripción, lugar y creador.
+- Filtro por evento presencial u online.
+- Búsquedas y filtros quedan `noindex,follow`; las páginas naturales del directorio son indexables.
+- Nueva URL canónica `/evento/:id/:slug` con redirección 301 desde slugs ausentes o antiguos.
+- Cada evento público incluye title, description, canonical, Open Graph y structured data `Event`.
+- Para eventos online no se expone `online_url`; el acceso real solo se muestra dentro de la aplicación autenticada.
+- No se publican identidades de asistentes.
+- Las cifras de asistentes/interesados solo se muestran si `attendee_visibility='public'`.
+- Eventos de conexiones, círculos o comunidades privadas nunca aparecen en páginas públicas ni sitemaps.
+- Eventos cancelados quedan fuera de la capa pública.
+- Eventos antiguos permanecen accesibles por URL pública si siguen siendo públicos, pero pasan a `noindex,follow` tras 30 días.
+- Nuevo `/sitemap-events.xml` con eventos públicos próximos elegibles.
+- Integración en `/sitemap-index.xml`, `/sitemap.xml`, `robots.txt` y navegación pública.
+- Índices PostgreSQL específicos para eventos públicos.
+- Mobile-first.
+- Sin monetización.
