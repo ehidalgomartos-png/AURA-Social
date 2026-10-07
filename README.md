@@ -1921,3 +1921,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - No muestra email, IP, mensajes ni datos privados de las cuentas registradas.
 - Sin tracking externo.
 - Sin monetización.
+
+
+## V1.89.1 — Verification Independence & Revoke
+
+- Verificación +18 y verificación de creador quedan totalmente separadas.
+- Aprobar "Creador" ya no activa `age_verified`.
+- Aprobar "+18" ya no altera `creator_verified`.
+- Las solicitudes pendientes se aprueban únicamente por su propio tipo.
+- Nuevas acciones administrativas:
+  - `Quitar +18`,
+  - `Quitar creador`.
+- Revocar una verificación no modifica la otra.
+- Cada revocación queda registrada en Historial de moderación.
+- El usuario recibe una notificación cuando se aprueba o retira una verificación.
+- Una solicitud antigua puede seguir figurando como aprobada, pero si la insignia se retiró el panel muestra "Verificación actual retirada".
+- Confirmación antes de revocar desde Administración.
+- Hotfix montado antes del router admin existente para aislar el cambio.
+- Sin migraciones.
