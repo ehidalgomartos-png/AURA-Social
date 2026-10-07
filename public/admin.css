@@ -278,3 +278,35 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 .rollout-note b{font-size:8px;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
 .rollout-note span{font-size:9px;color:var(--muted);line-height:1.4}
 @media(max-width:560px){.rollout-wave-row{grid-template-columns:1fr}.rollout-wave-row button{width:100%}}
+
+
+/* =========================================================
+   RedLibertad V1.89 — Growth Attribution Dashboard
+   ========================================================= */
+.growth-attribution-panel{margin-bottom:18px}
+.growth-attribution-layout{display:grid;grid-template-columns:minmax(260px,.72fr) minmax(0,1.28fr);gap:14px;align-items:start}
+.growth-attribution-block,.growth-daily-block{border:1px solid var(--line);border-radius:16px;background:#fbf9f4;padding:14px}
+.growth-daily-block{margin-top:14px}
+.growth-attribution-subhead h3{margin:2px 0 10px;color:var(--navy);font:800 18px Manrope,sans-serif}
+.growth-type-list,.growth-source-list{display:grid;gap:8px}
+.growth-type-card,.growth-source-card{padding:12px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.growth-type-card{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.growth-type-card b,.growth-source-card b{display:block;color:var(--navy);font-size:12px}
+.growth-type-card small,.growth-source-card small{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.4}
+.growth-type-card>span{display:grid;place-items:center;min-width:48px;height:34px;border-radius:999px;background:#edf8f5;color:#0c675b;font-size:10px;font-weight:900}
+.growth-source-card{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.growth-source-card>div{min-width:0}
+.growth-source-type{display:inline-flex;margin-bottom:5px;padding:4px 7px;border-radius:999px;background:#f0f3f3;color:var(--muted);font-size:8px;font-weight:900;text-transform:uppercase}
+.growth-source-card a{flex:none;color:var(--teal);font-size:9px;font-weight:800;text-decoration:none}
+.growth-source-card a:hover{text-decoration:underline}
+.growth-daily-bars{display:flex;align-items:flex-end;gap:5px;height:145px;overflow-x:auto;padding:12px 2px 2px}
+.growth-day{display:grid;grid-template-rows:1fr auto auto;align-items:end;justify-items:center;gap:4px;min-width:26px;flex:1;height:100%}
+.growth-day b{display:block;width:70%;min-height:4px;border-radius:6px 6px 2px 2px;background:var(--teal)}
+.growth-day span,.growth-day small{font-size:8px;color:var(--muted);white-space:nowrap}
+.growth-day small{font-weight:800;color:var(--navy)}
+@media(max-width:900px){.growth-attribution-layout{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .growth-source-card{align-items:flex-start;flex-direction:column}
+  .growth-daily-bars{min-width:0}
+  .growth-day{min-width:24px}
+}

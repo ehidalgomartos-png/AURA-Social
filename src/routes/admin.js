@@ -104,6 +104,28 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+let growthAttributionV189Ready=null;
+async function ensureGrowthAttributionV189(){
+  if(!growthAttributionV189Ready){
+    growthAttributionV189Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS signup_attributions (
+          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          source_type VARCHAR(20) NOT NULL CHECK(source_type IN ('profile','post','community','event','reel','topic','story')),
+          source_key VARCHAR(120) NOT NULL DEFAULT '',
+          source_path VARCHAR(280) NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_signup_attributions_source_created ON signup_attributions(source_type,created_at DESC)');
+    })().catch(error=>{
+      growthAttributionV189Ready=null;
+      throw error;
+    });
+  }
+  return growthAttributionV189Ready;
+}
+
 const incidentCreateSchema=z.object({
   title:z.string().trim().min(3).max(160),
   severity:z.enum(['info','warning','critical']).optional().default('info'),
@@ -199,6 +221,143 @@ router.get('/beta-ops',async(_req,res)=>{
       messageBodiesAnalyzed:false
     },
     incidents:incidents.rows
+  });
+});
+
+router.get('/growth-attribution',async(req,res)=>{
+  await ensureGrowthAttributionV189();
+  const days=String(req.query.days||'30')==='7'?7:30;
+  const [
+    newUsersResult,
+    attributedResult,
+    invitedResult,
+    byTypeResult,
+    topSourcesResult,
+    dailyResult,
+    firstResult
+  ]=await Promise.all([
+    db.query(`
+      SELECT count(*)::int n
+      FROM users
+      WHERE is_admin=false
+        AND created_at>=now()-($1::int*interval '1 day')
+    `,[days]),
+    db.query(`
+      SELECT
+        count(*)::int total,
+        count(*) FILTER (WHERE
+          EXISTS(SELECT 1 FROM posts p WHERE p.user_id=sa.user_id AND p.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM comments c WHERE c.user_id=sa.user_id AND c.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=sa.user_id AND f.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM messages m WHERE m.sender_id=sa.user_id AND m.created_at>=u.created_at)
+        )::int activated
+      FROM signup_attributions sa
+      JOIN users u ON u.id=sa.user_id
+      WHERE u.is_admin=false
+        AND sa.created_at>=now()-($1::int*interval '1 day')
+    `,[days]),
+    db.query(`
+      SELECT count(*)::int n
+      FROM referrals r
+      JOIN users u ON u.id=r.invited_user_id
+      WHERE u.is_admin=false
+        AND r.created_at>=now()-($1::int*interval '1 day')
+    `,[days]),
+    db.query(`
+      SELECT
+        sa.source_type,
+        count(*)::int signups,
+        count(*) FILTER (WHERE
+          EXISTS(SELECT 1 FROM posts p WHERE p.user_id=sa.user_id AND p.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM comments c WHERE c.user_id=sa.user_id AND c.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=sa.user_id AND f.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM messages m WHERE m.sender_id=sa.user_id AND m.created_at>=u.created_at)
+        )::int activated
+      FROM signup_attributions sa
+      JOIN users u ON u.id=sa.user_id
+      WHERE u.is_admin=false
+        AND sa.created_at>=now()-($1::int*interval '1 day')
+      GROUP BY sa.source_type
+      ORDER BY signups DESC,sa.source_type
+    `,[days]),
+    db.query(`
+      SELECT
+        sa.source_type,
+        sa.source_key,
+        min(sa.source_path) source_path,
+        count(*)::int signups,
+        count(*) FILTER (WHERE
+          EXISTS(SELECT 1 FROM posts p WHERE p.user_id=sa.user_id AND p.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM comments c WHERE c.user_id=sa.user_id AND c.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=sa.user_id AND f.created_at>=u.created_at)
+          OR EXISTS(SELECT 1 FROM messages m WHERE m.sender_id=sa.user_id AND m.created_at>=u.created_at)
+        )::int activated
+      FROM signup_attributions sa
+      JOIN users u ON u.id=sa.user_id
+      WHERE u.is_admin=false
+        AND sa.created_at>=now()-($1::int*interval '1 day')
+      GROUP BY sa.source_type,sa.source_key
+      ORDER BY signups DESC,activated DESC,sa.source_type,sa.source_key
+      LIMIT 25
+    `,[days]),
+    db.query(`
+      WITH days AS (
+        SELECT generate_series(
+          timezone('Europe/Madrid',now())::date-($1::int-1),
+          timezone('Europe/Madrid',now())::date,
+          interval '1 day'
+        )::date day
+      ),
+      counts AS (
+        SELECT timezone('Europe/Madrid',sa.created_at)::date day,count(*)::int signups
+        FROM signup_attributions sa
+        JOIN users u ON u.id=sa.user_id
+        WHERE u.is_admin=false
+          AND sa.created_at>=now()-($1::int*interval '1 day')
+        GROUP BY 1
+      )
+      SELECT d.day,COALESCE(c.signups,0)::int signups
+      FROM days d
+      LEFT JOIN counts c USING(day)
+      ORDER BY d.day
+    `,[days]),
+    db.query('SELECT min(created_at) first_attribution_at FROM signup_attributions')
+  ]);
+
+  const newUsers=Number(newUsersResult.rows[0]?.n||0);
+  const attributed=Number(attributedResult.rows[0]?.total||0);
+  const activated=Number(attributedResult.rows[0]?.activated||0);
+  const invited=Number(invitedResult.rows[0]?.n||0);
+
+  res.json({
+    windowDays:days,
+    metrics:{
+      newUsers,
+      attributedSignups:attributed,
+      attributionRate:newUsers?Math.round((attributed/newUsers)*100):0,
+      activatedAttributed:activated,
+      activationRate:attributed?Math.round((activated/attributed)*100):0,
+      invitedSignups:invited
+    },
+    byType:byTypeResult.rows.map(row=>({
+      sourceType:row.source_type,
+      signups:Number(row.signups||0),
+      activated:Number(row.activated||0)
+    })),
+    topSources:topSourcesResult.rows.map(row=>({
+      sourceType:row.source_type,
+      sourceKey:row.source_key,
+      sourcePath:row.source_path,
+      signups:Number(row.signups||0),
+      activated:Number(row.activated||0)
+    })),
+    daily:dailyResult.rows.map(row=>({day:row.day,signups:Number(row.signups||0)})),
+    coverage:{
+      firstAttributionAt:firstResult.rows[0]?.first_attribution_at||null,
+      retroactive:false,
+      externalTracking:false,
+      personalDataIncluded:false
+    }
   });
 });
 

@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.88.0",
+  "version": "1.89.0",
   "private": true,
-  "description": "RedLibertad V1.88 Public Entry & Signup Attribution - conserva el origen público durante registro/login y registra altas por contenido con retorno seguro.",
+  "description": "RedLibertad V1.89 Growth Attribution Dashboard - analítica admin propia para entender qué superficies públicas generan altas y activación.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
