@@ -1275,3 +1275,18 @@ CREATE INDEX IF NOT EXISTS idx_social_events_public_start_v181
 CREATE INDEX IF NOT EXISTS idx_social_events_public_updated_v181
   ON social_events(updated_at DESC,id)
   WHERE visibility='public' AND cancelled_at IS NULL;
+
+
+-- RedLibertad V1.82: Public Reels & Media Discovery SEO
+CREATE INDEX IF NOT EXISTS idx_posts_public_reels_v182
+  ON posts(created_at DESC,id)
+  WHERE moderation_status='published'
+    AND audience='public'
+    AND content_level='normal'
+    AND post_kind='reel'
+    AND media_type='video';
+CREATE INDEX IF NOT EXISTS idx_posts_public_media_v182
+  ON posts(created_at DESC,id)
+  WHERE moderation_status='published'
+    AND audience='public'
+    AND content_level='normal';

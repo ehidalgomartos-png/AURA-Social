@@ -1734,3 +1734,25 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - No cambia la privacidad de eventos `connections`, `circles` o `community`.
 - Un evento ligado a una comunidad sigue exigiendo que esa comunidad sea pública y elegible.
 - Mantiene fuera del sitemap los eventos cancelados o no públicos.
+
+
+## V1.82.0 — Public Reels & Media Discovery SEO
+
+- Nuevo directorio público `/reels` para Reels normales de audiencia pública.
+- Nuevo directorio público `/multimedia` para fotos y vídeos públicos.
+- Solo aparecen contenidos `published`, `audience='public'`, `content_level='normal'`, con media real y autores activos, no-admin y `discoverable=true`.
+- Búsqueda por texto, nombre y usuario.
+- `/multimedia` permite filtrar Fotos / Vídeos.
+- Búsquedas y filtros quedan `noindex,follow` para evitar duplicidad SEO.
+- Nueva ficha canónica `/reel/:id/:slug` con redirección 301 desde slug ausente o antiguo.
+- Structured Data `VideoObject` en cada Reel público elegible.
+- Métricas agregadas públicas: vistas, likes, comentarios y republicaciones.
+- Nuevo `/sitemap-reels.xml`.
+- Integración de Reels en sitemap index, sitemap principal, robots y navegación pública.
+- `/multimedia` se incorpora al sitemap principal.
+- Contenido sensible, desnudez y audiencias VIP/conexiones/círculos quedan completamente fuera.
+- Los administradores continúan fuera de los directorios públicos de contenido visual.
+- No se modifica la API interna de Reels ni el algoritmo autenticado.
+- Índices PostgreSQL específicos para descubrimiento visual.
+- Mobile-first.
+- Sin monetización.
