@@ -834,6 +834,22 @@ async function verifyCreator(id, button) {
   }
 }
 
+async function revokeVerification(type,id,label,button) {
+  const kind=type==='age'?'+18':'creador';
+  if(!confirm(`¿Quitar la verificación ${kind} a ${label||'este usuario'}? La otra verificación no cambiará.`))return;
+  if(button)button.disabled=true;
+  try{
+    const {r,d}=await api(`/api/admin/users/${id}/revoke-${type}`,{method:'POST'});
+    if(!r.ok)throw new Error(d.error||'revoke_failed');
+    setAdminNotice(type==='age'?'Verificación +18 retirada.':'Verificación de creador retirada.');
+    await Promise.all([users($('#search').value),metrics(),verifications()]);
+  }catch(_){
+    setAdminNotice('No se pudo retirar la verificación.',true);
+  }finally{
+    if(button?.isConnected)button.disabled=false;
+  }
+}
+
 function openModeration(userId, label) {
   const modal = $('#moderationModal');
   const form = $('#moderationForm');
@@ -1004,6 +1020,8 @@ document.addEventListener('click', async event => {
   if (action === 'verification-decision') return decideVerification(button.dataset.id, button.dataset.decision, button);
   if (action === 'verify-age') return verifyAge(button.dataset.userId, button);
   if (action === 'verify-creator') return verifyCreator(button.dataset.userId, button);
+  if (action === 'revoke-age') return revokeVerification('age',button.dataset.userId,button.dataset.userLabel,button);
+  if (action === 'revoke-creator') return revokeVerification('creator',button.dataset.userId,button.dataset.userLabel,button);
   if (action === 'open-moderation') return openModeration(button.dataset.userId, button.dataset.userLabel);
   if (action === 'open-history') return openHistory(button.dataset.userId, button.dataset.userLabel);
   if (action === 'report-decision') {
