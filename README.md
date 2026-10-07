@@ -1,4 +1,4 @@
-# RedLibertad V1.78.0 — Public Discovery & SEO Hub
+# RedLibertad V1.79.0 — Public Content Discovery & SEO
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1659,5 +1659,27 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Nuevo `/sitemap-index.xml` que referencia posts y perfiles.
 - `robots.txt` anuncia el sitemap índice y mantiene los sitemaps individuales por compatibilidad.
 - `/perfiles` se incluye en el sitemap principal.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.79.0 — Public Content Discovery & SEO
+
+- Nuevo directorio público `/publicaciones`.
+- Solo aparecen posts publicados, de audiencia pública, contenido normal y autores activos/no-admin con `discoverable=true`.
+- 24 publicaciones por página con paginación server-rendered.
+- Búsqueda pública por texto, nombre visible o usuario.
+- Las búsquedas `?q=` quedan `noindex,follow`.
+- Hashtags públicos navegables mediante `/hashtag/:tag`.
+- Hashtags con menos de 2 publicaciones quedan `noindex,follow` para evitar páginas SEO débiles.
+- Hashtags destacados calculados únicamente sobre contenido público normal de autores descubribles.
+- Nuevo `/sitemap-hashtags.xml` con hashtags que tienen al menos 2 publicaciones públicas elegibles.
+- `/sitemap-index.xml` incorpora el sitemap de hashtags.
+- `/publicaciones` entra en el sitemap principal.
+- Los posts de autores `discoverable=false` siguen accesibles por enlace directo si son públicos, pero quedan `noindex,nofollow` y fuera de los sitemaps.
+- Posts sensibles continúan fuera del descubrimiento público y de todos los sitemaps.
+- Structured Data `ItemList` en la primera página del hub y de hashtags indexables.
+- Enlazado interno entre portada, perfiles, directorio de personas y publicaciones públicas.
+- Índice PostgreSQL para posts públicos normales.
 - Mobile-first.
 - Sin monetización.
