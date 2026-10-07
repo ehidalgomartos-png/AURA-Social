@@ -1725,3 +1725,12 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL específicos para eventos públicos.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.81.2 — Admin Public Events Visibility Hotfix
+
+- Los eventos con `visibility='public'` creados por una cuenta administradora pueden aparecer en `/eventos` si esa cuenta está activa y mantiene `discoverable=true`.
+- Los administradores siguen excluidos del directorio público de personas `/perfiles`.
+- No cambia la privacidad de eventos `connections`, `circles` o `community`.
+- Un evento ligado a una comunidad sigue exigiendo que esa comunidad sea pública y elegible.
+- Mantiene fuera del sitemap los eventos cancelados o no públicos.

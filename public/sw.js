@@ -1,5 +1,5 @@
-const SHELL_CACHE='redlibertad-v1811-shell';
-const STATIC_CACHE='redlibertad-v1811-static';
+const SHELL_CACHE='redlibertad-v1812-shell';
+const STATIC_CACHE='redlibertad-v1812-static';
 const CACHE_PREFIX='redlibertad-';
 
 const SHELL_ASSETS=[

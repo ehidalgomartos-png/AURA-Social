@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.81.1",
+  "version": "1.81.2",
   "private": true,
-  "description": "RedLibertad V1.81.1 Event Date Validation Hotfix - valida fin posterior al inicio y mejora mensajes de creación de eventos.",
+  "description": "RedLibertad V1.81.2 Admin Public Events Visibility Hotfix - permite eventos públicos creados por admins descubribles sin exponerlos en el directorio de personas.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
