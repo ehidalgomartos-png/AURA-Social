@@ -2027,3 +2027,16 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - No se añaden trackers externos ni cookies de marketing.
 - El retorno tras registro/login sigue pasando por el flujo seguro existente.
 - Sin migraciones y sin monetización.
+
+
+## V1.92.0 — Mobile Public Entry Bar
+
+- Añade una barra inferior de conversión únicamente en móvil para páginas públicas de detalle.
+- Disponible en Post, Perfil, Comunidad, Evento, Reel, Tema y Story activa.
+- Acciones compactas: **Crear cuenta** y **Entrar**.
+- Ambos botones reutilizan el contexto seguro de V1.91 y regresan al contenido exacto.
+- Los CTA equivalentes dentro del contenido se ocultan solo en móvil para evitar duplicados.
+- En escritorio se mantiene la presentación de V1.91.
+- Incluye safe-area inferior para iPhone/PWA y espacio de compensación para no tapar contenido.
+- Sin tracking nuevo, sin cookies de marketing y sin monetización.
+- Sin cambios en privacidad, indexación o base de datos.
