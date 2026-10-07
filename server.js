@@ -298,7 +298,7 @@ async function ensurePublicProfileSeoV177(){
 
 app.get('/perfil/:username',async(req,res)=>{
   try{
-    await ensurePublicProfileSeoV177();
+    await Promise.all([ensurePublicProfileSeoV177(),ensurePublicPostAudienceV18()]);
     const result=await db.query(`
       SELECT
         u.id,u.username,u.display_name,u.bio,u.avatar_url,u.cover_url,
@@ -367,7 +367,8 @@ app.get('/perfil/:username',async(req,res)=>{
   <style>
     .public-profile-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg)}
     .public-profile-card{width:min(760px,100%);overflow:hidden;border:1px solid var(--line);border-radius:28px;background:var(--paper);box-shadow:var(--shadow)}
-    .public-profile-cover{height:220px;background:linear-gradient(135deg,var(--navy),var(--teal));background-position:center;background-size:cover}
+    .public-profile-cover{height:220px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--navy),var(--teal))}
+    .public-profile-cover img{width:100%;height:100%;object-fit:cover;display:block}
     .public-profile-body{position:relative;padding:0 28px 28px}
     .public-profile-avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;background:var(--navy);border:5px solid var(--paper);margin-top:-56px;box-shadow:0 12px 30px rgba(13,34,56,.16)}
     .public-profile-avatar.placeholder{display:grid;place-items:center;color:#fff;font:800 34px Manrope,sans-serif}
@@ -388,7 +389,7 @@ app.get('/perfil/:username',async(req,res)=>{
 <body>
   <main class="public-profile-page">
     <article class="public-profile-card">
-      <div class="public-profile-cover" ${cover?`style="background-image:url('${escapeHtml(cover)}')"`:''}></div>
+      <div class="public-profile-cover">${cover?`<img src="${escapeHtml(cover)}" alt="">`:''}</div>
       <div class="public-profile-body">
         ${avatar
           ? `<img class="public-profile-avatar" src="${escapeHtml(avatar)}" alt="Foto de perfil de ${escapeHtml(profile.display_name)}">`
