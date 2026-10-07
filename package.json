@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.77.0",
+  "version": "1.78.0",
   "private": true,
-  "description": "RedLibertad V1.77 Public Profiles & Profile SEO - perfiles públicos limpios, canonical/OG, privacidad noindex y sitemap específico de perfiles.",
+  "description": "RedLibertad V1.78 Public Discovery & SEO Hub - directorio público de perfiles, búsqueda segura, paginación, enlazado interno y sitemap índice.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
