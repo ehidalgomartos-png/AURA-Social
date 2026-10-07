@@ -147,7 +147,7 @@ const registrationIdentityLimiter=rateLimit({
   keyGenerator:(req)=>{
     const email=String(req.body?.email||'').trim().toLowerCase();
     const username=String(req.body?.username||'').trim().toLowerCase();
-    const identity=(email||username)?`${email}|${username}`:`ip:${String(req.ip||'unknown')}`;
+    const identity=(email||username)?`${email}|${username}`:'missing-registration-identity';
     return crypto.createHash('sha256').update(identity).digest('hex');
   },
   handler:(req,res)=>{
