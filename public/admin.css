@@ -264,3 +264,17 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 .release-audit-meta{display:flex;gap:5px;flex-wrap:wrap}
 .release-audit-meta span{padding:4px 6px;border-radius:999px;background:#f2f4f3;color:var(--muted);font-size:7px}
 @media(max-width:900px){.release-audit-list{grid-template-columns:1fr;max-height:none}}
+
+
+/* =========================================================
+   RedLibertad V1.75 — Controlled Rollout Waves
+   ========================================================= */
+.release-card.rollout-frozen{border-color:#d8bd70;background:#fffdf7}
+.release-state.frozen{background:#fff6dc;color:#765915}
+.rollout-wave-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}
+.rollout-wave-row select{min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff;color:var(--navy);font:inherit}
+.rollout-wave-row button{white-space:nowrap}
+.rollout-note{display:grid;gap:3px;margin-top:8px;padding:8px 10px;border-radius:10px;background:#f3f7f6}
+.rollout-note b{font-size:8px;color:var(--navy);text-transform:uppercase;letter-spacing:.04em}
+.rollout-note span{font-size:9px;color:var(--muted);line-height:1.4}
+@media(max-width:560px){.rollout-wave-row{grid-template-columns:1fr}.rollout-wave-row button{width:100%}}
