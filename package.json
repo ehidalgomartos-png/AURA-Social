@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.93.1",
+  "version": "1.93.2",
   "private": true,
-  "description": "RedLibertad V1.93.1 Registration Rate Limit Hotfix - registro con límites separados por red e identidad para evitar falsos bloqueos.",
+  "description": "RedLibertad V1.93.2 Registration Validation Feedback - mensajes de registro específicos por campo y validación cliente alineada con backend.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

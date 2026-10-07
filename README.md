@@ -2112,3 +2112,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - La interfaz muestra el tiempo aproximado real de espera.
 - Se mantiene el limitador global y el límite independiente de login.
 - Sin migraciones, sin monetización y sin cambios en `src/routes/posts.js`.
+
+
+## V1.93.2 — Registration Validation Feedback
+
+- Sustituye el mensaje genérico “Revisa los datos” por explicaciones concretas.
+- Usa los `fieldErrors` que Zod ya devuelve desde el backend.
+- Mensajes específicos para:
+  - nombre visible;
+  - usuario;
+  - email;
+  - contraseña;
+  - fecha de nacimiento;
+  - aceptación +18/condiciones.
+- Añade mensaje específico para `invalid_birth_date`.
+- Alinea validación HTML con backend:
+  - nombre máximo 80;
+  - usuario 3–30, letras/números/punto/guion bajo;
+  - email máximo 254;
+  - contraseña 10–128.
+- No expone datos sensibles ni cambia la lógica de registro.
+- Sin migraciones, sin monetización y sin cambios en `src/routes/posts.js`.
