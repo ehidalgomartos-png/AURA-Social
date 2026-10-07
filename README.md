@@ -1683,3 +1683,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índice PostgreSQL para posts públicos normales.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.80.0 — Public Communities & Community SEO
+
+- Nuevo directorio público `/comunidades`.
+- Solo aparecen comunidades públicas cuyo propietario está activo, no es administrador y mantiene `discoverable=true`.
+- 24 comunidades por página con búsqueda por nombre, descripción, categoría e intereses.
+- Las búsquedas con `?q=` quedan `noindex,follow`.
+- Nueva ficha pública canónica `/comunidad/:id/:slug` con redirección 301 desde slugs ausentes o antiguos.
+- La ficha muestra descripción, categoría, intereses, reglas, contadores y publicaciones recientes elegibles.
+- Las publicaciones visibles fuera de la app quedan limitadas a contenido `normal`, publicado y creado por perfiles activos, no-admin y descubribles.
+- Comunidades privadas nunca aparecen en el directorio, páginas públicas ni sitemap.
+- Si el propietario de una comunidad pública deja de ser descubrible, la comunidad desaparece del directorio y sitemap; un acceso directo queda `noindex,nofollow`.
+- Nuevo `/sitemap-communities.xml` e integración en `/sitemap-index.xml`.
+- `/comunidades` se incorpora al sitemap principal y a la navegación pública.
+- Structured Data `ItemList` para el directorio y `CollectionPage` para fichas indexables.
+- Índices PostgreSQL específicos para descubrimiento público de comunidades y posts normales.
+- Mobile-first.
+- Sin monetización.
