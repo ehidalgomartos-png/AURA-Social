@@ -1993,7 +1993,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="supportSettings" class="secondary">Ayuda</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -2013,6 +2013,7 @@ async function loadProfile(mode = ownProfileMode) {
   $('#trustSettings').onclick = openTrustModal;
   $('#privacySettings').onclick = openPrivacyModal;
   $('#accountSettings').onclick = openAccountModal;
+  $('#supportSettings').onclick = openSupportModal;
   await loadConsents();
 }
 
@@ -8563,6 +8564,109 @@ $('#shareModal')?.addEventListener('click', e => { if (e.target === $('#shareMod
 $('#growthInviteNative')?.addEventListener('click', () => shareGrowthInvite('native'));
 $('#growthInviteWhatsApp')?.addEventListener('click', () => shareGrowthInvite('whatsapp'));
 $('#growthInviteCopy')?.addEventListener('click', () => shareGrowthInvite('copy'));
+
+
+function supportTypeLabel(type){
+  return ({bug:'Problema',suggestion:'Sugerencia',question:'Duda'})[type] || type;
+}
+
+function supportStatusLabel(status){
+  return ({new:'Recibido',reviewing:'En revisión',resolved:'Resuelto'})[status] || status;
+}
+
+function supportViewportClass(){
+  const width=Math.max(document.documentElement.clientWidth||0,window.innerWidth||0);
+  return width<=760 ? 'mobile' : width<=1100 ? 'tablet' : 'desktop';
+}
+
+function supportContext(){
+  return {
+    currentView:String(activeViewName||'').slice(0,40),
+    path:String(location.pathname||'/').slice(0,160),
+    viewportClass:supportViewportClass(),
+    online:navigator.onLine!==false,
+    appVersion:'1.72.0'
+  };
+}
+
+function renderSupportMine(items){
+  const root=$('#supportMineList');
+  if(!root)return;
+  root.innerHTML=items.length
+    ? items.map(item=>`<article class="support-ticket">
+        <div class="support-ticket-head">
+          <div><b>#${item.id} · ${esc(item.subject)}</b><small>${esc(supportTypeLabel(item.type))} · ${timeAgo(item.created_at)}</small></div>
+          <span class="support-status-chip ${esc(item.status)}">${esc(supportStatusLabel(item.status))}</span>
+        </div>
+        <p>${esc(item.message)}</p>
+        ${item.admin_note ? `<div class="support-ticket-note"><b>Respuesta / nota de soporte</b><p>${esc(item.admin_note)}</p></div>` : ''}
+      </article>`).join('')
+    : '<div class="mini-empty"><b>Aún no has enviado nada.</b><small>Cuando envíes feedback podrás seguir aquí su estado.</small></div>';
+}
+
+async function loadSupportMine(){
+  const root=$('#supportMineList');
+  if(root)root.innerHTML='<div class="mini-loading">Cargando tus envíos…</div>';
+  const {r,d}=await api('/api/support/mine');
+  if(!r.ok){
+    if(root)root.innerHTML='<div class="mini-empty"><b>No se pudo cargar el soporte.</b><small>Inténtalo de nuevo.</small></div>';
+    return;
+  }
+  renderSupportMine(Array.isArray(d.feedback)?d.feedback:[]);
+}
+
+async function openSupportModal(){
+  const modal=$('#supportModal');
+  if(!modal)return;
+  $('#supportStatus').textContent='';
+  modal.classList.remove('hidden');
+  await loadSupportMine();
+}
+
+function closeSupportModal(){
+  $('#supportModal')?.classList.add('hidden');
+}
+
+$('#supportButton')?.addEventListener('click',openSupportModal);
+$('#closeSupportModal')?.addEventListener('click',closeSupportModal);
+$('#supportModal')?.addEventListener('click',event=>{
+  if(event.target===$('#supportModal'))closeSupportModal();
+});
+$('#reloadSupportMine')?.addEventListener('click',loadSupportMine);
+
+$('#supportForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const status=$('#supportStatus');
+  const submit=form.querySelector('button[type="submit"]');
+  const fd=new FormData(form);
+  submit.disabled=true;
+  status.textContent='Enviando…';
+  try{
+    const {r,d}=await api('/api/support',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:fd.get('type'),
+        subject:String(fd.get('subject')||'').trim(),
+        message:String(fd.get('message')||'').trim(),
+        context:supportContext()
+      })
+    });
+    if(!r.ok){
+      status.textContent=d.error==='feedback_rate_limited'
+        ? 'Has enviado varias solicitudes seguidas. Espera un poco antes de enviar otra.'
+        : 'No se pudo enviar. Inténtalo de nuevo.';
+      return;
+    }
+    form.reset();
+    status.textContent='Enviado. Gracias por ayudarnos a mejorar RedLibertad.';
+    toast('Feedback enviado');
+    await loadSupportMine();
+  }finally{
+    submit.disabled=false;
+  }
+});
 
 $('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/'; };
 
