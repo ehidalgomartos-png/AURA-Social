@@ -323,3 +323,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que no se guarda referrer externo.
 - Revisar registro/login normal sin parámetros y confirmar redirección habitual a `/app`.
 - Revisar móvil y escritorio.
+
+
+## 26. Dashboard de atribución de crecimiento
+- Abrir Administración y localizar "Origen de altas".
+- Cambiar entre 7 y 30 días.
+- Confirmar métricas de altas, atribución y activación.
+- Confirmar distribución por Perfil/Publicación/Comunidad/Evento/Reel/Tema/Historia.
+- Crear una cuenta de prueba desde un origen público y confirmar que aparece tras actualizar.
+- Confirmar que el ranking muestra el origen correcto y su ruta pública.
+- Confirmar que "Abrir origen" abre únicamente una ruta interna de RedLibertad.
+- Realizar una acción social con la cuenta de prueba y confirmar que aumenta la activación atribuida.
+- Confirmar que una alta por invitación aparece en la métrica correspondiente.
+- Confirmar que invitación y origen público pueden coexistir sin duplicar usuarios en signup_attributions.
+- Confirmar que el panel no muestra email, IP ni contenido privado.
+- Confirmar que un usuario no-admin recibe 403 en `/api/admin/growth-attribution`.
+- Revisar escritorio y móvil.
