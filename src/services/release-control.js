@@ -44,6 +44,14 @@ async function ensureReleaseSchema(){
       await db.query("ALTER TABLE release_features ADD COLUMN IF NOT EXISTS rollout_frozen BOOLEAN NOT NULL DEFAULT FALSE");
       await db.query("ALTER TABLE release_features ADD COLUMN IF NOT EXISTS rollout_note VARCHAR(500) NOT NULL DEFAULT ''");
       await db.query(`
+        UPDATE release_features
+           SET rollout_stage='graduated',
+               rollout_percentage=100
+         WHERE default_enabled=TRUE
+           AND rollout_stage='cohorts'
+           AND rollout_percentage=0
+      `);
+      await db.query(`
         CREATE TABLE IF NOT EXISTS release_feature_cohorts (
           feature_key VARCHAR(60) NOT NULL REFERENCES release_features(feature_key) ON DELETE CASCADE,
           cohort_id BIGINT NOT NULL REFERENCES beta_cohorts(id) ON DELETE CASCADE,
