@@ -182,3 +182,17 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que `/sitemap.xml` incluye `/comunidades`.
 - Revisar `robots.txt` y confirmar `/comunidades`, `/comunidad/` y el nuevo sitemap.
 - Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades.
+
+
+## 18. V1.80.1 — Social Core Recovery
+- Reiniciar/redeployar la aplicación con datos existentes en `notifications`.
+- Confirmar que `/api/profiles/me/summary` responde 200 tras el arranque.
+- Confirmar que `/api/profiles/suggestions?limit=4` responde 200.
+- Confirmar que `/api/posts/feed?mode=foryou` responde 200.
+- Confirmar que `/api/posts/feed?mode=following` responde 200.
+- Confirmar que `/api/posts/consents/pending` responde 200.
+- Abrir Perfil y confirmar Publicaciones / Republicados / Multimedia.
+- Confirmar que Consentimientos y colaboraciones muestra contenido o el estado vacío normal.
+- Confirmar que Personas para ti deja de quedarse en "Buscando personas...".
+- Repetir un segundo redeploy y comprobar que los mismos endpoints continúan funcionando.
+- Revisar logs: no deben aparecer `social_bootstrap_failed`, `creator_audience_bootstrap_failed`, `creator_vip_bootstrap_failed` ni `community_insights_bootstrap_failed`.
