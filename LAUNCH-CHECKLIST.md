@@ -307,3 +307,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que una Story caducada no ofrece contenido compartible activo.
 - Confirmar que contenido sensible/privado nunca gana preview pública real.
 - Revisar escritorio y móvil.
+
+
+## 25. Entrada pública y atribución de altas
+- Abrir un perfil público y pulsar Crear cuenta.
+- Confirmar que la landing recibe `entry=profile`, `entryKey` y `next`.
+- Crear una cuenta de prueba y confirmar retorno al mismo perfil público.
+- Repetir con una Publicación, Comunidad, Evento, Reel, Tema e Historia.
+- Probar Entrar desde Comunidad/Evento y confirmar retorno al contenido.
+- Confirmar que una invitación con `invite` sigue mostrando al invitador y no pierde la atribución pública si también existe.
+- Confirmar que una ruta externa o `//dominio` no se acepta como `next`.
+- Confirmar que el registro sigue completándose aunque la atribución sea inválida.
+- Revisar `signup_attributions` y confirmar una sola fila por usuario atribuido.
+- Confirmar `source_type`, `source_key` y `source_path` esperados.
+- Confirmar que no se guarda referrer externo.
+- Revisar registro/login normal sin parámetros y confirmar redirección habitual a `/app`.
+- Revisar móvil y escritorio.
