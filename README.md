@@ -1,4 +1,4 @@
-# RedLibertad V1.75.3 — Message Own Actions Hotfix
+# RedLibertad V1.76.0 — Production Domain & Public Launch Polish
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1611,3 +1611,19 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Las reacciones ya existentes sobre mensajes propios siguen mostrándose como resumen compacto.
 - Sin cambios en móvil/escritorio fuera del chat.
 - Caché PWA actualizada.
+
+
+## V1.76.0 — Production Domain & Public Launch Polish
+
+- `https://redlibertad.com` queda como origen público canónico mediante `APP_ORIGIN`.
+- Nuevo `/api/public-config` para que el cliente conozca el origen público efectivo sin hardcodear la URL temporal.
+- Invitaciones, posts, perfiles y Stories compartidos usan siempre el origen canónico aunque el usuario haya entrado por una URL técnica.
+- La portada incluye canonical, Open Graph completo, Twitter Cards y URL/imagen absolutas.
+- Las páginas públicas `/p/:id` incluyen canonical y `og:site_name`.
+- Posts públicos sensibles quedan con `noindex,nofollow` aunque mantengan una vista externa protegida.
+- Nuevo `/robots.txt` que permite portada/posts públicos y bloquea app privada, admin, API y uploads.
+- Nuevo `/sitemap.xml` dinámico con portada y hasta 10.000 posts públicos normales; no incluye contenido sensible.
+- Manifest PWA con `id=/app` y `lang=es` para mantener una identidad estable tras el cambio de dominio.
+- Caché PWA V1.76 actualizada.
+- Compatible con el dominio temporal como respaldo técnico, sin publicarlo en enlaces externos.
+- Sin monetización.
