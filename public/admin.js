@@ -3,6 +3,7 @@ let reportCache = [];
 let userCache = [];
 let incidentCache = [];
 let supportAdminCache = [];
+let releaseControlState={features:[],cohorts:[],assignments:[]};
 
 async function api(url, options = {}) {
   const response = await fetch(url, options);
@@ -174,6 +175,101 @@ async function updateIncident(id,payload,button){
   }
 }
 
+
+
+function releaseBool(value){ return value===true || value==='true'; }
+
+function renderReleaseControl(){
+  const cohortRoot=$('#cohortList');
+  const featureRoot=$('#featureList');
+  if(!cohortRoot||!featureRoot)return;
+
+  const cohorts=Array.isArray(releaseControlState.cohorts)?releaseControlState.cohorts:[];
+  const features=Array.isArray(releaseControlState.features)?releaseControlState.features:[];
+  const assignments=Array.isArray(releaseControlState.assignments)?releaseControlState.assignments:[];
+
+  cohortRoot.innerHTML=cohorts.length
+    ? cohorts.map(cohort=>`<article class="release-card ${cohort.enabled?'':'paused'}">
+        <div class="release-card-head">
+          <div><b>${esc(cohort.name)}</b><small>${esc(cohort.cohort_key)} · ${Number(cohort.member_count||0)} miembros</small></div>
+          <span class="release-state ${cohort.enabled?'':'paused'}">${cohort.enabled?'Activa':'Pausada'}</span>
+        </div>
+        ${cohort.description?`<p>${esc(cohort.description)}</p>`:''}
+        <div class="release-inline">
+          <input data-release-member-input="${cohort.id}" placeholder="@usuario">
+          <button class="soft" data-admin-action="release-add-member" data-id="${cohort.id}">Añadir</button>
+          <button class="${cohort.enabled?'alt':'soft'}" data-admin-action="release-toggle-cohort" data-id="${cohort.id}" data-enabled="${cohort.enabled?'1':'0'}">${cohort.enabled?'Pausar':'Reanudar'}</button>
+        </div>
+        <div class="release-members">${(cohort.members||[]).map(member=>`<span class="release-pill">@${esc(member.username)} <button aria-label="Quitar de cohorte" data-admin-action="release-remove-member" data-id="${cohort.id}" data-user-id="${member.user_id}">×</button></span>`).join('')}</div>
+      </article>`).join('')
+    : '<div class="empty-admin">Aún no hay cohortes beta.</div>';
+
+  featureRoot.innerHTML=features.length
+    ? features.map(feature=>{
+        const assigned=assignments.filter(item=>item.feature_key===feature.feature_key);
+        const mode=feature.enabled ? (feature.default_enabled?'Todos':'Solo cohortes') : 'Apagada';
+        return `<article class="release-card ${feature.enabled?'':'paused'}">
+          <div class="release-card-head">
+            <div><b>${esc(feature.name)}</b><small>${esc(feature.feature_key)}</small></div>
+            <span class="release-state ${feature.enabled?(feature.default_enabled?'':'cohorts'):'paused'}">${esc(mode)}</span>
+          </div>
+          ${feature.description?`<p>${esc(feature.description)}</p>`:''}
+          <div class="actions">
+            <button class="${feature.enabled?'alt':'soft'}" data-admin-action="release-toggle-feature" data-key="${esc(feature.feature_key)}" data-enabled="${feature.enabled?'1':'0'}">${feature.enabled?'Kill switch':'Reactivar'}</button>
+            <button class="soft" data-admin-action="release-toggle-default" data-key="${esc(feature.feature_key)}" data-default="${feature.default_enabled?'1':'0'}">${feature.default_enabled?'Limitar a cohortes':'Activar para todos'}</button>
+          </div>
+          <div class="release-inline">
+            <select data-release-cohort-select="${esc(feature.feature_key)}">
+              <option value="">Añadir cohorte…</option>
+              ${cohorts.filter(cohort=>!assigned.some(item=>String(item.cohort_id)===String(cohort.id))).map(cohort=>`<option value="${cohort.id}">${esc(cohort.name)}</option>`).join('')}
+            </select>
+            <button class="soft" data-admin-action="release-assign-cohort" data-key="${esc(feature.feature_key)}">Asignar</button>
+          </div>
+          <div class="release-assignments">${assigned.map(item=>`<span class="release-pill">${esc(item.cohort_name)} <button aria-label="Quitar cohorte" data-admin-action="release-remove-cohort" data-key="${esc(feature.feature_key)}" data-id="${item.cohort_id}">×</button></span>`).join('')}</div>
+        </article>`;
+      }).join('')
+    : '<div class="empty-admin">No hay funciones registradas.</div>';
+}
+
+async function releaseControl(){
+  const cohortRoot=$('#cohortList'),featureRoot=$('#featureList');
+  if(cohortRoot)cohortRoot.innerHTML='<div class="empty-admin">Cargando cohortes...</div>';
+  if(featureRoot)featureRoot.innerHTML='<div class="empty-admin">Cargando funciones...</div>';
+  const {r,d}=await api('/api/release/admin');
+  if(!r.ok){
+    if(cohortRoot)cohortRoot.innerHTML='<div class="empty-admin">No se pudo cargar release control.</div>';
+    if(featureRoot)featureRoot.innerHTML='';
+    return;
+  }
+  releaseControlState={
+    features:Array.isArray(d.features)?d.features:[],
+    cohorts:Array.isArray(d.cohorts)?d.cohorts:[],
+    assignments:Array.isArray(d.assignments)?d.assignments:[]
+  };
+  renderReleaseControl();
+}
+
+async function releasePatchFeature(key,payload,button){
+  if(button)button.disabled=true;
+  try{
+    const {r}=await api('/api/release/admin/features/'+encodeURIComponent(key),{
+      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    if(!r.ok)return setAdminNotice('No se pudo actualizar la función.',true);
+    await releaseControl();
+  }finally{if(button&&button.isConnected)button.disabled=false;}
+}
+
+async function releasePatchCohort(id,payload,button){
+  if(button)button.disabled=true;
+  try{
+    const {r}=await api('/api/release/admin/cohorts/'+encodeURIComponent(id),{
+      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    if(!r.ok)return setAdminNotice('No se pudo actualizar la cohorte.',true);
+    await releaseControl();
+  }finally{if(button&&button.isConnected)button.disabled=false;}
+}
 
 function supportAdminTypeLabel(type){
   return ({bug:'Problema',suggestion:'Sugerencia',question:'Duda'})[type] || type;
@@ -610,6 +706,39 @@ document.addEventListener('click', async event => {
   if (!button) return;
   const action = button.dataset.adminAction;
 
+  if (action === 'release-toggle-feature') return releasePatchFeature(button.dataset.key,{enabled:button.dataset.enabled!=='1'},button);
+  if (action === 'release-toggle-default') return releasePatchFeature(button.dataset.key,{defaultEnabled:button.dataset.default!=='1'},button);
+  if (action === 'release-toggle-cohort') return releasePatchCohort(button.dataset.id,{enabled:button.dataset.enabled!=='1'},button);
+  if (action === 'release-add-member') {
+    const input=document.querySelector('[data-release-member-input="'+button.dataset.id+'"]');
+    const username=String(input?.value||'').trim();
+    if(!username)return;
+    button.disabled=true;
+    try{
+      const {r,d}=await api('/api/release/admin/cohorts/'+encodeURIComponent(button.dataset.id)+'/members',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})
+      });
+      if(!r.ok)return setAdminNotice(d.error==='user_not_found'?'Usuario no encontrado.':'No se pudo añadir.',true);
+      if(input)input.value='';
+      await releaseControl();
+    }finally{if(button.isConnected)button.disabled=false;}
+    return;
+  }
+  if (action === 'release-remove-member') {
+    await api('/api/release/admin/cohorts/'+encodeURIComponent(button.dataset.id)+'/members/'+encodeURIComponent(button.dataset.userId),{method:'DELETE'});
+    await releaseControl(); return;
+  }
+  if (action === 'release-assign-cohort') {
+    const select=document.querySelector('[data-release-cohort-select="'+CSS.escape(button.dataset.key)+'"]');
+    const cohortId=select?.value;
+    if(!cohortId)return;
+    await api('/api/release/admin/features/'+encodeURIComponent(button.dataset.key)+'/cohorts/'+encodeURIComponent(cohortId),{method:'POST'});
+    await releaseControl(); return;
+  }
+  if (action === 'release-remove-cohort') {
+    await api('/api/release/admin/features/'+encodeURIComponent(button.dataset.key)+'/cohorts/'+encodeURIComponent(button.dataset.id),{method:'DELETE'});
+    await releaseControl(); return;
+  }
   if (action === 'support-status') return updateSupportAdmin(button.dataset.id,{status:button.dataset.status},button);
   if (action === 'support-note') {
     const item=supportAdminCache.find(x=>String(x.id)===String(button.dataset.id));
@@ -633,6 +762,40 @@ document.addEventListener('click', async event => {
     return decide(button.dataset.id, button.dataset.status, button.dataset.decision);
   }
 });
+
+
+$('#cohortCreateForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,fd=new FormData(form),status=$('#cohortCreateStatus'),submit=form.querySelector('button[type="submit"]');
+  submit.disabled=true;status.textContent='Creando...';
+  try{
+    const {r,d}=await api('/api/release/admin/cohorts',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key:String(fd.get('key')||'').trim(),name:String(fd.get('name')||'').trim(),description:String(fd.get('description')||'').trim()})
+    });
+    if(!r.ok){status.textContent=d.error==='cohort_key_exists'?'Esa clave ya existe.':'No se pudo crear.';return;}
+    form.reset();status.textContent='';await releaseControl();
+  }finally{submit.disabled=false;}
+});
+$('#featureCreateForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,fd=new FormData(form),status=$('#featureCreateStatus'),submit=form.querySelector('button[type="submit"]');
+  submit.disabled=true;status.textContent='Creando...';
+  try{
+    const {r,d}=await api('/api/release/admin/features',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        key:String(fd.get('key')||'').trim(),
+        name:String(fd.get('name')||'').trim(),
+        description:String(fd.get('description')||'').trim(),
+        defaultEnabled:fd.get('defaultEnabled')==='on'
+      })
+    });
+    if(!r.ok){status.textContent=d.error==='feature_key_exists'?'Esa clave ya existe.':'No se pudo crear.';return;}
+    form.reset();status.textContent='';await releaseControl();
+  }finally{submit.disabled=false;}
+});
+$('#reloadReleaseControl')?.addEventListener('click',releaseControl);
 
 $('#reloadSupportAdmin')?.addEventListener('click',supportAdmin);
 $('#supportAdminStatus')?.addEventListener('change',supportAdmin);
@@ -680,5 +843,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), betaOps(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([metrics(), betaOps(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
