@@ -527,3 +527,13 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar que el contenido sensible se describe sin autorizar contenido ilegal o no consentido.
 - Confirmar que las seis URLs aparecen en `/sitemap.xml`.
 - Revisar datos del responsable/contacto antes de considerar los textos jurídicamente definitivos.
+
+
+## 42. Momentum Card CTA Hotfix
+- Confirmar `/api/health` con versión 1.94.1 y feature `momentum-card-cta-v1.94.1`.
+- Abrir Inicio con contenido en “Desde tu última visita”.
+- Confirmar que cada tarjeta muestra “Ver publicación →”.
+- Tocar tanto el contenido como el CTA visual y confirmar que ambos abren la misma publicación.
+- Revisar una tarjeta con texto y otra con imagen/vídeo.
+- Confirmar que tiempo e interacciones siguen visibles.
+- Revisar móvil y escritorio.

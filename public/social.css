@@ -2462,11 +2462,35 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   font-size:12px;
   line-height:1.4;
 }
-.momentum-card-copy>small{
+.momentum-card-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:9px;
+}
+.momentum-card-meta>small{
   display:block;
-  margin-top:7px;
   color:var(--muted);
   font-size:10px;
+  min-width:0;
+}
+.momentum-card-cta{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  color:var(--teal);
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.momentum-card-cta i{
+  font-style:normal;
+  transition:transform .16s ease;
+}
+.momentum-card:hover .momentum-card-cta i{
+  transform:translateX(2px);
 }
 .momentum-author{
   display:flex;
