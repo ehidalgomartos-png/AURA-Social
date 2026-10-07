@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.92.1",
+  "version": "1.92.2",
   "private": true,
-  "description": "RedLibertad V1.92.1 Public Mobile Visual Polish - detalle público de posts más cuidado y Reels/Multimedia con cabecera móvil y estados vacíos mejorados.",
+  "description": "RedLibertad V1.92.2 Social Share Preview Polish - nueva imagen OG 1200x630 más llamativa y versionada para compartir enlaces.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
