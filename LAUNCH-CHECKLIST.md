@@ -561,3 +561,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar perfiles con y sin foto de portada.
 - Confirmar que cerrar/reabrir el perfil público no altera el layout.
 - Confirmar que el perfil propio no cambia.
+
+
+## 45. Public Navigation Responsive Polish
+- Confirmar `/api/health` con versión 1.96.0 y features `public-navigation-responsive-v1.96` y `public-header-consistency-v1.96`.
+- Revisar en escritorio: /perfiles, /publicaciones, /comunidades, /eventos, /reels, /multimedia, /buscar, /descubrir, /temas y /historias.
+- Confirmar que ningún botón invade o toca la marca RedLibertad.
+- Revisar tablet y confirmar que la navegación queda contenida sin saltos de línea.
+- Revisar móvil y confirmar cabecera única: RedLibertad + Crear cuenta.
+- Confirmar que no quedan botones secundarios en dos filas en móvil.
+- Revisar páginas de detalle públicas para comprobar ausencia de regresiones.
+- Confirmar que `public-nav-v196.css` carga en todas las familias públicas generadas por servidor.
