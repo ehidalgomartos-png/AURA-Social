@@ -340,7 +340,7 @@ app.get('/p/:id', async (req, res) => {
         ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">`
         : `<div class="shared-lock"><div><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div></div>`;
     const caption=!textOnly&&post.caption?`<p class="shared-caption">${escapeHtml(post.caption)}</p>`:'';
-    const socialProof=`<div class="shared-social-proof" aria-label="Actividad pública"><span><b>${Number(post.like_count||0)}</b><small>Me gusta</small></span><span><b>${Number(post.comment_count||0)}</b><small>Comentarios</small></span><span><b>${Number(post.repost_count||0)}</b><small>Republicaciones</small></span></div>`;
+    const socialProof=post.content_level==='normal'?`<div class="shared-social-proof" aria-label="Actividad pública"><span><b>${Number(post.like_count||0)}</b><small>Me gusta</small></span><span><b>${Number(post.comment_count||0)}</b><small>Comentarios</small></span><span><b>${Number(post.repost_count||0)}</b><small>Republicaciones</small></span></div>`:'';
     let relatedHtml='';
     if(indexable){
       const relatedResult=await db.query(`
@@ -360,7 +360,7 @@ app.get('/p/:id', async (req, res) => {
         const relatedCards=relatedResult.rows.map(item=>{
           const href=publicContentPathV190({...item,display_name:post.display_name,username:post.username});
           const label=item.post_kind==='reel'?'REEL':'PUBLICACIÓN';
-          const copy=String(item.caption||'Contenido de '+post.display_name).replace(/\\s+/g,' ').trim();
+          const copy=String(item.caption||'Contenido de '+post.display_name).replace(/\s+/g,' ').trim();
           const excerpt=copy.length>90?copy.slice(0,89).trimEnd()+'…':copy;
           const thumb=item.media_type==='image'&&item.media_url
             ? `<img src="${escapeHtml(absoluteUrl(req,item.media_url))}" loading="lazy" decoding="async" alt="">`
