@@ -7487,9 +7487,22 @@ async function prepareEventCreate(){
     select.innerHTML='<option value="">Selecciona una comunidad</option>'+adminCommunities.map(item=>`<option value="${item.id}">${esc(item.name)}</option>`).join('');
   }
   const start=$('#eventCreateForm [name="startsAt"]');
+  const end=$('#eventCreateForm [name="endsAt"]');
   if(start){
     const min=new Date(Date.now()+5*60*1000);
     start.min=new Date(min.getTime()-min.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  }
+  if(start&&end){
+    const syncEndMin=()=>{
+      if(start.value){
+        const startDate=new Date(start.value);
+        const minEnd=new Date(startDate.getTime()+60*1000);
+        end.min=Number.isFinite(minEnd.getTime())?new Date(minEnd.getTime()-minEnd.getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+      }else end.min='';
+      if(end.value && start.value && new Date(end.value).getTime()<=new Date(start.value).getTime())end.value='';
+    };
+    syncEndMin();
+    start.onchange=syncEndMin;
   }
   syncEventCreateFields();
 }
@@ -7927,6 +7940,8 @@ $('#eventCreateForm')?.addEventListener('submit',async event=>{
     const circleIds=visibility==='circles'?all('input[type="checkbox"]:checked',$('#eventCircleOptions')).map(x=>Number(x.value)).filter(Number.isInteger):[];
     const starts=new Date(String(fd.get('startsAt')||''));const endsValue=String(fd.get('endsAt')||'');const ends=endsValue?new Date(endsValue):null;
     if(!Number.isFinite(starts.getTime()))throw new Error('Fecha de inicio no válida.');
+    if(endsValue && !Number.isFinite(ends?.getTime()))throw new Error('La fecha de fin no es válida.');
+    if(ends && ends.getTime()<=starts.getTime())throw new Error('La hora de fin debe ser posterior a la hora de inicio.');
     const payload={
       title:String(fd.get('title')||'').trim(),description:String(fd.get('description')||'').trim(),
       eventType:String(fd.get('eventType')||'in_person'),startsAt:starts.toISOString(),endsAt:ends&&Number.isFinite(ends.getTime())?ends.toISOString():null,
@@ -7935,7 +7950,7 @@ $('#eventCreateForm')?.addEventListener('submit',async event=>{
       communityId:visibility==='community'?Number(fd.get('communityId')||0)||null:null
     };
     const {r,d}=await api('/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(!r.ok)throw new Error(d.error==='invalid_start'?'El evento debe empezar al menos dentro de 5 minutos.':d.error==='location_required'?'Indica el lugar del evento.':d.error==='online_url_required'?'Indica el enlace del evento online.':d.error==='circle_audience_required'?'Selecciona al menos un círculo.':d.error==='community_admin_required'?'Solo administradores pueden crear eventos para esa comunidad.':'No se pudo crear el evento.');
+    if(!r.ok)throw new Error(d.error==='invalid_start'?'El evento debe empezar al menos dentro de 5 minutos.':d.error==='invalid_end'?'La hora de fin debe ser posterior a la hora de inicio.':d.error==='location_required'?'Indica el lugar del evento.':d.error==='online_url_required'?'Indica el enlace del evento online.':d.error==='circle_audience_required'?'Selecciona al menos un círculo.':d.error==='community_admin_required'?'Solo administradores pueden crear eventos para esa comunidad.':'No se pudo crear el evento.');
     closeEventCreate();toast('Evento creado');eventScope='mine';showView('events');await loadEvents(d.event.id);
   }catch(error){status.textContent=error.message;}finally{submit.disabled=false;}
 });
