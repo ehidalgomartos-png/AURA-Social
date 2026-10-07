@@ -1,4 +1,4 @@
-# RedLibertad V1.75.2 — Reply + Profile Layer Hotfix
+# RedLibertad V1.75.3 — Message Own Actions Hotfix
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1601,4 +1601,13 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - La portada queda detrás del cuerpo del perfil y del avatar.
 - La foto de perfil se muestra completa sobre el borde inferior de la portada.
 - Móvil permanece sin cambios.
+- Caché PWA actualizada.
+
+
+## V1.75.3 — Message Own Actions Hotfix
+
+- Los mensajes enviados por ti dejan de mostrar **Responder** y **Reaccionar**.
+- Los mensajes recibidos mantienen **Responder + Reaccionar**.
+- Las reacciones ya existentes sobre mensajes propios siguen mostrándose como resumen compacto.
+- Sin cambios en móvil/escritorio fuera del chat.
 - Caché PWA actualizada.
