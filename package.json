@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.80.1",
+  "version": "1.80.0",
   "private": true,
-  "description": "RedLibertad V1.80.1 Social Core Recovery Hotfix - corrige bootstraps de notificaciones que podían romper feed/perfil tras redeploy y añade estados de error recuperables.",
+  "description": "RedLibertad V1.80 Public Communities & Community SEO - directorio y fichas públicas de comunidades, SEO seguro, sitemap propio y protección de privacidad/contenido.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

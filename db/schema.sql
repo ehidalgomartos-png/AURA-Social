@@ -459,28 +459,12 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
   CHECK(type IN (
-            'follow',
-            'message',
-            'consent_request',
-            'consent_approved',
-            'consent_rejected',
-            'consent_revoked',
-            'like',
-            'comment',
-            'mention',
-            'repost',
-            'creator_broadcast',
-            'creator_vip_broadcast',
-            'creator_poll_vote',
-            'creator_question_response',
-            'event_reminder',
-            'collaboration_request',
-            'collaboration_approved',
-            'collaboration_rejected',
-            'collaboration_revoked',
-            'circle_mention',
-            'system'
-          ));
+    'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
+    'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
+    'creator_poll_vote','creator_question_response','event_reminder',
+    'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked',
+    'circle_mention','system'
+  ));
 
 -- RedLibertad V1.48: notificaciones Web Push opcionales
 CREATE TABLE IF NOT EXISTS push_subscriptions (
@@ -590,28 +574,16 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
   CHECK(type IN (
-            'follow',
-            'message',
-            'consent_request',
-            'consent_approved',
-            'consent_rejected',
-            'consent_revoked',
-            'like',
-            'comment',
-            'mention',
-            'repost',
-            'creator_broadcast',
-            'creator_vip_broadcast',
-            'creator_poll_vote',
-            'creator_question_response',
-            'event_reminder',
-            'collaboration_request',
-            'collaboration_approved',
-            'collaboration_rejected',
-            'collaboration_revoked',
-            'circle_mention',
-            'system'
-          ));
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'system'
+  ));
 
 
 -- RedLibertad V1.3: guardados
@@ -638,28 +610,18 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
   CHECK(type IN (
-            'follow',
-            'message',
-            'consent_request',
-            'consent_approved',
-            'consent_rejected',
-            'consent_revoked',
-            'like',
-            'comment',
-            'mention',
-            'repost',
-            'creator_broadcast',
-            'creator_vip_broadcast',
-            'creator_poll_vote',
-            'creator_question_response',
-            'event_reminder',
-            'collaboration_request',
-            'collaboration_approved',
-            'collaboration_rejected',
-            'collaboration_revoked',
-            'circle_mention',
-            'system'
-          ));
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'mention',
+    'repost',
+    'system'
+  ));
 
 
 -- RedLibertad V1.8: crecimiento e invitaciones
@@ -803,28 +765,19 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
   CHECK(type IN (
-            'follow',
-            'message',
-            'consent_request',
-            'consent_approved',
-            'consent_rejected',
-            'consent_revoked',
-            'like',
-            'comment',
-            'mention',
-            'repost',
-            'creator_broadcast',
-            'creator_vip_broadcast',
-            'creator_poll_vote',
-            'creator_question_response',
-            'event_reminder',
-            'collaboration_request',
-            'collaboration_approved',
-            'collaboration_rejected',
-            'collaboration_revoked',
-            'circle_mention',
-            'system'
-          ));
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'mention',
+    'repost',
+    'creator_broadcast',
+    'system'
+  ));
 
 -- RedLibertad V1.17: círculo VIP privado de creador
 CREATE TABLE IF NOT EXISTS creator_vips (
@@ -993,28 +946,28 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
   CHECK(type IN (
-            'follow',
-            'message',
-            'consent_request',
-            'consent_approved',
-            'consent_rejected',
-            'consent_revoked',
-            'like',
-            'comment',
-            'mention',
-            'repost',
-            'creator_broadcast',
-            'creator_vip_broadcast',
-            'creator_poll_vote',
-            'creator_question_response',
-            'event_reminder',
-            'collaboration_request',
-            'collaboration_approved',
-            'collaboration_rejected',
-            'collaboration_revoked',
-            'circle_mention',
-            'system'
-          ));
+    'follow',
+    'message',
+    'consent_request',
+    'consent_approved',
+    'consent_rejected',
+    'consent_revoked',
+    'like',
+    'comment',
+    'mention',
+    'repost',
+    'creator_broadcast',
+    'creator_vip_broadcast',
+    'creator_poll_vote',
+    'creator_question_response',
+    'event_reminder',
+    'collaboration_request',
+    'collaboration_approved',
+    'collaboration_rejected',
+    'collaboration_revoked',
+    'circle_mention',
+    'system'
+  ));
 
 -- RedLibertad V1.24: insights y notificaciones de comunidad
 CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_created
