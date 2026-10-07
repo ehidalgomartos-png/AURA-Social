@@ -4989,8 +4989,12 @@ $('#profileForm').addEventListener('submit', async e => {
 });
 
 async function loadConsents() {
-  const { d } = await api('/api/posts/consents/pending');
+  const { r,d } = await api('/api/posts/consents/pending');
   const root = $('#consentRequests');
+  if(!r.ok){
+    root.innerHTML='<div class="info-card"><b>No se pudieron cargar consentimientos y colaboraciones.</b><p>El servicio de publicaciones no ha respondido correctamente.</p><button type="button" class="secondary" data-ui-retry="consents">Reintentar</button></div>';
+    return;
+  }
   const consentRequests=Array.isArray(d.requests)?d.requests:[];
   const collaborations=Array.isArray(d.collaborations)?d.collaborations:[];
   if (!consentRequests.length && !collaborations.length) {
@@ -8815,6 +8819,7 @@ document.addEventListener('click',async event=>{
     if(action==='feed')await loadFeed(currentMode);
     else if(action==='notifications')await loadNotifications();
     else if(action==='conversations')await loadConversations();
+    else if(action==='consents')await loadConsents();
   }finally{
     if(button.isConnected)button.disabled=false;
   }

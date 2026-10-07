@@ -36,7 +36,7 @@ const { startPushWorker, isPushConfigured } = require('./src/services/push');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='1.80.0';
+const APP_VERSION='1.80.2';
 
 function configurationStatus(){
   const missing=[];
