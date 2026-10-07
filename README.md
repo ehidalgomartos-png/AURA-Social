@@ -1992,3 +1992,15 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin cambios de backend funcional, privacidad, permisos o base de datos.
 - Sin cambios en `src/routes/posts.js`.
 - Sin monetización.
+
+
+## V1.90.3 — Profile Visual Polish
+
+- Pulido visual del perfil propio sobre V1.90.2.
+- Centro de creador más compacto, con flecha alineada a la derecha.
+- Botón Más con chevrón integrado en la misma línea.
+- Estadísticas móviles en una sola fila de cuatro columnas.
+- Se retira del pie del perfil el texto redundante de estado +18/creador; esa información sigue disponible en Confianza.
+- Sin cambios de lógica, permisos, privacidad ni base de datos.
+- Sin cambios en `src/routes/posts.js`.
+- Sin monetización.
