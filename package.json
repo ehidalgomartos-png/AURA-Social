@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.74.0",
+  "version": "1.75.0",
   "private": true,
-  "description": "RedLibertad V1.74 Release Audit & Safe Rollback - historial antes/después, actor, request ID y restauración transaccional con protección contra conflictos, sin monetización.",
+  "description": "RedLibertad V1.75 Controlled Rollout Waves & Beta Graduation - olas porcentuales deterministas, congelado de expansión y graduación auditada, sin tracking externo ni monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
