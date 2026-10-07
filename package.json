@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.92.0",
+  "version": "1.92.1",
   "private": true,
-  "description": "RedLibertad V1.92 Mobile Public Entry Bar - barra inferior móvil de Crear cuenta / Entrar en páginas públicas de detalle, con retorno seguro y sin duplicar CTAs.",
+  "description": "RedLibertad V1.92.1 Public Mobile Visual Polish - detalle público de posts más cuidado y Reels/Multimedia con cabecera móvil y estados vacíos mejorados.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
