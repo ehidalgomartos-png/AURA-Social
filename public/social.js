@@ -6863,7 +6863,7 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
       : (m.seen_by_other ? 'Visto' : 'Enviado')
     : '';
 
-  const replyLabel=mine ? 'Tú' : senderName;
+  const replyLabel=mine ? 'ti' : senderName;
   const replyText=m.gated
     ? 'Contenido sensible'
     : String(m.body || '').trim()
