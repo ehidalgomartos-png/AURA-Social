@@ -60,6 +60,39 @@
     </div>
   </section>
 
+  <section class="panel growth-attribution-panel">
+    <div class="panel-head">
+      <div><span class="eyebrow">CRECIMIENTO</span><h2>Origen de altas</h2><p class="panel-copy">Qué superficies públicas están generando registros y si esas altas empiezan a participar. Datos propios, sin tracking externo.</p></div>
+      <div class="panel-tools">
+        <select id="growthAttributionDays" aria-label="Periodo de atribución">
+          <option value="7">7 días</option>
+          <option value="30" selected>30 días</option>
+        </select>
+        <button id="reloadGrowthAttribution" type="button">Actualizar</button>
+      </div>
+    </div>
+
+    <div id="growthAttributionMetrics" class="beta-metrics"></div>
+
+    <div class="growth-attribution-layout">
+      <section class="growth-attribution-block">
+        <div class="growth-attribution-subhead"><span class="eyebrow">POR TIPO</span><h3>Qué trae nuevas cuentas</h3></div>
+        <div id="growthAttributionTypes" class="growth-type-list"></div>
+      </section>
+      <section class="growth-attribution-block">
+        <div class="growth-attribution-subhead"><span class="eyebrow">TOP ORÍGENES</span><h3>Contenido que convierte</h3></div>
+        <div id="growthAttributionSources" class="growth-source-list"></div>
+      </section>
+    </div>
+
+    <section class="growth-daily-block">
+      <div class="growth-attribution-subhead"><span class="eyebrow">EVOLUCIÓN</span><h3>Altas atribuidas por día</h3></div>
+      <div id="growthAttributionDaily" class="growth-daily-bars" aria-label="Altas atribuidas por día"></div>
+    </section>
+
+    <p id="growthAttributionCoverage" class="beta-privacy-note"></p>
+  </section>
+
   <section class="panel release-control-panel">
     <div class="panel-head">
       <div><span class="eyebrow">RELEASE CONTROL</span><h2>Cohortes y funciones beta</h2><p class="panel-copy">Activa novedades por cohortes, olas porcentuales estables o para todos; congela la expansión o usa el kill switch sin redeploy.</p></div>
