@@ -262,6 +262,20 @@ function publicEntryHrefV188(type,key,pathValue,anchor='registro'){
   const query=new URLSearchParams({entry:String(type||''),entryKey:String(key||''),next:String(pathValue||'')}).toString();
   return '/?'+query+'#'+(anchor==='acceso'?'acceso':'registro');
 }
+function seoSlugV190(value=''){
+  return String(value||'reel')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')
+    .slice(0,80)||'reel';
+}
+function publicReelPathV190(post){
+  const raw=String(post.caption||'').replace(/\s+/g,' ').trim();
+  const name=(raw ? (raw.length>70 ? raw.slice(0,69).trimEnd()+'…' : raw) : ('Reel de '+String(post.display_name||post.username||'RedLibertad')));
+  return '/reel/'+encodeURIComponent(post.id)+'/'+encodeURIComponent(seoSlugV190(name));
+}
 
 let publicPostAudienceV18Ready=null;
 async function ensurePublicPostAudienceV18(){
@@ -289,6 +303,9 @@ app.get('/p/:id', async (req, res) => {
     const origin=publicOrigin(req);
     const publicUrl=`${origin}/p/${encodeURIComponent(post.id)}`;
     const indexable=post.content_level==='normal' && post.discoverable===true && post.is_admin===false;
+    if(indexable && post.post_kind==='reel' && post.media_type==='video' && post.media_url){
+      return res.redirect(301,publicReelPathV190(post));
+    }
     const title='Mira mi post en RedLibertad';
     const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
     const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
@@ -1064,6 +1081,7 @@ app.get('/sitemap.xml',async(req,res)=>{
          AND u.status='active'
          AND u.is_admin=false
          AND u.discoverable=true
+         AND p.post_kind<>'reel'
        ORDER BY p.created_at DESC
        LIMIT 10000
     `);
