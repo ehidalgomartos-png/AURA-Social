@@ -1,4 +1,4 @@
-# RedLibertad V1.73.0 — Beta Cohorts & Release Control
+# RedLibertad V1.74.0 — Release Audit & Safe Rollback
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1542,4 +1542,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL para evaluación por usuario.
 - Base reutilizable para próximas funciones experimentales.
 - Mobile-first.
+- Sin monetización.
+
+
+## V1.74.0 — Release Audit & Safe Rollback
+
+- Historial de cambios de release control con administrador, fecha y request ID.
+- Snapshot completo Antes / Después para cambios restaurables.
+- Auditoría de cambios de feature, kill switch, modo global/cohortes, asignaciones, estado de cohorte y miembros.
+- Las creaciones nuevas quedan auditadas, pero no se eliminan automáticamente mediante rollback.
+- Rollback transaccional de configuración anterior.
+- Protección contra sobrescritura: el rollback solo se ejecuta si el estado actual coincide con el estado posterior del cambio elegido.
+- Respuesta `rollback_conflict` cuando existen cambios posteriores incompatibles.
+- Restauración de feature flags junto con sus cohortes asignadas.
+- Restauración de cohortes junto con su estado y lista de miembros existentes.
+- El rollback genera a su vez una nueva entrada de auditoría y marca la entrada restaurada.
+- Historial visible desde la consola Release Control.
+- Request ID reutilizado para correlacionar cambios administrativos con logs operativos.
+- Mobile-first en administración.
 - Sin monetización.
