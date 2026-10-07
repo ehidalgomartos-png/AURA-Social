@@ -42,7 +42,7 @@ const { startPushWorker, isPushConfigured } = require('./src/services/push');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='1.86.0';
+const APP_VERSION='1.87.0';
 
 function configurationStatus(){
   const missing=[];
@@ -285,10 +285,10 @@ app.get('/p/:id', async (req, res) => {
     const indexable=post.content_level==='normal' && post.discoverable===true && post.is_admin===false;
     const title='Mira mi post en RedLibertad';
     const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
-    const ogImage=`${origin}/assets/og-redlibertad.png`;
     const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
+    const ogImage=indexable && mediaAllowed ? absoluteUrl(req,post.media_url) : `${origin}/assets/og-redlibertad.png`;
     const media=!post.media_url ? '' : mediaAllowed ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">` : `<div class="shared-lock"><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div>`;
-    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div>${post.discoverable===true&&!post.is_admin?`<a href="/perfil/${encodeURIComponent(post.username)}"><b>${escapeHtml(post.display_name)}</b></a>`:`<b>${escapeHtml(post.display_name)}</b>`}<small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></article></main></body></html>`);
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><script defer src="/public-share-v187.js"></script><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div>${post.discoverable===true&&!post.is_admin?`<a href="/perfil/${encodeURIComponent(post.username)}"><b>${escapeHtml(post.display_name)}</b></a>`:`<b>${escapeHtml(post.display_name)}</b>`}<small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></article></main></body></html>`);
   } catch (error) {
     console.error('RedLibertad public post error:', error);
     res.status(500).send('No se pudo cargar la publicación.');
@@ -379,6 +379,7 @@ app.get('/perfil/:username',async(req,res)=>{
   <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
+  <script defer src="/public-share-v187.js"></script>
   ${structured}
   <style>
     .public-profile-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg)}
@@ -427,6 +428,7 @@ app.get('/perfil/:username',async(req,res)=>{
           <a class="button" href="/app?profile=${encodeURIComponent(profile.username)}">Ver perfil en RedLibertad</a>
           <a class="button ghost" href="/perfiles">Descubrir perfiles</a>
           <a class="button ghost" href="/publicaciones">Publicaciones públicas</a>
+          <button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir perfil</button>
           <a class="button ghost" href="/#registro">Crear cuenta</a>
         </div>
         ${!indexable?'<p class="public-profile-note">Este perfil no participa en la indexación pública de RedLibertad.</p>':''}
@@ -1095,7 +1097,7 @@ app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
 
-const server=app.listen(PORT, () => console.log(`RedLibertad V1.86.0 running on http://localhost:${PORT}`));
+const server=app.listen(PORT, () => console.log(`RedLibertad V1.87.0 running on http://localhost:${PORT}`));
 server.keepAliveTimeout=5000;
 server.headersTimeout=65000;
 server.requestTimeout=120000;
