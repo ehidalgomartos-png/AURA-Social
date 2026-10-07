@@ -131,7 +131,7 @@ router.get('/buscar',async(req,res)=>{
 
     let results='';
     if(!hasQuery){
-      results='<section class="intro"><a href="/perfiles"><b>Personas</b><p class="muted">Perfiles que han elegido ser descubribles.</p></a><a href="/publicaciones"><b>Publicaciones</b><p class="muted">Contenido público normal.</p></a><a href="/reels"><b>Reels</b><p class="muted">Vídeos públicos de la comunidad.</p></a><a href="/comunidades"><b>Comunidades</b><p class="muted">Grupos públicos por intereses.</p></a><a href="/eventos"><b>Eventos</b><p class="muted">Encuentros públicos próximos.</p></a><a href="/multimedia"><b>Multimedia</b><p class="muted">Fotos y vídeos públicos.</p></a></section>';
+      results='<section class="intro"><a href="/descubrir"><b>Descubrir ahora</b><p class="muted">Tendencias, personas nuevas, Reels, comunidades y eventos.</p></a><a href="/perfiles"><b>Personas</b><p class="muted">Perfiles que han elegido ser descubribles.</p></a><a href="/publicaciones"><b>Publicaciones</b><p class="muted">Contenido público normal.</p></a><a href="/reels"><b>Reels</b><p class="muted">Vídeos públicos de la comunidad.</p></a><a href="/comunidades"><b>Comunidades</b><p class="muted">Grupos públicos por intereses.</p></a><a href="/eventos"><b>Eventos</b><p class="muted">Encuentros públicos próximos.</p></a><a href="/multimedia"><b>Multimedia</b><p class="muted">Fotos y vídeos públicos.</p></a></section>';
     }else if(!valid){
       results='<div class="notice">Escribe al menos 2 caracteres para buscar.</div>';
     }else if(total===0){
