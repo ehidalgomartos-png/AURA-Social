@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.94.0",
+  "version": "1.94.1",
   "private": true,
-  "description": "RedLibertad V1.94 Legal & Transparency Center - aviso legal, privacidad, cookies, términos, normas, moderación y consentimiento legal enlazado en alta/footer.",
+  "description": "RedLibertad V1.94.1 Momentum Card CTA Hotfix - añade un CTA visible Ver publicación en las tarjetas de Desde tu última visita.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
