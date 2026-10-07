@@ -82,6 +82,10 @@ async function ensureBetaOpsV171(){
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_operational_incidents_status_created ON operational_incidents(status,severity,created_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_posts_user_created_beta ON posts(user_id,created_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_comments_user_created_beta ON comments(user_id,created_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_follows_follower_created_beta ON follows(follower_id,created_at DESC)');
+      await db.query('CREATE INDEX IF NOT EXISTS idx_messages_sender_created_beta ON messages(sender_id,created_at DESC)');
     })().catch(error=>{
       betaOpsV171Ready=null;
       throw error;
