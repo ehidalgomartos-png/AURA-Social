@@ -1775,3 +1775,12 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin migraciones de base de datos.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.83.1 — Desktop Search Layout Polish
+
+- Corrige la colisión entre la clase local del buscador y la clase global `.hero`, que en escritorio heredaba `min-height: calc(100vh - 78px)` y padding de la landing.
+- El bloque principal de `/buscar` usa ahora una clase aislada `.search-hero`.
+- La navegación pública del buscador deja de heredar `min-width:160px` por botón en escritorio.
+- Los botones de la cabecera quedan en una sola fila cuando hay espacio suficiente.
+- Las reglas móviles existentes se mantienen sin cambios funcionales.
