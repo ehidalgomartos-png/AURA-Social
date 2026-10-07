@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.90.1",
+  "version": "1.90.2",
   "private": true,
-  "description": "RedLibertad V1.90.1 SEO Canonical Links Hotfix - enlaces internos públicos de Reels apuntan directamente a su URL canonical.",
+  "description": "RedLibertad V1.90.2 Mobile Profile Declutter - perfil propio móvil más limpio con acciones principales, menú Más y acceso destacado al Centro de creador.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
