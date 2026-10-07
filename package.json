@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.80.0",
+  "version": "1.80.2",
   "private": true,
-  "description": "RedLibertad V1.80 Public Communities & Community SEO - directorio y fichas públicas de comunidades, SEO seguro, sitemap propio y protección de privacidad/contenido.",
+  "description": "RedLibertad V1.80.2 Posts Bootstrap Hotfix - elimina downgrades históricos de notifications_type_check que bloqueaban feed y publicaciones.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

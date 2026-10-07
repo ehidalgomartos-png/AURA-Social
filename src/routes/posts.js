@@ -137,15 +137,6 @@ async function ensureCommunityV15() {
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_reposts_post_created ON reposts(post_id,created_at DESC)');
       await db.query('CREATE INDEX IF NOT EXISTS idx_reposts_user_created ON reposts(user_id,created_at DESC)');
-      await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
-      await db.query(`
-        ALTER TABLE notifications
-          ADD CONSTRAINT notifications_type_check
-          CHECK(type IN (
-            'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast','system'
-          ))
-      `);
     })().catch(error => {
       communityV15Ready = null;
       throw error;
@@ -707,16 +698,6 @@ let creatorCommunityV24Ready=null;
 async function ensureCreatorCommunityV24(){
   if(!creatorCommunityV24Ready){
     creatorCommunityV24Ready=(async()=>{
-      await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
-      await db.query(`
-        ALTER TABLE notifications
-          ADD CONSTRAINT notifications_type_check
-          CHECK(type IN (
-            'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
-            'creator_poll_vote','creator_question_response','system'
-          ))
-      `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_created ON creator_poll_votes(created_at DESC,poll_id)');
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_question_responses_created ON creator_question_responses(created_at DESC,question_id)');
       await db.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_creator_community_once ON notifications(user_id,actor_id,type,entity_type,entity_id) WHERE type IN ('creator_poll_vote','creator_question_response')");
