@@ -259,7 +259,7 @@ app.get('/p/:id', async (req, res) => {
     await ensurePublicPostAudienceV18();
     const result = await db.query(`
       SELECT p.id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
-             u.username,u.display_name
+             u.username,u.display_name,u.discoverable,u.is_admin
         FROM posts p JOIN users u ON u.id=p.user_id
        WHERE p.id=$1 AND p.moderation_status='published' AND p.audience='public' AND u.status='active'
        LIMIT 1
@@ -268,12 +268,13 @@ app.get('/p/:id', async (req, res) => {
     const post=result.rows[0];
     const origin=publicOrigin(req);
     const publicUrl=`${origin}/p/${encodeURIComponent(post.id)}`;
+    const indexable=post.content_level==='normal' && post.discoverable===true && post.is_admin===false;
     const title='Mira mi post en RedLibertad';
     const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
     const ogImage=`${origin}/assets/og-redlibertad.png`;
     const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
     const media=!post.media_url ? '' : mediaAllowed ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">` : `<div class="shared-lock"><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div>`;
-    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${post.content_level==='normal'?'index,follow':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div><b>${escapeHtml(post.display_name)}</b><small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a></div></article></main></body></html>`);
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><style>.shared-page{min-height:100vh;display:grid;place-items:center;padding:24px}.shared-card{width:min(620px,100%);background:var(--paper);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}.shared-head{padding:20px;display:flex;gap:12px;align-items:center}.shared-head img{width:44px;height:44px}.shared-head small{display:block;color:var(--muted)}.shared-media{width:100%;max-height:70vh;object-fit:contain;background:#101923;display:block}.shared-lock{min-height:300px;display:grid;place-items:center;text-align:center;padding:40px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:white}.shared-lock b,.shared-lock span{display:block}.shared-lock span{color:rgba(255,255,255,.72);margin-top:8px}.shared-copy{padding:20px}.shared-copy p{line-height:1.6;color:var(--muted)}.shared-copy .button{width:100%}</style></head><body><main class="shared-page"><article class="shared-card"><div class="shared-head"><img src="/assets/logo-mark.svg" alt=""><div>${post.discoverable===true&&!post.is_admin?`<a href="/perfil/${encodeURIComponent(post.username)}"><b>${escapeHtml(post.display_name)}</b></a>`:`<b>${escapeHtml(post.display_name)}</b>`}<small>@${escapeHtml(post.username)} · RedLibertad</small></div></div>${media}<div class="shared-copy">${post.caption?`<p>${escapeHtml(post.caption)}</p>`:''}<a class="button" href="/app">Ver en RedLibertad</a><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></article></main></body></html>`);
   } catch (error) {
     console.error('RedLibertad public post error:', error);
     res.status(500).send('No se pudo cargar la publicación.');
@@ -308,7 +309,8 @@ app.get('/perfil/:username',async(req,res)=>{
         (SELECT count(*)::int FROM posts p
           WHERE p.user_id=u.id
             AND p.moderation_status='published'
-            AND p.audience='public') public_post_count
+            AND p.audience='public'
+            AND p.content_level='normal') public_post_count
       FROM users u
       WHERE lower(u.username)=lower($1)
         AND u.status='active'
@@ -483,7 +485,8 @@ app.get('/perfiles',async(req,res)=>{
         (SELECT count(*)::int FROM posts p
           WHERE p.user_id=u.id
             AND p.moderation_status='published'
-            AND p.audience='public') public_post_count
+            AND p.audience='public'
+            AND p.content_level='normal') public_post_count
       FROM users u
       WHERE u.status='active'
         AND u.is_admin=false
@@ -655,10 +658,329 @@ app.get('/perfiles',async(req,res)=>{
   }
 });
 
+
+let publicContentSeoV179Ready=null;
+async function ensurePublicContentSeoV179(){
+  await ensurePublicPostAudienceV18();
+  if(!publicContentSeoV179Ready){
+    publicContentSeoV179Ready=db.query(`
+      CREATE INDEX IF NOT EXISTS idx_posts_public_discovery_v179
+        ON posts(created_at DESC,user_id)
+        WHERE moderation_status='published'
+          AND audience='public'
+          AND content_level='normal'
+    `).catch(error=>{
+      publicContentSeoV179Ready=null;
+      throw error;
+    });
+  }
+  return publicContentSeoV179Ready;
+}
+
+function extractPublicHashtagsV179(value=''){
+  const tags=[];
+  const seen=new Set();
+  for(const match of String(value||'').matchAll(/#([\p{L}\p{N}_]{2,40})/gu)){
+    const tag=match[1].normalize('NFC').toLowerCase();
+    if(!seen.has(tag)){seen.add(tag);tags.push(tag);}
+  }
+  return tags;
+}
+
+function publicCaptionHtmlV179(value=''){
+  const source=String(value||'');
+  const token=/(^|\s)#([\p{L}\p{N}_]{2,40})/gu;
+  let out='',last=0;
+  for(const match of source.matchAll(token)){
+    out+=escapeHtml(source.slice(last,match.index));
+    out+=escapeHtml(match[1]||'');
+    const tag=match[2].normalize('NFC').toLowerCase();
+    out+=`<a class="public-tag-link" href="/hashtag/${encodeURIComponent(tag)}">#${escapeHtml(match[2])}</a>`;
+    last=match.index+match[0].length;
+  }
+  out+=escapeHtml(source.slice(last));
+  return out.replace(/\n/g,'<br>');
+}
+
+function publicPostCardV179(req,post){
+  const avatar=post.avatar_url ? absoluteUrl(req,post.avatar_url) : '';
+  const image=post.media_type==='image' && post.media_url
+    ? `<a class="public-post-media" href="/p/${encodeURIComponent(post.id)}"><img src="${escapeHtml(absoluteUrl(req,post.media_url))}" loading="lazy" decoding="async" alt="Publicación de ${escapeHtml(post.display_name)}"></a>`
+    : post.media_type==='video' && post.media_url
+      ? `<a class="public-post-media public-video-placeholder" href="/p/${encodeURIComponent(post.id)}"><span>▶</span><b>Vídeo público</b></a>`
+      : '';
+  const date=new Date(post.created_at).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+  return `<article class="public-post-card">
+    <div class="public-post-head">
+      <a class="public-post-author" href="/perfil/${encodeURIComponent(post.username)}">
+        ${avatar
+          ? `<img src="${escapeHtml(avatar)}" loading="lazy" decoding="async" alt="">`
+          : `<span class="public-post-avatar">${escapeHtml(String(post.display_name||post.username).slice(0,2).toUpperCase())}</span>`}
+        <span><b>${escapeHtml(post.display_name)}</b><small>@${escapeHtml(post.username)} · ${escapeHtml(date)}</small></span>
+      </a>
+      ${post.creator_verified?'<span class="public-post-badge">✓ Creador</span>':''}
+    </div>
+    ${image}
+    <div class="public-post-copy">
+      ${post.caption?`<p>${publicCaptionHtmlV179(post.caption)}</p>`:'<p class="muted">Publicación sin texto.</p>'}
+      <a class="public-post-open" href="/p/${encodeURIComponent(post.id)}">Abrir publicación →</a>
+    </div>
+  </article>`;
+}
+
+async function trendingPublicHashtagsV179(limit=12){
+  const recent=await db.query(`
+    SELECT p.caption,p.created_at
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE p.moderation_status='published'
+       AND p.audience='public'
+       AND p.content_level='normal'
+       AND u.status='active'
+       AND u.is_admin=false
+       AND u.discoverable=true
+       AND p.caption IS NOT NULL
+       AND p.caption LIKE '%#%'
+     ORDER BY p.created_at DESC
+     LIMIT 500
+  `);
+  const map=new Map();
+  for(const row of recent.rows){
+    for(const tag of extractPublicHashtagsV179(row.caption)){
+      const current=map.get(tag)||{tag,count:0,lastmod:row.created_at};
+      current.count+=1;
+      if(new Date(row.created_at)>new Date(current.lastmod))current.lastmod=row.created_at;
+      map.set(tag,current);
+    }
+  }
+  return [...map.values()].sort((a,b)=>b.count-a.count || String(b.lastmod).localeCompare(String(a.lastmod))).slice(0,limit);
+}
+
+async function renderPublicContentV179(req,res,{tag=null}={}){
+  await Promise.all([ensurePublicContentSeoV179(),ensurePublicProfileSeoV177()]);
+  const origin=publicOrigin(req);
+  const rawQuery=tag ? '' : String(req.query.q||'').trim().slice(0,80);
+  const requestedPage=Math.max(1,Math.min(500,Number.parseInt(req.query.page||'1',10)||1));
+  const pageSize=24;
+  const searchPattern=rawQuery ? `%${rawQuery.toLowerCase()}%` : null;
+  const tagPattern=tag ? `(^|[^[:alnum:]_])#${tag}([^[:alnum:]_]|$)` : null;
+
+  const params=[searchPattern,tagPattern];
+  const filterSql=`
+    p.moderation_status='published'
+    AND p.audience='public'
+    AND p.content_level='normal'
+    AND u.status='active'
+    AND u.is_admin=false
+    AND u.discoverable=true
+    AND ($1::text IS NULL OR lower(COALESCE(p.caption,'')) LIKE $1 OR lower(u.username) LIKE $1 OR lower(u.display_name) LIKE $1)
+    AND ($2::text IS NULL OR COALESCE(p.caption,'') ~* $2)
+  `;
+
+  const countResult=await db.query(`
+    SELECT count(*)::int AS n
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE ${filterSql}
+  `,params);
+  const total=Number(countResult.rows[0]?.n||0);
+  const totalPages=Math.max(1,Math.ceil(total/pageSize));
+  const page=Math.min(requestedPage,totalPages);
+  const offset=(page-1)*pageSize;
+
+  const result=await db.query(`
+    SELECT p.id,p.caption,p.media_url,p.media_type,p.post_kind,p.created_at,
+           u.username,u.display_name,u.avatar_url,u.creator_verified
+      FROM posts p
+      JOIN users u ON u.id=p.user_id
+     WHERE ${filterSql}
+     ORDER BY p.created_at DESC,p.id DESC
+     LIMIT $3 OFFSET $4
+  `,[...params,pageSize,offset]);
+
+  const basePath=tag ? `/hashtag/${encodeURIComponent(tag)}` : '/publicaciones';
+  const canonical=page>1 ? `${origin}${basePath}?page=${page}` : `${origin}${basePath}`;
+  const indexable=tag ? total>=2 : !rawQuery;
+  const title=tag
+    ? `#${tag} — Publicaciones en RedLibertad`
+    : rawQuery
+      ? `Buscar publicaciones: ${rawQuery} — RedLibertad`
+      : page>1
+        ? `Publicaciones públicas — Página ${page} — RedLibertad`
+        : 'Publicaciones públicas — RedLibertad';
+  const description=tag
+    ? `Publicaciones públicas con #${tag} en RedLibertad.`
+    : rawQuery
+      ? `Resultados públicos para “${rawQuery}” en RedLibertad.`
+      : 'Descubre publicaciones públicas normales compartidas por personas que participan en el descubrimiento público de RedLibertad.';
+
+  const querySuffix=rawQuery ? `&q=${encodeURIComponent(rawQuery)}` : '';
+  const previous=page>1
+    ? `${basePath}?${page-1>1?`page=${page-1}${querySuffix}`:rawQuery?`q=${encodeURIComponent(rawQuery)}`:''}`
+    : '';
+  const next=page<totalPages ? `${basePath}?page=${page+1}${querySuffix}` : '';
+  const cards=result.rows.map(post=>publicPostCardV179(req,post)).join('');
+  const trending=tag ? [] : await trendingPublicHashtagsV179(12);
+  const tagNav=trending.length
+    ? `<div class="public-tag-cloud">${trending.map(item=>`<a href="/hashtag/${encodeURIComponent(item.tag)}">#${escapeHtml(item.tag)} <span>${item.count}</span></a>`).join('')}</div>`
+    : '';
+
+  const listStructured=indexable && page===1 ? `<script type="application/ld+json">${JSON.stringify({
+    '@context':'https://schema.org',
+    '@type':'ItemList',
+    name:tag?`Publicaciones #${tag} en RedLibertad`:'Publicaciones públicas en RedLibertad',
+    itemListElement:result.rows.map((post,index)=>({
+      '@type':'ListItem',
+      position:index+1,
+      url:`${origin}/p/${encodeURIComponent(post.id)}`,
+      name:String(post.caption||`Publicación de ${post.display_name}`).slice(0,100)
+    }))
+  }).replace(/</g,'\\u003c')}</script>` : '';
+
+  res.type('html').send(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,follow'}">
+  <link rel="canonical" href="${escapeHtml(canonical)}">
+  ${previous?`<link rel="prev" href="${escapeHtml(origin+previous)}">`:''}
+  ${next?`<link rel="next" href="${escapeHtml(origin+next)}">`:''}
+  <meta property="og:site_name" content="RedLibertad">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonical)}">
+  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  ${listStructured}
+  <style>
+    .public-content-page{min-height:100vh;background:var(--bg);color:var(--navy)}
+    .public-content-top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px max(20px,calc((100vw - 1180px)/2));border-bottom:1px solid var(--line);background:rgba(255,253,249,.94);backdrop-filter:blur(16px)}
+    .public-content-brand{display:flex;align-items:center;gap:9px;color:var(--navy);font-weight:900}.public-content-brand img{width:34px;height:34px}
+    .public-content-top-actions{display:flex;align-items:center;gap:8px}
+    .public-content-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:44px 0 72px}
+    .public-content-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:24px;align-items:end}
+    .public-content-hero h1{margin:5px 0 8px;font:800 clamp(30px,5vw,52px) Manrope,sans-serif}
+    .public-content-hero p{margin:0;color:var(--muted);line-height:1.6}
+    .public-content-search{display:flex;gap:8px;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}
+    .public-content-search input{min-width:0;flex:1;border:0;background:transparent;padding:10px 12px;font:inherit;color:var(--navy);outline:0}
+    .public-content-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .public-tag-cloud{display:flex;gap:7px;flex-wrap:wrap;margin:22px 0}
+    .public-tag-cloud a,.public-tag-link{color:#0c675b;font-weight:800}.public-tag-cloud a{padding:7px 9px;border-radius:999px;background:rgba(43,183,169,.10);font-size:10px}.public-tag-cloud span{opacity:.62}
+    .public-content-count{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:22px 0 14px;color:var(--muted);font-size:12px}
+    .public-post-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+    .public-post-card{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 9px 26px rgba(13,34,56,.05)}
+    .public-post-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px}
+    .public-post-author{min-width:0;display:flex;align-items:center;gap:9px}.public-post-author img,.public-post-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,var(--navy),var(--teal))}
+    .public-post-avatar{display:grid;place-items:center;color:white;font-weight:900}.public-post-author span{min-width:0}.public-post-author b,.public-post-author small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.public-post-author small{margin-top:2px;color:var(--muted);font-size:9px}
+    .public-post-badge{padding:4px 6px;border-radius:999px;background:rgba(43,183,169,.12);color:#0c675b;font-size:8px;font-weight:900}
+    .public-post-media{display:block;aspect-ratio:4/3;background:#101923;overflow:hidden}.public-post-media img{width:100%;height:100%;object-fit:cover;display:block}.public-video-placeholder{display:grid;place-items:center;color:white}.public-video-placeholder span{font-size:28px}.public-video-placeholder b{font-size:11px}
+    .public-post-copy{padding:13px}.public-post-copy p{margin:0;color:var(--ink);font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}.public-post-open{display:inline-block;margin-top:10px;color:var(--navy);font-size:10px;font-weight:900}
+    .public-content-empty{padding:38px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:var(--paper)}
+    .public-content-pagination{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:24px}.public-content-page-label{padding:8px 10px;color:var(--muted);font-size:11px}
+    @media(max-width:900px){.public-post-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.public-content-hero{grid-template-columns:1fr}}
+    @media(max-width:620px){.public-content-shell{width:min(100% - 20px,1180px);padding-top:28px}.public-post-grid{grid-template-columns:1fr}.public-content-top{padding:10px 12px}.public-content-top-actions .button.ghost{display:none}.public-content-search{display:grid;grid-template-columns:1fr auto}.public-post-card{border-radius:16px}}
+  </style>
+</head>
+<body>
+  <main class="public-content-page">
+    <header class="public-content-top">
+      <a class="public-content-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
+      <div class="public-content-top-actions"><a class="button small ghost" href="/perfiles">Personas</a><a class="button small" href="/#registro">Crear cuenta</a></div>
+    </header>
+    <div class="public-content-shell">
+      <section class="public-content-hero">
+        <div>
+          <span class="eyebrow">${tag?'HASHTAG PÚBLICO':'CONTENIDO PÚBLICO'}</span>
+          <h1>${tag?`#${escapeHtml(tag)}`:'Publicaciones públicas'}</h1>
+          <p>${escapeHtml(description)}</p>
+          <div class="public-content-links">${tag?'<a class="button ghost small" href="/publicaciones">Todas las publicaciones</a>':''}<a class="button ghost small" href="/perfiles">Descubrir personas</a></div>
+        </div>
+        ${tag?'':`<form class="public-content-search" method="get" action="/publicaciones"><input name="q" value="${escapeHtml(rawQuery)}" maxlength="80" placeholder="Buscar texto, nombre o usuario" aria-label="Buscar publicaciones"><button class="button" type="submit">Buscar</button></form>`}
+      </section>
+      ${tagNav}
+      <div class="public-content-count"><span>${rawQuery?`${total} resultados para “${escapeHtml(rawQuery)}”`:tag?`${total} publicaciones con #${escapeHtml(tag)}`:`${total} publicaciones públicas`}</span>${rawQuery?'<a href="/publicaciones">Limpiar búsqueda</a>':''}</div>
+      ${cards?`<section class="public-post-grid" aria-label="Publicaciones públicas">${cards}</section>`:'<div class="public-content-empty"><b>No encontramos publicaciones.</b><p>Prueba otra búsqueda o vuelve más tarde.</p></div>'}
+      <nav class="public-content-pagination" aria-label="Paginación de publicaciones">${previous?`<a class="button ghost small" rel="prev" href="${escapeHtml(previous)}">← Anterior</a>`:''}<span class="public-content-page-label">Página ${page} de ${totalPages}</span>${next?`<a class="button ghost small" rel="next" href="${escapeHtml(next)}">Siguiente →</a>`:''}</nav>
+    </div>
+  </main>
+</body>
+</html>`);
+}
+
+app.get('/publicaciones',async(req,res)=>{
+  try{
+    await renderPublicContentV179(req,res);
+  }catch(error){
+    console.error('RedLibertad public content directory error:',error);
+    res.status(500).send('No se pudo cargar el directorio de publicaciones.');
+  }
+});
+
+app.get('/hashtag/:tag',async(req,res)=>{
+  try{
+    const tag=String(req.params.tag||'').normalize('NFC').toLowerCase();
+    if(!/^[\p{L}\p{N}_]{2,40}$/u.test(tag))return res.status(404).send('Hashtag no encontrado.');
+    if(req.params.tag!==tag)return res.redirect(301,`/hashtag/${encodeURIComponent(tag)}`);
+    await renderPublicContentV179(req,res,{tag});
+  }catch(error){
+    console.error('RedLibertad public hashtag error:',error);
+    res.status(500).send('No se pudo cargar el hashtag.');
+  }
+});
+
+app.get('/sitemap-hashtags.xml',async(req,res)=>{
+  try{
+    await ensurePublicContentSeoV179();
+    const origin=publicOrigin(req);
+    const rows=await db.query(`
+      SELECT p.caption,p.created_at
+        FROM posts p
+        JOIN users u ON u.id=p.user_id
+       WHERE p.moderation_status='published'
+         AND p.audience='public'
+         AND p.content_level='normal'
+         AND u.status='active'
+         AND u.is_admin=false
+         AND u.discoverable=true
+         AND p.caption IS NOT NULL
+         AND p.caption LIKE '%#%'
+       ORDER BY p.created_at DESC
+       LIMIT 5000
+    `);
+    const map=new Map();
+    for(const row of rows.rows){
+      for(const tag of extractPublicHashtagsV179(row.caption)){
+        const current=map.get(tag)||{count:0,lastmod:row.created_at};
+        current.count+=1;
+        if(new Date(row.created_at)>new Date(current.lastmod))current.lastmod=row.created_at;
+        map.set(tag,current);
+      }
+    }
+    const urls=[...map.entries()]
+      .filter(([,data])=>data.count>=2)
+      .sort((a,b)=>b[1].count-a[1].count)
+      .slice(0,1000)
+      .map(([tag,data])=>`<url><loc>${escapeHtml(origin+'/hashtag/'+encodeURIComponent(tag))}</loc><lastmod>${new Date(data.lastmod).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>`);
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
+  }catch(error){
+    console.error('RedLibertad hashtag sitemap error:',error);
+    res.status(500).type('text/plain').send('Hashtag sitemap unavailable');
+  }
+});
+
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -669,6 +991,8 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /p/',
     'Allow: /perfil/',
     'Allow: /perfiles',
+    'Allow: /publicaciones',
+    'Allow: /hashtag/',
     'Disallow: /app',
     'Disallow: /admin',
     'Disallow: /admin-recovery',
@@ -676,7 +1000,8 @@ app.get('/robots.txt',(req,res)=>{
     'Disallow: /uploads/',
     `Sitemap: ${origin}/sitemap-index.xml`,
     `Sitemap: ${origin}/sitemap.xml`,
-    `Sitemap: ${origin}/sitemap-profiles.xml`
+    `Sitemap: ${origin}/sitemap-profiles.xml`,
+    `Sitemap: ${origin}/sitemap-hashtags.xml`
   ].join('\n'));
 });
 
@@ -692,12 +1017,15 @@ app.get('/sitemap.xml',async(req,res)=>{
          AND p.audience='public'
          AND p.content_level='normal'
          AND u.status='active'
+         AND u.is_admin=false
+         AND u.discoverable=true
        ORDER BY p.created_at DESC
        LIMIT 10000
     `);
     const urls=[
       `<url><loc>${escapeHtml(origin+'/')}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/perfiles')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/publicaciones')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       ...posts.rows.map(post=>`<url><loc>${escapeHtml(origin+'/p/'+encodeURIComponent(post.id))}</loc><lastmod>${new Date(post.created_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`)
     ];
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
