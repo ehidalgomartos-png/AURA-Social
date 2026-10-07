@@ -1896,3 +1896,28 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - CTAs atribuidos en Perfil, Publicación, Comunidad, Evento, Reel, Tema e Historia.
 - `auth.js` entra en `check:syntax`.
 - Sin monetización.
+
+
+## V1.89.0 — Growth Attribution Dashboard
+
+- Nuevo panel administrativo "Origen de altas".
+- Ventanas de 7 y 30 días.
+- Métricas:
+  - nuevas cuentas,
+  - altas con origen público,
+  - tasa de atribución,
+  - altas atribuidas que se activaron,
+  - tasa de activación atribuida,
+  - altas con invitación.
+- Distribución por tipo de origen:
+  Perfil, Publicación, Comunidad, Evento, Reel, Tema e Historia.
+- Ranking de hasta 25 orígenes concretos que más registros generan.
+- Enlace directo para abrir el origen público cuando siga disponible.
+- Evolución diaria visual de altas atribuidas.
+- Activación calculada con señales sociales existentes: publicar, comentar, seguir o enviar mensaje después del alta.
+- "Con invitación" se muestra como señal independiente y puede solaparse con una alta atribuida públicamente.
+- Datos disponibles desde V1.88; no se reconstruye atribución anterior.
+- Endpoint `/api/admin/growth-attribution` protegido por `requireAdmin`.
+- No muestra email, IP, mensajes ni datos privados de las cuentas registradas.
+- Sin tracking externo.
+- Sin monetización.
