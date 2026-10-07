@@ -1,4 +1,4 @@
-# RedLibertad V1.68.0 — Performance & Reliability 2.0
+# RedLibertad V1.69.0 — Mobile UX Final Polish 3.0
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1449,5 +1449,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Apagado limpio del servidor HTTP y del pool PostgreSQL ante SIGTERM/SIGINT.
 - Timeouts HTTP explícitos para conexiones persistentes.
 - Variables opcionales: `DB_POOL_MAX`, `DB_IDLE_TIMEOUT_MS` y `DB_CONNECT_TIMEOUT_MS`.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.69.0 — Mobile UX Final Polish 3.0
+
+- Navegación inferior refinada con safe areas laterales e inferiores.
+- Espacio de contenido unificado para evitar que el dock tape acciones o contenido.
+- Modales móviles consolidados como bottom sheets con altura dinámica y overscroll controlado.
+- Formularios móviles con campos de 16 px y controles de 48 px para evitar zoom accidental y mejorar uso táctil.
+- Filtros y pestañas horizontales desplazables de forma consistente en feed, actividad, mensajes, perfil y búsqueda.
+- Bandeja de mensajes reorganizada a una sola columna en móvil.
+- Estados de error reutilizables con botón Reintentar en feed, notificaciones y conversaciones.
+- El feed conserva contenido previo si una recarga falla.
+- Feedback de carga mediante aria-busy en listas principales.
+- Ajustes de safe area también en portada, registro, acceso y footer.
 - Mobile-first.
 - Sin monetización.
