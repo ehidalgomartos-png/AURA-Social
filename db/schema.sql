@@ -1243,3 +1243,9 @@ UPDATE release_features
  WHERE default_enabled=TRUE
    AND rollout_stage='cohorts'
    AND rollout_percentage=0;
+
+
+-- RedLibertad V1.77: public profiles & profile SEO
+CREATE INDEX IF NOT EXISTS idx_users_public_profile_seo
+  ON users(discoverable,updated_at DESC)
+  WHERE status='active' AND is_admin=false;
