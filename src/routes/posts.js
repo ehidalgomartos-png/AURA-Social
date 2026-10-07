@@ -142,8 +142,27 @@ async function ensureCommunityV15() {
         ALTER TABLE notifications
           ADD CONSTRAINT notifications_type_check
           CHECK(type IN (
-            'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast','system'
+            'follow',
+            'message',
+            'consent_request',
+            'consent_approved',
+            'consent_rejected',
+            'consent_revoked',
+            'like',
+            'comment',
+            'mention',
+            'repost',
+            'creator_broadcast',
+            'creator_vip_broadcast',
+            'creator_poll_vote',
+            'creator_question_response',
+            'event_reminder',
+            'collaboration_request',
+            'collaboration_approved',
+            'collaboration_rejected',
+            'collaboration_revoked',
+            'circle_mention',
+            'system'
           ))
       `);
     })().catch(error => {
@@ -712,9 +731,27 @@ async function ensureCreatorCommunityV24(){
         ALTER TABLE notifications
           ADD CONSTRAINT notifications_type_check
           CHECK(type IN (
-            'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-            'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
-            'creator_poll_vote','creator_question_response','system'
+            'follow',
+            'message',
+            'consent_request',
+            'consent_approved',
+            'consent_rejected',
+            'consent_revoked',
+            'like',
+            'comment',
+            'mention',
+            'repost',
+            'creator_broadcast',
+            'creator_vip_broadcast',
+            'creator_poll_vote',
+            'creator_question_response',
+            'event_reminder',
+            'collaboration_request',
+            'collaboration_approved',
+            'collaboration_rejected',
+            'collaboration_revoked',
+            'circle_mention',
+            'system'
           ))
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_creator_poll_votes_created ON creator_poll_votes(created_at DESC,poll_id)');
@@ -934,12 +971,28 @@ async function ensureCollaborativeV161(){
       await db.query('ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check');
       await db.query(`
         ALTER TABLE notifications ADD CONSTRAINT notifications_type_check CHECK(type IN (
-          'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-          'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast',
-          'creator_poll_vote','creator_question_response','event_reminder',
-          'collaboration_request','collaboration_approved','collaboration_rejected','collaboration_revoked',
-          'circle_mention','system'
-        ))
+            'follow',
+            'message',
+            'consent_request',
+            'consent_approved',
+            'consent_rejected',
+            'consent_revoked',
+            'like',
+            'comment',
+            'mention',
+            'repost',
+            'creator_broadcast',
+            'creator_vip_broadcast',
+            'creator_poll_vote',
+            'creator_question_response',
+            'event_reminder',
+            'collaboration_request',
+            'collaboration_approved',
+            'collaboration_rejected',
+            'collaboration_revoked',
+            'circle_mention',
+            'system'
+          ))
       `);
     })().catch(error=>{collaborativeV161Ready=null;throw error;});
   }

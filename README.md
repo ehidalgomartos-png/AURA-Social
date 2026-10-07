@@ -1702,3 +1702,16 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL específicos para descubrimiento público de comunidades y posts normales.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.80.1 — Social Core Recovery Hotfix
+
+- Corrige un fallo de compatibilidad hacia delante en los bootstraps históricos de `notifications_type_check`.
+- Los módulos antiguos de publicaciones y perfiles ya no intentan reinstalar listas de tipos de notificación incompletas después de un redeploy.
+- Todos los bootstraps conocidos usan el conjunto completo vigente: interacciones, creador, eventos, colaboraciones y menciones a círculos.
+- `db/schema.sql` queda igualmente normalizado para poder ejecutarse sobre una base ya evolucionada sin rechazar notificaciones nuevas.
+- Recupera los endpoints de publicaciones que podían responder `social_bootstrap_failed` / `community_insights_bootstrap_failed`.
+- Refuerza el arranque del frontend: si falla el resumen del perfil, ya no queda la interfaz silenciosamente a medias.
+- Feed, publicaciones del perfil, consentimientos y sugerencias muestran estados de error y reintento explícitos.
+- Caché PWA renovada para evitar conservar JavaScript anterior.
+- Sin cambios funcionales de producto ni monetización.

@@ -264,9 +264,28 @@ async function ensureCreatorV15() {
           ALTER TABLE notifications
             ADD CONSTRAINT notifications_type_check
             CHECK(type IN (
-              'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-              'like','comment','mention','repost','creator_broadcast','system'
-            ))
+            'follow',
+            'message',
+            'consent_request',
+            'consent_approved',
+            'consent_rejected',
+            'consent_revoked',
+            'like',
+            'comment',
+            'mention',
+            'repost',
+            'creator_broadcast',
+            'creator_vip_broadcast',
+            'creator_poll_vote',
+            'creator_question_response',
+            'event_reminder',
+            'collaboration_request',
+            'collaboration_approved',
+            'collaboration_rejected',
+            'collaboration_revoked',
+            'circle_mention',
+            'system'
+          ))
         `);
       }
     })().catch(error => {
@@ -322,9 +341,28 @@ async function ensureCreatorV17() {
           ALTER TABLE notifications
             ADD CONSTRAINT notifications_type_check
             CHECK(type IN (
-              'follow','message','consent_request','consent_approved','consent_rejected','consent_revoked',
-              'like','comment','mention','repost','creator_broadcast','creator_vip_broadcast','system'
-            ))
+            'follow',
+            'message',
+            'consent_request',
+            'consent_approved',
+            'consent_rejected',
+            'consent_revoked',
+            'like',
+            'comment',
+            'mention',
+            'repost',
+            'creator_broadcast',
+            'creator_vip_broadcast',
+            'creator_poll_vote',
+            'creator_question_response',
+            'event_reminder',
+            'collaboration_request',
+            'collaboration_approved',
+            'collaboration_rejected',
+            'collaboration_revoked',
+            'circle_mention',
+            'system'
+          ))
         `);
       }
     })().catch(error => {
