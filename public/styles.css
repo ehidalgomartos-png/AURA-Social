@@ -265,3 +265,38 @@ body{
     background:var(--paper);
   }
 }
+
+
+/* RedLibertad V1.93.3 — Registration Field Labels Hotfix */
+.card-form .form-field{
+  display:grid;
+  gap:6px;
+  color:var(--navy);
+  font-size:12px;
+  font-weight:700;
+}
+.card-form .form-field>span{
+  display:block;
+  padding-left:2px;
+}
+.card-form .form-field>small{
+  display:block;
+  margin-top:-1px;
+  padding-left:2px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:500;
+  line-height:1.35;
+}
+.card-form .form-field input{
+  margin:0;
+}
+@media(max-width:620px){
+  .card-form .form-field{
+    gap:5px;
+    font-size:12px;
+  }
+  .card-form .form-field>small{
+    font-size:9px;
+  }
+}

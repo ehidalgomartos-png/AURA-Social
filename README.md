@@ -2133,3 +2133,17 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
   - contraseña 10–128.
 - No expone datos sensibles ni cambia la lógica de registro.
 - Sin migraciones, sin monetización y sin cambios en `src/routes/posts.js`.
+
+
+## V1.93.3 — Registration Field Labels Hotfix
+
+- Corrige la confusión visual detectada entre Nombre visible y Usuario.
+- Todos los campos de registro muestran ahora una etiqueta permanente.
+- Usuario muestra ayuda adicional:
+  - será el @usuario;
+  - 3–30 caracteres;
+  - sin espacios.
+- Añade ejemplos de entrada para Nombre visible y Usuario.
+- Conserva la validación detallada de V1.93.2.
+- Sin cambios en la lógica de alta, privacidad o base de datos.
+- Sin cambios en `src/routes/posts.js`.

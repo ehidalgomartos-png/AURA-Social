@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.93.2",
+  "version": "1.93.3",
   "private": true,
-  "description": "RedLibertad V1.93.2 Registration Validation Feedback - mensajes de registro específicos por campo y validación cliente alineada con backend.",
+  "description": "RedLibertad V1.93.3 Registration Field Labels Hotfix - etiquetas persistentes y ayuda de usuario para evitar confusión entre nombre visible y @usuario.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

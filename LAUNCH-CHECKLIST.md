@@ -505,3 +505,13 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que cada caso muestra una explicación concreta y no “Revisa los datos”.
 - Probar varios errores simultáneos y confirmar que se muestran todos los campos relevantes.
 - Confirmar registro válido sin regresiones.
+
+
+## 40. Registration Field Labels Hotfix
+- Confirmar `/api/health` con versión 1.93.3 y feature `registration-field-labels-v1.93.3`.
+- Abrir registro en móvil y confirmar etiquetas permanentes de Nombre visible, Usuario, Email, Contraseña y Fecha de nacimiento.
+- Escribir valores en todos los campos y confirmar que las etiquetas siguen visibles.
+- Confirmar ayuda “Será tu @usuario” bajo Usuario.
+- Introducir un usuario con espacios y comprobar que el mensaje deja claro que el problema está en Usuario.
+- Confirmar que Nombre visible acepta espacios.
+- Confirmar registro válido sin regresiones.
