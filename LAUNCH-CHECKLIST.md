@@ -440,3 +440,18 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar escritorio y confirmar que no aparece la barra fija y siguen visibles los CTA interiores.
 - Confirmar que Story caducada no muestra barra de participación.
 - Confirmar que no cambia robots, canonical, sitemaps ni privacidad.
+
+
+## 35. Public Mobile Visual Polish
+- Confirmar `/api/health` con versión 1.92.1 y features `public-post-detail-polish-v1.92.1` / `public-media-mobile-polish-v1.92.1`.
+- Abrir un post público solo de texto en móvil y confirmar que empieza cerca de la parte superior.
+- Confirmar tarjeta de texto protagonista, autor, fecha y acciones secundarias.
+- Confirmar que la barra fija Crear cuenta / Entrar sigue visible y no tapa contenido.
+- Abrir un post público con imagen y confirmar que la imagen mantiene su comportamiento previo.
+- Abrir `/reels` en móvil y confirmar cabecera de una línea con RedLibertad + Crear cuenta.
+- Con 0 Reels, confirmar estado vacío con explicación y acciones.
+- Confirmar que no aparece “0 resultados públicos” ni “Página 1 de 1” en el estado vacío.
+- Repetir comprobación en `/multimedia`.
+- Probar búsqueda sin resultados y confirmar opción para limpiar búsqueda.
+- Revisar escritorio y confirmar que la navegación pública sigue completa.
+- Confirmar que no cambian canonical, robots, sitemaps ni reglas de privacidad.
