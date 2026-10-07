@@ -492,3 +492,16 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que la interfaz muestra minutos aproximados de espera.
 - Confirmar que login mantiene su límite independiente.
 - Revisar móvil y escritorio.
+
+
+## 39. Registration Validation Feedback
+- Confirmar `/api/health` con versión 1.93.2 y feature `registration-validation-feedback-v1.93.2`.
+- Probar usuario de menos de 3 caracteres.
+- Probar usuario con espacios o caracteres no permitidos.
+- Probar email inválido.
+- Probar contraseña de menos de 10 caracteres.
+- Probar fecha de nacimiento inválida.
+- Intentar enviar sin aceptar condiciones.
+- Confirmar que cada caso muestra una explicación concreta y no “Revisa los datos”.
+- Probar varios errores simultáneos y confirmar que se muestran todos los campos relevantes.
+- Confirmar registro válido sin regresiones.
