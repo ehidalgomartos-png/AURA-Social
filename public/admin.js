@@ -3,7 +3,7 @@ let reportCache = [];
 let userCache = [];
 let incidentCache = [];
 let supportAdminCache = [];
-let releaseControlState={features:[],cohorts:[],assignments:[]};
+let releaseControlState={features:[],cohorts:[],assignments:[],audit:[]};
 
 async function api(url, options = {}) {
   const response = await fetch(url, options);
@@ -177,6 +177,86 @@ async function updateIncident(id,payload,button){
 
 
 
+
+function releaseAuditActionLabel(action){
+  return ({
+    cohort_create:'Cohorte creada',
+    cohort_update:'Cohorte actualizada',
+    member_add:'Miembro añadido',
+    member_remove:'Miembro retirado',
+    feature_create:'Función creada',
+    feature_update:'Función actualizada',
+    cohort_assign:'Cohorte asignada',
+    cohort_remove:'Cohorte retirada',
+    rollback:'Rollback aplicado'
+  })[action] || action;
+}
+
+function releaseAuditSummary(item){
+  const before=item.before_state||null;
+  const after=item.after_state||null;
+  if(!before||!after)return 'Configuración inicial registrada.';
+  if(item.target_type==='feature'){
+    const changes=[];
+    if(before.enabled!==after.enabled)changes.push(after.enabled?'reactivada':'apagada');
+    if(before.default_enabled!==after.default_enabled)changes.push(after.default_enabled?'activada para todos':'limitada a cohortes');
+    const beforeCount=Array.isArray(before.cohorts)?before.cohorts.length:0;
+    const afterCount=Array.isArray(after.cohorts)?after.cohorts.length:0;
+    if(beforeCount!==afterCount)changes.push('cohortes '+beforeCount+' → '+afterCount);
+    return changes.length?changes.join(' · '):'Configuración de función modificada.';
+  }
+  const changes=[];
+  if(before.enabled!==after.enabled)changes.push(after.enabled?'cohorte reanudada':'cohorte pausada');
+  const beforeMembers=Array.isArray(before.members)?before.members.length:0;
+  const afterMembers=Array.isArray(after.members)?after.members.length:0;
+  if(beforeMembers!==afterMembers)changes.push('miembros '+beforeMembers+' → '+afterMembers);
+  if(before.name!==after.name)changes.push('nombre actualizado');
+  return changes.length?changes.join(' · '):'Configuración de cohorte modificada.';
+}
+
+function renderReleaseAudit(){
+  const root=$('#releaseAuditList');
+  if(!root)return;
+  const entries=Array.isArray(releaseControlState.audit)?releaseControlState.audit:[];
+  root.innerHTML=entries.length
+    ? entries.map(item=>`<article class="release-audit-card ${item.rolled_back_at?'rolled-back':''}">
+        <div class="release-audit-main">
+          <div>
+            <b>#${item.id} · ${esc(releaseAuditActionLabel(item.action))}</b>
+            <small>${esc(item.target_type==='feature'?'Función':'Cohorte')} · ${esc(item.target_key)} · ${timeLabel(item.created_at)}</small>
+          </div>
+          <span class="release-audit-actor">@${esc(item.actor_username||'admin')}</span>
+        </div>
+        <p>${esc(releaseAuditSummary(item))}</p>
+        <div class="release-audit-meta">
+          ${item.request_id?`<span>Ref. ${esc(String(item.request_id).slice(0,24))}</span>`:''}
+          ${item.rollback_of?`<span>Rollback de #${item.rollback_of}</span>`:''}
+          ${item.rolled_back_at?`<span>Restaurado ${timeLabel(item.rolled_back_at)}${item.rolled_back_by_username?' por @'+esc(item.rolled_back_by_username):''}</span>`:''}
+        </div>
+        ${item.canRollback?`<div class="actions"><button class="alt" data-admin-action="release-rollback" data-id="${item.id}">Restaurar estado anterior</button></div>`:''}
+      </article>`).join('')
+    : '<div class="empty-admin">Todavía no hay cambios auditados en release control.</div>';
+}
+
+async function rollbackReleaseAudit(id,button){
+  if(!window.confirm('¿Restaurar el estado anterior de este cambio? Solo se aplicará si no hay cambios posteriores que entren en conflicto.'))return;
+  if(button)button.disabled=true;
+  try{
+    const {r,d}=await api('/api/release/admin/audit/'+encodeURIComponent(id)+'/rollback',{method:'POST'});
+    if(!r.ok){
+      if(d.error==='rollback_conflict')setAdminNotice('Rollback bloqueado: la configuración cambió después. Revisa el historial antes de restaurar.',true);
+      else if(d.error==='already_rolled_back')setAdminNotice('Ese cambio ya fue restaurado.',true);
+      else if(d.error==='rollback_not_supported')setAdminNotice('Ese cambio no tiene un estado anterior restaurable.',true);
+      else setAdminNotice('No se pudo aplicar el rollback.',true);
+      return;
+    }
+    setAdminNotice('Estado anterior restaurado.');
+    await releaseControl();
+  }finally{
+    if(button&&button.isConnected)button.disabled=false;
+  }
+}
+
 function releaseBool(value){ return value===true || value==='true'; }
 
 function renderReleaseControl(){
@@ -229,6 +309,7 @@ function renderReleaseControl(){
         </article>`;
       }).join('')
     : '<div class="empty-admin">No hay funciones registradas.</div>';
+  renderReleaseAudit();
 }
 
 async function releaseControl(){
@@ -244,7 +325,8 @@ async function releaseControl(){
   releaseControlState={
     features:Array.isArray(d.features)?d.features:[],
     cohorts:Array.isArray(d.cohorts)?d.cohorts:[],
-    assignments:Array.isArray(d.assignments)?d.assignments:[]
+    assignments:Array.isArray(d.assignments)?d.assignments:[],
+    audit:Array.isArray(d.audit)?d.audit:[]
   };
   renderReleaseControl();
 }
@@ -706,6 +788,7 @@ document.addEventListener('click', async event => {
   if (!button) return;
   const action = button.dataset.adminAction;
 
+  if (action === 'release-rollback') return rollbackReleaseAudit(button.dataset.id,button);
   if (action === 'release-toggle-feature') return releasePatchFeature(button.dataset.key,{enabled:button.dataset.enabled!=='1'},button);
   if (action === 'release-toggle-default') return releasePatchFeature(button.dataset.key,{defaultEnabled:button.dataset.default!=='1'},button);
   if (action === 'release-toggle-cohort') return releasePatchCohort(button.dataset.id,{enabled:button.dataset.enabled!=='1'},button);
