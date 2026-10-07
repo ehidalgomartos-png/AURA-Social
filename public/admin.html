@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V1.72 · Beta Feedback & Support Center</small></div>
+  <div><b>Moderación</b><small>V1.73 · Beta Cohorts & Release Control</small></div>
 </header>
 
 <main>
@@ -57,6 +57,40 @@
         <div class="incident-list-head"><div><span class="eyebrow">SEGUIMIENTO</span><h3>Incidencias recientes</h3></div></div>
         <div id="incidentList" class="incident-list"></div>
       </div>
+    </div>
+  </section>
+
+  <section class="panel release-control-panel">
+    <div class="panel-head">
+      <div><span class="eyebrow">RELEASE CONTROL</span><h2>Cohortes y funciones beta</h2><p class="panel-copy">Activa novedades para todos, solo para grupos concretos o apágalas globalmente sin redeploy.</p></div>
+      <button id="reloadReleaseControl" type="button">Actualizar</button>
+    </div>
+
+    <div class="release-control-grid">
+      <section>
+        <div class="release-subhead"><div><span class="eyebrow">COHORTES</span><h3>Grupos beta</h3></div></div>
+        <form id="cohortCreateForm" class="release-create-form">
+          <input name="key" maxlength="60" required placeholder="clave: beta-early">
+          <input name="name" maxlength="100" required placeholder="Nombre: Beta temprana">
+          <input name="description" maxlength="500" placeholder="Descripción opcional">
+          <button class="primary" type="submit">Crear cohorte</button>
+          <p id="cohortCreateStatus" class="status" role="status"></p>
+        </form>
+        <div id="cohortList" class="release-card-list"></div>
+      </section>
+
+      <section>
+        <div class="release-subhead"><div><span class="eyebrow">FUNCIONES</span><h3>Feature flags</h3></div></div>
+        <form id="featureCreateForm" class="release-create-form">
+          <input name="key" maxlength="60" required placeholder="clave: nueva-funcion">
+          <input name="name" maxlength="120" required placeholder="Nombre visible">
+          <input name="description" maxlength="500" placeholder="Descripción opcional">
+          <label class="release-checkbox"><input name="defaultEnabled" type="checkbox"> Disponible para todos</label>
+          <button class="primary" type="submit">Crear función</button>
+          <p id="featureCreateStatus" class="status" role="status"></p>
+        </form>
+        <div id="featureList" class="release-card-list"></div>
+      </section>
     </div>
   </section>
 
