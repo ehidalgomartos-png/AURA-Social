@@ -403,3 +403,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que ya no aparece el texto redundante Edad/Creador al final del perfil.
 - Abrir Más > Confianza y verificar que el estado de verificación sigue accesible.
 - Revisar escritorio para descartar regresiones.
+
+
+## 32. Profile More Menu Hotfix
+- Confirmar `/api/health` con versión 1.90.3.1 y feature `profile-more-menu-hotfix-v1.90.3.1`.
+- Abrir Más en el perfil móvil.
+- Confirmar que el panel aparece debajo de los botones y no se superpone a la biografía ni a las estadísticas.
+- Confirmar que Centro de creador se desplaza hacia abajo mientras Más está abierto.
+- Confirmar que se ven Confianza, Privacidad, Cuenta, Ayuda y Contenido sensible completos.
+- Abrir cada opción y comprobar que Más se cierra al navegar.
+- Cerrar Más y confirmar que el perfil recupera su altura compacta.
+- Revisar escritorio para descartar regresiones.

@@ -2004,3 +2004,13 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin cambios de lógica, permisos, privacidad ni base de datos.
 - Sin cambios en `src/routes/posts.js`.
 - Sin monetización.
+
+
+## V1.90.3.1 — Profile More Menu Hotfix
+
+- Corrige el menú Más del perfil propio detectado tras V1.90.3.
+- El menú deja de ser flotante y se despliega dentro del flujo del perfil.
+- Al abrir Más, Centro de creador, biografía y estadísticas se desplazan hacia abajo en lugar de quedar tapados.
+- El panel deja de cortarse en móvil y conserva las cinco opciones existentes.
+- Mantiene los mismos modales, permisos y endpoints.
+- Sin cambios en `src/routes/posts.js`, base de datos o monetización.
