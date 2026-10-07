@@ -280,18 +280,183 @@ app.get('/p/:id', async (req, res) => {
   }
 });
 
+
+let publicProfileSeoV177Ready=null;
+async function ensurePublicProfileSeoV177(){
+  if(!publicProfileSeoV177Ready){
+    publicProfileSeoV177Ready=db.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_public_profile_seo
+        ON users(discoverable,updated_at DESC)
+        WHERE status='active' AND is_admin=false
+    `).catch(error=>{
+      publicProfileSeoV177Ready=null;
+      throw error;
+    });
+  }
+  return publicProfileSeoV177Ready;
+}
+
+app.get('/perfil/:username',async(req,res)=>{
+  try{
+    await ensurePublicProfileSeoV177();
+    const result=await db.query(`
+      SELECT
+        u.id,u.username,u.display_name,u.bio,u.avatar_url,u.cover_url,
+        u.creator_headline,u.age_verified,u.creator_verified,u.discoverable,
+        u.created_at,u.updated_at,
+        (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) follower_count,
+        (SELECT count(*)::int FROM posts p
+          WHERE p.user_id=u.id
+            AND p.moderation_status='published'
+            AND p.audience='public') public_post_count
+      FROM users u
+      WHERE lower(u.username)=lower($1)
+        AND u.status='active'
+        AND u.is_admin=false
+      LIMIT 1
+    `,[req.params.username]);
+    if(!result.rowCount)return res.status(404).send('Perfil no encontrado.');
+
+    const profile=result.rows[0];
+    const origin=publicOrigin(req);
+    const publicUrl=`${origin}/perfil/${encodeURIComponent(profile.username)}`;
+    const indexable=profile.discoverable===true;
+    const title=`${profile.display_name} (@${profile.username}) — RedLibertad`;
+    const description=String(profile.creator_headline || profile.bio || 'Perfil en RedLibertad — Donde la libertad es lo primero.').trim().slice(0,180);
+    const defaultOg=`${origin}/assets/og-redlibertad.png`;
+    const avatar=profile.avatar_url ? absoluteUrl(req,profile.avatar_url) : '';
+    const cover=profile.cover_url ? absoluteUrl(req,profile.cover_url) : '';
+    const ogImage=indexable && avatar ? avatar : defaultOg;
+    const badge=profile.creator_verified
+      ? '<span class="public-profile-badge">✓ Creador verificado</span>'
+      : profile.age_verified
+        ? '<span class="public-profile-badge subtle">✓ +18 verificado</span>'
+        : '';
+    const structured=indexable ? `<script type="application/ld+json">${JSON.stringify({
+      '@context':'https://schema.org',
+      '@type':'Person',
+      name:profile.display_name,
+      alternateName:'@'+profile.username,
+      url:publicUrl,
+      description,
+      image:ogImage
+    }).replace(/</g,'\\u003c')}</script>` : '';
+
+    res.type('html').send(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}">
+  <link rel="canonical" href="${escapeHtml(publicUrl)}">
+  <meta property="og:site_name" content="RedLibertad">
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(publicUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  ${structured}
+  <style>
+    .public-profile-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg)}
+    .public-profile-card{width:min(760px,100%);overflow:hidden;border:1px solid var(--line);border-radius:28px;background:var(--paper);box-shadow:var(--shadow)}
+    .public-profile-cover{height:220px;background:linear-gradient(135deg,var(--navy),var(--teal));background-position:center;background-size:cover}
+    .public-profile-body{position:relative;padding:0 28px 28px}
+    .public-profile-avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;background:var(--navy);border:5px solid var(--paper);margin-top:-56px;box-shadow:0 12px 30px rgba(13,34,56,.16)}
+    .public-profile-avatar.placeholder{display:grid;place-items:center;color:#fff;font:800 34px Manrope,sans-serif}
+    .public-profile-title{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}
+    .public-profile-title h1{margin:0;font:800 clamp(24px,4vw,38px) Manrope,sans-serif;color:var(--navy)}
+    .public-profile-handle{display:block;color:var(--muted);margin-top:3px}
+    .public-profile-badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(43,183,169,.12);color:#0c675b;font-size:10px;font-weight:800}
+    .public-profile-badge.subtle{background:#f1f4f3;color:var(--muted)}
+    .public-profile-copy{margin:18px 0 0;color:var(--muted);line-height:1.6;white-space:pre-wrap}
+    .public-profile-stats{display:flex;gap:9px;flex-wrap:wrap;margin:20px 0}
+    .public-profile-stat{padding:10px 12px;border-radius:13px;background:#f5f6f3;color:var(--navy);font-size:12px}
+    .public-profile-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .public-profile-actions .button{flex:1 1 220px;text-align:center}
+    .public-profile-note{margin-top:16px;color:var(--muted);font-size:10px}
+    @media(max-width:600px){.public-profile-page{padding:0}.public-profile-card{min-height:100vh;border-radius:0;border:0}.public-profile-cover{height:180px}.public-profile-body{padding:0 20px 24px}.public-profile-avatar{width:96px;height:96px;margin-top:-48px}}
+  </style>
+</head>
+<body>
+  <main class="public-profile-page">
+    <article class="public-profile-card">
+      <div class="public-profile-cover" ${cover?`style="background-image:url('${escapeHtml(cover)}')"`:''}></div>
+      <div class="public-profile-body">
+        ${avatar
+          ? `<img class="public-profile-avatar" src="${escapeHtml(avatar)}" alt="Foto de perfil de ${escapeHtml(profile.display_name)}">`
+          : `<div class="public-profile-avatar placeholder" aria-hidden="true">${escapeHtml(String(profile.display_name||profile.username).slice(0,2).toUpperCase())}</div>`}
+        <div class="public-profile-title">
+          <div>
+            <h1>${escapeHtml(profile.display_name)}</h1>
+            <span class="public-profile-handle">@${escapeHtml(profile.username)}</span>
+          </div>
+          ${badge}
+        </div>
+        ${profile.creator_headline?`<p class="public-profile-copy"><b>${escapeHtml(profile.creator_headline)}</b></p>`:''}
+        ${profile.bio?`<p class="public-profile-copy">${escapeHtml(profile.bio)}</p>`:''}
+        <div class="public-profile-stats">
+          <span class="public-profile-stat"><b>${Number(profile.public_post_count||0)}</b> publicaciones públicas</span>
+          <span class="public-profile-stat"><b>${Number(profile.follower_count||0)}</b> seguidores</span>
+        </div>
+        <div class="public-profile-actions">
+          <a class="button" href="/app?profile=${encodeURIComponent(profile.username)}">Ver perfil en RedLibertad</a>
+          <a class="button ghost" href="/#registro">Crear cuenta</a>
+        </div>
+        ${!indexable?'<p class="public-profile-note">Este perfil no participa en la indexación pública de RedLibertad.</p>':''}
+      </div>
+    </article>
+  </main>
+</body>
+</html>`);
+  }catch(error){
+    console.error('RedLibertad public profile error:',error);
+    res.status(500).send('No se pudo cargar el perfil.');
+  }
+});
+
+app.get('/sitemap-profiles.xml',async(req,res)=>{
+  try{
+    await ensurePublicProfileSeoV177();
+    const origin=publicOrigin(req);
+    const profiles=await db.query(`
+      SELECT username,updated_at
+        FROM users
+       WHERE status='active'
+         AND is_admin=false
+         AND discoverable=true
+       ORDER BY updated_at DESC
+       LIMIT 10000
+    `);
+    const urls=profiles.rows.map(profile=>`<url><loc>${escapeHtml(origin+'/perfil/'+encodeURIComponent(profile.username))}</loc><lastmod>${new Date(profile.updated_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
+  }catch(error){
+    console.error('RedLibertad profile sitemap error:',error);
+    res.status(500).type('text/plain').send('Profile sitemap unavailable');
+  }
+});
+
 app.get('/robots.txt',(req,res)=>{
   const origin=publicOrigin(req);
   res.type('text/plain').send([
     'User-agent: *',
     'Allow: /',
     'Allow: /p/',
+    'Allow: /perfil/',
     'Disallow: /app',
     'Disallow: /admin',
     'Disallow: /admin-recovery',
     'Disallow: /api/',
     'Disallow: /uploads/',
-    `Sitemap: ${origin}/sitemap.xml`
+    `Sitemap: ${origin}/sitemap.xml`,
+    `Sitemap: ${origin}/sitemap-profiles.xml`
   ].join('\n'));
 });
 
