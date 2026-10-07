@@ -1,14 +1,14 @@
 {
   "name": "redlibertad-social",
-  "version": "1.82.0",
+  "version": "1.83.0",
   "private": true,
-  "description": "RedLibertad V1.82 Public Reels & Media Discovery SEO - directorios públicos de Reels y multimedia con páginas SEO seguras para vídeo.",
+  "description": "RedLibertad V1.83 Public Search & Unified Discovery - buscador público unificado con filtros estrictos de privacidad y resultados canónicos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
-    "check:syntax": "node --check server.js && node --check src/public-community-seo-v180.js && node --check src/public-event-seo-v181.js && node --check src/public-media-seo-v182.js && node --check src/db.js && node --check src/services/release-control.js && node --check src/routes/admin.js && node --check src/routes/support.js && node --check src/routes/release-control.js && node --check public/app.js && node --check public/social.js && node --check public/admin.js && node --check public/sw.js"
+    "check:syntax": "node --check server.js && node --check src/public-community-seo-v180.js && node --check src/public-event-seo-v181.js && node --check src/public-media-seo-v182.js && node --check src/public-search-v183.js && node --check src/db.js && node --check src/services/release-control.js && node --check src/routes/admin.js && node --check src/routes/support.js && node --check src/routes/release-control.js && node --check public/app.js && node --check public/social.js && node --check public/admin.js && node --check public/sw.js"
   },
   "engines": {
     "node": ">=20"

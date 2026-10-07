@@ -1756,3 +1756,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL específicos para descubrimiento visual.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.83.0 — Public Search & Unified Discovery
+
+- Nuevo buscador público unificado en `/buscar`.
+- Busca Personas, Publicaciones, Reels, Hashtags, Comunidades y Eventos desde una sola pantalla.
+- La portada `/buscar` es indexable; cualquier consulta `?q=` queda `noindex,follow`.
+- Los resultados enlazan únicamente a URLs públicas canónicas ya existentes.
+- Personas: solo perfiles activos, no-admin y `discoverable=true`.
+- Publicaciones/Reels: solo `published`, `audience='public'`, `content_level='normal'` y autores públicos elegibles.
+- Comunidades: solo comunidades públicas de propietarios activos, no-admin y descubribles.
+- Eventos: solo eventos públicos, no cancelados y compatibles con las reglas públicas de comunidad.
+- Hashtags se extraen exclusivamente de publicaciones públicas normales elegibles.
+- Límite pequeño por categoría para proteger rendimiento.
+- Integración en navegación pública, robots y sitemap principal.
+- No modifica el buscador autenticado ni sus reglas privadas.
+- Sin migraciones de base de datos.
+- Mobile-first.
+- Sin monetización.

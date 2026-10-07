@@ -223,3 +223,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que `/sitemap.xml` incluye `/reels` y `/multimedia`.
 - Revisar `robots.txt` y confirmar `/reels`, `/reel/`, `/multimedia` y el nuevo sitemap.
 - Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades ↔ Eventos ↔ Reels.
+
+
+## 20. Búsqueda pública unificada
+- Abrir `/buscar` y confirmar que carga como landing pública.
+- Buscar una persona pública y confirmar enlace a `/perfil/:username`.
+- Buscar una publicación pública y confirmar enlace a `/p/:id`.
+- Buscar un Reel y confirmar enlace a `/reel/:id/:slug`.
+- Buscar un hashtag y confirmar enlace a `/hashtag/:tag`.
+- Buscar una comunidad pública y confirmar enlace canónico.
+- Buscar un evento público y confirmar enlace canónico.
+- Confirmar que `/buscar?q=...` devuelve `noindex,follow`.
+- Confirmar que perfiles admin y `discoverable=false` no aparecen.
+- Confirmar que publicaciones sensibles/nudity o audiencias privadas no aparecen.
+- Confirmar que comunidades privadas no aparecen.
+- Confirmar que eventos privados, cancelados o ligados a comunidades privadas no aparecen.
+- Confirmar que `/sitemap.xml` incluye `/buscar`.
+- Revisar `robots.txt` y confirmar `Allow: /buscar`.
