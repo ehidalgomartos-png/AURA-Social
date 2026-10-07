@@ -455,3 +455,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Probar búsqueda sin resultados y confirmar opción para limpiar búsqueda.
 - Revisar escritorio y confirmar que la navegación pública sigue completa.
 - Confirmar que no cambian canonical, robots, sitemaps ni reglas de privacidad.
+
+
+## 36. Social Share Preview Polish
+- Confirmar `/api/health` con versión 1.92.2 y features `social-share-preview-v1.92.2` / `versioned-og-image-v1.92.2`.
+- Abrir directamente `/assets/og-redlibertad-v1922.jpg` y confirmar formato horizontal 1200×630.
+- Compartir un post público solo de texto y confirmar que la preview usa la nueva imagen.
+- Compartir la portada y una superficie pública sin imagen propia.
+- Confirmar que WhatsApp/Facebook/X dejan de solicitar `og-redlibertad.png` y reciben la URL versionada.
+- Confirmar que una publicación pública normal con imagen propia sigue usando su imagen real.
+- Confirmar que contenido sensible/no indexable sigue usando imagen de marca y no expone media protegida.
+- Revisar título, descripción e imagen en móvil y escritorio.
