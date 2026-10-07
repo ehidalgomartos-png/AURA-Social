@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.75.0",
+  "version": "1.75.1",
   "private": true,
-  "description": "RedLibertad V1.75 Controlled Rollout Waves & Beta Graduation - olas porcentuales deterministas, congelado de expansión y graduación auditada, sin tracking externo ni monetización.",
+  "description": "RedLibertad V1.75.1 Message + Profile UI Hotfix - reacciones compactas en mensajes y cabecera de perfil corregida en escritorio.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

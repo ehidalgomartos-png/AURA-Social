@@ -5911,8 +5911,30 @@ function bindMessageActions(root=$('#messageThread')){
       button.dataset.replyText
     );
   });
+  all('[data-message-reaction-toggle]',root).forEach(button=>{
+    button.onclick=()=>{
+      const bubble=button.closest('.message-bubble');
+      const bar=bubble?.querySelector('.message-reaction-bar');
+      if(!bar)return;
+      all('.message-reaction-bar',root).forEach(other=>{
+        if(other!==bar)other.classList.add('hidden');
+      });
+      all('[data-message-reaction-toggle]',root).forEach(other=>{
+        if(other!==button)other.setAttribute('aria-expanded','false');
+      });
+      const opening=bar.classList.contains('hidden');
+      bar.classList.toggle('hidden',!opening);
+      button.setAttribute('aria-expanded',opening?'true':'false');
+    };
+  });
   all('[data-message-react]',root).forEach(button=>{
-    button.onclick=()=>toggleMessageReaction(button);
+    button.onclick=async()=>{
+      await toggleMessageReaction(button);
+      const bar=button.closest('.message-reaction-bar');
+      const toggle=button.closest('.message-bubble')?.querySelector('[data-message-reaction-toggle]');
+      bar?.classList.add('hidden');
+      toggle?.setAttribute('aria-expanded','false');
+    };
   });
   all('[data-accept-sensitive]',root).forEach(button=>button.onclick=acceptSensitiveMessages);
   all('[data-open-shared-post]',root).forEach(button=>{
@@ -6818,10 +6840,18 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
 
   const reactions=Array.isArray(m.reactions) ? m.reactions : [];
   const reactionCounts=new Map(reactions.map(item=>[item.reaction,item]));
-  const reactionBar=`<div class="message-reaction-bar">${Object.entries(MESSAGE_REACTIONS).map(([key,emoji])=>{
-    const item=reactionCounts.get(key);
-    return `<button type="button" class="${item?.reacted_by_me ? 'active' : ''}" data-message-react="${m.id}" data-reaction="${key}" data-reacted="${item?.reacted_by_me ? '1' : '0'}" aria-label="Reaccionar ${emoji}">${emoji}${item?.count ? ` <span>${item.count}</span>` : ''}</button>`;
-  }).join('')}</div>`;
+  const reactionSummary=reactions.length
+    ? `<div class="message-reaction-summary">${reactions.filter(item=>Number(item.count||0)>0).map(item=>{
+        const emoji=MESSAGE_REACTIONS[item.reaction] || '•';
+        return `<span title="${esc(item.reaction)}">${emoji} <b>${Number(item.count||0)}</b></span>`;
+      }).join('')}</div>`
+    : '';
+  const reactionBar=!mine
+    ? `<div class="message-reaction-bar hidden">${Object.entries(MESSAGE_REACTIONS).map(([key,emoji])=>{
+        const item=reactionCounts.get(key);
+        return `<button type="button" class="${item?.reacted_by_me ? 'active' : ''}" data-message-react="${m.id}" data-reaction="${key}" data-reacted="${item?.reacted_by_me ? '1' : '0'}" aria-label="Reaccionar ${emoji}">${emoji}${item?.count ? ` <span>${item.count}</span>` : ''}</button>`;
+      }).join('')}</div>`
+    : '';
 
   const receipt=mine
     ? isGroup
@@ -6858,8 +6888,12 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     ${sharedCard}
     <div class="message-bubble-meta">
       <small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${m.content_level!=='normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small>
-      <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
+      <span class="message-inline-actions">
+        <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
+        ${!mine ? `<button type="button" class="message-reaction-toggle" data-message-reaction-toggle="${m.id}" aria-expanded="false">Reaccionar</button>` : ''}
+      </span>
     </div>
+    ${reactionSummary}
     ${reactionBar}
   </div>`;
 }
