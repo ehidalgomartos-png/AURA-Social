@@ -1205,3 +1205,24 @@ CREATE INDEX IF NOT EXISTS idx_release_feature_cohorts_cohort
 INSERT INTO release_features(feature_key,name,description,enabled,default_enabled)
 VALUES('support_center','Centro de soporte beta','Ayuda y feedback dentro de la aplicación.',TRUE,TRUE)
 ON CONFLICT(feature_key) DO NOTHING;
+
+
+-- RedLibertad V1.74: release audit & safe rollback
+CREATE TABLE IF NOT EXISTS release_change_audit (
+  id BIGSERIAL PRIMARY KEY,
+  target_type TEXT NOT NULL CHECK(target_type IN ('feature','cohort')),
+  target_key VARCHAR(120) NOT NULL,
+  action VARCHAR(80) NOT NULL,
+  before_state JSONB,
+  after_state JSONB,
+  actor_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  request_id VARCHAR(100),
+  rollback_of BIGINT REFERENCES release_change_audit(id) ON DELETE SET NULL,
+  rolled_back_at TIMESTAMPTZ,
+  rolled_back_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_release_change_audit_created
+  ON release_change_audit(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_release_change_audit_target
+  ON release_change_audit(target_type,target_key,created_at DESC);

@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V1.73 · Beta Cohorts & Release Control</small></div>
+  <div><b>Moderación</b><small>V1.74 · Release Audit & Safe Rollback</small></div>
 </header>
 
 <main>
@@ -92,6 +92,13 @@
         <div id="featureList" class="release-card-list"></div>
       </section>
     </div>
+
+    <section class="release-audit-block">
+      <div class="release-subhead release-audit-head">
+        <div><span class="eyebrow">HISTORIAL</span><h3>Cambios y rollback seguro</h3><p class="panel-copy">Cada cambio guarda antes/después, administrador y referencia de petición. Restaurar se bloquea si hubo cambios posteriores.</p></div>
+      </div>
+      <div id="releaseAuditList" class="release-audit-list"></div>
+    </section>
   </section>
 
   <section class="panel support-admin-panel">
