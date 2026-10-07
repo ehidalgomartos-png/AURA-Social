@@ -8640,6 +8640,7 @@ async function loadSupportMine(){
 }
 
 async function openSupportModal(){
+  await loadReleaseFlags();
   if(!releaseEnabled('support_center')){
     toast('Esta función no está disponible ahora mismo.');
     return;
