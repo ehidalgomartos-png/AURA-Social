@@ -37,6 +37,11 @@
 - Centro de confianza, bloqueos, silencios y reportes.
 - Administración/moderación.
 - Panel Beta real: métricas agregadas cargan correctamente.
+- Abrir Ayuda y feedback desde escritorio y desde Perfil en móvil.
+- Enviar un Problema, una Sugerencia y una Duda de prueba.
+- Confirmar que el usuario ve el estado de sus propios envíos.
+- Confirmar que administración puede revisar, resolver, reabrir y añadir una nota visible.
+- Verificar que el contexto de soporte no contiene cuerpos de mensajes, posts ni archivos.
 - Registrar una incidencia operativa, pasarla a seguimiento, resolverla y reabrirla.
 - Confirmar que el panel muestra health/readiness sin exponer secretos.
 
@@ -64,3 +69,10 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - No usar las métricas agregadas para perfilar personas individualmente.
 - La tasa de activación es una señal de producto, no un objetivo para introducir presión, rachas o notificaciones compulsivas.
 - Resolver una incidencia solo después de repetir el smoke test de la función afectada.
+
+
+## 9. Privacidad del soporte beta
+- El soporte solo debe guardar el texto que el usuario decide enviar.
+- El contexto automático permanece limitado a información técnica básica y no incluye contenido social privado.
+- No usar feedback individual para ranking, publicidad, recomendaciones ni perfilado.
+- Usar el request ID únicamente para diagnóstico operativo.
