@@ -1,4 +1,4 @@
-# RedLibertad V1.75.1 — Message + Profile UI Hotfix
+# RedLibertad V1.75.2 — Reply + Profile Layer Hotfix
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1592,3 +1592,13 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - La cabecera del perfil propio en escritorio pasa a una disposición vertical más limpia: identidad primero y acciones debajo.
 - La cabecera móvil no se modifica.
 - PWA cache actualizado para evitar servir CSS/JS anterior tras el redeploy.
+
+
+## V1.75.2 — Reply + Profile Layer Hotfix
+
+- Al responder a un mensaje propio, el compositor muestra **RESPONDIENDO A ti** en lugar de **RESPONDIENDO A Tú**.
+- El perfil propio en escritorio aplica el mismo orden de capas seguro que móvil.
+- La portada queda detrás del cuerpo del perfil y del avatar.
+- La foto de perfil se muestra completa sobre el borde inferior de la portada.
+- Móvil permanece sin cambios.
+- Caché PWA actualizada.

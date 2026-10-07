@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.75.1",
+  "version": "1.75.2",
   "private": true,
-  "description": "RedLibertad V1.75.1 Message + Profile UI Hotfix - reacciones compactas en mensajes y cabecera de perfil corregida en escritorio.",
+  "description": "RedLibertad V1.75.2 Reply + Profile Layer Hotfix - respuesta propia correcta y avatar visible sobre portada en escritorio.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

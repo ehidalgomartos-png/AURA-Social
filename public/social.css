@@ -5662,3 +5662,28 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
     margin-top:18px;
   }
 }
+
+
+/* RedLibertad V1.75.2 — Own reply label + desktop profile layer hotfix */
+@media(min-width:761px){
+  #profileView .profile-full{
+    position:relative;
+    isolation:isolate;
+  }
+  #profileView .cover{
+    position:relative;
+    z-index:1;
+  }
+  #profileView .profile-body{
+    position:relative;
+    z-index:2;
+  }
+  #profileView .profile-avatar{
+    position:relative;
+    z-index:4;
+    background:var(--navy2);
+    box-shadow:
+      0 0 0 4px rgba(255,253,249,.98),
+      0 14px 30px rgba(13,34,56,.16);
+  }
+}
