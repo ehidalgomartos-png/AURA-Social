@@ -278,6 +278,11 @@ function publicReelPathV190(post){
   const name=(raw ? (raw.length>70 ? raw.slice(0,69).trimEnd()+'…' : raw) : ('Reel de '+String(post.display_name||post.username||'RedLibertad')));
   return '/reel/'+encodeURIComponent(post.id)+'/'+encodeURIComponent(seoSlugV190(name));
 }
+function publicContentPathV190(post){
+  return post?.post_kind==='reel' && post?.media_type==='video' && post?.media_url
+    ? publicReelPathV190(post)
+    : '/p/'+encodeURIComponent(post.id);
+}
 
 let publicPostAudienceV18Ready=null;
 async function ensurePublicPostAudienceV18(){
@@ -751,10 +756,11 @@ function publicCaptionHtmlV179(value=''){
 
 function publicPostCardV179(req,post){
   const avatar=post.avatar_url ? absoluteUrl(req,post.avatar_url) : '';
+  const href=publicContentPathV190(post);
   const image=post.media_type==='image' && post.media_url
-    ? `<a class="public-post-media" href="/p/${encodeURIComponent(post.id)}"><img src="${escapeHtml(absoluteUrl(req,post.media_url))}" loading="lazy" decoding="async" alt="Publicación de ${escapeHtml(post.display_name)}"></a>`
+    ? `<a class="public-post-media" href="${escapeHtml(href)}"><img src="${escapeHtml(absoluteUrl(req,post.media_url))}" loading="lazy" decoding="async" alt="Publicación de ${escapeHtml(post.display_name)}"></a>`
     : post.media_type==='video' && post.media_url
-      ? `<a class="public-post-media public-video-placeholder" href="/p/${encodeURIComponent(post.id)}"><span>▶</span><b>Vídeo público</b></a>`
+      ? `<a class="public-post-media public-video-placeholder" href="${escapeHtml(href)}"><span>▶</span><b>Vídeo público</b></a>`
       : '';
   const date=new Date(post.created_at).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
   return `<article class="public-post-card">
@@ -770,7 +776,7 @@ function publicPostCardV179(req,post){
     ${image}
     <div class="public-post-copy">
       ${post.caption?`<p>${publicCaptionHtmlV179(post.caption)}</p>`:'<p class="muted">Publicación sin texto.</p>'}
-      <a class="public-post-open" href="/p/${encodeURIComponent(post.id)}">Abrir publicación →</a>
+      <a class="public-post-open" href="${escapeHtml(href)}">${post.post_kind==='reel'?'Abrir Reel':'Abrir publicación'} →</a>
     </div>
   </article>`;
 }
@@ -879,7 +885,7 @@ async function renderPublicContentV179(req,res,{tag=null}={}){
     itemListElement:result.rows.map((post,index)=>({
       '@type':'ListItem',
       position:index+1,
-      url:`${origin}/p/${encodeURIComponent(post.id)}`,
+      url:`${origin}${publicContentPathV190(post)}`,
       name:String(post.caption||`Publicación de ${post.display_name}`).slice(0,100)
     }))
   }).replace(/</g,'\\u003c')}</script>` : '';
