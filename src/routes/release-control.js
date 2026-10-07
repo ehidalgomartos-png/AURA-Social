@@ -12,7 +12,7 @@ router.use(async(_req,res,next)=>{
     await ensureReleaseSchema();
     next();
   }catch(error){
-    console.error('RedLibertad V1.73 release control bootstrap failed:',error);
+    console.error('RedLibertad V1.74 release control bootstrap failed:',error);
     res.status(500).json({error:'release_control_bootstrap_failed'});
   }
 });
@@ -49,8 +49,130 @@ const featureUpdateSchema=z.object({
 }).refine(value=>Object.keys(value).length>0);
 const memberSchema=z.object({username:z.string().trim().min(3).max(30)});
 
+
+async function inTransaction(work){
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const result=await work(client);
+    await client.query('COMMIT');
+    return result;
+  }catch(error){
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  }finally{
+    client.release();
+  }
+}
+
+function sameSnapshot(left,right){
+  return JSON.stringify(left??null)===JSON.stringify(right??null);
+}
+
+async function snapshotFeature(client,key){
+  const feature=await client.query(`
+    SELECT feature_key,name,description,enabled,default_enabled
+      FROM release_features
+     WHERE feature_key=$1
+     LIMIT 1
+  `,[key]);
+  if(!feature.rowCount)return null;
+  const assignments=await client.query(`
+    SELECT cohort_id,enabled
+      FROM release_feature_cohorts
+     WHERE feature_key=$1
+     ORDER BY cohort_id
+  `,[key]);
+  return {
+    ...feature.rows[0],
+    cohorts:assignments.rows.map(row=>({cohort_id:Number(row.cohort_id),enabled:row.enabled===true}))
+  };
+}
+
+async function snapshotCohort(client,id){
+  const cohort=await client.query(`
+    SELECT id,cohort_key,name,description,enabled
+      FROM beta_cohorts
+     WHERE id=$1
+     LIMIT 1
+  `,[id]);
+  if(!cohort.rowCount)return null;
+  const members=await client.query(`
+    SELECT user_id
+      FROM beta_cohort_members
+     WHERE cohort_id=$1
+     ORDER BY user_id
+  `,[id]);
+  return {
+    id:Number(cohort.rows[0].id),
+    cohort_key:cohort.rows[0].cohort_key,
+    name:cohort.rows[0].name,
+    description:cohort.rows[0].description,
+    enabled:cohort.rows[0].enabled===true,
+    members:members.rows.map(row=>Number(row.user_id))
+  };
+}
+
+async function writeAudit(client,{targetType,targetKey,action,beforeState,afterState,actorId,requestId,rollbackOf=null}){
+  const result=await client.query(`
+    INSERT INTO release_change_audit(
+      target_type,target_key,action,before_state,after_state,actor_id,request_id,rollback_of
+    )
+    VALUES($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8)
+    RETURNING id
+  `,[
+    targetType,targetKey,action,
+    beforeState==null?null:JSON.stringify(beforeState),
+    afterState==null?null:JSON.stringify(afterState),
+    actorId,requestId||null,rollbackOf
+  ]);
+  return result.rows[0];
+}
+
+async function restoreFeature(client,snapshot,adminId){
+  await client.query(`
+    UPDATE release_features
+       SET name=$2,
+           description=$3,
+           enabled=$4,
+           default_enabled=$5,
+           updated_by=$6,
+           updated_at=now()
+     WHERE feature_key=$1
+  `,[
+    snapshot.feature_key,snapshot.name,snapshot.description,
+    snapshot.enabled,snapshot.default_enabled,adminId
+  ]);
+  await client.query('DELETE FROM release_feature_cohorts WHERE feature_key=$1',[snapshot.feature_key]);
+  for(const item of snapshot.cohorts||[]){
+    await client.query(`
+      INSERT INTO release_feature_cohorts(feature_key,cohort_id,enabled)
+      SELECT $1,$2,$3
+       WHERE EXISTS(SELECT 1 FROM beta_cohorts WHERE id=$2)
+      ON CONFLICT(feature_key,cohort_id) DO UPDATE SET enabled=excluded.enabled
+    `,[snapshot.feature_key,item.cohort_id,item.enabled!==false]);
+  }
+}
+
+async function restoreCohort(client,snapshot,adminId){
+  await client.query(`
+    UPDATE beta_cohorts
+       SET name=$2,description=$3,enabled=$4,updated_at=now()
+     WHERE id=$1
+  `,[snapshot.id,snapshot.name,snapshot.description,snapshot.enabled]);
+  await client.query('DELETE FROM beta_cohort_members WHERE cohort_id=$1',[snapshot.id]);
+  for(const userId of snapshot.members||[]){
+    await client.query(`
+      INSERT INTO beta_cohort_members(cohort_id,user_id,added_by)
+      SELECT $1,$2,$3
+       WHERE EXISTS(SELECT 1 FROM users WHERE id=$2)
+      ON CONFLICT(cohort_id,user_id) DO NOTHING
+    `,[snapshot.id,userId,adminId]);
+  }
+}
+
 async function adminSnapshot(){
-  const [features,cohorts,members,assignments]=await Promise.all([
+  const [features,cohorts,members,assignments,audit]=await Promise.all([
     db.query(`
       SELECT f.*,
              (SELECT count(*)::int FROM release_feature_cohorts fc WHERE fc.feature_key=f.feature_key AND fc.enabled=TRUE) cohort_count
@@ -75,6 +197,17 @@ async function adminSnapshot(){
         FROM release_feature_cohorts fc
         JOIN beta_cohorts c ON c.id=fc.cohort_id
        ORDER BY fc.feature_key,c.name
+    `),
+    db.query(`
+      SELECT a.id,a.target_type,a.target_key,a.action,a.before_state,a.after_state,
+             a.request_id,a.rollback_of,a.rolled_back_at,a.created_at,
+             actor.username actor_username,
+             rollback_user.username rolled_back_by_username
+        FROM release_change_audit a
+        LEFT JOIN users actor ON actor.id=a.actor_id
+        LEFT JOIN users rollback_user ON rollback_user.id=a.rolled_back_by
+       ORDER BY a.created_at DESC
+       LIMIT 100
     `)
   ]);
   return {
@@ -83,7 +216,11 @@ async function adminSnapshot(){
       ...cohort,
       members:members.rows.filter(member=>String(member.cohort_id)===String(cohort.id))
     })),
-    assignments:assignments.rows
+    assignments:assignments.rows,
+    audit:audit.rows.map(entry=>({
+      ...entry,
+      canRollback:Boolean(entry.before_state&&entry.after_state&&!entry.rolled_back_at)
+    }))
   };
 }
 
