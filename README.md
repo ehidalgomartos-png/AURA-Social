@@ -2079,3 +2079,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Los posts/perfiles/comunidades que ya usan una imagen pública real conservan esa imagen cuando corresponde.
 - Sin cambios en privacidad, SEO indexable, canonical, sitemaps o lógica de compartir.
 - Sin migraciones y sin monetización.
+
+
+## V1.93.0 — Public Social Proof & Related Discovery
+
+- Mejora la continuidad de navegación desde páginas públicas.
+- Publicación pública:
+  - muestra cifras agregadas de Me gusta, Comentarios y Republicaciones;
+  - no muestra identidades de usuarios;
+  - no muestra esos contadores en contenido sensible/protegido;
+  - añade hasta 3 contenidos públicos normales del mismo creador;
+  - enlaza Reels relacionados directamente a su canonical `/reel/:id/:slug`.
+- Reel público:
+  - conserva sus métricas públicas existentes;
+  - añade hasta 3 Reels públicos normales del mismo creador;
+  - muestra únicamente vistas agregadas en las tarjetas relacionadas.
+- La sección relacionada solo aparece cuando existe contenido elegible.
+- Autores no descubribles/no indexables no reciben promoción relacionada.
+- Sin cambios en feed interno, privacidad, mensajes, base de datos o monetización.
+- Sin cambios en `src/routes/posts.js`.

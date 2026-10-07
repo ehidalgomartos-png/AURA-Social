@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.92.2",
+  "version": "1.93.0",
   "private": true,
-  "description": "RedLibertad V1.92.2 Social Share Preview Polish - nueva imagen OG 1200x630 más llamativa y versionada para compartir enlaces.",
+  "description": "RedLibertad V1.93 Public Social Proof & Related Discovery - contadores agregados en posts públicos y contenido relacionado seguro en Post/Reel.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
