@@ -1,4 +1,4 @@
-# RedLibertad V1.70.0 — Product Maturity & Launch Readiness
+# RedLibertad V1.71.0 — Beta Launch & Real User Operations
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1484,4 +1484,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Plantilla de variables de entorno sin secretos.
 - Checklist de lanzamiento, rollback y smoke tests.
 - Mobile-first.
+- Sin monetización.
+
+
+## V1.71.0 — Beta Launch & Real User Operations
+
+- Consola beta dentro del panel administrativo.
+- Métricas agregadas de altas de 24 h y 7 días.
+- Activación de nuevos usuarios calculada con acciones sociales reales ya existentes: publicar, comentar, seguir o enviar un mensaje.
+- Usuarios con actividad social agregada durante los últimos 7 días.
+- Volumen de posts, mensajes, follows y denuncias en 24 horas.
+- Sin píxeles, SDKs analíticos ni tracking externo.
+- Sin lectura ni análisis del cuerpo de los mensajes.
+- Estado de health/readiness visible desde administración.
+- Registro privado de incidencias operativas con severidad Informativa / Atención / Crítica.
+- Estados de incidencia Abierta / En seguimiento / Resuelta, con reapertura y notas.
+- Índices PostgreSQL para que las métricas agregadas no penalicen la carga habitual.
+- `npm run check:syntax` ampliado para incluir rutas y frontend de administración.
+- Mobile-first también para el panel operativo.
 - Sin monetización.
