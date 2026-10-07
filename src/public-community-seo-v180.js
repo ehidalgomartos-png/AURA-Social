@@ -1,5 +1,5 @@
 const express=require('express');
-const db=require('../db');
+const db=require('./db');
 const router=express.Router();
 const CATS={general:'General',amistad:'Amistad',ocio:'Ocio',musica:'Música',cine:'Cine',deporte:'Deporte',tecnologia:'Tecnología',arte:'Arte',viajes:'Viajes',local:'Local',creadores:'Creadores',debate:'Debate'};
 let ready=null;
