@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.83.0",
+  "version": "1.83.1",
   "private": true,
-  "description": "RedLibertad V1.83 Public Search & Unified Discovery - buscador público unificado con filtros estrictos de privacidad y resultados canónicos.",
+  "description": "RedLibertad V1.83.1 Desktop Search Layout Polish - corrige colisiones CSS del buscador público en escritorio sin alterar móvil ni lógica de búsqueda.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
