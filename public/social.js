@@ -6888,10 +6888,10 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     ${sharedCard}
     <div class="message-bubble-meta">
       <small><span class="message-time">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${m.content_level!=='normal' ? ' · 18+' : ''}</span>${mine ? ` · <span class="message-receipt">${receipt}</span>` : ''}</small>
-      <span class="message-inline-actions">
+      ${!mine ? `<span class="message-inline-actions">
         <button type="button" class="message-reply-button" data-message-reply="${m.id}" data-reply-label="${esc(replyLabel)}" data-reply-text="${esc(replyText)}">Responder</button>
-        ${!mine ? `<button type="button" class="message-reaction-toggle" data-message-reaction-toggle="${m.id}" aria-expanded="false">Reaccionar</button>` : ''}
-      </span>
+        <button type="button" class="message-reaction-toggle" data-message-reaction-toggle="${m.id}" aria-expanded="false">Reaccionar</button>
+      </span>` : ''}
     </div>
     ${reactionSummary}
     ${reactionBar}
