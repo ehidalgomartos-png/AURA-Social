@@ -682,7 +682,7 @@ function verificationCard(item) {
     </div>
     <div class="verification-state-row">
       <span class="state ${item.status === 'rejected' ? 'danger-state' : item.status === 'pending' ? 'warning-state' : ''}">${verificationStateLabel(item.status)}</span>
-      ${verifiedAlready ? '<span class="state">Ya figura verificado</span>' : ''}
+      ${verifiedAlready ? '<span class="state">Ya figura verificado</span>' : item.status === 'approved' ? '<span class="state danger-state">Verificación actual retirada</span>' : ''}
     </div>
     ${item.request_note ? `<div class="verification-note"><b>Nota del usuario</b><p>${esc(item.request_note)}</p></div>` : ''}
     ${item.review_note ? `<div class="verification-note review"><b>Revisión</b><p>${esc(item.review_note)}</p></div>` : ''}
@@ -788,8 +788,8 @@ function userCard(u) {
       ${u.creator_verified ? '<span class="state">Creador verificado</span>' : ''}
     </div>
     <div class="actions">
-      ${!u.age_verified ? `<button class="soft" data-admin-action="verify-age" data-user-id="${u.id}">Verificar +18</button>` : ''}
-      ${!u.creator_verified ? `<button class="alt" data-admin-action="verify-creator" data-user-id="${u.id}">Verificar creador</button>` : ''}
+      ${!u.age_verified ? `<button class="soft" data-admin-action="verify-age" data-user-id="${u.id}">Verificar +18</button>` : `<button class="soft" data-admin-action="revoke-age" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Quitar +18</button>`}
+      ${!u.creator_verified ? `<button class="alt" data-admin-action="verify-creator" data-user-id="${u.id}">Verificar creador</button>` : `<button class="alt" data-admin-action="revoke-creator" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Quitar creador</button>`}
       <button data-admin-action="open-history" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Historial</button>
       <button class="${u.status === 'active' ? 'soft' : 'alt'}" data-admin-action="open-moderation" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Moderar</button>
     </div>
@@ -825,7 +825,7 @@ async function verifyCreator(id, button) {
   try {
     const { r, d } = await api(`/api/admin/users/${id}/verify-creator`, { method: 'POST' });
     if (!r.ok) throw new Error(d.error || 'verify_failed');
-    setAdminNotice('Creador verificado. También queda verificado como +18.');
+    setAdminNotice('Creador verificado.');
     await Promise.all([users($('#search').value), metrics()]);
   } catch (_) {
     setAdminNotice('No se pudo verificar al creador.', true);
