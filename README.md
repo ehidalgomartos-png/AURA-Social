@@ -1826,3 +1826,26 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin tocar `posts.js` ni APIs privadas.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.86.0 — Public Story Sharing & Ephemeral Discovery
+
+- Nuevo directorio público efímero `/historias`.
+- Nuevo enlace compartible `/historia/:id`.
+- Fuera de la app solo se muestran Stories:
+  - activas,
+  - `audience='public'`,
+  - `moderation_status='published'`,
+  - `content_level='normal'`,
+  - de autores activos, no-admin y `discoverable=true`.
+- Stories sensibles, nudity, VIP, connections y circles nunca se exponen.
+- Al caducar una Story, su enlace deja de mostrar el media y responde HTTP 410 con una pantalla de historia finalizada.
+- Las páginas de Stories usan `noindex,follow`; no se añaden a sitemaps.
+- Las visitas anónimas no se insertan en `story_views` ni alteran las métricas internas.
+- Soporte de imagen y vídeo, usando `playback_url` cuando existe para vídeo.
+- Open Graph efímero para facilitar compartir el enlace mientras está activo.
+- Acceso desde `/descubrir`.
+- Sin cambios en `src/routes/stories.js`, `public/social.js` ni `posts.js`.
+- Sin migraciones de base de datos.
+- Mobile-first.
+- Sin monetización.
