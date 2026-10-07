@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.91.0",
+  "version": "1.92.0",
   "private": true,
-  "description": "RedLibertad V1.91 Public Entry Conversion & Safe Return - CTAs públicos consistentes para crear cuenta o entrar y volver al contenido exacto.",
+  "description": "RedLibertad V1.92 Mobile Public Entry Bar - barra inferior móvil de Crear cuenta / Entrar en páginas públicas de detalle, con retorno seguro y sin duplicar CTAs.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

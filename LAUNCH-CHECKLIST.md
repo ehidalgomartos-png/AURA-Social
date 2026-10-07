@@ -426,3 +426,17 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Comprobar que la URL de entrada lleva `entry`, `entryKey` y `next`.
 - Confirmar que no se indexan rutas privadas ni cambia la privacidad del contenido.
 - Revisar móvil y escritorio.
+
+
+## 34. Mobile Public Entry Bar
+- Confirmar `/api/health` con versión 1.92.0 y features `mobile-public-entry-bar-v1.92` / `public-entry-cta-dedupe-v1.92`.
+- Abrir sin sesión en móvil: Post, Perfil, Comunidad, Evento, Reel, Tema y Story activa.
+- Confirmar barra inferior fija con **Crear cuenta** y **Entrar**.
+- Confirmar que la barra no tapa contenido ni controles del vídeo.
+- Confirmar que respeta el safe-area inferior.
+- Confirmar que los CTA Crear cuenta / Entrar del bloque interior no se duplican en móvil.
+- Pulsar Crear cuenta y verificar `entry`, `entryKey` y `next`.
+- Pulsar Entrar y verificar retorno al contenido exacto tras login.
+- Revisar escritorio y confirmar que no aparece la barra fija y siguen visibles los CTA interiores.
+- Confirmar que Story caducada no muestra barra de participación.
+- Confirmar que no cambia robots, canonical, sitemaps ni privacidad.
