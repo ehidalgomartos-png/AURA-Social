@@ -339,3 +339,16 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que el panel no muestra email, IP ni contenido privado.
 - Confirmar que un usuario no-admin recibe 403 en `/api/admin/growth-attribution`.
 - Revisar escritorio y móvil.
+
+
+## 27. Verificación independiente +18 / creador
+- En un usuario sin insignias, pulsar "Verificar creador" y confirmar que solo aparece "Creador verificado".
+- Confirmar que "+18 verificado" sigue ausente.
+- Pulsar "Verificar +18" y confirmar que se añade únicamente esa insignia.
+- En un usuario con ambas, pulsar "Quitar creador" y confirmar que +18 permanece.
+- Volver a verificar creador y después pulsar "Quitar +18"; confirmar que creador permanece.
+- Revisar Historial y confirmar acciones de verify/revoke separadas.
+- Probar una solicitud pendiente de tipo creador desde Solicitudes de verificación y confirmar que no aprueba +18.
+- Probar una solicitud +18 y confirmar que no altera creador.
+- Revisar una solicitud antigua aprobada cuya insignia fue retirada y confirmar "Verificación actual retirada".
+- Revisar móvil y escritorio.
