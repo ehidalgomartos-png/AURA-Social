@@ -5687,3 +5687,164 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
       0 14px 30px rgba(13,34,56,.16);
   }
 }
+
+
+/* =========================================================
+   RedLibertad V1.90.2 — Mobile Profile Declutter
+   ========================================================= */
+#profileView .profile-buttons.profile-actions-shell{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  width:100%;
+  margin:0;
+  overflow:visible;
+}
+#profileView .profile-primary-actions{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;
+  gap:8px;
+  align-items:stretch;
+}
+#profileView .profile-primary-actions > .secondary,
+#profileView .profile-more > summary{
+  min-height:44px;
+  padding:10px 13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+}
+#profileView .profile-more{
+  position:relative;
+  min-width:82px;
+}
+#profileView .profile-more > summary{
+  list-style:none;
+  cursor:pointer;
+  gap:7px;
+  background:linear-gradient(180deg,#fff,var(--ivory));
+  color:var(--navy);
+  border:1px solid var(--line);
+  font-weight:800;
+  user-select:none;
+}
+#profileView .profile-more > summary::-webkit-details-marker{display:none}
+#profileView .profile-more-chevron{
+  font-size:13px;
+  transition:transform .16s ease;
+}
+#profileView .profile-more[open] .profile-more-chevron{transform:rotate(180deg)}
+#profileView .profile-more-menu{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  z-index:25;
+  width:min(310px,calc(100vw - 42px));
+  padding:7px;
+  display:grid;
+  gap:3px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--paper);
+  box-shadow:0 18px 42px rgba(13,34,56,.18);
+}
+#profileView .profile-more-option{
+  width:100%;
+  min-height:52px;
+  padding:9px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:0;
+  border-radius:11px;
+  background:transparent;
+  color:var(--navy);
+  text-align:left;
+  cursor:pointer;
+}
+#profileView .profile-more-option:hover,
+#profileView .profile-more-option:focus-visible{
+  background:var(--ivory);
+}
+#profileView .profile-more-option > span:first-child{
+  min-width:0;
+}
+#profileView .profile-more-option b,
+#profileView .profile-more-option small{
+  display:block;
+}
+#profileView .profile-more-option b{
+  font-size:12px;
+}
+#profileView .profile-more-option small{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:700;
+}
+#profileView .profile-more-option > span:last-child{
+  color:var(--muted);
+  font-size:20px;
+  line-height:1;
+}
+#profileView .profile-creator-entry{
+  width:100%;
+  min-height:52px;
+  padding:10px 13px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  text-align:left;
+  border-color:rgba(43,183,169,.18);
+  background:linear-gradient(135deg,rgba(43,183,169,.09),rgba(255,253,249,.98));
+}
+#profileView .profile-creator-entry > span:first-child{
+  min-width:0;
+}
+#profileView .profile-creator-entry b,
+#profileView .profile-creator-entry small{
+  display:block;
+}
+#profileView .profile-creator-entry b{
+  color:var(--navy);
+  font-size:12px;
+}
+#profileView .profile-creator-entry small{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:700;
+}
+#profileView .profile-creator-entry > span:last-child{
+  color:var(--teal);
+  font-size:18px;
+}
+@media(max-width:760px){
+  #profileView .profile-title{
+    gap:11px;
+  }
+  #profileView .profile-primary-actions{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 78px;
+  }
+  #profileView .profile-primary-actions > .secondary,
+  #profileView .profile-more > summary{
+    min-height:46px;
+    padding:9px 8px;
+  }
+  #profileView .profile-bio{
+    margin-top:14px;
+  }
+}
+@media(max-width:390px){
+  #profileView .profile-primary-actions{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 72px;
+    gap:6px;
+  }
+  #profileView .profile-primary-actions > .secondary,
+  #profileView .profile-more > summary{
+    font-size:12px;
+  }
+}
