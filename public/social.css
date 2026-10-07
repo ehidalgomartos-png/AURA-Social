@@ -5848,3 +5848,128 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
     font-size:12px;
   }
 }
+
+
+/* =========================================================
+   RedLibertad V1.90.3 — Profile Visual Polish
+   ========================================================= */
+#profileView .profile-buttons.profile-actions-shell .profile-primary-actions > button.secondary,
+#profileView .profile-buttons.profile-actions-shell .profile-more > summary.secondary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#profileView .profile-buttons.profile-actions-shell .profile-more > summary.secondary{
+  flex-direction:row;
+  gap:5px;
+  line-height:1;
+}
+#profileView .profile-buttons.profile-actions-shell .profile-more-chevron{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin:0;
+  font-size:11px;
+  line-height:1;
+  transform-origin:center;
+}
+#profileView .profile-buttons.profile-actions-shell .profile-more[open] .profile-more-chevron{
+  transform:rotate(180deg);
+}
+#profileView .profile-buttons.profile-actions-shell .profile-creator-entry.secondary{
+  min-height:60px;
+  padding:10px 14px;
+  display:flex;
+  grid-template-columns:none;
+  place-items:initial;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+#profileView .profile-buttons.profile-actions-shell .profile-creator-entry > span:first-child{
+  display:block;
+  flex:1;
+  min-width:0;
+}
+#profileView .profile-buttons.profile-actions-shell .profile-creator-entry > span:last-child{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 28px;
+  width:28px;
+  height:28px;
+  margin:0;
+  border-radius:50%;
+  background:rgba(43,183,169,.10);
+}
+#profileView .profile-stats{
+  align-items:stretch;
+}
+#profileView .profile-stats > span,
+#profileView .profile-stats > button{
+  min-width:0;
+}
+
+@media(max-width:760px){
+  #profileView .profile-buttons.profile-actions-shell{
+    gap:9px;
+  }
+  #profileView .profile-buttons.profile-actions-shell .profile-creator-entry.secondary{
+    min-height:58px;
+    padding:9px 12px;
+  }
+  #profileView .profile-buttons.profile-actions-shell .profile-creator-entry b{
+    font-size:12px;
+    line-height:1.2;
+  }
+  #profileView .profile-buttons.profile-actions-shell .profile-creator-entry small{
+    margin-top:2px;
+    font-size:8px;
+    line-height:1.25;
+  }
+  #profileView .profile-stats{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:6px;
+    margin-top:14px;
+  }
+  #profileView .profile-stats > span,
+  #profileView .profile-stats > button{
+    width:100%;
+    min-height:54px;
+    padding:8px 3px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    border:0;
+    border-radius:13px;
+    background:linear-gradient(180deg,rgba(13,34,56,.045),rgba(13,34,56,.025));
+    color:var(--muted);
+    text-align:center;
+    font-size:9px;
+    line-height:1.15;
+  }
+  #profileView .profile-stats > span b,
+  #profileView .profile-stats > button b{
+    display:block;
+    margin:0 0 3px;
+    color:var(--navy);
+    font-size:15px;
+    line-height:1;
+  }
+}
+@media(max-width:390px){
+  #profileView .profile-stats{
+    gap:4px;
+  }
+  #profileView .profile-stats > span,
+  #profileView .profile-stats > button{
+    min-height:52px;
+    padding:7px 2px;
+    font-size:8px;
+  }
+  #profileView .profile-stats > span b,
+  #profileView .profile-stats > button b{
+    font-size:14px;
+  }
+}
