@@ -2061,3 +2061,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
   - no se muestra “Página 1 de 1” cuando no existe paginación real.
 - Sin cambios en SEO, privacidad, canonical, robots, sitemaps ni lógica de contenido.
 - Sin migraciones y sin monetización.
+
+
+## V1.92.2 — Social Share Preview Polish
+
+- Nueva imagen social de marca para enlaces compartidos: `/assets/og-redlibertad-v1922.jpg`.
+- Formato 1200×630 preparado para WhatsApp, Facebook, X y otras plataformas que leen Open Graph.
+- Diseño más llamativo con:
+  - identidad azul marino / teal / coral,
+  - logo gráfico de RedLibertad,
+  - mensaje “La libertad es lo primero”,
+  - “Publica · Conecta · Comparte”,
+  - CTA visual “Únete a la conversación”,
+  - dominio redlibertad.com.
+- Todas las referencias públicas que usaban la imagen genérica pasan al archivo versionado.
+- El nombre de archivo nuevo fuerza una URL de imagen distinta para reducir problemas con cachés de previews sociales.
+- Los posts/perfiles/comunidades que ya usan una imagen pública real conservan esa imagen cuando corresponde.
+- Sin cambios en privacidad, SEO indexable, canonical, sitemaps o lógica de compartir.
+- Sin migraciones y sin monetización.
