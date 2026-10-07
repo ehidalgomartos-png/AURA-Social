@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.90.0",
+  "version": "1.90.1",
   "private": true,
-  "description": "RedLibertad V1.90 SEO Crawl Health & Canonical Cleanup - panel admin de salud SEO, limpieza canonical de Reels y consistencia pública de eventos.",
+  "description": "RedLibertad V1.90.1 SEO Canonical Links Hotfix - enlaces internos públicos de Reels apuntan directamente a su URL canonical.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

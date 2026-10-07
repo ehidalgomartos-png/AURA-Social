@@ -369,3 +369,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que búsquedas con `?q=` siguen noindex.
 - Revisar en Google Search Console `/sitemap-index.xml` después del despliegue.
 - Revisar escritorio y móvil del nuevo panel admin.
+
+
+## 29. SEO Canonical Links Hotfix
+- Confirmar `/api/health` con versión 1.90.1.
+- Abrir `/publicaciones` y localizar un Reel público.
+- Confirmar que el enlace del Reel apunta directamente a `/reel/:id/:slug`.
+- Abrir un hashtag que contenga un Reel y confirmar el mismo comportamiento.
+- Verificar que el JSON-LD ItemList de esas páginas usa también la URL `/reel/:id/:slug`.
+- Confirmar que un enlace antiguo `/p/:id` de Reel sigue respondiendo 301 al canonical.
+- Confirmar que publicaciones normales continúan usando `/p/:id`.
+- Revisar móvil y escritorio.
