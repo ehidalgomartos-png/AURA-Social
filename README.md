@@ -1,4 +1,4 @@
-# RedLibertad V1.76.0 — Production Domain & Public Launch Polish
+# RedLibertad V1.77.0 — Public Profiles & Profile SEO
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1626,4 +1626,20 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Manifest PWA con `id=/app` y `lang=es` para mantener una identidad estable tras el cambio de dominio.
 - Caché PWA V1.76 actualizada.
 - Compatible con el dominio temporal como respaldo técnico, sin publicarlo en enlaces externos.
+- Sin monetización.
+
+
+## V1.77.0 — Public Profiles & Profile SEO
+
+- Nueva URL pública limpia de perfil: `/perfil/:username`.
+- Compartir un perfil desde la app usa `https://redlibertad.com/perfil/usuario` en lugar de un deep link interno.
+- Cada perfil público incluye title, description, canonical, Open Graph y Twitter Cards.
+- Structured Data `Person` para perfiles indexables.
+- La página pública muestra identidad, avatar, portada, bio, headline de creador y contadores públicos básicos.
+- `discoverable=true` controla la indexación SEO: solo esos perfiles reciben `index,follow`.
+- Perfiles no descubribles siguen accesibles por enlace directo, pero quedan `noindex,nofollow`.
+- Administradores y cuentas inactivas no tienen página pública indexable.
+- Nuevo `/sitemap-profiles.xml` con hasta 10.000 perfiles activos y descubribles.
+- `robots.txt` anuncia el sitemap de perfiles y permite `/perfil/`.
+- Índice PostgreSQL específico para el sitemap/perfiles SEO.
 - Sin monetización.

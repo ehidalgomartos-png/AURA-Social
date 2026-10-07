@@ -128,3 +128,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Abrir un post público normal y revisar canonical/OG.
 - Abrir un post sensible público y confirmar que la vista externa está protegida y marcada noindex.
 - Instalar/abrir la PWA y verificar que sigue asociada a la aplicación tras el cambio de dominio.
+
+
+## 14. Perfiles públicos y SEO
+- Abrir un perfil descubrible en `/perfil/usuario` y confirmar canonical en `redlibertad.com`.
+- Compartir un perfil desde la app y confirmar que el enlace usa `/perfil/usuario`.
+- Verificar Open Graph/Twitter Card con avatar o imagen por defecto.
+- Confirmar Structured Data `Person` en un perfil descubrible.
+- Desactivar `discoverable` en una cuenta de prueba y confirmar `noindex,nofollow`.
+- Confirmar que un perfil no descubrible no aparece en `/sitemap-profiles.xml`.
+- Confirmar que cuentas admin/inactivas no aparecen en el sitemap de perfiles.
+- Revisar `robots.txt` y confirmar las dos líneas Sitemap.

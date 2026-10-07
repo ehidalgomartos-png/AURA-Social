@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.76.0",
+  "version": "1.77.0",
   "private": true,
-  "description": "RedLibertad V1.76 Production Domain & Public Launch Polish - redlibertad.com canónico, enlaces públicos consistentes, SEO social, robots/sitemap y PWA estable.",
+  "description": "RedLibertad V1.77 Public Profiles & Profile SEO - perfiles públicos limpios, canonical/OG, privacidad noindex y sitemap específico de perfiles.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
