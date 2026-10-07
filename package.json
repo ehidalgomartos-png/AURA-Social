@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.93.0",
+  "version": "1.93.1",
   "private": true,
-  "description": "RedLibertad V1.93 Public Social Proof & Related Discovery - contadores agregados en posts públicos y contenido relacionado seguro en Post/Reel.",
+  "description": "RedLibertad V1.93.1 Registration Rate Limit Hotfix - registro con límites separados por red e identidad para evitar falsos bloqueos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
