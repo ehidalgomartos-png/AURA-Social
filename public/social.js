@@ -1184,7 +1184,10 @@ function momentumCardHTML(post) {
       <span class="momentum-author"><span class="momentum-avatar">${avatarHTML(post)}</span><b>${esc(post.display_name)}</b></span>
       ${post.audience === 'vip' ? '<span class="vip-content-badge compact">★ SOLO VIP</span>' : ''}
       ${media && shortCopy ? `<p>${esc(shortCopy)}</p>` : ''}
-      <small>${post.from_following ? 'Siguiendo · ' : ''}${compactTimeAgo(post.created_at)}${engagement ? ` · ${engagement} interacciones` : ''}</small>
+      <div class="momentum-card-meta">
+        <small>${post.from_following ? 'Siguiendo · ' : ''}${compactTimeAgo(post.created_at)}${engagement ? ` · ${engagement} interacciones` : ''}</small>
+        <span class="momentum-card-cta">Ver publicación <i aria-hidden="true">→</i></span>
+      </div>
     </div>
   </button>`;
 }
