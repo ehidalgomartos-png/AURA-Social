@@ -1,0 +1,128 @@
+/*
+ * RedLibertad V1.96 — Public Navigation Responsive Polish
+ * Shared override for every public discovery/navigation header.
+ */
+:is(.directory-top,.public-content-top,.pct,.pet,.mt,.pt,.dt,.tt,.st){
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+}
+
+:is(.directory-brand,.public-content-brand,.pcb,.peb,.mb,.pb,.db,.tb,.sb){
+  flex:0 0 auto;
+  min-width:max-content;
+  white-space:nowrap;
+}
+
+:is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa){
+  display:flex!important;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:nowrap!important;
+  gap:7px;
+  min-width:0;
+  max-width:calc(100vw - 210px);
+  margin-left:auto;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+
+:is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa)::-webkit-scrollbar{
+  display:none;
+}
+
+:is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa) .button.small{
+  min-width:0!important;
+  min-height:40px;
+  flex:0 0 auto;
+  white-space:nowrap;
+  padding:9px 12px;
+  font-size:13px;
+}
+
+@media(max-width:1100px){
+  :is(.directory-top,.public-content-top,.pct,.pet,.mt,.pt,.dt,.tt,.st){
+    gap:10px!important;
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+
+  :is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa){
+    gap:6px;
+    max-width:calc(100vw - 190px);
+  }
+
+  :is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa) .button.small{
+    padding:8px 10px;
+    font-size:12px;
+  }
+}
+
+@media(max-width:760px){
+  :is(.directory-top,.public-content-top,.pct,.pet,.mt,.pt,.dt,.tt,.st){
+    min-height:60px;
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:8px!important;
+    padding:9px 10px!important;
+  }
+
+  :is(.directory-brand,.public-content-brand,.pcb,.peb,.mb,.pb,.db,.tb,.sb){
+    min-width:0;
+    max-width:calc(100% - 132px);
+    gap:7px!important;
+    font-size:15px!important;
+  }
+
+  :is(.directory-brand,.public-content-brand,.pcb,.peb,.mb,.pb,.db,.tb,.sb) img{
+    width:30px!important;
+    height:30px!important;
+    flex:0 0 30px;
+  }
+
+  :is(.directory-brand,.public-content-brand,.pcb,.peb,.mb,.pb,.db,.tb,.sb) span{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  :is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa){
+    width:auto;
+    max-width:none;
+    min-width:0;
+    flex:0 0 auto;
+    overflow:visible;
+    gap:0!important;
+    margin-left:auto;
+  }
+
+  :is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa) .button.ghost{
+    display:none!important;
+  }
+
+  :is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa) .button:not(.ghost){
+    display:inline-flex!important;
+    min-width:0!important;
+    min-height:40px!important;
+    padding:8px 12px!important;
+    border-radius:12px!important;
+    font-size:12px!important;
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:380px){
+  :is(.directory-brand,.public-content-brand,.pcb,.peb,.mb,.pb,.db,.tb,.sb){
+    max-width:calc(100% - 122px);
+    font-size:14px!important;
+  }
+
+  :is(.directory-top-actions,.public-content-top-actions,.pca,.pea,.ma,.pa,.da,.ta,.sa) .button:not(.ghost){
+    padding-inline:10px!important;
+    font-size:11px!important;
+  }
+}

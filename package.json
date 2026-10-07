@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.95.1",
+  "version": "1.96.0",
   "private": true,
-  "description": "RedLibertad V1.95.1 Public Profile Layer Hotfix - corrige el solapamiento de portada y avatar en perfiles públicos abiertos desde publicaciones.",
+  "description": "RedLibertad V1.96 Public Navigation Responsive Polish - cabecera pública unificada y responsive en directorios, descubrimiento y superficies SEO.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
