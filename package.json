@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.90.2",
+  "version": "1.90.3",
   "private": true,
-  "description": "RedLibertad V1.90.2 Mobile Profile Declutter - perfil propio móvil más limpio con acciones principales, menú Más y acceso destacado al Centro de creador.",
+  "description": "RedLibertad V1.90.3 Profile Visual Polish - Centro de creador compacto, estadísticas móviles en una fila y menos ruido visual en el perfil propio.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

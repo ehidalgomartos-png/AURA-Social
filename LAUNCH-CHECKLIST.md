@@ -392,3 +392,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que el menú Más no queda cortado ni detrás de otros elementos.
 - Revisar perfil propio en escritorio para asegurar que no hay regresiones.
 - Confirmar que perfiles ajenos no cambian.
+
+
+## 31. Profile Visual Polish
+- Confirmar `/api/health` con versión 1.90.3 y feature `profile-visual-polish-v1.90.3`.
+- Revisar en móvil que Más muestre texto y chevrón en la misma línea.
+- Confirmar que Centro de creador ocupa una sola fila compacta, con la flecha centrada a la derecha.
+- Confirmar que Publicaciones, Seguidores, Siguiendo y Conexiones aparecen en una sola fila.
+- Revisar que los cuatro contadores sigan siendo legibles en pantallas estrechas.
+- Confirmar que ya no aparece el texto redundante Edad/Creador al final del perfil.
+- Abrir Más > Confianza y verificar que el estado de verificación sigue accesible.
+- Revisar escritorio para descartar regresiones.
