@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.75.3",
+  "version": "1.76.0",
   "private": true,
-  "description": "RedLibertad V1.75.3 Message Own Actions Hotfix - responder y reaccionar solo en mensajes recibidos.",
+  "description": "RedLibertad V1.76 Production Domain & Public Launch Polish - redlibertad.com canónico, enlaces públicos consistentes, SEO social, robots/sitemap y PWA estable.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

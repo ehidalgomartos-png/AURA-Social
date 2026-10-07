@@ -34,8 +34,8 @@ DATABASE_URL=<Postgres URL internal de la base ya migrada>
 DATABASE_SSL=false
 JWT_SECRET=<tu secreto actual o uno nuevo>
 ADMIN_EMAIL=<tu email admin>
-APP_ORIGIN=<URL temporal de RedLibertad durante pruebas>
-COOKIE_SECURE=false
+APP_ORIGIN=https://redlibertad.com
+COOKIE_SECURE=true
 MEDIA_STORAGE=local
 UPLOAD_DIR=/data/uploads
 DB_POOL_MAX=10
@@ -46,7 +46,7 @@ DB_CONNECT_TIMEOUT_MS=5000
 Cuando pongas el dominio real con HTTPS:
 
 ```env
-APP_ORIGIN=https://TU-DOMINIO-REDLIBERTAD
+APP_ORIGIN=https://redlibertad.com
 COOKIE_SECURE=true
 ```
 
@@ -83,3 +83,14 @@ Prueba desde móvil: registro, login, feed, posts, subir foto/vídeo, comentario
 5. Comprueba que `UPLOAD_DIR` apunta al volumen persistente si `MEDIA_STORAGE=local`.
 6. Ejecuta `npm run check:syntax` antes del despliegue.
 7. Conserva una copia de seguridad reciente de PostgreSQL y del volumen de multimedia antes de cambios importantes.
+
+
+## Dominio de producción V1.76
+
+Dominio canónico: `https://redlibertad.com`
+
+- `www.redlibertad.com` debe redirigir a `redlibertad.com`.
+- Mantén `APP_ORIGIN=https://redlibertad.com`.
+- Mantén `COOKIE_SECURE=true`.
+- Comprueba `/robots.txt` y `/sitemap.xml` después de cada cambio relevante de proxy/dominio.
+- Los enlaces compartidos deben empezar siempre por `https://redlibertad.com`, incluso si accedes temporalmente por otro hostname.
