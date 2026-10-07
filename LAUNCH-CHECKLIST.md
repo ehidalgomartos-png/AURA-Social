@@ -414,3 +414,15 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Abrir cada opción y comprobar que Más se cierra al navegar.
 - Cerrar Más y confirmar que el perfil recupera su altura compacta.
 - Revisar escritorio para descartar regresiones.
+
+
+## 33. Public Entry Conversion & Safe Return
+- Confirmar `/api/health` con versión 1.91.0 y features `public-entry-conversion-v1.91` / `safe-public-return-v1.91`.
+- Abrir un Post público sin sesión y comprobar Crear cuenta / Entrar y volver aquí.
+- Repetir en Perfil, Reel, Tema y Story activa.
+- Confirmar que Comunidad y Evento conservan su flujo actual.
+- En cada superficie, iniciar sesión mediante Entrar y confirmar retorno al contenido exacto.
+- Crear una cuenta de prueba desde una superficie pública y confirmar retorno equivalente.
+- Comprobar que la URL de entrada lleva `entry`, `entryKey` y `next`.
+- Confirmar que no se indexan rutas privadas ni cambia la privacidad del contenido.
+- Revisar móvil y escritorio.
