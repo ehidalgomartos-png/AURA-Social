@@ -84,6 +84,16 @@ async function ensureReferralsTable() {
       await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_growth_invite_links_active_user ON growth_invite_links(user_id) WHERE disabled_at IS NULL');
       await db.query('ALTER TABLE referrals ADD COLUMN IF NOT EXISTS invite_link_id BIGINT REFERENCES growth_invite_links(id) ON DELETE SET NULL');
       await db.query("ALTER TABLE referrals ADD COLUMN IF NOT EXISTS attribution TEXT NOT NULL DEFAULT 'legacy_username'");
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS signup_attributions (
+          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          source_type VARCHAR(20) NOT NULL CHECK(source_type IN ('profile','post','community','event','reel','topic','story')),
+          source_key VARCHAR(120) NOT NULL DEFAULT '',
+          source_path VARCHAR(280) NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_signup_attributions_source_created ON signup_attributions(source_type,created_at DESC)');
     })().catch(error => {
       referralsReady = null;
       throw error;
@@ -109,8 +119,40 @@ const registerSchema = z.object({
   birthDate: z.string(),
   acceptTerms: z.literal(true),
   referralUsername: z.string().max(30).optional().default(''),
-  referralToken: z.string().max(64).optional().default('')
+  referralToken: z.string().max(64).optional().default(''),
+  entryType: z.string().max(20).optional().default(''),
+  entryKey: z.string().max(120).optional().default(''),
+  entryPath: z.string().max(280).optional().default('')
 });
+
+const PUBLIC_ENTRY_TYPES=new Set(['profile','post','community','event','reel','topic','story']);
+function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
+  const type=String(entryType||'').trim().toLowerCase();
+  const key=String(entryKey||'').trim().slice(0,120);
+  const path=String(entryPath||'').trim();
+  if(!PUBLIC_ENTRY_TYPES.has(type) || !path || path.length>280 || path.startsWith('//') || path.includes('\\'))return null;
+  const routeOk={
+    profile:/^\/perfil\/[A-Za-z0-9_.]{3,30}$/,
+    post:/^\/p\/\d+$/,
+    community:/^\/comunidad\/\d+(?:\/[a-z0-9-]{1,100})?$/,
+    event:/^\/evento\/\d+(?:\/[a-z0-9-]{1,100})?$/,
+    reel:/^\/reel\/\d+(?:\/[a-z0-9-]{1,100})?$/,
+    topic:/^\/tema\/[a-z0-9-]{1,80}$/,
+    story:/^\/historia\/\d+$/
+  }[type];
+  if(!routeOk?.test(path))return null;
+  const keyOk={
+    profile:/^[A-Za-z0-9_.]{3,30}$/,
+    post:/^\d+$/,
+    community:/^\d+$/,
+    event:/^\d+$/,
+    reel:/^\d+$/,
+    topic:/^[a-z0-9-]{1,80}$/,
+    story:/^\d+$/
+  }[type];
+  if(!keyOk?.test(key))return null;
+  return {type,key,path};
+}
 
 function signUser(user) {
   return jwt.sign(
@@ -133,7 +175,8 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'invalid_data', details: parsed.error.flatten() });
   }
 
-  const { email, username, displayName, password, birthDate, referralUsername, referralToken } = parsed.data;
+  const { email, username, displayName, password, birthDate, referralUsername, referralToken, entryType, entryKey, entryPath } = parsed.data;
+  const signupAttribution=normalizeSignupAttribution({entryType,entryKey,entryPath});
   const dob = new Date(`${birthDate}T00:00:00Z`);
   if (Number.isNaN(dob.getTime())) {
     return res.status(400).json({ error: 'invalid_birth_date' });
@@ -204,6 +247,14 @@ router.post('/register', async (req, res) => {
 
     user = result.rows[0];
 
+    if(signupAttribution){
+      await client.query(`
+        INSERT INTO signup_attributions (user_id,source_type,source_key,source_path)
+        VALUES ($1,$2,$3,$4)
+        ON CONFLICT (user_id) DO NOTHING
+      `,[user.id,signupAttribution.type,signupAttribution.key,signupAttribution.path]);
+    }
+
     if (inviter && String(inviter.id) !== String(user.id)) {
       const referralInsert = await client.query(`
         INSERT INTO referrals (inviter_user_id,invited_user_id,invite_link_id,attribution)
@@ -239,7 +290,7 @@ router.post('/register', async (req, res) => {
     maxAge: 14 * 24 * 60 * 60 * 1000
   });
 
-  res.status(201).json({ ok: true, user });
+  res.status(201).json({ ok: true, user, returnPath:signupAttribution?.path||'' });
 });
 
 router.post('/login', async (req, res) => {

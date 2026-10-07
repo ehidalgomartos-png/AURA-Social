@@ -1874,3 +1874,25 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin cambios en las APIs privadas.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.88.0 — Public Entry & Signup Attribution
+
+- Las páginas públicas canónicas pasan un origen interno seguro al registro/login.
+- Tipos admitidos: Perfil, Publicación, Comunidad, Evento, Reel, Tema e Historia.
+- La landing conserva el origen en `sessionStorage` mientras la persona completa acceso o registro.
+- Tras crear cuenta o iniciar sesión se vuelve a la URL pública canónica desde la que llegó.
+- El backend valida tipo, identificador y ruta antes de aceptar el retorno.
+- No se aceptan URLs externas, rutas `//` ni redirecciones abiertas.
+- Nueva tabla `signup_attributions`:
+  - `user_id`,
+  - `source_type`,
+  - `source_key`,
+  - `source_path`,
+  - `created_at`.
+- La atribución se inserta dentro de la misma transacción que crea el usuario.
+- Las invitaciones/referrals siguen funcionando de forma independiente y compatible.
+- No se guarda referrer externo, URL externa ni información adicional de navegación.
+- CTAs atribuidos en Perfil, Publicación, Comunidad, Evento, Reel, Tema e Historia.
+- `auth.js` entra en `check:syntax`.
+- Sin monetización.
