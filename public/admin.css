@@ -310,3 +310,42 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   .growth-daily-bars{min-width:0}
   .growth-day{min-width:24px}
 }
+
+
+/* =========================================================
+   RedLibertad V1.90 — SEO Crawl Health & Canonical Cleanup
+   ========================================================= */
+.seo-health-panel{margin-bottom:18px}
+.admin-link-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 11px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--navy);font-size:9px;font-weight:900;text-decoration:none}
+.admin-link-button:hover{border-color:var(--teal);color:var(--teal)}
+.seo-health-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.78fr);gap:14px;margin-top:14px}
+.seo-health-block{padding:14px;border:1px solid var(--line);border-radius:16px;background:#fbf9f4}
+.seo-health-subhead h3{margin:2px 0 10px;color:var(--navy);font:800 18px Manrope,sans-serif}
+.seo-sitemap-list,.seo-rule-list{display:grid;gap:8px}
+.seo-sitemap-card{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.seo-sitemap-card>div:first-child{min-width:0}
+.seo-sitemap-card b{display:block;color:var(--navy);font-size:11px}
+.seo-sitemap-card small{display:block;margin-top:3px;color:var(--muted);font-size:8px;overflow-wrap:anywhere}
+.seo-sitemap-side{display:flex;align-items:center;gap:8px;flex:none}
+.seo-sitemap-side>a{color:var(--teal);font-size:8px;font-weight:900;text-decoration:none}
+.seo-sitemap-side>a:hover{text-decoration:underline}
+.seo-rule-card{display:flex;align-items:center;gap:9px;padding:10px 11px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--navy);font-size:10px;font-weight:800}
+.seo-rule-icon{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#edf8f5;color:#0c675b;font-size:12px;font-weight:900;flex:none}
+.seo-protected-summary{margin-top:4px;padding:11px;border-radius:13px;background:#f0f3f3}
+.seo-protected-summary small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;font-weight:900}
+.seo-protected-summary b{display:block;margin-top:4px;color:var(--navy);font-size:9px;line-height:1.5}
+.seo-warning-list{display:grid;gap:7px;margin-top:14px}
+.seo-warning{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:9px}
+.seo-warning b{flex:none}
+.seo-warning.info b{color:var(--muted)}
+.seo-warning.warning{background:#fff8e8}
+.seo-warning.warning b{color:#8a5a00}
+.seo-warning.ok{background:#edf8f5}
+.seo-warning.ok b{color:#0c675b}
+@media(max-width:900px){.seo-health-layout{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .seo-sitemap-card{align-items:flex-start;flex-direction:column}
+  .seo-sitemap-side{width:100%;justify-content:space-between}
+  .seo-health-panel .panel-tools{align-items:stretch}
+  .admin-link-button{width:100%}
+}

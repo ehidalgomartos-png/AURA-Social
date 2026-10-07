@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V1.89.1 · Verification Independence & Revoke</small></div>
+  <div><b>Moderación</b><small>V1.90 · SEO Crawl Health & Canonical Cleanup</small></div>
 </header>
 
 <main>
@@ -58,6 +58,37 @@
         <div id="incidentList" class="incident-list"></div>
       </div>
     </div>
+  </section>
+
+  <section class="panel seo-health-panel">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">SEO · GOOGLE</span>
+        <h2>Salud de rastreo e indexación</h2>
+        <p class="panel-copy">Comprueba qué puede descubrir Google, qué queda protegido y si los sitemaps públicos tienen contenido real.</p>
+      </div>
+      <div class="panel-tools">
+        <a class="admin-link-button" href="/sitemap-index.xml" target="_blank" rel="noopener">Sitemap index ↗</a>
+        <a class="admin-link-button" href="/robots.txt" target="_blank" rel="noopener">robots.txt ↗</a>
+        <button id="reloadSeoHealth" type="button">Actualizar</button>
+      </div>
+    </div>
+
+    <div id="seoHealthMetrics" class="beta-metrics"></div>
+
+    <div class="seo-health-layout">
+      <section class="seo-health-block">
+        <div class="seo-health-subhead"><span class="eyebrow">SITEMAPS</span><h3>URLs públicas por familia</h3></div>
+        <div id="seoSitemapList" class="seo-sitemap-list"></div>
+      </section>
+      <section class="seo-health-block">
+        <div class="seo-health-subhead"><span class="eyebrow">CANONICAL · PRIVACIDAD</span><h3>Reglas activas</h3></div>
+        <div id="seoRuleList" class="seo-rule-list"></div>
+      </section>
+    </div>
+
+    <div id="seoHealthWarnings" class="seo-warning-list"></div>
+    <p id="seoHealthNote" class="beta-privacy-note"></p>
   </section>
 
   <section class="panel growth-attribution-panel">

@@ -1939,3 +1939,34 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Confirmación antes de revocar desde Administración.
 - Hotfix montado antes del router admin existente para aislar el cambio.
 - Sin migraciones.
+
+
+## V1.90.0 — SEO Crawl Health & Canonical Cleanup
+
+- Nuevo panel administrativo "SEO · Google — Salud de rastreo e indexación".
+- Nuevo endpoint admin-only `/api/admin/seo-health`.
+- Recuento estimado de URLs indexables por:
+  - perfiles,
+  - publicaciones,
+  - Reels,
+  - hashtags,
+  - comunidades,
+  - eventos,
+  - temas.
+- Estado y acceso directo a cada sitemap público.
+- Resumen de contenido protegido que no debe indexarse:
+  sensible, audiencias privadas, autores ocultos y eventos admin.
+- Alertas cuando una familia de sitemap está vacía.
+- El panel distingue preparación interna de RedLibertad de la indexación real de Google Search Console.
+- Canonical cleanup de Reels:
+  - un Reel público normal usa como URL SEO única `/reel/:id/:slug`,
+  - `/p/:id` redirige 301 a la URL del Reel cuando corresponde,
+  - el sitemap principal excluye `post_kind='reel'`,
+  - `/sitemap-reels.xml` queda como sitemap específico.
+- Consistencia de privacidad en Eventos:
+  las cuentas admin quedan excluidas de página pública/listado SEO, Buscar y Descubrir.
+- Stories siguen noindex y fuera de sitemaps.
+- Las búsquedas con consulta siguen noindex.
+- Sin integración API de Search Console ni tracking externo.
+- Sin migraciones de base de datos.
+- Sin monetización.
