@@ -380,3 +380,15 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que un enlace antiguo `/p/:id` de Reel sigue respondiendo 301 al canonical.
 - Confirmar que publicaciones normales continúan usando `/p/:id`.
 - Revisar móvil y escritorio.
+
+
+## 30. Mobile Profile Declutter
+- Confirmar `/api/health` con versión 1.90.2 y feature `mobile-profile-declutter-v1.90.2`.
+- Abrir el perfil propio en móvil y confirmar solo tres acciones principales: Editar perfil, Compartir y Más.
+- Abrir Más y comprobar Confianza, Privacidad, Cuenta, Ayuda y Contenido sensible.
+- Confirmar que cada opción abre su pantalla/modal correcto.
+- Cambiar la preferencia de contenido sensible desde Más y comprobar que sigue funcionando.
+- En cuenta de creador verificada, confirmar Centro de creador como acceso destacado independiente.
+- Confirmar que el menú Más no queda cortado ni detrás de otros elementos.
+- Revisar perfil propio en escritorio para asegurar que no hay regresiones.
+- Confirmar que perfiles ajenos no cambian.
