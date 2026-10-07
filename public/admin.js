@@ -2,6 +2,7 @@ const $ = s => document.querySelector(s);
 let reportCache = [];
 let userCache = [];
 let incidentCache = [];
+let supportAdminCache = [];
 
 async function api(url, options = {}) {
   const response = await fetch(url, options);
@@ -168,6 +169,79 @@ async function updateIncident(id,payload,button){
     }
     setAdminNotice('Incidencia actualizada.');
     await betaOps();
+  }finally{
+    if(button&&button.isConnected)button.disabled=false;
+  }
+}
+
+
+function supportAdminTypeLabel(type){
+  return ({bug:'Problema',suggestion:'Sugerencia',question:'Duda'})[type] || type;
+}
+function supportAdminStatusLabel(status){
+  return ({new:'Recibido',reviewing:'En revisión',resolved:'Resuelto'})[status] || status;
+}
+
+function renderSupportAdmin(){
+  const root=$('#supportAdminList');
+  if(!root)return;
+  root.innerHTML=supportAdminCache.length
+    ? supportAdminCache.map(item=>{
+        const context=item.context&&typeof item.context==='object'?item.context:{};
+        const contextBits=[
+          context.currentView ? 'Sección: '+context.currentView : '',
+          context.viewportClass ? 'Pantalla: '+context.viewportClass : '',
+          context.online===true ? 'Online' : context.online===false ? 'Offline' : '',
+          context.appVersion ? 'Versión '+context.appVersion : '',
+          item.request_id ? 'Ref. '+item.request_id.slice(0,18) : ''
+        ].filter(Boolean);
+        return `<article class="support-admin-card ${esc(item.type)} ${item.status==='resolved'?'resolved':''}">
+          <div class="support-admin-head">
+            <div><b>#${item.id} · ${esc(item.subject)}</b><small>${esc(item.display_name)} · @${esc(item.username)} · ${timeLabel(item.created_at)}</small></div>
+            <span class="support-admin-state ${esc(item.status)}">${esc(supportAdminStatusLabel(item.status))} · ${esc(supportAdminTypeLabel(item.type))}</span>
+          </div>
+          <p>${esc(item.message)}</p>
+          ${contextBits.length?`<div class="support-admin-context">${contextBits.map(bit=>`<span>${esc(bit)}</span>`).join('')}</div>`:''}
+          ${item.admin_note?`<div class="support-admin-note"><b>Nota de soporte</b><p>${esc(item.admin_note)}</p></div>`:''}
+          <div class="actions">
+            ${item.status==='new'? `<button class="soft" data-admin-action="support-status" data-id="${item.id}" data-status="reviewing">Revisar</button>` : ''}
+            ${item.status!=='resolved'? `<button class="alt" data-admin-action="support-status" data-id="${item.id}" data-status="resolved">Resolver</button>` : `<button class="soft" data-admin-action="support-status" data-id="${item.id}" data-status="reviewing">Reabrir</button>`}
+            <button data-admin-action="support-note" data-id="${item.id}">Nota / respuesta</button>
+          </div>
+        </article>`;
+      }).join('')
+    : '<div class="empty-admin">No hay feedback en este filtro.</div>';
+}
+
+async function supportAdmin(){
+  const root=$('#supportAdminList');
+  if(!root)return;
+  root.innerHTML='<div class="empty-admin">Cargando feedback...</div>';
+  const status=$('#supportAdminStatus')?.value||'open';
+  const type=$('#supportAdminType')?.value||'all';
+  const {r,d}=await api('/api/support/admin?'+new URLSearchParams({status,type}).toString());
+  if(!r.ok){
+    root.innerHTML='<div class="empty-admin">No se pudo cargar el feedback.</div>';
+    return;
+  }
+  supportAdminCache=Array.isArray(d.feedback)?d.feedback:[];
+  renderSupportAdmin();
+}
+
+async function updateSupportAdmin(id,payload,button){
+  if(button)button.disabled=true;
+  try{
+    const {r}=await api('/api/support/admin/'+encodeURIComponent(id),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){
+      setAdminNotice('No se pudo actualizar el feedback.',true);
+      return;
+    }
+    setAdminNotice('Feedback actualizado.');
+    await supportAdmin();
   }finally{
     if(button&&button.isConnected)button.disabled=false;
   }
@@ -536,6 +610,13 @@ document.addEventListener('click', async event => {
   if (!button) return;
   const action = button.dataset.adminAction;
 
+  if (action === 'support-status') return updateSupportAdmin(button.dataset.id,{status:button.dataset.status},button);
+  if (action === 'support-note') {
+    const item=supportAdminCache.find(x=>String(x.id)===String(button.dataset.id));
+    const adminNote=prompt('Nota o respuesta visible para el usuario',item?.admin_note||'');
+    if(adminNote===null)return;
+    return updateSupportAdmin(button.dataset.id,{adminNote},button);
+  }
   if (action === 'incident-status') return updateIncident(button.dataset.id,{status:button.dataset.status},button);
   if (action === 'incident-note') {
     const item=incidentCache.find(x=>String(x.id)===String(button.dataset.id));
@@ -552,6 +633,10 @@ document.addEventListener('click', async event => {
     return decide(button.dataset.id, button.dataset.status, button.dataset.decision);
   }
 });
+
+$('#reloadSupportAdmin')?.addEventListener('click',supportAdmin);
+$('#supportAdminStatus')?.addEventListener('change',supportAdmin);
+$('#supportAdminType')?.addEventListener('change',supportAdmin);
 
 $('#incidentForm')?.addEventListener('submit',async event=>{
   event.preventDefault();
@@ -595,5 +680,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), betaOps(), reports(), users(), verifications()]);
+  await Promise.all([metrics(), betaOps(), supportAdmin(), reports(), users(), verifications()]);
 })();
