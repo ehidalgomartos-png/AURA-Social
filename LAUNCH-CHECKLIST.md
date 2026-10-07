@@ -151,3 +151,18 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar `/sitemap-index.xml` y confirmar referencias a `/sitemap.xml` y `/sitemap-profiles.xml`.
 - Confirmar que `/sitemap.xml` incluye `/perfiles`.
 - Confirmar que `robots.txt` anuncia el sitemap índice.
+
+
+## 16. Publicaciones públicas y hashtags SEO
+- Abrir `/publicaciones` y confirmar que solo aparecen posts públicos normales de autores descubribles.
+- Buscar con `/publicaciones?q=...` y confirmar `noindex,follow`.
+- Probar paginación y enlaces Anterior/Siguiente.
+- Abrir un hashtag desde una publicación y confirmar `/hashtag/tag`.
+- Confirmar que un hashtag con menos de 2 posts queda `noindex,follow`.
+- Confirmar que contenido sensible no aparece en `/publicaciones`, hashtags ni sitemaps.
+- Poner `discoverable=false` en un autor de prueba y confirmar que sus posts desaparecen del hub/sitemaps.
+- Abrir directamente uno de sus posts públicos y confirmar que sigue accesible pero queda `noindex,nofollow`.
+- Revisar `/sitemap-hashtags.xml`.
+- Confirmar que `/sitemap-index.xml` referencia posts, perfiles y hashtags.
+- Confirmar que `/sitemap.xml` incluye `/publicaciones`.
+- Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones.
