@@ -2098,3 +2098,17 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Autores no descubribles/no indexables no reciben promoción relacionada.
 - Sin cambios en feed interno, privacidad, mensajes, base de datos o monetización.
 - Sin cambios en `src/routes/posts.js`.
+
+
+## V1.93.1 — Registration Rate Limit Hotfix
+
+- Corrige falsos bloqueos de registro detectados en producción.
+- Sustituye el límite único de 8 intentos / 15 min por IP por dos capas:
+  - límite amplio por red: 120 solicitudes / 15 min;
+  - límite por identidad de registro (email + usuario): 12 intentos / 15 min.
+- La clave de identidad se guarda únicamente como hash efímero en memoria del rate limiter.
+- El límite por identidad no depende de compartir IP móvil, Wi‑Fi, proxy o NAT.
+- Las respuestas 429 incluyen `retryAfterSeconds`.
+- La interfaz muestra el tiempo aproximado real de espera.
+- Se mantiene el limitador global y el límite independiente de login.
+- Sin migraciones, sin monetización y sin cambios en `src/routes/posts.js`.
