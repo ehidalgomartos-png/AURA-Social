@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.93.3",
+  "version": "1.94.0",
   "private": true,
-  "description": "RedLibertad V1.93.3 Registration Field Labels Hotfix - etiquetas persistentes y ayuda de usuario para evitar confusión entre nombre visible y @usuario.",
+  "description": "RedLibertad V1.94 Legal & Transparency Center - aviso legal, privacidad, cookies, términos, normas, moderación y consentimiento legal enlazado en alta/footer.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
