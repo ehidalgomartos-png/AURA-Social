@@ -1,4 +1,4 @@
-# RedLibertad V1.69.0 — Mobile UX Final Polish 3.0
+# RedLibertad V1.70.0 — Product Maturity & Launch Readiness
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1465,5 +1465,23 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - El feed conserva contenido previo si una recarga falla.
 - Feedback de carga mediante aria-busy en listas principales.
 - Ajustes de safe area también en portada, registro, acceso y footer.
+- Mobile-first.
+- Sin monetización.
+
+
+## V1.70.0 — Product Maturity & Launch Readiness
+
+- `/api/health` ampliado con versión, uptime, entorno y estado seguro de configuración.
+- `/api/ready` valida configuración crítica y conexión real con PostgreSQL.
+- Request ID por petición mediante `X-Request-Id` para facilitar diagnóstico.
+- Respuestas API con `Cache-Control: no-store`.
+- Rutas API inexistentes devuelven 404 JSON en lugar de caer en la landing HTML.
+- Errores API no controlados devuelven un envelope seguro con request ID, sin exponer stack ni datos internos.
+- Validación de `DATABASE_URL` y `JWT_SECRET`; avisos seguros para HTTPS, cookies y almacenamiento persistente.
+- HTML principal servido con revalidación para reducir riesgo de shells obsoletos tras despliegues.
+- Nuevo comando `npm run check:syntax`.
+- Coolify actualizado para usar `/api/ready` como healthcheck.
+- Plantilla de variables de entorno sin secretos.
+- Checklist de lanzamiento, rollback y smoke tests.
 - Mobile-first.
 - Sin monetización.
