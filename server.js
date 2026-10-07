@@ -409,6 +409,7 @@ app.get('/perfil/:username',async(req,res)=>{
         </div>
         <div class="public-profile-actions">
           <a class="button" href="/app?profile=${encodeURIComponent(profile.username)}">Ver perfil en RedLibertad</a>
+          <a class="button ghost" href="/perfiles">Descubrir perfiles</a>
           <a class="button ghost" href="/#registro">Crear cuenta</a>
         </div>
         ${!indexable?'<p class="public-profile-note">Este perfil no participa en la indexación pública de RedLibertad.</p>':''}
@@ -444,6 +445,222 @@ app.get('/sitemap-profiles.xml',async(req,res)=>{
   }
 });
 
+
+app.get('/perfiles',async(req,res)=>{
+  try{
+    await Promise.all([ensurePublicProfileSeoV177(),ensurePublicPostAudienceV18()]);
+    const origin=publicOrigin(req);
+    const rawQuery=String(req.query.q||'').trim().slice(0,60);
+    const requestedPage=Math.max(1,Math.min(500,Number.parseInt(req.query.page||'1',10)||1));
+    const pageSize=24;
+    const pattern=rawQuery ? `%${rawQuery.toLowerCase()}%` : null;
+
+    const countResult=await db.query(`
+      SELECT count(*)::int AS n
+        FROM users u
+       WHERE u.status='active'
+         AND u.is_admin=false
+         AND u.discoverable=true
+         AND (
+           $1::text IS NULL
+           OR lower(u.username) LIKE $1
+           OR lower(u.display_name) LIKE $1
+           OR lower(u.bio) LIKE $1
+           OR lower(u.creator_headline) LIKE $1
+         )
+    `,[pattern]);
+
+    const total=Number(countResult.rows[0]?.n||0);
+    const totalPages=Math.max(1,Math.ceil(total/pageSize));
+    const page=Math.min(requestedPage,totalPages);
+    const offset=(page-1)*pageSize;
+
+    const result=await db.query(`
+      SELECT
+        u.username,u.display_name,u.bio,u.avatar_url,u.creator_headline,
+        u.creator_verified,u.age_verified,u.updated_at,
+        (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) follower_count,
+        (SELECT count(*)::int FROM posts p
+          WHERE p.user_id=u.id
+            AND p.moderation_status='published'
+            AND p.audience='public') public_post_count
+      FROM users u
+      WHERE u.status='active'
+        AND u.is_admin=false
+        AND u.discoverable=true
+        AND (
+          $1::text IS NULL
+          OR lower(u.username) LIKE $1
+          OR lower(u.display_name) LIKE $1
+          OR lower(u.bio) LIKE $1
+          OR lower(u.creator_headline) LIKE $1
+        )
+      ORDER BY
+        u.creator_verified DESC,
+        follower_count DESC,
+        public_post_count DESC,
+        u.updated_at DESC,
+        u.username ASC
+      LIMIT $2 OFFSET $3
+    `,[pattern,pageSize,offset]);
+
+    const canonical=page>1 ? `${origin}/perfiles?page=${page}` : `${origin}/perfiles`;
+    const indexable=!rawQuery;
+    const title=rawQuery
+      ? `Buscar perfiles: ${rawQuery} — RedLibertad`
+      : page>1
+        ? `Perfiles públicos — Página ${page} — RedLibertad`
+        : 'Perfiles públicos — RedLibertad';
+    const description=rawQuery
+      ? `Resultados públicos para “${rawQuery}” en RedLibertad.`
+      : 'Descubre perfiles públicos en RedLibertad y encuentra personas con las que conectar.';
+    const querySuffix=rawQuery ? `&q=${encodeURIComponent(rawQuery)}` : '';
+    const previous=page>1
+      ? `/perfiles?${page-1>1?`page=${page-1}${querySuffix}`:rawQuery?`q=${encodeURIComponent(rawQuery)}`:''}`
+      : '';
+    const next=page<totalPages
+      ? `/perfiles?page=${page+1}${querySuffix}`
+      : '';
+    const cards=result.rows.map(profile=>{
+      const avatar=profile.avatar_url ? absoluteUrl(req,profile.avatar_url) : '';
+      const bio=String(profile.creator_headline || profile.bio || '').trim().slice(0,150);
+      const badge=profile.creator_verified
+        ? '<span class="directory-badge">✓ Creador</span>'
+        : profile.age_verified
+          ? '<span class="directory-badge subtle">✓ +18</span>'
+          : '';
+      return `<article class="directory-card">
+        <a class="directory-card-main" href="/perfil/${encodeURIComponent(profile.username)}">
+          ${avatar
+            ? `<img class="directory-avatar" src="${escapeHtml(avatar)}" loading="lazy" decoding="async" alt="Foto de perfil de ${escapeHtml(profile.display_name)}">`
+            : `<span class="directory-avatar placeholder" aria-hidden="true">${escapeHtml(String(profile.display_name||profile.username).slice(0,2).toUpperCase())}</span>`}
+          <span class="directory-card-copy">
+            <span class="directory-name">${escapeHtml(profile.display_name)} ${badge}</span>
+            <span class="directory-handle">@${escapeHtml(profile.username)}</span>
+            ${bio?`<span class="directory-bio">${escapeHtml(bio)}</span>`:''}
+            <span class="directory-stats"><b>${Number(profile.public_post_count||0)}</b> publicaciones · <b>${Number(profile.follower_count||0)}</b> seguidores</span>
+          </span>
+        </a>
+      </article>`;
+    }).join('');
+
+    const listStructured=indexable && page===1 ? `<script type="application/ld+json">${JSON.stringify({
+      '@context':'https://schema.org',
+      '@type':'ItemList',
+      name:'Perfiles públicos en RedLibertad',
+      itemListElement:result.rows.map((profile,index)=>({
+        '@type':'ListItem',
+        position:index+1,
+        url:`${origin}/perfil/${encodeURIComponent(profile.username)}`,
+        name:profile.display_name
+      }))
+    }).replace(/</g,'\\u003c')}</script>` : '';
+
+    res.type('html').send(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,follow'}">
+  <link rel="canonical" href="${escapeHtml(canonical)}">
+  ${previous?`<link rel="prev" href="${escapeHtml(origin+previous)}">`:''}
+  ${next?`<link rel="next" href="${escapeHtml(origin+next)}">`:''}
+  <meta property="og:site_name" content="RedLibertad">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonical)}">
+  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  ${listStructured}
+  <style>
+    .directory-page{min-height:100vh;background:var(--bg);color:var(--navy)}
+    .directory-top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px max(20px,calc((100vw - 1180px)/2));border-bottom:1px solid var(--line);background:rgba(255,253,249,.94);backdrop-filter:blur(16px)}
+    .directory-brand{display:flex;align-items:center;gap:9px;color:var(--navy);font-weight:900;text-decoration:none}
+    .directory-brand img{width:34px;height:34px}
+    .directory-top-actions{display:flex;gap:8px;align-items:center}
+    .directory-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:46px 0 70px}
+    .directory-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:24px;align-items:end;margin-bottom:28px}
+    .directory-hero h1{margin:5px 0 8px;font:800 clamp(30px,5vw,52px) Manrope,sans-serif}
+    .directory-hero p{margin:0;color:var(--muted);line-height:1.6}
+    .directory-search{display:flex;gap:8px;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--paper);box-shadow:0 12px 34px rgba(13,34,56,.06)}
+    .directory-search input{min-width:0;flex:1;border:0;background:transparent;padding:10px 12px;font:inherit;color:var(--navy);outline:0}
+    .directory-count{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 14px;color:var(--muted);font-size:12px}
+    .directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .directory-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 9px 25px rgba(13,34,56,.05);transition:transform .16s ease,box-shadow .16s ease}
+    .directory-card:hover{transform:translateY(-2px);box-shadow:0 15px 34px rgba(13,34,56,.08)}
+    .directory-card-main{display:flex;gap:12px;padding:15px;color:inherit;text-decoration:none}
+    .directory-avatar{width:64px;height:64px;flex:0 0 64px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,var(--navy),var(--teal));border:3px solid #fff;box-shadow:0 7px 18px rgba(13,34,56,.10)}
+    .directory-avatar.placeholder{display:grid;place-items:center;color:white;font-weight:900}
+    .directory-card-copy{min-width:0;display:grid;align-content:start}
+    .directory-name{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:900}
+    .directory-handle{margin-top:2px;color:var(--muted);font-size:11px}
+    .directory-bio{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}
+    .directory-stats{margin-top:9px;color:var(--muted);font-size:9px}
+    .directory-stats b{color:var(--navy)}
+    .directory-badge{display:inline-flex;padding:4px 6px;border-radius:999px;background:rgba(43,183,169,.12);color:#0c675b;font-size:8px}
+    .directory-badge.subtle{background:#f1f4f3;color:var(--muted)}
+    .directory-empty{padding:38px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:var(--paper)}
+    .directory-pagination{display:flex;justify-content:center;gap:8px;margin-top:24px;align-items:center}
+    .directory-page-label{padding:8px 10px;color:var(--muted);font-size:11px}
+    @media(max-width:900px){.directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.directory-hero{grid-template-columns:1fr}}
+    @media(max-width:620px){.directory-shell{width:min(100% - 20px,1180px);padding-top:28px}.directory-grid{grid-template-columns:1fr}.directory-top{padding:10px 12px}.directory-top-actions .button.ghost{display:none}.directory-search{display:grid;grid-template-columns:1fr auto}.directory-card-main{padding:13px}.directory-avatar{width:58px;height:58px;flex-basis:58px}}
+  </style>
+</head>
+<body>
+  <main class="directory-page">
+    <header class="directory-top">
+      <a class="directory-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
+      <div class="directory-top-actions">
+        <a class="button small ghost" href="/#acceso">Entrar</a>
+        <a class="button small" href="/#registro">Crear cuenta</a>
+      </div>
+    </header>
+    <div class="directory-shell">
+      <section class="directory-hero">
+        <div>
+          <span class="eyebrow">PERSONAS · COMUNIDAD</span>
+          <h1>Perfiles públicos</h1>
+          <p>Descubre personas que han decidido participar en la parte pública de RedLibertad.</p>
+        </div>
+        <form class="directory-search" method="get" action="/perfiles">
+          <input name="q" value="${escapeHtml(rawQuery)}" maxlength="60" placeholder="Buscar por nombre, usuario o bio" aria-label="Buscar perfiles">
+          <button class="button" type="submit">Buscar</button>
+        </form>
+      </section>
+      <div class="directory-count">
+        <span>${rawQuery?`${total} resultados para “${escapeHtml(rawQuery)}”`:`${total} perfiles públicos`}</span>
+        ${rawQuery?'<a href="/perfiles">Limpiar búsqueda</a>':''}
+      </div>
+      ${cards?`<section class="directory-grid" aria-label="Perfiles públicos">${cards}</section>`:'<div class="directory-empty"><b>No encontramos perfiles.</b><p>Prueba otra búsqueda o vuelve más tarde.</p></div>'}
+      <nav class="directory-pagination" aria-label="Paginación de perfiles">
+        ${previous?`<a class="button ghost small" rel="prev" href="${escapeHtml(previous)}">← Anterior</a>`:''}
+        <span class="directory-page-label">Página ${page} de ${totalPages}</span>
+        ${next?`<a class="button ghost small" rel="next" href="${escapeHtml(next)}">Siguiente →</a>`:''}
+      </nav>
+    </div>
+  </main>
+</body>
+</html>`);
+  }catch(error){
+    console.error('RedLibertad public profiles directory error:',error);
+    res.status(500).send('No se pudo cargar el directorio de perfiles.');
+  }
+});
+
+app.get('/sitemap-index.xml',(req,res)=>{
+  const origin=publicOrigin(req);
+  const now=new Date().toISOString();
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+});
+
 app.get('/robots.txt',(req,res)=>{
   const origin=publicOrigin(req);
   res.type('text/plain').send([
@@ -451,11 +668,13 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /',
     'Allow: /p/',
     'Allow: /perfil/',
+    'Allow: /perfiles',
     'Disallow: /app',
     'Disallow: /admin',
     'Disallow: /admin-recovery',
     'Disallow: /api/',
     'Disallow: /uploads/',
+    `Sitemap: ${origin}/sitemap-index.xml`,
     `Sitemap: ${origin}/sitemap.xml`,
     `Sitemap: ${origin}/sitemap-profiles.xml`
   ].join('\n'));
@@ -478,6 +697,7 @@ app.get('/sitemap.xml',async(req,res)=>{
     `);
     const urls=[
       `<url><loc>${escapeHtml(origin+'/')}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/perfiles')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       ...posts.rows.map(post=>`<url><loc>${escapeHtml(origin+'/p/'+encodeURIComponent(post.id))}</loc><lastmod>${new Date(post.created_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`)
     ];
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
