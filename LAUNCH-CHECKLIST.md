@@ -204,3 +204,22 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que `/sitemap.xml` incluye `/eventos`.
 - Revisar `robots.txt` y confirmar `/eventos`, `/evento/` y el nuevo sitemap.
 - Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades ↔ Eventos.
+
+
+## 19. Reels y multimedia públicos
+- Abrir `/reels` y confirmar que solo aparecen Reels públicos normales de autores descubribles.
+- Abrir `/multimedia` y confirmar que solo aparecen fotos/vídeos públicos normales.
+- Probar `/multimedia?tipo=image` y `?tipo=video`; ambos deben quedar `noindex,follow`.
+- Buscar con `/reels?q=...` y `/multimedia?q=...`; confirmar `noindex,follow`.
+- Confirmar que contenido sensible/nudity no aparece en ninguna superficie pública.
+- Confirmar que posts VIP, conexiones y círculos no aparecen.
+- Confirmar que autores admin no aparecen en Reels/Multimedia públicos.
+- Confirmar que autores `discoverable=false` desaparecen de ambos directorios y del sitemap.
+- Abrir un Reel en `/reel/:id/:slug` y confirmar canonical y reproducción.
+- Probar URL sin slug o con slug antiguo y confirmar redirección 301.
+- Confirmar Structured Data `VideoObject`.
+- Revisar `/sitemap-reels.xml`.
+- Confirmar que `/sitemap-index.xml` referencia el sitemap de Reels.
+- Confirmar que `/sitemap.xml` incluye `/reels` y `/multimedia`.
+- Revisar `robots.txt` y confirmar `/reels`, `/reel/`, `/multimedia` y el nuevo sitemap.
+- Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades ↔ Eventos ↔ Reels.
