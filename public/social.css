@@ -6176,3 +6176,26 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
     gap:2px;
   }
 }
+
+
+/* RedLibertad V1.95.1 — Public Profile Layer Hotfix */
+#publicProfileModal .public-profile-card{
+  position:relative;
+  isolation:isolate;
+}
+#publicProfileModal .public-profile-card>.cover{
+  position:relative;
+  z-index:1;
+}
+#publicProfileModal .public-profile-card>.profile-body{
+  position:relative;
+  z-index:2;
+}
+#publicProfileModal .public-profile-card .profile-avatar{
+  position:relative;
+  z-index:4;
+  background:var(--navy2);
+  box-shadow:
+    0 0 0 4px rgba(255,253,249,.98),
+    0 14px 30px rgba(13,34,56,.16);
+}
