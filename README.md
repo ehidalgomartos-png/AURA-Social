@@ -1,4 +1,4 @@
-# RedLibertad V1.75.0 — Controlled Rollout Waves & Beta Graduation
+# RedLibertad V1.75.1 — Message + Profile UI Hotfix
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1581,3 +1581,14 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin SDK analítico ni persistencia de quién cae en cada porcentaje.
 - Mobile-first en el panel administrativo.
 - Sin monetización.
+
+
+## V1.75.1 — Message + Profile UI Hotfix
+
+- La paleta completa de reacciones deja de mostrarse permanentemente bajo cada mensaje.
+- En mensajes recibidos aparece una acción compacta **Reaccionar** que despliega la paleta solo cuando se necesita.
+- Los mensajes enviados no muestran la paleta de reacción.
+- Las reacciones ya existentes se muestran como un resumen compacto con contador.
+- La cabecera del perfil propio en escritorio pasa a una disposición vertical más limpia: identidad primero y acciones debajo.
+- La cabecera móvil no se modifica.
+- PWA cache actualizado para evitar servir CSS/JS anterior tras el redeploy.
