@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.94.1",
+  "version": "1.95.0",
   "private": true,
-  "description": "RedLibertad V1.94.1 Momentum Card CTA Hotfix - añade un CTA visible Ver publicación en las tarjetas de Desde tu última visita.",
+  "description": "RedLibertad V1.95 Mobile Interaction Polish - preview de avatar/portada, pull-to-refresh, refresco inmediato tras editar posts e icono de comentarios.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
