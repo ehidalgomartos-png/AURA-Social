@@ -240,3 +240,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que eventos privados, cancelados o ligados a comunidades privadas no aparecen.
 - Confirmar que `/sitemap.xml` incluye `/buscar`.
 - Revisar `robots.txt` y confirmar `Allow: /buscar`.
+
+
+## 21. Descubrimiento público y tendencias
+- Abrir `/descubrir` y confirmar que carga como landing pública.
+- Confirmar que Personas nuevas excluye admins y `discoverable=false`.
+- Confirmar que Publicaciones destacadas excluye contenido sensible/nudity y audiencias privadas.
+- Confirmar que Reels solo contiene vídeos públicos normales.
+- Confirmar que Hashtags se deriva solo de publicaciones públicas normales elegibles.
+- Confirmar que Comunidades activas excluye comunidades privadas.
+- Confirmar que Próximos eventos excluye privados, cancelados y eventos ligados a comunidades privadas.
+- Confirmar que el buscador de la cabecera de Descubrir lleva a `/buscar?q=...`.
+- Confirmar que `/buscar` incluye tarjeta "Descubrir ahora".
+- Confirmar que la portada enlaza a `/descubrir` sin aumentar el número de elementos del menú.
+- Revisar `robots.txt` y confirmar `Allow: /descubrir`.
+- Confirmar que `/sitemap.xml` incluye `/descubrir`.
+- Revisar escritorio y móvil.
