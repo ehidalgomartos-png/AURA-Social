@@ -2147,3 +2147,23 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Conserva la validación detallada de V1.93.2.
 - Sin cambios en la lógica de alta, privacidad o base de datos.
 - Sin cambios en `src/routes/posts.js`.
+
+
+## V1.94.0 — Legal & Transparency Center
+
+- Añade centro legal público de RedLibertad:
+  - `/legal/` — Aviso Legal;
+  - `/privacy/` — Política de Privacidad;
+  - `/cookies/` — Cookies y almacenamiento local;
+  - `/terms/` — Términos de Uso;
+  - `/community-guidelines/` — Normas de la Comunidad;
+  - `/moderation/` — Moderación, denuncias y reclamaciones.
+- Textos adaptados a RedLibertad, su contenido sensible, verificaciones, comunidades, eventos, mensajería y moderación.
+- Footer público con enlaces a las seis páginas.
+- Alta actualizada:
+  - aceptación expresa de Términos de Uso;
+  - aceptación de Normas de la Comunidad;
+  - declaración de lectura de Política de Privacidad;
+  - enlaces clicables que se abren sin perder el formulario.
+- Las páginas legales se incluyen en `sitemap.xml`.
+- Sin cambios de base de datos ni monetización.
