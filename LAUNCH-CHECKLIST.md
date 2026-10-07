@@ -352,3 +352,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Probar una solicitud +18 y confirmar que no altera creador.
 - Revisar una solicitud antigua aprobada cuya insignia fue retirada y confirmar "Verificación actual retirada".
 - Revisar móvil y escritorio.
+
+
+## 28. SEO Crawl Health & Canonical Cleanup
+- Abrir Administración y localizar "SEO · Google — Salud de rastreo e indexación".
+- Confirmar recuentos de Perfiles, Publicaciones, Reels, Comunidades y Eventos.
+- Abrir desde el panel `/sitemap-index.xml` y `/robots.txt`.
+- Confirmar que cada sitemap muestra el recuento esperado.
+- Revisar el resumen de contenido protegido.
+- Confirmar que el panel indica Reels con canonical único.
+- Abrir un Reel público mediante su antigua URL `/p/:id` y confirmar redirect 301 a `/reel/:id/:slug`.
+- Confirmar que `/sitemap.xml` ya no contiene URLs `/p/:id` correspondientes a Reels.
+- Confirmar que `/sitemap-reels.xml` sí contiene esos Reels.
+- Confirmar que un evento creado por una cuenta admin no aparece en `/eventos`, Buscar, Descubrir ni sitemap-events.
+- Confirmar que Stories no aparecen en sitemaps.
+- Confirmar que búsquedas con `?q=` siguen noindex.
+- Revisar en Google Search Console `/sitemap-index.xml` después del despliegue.
+- Revisar escritorio y móvil del nuevo panel admin.
