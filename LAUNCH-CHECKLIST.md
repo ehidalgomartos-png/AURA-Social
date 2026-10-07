@@ -515,3 +515,15 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Introducir un usuario con espacios y comprobar que el mensaje deja claro que el problema está en Usuario.
 - Confirmar que Nombre visible acepta espacios.
 - Confirmar registro válido sin regresiones.
+
+
+## 41. Legal & Transparency Center
+- Confirmar `/api/health` con versión 1.94.0 y features `legal-transparency-center-v1.94`, `legal-signup-consent-v1.94` y `moderation-transparency-v1.94`.
+- Abrir `/legal/`, `/privacy/`, `/cookies/`, `/terms/`, `/community-guidelines/` y `/moderation/`.
+- Confirmar navegación y footer legal en móvil/escritorio.
+- Confirmar que el alta muestra enlaces clicables a Términos, Normas y Privacidad.
+- Confirmar que abrir esos enlaces no borra los campos ya escritos del formulario.
+- Confirmar que el checkbox sigue siendo obligatorio.
+- Revisar que el contenido sensible se describe sin autorizar contenido ilegal o no consentido.
+- Confirmar que las seis URLs aparecen en `/sitemap.xml`.
+- Revisar datos del responsable/contacto antes de considerar los textos jurídicamente definitivos.
