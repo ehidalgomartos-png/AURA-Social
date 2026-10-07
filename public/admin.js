@@ -188,7 +188,9 @@ function releaseAuditActionLabel(action){
     feature_update:'Función actualizada',
     cohort_assign:'Cohorte asignada',
     cohort_remove:'Cohorte retirada',
-    rollback:'Rollback aplicado'
+    rollback:'Rollback aplicado',
+    rollout_wave:'Ola de despliegue actualizada',
+    rollout_freeze:'Expansión congelada/reanudada'
   })[action] || action;
 }
 
@@ -200,6 +202,9 @@ function releaseAuditSummary(item){
     const changes=[];
     if(before.enabled!==after.enabled)changes.push(after.enabled?'reactivada':'apagada');
     if(before.default_enabled!==after.default_enabled)changes.push(after.default_enabled?'activada para todos':'limitada a cohortes');
+    if(Number(before.rollout_percentage||0)!==Number(after.rollout_percentage||0))changes.push('ola '+Number(before.rollout_percentage||0)+'% → '+Number(after.rollout_percentage||0)+'%');
+    if(before.rollout_stage!==after.rollout_stage)changes.push('fase '+String(before.rollout_stage||'cohorts')+' → '+String(after.rollout_stage||'cohorts'));
+    if(before.rollout_frozen!==after.rollout_frozen)changes.push(after.rollout_frozen?'expansión congelada':'expansión reanudada');
     const beforeCount=Array.isArray(before.cohorts)?before.cohorts.length:0;
     const afterCount=Array.isArray(after.cohorts)?after.cohorts.length:0;
     if(beforeCount!==afterCount)changes.push('cohortes '+beforeCount+' → '+afterCount);
@@ -257,6 +262,42 @@ async function rollbackReleaseAudit(id,button){
   }
 }
 
+
+function rolloutStageLabel(stage){
+  return ({cohorts:'Solo cohortes',pilot:'Piloto',expanded:'Beta ampliada',graduated:'Graduada'})[stage] || stage || 'Solo cohortes';
+}
+
+function rolloutSelection(feature){
+  const pct=Number(feature.rollout_percentage||0);
+  if(pct>=100)return '100';
+  if(pct>=75)return '75';
+  if(pct>=50)return '50';
+  if(pct>=25)return '25';
+  if(pct>=10)return '10';
+  if(pct>=5)return '5';
+  return '0';
+}
+
+async function updateFeatureRollout(key,payload,button){
+  if(button)button.disabled=true;
+  try{
+    const {r,d}=await api('/api/release/admin/features/'+encodeURIComponent(key)+'/rollout',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){
+      if(d.error==='rollout_frozen')setAdminNotice('La expansión está congelada. Reanúdala antes de cambiar de ola.',true);
+      else setAdminNotice('No se pudo actualizar la ola de despliegue.',true);
+      return;
+    }
+    setAdminNotice('Ola de despliegue actualizada.');
+    await releaseControl();
+  }finally{
+    if(button&&button.isConnected)button.disabled=false;
+  }
+}
+
 function releaseBool(value){ return value===true || value==='true'; }
 
 function renderReleaseControl(){
@@ -287,16 +328,36 @@ function renderReleaseControl(){
   featureRoot.innerHTML=features.length
     ? features.map(feature=>{
         const assigned=assignments.filter(item=>item.feature_key===feature.feature_key);
-        const mode=feature.enabled ? (feature.default_enabled?'Todos':'Solo cohortes') : 'Apagada';
-        return `<article class="release-card ${feature.enabled?'':'paused'}">
+        const percentage=Number(feature.rollout_percentage||0);
+        const stage=feature.rollout_stage|| (feature.default_enabled?'graduated':'cohorts');
+        const mode=!feature.enabled
+          ? 'Apagada'
+          : feature.rollout_frozen
+            ? 'Congelada · '+rolloutStageLabel(stage)+(percentage?' '+percentage+'%':'')
+            : rolloutStageLabel(stage)+(percentage?' · '+percentage+'%':'');
+        const selected=rolloutSelection(feature);
+        return `<article class="release-card ${feature.enabled?'':'paused'} ${feature.rollout_frozen?'rollout-frozen':''}">
           <div class="release-card-head">
             <div><b>${esc(feature.name)}</b><small>${esc(feature.feature_key)}</small></div>
-            <span class="release-state ${feature.enabled?(feature.default_enabled?'':'cohorts'):'paused'}">${esc(mode)}</span>
+            <span class="release-state ${!feature.enabled?'paused':feature.rollout_frozen?'frozen':stage==='graduated'?'':'cohorts'}">${esc(mode)}</span>
           </div>
           ${feature.description?`<p>${esc(feature.description)}</p>`:''}
+          ${feature.rollout_note?`<div class="rollout-note"><b>Criterio / nota</b><span>${esc(feature.rollout_note)}</span></div>`:''}
           <div class="actions">
             <button class="${feature.enabled?'alt':'soft'}" data-admin-action="release-toggle-feature" data-key="${esc(feature.feature_key)}" data-enabled="${feature.enabled?'1':'0'}">${feature.enabled?'Kill switch':'Reactivar'}</button>
-            <button class="soft" data-admin-action="release-toggle-default" data-key="${esc(feature.feature_key)}" data-default="${feature.default_enabled?'1':'0'}">${feature.default_enabled?'Limitar a cohortes':'Activar para todos'}</button>
+            <button class="soft" data-admin-action="release-toggle-freeze" data-key="${esc(feature.feature_key)}" data-frozen="${feature.rollout_frozen?'1':'0'}">${feature.rollout_frozen?'Reanudar expansión':'Congelar expansión'}</button>
+          </div>
+          <div class="rollout-wave-row">
+            <select data-release-wave-select="${esc(feature.feature_key)}" ${feature.rollout_frozen?'disabled':''}>
+              <option value="0" ${selected==='0'?'selected':''}>Solo cohortes</option>
+              <option value="5" ${selected==='5'?'selected':''}>Piloto · 5%</option>
+              <option value="10" ${selected==='10'?'selected':''}>Piloto · 10%</option>
+              <option value="25" ${selected==='25'?'selected':''}>Beta ampliada · 25%</option>
+              <option value="50" ${selected==='50'?'selected':''}>Beta ampliada · 50%</option>
+              <option value="75" ${selected==='75'?'selected':''}>Beta ampliada · 75%</option>
+              <option value="100" ${selected==='100'?'selected':''}>Graduar · 100%</option>
+            </select>
+            <button class="primary" data-admin-action="release-apply-wave" data-key="${esc(feature.feature_key)}" ${feature.rollout_frozen?'disabled':''}>Aplicar ola</button>
           </div>
           <div class="release-inline">
             <select data-release-cohort-select="${esc(feature.feature_key)}">
@@ -790,7 +851,16 @@ document.addEventListener('click', async event => {
 
   if (action === 'release-rollback') return rollbackReleaseAudit(button.dataset.id,button);
   if (action === 'release-toggle-feature') return releasePatchFeature(button.dataset.key,{enabled:button.dataset.enabled!=='1'},button);
-  if (action === 'release-toggle-default') return releasePatchFeature(button.dataset.key,{defaultEnabled:button.dataset.default!=='1'},button);
+  if (action === 'release-toggle-freeze') return updateFeatureRollout(button.dataset.key,{frozen:button.dataset.frozen!=='1'},button);
+  if (action === 'release-apply-wave') {
+    const select=document.querySelector('[data-release-wave-select="'+CSS.escape(button.dataset.key)+'"]');
+    const percentage=Number(select?.value||0);
+    const stage=percentage===0?'cohorts':percentage<=10?'pilot':percentage<100?'expanded':'graduated';
+    const existing=releaseControlState.features.find(item=>item.feature_key===button.dataset.key);
+    const note=prompt('Criterio o nota para avanzar esta ola (opcional)',existing?.rollout_note||'');
+    if(note===null)return;
+    return updateFeatureRollout(button.dataset.key,{stage,percentage,note},button);
+  }
   if (action === 'release-toggle-cohort') return releasePatchCohort(button.dataset.id,{enabled:button.dataset.enabled!=='1'},button);
   if (action === 'release-add-member') {
     const input=document.querySelector('[data-release-member-input="'+button.dataset.id+'"]');

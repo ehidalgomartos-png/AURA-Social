@@ -1,4 +1,4 @@
-# RedLibertad V1.74.0 — Release Audit & Safe Rollback
+# RedLibertad V1.75.0 — Controlled Rollout Waves & Beta Graduation
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1560,4 +1560,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Historial visible desde la consola Release Control.
 - Request ID reutilizado para correlacionar cambios administrativos con logs operativos.
 - Mobile-first en administración.
+- Sin monetización.
+
+
+## V1.75.0 — Controlled Rollout Waves & Beta Graduation
+
+- Despliegue progresivo por porcentaje estable de usuarios.
+- Asignación determinista mediante hash de `feature_key + user_id`: el mismo usuario permanece en la misma ola sin tracking adicional.
+- Las cohortes explícitas siguen teniendo acceso aunque una ola porcentual sea pequeña.
+- Kill switch global sigue teniendo prioridad absoluta.
+- Fases operativas: Solo cohortes / Piloto / Beta ampliada / Graduada.
+- Olas predefinidas en administración: 5%, 10%, 25%, 50%, 75% y 100%.
+- Graduar una función a 100% la deja disponible para todos.
+- Congelar expansión impide cambiar de ola, pero mantiene el acceso actual.
+- El kill switch continúa funcionando incluso con la expansión congelada.
+- Nota o criterio de avance guardado por feature.
+- Cambios de ola y congelado entran en la auditoría V1.74 con snapshots Antes / Después.
+- Rollback seguro puede restaurar una ola anterior y sus parámetros.
+- Las funciones globales existentes migran automáticamente a estado Graduada 100%.
+- Sin SDK analítico ni persistencia de quién cae en cada porcentaje.
+- Mobile-first en el panel administrativo.
 - Sin monetización.

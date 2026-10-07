@@ -12,7 +12,7 @@ router.use(async(_req,res,next)=>{
     await ensureReleaseSchema();
     next();
   }catch(error){
-    console.error('RedLibertad V1.74 release control bootstrap failed:',error);
+    console.error('RedLibertad V1.75 release control bootstrap failed:',error);
     res.status(500).json({error:'release_control_bootstrap_failed'});
   }
 });
@@ -47,6 +47,13 @@ const featureUpdateSchema=z.object({
   enabled:z.boolean().optional(),
   defaultEnabled:z.boolean().optional()
 }).refine(value=>Object.keys(value).length>0);
+const rolloutUpdateSchema=z.object({
+  stage:z.enum(['cohorts','pilot','expanded','graduated']).optional(),
+  percentage:z.number().int().min(0).max(100).optional(),
+  frozen:z.boolean().optional(),
+  note:z.string().trim().max(500).optional()
+}).refine(value=>Object.keys(value).length>0,{message:'rollout_update_required'});
+
 const memberSchema=z.object({username:z.string().trim().min(3).max(30)});
 
 
@@ -82,7 +89,8 @@ function sameSnapshot(left,right){
 
 async function snapshotFeature(client,key){
   const feature=await client.query(`
-    SELECT feature_key,name,description,enabled,default_enabled
+    SELECT feature_key,name,description,enabled,default_enabled,
+           rollout_stage,rollout_percentage,rollout_frozen,rollout_note
       FROM release_features
      WHERE feature_key=$1
      LIMIT 1
@@ -147,12 +155,18 @@ async function restoreFeature(client,snapshot,adminId){
            description=$3,
            enabled=$4,
            default_enabled=$5,
-           updated_by=$6,
+           rollout_stage=$6,
+           rollout_percentage=$7,
+           rollout_frozen=$8,
+           rollout_note=$9,
+           updated_by=$10,
            updated_at=now()
      WHERE feature_key=$1
   `,[
     snapshot.feature_key,snapshot.name,snapshot.description,
-    snapshot.enabled,snapshot.default_enabled,adminId
+    snapshot.enabled,snapshot.default_enabled,
+    snapshot.rollout_stage||'cohorts',Number(snapshot.rollout_percentage||0),
+    snapshot.rollout_frozen===true,snapshot.rollout_note||'',adminId
   ]);
   await client.query('DELETE FROM release_feature_cohorts WHERE feature_key=$1',[snapshot.feature_key]);
   for(const item of snapshot.cohorts||[]){
@@ -348,10 +362,16 @@ router.post('/admin/features',async(req,res)=>{
   try{
     const result=await inTransaction(async client=>{
       const created=await client.query(`
-        INSERT INTO release_features(feature_key,name,description,enabled,default_enabled,updated_by)
-        VALUES($1,$2,$3,$4,$5,$6)
+        INSERT INTO release_features(
+          feature_key,name,description,enabled,default_enabled,
+          rollout_stage,rollout_percentage,rollout_frozen,rollout_note,updated_by
+        )
+        VALUES($1,$2,$3,$4,$5,$6,$7,FALSE,'',$8)
         RETURNING *
-      `,[d.key,d.name,d.description,d.enabled,d.defaultEnabled,req.user.id]);
+      `,[
+        d.key,d.name,d.description,d.enabled,d.defaultEnabled,
+        d.defaultEnabled?'graduated':'cohorts',d.defaultEnabled?100:0,req.user.id
+      ]);
       const after=await snapshotFeature(client,d.key);
       await writeAudit(client,{
         targetType:'feature',targetKey:d.key,action:'feature_create',
@@ -373,6 +393,9 @@ router.patch('/admin/features/:key',async(req,res)=>{
     const before=await snapshotFeature(client,req.params.key);
     if(!before)return null;
     const d=parsed.data;
+    if(before.rollout_frozen===true && d.defaultEnabled!==undefined && d.defaultEnabled!==before.default_enabled){
+      return {error:'rollout_frozen'};
+    }
     await client.query(`
       UPDATE release_features
          SET name=$2,description=$3,enabled=$4,default_enabled=$5,updated_by=$6,updated_at=now()
@@ -395,7 +418,72 @@ router.patch('/admin/features/:key',async(req,res)=>{
     return after;
   });
   if(!result)return res.status(404).json({error:'feature_not_found'});
+  if(result.error==='rollout_frozen')return res.status(409).json({error:'rollout_frozen'});
   res.json({feature:result});
+});
+
+router.patch('/admin/features/:key/rollout',async(req,res)=>{
+  const parsed=rolloutUpdateSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_rollout_update'});
+
+  const outcome=await inTransaction(async client=>{
+    const before=await snapshotFeature(client,req.params.key);
+    if(!before)return {error:'feature_not_found'};
+    const d=parsed.data;
+
+    const changingWave=d.stage!==undefined || d.percentage!==undefined;
+    if(before.rollout_frozen===true && changingWave && d.frozen!==false){
+      return {error:'rollout_frozen'};
+    }
+
+    let stage=d.stage??before.rollout_stage??'cohorts';
+    let percentage=d.percentage??Number(before.rollout_percentage||0);
+    const frozen=d.frozen??before.rollout_frozen===true;
+    const note=d.note??before.rollout_note??'';
+
+    if(stage==='cohorts')percentage=0;
+    if(stage==='graduated')percentage=100;
+
+    const valid=
+      (stage==='cohorts' && percentage===0) ||
+      (stage==='pilot' && percentage>=1 && percentage<=10) ||
+      (stage==='expanded' && percentage>=11 && percentage<=99) ||
+      (stage==='graduated' && percentage===100);
+    if(!valid)return {error:'invalid_rollout_wave'};
+
+    const defaultEnabled=stage==='graduated';
+
+    await client.query(`
+      UPDATE release_features
+         SET rollout_stage=$2,
+             rollout_percentage=$3,
+             rollout_frozen=$4,
+             rollout_note=$5,
+             default_enabled=$6,
+             updated_by=$7,
+             updated_at=now()
+       WHERE feature_key=$1
+    `,[req.params.key,stage,percentage,frozen,note,defaultEnabled,req.user.id]);
+
+    const after=await snapshotFeature(client,req.params.key);
+    if(!sameSnapshot(before,after)){
+      await writeAudit(client,{
+        targetType:'feature',
+        targetKey:req.params.key,
+        action:d.frozen!==undefined && !changingWave ? 'rollout_freeze' : 'rollout_wave',
+        beforeState:before,
+        afterState:after,
+        actorId:req.user.id,
+        requestId:req.requestId
+      });
+    }
+    return {feature:after};
+  });
+
+  if(outcome.error==='feature_not_found')return res.status(404).json({error:'feature_not_found'});
+  if(outcome.error==='rollout_frozen')return res.status(409).json({error:'rollout_frozen'});
+  if(outcome.error==='invalid_rollout_wave')return res.status(400).json({error:'invalid_rollout_wave'});
+  res.json(outcome);
 });
 
 router.post('/admin/features/:key/cohorts/:cohortId',async(req,res)=>{

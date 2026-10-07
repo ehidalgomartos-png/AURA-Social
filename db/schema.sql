@@ -1226,3 +1226,20 @@ CREATE INDEX IF NOT EXISTS idx_release_change_audit_created
   ON release_change_audit(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_release_change_audit_target
   ON release_change_audit(target_type,target_key,created_at DESC);
+
+
+-- RedLibertad V1.75: controlled rollout waves & beta graduation
+ALTER TABLE release_features
+  ADD COLUMN IF NOT EXISTS rollout_stage TEXT NOT NULL DEFAULT 'cohorts';
+ALTER TABLE release_features
+  ADD COLUMN IF NOT EXISTS rollout_percentage INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE release_features
+  ADD COLUMN IF NOT EXISTS rollout_frozen BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE release_features
+  ADD COLUMN IF NOT EXISTS rollout_note VARCHAR(500) NOT NULL DEFAULT '';
+UPDATE release_features
+   SET rollout_stage='graduated',
+       rollout_percentage=100
+ WHERE default_enabled=TRUE
+   AND rollout_stage='cohorts'
+   AND rollout_percentage=0;

@@ -95,6 +95,12 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Usar el kill switch ante errores funcionales, de seguridad o rendimiento; no hace falta retirar todo el despliegue.
 - Pausar una cohorte conserva sus miembros para poder reanudarla después.
 - Antes de activar una función para todos, repetir los smoke tests con al menos una cohorte beta.
+- Probar una ola Piloto 5% y verificar que la asignación del mismo usuario permanece estable entre sesiones.
+- Subir una función 5% → 25% → 50% y comprobar que no pierde acceso quien ya estaba dentro.
+- Congelar expansión y verificar que no se puede cambiar de porcentaje hasta reanudarla.
+- Con la expansión congelada, comprobar que el kill switch global sigue apagando la función.
+- Graduar al 100% y confirmar que usuarios fuera de cohortes reciben la función.
+- Usar el rollback V1.74 para volver de una ola superior a una inferior y confirmar la restauración.
 
 
 ## 11. Rollback seguro de release control
@@ -102,3 +108,11 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Si aparece `rollback_conflict`, no fuerces la restauración: revisa primero los cambios posteriores.
 - Las creaciones de nuevas features/cohortes se auditan pero no se eliminan automáticamente.
 - Antes de un cambio amplio de cohortes, comprueba que el historial reciente es legible y que el healthcheck está correcto.
+
+
+## 12. Criterios para graduar una función
+- Empezar en cohortes o Piloto 5–10% cuando el riesgo funcional sea relevante.
+- Pasar a Beta ampliada solo después de smoke tests correctos y ausencia de incidencias críticas abiertas relacionadas.
+- Congelar la expansión ante regresiones, rendimiento anómalo o feedback repetido antes de usar el kill switch.
+- Usar el kill switch cuando la función cause daño funcional, de seguridad o disponibilidad.
+- Graduar al 100% solo cuando la función ya no necesite validación por cohortes/olas.
