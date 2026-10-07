@@ -1,14 +1,14 @@
 {
   "name": "redlibertad-social",
-  "version": "1.72.0",
+  "version": "1.73.0",
   "private": true,
-  "description": "RedLibertad V1.72 Beta Feedback & Support Center - feedback dentro de la app, contexto técnico mínimo y cola privada de soporte, sin tracking externo ni monetización.",
+  "description": "RedLibertad V1.73 Beta Cohorts & Release Control - cohortes administrables, feature flags por usuario y kill switch sin redeploy, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
-    "check:syntax": "node --check server.js && node --check src/db.js && node --check src/routes/admin.js && node --check src/routes/support.js && node --check public/app.js && node --check public/social.js && node --check public/admin.js && node --check public/sw.js"
+    "check:syntax": "node --check server.js && node --check src/db.js && node --check src/services/release-control.js && node --check src/routes/admin.js && node --check src/routes/support.js && node --check src/routes/release-control.js && node --check public/app.js && node --check public/social.js && node --check public/admin.js && node --check public/sw.js"
   },
   "engines": {
     "node": ">=20"
