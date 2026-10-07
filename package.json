@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.68.0",
+  "version": "1.69.0",
   "private": true,
-  "description": "RedLibertad V1.68 Performance & Reliability 2.0 - peticiones resilientes, menos trabajo duplicado, carga multimedia eficiente y servidor preparado para despliegues estables, sin monetización.",
+  "description": "RedLibertad V1.69 Mobile UX Final Polish 3.0 - safe areas, bottom sheets, filtros móviles y estados de reintento consistentes, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

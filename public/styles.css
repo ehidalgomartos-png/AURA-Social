@@ -202,3 +202,27 @@ body{
   :where(a,button,input,select,textarea):focus-visible{outline:2px solid CanvasText}
   .button{border:1px solid ButtonText}
 }
+
+
+/* RedLibertad V1.69 — Mobile landing polish */
+@media(max-width:639px){
+  .topbar{
+    padding-left:max(14px,env(safe-area-inset-left));
+    padding-right:max(14px,env(safe-area-inset-right));
+  }
+  .hero,.section,.split-section,.auth-duo{
+    padding-left:max(16px,env(safe-area-inset-left));
+    padding-right:max(16px,env(safe-area-inset-right));
+  }
+  .card-form input{
+    min-height:50px;
+    font-size:16px;
+  }
+  .card-form .button{min-height:50px}
+  .auth-duo{gap:14px}
+  footer{
+    padding-left:max(18px,env(safe-area-inset-left));
+    padding-right:max(18px,env(safe-area-inset-right));
+    padding-bottom:calc(28px + env(safe-area-inset-bottom));
+  }
+}
