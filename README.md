@@ -1,4 +1,4 @@
-# RedLibertad V1.72.0 — Beta Feedback & Support Center
+# RedLibertad V1.73.0 — Beta Cohorts & Release Control
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1522,4 +1522,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL para historial de usuario y cola administrativa.
 - Mobile-first.
 - Sin tracking externo.
+- Sin monetización.
+
+
+## V1.73.0 — Beta Cohorts & Release Control
+
+- Cohortes beta administrables desde el panel.
+- Alta y retirada de usuarios por `@usuario`.
+- Cohortes pausables sin borrar miembros.
+- Registro genérico de funciones beta mediante feature keys.
+- Tres modos efectivos por función: apagada globalmente, disponible para todos o limitada a cohortes.
+- Kill switch administrativo sin necesidad de redeploy.
+- Evaluación por usuario en `/api/release/me`.
+- Los clientes reciben solo el estado efectivo de sus funciones.
+- El Centro de soporte V1.72 queda integrado como primera función controlada (`support_center`).
+- El kill switch del soporte se vuelve a consultar al abrir la herramienta, no solo al iniciar sesión.
+- Backend del soporte protegido por el mismo feature gate.
+- Asignación de una o varias cohortes a cada función.
+- Índices PostgreSQL para evaluación por usuario.
+- Base reutilizable para próximas funciones experimentales.
+- Mobile-first.
 - Sin monetización.
