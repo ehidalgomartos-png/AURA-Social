@@ -292,3 +292,18 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar `robots.txt` y confirmar `/historias` y `/historia/`.
 - Confirmar acceso a Historias desde `/descubrir`.
 - Revisar imagen, vídeo, escritorio y móvil.
+
+
+## 24. Compartir público y previews sociales
+- Abrir un perfil público y probar Compartir en móvil y escritorio.
+- Abrir una publicación pública normal con imagen y confirmar que `og:image` usa la imagen pública real.
+- Confirmar que publicaciones no indexables/sensibles mantienen la imagen de marca.
+- Abrir una comunidad con avatar y confirmar que la preview social usa el avatar.
+- Probar Compartir en Evento, Reel, Tema y Story.
+- En navegador sin share nativo, confirmar mensaje "Enlace copiado ✓".
+- Confirmar que todos los botones comparten la URL canonical.
+- Revisar `twitter:title`, `twitter:description` y `twitter:image` en Comunidad, Evento, Reel, Tema y Story.
+- Confirmar `og:video` en Reel y Story de vídeo.
+- Confirmar que una Story caducada no ofrece contenido compartible activo.
+- Confirmar que contenido sensible/privado nunca gana preview pública real.
+- Revisar escritorio y móvil.
