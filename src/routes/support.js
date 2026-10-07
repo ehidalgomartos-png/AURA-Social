@@ -2,6 +2,7 @@ const express=require('express');
 const {z}=require('zod');
 const db=require('../db');
 const {requireAuth,requireAdmin}=require('../middleware/auth');
+const {requireFeature}=require('../services/release-control');
 
 const router=express.Router();
 
@@ -62,7 +63,7 @@ const createSchema=z.object({
   context:contextSchema.optional().default({})
 });
 
-router.get('/mine',async(req,res)=>{
+router.get('/mine',requireFeature('support_center'),async(req,res)=>{
   const result=await db.query(`
     SELECT id,type,subject,message,status,admin_note,context,created_at,updated_at,resolved_at
       FROM beta_feedback
@@ -73,7 +74,7 @@ router.get('/mine',async(req,res)=>{
   res.json({feedback:result.rows});
 });
 
-router.post('/',async(req,res)=>{
+router.post('/',requireFeature('support_center'),async(req,res)=>{
   const parsed=createSchema.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_feedback'});
 

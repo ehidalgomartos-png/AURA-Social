@@ -1161,3 +1161,47 @@ CREATE INDEX IF NOT EXISTS idx_beta_feedback_user_created
   ON beta_feedback(user_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_beta_feedback_status_created
   ON beta_feedback(status,type,created_at DESC);
+
+
+-- RedLibertad V1.73: beta cohorts & release control
+CREATE TABLE IF NOT EXISTS beta_cohorts (
+  id BIGSERIAL PRIMARY KEY,
+  cohort_key VARCHAR(60) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  description VARCHAR(500) NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS beta_cohort_members (
+  cohort_id BIGINT NOT NULL REFERENCES beta_cohorts(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(cohort_id,user_id)
+);
+CREATE TABLE IF NOT EXISTS release_features (
+  feature_key VARCHAR(60) PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  description VARCHAR(500) NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  default_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS release_feature_cohorts (
+  feature_key VARCHAR(60) NOT NULL REFERENCES release_features(feature_key) ON DELETE CASCADE,
+  cohort_id BIGINT NOT NULL REFERENCES beta_cohorts(id) ON DELETE CASCADE,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(feature_key,cohort_id)
+);
+CREATE INDEX IF NOT EXISTS idx_beta_cohort_members_user
+  ON beta_cohort_members(user_id,cohort_id);
+CREATE INDEX IF NOT EXISTS idx_release_feature_cohorts_cohort
+  ON release_feature_cohorts(cohort_id,feature_key);
+INSERT INTO release_features(feature_key,name,description,enabled,default_enabled)
+VALUES('support_center','Centro de soporte beta','Ayuda y feedback dentro de la aplicación.',TRUE,TRUE)
+ON CONFLICT(feature_key) DO NOTHING;

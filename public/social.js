@@ -3,6 +3,7 @@ const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let currentMode = 'foryou';
 let feedRequestSequence = 0;
+let releaseFlags={support_center:true};
 let activeViewName='feed';
 const viewScrollPositions=new Map();
 let connectivityHideTimer=null;
@@ -264,6 +265,28 @@ function toast(t) {
     el.classList.remove('toast-enter');
   }, 2600);
 }
+
+function releaseEnabled(key){
+  return releaseFlags[key]!==false;
+}
+
+function applyReleaseFlags(){
+  all('[data-release-feature]').forEach(element=>{
+    const enabled=releaseEnabled(element.dataset.releaseFeature);
+    element.classList.toggle('hidden',!enabled);
+    element.setAttribute('aria-hidden',enabled?'false':'true');
+  });
+}
+
+async function loadReleaseFlags(){
+  const {r,d}=await api('/api/release/me',{dedupe:false});
+  if(r.ok && d.features && typeof d.features==='object'){
+    releaseFlags={...releaseFlags,...d.features};
+  }
+  applyReleaseFlags();
+  return releaseFlags;
+}
+
 function uiStateHTML({icon='↻',title='Algo no ha cargado',copy='Comprueba tu conexión e inténtalo de nuevo.',retry='',label='Reintentar'}={}){
   return `<div class="ui-state-card" role="status">
     <span class="ui-state-icon" aria-hidden="true">${esc(icon)}</span>
@@ -1993,7 +2016,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="supportSettings" class="secondary">Ayuda</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="supportSettings" class="secondary" data-release-feature="support_center">Ayuda</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -2014,6 +2037,7 @@ async function loadProfile(mode = ownProfileMode) {
   $('#privacySettings').onclick = openPrivacyModal;
   $('#accountSettings').onclick = openAccountModal;
   $('#supportSettings').onclick = openSupportModal;
+  applyReleaseFlags();
   await loadConsents();
 }
 
@@ -8616,6 +8640,11 @@ async function loadSupportMine(){
 }
 
 async function openSupportModal(){
+  await loadReleaseFlags();
+  if(!releaseEnabled('support_center')){
+    toast('Esta función no está disponible ahora mismo.');
+    return;
+  }
   const modal=$('#supportModal');
   if(!modal)return;
   $('#supportStatus').textContent='';
@@ -8720,6 +8749,7 @@ async function handleInitialDeepLink() {
 (async () => {
   try {
     await loadMe();
+    await loadReleaseFlags();
     await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
     startLiveActivity();
