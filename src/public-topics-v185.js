@@ -20,37 +20,37 @@ function shell(req,{title,description,canonical,robots='index,follow,max-image-p
   return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+esc(robots)+'"><link rel="canonical" href="'+esc(canonical)+'"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="website"><meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'"><meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(o+'/assets/og-redlibertad.png')+'"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/styles.css">'+jsonLd+'<style>.th{min-height:100vh;background:var(--bg);color:var(--navy)}.tt{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px max(16px,calc((100vw - 1120px)/2));border-bottom:1px solid var(--line);background:rgba(255,253,249,.95);backdrop-filter:blur(14px)}.tb{display:flex;gap:8px;align-items:center;color:inherit;text-decoration:none;font-weight:900}.tb img{width:32px;height:32px}.ta{display:flex;gap:7px;flex-wrap:nowrap}.ta .button{min-width:0;white-space:nowrap;padding:9px 12px}.wrap{width:min(1120px,calc(100% - 28px));margin:auto;padding:38px 0 72px}.topic-hero{display:grid;grid-template-columns:1fr minmax(300px,.6fr);gap:22px;align-items:end;margin-bottom:22px}.topic-hero h1{font:800 clamp(34px,5vw,54px) Manrope,sans-serif;line-height:1.04;margin:6px 0 10px}.muted{color:var(--muted);line-height:1.6}.topic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.topic-card,.card{border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 9px 25px rgba(13,34,56,.05);overflow:hidden}.topic-card a,.card a.main{display:block;color:inherit;text-decoration:none;padding:16px}.topic-card h2,.card h3{margin:7px 0}.tag{display:inline-flex;padding:4px 7px;border-radius:999px;background:rgba(43,183,169,.12);color:#0c675b;font-size:10px;font-weight:800}.stats{font-size:11px;color:var(--muted);margin-top:8px}.section{margin-top:28px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:11px}.section h2{font-size:22px;margin:0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.row{display:flex;gap:10px;align-items:center}.avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:var(--navy);color:#fff;font-weight:900;flex:none}.visual{aspect-ratio:16/10;background:#071522;overflow:hidden}.visual img,.visual video{width:100%;height:100%;object-fit:cover;display:block}.empty{padding:28px;border:1px dashed var(--line);border-radius:16px;background:var(--paper);color:var(--muted);text-align:center}.searchbox{display:flex;gap:8px;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}.searchbox input{flex:1;min-width:0;border:0;background:transparent;padding:10px;outline:0;font:inherit}@media(max-width:900px){.topic-hero{grid-template-columns:1fr}.topic-grid,.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.wrap{width:calc(100% - 20px);padding-top:22px}.topic-grid,.grid{grid-template-columns:1fr}.ta .ghost:nth-child(-n+5){display:none}.tt{padding:9px 10px}.searchbox{display:grid}.searchbox .button{width:100%}}</style></head><body><main class="th"><header class="tt"><a class="tb" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><div class="ta"><a class="button small ghost" href="/perfiles">Personas</a><a class="button small ghost" href="/publicaciones">Publicaciones</a><a class="button small ghost" href="/comunidades">Comunidades</a><a class="button small ghost" href="/eventos">Eventos</a><a class="button small ghost" href="/reels">Reels</a><a class="button small ghost" href="/buscar">Buscar</a><a class="button small" href="/#registro">Crear cuenta</a></div></header><div class="wrap">'+body+'</div></main></body></html>';
 }
 
+async function allCounts(){
+  const r=await db.query(`
+    SELECT t.topic,
+      (SELECT count(*)::int
+         FROM user_interests ui JOIN users u ON u.id=ui.user_id
+        WHERE lower(ui.interest)=lower(t.topic)
+          AND u.status='active' AND u.is_admin=false AND u.discoverable=true) people,
+      (SELECT count(*)::int
+         FROM community_interests ci
+         JOIN communities c ON c.id=ci.community_id
+         JOIN users owner ON owner.id=c.owner_id
+        WHERE lower(ci.interest)=lower(t.topic)
+          AND c.privacy='public'
+          AND owner.status='active' AND owner.is_admin=false AND owner.discoverable=true) communities,
+      (SELECT count(*)::int
+         FROM posts p JOIN users u ON u.id=p.user_id
+        WHERE p.moderation_status='published' AND p.audience='public' AND p.content_level='normal'
+          AND u.status='active' AND u.is_admin=false AND u.discoverable=true
+          AND (lower(p.caption) LIKE '%#'||lower(t.topic)||'%' OR lower(p.caption) LIKE '%#'||t.topic_slug||'%')) posts
+    FROM unnest($1::text[],$2::text[]) AS t(topic,topic_slug)
+  `,[INTERESTS,INTERESTS.map(slug)]);
+  return r.rows.map(x=>({topic:x.topic,people:Number(x.people||0),communities:Number(x.communities||0),posts:Number(x.posts||0)}));
+}
 async function countsFor(topic){
-  const [people,communities,posts]=await Promise.all([
-    db.query(`
-      SELECT count(*)::int n
-      FROM user_interests ui JOIN users u ON u.id=ui.user_id
-      WHERE lower(ui.interest)=lower($1)
-        AND u.status='active' AND u.is_admin=false AND u.discoverable=true
-    `,[topic]),
-    db.query(`
-      SELECT count(*)::int n
-      FROM community_interests ci
-      JOIN communities c ON c.id=ci.community_id
-      JOIN users owner ON owner.id=c.owner_id
-      WHERE lower(ci.interest)=lower($1)
-        AND c.privacy='public'
-        AND owner.status='active' AND owner.is_admin=false AND owner.discoverable=true
-    `,[topic]),
-    db.query(`
-      SELECT count(*)::int n
-      FROM posts p JOIN users u ON u.id=p.user_id
-      WHERE p.moderation_status='published' AND p.audience='public' AND p.content_level='normal'
-        AND u.status='active' AND u.is_admin=false AND u.discoverable=true
-        AND (lower(p.caption) LIKE $2 OR lower(p.caption) LIKE $3)
-    `,[topic,'%#'+topic.toLowerCase()+'%','%#'+slug(topic)+'%'])
-  ]);
-  return {people:Number(people.rows[0]?.n||0),communities:Number(communities.rows[0]?.n||0),posts:Number(posts.rows[0]?.n||0)};
+  const rows=await allCounts();
+  return rows.find(x=>x.topic===topic)||{topic,people:0,communities:0,posts:0};
 }
 
 router.get('/temas',async(req,res)=>{
   try{
-    const all=await Promise.all(INTERESTS.map(async topic=>({topic,...await countsFor(topic)})));
+    const all=await allCounts();
     const ranked=all.sort((a,b)=>(b.people+b.communities+b.posts)-(a.people+a.communities+a.posts)||a.topic.localeCompare(b.topic,'es'));
     const cards=ranked.map(x=>{
       const total=x.people+x.communities+x.posts;
@@ -132,11 +132,7 @@ router.get('/tema/:slug',async(req,res)=>{
 
 router.get('/sitemap-topics.xml',async(req,res)=>{
   try{
-    const o=origin(req),eligible=[];
-    for(const topic of INTERESTS){
-      const c=await countsFor(topic);
-      if(c.people+c.communities+c.posts>=2)eligible.push(topic);
-    }
+    const o=origin(req),eligible=(await allCounts()).filter(c=>c.people+c.communities+c.posts>=2).map(c=>c.topic);
     const urls=eligible.map(topic=>'<url><loc>'+esc(o+'/tema/'+slug(topic))+'</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>');
     res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(err){
