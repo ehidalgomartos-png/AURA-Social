@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.95.0",
+  "version": "1.95.1",
   "private": true,
-  "description": "RedLibertad V1.95 Mobile Interaction Polish - preview de avatar/portada, pull-to-refresh, refresco inmediato tras editar posts e icono de comentarios.",
+  "description": "RedLibertad V1.95.1 Public Profile Layer Hotfix - corrige el solapamiento de portada y avatar en perfiles públicos abiertos desde publicaciones.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

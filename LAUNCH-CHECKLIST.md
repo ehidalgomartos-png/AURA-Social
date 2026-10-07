@@ -551,3 +551,13 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Editar una publicación con el detalle abierto y confirmar que el detalle muestra el nuevo texto sin salir y volver.
 - Confirmar que comentarios muestra 💬 y sigue abriendo el modal de comentarios.
 - Revisar móvil y escritorio.
+
+
+## 44. Public Profile Layer Hotfix
+- Confirmar `/api/health` con versión 1.95.1 y feature `public-profile-layer-hotfix-v1.95.1`.
+- Abrir una publicación y tocar el autor para abrir su perfil público.
+- Confirmar en móvil que el avatar queda completamente visible por delante de la portada.
+- Confirmar en escritorio el mismo comportamiento.
+- Revisar perfiles con y sin foto de portada.
+- Confirmar que cerrar/reabrir el perfil público no altera el layout.
+- Confirmar que el perfil propio no cambia.
