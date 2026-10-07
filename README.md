@@ -1784,3 +1784,23 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - La navegación pública del buscador deja de heredar `min-width:160px` por botón en escritorio.
 - Los botones de la cabecera quedan en una sola fila cuando hay espacio suficiente.
 - Las reglas móviles existentes se mantienen sin cambios funcionales.
+
+
+## V1.84.0 — Public Discovery Hub & Trending
+
+- Nuevo hub público `/descubrir`.
+- Reúne Personas nuevas, Publicaciones destacadas, Reels, Hashtags, Comunidades activas y Próximos eventos.
+- Todas las secciones reutilizan las reglas públicas ya validadas:
+  - perfiles activos, no-admin y `discoverable=true`,
+  - publicaciones/Reels `published`, `audience='public'`, `content_level='normal'`,
+  - comunidades `privacy='public'`,
+  - eventos `visibility='public'`, no cancelados y con comunidad pública cuando aplica.
+- Tendencias calculadas solo con señales agregadas públicas y ventanas recientes.
+- `/descubrir` es indexable y usa `CollectionPage` structured data.
+- Incluye acceso directo al buscador público.
+- La portada enlaza a Descubrir sustituyendo el enlace secundario "Qué es", sin aumentar el número de elementos del menú.
+- `/buscar` enlaza al nuevo hub desde su estado inicial.
+- Integración en robots y sitemap principal.
+- Sin cambios en `posts.js`, APIs privadas o base de datos.
+- Mobile-first.
+- Sin monetización.
