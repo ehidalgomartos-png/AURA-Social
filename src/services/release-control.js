@@ -1,3 +1,4 @@
+const crypto=require('crypto');
 const db=require('../db');
 
 let releaseSchemaReady=null;
@@ -38,6 +39,10 @@ async function ensureReleaseSchema(){
           updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
+      await db.query("ALTER TABLE release_features ADD COLUMN IF NOT EXISTS rollout_stage TEXT NOT NULL DEFAULT 'cohorts'");
+      await db.query("ALTER TABLE release_features ADD COLUMN IF NOT EXISTS rollout_percentage INTEGER NOT NULL DEFAULT 0");
+      await db.query("ALTER TABLE release_features ADD COLUMN IF NOT EXISTS rollout_frozen BOOLEAN NOT NULL DEFAULT FALSE");
+      await db.query("ALTER TABLE release_features ADD COLUMN IF NOT EXISTS rollout_note VARCHAR(500) NOT NULL DEFAULT ''");
       await db.query(`
         CREATE TABLE IF NOT EXISTS release_feature_cohorts (
           feature_key VARCHAR(60) NOT NULL REFERENCES release_features(feature_key) ON DELETE CASCADE,
@@ -80,55 +85,58 @@ async function ensureReleaseSchema(){
   return releaseSchemaReady;
 }
 
+function rolloutBucket(userId,featureKey){
+  const digest=crypto.createHash('sha256').update(String(featureKey)+':'+String(userId)).digest('hex').slice(0,8);
+  return parseInt(digest,16)%100;
+}
+
+function evaluateFeatureRow(row,userId){
+  if(!row || row.enabled!==true)return false;
+  if(row.default_enabled===true || Number(row.rollout_percentage||0)>=100)return true;
+  if(row.cohort_enabled===true)return true;
+  const percentage=Math.max(0,Math.min(100,Number(row.rollout_percentage||0)));
+  return percentage>0 && rolloutBucket(userId,row.feature_key)<percentage;
+}
+
 async function featureEnabledForUser(userId,featureKey){
   await ensureReleaseSchema();
   const result=await db.query(`
-    SELECT
-      f.feature_key,
-      CASE
-        WHEN f.enabled=FALSE THEN FALSE
-        WHEN f.default_enabled=TRUE THEN TRUE
-        ELSE EXISTS(
-          SELECT 1
-            FROM release_feature_cohorts fc
-            JOIN beta_cohorts c ON c.id=fc.cohort_id
-            JOIN beta_cohort_members cm ON cm.cohort_id=c.id
-           WHERE fc.feature_key=f.feature_key
-             AND fc.enabled=TRUE
-             AND c.enabled=TRUE
-             AND cm.user_id=$1
-        )
-      END AS enabled
+    SELECT f.feature_key,f.enabled,f.default_enabled,f.rollout_percentage,
+           EXISTS(
+             SELECT 1
+               FROM release_feature_cohorts fc
+               JOIN beta_cohorts c ON c.id=fc.cohort_id
+               JOIN beta_cohort_members cm ON cm.cohort_id=c.id
+              WHERE fc.feature_key=f.feature_key
+                AND fc.enabled=TRUE
+                AND c.enabled=TRUE
+                AND cm.user_id=$1
+           ) AS cohort_enabled
       FROM release_features f
      WHERE f.feature_key=$2
      LIMIT 1
   `,[userId,featureKey]);
-  return result.rowCount ? result.rows[0].enabled===true : false;
+  return result.rowCount ? evaluateFeatureRow(result.rows[0],userId) : false;
 }
 
 async function featuresForUser(userId){
   await ensureReleaseSchema();
   const result=await db.query(`
-    SELECT
-      f.feature_key,
-      CASE
-        WHEN f.enabled=FALSE THEN FALSE
-        WHEN f.default_enabled=TRUE THEN TRUE
-        ELSE EXISTS(
-          SELECT 1
-            FROM release_feature_cohorts fc
-            JOIN beta_cohorts c ON c.id=fc.cohort_id
-            JOIN beta_cohort_members cm ON cm.cohort_id=c.id
-           WHERE fc.feature_key=f.feature_key
-             AND fc.enabled=TRUE
-             AND c.enabled=TRUE
-             AND cm.user_id=$1
-        )
-      END AS enabled
+    SELECT f.feature_key,f.enabled,f.default_enabled,f.rollout_percentage,
+           EXISTS(
+             SELECT 1
+               FROM release_feature_cohorts fc
+               JOIN beta_cohorts c ON c.id=fc.cohort_id
+               JOIN beta_cohort_members cm ON cm.cohort_id=c.id
+              WHERE fc.feature_key=f.feature_key
+                AND fc.enabled=TRUE
+                AND c.enabled=TRUE
+                AND cm.user_id=$1
+           ) AS cohort_enabled
       FROM release_features f
      ORDER BY f.feature_key
   `,[userId]);
-  return Object.fromEntries(result.rows.map(row=>[row.feature_key,row.enabled===true]));
+  return Object.fromEntries(result.rows.map(row=>[row.feature_key,evaluateFeatureRow(row,userId)]));
 }
 
 function requireFeature(featureKey){
