@@ -46,6 +46,11 @@
 - Verificar que un usuario fuera de la cohorte recibe la función desactivada.
 - Verificar que un usuario dentro de la cohorte recibe la función activada.
 - Probar el kill switch global y confirmar que prevalece sobre cualquier cohorte.
+- Confirmar que cada cambio de feature/cohorte aparece en el historial con administrador y fecha.
+- Cambiar una feature, usar “Restaurar estado anterior” y comprobar que vuelve exactamente a su configuración previa.
+- Cambiar después esa misma feature otra vez e intentar restaurar una entrada antigua: debe bloquearse con conflicto.
+- Añadir/quitar un miembro de cohorte y verificar que el rollback restaura la lista anterior.
+- Confirmar que un rollback crea su propia entrada de auditoría.
 - Probar `support_center`: apagarlo, comprobar que desaparece/queda bloqueado, y reactivarlo.
 - Verificar que el contexto de soporte no contiene cuerpos de mensajes, posts ni archivos.
 - Registrar una incidencia operativa, pasarla a seguimiento, resolverla y reabrirla.
@@ -90,3 +95,10 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Usar el kill switch ante errores funcionales, de seguridad o rendimiento; no hace falta retirar todo el despliegue.
 - Pausar una cohorte conserva sus miembros para poder reanudarla después.
 - Antes de activar una función para todos, repetir los smoke tests con al menos una cohorte beta.
+
+
+## 11. Rollback seguro de release control
+- Usa el rollback de configuración para feature flags y cohortes; no sustituye al rollback de código o base de datos.
+- Si aparece `rollback_conflict`, no fuerces la restauración: revisa primero los cambios posteriores.
+- Las creaciones de nuevas features/cohortes se auditan pero no se eliminan automáticamente.
+- Antes de un cambio amplio de cohortes, comprueba que el historial reciente es legible y que el healthcheck está correcto.
