@@ -1295,7 +1295,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_public_media_v182
 -- RedLibertad V1.88: Public Entry & Signup Attribution
 CREATE TABLE IF NOT EXISTS signup_attributions (
   user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  source_type VARCHAR(20) NOT NULL,
+  source_type VARCHAR(20) NOT NULL CHECK(source_type IN ('profile','post','community','event','reel','topic','story')),
   source_key VARCHAR(120) NOT NULL DEFAULT '',
   source_path VARCHAR(280) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
