@@ -42,7 +42,7 @@ const { startPushWorker, isPushConfigured } = require('./src/services/push');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='1.86.0';
+const APP_VERSION='1.87.0';
 
 function configurationStatus(){
   const missing=[];
@@ -1097,7 +1097,7 @@ app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
 
-const server=app.listen(PORT, () => console.log(`RedLibertad V1.86.0 running on http://localhost:${PORT}`));
+const server=app.listen(PORT, () => console.log(`RedLibertad V1.87.0 running on http://localhost:${PORT}`));
 server.keepAliveTimeout=5000;
 server.headersTimeout=65000;
 server.requestTimeout=120000;
