@@ -2167,3 +2167,12 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
   - enlaces clicables que se abren sin perder el formulario.
 - Las páginas legales se incluyen en `sitemap.xml`.
 - Sin cambios de base de datos ni monetización.
+
+
+## V1.94.1 — Momentum Card CTA Hotfix
+
+- Añade un CTA visual **“Ver publicación →”** en las tarjetas de “Desde tu última visita”.
+- La tarjeta completa continúa siendo clicable; no se introduce un botón anidado.
+- Mejora la claridad de navegación especialmente en móvil.
+- Mantiene autor, tiempo e interacciones sin cambios.
+- Sin cambios de base de datos ni en `src/routes/posts.js`.
