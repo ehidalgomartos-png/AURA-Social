@@ -5125,7 +5125,7 @@ let activeShareEntity=null;
 function shareUrl(){
   if(!activeShareEntity)return '';
   if(['post','reel'].includes(activeShareEntity.type))return `${publicOrigin}/p/${encodeURIComponent(activeShareEntity.id)}`;
-  if(activeShareEntity.type==='profile')return `${publicOrigin}/app?profile=${encodeURIComponent(activeShareEntity.username||'')}`;
+  if(activeShareEntity.type==='profile')return `${publicOrigin}/perfil/${encodeURIComponent(activeShareEntity.username||'')}`;
   if(activeShareEntity.type==='story')return `${publicOrigin}/app?story=${encodeURIComponent(activeShareEntity.id)}`;
   return publicOrigin+'/app';
 }
