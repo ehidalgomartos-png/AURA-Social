@@ -5617,3 +5617,48 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .support-history-head{align-items:center}
   .support-mine-list{max-height:none}
 }
+
+
+/* RedLibertad V1.75.1 — Message + desktop profile UI hotfix */
+.message-inline-actions{display:flex;align-items:center;gap:8px}
+.message-reaction-toggle{
+  border:0;background:transparent;color:inherit;padding:2px 0;
+  font-size:9px;font-weight:900;opacity:.72;cursor:pointer
+}
+.message-reaction-toggle:hover,
+.message-reaction-toggle:focus-visible,
+.message-reply-button:hover,
+.message-reply-button:focus-visible{opacity:1;text-decoration:underline}
+.message-reaction-summary{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.message-reaction-summary span{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:3px 6px;border-radius:999px;
+  background:rgba(13,34,56,.06);font-size:11px;line-height:1
+}
+.message-reaction-summary b{font-size:9px}
+.message-bubble.mine .message-reaction-summary span{background:rgba(255,255,255,.15)}
+.message-reaction-bar.hidden{display:none!important}
+
+@media(min-width:761px){
+  #profileView .profile-title{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:14px;
+    align-items:start;
+    margin-top:14px;
+  }
+  #profileView .profile-buttons{
+    justify-content:flex-start;
+    align-items:center;
+    width:100%;
+    max-width:100%;
+    margin:0;
+  }
+  #profileView .profile-buttons .secondary{
+    min-height:42px;
+    padding:10px 14px;
+  }
+  #profileView .profile-bio{
+    margin-top:18px;
+  }
+}
