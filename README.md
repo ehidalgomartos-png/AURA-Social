@@ -2040,3 +2040,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Incluye safe-area inferior para iPhone/PWA y espacio de compensación para no tapar contenido.
 - Sin tracking nuevo, sin cookies de marketing y sin monetización.
 - Sin cambios en privacidad, indexación o base de datos.
+
+
+## V1.92.1 — Public Mobile Visual Polish
+
+- Pulido visual de superficies públicas detectado tras V1.92.0.
+- Detalle público de publicación:
+  - elimina el centrado vertical y el gran espacio vacío;
+  - añade cabecera compacta de RedLibertad / Contenido público;
+  - muestra avatar real del autor cuando existe;
+  - añade fecha y badge de creador;
+  - posts solo de texto reciben una tarjeta protagonista con identidad de marca;
+  - CTA de participación y acciones secundarias más ordenadas;
+  - mantiene la barra móvil Crear cuenta / Entrar de V1.92.
+- Reels y Multimedia:
+  - cabecera móvil de una sola línea: marca + Crear cuenta;
+  - oculta navegación secundaria de cabecera en móvil;
+  - estado vacío más cuidado y con acciones útiles;
+  - desaparece “0 resultados públicos” cuando no aporta información;
+  - no se muestra “Página 1 de 1” cuando no existe paginación real.
+- Sin cambios en SEO, privacidad, canonical, robots, sitemaps ni lógica de contenido.
+- Sin migraciones y sin monetización.
