@@ -2014,3 +2014,16 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - El panel deja de cortarse en móvil y conserva las cinco opciones existentes.
 - Mantiene los mismos modales, permisos y endpoints.
 - Sin cambios en `src/routes/posts.js`, base de datos o monetización.
+
+
+## V1.91.0 — Public Entry Conversion & Safe Return
+
+- Unifica los CTA de entrada en superficies públicas clave.
+- Post, Perfil, Reel, Tema y Story ofrecen ahora dos caminos claros:
+  - Crear cuenta para participar.
+  - Entrar y volver al contenido exacto.
+- Comunidad y Evento ya tenían este flujo y se mantienen sin cambios.
+- Se reutiliza la atribución propia existente con `entry`, `entryKey` y `next`.
+- No se añaden trackers externos ni cookies de marketing.
+- El retorno tras registro/login sigue pasando por el flujo seguro existente.
+- Sin migraciones y sin monetización.
