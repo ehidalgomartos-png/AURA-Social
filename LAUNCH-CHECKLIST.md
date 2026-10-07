@@ -275,3 +275,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Buscar "arte", "fotografia" o "tecnologia" en `/buscar` y confirmar resultados de tipo Tema.
 - Confirmar acceso a Temas desde `/descubrir`.
 - Revisar escritorio y móvil.
+
+
+## 23. Stories públicas y enlaces efímeros
+- Crear una Story normal con audiencia Público.
+- Abrir `/historias` sin iniciar sesión y confirmar que aparece.
+- Abrir `/historia/:id` y confirmar reproducción/imagen.
+- Confirmar `noindex,follow` tanto en directorio como ficha.
+- Confirmar que una Story sensible o nudity nunca aparece públicamente.
+- Confirmar que Stories VIP, connections y circles no aparecen públicamente.
+- Confirmar que autores admin o `discoverable=false` no aparecen.
+- Confirmar que las visitas anónimas no aumentan `story_views`.
+- Caducar una Story de prueba y confirmar HTTP 410 sin media.
+- Confirmar que una Story caducada desaparece de `/historias`.
+- Confirmar que no existe sitemap de Stories y que no se añadieron al sitemap principal.
+- Revisar `robots.txt` y confirmar `/historias` y `/historia/`.
+- Confirmar acceso a Historias desde `/descubrir`.
+- Revisar imagen, vídeo, escritorio y móvil.
