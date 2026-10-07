@@ -24,7 +24,7 @@ async function ensure(){
 }
 
 function eligibility(alias='e'){
-  return alias+".visibility='public' AND "+alias+".cancelled_at IS NULL AND creator.status='active' AND creator.is_admin=false AND creator.discoverable=true AND ("+alias+".community_id IS NULL OR EXISTS(SELECT 1 FROM communities pc JOIN users pc_owner ON pc_owner.id=pc.owner_id WHERE pc.id="+alias+".community_id AND pc.privacy='public' AND pc_owner.status='active' AND pc_owner.is_admin=false AND pc_owner.discoverable=true))";
+  return alias+".visibility='public' AND "+alias+".cancelled_at IS NULL AND creator.status='active' AND creator.discoverable=true AND ("+alias+".community_id IS NULL OR EXISTS(SELECT 1 FROM communities pc JOIN users pc_owner ON pc_owner.id=pc.owner_id WHERE pc.id="+alias+".community_id AND pc.privacy='public' AND pc_owner.status='active' AND pc_owner.is_admin=false AND pc_owner.discoverable=true))";
 }
 
 function shell(req,{title,description,canonical,robots='index,follow,max-image-preview:large',jsonLd='',body}){
