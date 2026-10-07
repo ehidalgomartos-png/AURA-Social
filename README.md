@@ -1979,3 +1979,16 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - El JSON-LD `ItemList` usa también la URL canonical de Reel.
 - Se mantiene el 301 desde `/p/:id` como compatibilidad para enlaces antiguos.
 - Sin cambios en `src/routes/posts.js`, feed, privacidad, base de datos o monetización.
+
+
+## V1.90.2 — Mobile Profile Declutter
+
+- Simplifica el perfil propio, especialmente en móvil.
+- Acciones principales visibles: Editar perfil, Compartir y Más.
+- Confianza, Privacidad, Cuenta, Ayuda y Contenido sensible pasan al menú Más.
+- Centro de creador se mantiene visible como acceso destacado independiente para creadores verificados.
+- El menú Más conserva las funciones y endpoints existentes; solo cambia su presentación.
+- El control de contenido sensible mantiene exactamente la misma lógica.
+- Sin cambios de backend funcional, privacidad, permisos o base de datos.
+- Sin cambios en `src/routes/posts.js`.
+- Sin monetización.
