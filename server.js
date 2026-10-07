@@ -413,7 +413,7 @@ app.get('/p/:id', async (req, res) => {
         relatedHtml=`<section class="shared-related"><div class="shared-related-head"><div><small>SEGUIR DESCUBRIENDO</small><h2>Más de ${escapeHtml(post.display_name)}</h2></div><a href="/perfil/${encodeURIComponent(post.username)}">Ver perfil →</a></div><div class="shared-related-grid">${relatedCards}</div></section>`;
       }
     }
-    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><script defer src="/public-share-v187.js"></script><style>
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css"><script defer src="/public-share-v187.js"></script><style>
 .shared-page{min-height:100vh;padding:0 18px 28px;background:radial-gradient(circle at 92% 3%,rgba(239,94,85,.11),transparent 28rem),linear-gradient(180deg,#f8f5ef 0%,var(--ivory) 100%)}
 .shared-shell{width:min(760px,100%);margin:0 auto;padding-top:14px}
 .shared-topbar{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;padding:9px 12px;border:1px solid var(--line);border-radius:17px;background:rgba(255,253,249,.92);box-shadow:0 8px 24px rgba(13,34,56,.05)}
@@ -521,7 +521,7 @@ app.get('/perfil/:username',async(req,res)=>{
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css">
   <script defer src="/public-share-v187.js"></script>
   ${structured}
   <style>
@@ -744,7 +744,7 @@ app.get('/perfiles',async(req,res)=>{
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css">
   ${listStructured}
   <style>
     .directory-page{min-height:100vh;background:var(--bg);color:var(--navy)}
@@ -1028,7 +1028,7 @@ async function renderPublicContentV179(req,res,{tag=null}={}){
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css">
   ${listStructured}
   <style>
     .public-content-page{min-height:100vh;background:var(--bg);color:var(--navy)}
