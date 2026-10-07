@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V1.70 · Product Maturity & Launch Readiness</small></div>
+  <div><b>Moderación</b><small>V1.71 · Beta Launch & Real User Operations</small></div>
 </header>
 
 <main>
@@ -21,6 +21,43 @@
     <h1>Seguridad y moderación</h1>
     <p>Revisa denuncias, contexto, cuentas y acciones de moderación desde un solo lugar.</p>
     <div id="metrics" class="metrics"></div>
+  </section>
+
+  <section class="panel beta-ops-panel">
+    <div class="panel-head">
+      <div><span class="eyebrow">BETA REAL</span><h2>Operaciones de lanzamiento</h2><p class="panel-copy">Señales agregadas para saber si la comunidad arranca bien, sin tracking externo ni lectura de mensajes.</p></div>
+      <button id="reloadBetaOps" type="button">Actualizar</button>
+    </div>
+
+    <div id="betaHealth" class="beta-health" aria-live="polite"></div>
+    <div id="betaOpsMetrics" class="beta-metrics"></div>
+    <p id="betaPrivacyNote" class="beta-privacy-note"></p>
+
+    <div class="beta-ops-layout">
+      <form id="incidentForm" class="incident-form">
+        <div><span class="eyebrow">INCIDENCIA</span><h3>Registrar problema operativo</h3></div>
+        <label>Título
+          <input name="title" maxlength="160" required placeholder="Ej. Subidas de vídeo fallan en móvil">
+        </label>
+        <label>Severidad
+          <select name="severity">
+            <option value="info">Informativa</option>
+            <option value="warning">Atención</option>
+            <option value="critical">Crítica</option>
+          </select>
+        </label>
+        <label>Nota
+          <textarea name="note" maxlength="2000" placeholder="Qué ocurre, alcance y pasos que ya se han probado."></textarea>
+        </label>
+        <button class="primary" type="submit">Registrar incidencia</button>
+        <p id="incidentFormStatus" class="status" role="status"></p>
+      </form>
+
+      <div>
+        <div class="incident-list-head"><div><span class="eyebrow">SEGUIMIENTO</span><h3>Incidencias recientes</h3></div></div>
+        <div id="incidentList" class="incident-list"></div>
+      </div>
+    </div>
   </section>
 
   <section class="grid">
