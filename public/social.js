@@ -1,6 +1,7 @@
 const $ = (s, r = document) => r.querySelector(s);
 const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
+let publicOrigin=location.origin.replace(/\/$/,'');
 let currentMode = 'foryou';
 let feedRequestSequence = 0;
 let releaseFlags={support_center:true};
@@ -285,6 +286,14 @@ async function loadReleaseFlags(){
   }
   applyReleaseFlags();
   return releaseFlags;
+}
+
+async function loadPublicConfig(){
+  const {r,d}=await api('/api/public-config',{dedupe:false});
+  if(r.ok && /^https?:\/\//i.test(String(d.origin||''))){
+    publicOrigin=String(d.origin).replace(/\/$/,'');
+  }
+  return publicOrigin;
 }
 
 function uiStateHTML({icon='↻',title='Algo no ha cargado',copy='Comprueba tu conexión e inténtalo de nuevo.',retry='',label='Reintentar'}={}){
@@ -1345,8 +1354,8 @@ async function handleReturnPulseAction(action) {
 }
 
 function growthInviteUrl(code) {
-  if(growthInviteToken)return `${location.origin}/?invite=${encodeURIComponent(growthInviteToken)}#registro`;
-  return `${location.origin}/?ref=${encodeURIComponent(code)}#registro`;
+  if(growthInviteToken)return `${publicOrigin}/?invite=${encodeURIComponent(growthInviteToken)}#registro`;
+  return `${publicOrigin}/?ref=${encodeURIComponent(code)}#registro`;
 }
 
 function growthInviteText() {
@@ -5115,10 +5124,10 @@ let activeShareEntity=null;
 
 function shareUrl(){
   if(!activeShareEntity)return '';
-  if(['post','reel'].includes(activeShareEntity.type))return `${location.origin}/p/${encodeURIComponent(activeShareEntity.id)}`;
-  if(activeShareEntity.type==='profile')return `${location.origin}/app?profile=${encodeURIComponent(activeShareEntity.username||'')}`;
-  if(activeShareEntity.type==='story')return `${location.origin}/app?story=${encodeURIComponent(activeShareEntity.id)}`;
-  return location.origin+'/app';
+  if(['post','reel'].includes(activeShareEntity.type))return `${publicOrigin}/p/${encodeURIComponent(activeShareEntity.id)}`;
+  if(activeShareEntity.type==='profile')return `${publicOrigin}/app?profile=${encodeURIComponent(activeShareEntity.username||'')}`;
+  if(activeShareEntity.type==='story')return `${publicOrigin}/app?story=${encodeURIComponent(activeShareEntity.id)}`;
+  return publicOrigin+'/app';
 }
 function shareContextText(){return String($('#shareContext')?.value||'').trim().slice(0,500);}
 function shareText(){
@@ -8782,6 +8791,7 @@ async function handleInitialDeepLink() {
 
 (async () => {
   try {
+    await loadPublicConfig();
     await loadMe();
     await loadReleaseFlags();
     await loadSavedPostIds();
