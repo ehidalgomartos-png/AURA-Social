@@ -1257,3 +1257,12 @@ CREATE INDEX IF NOT EXISTS idx_posts_public_discovery_v179
   WHERE moderation_status='published'
     AND audience='public'
     AND content_level='normal';
+
+
+-- RedLibertad V1.80: Public Communities & Community SEO
+CREATE INDEX IF NOT EXISTS idx_communities_public_discovery_v180
+  ON communities(updated_at DESC,id)
+  WHERE privacy='public';
+CREATE INDEX IF NOT EXISTS idx_community_posts_public_discovery_v180
+  ON community_posts(community_id,created_at DESC,id)
+  WHERE moderation_status='published' AND content_level='normal';

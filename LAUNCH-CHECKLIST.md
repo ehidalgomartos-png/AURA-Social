@@ -166,3 +166,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que `/sitemap-index.xml` referencia posts, perfiles y hashtags.
 - Confirmar que `/sitemap.xml` incluye `/publicaciones`.
 - Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones.
+
+
+## 17. Comunidades públicas y SEO
+- Abrir `/comunidades` y confirmar que solo aparecen comunidades públicas con propietario activo, no-admin y descubrible.
+- Buscar con `/comunidades?q=...` y confirmar `noindex,follow`.
+- Probar paginación y enlaces Anterior/Siguiente conservando la búsqueda.
+- Abrir una comunidad y confirmar URL canónica `/comunidad/:id/:slug`.
+- Probar una URL sin slug o con slug antiguo y confirmar redirección 301 a la canónica.
+- Confirmar que una comunidad privada devuelve 404 en la capa pública.
+- Confirmar que la ficha pública nunca muestra posts sensibles/desnudez, retirados ni posts de perfiles no descubribles.
+- Poner `discoverable=false` al propietario de una comunidad pública y confirmar que desaparece de directorio/sitemap y la ficha directa queda `noindex,nofollow`.
+- Revisar `/sitemap-communities.xml` y confirmar que solo contiene comunidades elegibles.
+- Confirmar que `/sitemap-index.xml` referencia el sitemap de comunidades.
+- Confirmar que `/sitemap.xml` incluye `/comunidades`.
+- Revisar `robots.txt` y confirmar `/comunidades`, `/comunidad/` y el nuevo sitemap.
+- Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades.
