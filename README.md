@@ -1804,3 +1804,25 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin cambios en `posts.js`, APIs privadas o base de datos.
 - Mobile-first.
 - Sin monetización.
+
+
+## V1.85.0 — Public Topics & Interest Hubs
+
+- Nuevo directorio público `/temas`.
+- Nuevas páginas canónicas `/tema/:slug` para los 12 intereses de perfil existentes:
+  Arte, Fotografía, Naturismo, Moda, Fitness, Viajes, Música, Lifestyle, Belleza, Creatividad, Tecnología y Bienestar.
+- Cada tema reúne:
+  - personas públicas con ese interés,
+  - comunidades públicas con ese interés,
+  - publicaciones/Reels públicos normales que usan el hashtag relacionado.
+- Las páginas con menos de 2 señales públicas quedan `noindex,follow` para evitar thin content.
+- Solo temas con al menos 2 señales públicas entran en `/sitemap-topics.xml`.
+- `/temas` usa `ItemList`; cada tema indexable usa `CollectionPage`.
+- `/buscar` incorpora categoría Temas y enlaza a las páginas canónicas.
+- `/descubrir` incorpora acceso directo a Temas.
+- La barra superior no gana nuevos botones.
+- No se usa `location_label` ni ubicación en esta fase.
+- Sin migraciones de base de datos.
+- Sin tocar `posts.js` ni APIs privadas.
+- Mobile-first.
+- Sin monetización.
