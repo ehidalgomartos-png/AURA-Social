@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.90.3.1",
+  "version": "1.91.0",
   "private": true,
-  "description": "RedLibertad V1.90.3.1 Profile More Menu Hotfix - el menú Más se despliega dentro del flujo del perfil sin tapar ni cortar contenido.",
+  "description": "RedLibertad V1.91 Public Entry Conversion & Safe Return - CTAs públicos consistentes para crear cuenta o entrar y volver al contenido exacto.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
