@@ -102,6 +102,72 @@ function renderIncidents(){
     : '<div class="empty-admin">No hay incidencias operativas registradas.</div>';
 }
 
+async function seoHealth(){
+  const metricsRoot=$('#seoHealthMetrics');
+  const sitemapRoot=$('#seoSitemapList');
+  const ruleRoot=$('#seoRuleList');
+  const warningRoot=$('#seoHealthWarnings');
+  const noteRoot=$('#seoHealthNote');
+
+  if(metricsRoot)metricsRoot.innerHTML='<div class="empty-admin">Comprobando SEO...</div>';
+  if(sitemapRoot)sitemapRoot.innerHTML='';
+  if(ruleRoot)ruleRoot.innerHTML='';
+  if(warningRoot)warningRoot.innerHTML='';
+
+  const {r,d}=await api('/api/admin/seo-health');
+  if(!r.ok){
+    if(metricsRoot)metricsRoot.innerHTML='<div class="empty-admin">No se pudo comprobar el estado SEO.</div>';
+    return;
+  }
+
+  const c=d.counts||{};
+  const cards=[
+    ['URLs indexables',Number(d.totalIndexable||0)],
+    ['Perfiles',Number(c.profiles||0)],
+    ['Publicaciones',Number(c.posts||0)],
+    ['Reels',Number(c.reels||0)],
+    ['Comunidades',Number(c.communities||0)],
+    ['Eventos',Number(c.events||0)]
+  ];
+  if(metricsRoot){
+    metricsRoot.innerHTML=cards.map(([label,value])=>'<div class="beta-metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>').join('');
+  }
+
+  const sitemaps=Array.isArray(d.sitemaps)?d.sitemaps:[];
+  if(sitemapRoot){
+    sitemapRoot.innerHTML=sitemaps.map(item=>
+      '<article class="seo-sitemap-card"><div><b>'+esc(item.label)+'</b><small>'+esc(item.path)+'</small></div><div class="seo-sitemap-side"><span class="state '+(item.status==='ok'?'':'warning-state')+'">'+(item.status==='ok'?'Activo':'Vacío')+'</span><b>'+Number(item.count||0)+'</b><a href="'+esc(item.path)+'" target="_blank" rel="noopener">Abrir ↗</a></div></article>'
+    ).join('') || '<div class="empty-admin">Sin sitemaps.</div>';
+  }
+
+  const crawl=d.crawl||{},p=d.protected||{};
+  const rules=[
+    ['Reels con canonical único',crawl.legacyReelPostRedirect301&&crawl.mainSitemapExcludesReels],
+    ['Stories fuera del índice',crawl.storiesIndexed===false],
+    ['Búsquedas con consulta fuera del índice',crawl.searchQueriesIndexed===false],
+    ['Eventos de admin excluidos',crawl.adminEventsExcluded===true],
+    ['Contenido sensible protegido',true],
+    ['Audiencias privadas protegidas',true]
+  ];
+  if(ruleRoot){
+    ruleRoot.innerHTML=rules.map(([label,ok])=>
+      '<article class="seo-rule-card"><span class="seo-rule-icon">'+(ok?'✓':'!')+'</span><span>'+esc(label)+'</span></article>'
+    ).join('')+
+      '<div class="seo-protected-summary"><small>Protegidos actualmente</small><b>'+Number(p.sensitivePublic||0)+' sensibles · '+Number(p.privateAudience||0)+' privados · '+Number(p.hiddenAuthorPosts||0)+' de autores ocultos · '+Number(p.adminEventsSuppressed||0)+' eventos admin</b></div>';
+  }
+
+  const warnings=Array.isArray(d.warnings)?d.warnings:[];
+  if(warningRoot){
+    warningRoot.innerHTML=warnings.length
+      ? warnings.map(item=>'<div class="seo-warning '+(item.level==='warning'?'warning':'info')+'"><b>'+(item.level==='warning'?'Atención':'Info')+'</b><span>'+esc(item.text||'')+'</span></div>').join('')
+      : '<div class="seo-warning ok"><b>Correcto</b><span>No hay alertas internas de rastreo.</span></div>';
+  }
+
+  if(noteRoot){
+    noteRoot.textContent='Estimación interna generada '+timeLabel(d.generatedAt)+'. '+String(d.searchConsole?.note||'')+' Sitemap recomendado en Search Console: '+String(d.searchConsole?.recommendedSitemap||'/sitemap-index.xml')+'.';
+  }
+}
+
 function growthSourceTypeLabel(type){
   return ({
     profile:'Perfil',
@@ -1098,6 +1164,7 @@ $('#incidentForm')?.addEventListener('submit',async event=>{
   }
 });
 $('#reloadBetaOps')?.addEventListener('click',betaOps);
+$('#reloadSeoHealth')?.addEventListener('click',seoHealth);
 $('#reloadGrowthAttribution')?.addEventListener('click',growthAttribution);
 $('#growthAttributionDays')?.addEventListener('change',growthAttribution);
 
@@ -1111,5 +1178,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), betaOps(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
