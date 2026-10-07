@@ -36,6 +36,9 @@
 - Colaboraciones y consentimientos.
 - Centro de confianza, bloqueos, silencios y reportes.
 - Administración/moderación.
+- Panel Beta real: métricas agregadas cargan correctamente.
+- Registrar una incidencia operativa, pasarla a seguimiento, resolverla y reabrirla.
+- Confirmar que el panel muestra health/readiness sin exponer secretos.
 
 ## 5. Smoke test móvil
 - iPhone/Safari y Android/Chrome si están disponibles.
@@ -53,3 +56,11 @@
 
 ## 7. Criterio de salida
 Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke tests críticos pasen y exista un backup recuperable. La monetización permanece fuera de alcance.
+
+
+## 8. Operación durante la beta
+- Revisar el panel **Beta real** al inicio y al final de cada jornada de pruebas.
+- Registrar una incidencia crítica si una función esencial deja de estar disponible para varios usuarios.
+- No usar las métricas agregadas para perfilar personas individualmente.
+- La tasa de activación es una señal de producto, no un objetivo para introducir presión, rachas o notificaciones compulsivas.
+- Resolver una incidencia solo después de repetir el smoke test de la función afectada.

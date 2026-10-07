@@ -1114,3 +1114,28 @@ CREATE TABLE IF NOT EXISTS creator_automation_rules (
 );
 CREATE INDEX IF NOT EXISTS idx_creator_automation_enabled
   ON creator_automation_rules(enabled,creator_id,updated_at DESC);
+
+
+-- RedLibertad V1.71: beta launch & real user operations
+CREATE TABLE IF NOT EXISTS operational_incidents (
+  id BIGSERIAL PRIMARY KEY,
+  title VARCHAR(160) NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'info' CHECK(severity IN ('info','warning','critical')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','monitoring','resolved')),
+  note VARCHAR(2000) NOT NULL DEFAULT '',
+  created_by BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_operational_incidents_status_created
+  ON operational_incidents(status,severity,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_user_created_beta
+  ON posts(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_user_created_beta
+  ON comments(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_follows_follower_created_beta
+  ON follows(follower_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_created_beta
+  ON messages(sender_id,created_at DESC);

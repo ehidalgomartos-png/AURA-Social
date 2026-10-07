@@ -1,6 +1,7 @@
 const $ = s => document.querySelector(s);
 let reportCache = [];
 let userCache = [];
+let incidentCache = [];
 
 async function api(url, options = {}) {
   const response = await fetch(url, options);
@@ -73,6 +74,103 @@ async function metrics() {
   $('#metrics').innerHTML = items.map(([label,value]) =>
     `<div class="metric"><b>${compact(value)}</b><span>${esc(label)}</span></div>`
   ).join('');
+}
+
+function incidentStatusLabel(status){
+  return ({open:'Abierta',monitoring:'En seguimiento',resolved:'Resuelta'})[status] || status;
+}
+
+function renderIncidents(){
+  const root=$('#incidentList');
+  if(!root)return;
+  root.innerHTML=incidentCache.length
+    ? incidentCache.map(item=>`<article class="incident-card ${esc(item.severity)} ${item.status==='resolved'?'resolved':''}">
+        <div class="incident-card-head">
+          <div><b>#${item.id} · ${esc(item.title)}</b><small>${timeLabel(item.created_at)} · por @${esc(item.created_by_username||'admin')}</small></div>
+          <span class="incident-state ${esc(item.status)}">${esc(incidentStatusLabel(item.status))} · ${esc(item.severity)}</span>
+        </div>
+        ${item.note ? `<p>${esc(item.note)}</p>` : ''}
+        <span class="incident-card-meta">Última actualización ${timeLabel(item.updated_at)}${item.updated_by_username ? ' · @'+esc(item.updated_by_username) : ''}</span>
+        <div class="actions">
+          ${item.status!=='monitoring' && item.status!=='resolved' ? `<button class="soft" data-admin-action="incident-status" data-id="${item.id}" data-status="monitoring">Seguir</button>` : ''}
+          ${item.status!=='resolved' ? `<button class="alt" data-admin-action="incident-status" data-id="${item.id}" data-status="resolved">Resolver</button>` : `<button class="soft" data-admin-action="incident-status" data-id="${item.id}" data-status="open">Reabrir</button>`}
+          <button data-admin-action="incident-note" data-id="${item.id}">Editar nota</button>
+        </div>
+      </article>`).join('')
+    : '<div class="empty-admin">No hay incidencias operativas registradas.</div>';
+}
+
+async function betaOps(){
+  const metricsRoot=$('#betaOpsMetrics');
+  const healthRoot=$('#betaHealth');
+  if(metricsRoot)metricsRoot.innerHTML='<div class="empty-admin">Cargando señales beta...</div>';
+
+  const [ops,health,ready]=await Promise.all([
+    api('/api/admin/beta-ops'),
+    api('/api/health'),
+    api('/api/ready')
+  ]);
+
+  if(!ops.r.ok){
+    if(metricsRoot)metricsRoot.innerHTML='<div class="empty-admin">No se pudieron cargar las métricas beta.</div>';
+    return;
+  }
+
+  const m=ops.d.metrics || {};
+  const cards=[
+    ['Altas · 24 h',m.newUsers24h],
+    ['Altas · 7 días',m.newUsers7d],
+    ['Activados · 7 días',m.activatedUsers7d],
+    ['Activación · 7 días',`${Number(m.activationRate7d||0)}%`],
+    ['Usuarios sociales · 7 días',m.activeSocialUsers7d],
+    ['Posts · 24 h',m.posts24h],
+    ['Mensajes · 24 h',m.messages24h],
+    ['Nuevos follows · 24 h',m.follows24h],
+    ['Denuncias · 24 h',m.reports24h],
+    ['Incidencias abiertas',m.openIncidents],
+    ['Incidencias críticas',m.criticalIncidents]
+  ];
+  if(metricsRoot){
+    metricsRoot.innerHTML=cards.map(([label,value])=>`<div class="beta-metric"><b>${typeof value==='number'?compact(value):esc(value)}</b><span>${esc(label)}</span></div>`).join('');
+  }
+
+  incidentCache=Array.isArray(ops.d.incidents)?ops.d.incidents:[];
+  renderIncidents();
+
+  if(healthRoot){
+    const configOk=health.r.ok && health.d.configuration?.criticalReady===true;
+    const readyOk=ready.r.ok && ready.d.database==='ready';
+    healthRoot.innerHTML=`
+      <span class="beta-health-chip ${readyOk?'':'danger'}">Base de datos · ${readyOk?'lista':'revisar'}</span>
+      <span class="beta-health-chip ${configOk?'':'warning'}">Configuración · ${configOk?'correcta':'con avisos'}</span>
+      <span class="beta-health-chip">Versión · ${esc(health.d.version||'—')}</span>
+      <span class="beta-health-chip">Uptime · ${compact(Math.floor(Number(health.d.uptimeSeconds||0)/60))} min</span>
+    `;
+  }
+
+  const privacy=$('#betaPrivacyNote');
+  if(privacy){
+    privacy.textContent='Métricas agregadas a partir de actividad necesaria para el producto. Sin tracking externo y sin analizar el contenido de los mensajes.';
+  }
+}
+
+async function updateIncident(id,payload,button){
+  if(button)button.disabled=true;
+  try{
+    const {r,d}=await api('/api/admin/incidents/'+encodeURIComponent(id),{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){
+      setAdminNotice('No se pudo actualizar la incidencia.',true);
+      return;
+    }
+    setAdminNotice('Incidencia actualizada.');
+    await betaOps();
+  }finally{
+    if(button&&button.isConnected)button.disabled=false;
+  }
 }
 
 function filteredReports() {
@@ -438,6 +536,13 @@ document.addEventListener('click', async event => {
   if (!button) return;
   const action = button.dataset.adminAction;
 
+  if (action === 'incident-status') return updateIncident(button.dataset.id,{status:button.dataset.status},button);
+  if (action === 'incident-note') {
+    const item=incidentCache.find(x=>String(x.id)===String(button.dataset.id));
+    const note=prompt('Nota operativa',item?.note||'');
+    if(note===null)return;
+    return updateIncident(button.dataset.id,{note},button);
+  }
   if (action === 'verification-decision') return decideVerification(button.dataset.id, button.dataset.decision, button);
   if (action === 'verify-age') return verifyAge(button.dataset.userId, button);
   if (action === 'verify-creator') return verifyCreator(button.dataset.userId, button);
@@ -447,6 +552,38 @@ document.addEventListener('click', async event => {
     return decide(button.dataset.id, button.dataset.status, button.dataset.decision);
   }
 });
+
+$('#incidentForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const fd=new FormData(form);
+  const status=$('#incidentFormStatus');
+  const submit=form.querySelector('button[type="submit"]');
+  submit.disabled=true;
+  status.textContent='Registrando...';
+  try{
+    const {r,d}=await api('/api/admin/incidents',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        title:String(fd.get('title')||'').trim(),
+        severity:fd.get('severity')||'info',
+        note:String(fd.get('note')||'').trim()
+      })
+    });
+    if(!r.ok){
+      status.textContent='No se pudo registrar la incidencia.';
+      return;
+    }
+    form.reset();
+    status.textContent='';
+    setAdminNotice('Incidencia registrada.');
+    await betaOps();
+  }finally{
+    submit.disabled=false;
+  }
+});
+$('#reloadBetaOps')?.addEventListener('click',betaOps);
 
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
@@ -458,5 +595,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), reports(), users(), verifications()]);
+  await Promise.all([metrics(), betaOps(), reports(), users(), verifications()]);
 })();
