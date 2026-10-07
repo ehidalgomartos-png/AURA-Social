@@ -481,3 +481,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que los Reels relacionados siguen las reglas public/normal/discoverable.
 - Revisar móvil y escritorio.
 - Confirmar que no cambian canonical, robots, sitemaps ni privacidad.
+
+
+## 38. Registration Rate Limit Hotfix
+- Confirmar `/api/health` con versión 1.93.1 y features `registration-rate-limit-hotfix-v1.93.1` / `registration-identity-throttle-v1.93.1`.
+- Registrar una cuenta válida y confirmar alta normal.
+- Probar varios registros distintos desde la misma red y confirmar que no se bloquean tras 8 intentos acumulados.
+- Repetir más de 12 intentos con el mismo email/usuario y confirmar HTTP 429.
+- Confirmar que la respuesta 429 incluye `retryAfterSeconds`.
+- Confirmar que la interfaz muestra minutos aproximados de espera.
+- Confirmar que login mantiene su límite independiente.
+- Revisar móvil y escritorio.
