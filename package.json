@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.73.0",
+  "version": "1.74.0",
   "private": true,
-  "description": "RedLibertad V1.73 Beta Cohorts & Release Control - cohortes administrables, feature flags por usuario y kill switch sin redeploy, sin monetización.",
+  "description": "RedLibertad V1.74 Release Audit & Safe Rollback - historial antes/después, actor, request ID y restauración transaccional con protección contra conflictos, sin monetización.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
