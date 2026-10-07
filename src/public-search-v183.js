@@ -2,6 +2,7 @@ const express=require('express');
 const db=require('./db');
 
 const router=express.Router();
+const PUBLIC_TOPICS=['Arte','Fotografía','Naturismo','Moda','Fitness','Viajes','Música','Lifestyle','Belleza','Creatividad','Tecnología','Bienestar'];
 
 function e(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function origin(req){return String(process.env.APP_ORIGIN||req.protocol+'://'+req.get('host')).replace(/\/$/,'');}
@@ -25,12 +26,12 @@ function section(title,count,viewMore,html){
 router.get('/buscar',async(req,res)=>{
   try{
     const raw=String(req.query.q||'').normalize('NFKC').trim().slice(0,100);
-    const type=['all','people','posts','reels','hashtags','communities','events'].includes(String(req.query.type||''))?String(req.query.type):'all';
+    const type=['all','people','posts','reels','hashtags','topics','communities','events'].includes(String(req.query.type||''))?String(req.query.type):'all';
     const o=origin(req),hasQuery=raw.length>0,valid=raw.length>=2,like='%'+raw+'%',prefix=raw+'%',limit=type==='all'?6:24;
     const wants=x=>type==='all'||type===x;
     const empty={rows:[]};
 
-    let people=empty,posts=empty,reels=empty,communities=empty,events=empty,hashtags=[];
+    let people=empty,posts=empty,reels=empty,communities=empty,events=empty,hashtags=[],topics=[];
     if(valid){
       [people,posts,reels,communities,events]=await Promise.all([
         wants('people')?db.query(`
@@ -110,6 +111,10 @@ router.get('/buscar',async(req,res)=>{
         }
         hashtags=[...counts.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'es')).slice(0,limit).map(([tag,count])=>({tag,count}));
       }
+      if(wants('topics')){
+        const needle=slug(raw);
+        topics=PUBLIC_TOPICS.filter(topic=>slug(topic).includes(needle)||topic.toLowerCase().includes(raw.toLowerCase())).slice(0,limit).map(topic=>({topic}));
+      }
     }
 
     const personCards=people.rows.map(x=>'<article class="card"><a class="main row" href="/perfil/'+encodeURIComponent(x.username)+'">'+(x.avatar_url?'<img class="avatar" src="'+e(abs(req,x.avatar_url))+'" alt="">':'<span class="avatar">'+e(String(x.display_name||x.username).slice(0,2).toUpperCase())+'</span>')+'<span><b>'+e(x.display_name)+(x.creator_verified?' ✓':'')+'</b><br><span class="muted">@'+e(x.username)+'</span><div class="stats">'+Number(x.follower_count||0)+' seguidores</div></span></a></article>').join('');
@@ -118,20 +123,21 @@ router.get('/buscar',async(req,res)=>{
     const communityCards=communities.rows.map(x=>'<article class="card"><a class="main" href="'+e(communityPath(x))+'"><span class="tag">'+e(String(x.category||'General').toUpperCase())+'</span><h3>'+e(x.name)+'</h3><p class="muted">'+e(short(x.description||'',110))+'</p><div class="stats">'+Number(x.member_count||0)+' miembros</div></a></article>').join('');
     const eventCards=events.rows.map(x=>'<article class="card"><a class="main" href="'+e(eventPath(x))+'"><span class="tag">'+(x.event_type==='online'?'ONLINE':'PRESENCIAL')+'</span><h3>'+e(x.title)+'</h3><p class="muted">'+e(short(x.description||'',110))+'</p><div class="stats">'+e(new Date(x.starts_at).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Madrid'}))+' · @'+e(x.username)+'</div></a></article>').join('');
     const hashtagCards=hashtags.map(x=>'<article class="card"><a class="main" href="/hashtag/'+encodeURIComponent(x.tag)+'"><span class="tag">HASHTAG</span><h3>#'+e(x.tag)+'</h3><div class="stats">'+Number(x.count||0)+' coincidencias recientes</div></a></article>').join('');
+    const topicCards=topics.map(x=>'<article class="card"><a class="main" href="/tema/'+encodeURIComponent(slug(x.topic))+'"><span class="tag">TEMA</span><h3>'+e(x.topic)+'</h3><div class="stats">Explorar personas, comunidades y contenido relacionado</div></a></article>').join('');
 
-    const total=people.rows.length+posts.rows.length+reels.rows.length+communities.rows.length+events.rows.length+hashtags.length;
-    const typeLabel={all:'Todo',people:'Personas',posts:'Publicaciones',reels:'Reels',hashtags:'Hashtags',communities:'Comunidades',events:'Eventos'}[type]||'Todo';
-    const tabs=['all','people','posts','reels','hashtags','communities','events'].map(x=>{
-      const label={all:'Todo',people:'Personas',posts:'Publicaciones',reels:'Reels',hashtags:'# Hashtags',communities:'Comunidades',events:'Eventos'}[x];
+    const total=people.rows.length+posts.rows.length+reels.rows.length+communities.rows.length+events.rows.length+hashtags.length+topics.length;
+    const typeLabel={all:'Todo',people:'Personas',posts:'Publicaciones',reels:'Reels',hashtags:'Hashtags',topics:'Temas',communities:'Comunidades',events:'Eventos'}[type]||'Todo';
+    const tabs=['all','people','posts','reels','hashtags','topics','communities','events'].map(x=>{
+      const label={all:'Todo',people:'Personas',posts:'Publicaciones',reels:'Reels',hashtags:'# Hashtags',topics:'Temas',communities:'Comunidades',events:'Eventos'}[x];
       const href=raw?'/buscar?q='+encodeURIComponent(raw)+'&type='+x:'/buscar';
       return '<a class="'+(type===x?'active':'')+'" href="'+e(href)+'">'+label+'</a>';
     }).join('');
 
-    const form='<form class="sf" method="get" action="/buscar"><input name="q" value="'+e(raw)+'" maxlength="100" placeholder="Buscar personas, publicaciones, comunidades..." aria-label="Buscar en RedLibertad"><select name="type" aria-label="Tipo de resultado">'+['all','people','posts','reels','hashtags','communities','events'].map(x=>'<option value="'+x+'" '+(type===x?'selected':'')+'>'+({all:'Todo',people:'Personas',posts:'Publicaciones',reels:'Reels',hashtags:'Hashtags',communities:'Comunidades',events:'Eventos'}[x])+'</option>').join('')+'</select><button class="button" type="submit">Buscar</button></form>';
+    const form='<form class="sf" method="get" action="/buscar"><input name="q" value="'+e(raw)+'" maxlength="100" placeholder="Buscar personas, publicaciones, comunidades..." aria-label="Buscar en RedLibertad"><select name="type" aria-label="Tipo de resultado">'+['all','people','posts','reels','hashtags','topics','communities','events'].map(x=>'<option value="'+x+'" '+(type===x?'selected':'')+'>'+({all:'Todo',people:'Personas',posts:'Publicaciones',reels:'Reels',hashtags:'Hashtags',topics:'Temas',communities:'Comunidades',events:'Eventos'}[x])+'</option>').join('')+'</select><button class="button" type="submit">Buscar</button></form>';
 
     let results='';
     if(!hasQuery){
-      results='<section class="intro"><a href="/descubrir"><b>Descubrir ahora</b><p class="muted">Tendencias, personas nuevas, Reels, comunidades y eventos.</p></a><a href="/perfiles"><b>Personas</b><p class="muted">Perfiles que han elegido ser descubribles.</p></a><a href="/publicaciones"><b>Publicaciones</b><p class="muted">Contenido público normal.</p></a><a href="/reels"><b>Reels</b><p class="muted">Vídeos públicos de la comunidad.</p></a><a href="/comunidades"><b>Comunidades</b><p class="muted">Grupos públicos por intereses.</p></a><a href="/eventos"><b>Eventos</b><p class="muted">Encuentros públicos próximos.</p></a><a href="/multimedia"><b>Multimedia</b><p class="muted">Fotos y vídeos públicos.</p></a></section>';
+      results='<section class="intro"><a href="/descubrir"><b>Descubrir ahora</b><p class="muted">Tendencias, personas nuevas, Reels, comunidades y eventos.</p></a><a href="/perfiles"><b>Personas</b><p class="muted">Perfiles que han elegido ser descubribles.</p></a><a href="/publicaciones"><b>Publicaciones</b><p class="muted">Contenido público normal.</p></a><a href="/reels"><b>Reels</b><p class="muted">Vídeos públicos de la comunidad.</p></a><a href="/comunidades"><b>Comunidades</b><p class="muted">Grupos públicos por intereses.</p></a><a href="/eventos"><b>Eventos</b><p class="muted">Encuentros públicos próximos.</p></a><a href="/multimedia"><b>Multimedia</b><p class="muted">Fotos y vídeos públicos.</p></a><a href="/temas"><b>Temas</b><p class="muted">Explora intereses y comunidades relacionadas.</p></a></section>';
     }else if(!valid){
       results='<div class="notice">Escribe al menos 2 caracteres para buscar.</div>';
     }else if(total===0){
@@ -142,12 +148,13 @@ router.get('/buscar',async(req,res)=>{
         +section('Publicaciones',posts.rows.length,more('posts','/publicaciones'),postCards)
         +section('Reels',reels.rows.length,more('reels','/reels'),reelCards)
         +section('Hashtags',hashtags.length,'',hashtagCards)
+        +section('Temas',topics.length,'/temas',topicCards)
         +section('Comunidades',communities.rows.length,more('communities','/comunidades'),communityCards)
         +section('Eventos',events.rows.length,more('events','/eventos'),eventCards);
     }
 
     const title=hasQuery?'Buscar “'+raw+'” — RedLibertad':'Buscar en RedLibertad';
-    const description=hasQuery?'Resultados públicos para “'+raw+'” en RedLibertad.':'Busca personas, publicaciones, Reels, hashtags, comunidades y eventos públicos en RedLibertad.';
+    const description=hasQuery?'Resultados públicos para “'+raw+'” en RedLibertad.':'Busca personas, publicaciones, Reels, hashtags, temas, comunidades y eventos públicos en RedLibertad.';
     const canonical=o+'/buscar';
     const robots=hasQuery||type!=='all'?'noindex,follow':'index,follow,max-image-preview:large';
     const jsonLd=!hasQuery?'<script type="application/ld+json">'+JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'RedLibertad',url:o,potentialAction:{'@type':'SearchAction',target:o+'/buscar?q={search_term_string}','query-input':'required name=search_term_string'}}).replace(/</g,'\\u003c')+'</script>':'';
