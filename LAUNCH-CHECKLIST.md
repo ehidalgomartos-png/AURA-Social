@@ -256,3 +256,22 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Revisar `robots.txt` y confirmar `Allow: /descubrir`.
 - Confirmar que `/sitemap.xml` incluye `/descubrir`.
 - Revisar escritorio y móvil.
+
+
+## 22. Temas e intereses públicos
+- Abrir `/temas` y confirmar los 12 intereses de perfil.
+- Confirmar que cada tarjeta muestra contadores públicos de personas, comunidades y publicaciones.
+- Abrir `/tema/arte`, `/tema/fotografia`, `/tema/tecnologia` y otros temas con datos.
+- Confirmar canonical `/tema/:slug`.
+- Confirmar que perfiles admin o `discoverable=false` no aparecen.
+- Confirmar que comunidades privadas no aparecen.
+- Confirmar que publicaciones sensibles/nudity o audiencias privadas no aparecen.
+- Confirmar que Reels relacionados siguen las mismas reglas públicas.
+- Confirmar que una página con menos de 2 señales públicas queda `noindex,follow`.
+- Revisar `/sitemap-topics.xml` y confirmar que solo incluye temas con al menos 2 señales públicas.
+- Confirmar que `/sitemap-index.xml` referencia `/sitemap-topics.xml`.
+- Confirmar que `/sitemap.xml` incluye `/temas`.
+- Revisar `robots.txt` y confirmar `/temas`, `/tema/` y el sitemap de temas.
+- Buscar "arte", "fotografia" o "tecnologia" en `/buscar` y confirmar resultados de tipo Tema.
+- Confirmar acceso a Temas desde `/descubrir`.
+- Revisar escritorio y móvil.
