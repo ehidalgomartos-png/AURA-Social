@@ -2205,3 +2205,25 @@ Mejoras recibidas de pruebas reales en móvil:
 - Aplica en móvil y escritorio.
 - No modifica el perfil propio ni la lógica de datos.
 - Sin cambios en `src/routes/posts.js`.
+
+
+## V1.96.0 — Public Navigation Responsive Polish
+
+- Unifica el comportamiento responsive de las cabeceras públicas.
+- Corrige el solapamiento entre la marca RedLibertad y los botones de navegación en escritorio.
+- Neutraliza el `min-width:160px` global de los botones dentro de navegación pública.
+- Mantiene navegación horizontal contenida en tablet sin invadir la marca.
+- En móvil muestra una cabecera limpia con marca + Crear cuenta, ocultando enlaces secundarios.
+- Aplica a:
+  - Perfiles públicos;
+  - Publicaciones y hashtags;
+  - Comunidades;
+  - Eventos;
+  - Reels y Multimedia;
+  - Buscar;
+  - Descubrir;
+  - Temas;
+  - Historias;
+  - páginas públicas dinámicas generadas por server.js.
+- Estilos compartidos en `public/public-nav-v196.css` para evitar divergencias futuras.
+- Sin cambios de base de datos ni en `src/routes/posts.js`.
