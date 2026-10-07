@@ -1139,3 +1139,25 @@ CREATE INDEX IF NOT EXISTS idx_follows_follower_created_beta
   ON follows(follower_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_created_beta
   ON messages(sender_id,created_at DESC);
+
+
+-- RedLibertad V1.72: beta feedback & support center
+CREATE TABLE IF NOT EXISTS beta_feedback (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK(type IN ('bug','suggestion','question')),
+  subject VARCHAR(160) NOT NULL,
+  message VARCHAR(4000) NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','reviewing','resolved')),
+  admin_note VARCHAR(2000) NOT NULL DEFAULT '',
+  context JSONB NOT NULL DEFAULT '{}'::jsonb,
+  request_id VARCHAR(100),
+  reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_beta_feedback_user_created
+  ON beta_feedback(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_beta_feedback_status_created
+  ON beta_feedback(status,type,created_at DESC);

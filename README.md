@@ -1,4 +1,4 @@
-# RedLibertad V1.71.0 — Beta Launch & Real User Operations
+# RedLibertad V1.72.0 — Beta Feedback & Support Center
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1502,4 +1502,24 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Índices PostgreSQL para que las métricas agregadas no penalicen la carga habitual.
 - `npm run check:syntax` ampliado para incluir rutas y frontend de administración.
 - Mobile-first también para el panel operativo.
+- Sin monetización.
+
+
+## V1.72.0 — Beta Feedback & Support Center
+
+- Centro de ayuda y feedback dentro de la aplicación.
+- Acceso desde escritorio y desde el perfil móvil.
+- Envíos clasificados como Problema / Sugerencia / Duda.
+- Historial propio con estados Recibido / En revisión / Resuelto.
+- Nota o respuesta administrativa visible para el usuario.
+- Contexto técnico limitado a sección, ruta, clase de pantalla, conexión y versión.
+- Sin adjuntar contenido de mensajes privados, publicaciones, archivos ni datos de terceros.
+- Límite anti-spam de 5 envíos por usuario y hora.
+- Cola administrativa de soporte separada de las denuncias de moderación.
+- Filtros por tipo y estado.
+- Flujo administrativo revisar / resolver / reabrir.
+- Request ID guardado para correlacionar incidencias técnicas con logs cuando sea necesario.
+- Índices PostgreSQL para historial de usuario y cola administrativa.
+- Mobile-first.
+- Sin tracking externo.
 - Sin monetización.

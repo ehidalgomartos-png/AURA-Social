@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V1.71 · Beta Launch & Real User Operations</small></div>
+  <div><b>Moderación</b><small>V1.72 · Beta Feedback & Support Center</small></div>
 </header>
 
 <main>
@@ -58,6 +58,29 @@
         <div id="incidentList" class="incident-list"></div>
       </div>
     </div>
+  </section>
+
+  <section class="panel support-admin-panel">
+    <div class="panel-head">
+      <div><span class="eyebrow">FEEDBACK BETA</span><h2>Soporte de usuarios</h2><p class="panel-copy">Problemas, sugerencias y dudas enviados desde la app. El contexto técnico es mínimo y no contiene mensajes privados.</p></div>
+      <div class="panel-tools">
+        <select id="supportAdminStatus" aria-label="Filtrar soporte por estado">
+          <option value="open">Pendientes</option>
+          <option value="all">Todos</option>
+          <option value="new">Recibidos</option>
+          <option value="reviewing">En revisión</option>
+          <option value="resolved">Resueltos</option>
+        </select>
+        <select id="supportAdminType" aria-label="Filtrar soporte por tipo">
+          <option value="all">Todos los tipos</option>
+          <option value="bug">Problemas</option>
+          <option value="suggestion">Sugerencias</option>
+          <option value="question">Dudas</option>
+        </select>
+        <button id="reloadSupportAdmin" type="button">Actualizar</button>
+      </div>
+    </div>
+    <div id="supportAdminList" class="support-admin-list"></div>
   </section>
 
   <section class="grid">
