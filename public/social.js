@@ -1478,11 +1478,7 @@ async function loadHomeSuggestions() {
   const root = $('#homeSuggestions');
   if (!root) return;
 
-  const { r,d } = await api('/api/profiles/suggestions?limit=4');
-  if(!r.ok){
-    root.innerHTML = `<div class="mini-empty"><b>No se pudieron cargar las sugerencias.</b><small>La conexión con el servicio social ha fallado.</small><button type="button" class="tiny-action" data-ui-retry="home-suggestions">Reintentar</button></div>`;
-    return;
-  }
+  const { d } = await api('/api/profiles/suggestions?limit=4');
   root.innerHTML = d.users?.length
     ? d.users.map(u => personCardHTML(u, true)).join('')
     : `<div class="mini-empty"><b>Ya conoces a todos por aquí.</b><small>Explora contenido o invita a alguien.</small></div>`;
@@ -1545,8 +1541,7 @@ async function loadSavedPostIds() {
 }
 
 async function loadMe() {
-  const { r,d } = await api('/api/profiles/me/summary');
-  if(!r.ok || !d.profile)throw new Error(`profile_summary_failed:${d.error || r.status || 'unknown'}`);
+  const { d } = await api('/api/profiles/me/summary');
   me = d.profile;
   const quickAvatar = $('#quickAvatar');
   if (quickAvatar) quickAvatar.innerHTML = avatarHTML(me);
@@ -2027,7 +2022,7 @@ async function loadProfile(mode = ownProfileMode) {
   if (!me) await loadMe();
   setOwnProfileMode(mode);
 
-  const { r,d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
+  const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
   $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir perfil</button>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button">Centro de creador</button>' : ''}<button id="trustSettings" class="secondary">Confianza</button><button id="privacySettings" class="secondary">Privacidad</button><button id="accountSettings" class="secondary">Cuenta</button><button id="supportSettings" class="secondary" data-release-feature="support_center">Ayuda</button><button id="sensitiveToggle" class="secondary">${me.show_sensitive ? 'Ocultar' : 'Mostrar'} contenido sensible</button></div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div><p class="muted">Edad: ${me.age_verified ? '✓ verificada' : 'pendiente de verificación'} · Creador: ${me.creator_verified ? '✓ verificado' : 'no verificado'}</p></div>`;
@@ -2038,9 +2033,7 @@ async function loadProfile(mode = ownProfileMode) {
       ? 'Todavía no tienes fotos o vídeos publicados.'
       : 'Todavía no tienes publicaciones.';
 
-  $('#profilePosts').innerHTML = r.ok
-    ? profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText)
-    : uiStateHTML({title:'No se pudieron cargar tus publicaciones.',copy:'El servicio de publicaciones no ha respondido correctamente.',retry:'profile',label:'Reintentar'});
+  $('#profilePosts').innerHTML = profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText);
 
   $('#sensitiveToggle').onclick = async () => {
     const { r } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ showSensitive: !me.show_sensitive }) });
@@ -4996,12 +4989,8 @@ $('#profileForm').addEventListener('submit', async e => {
 });
 
 async function loadConsents() {
-  const { r,d } = await api('/api/posts/consents/pending');
+  const { d } = await api('/api/posts/consents/pending');
   const root = $('#consentRequests');
-  if(!r.ok){
-    root.innerHTML=uiStateHTML({title:'No se pudieron cargar consentimientos y colaboraciones.',copy:'El servicio de publicaciones no ha respondido correctamente.',retry:'consents',label:'Reintentar'});
-    return;
-  }
   const consentRequests=Array.isArray(d.requests)?d.requests:[];
   const collaborations=Array.isArray(d.collaborations)?d.collaborations:[];
   if (!consentRequests.length && !collaborations.length) {
@@ -8812,16 +8801,7 @@ async function handleInitialDeepLink() {
     syncVisualViewport();
     setConnectivityStatus(navigator.onLine,{initial:true});
     await handleInitialDeepLink();
-  } catch (e) {
-    console.error(e);
-    const meCard=$('#meCard');
-    if(meCard){
-      meCard.classList.remove('skeleton');
-      meCard.innerHTML=uiStateHTML({title:'No se pudo cargar tu sesión social.',copy:'Hay un problema temporal al cargar tu perfil.',retry:'bootstrap',label:'Reintentar'});
-    }
-    const suggestions=$('#homeSuggestions');
-    if(suggestions)suggestions.innerHTML='<div class="mini-empty"><b>No se pudo iniciar esta zona.</b><small>Reintenta cuando el perfil vuelva a responder.</small></div>';
-  }
+  } catch (e) { console.error(e); }
 })();
 
 
@@ -8835,10 +8815,6 @@ document.addEventListener('click',async event=>{
     if(action==='feed')await loadFeed(currentMode);
     else if(action==='notifications')await loadNotifications();
     else if(action==='conversations')await loadConversations();
-    else if(action==='home-suggestions')await loadHomeSuggestions();
-    else if(action==='profile')await loadProfile(ownProfileMode);
-    else if(action==='consents')await loadConsents();
-    else if(action==='bootstrap')location.reload();
   }finally{
     if(button.isConnected)button.disabled=false;
   }
