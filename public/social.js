@@ -264,6 +264,14 @@ function toast(t) {
     el.classList.remove('toast-enter');
   }, 2600);
 }
+function uiStateHTML({icon='↻',title='Algo no ha cargado',copy='Comprueba tu conexión e inténtalo de nuevo.',retry='',label='Reintentar'}={}){
+  return `<div class="ui-state-card" role="status">
+    <span class="ui-state-icon" aria-hidden="true">${esc(icon)}</span>
+    <div class="ui-state-copy"><b>${esc(title)}</b><p>${esc(copy)}</p></div>
+    ${retry ? `<button type="button" class="secondary ui-state-retry" data-ui-retry="${esc(retry)}">${esc(label)}</button>` : ''}
+  </div>`;
+}
+
 function tapFeedback() {
   if (navigator.vibrate) navigator.vibrate(8);
 }
@@ -1569,7 +1577,16 @@ async function loadFeed(mode = currentMode) {
   if(requestId!==feedRequestSequence)return;
   feedRoot?.setAttribute('aria-busy','false');
   if(!r.ok){
-    toast(d.error==='request_timeout' ? 'El feed está tardando demasiado. Inténtalo de nuevo.' : 'No se pudo actualizar el feed.');
+    const message=d.error==='request_timeout'
+      ? 'El feed está tardando demasiado.'
+      : navigator.onLine===false
+        ? 'Parece que estás sin conexión.'
+        : 'No se pudo actualizar el feed.';
+    if(feedRoot && !feedRoot.children.length){
+      feedRoot.innerHTML=uiStateHTML({title:message,copy:'Tus publicaciones volverán a aparecer cuando podamos conectar.',retry:'feed'});
+    }else{
+      toast(message+' Inténtalo de nuevo.');
+    }
     return;
   }
   const posts=Array.isArray(d.posts) ? d.posts : [];
@@ -6265,7 +6282,14 @@ async function navigateNotification(notification) {
 }
 
 async function loadNotifications() {
-  const { d } = await api('/api/notifications');
+  const root=$('#notificationsList');
+  root?.setAttribute('aria-busy','true');
+  const { r,d } = await api('/api/notifications');
+  root?.setAttribute('aria-busy','false');
+  if(!r.ok){
+    if(root)root.innerHTML=uiStateHTML({title:'No pudimos cargar tu actividad',copy:'No has perdido ninguna notificación. Puedes volver a intentarlo.',retry:'notifications'});
+    return;
+  }
   notificationCache = Array.isArray(d.notifications) ? d.notifications : [];
   updateNotificationBadge(Number(d.unread || 0));
   liveActivityState.notificationUnread=Number(d.unread || 0);
@@ -6322,7 +6346,7 @@ function conversationListIdentity(conversation){
     title:String(conversation.display_name || conversation.username || 'Conversación'),
     subtitle:conversation.username ? `@${conversation.username}` : '',
     avatar:conversation.avatar_url
-      ? `<img src="${esc(conversation.avatar_url)}" alt="" decoding="async">`
+      ? `<img src="${esc(conversation.avatar_url)}" alt="" loading="lazy" decoding="async">`
       : esc(initials(conversation.display_name || conversation.username || 'R')),
     verified:conversation.creator_verified===true
   };
@@ -6450,8 +6474,14 @@ async function loadCommunityConversations(){
 
 async function loadConversations(openId = null) {
   const params=new URLSearchParams({filter:messageConversationFilter,q:messageConversationSearch});
+  const listRoot=$('#conversationList');
+  listRoot?.setAttribute('aria-busy','true');
   const {r,d}=await api('/api/messages/conversations?'+params.toString());
-  if(!r.ok)return;
+  listRoot?.setAttribute('aria-busy','false');
+  if(!r.ok){
+    if(listRoot)listRoot.innerHTML=uiStateHTML({title:'No pudimos cargar tus conversaciones',copy:'Tus mensajes siguen guardados. Vuelve a intentarlo cuando tengas conexión.',retry:'conversations'});
+    return;
+  }
   const conversations=Array.isArray(d.conversations)?d.conversations:[];
   const total=conversations.reduce((a,x)=>a+Number(x.unread_count || 0),0);
   updateMessageBadge(total);
@@ -8596,6 +8626,21 @@ async function handleInitialDeepLink() {
   } catch (e) { console.error(e); }
 })();
 
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-ui-retry]');
+  if(!button)return;
+  event.preventDefault();
+  const action=button.dataset.uiRetry;
+  button.disabled=true;
+  try{
+    if(action==='feed')await loadFeed(currentMode);
+    else if(action==='notifications')await loadNotifications();
+    else if(action==='conversations')await loadConversations();
+  }finally{
+    if(button.isConnected)button.disabled=false;
+  }
+});
 
 // =========================================================
 // RedLibertad V1.67 — Accessibility & UX Quality 2.0
