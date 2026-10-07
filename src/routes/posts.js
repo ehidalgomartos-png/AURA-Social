@@ -6,6 +6,27 @@ const { validateContentLevel, canViewerSee } = require('../services/contentPolic
 
 const router = express.Router();
 
+let postReadCompatibilityV1801Ready=null;
+async function ensurePostReadCompatibilityV1801(){
+  if(!postReadCompatibilityV1801Ready){
+    postReadCompatibilityV1801Ready=(async()=>{
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS external_id TEXT");
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS playback_url TEXT");
+      await db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_provider TEXT NOT NULL DEFAULT 'local'");
+    })().catch(error=>{postReadCompatibilityV1801Ready=null;throw error;});
+  }
+  return postReadCompatibilityV1801Ready;
+}
+router.use(async(_req,res,next)=>{
+  try{
+    await ensurePostReadCompatibilityV1801();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.80.1 post read compatibility bootstrap failed:',error);
+    res.status(500).json({error:'post_read_compatibility_failed'});
+  }
+});
+
 let closeConnectionsV157Ready=null;
 async function ensureCloseConnectionsV157(){
   if(!closeConnectionsV157Ready){
