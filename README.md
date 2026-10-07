@@ -1970,3 +1970,12 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Sin integración API de Search Console ni tracking externo.
 - Sin migraciones de base de datos.
 - Sin monetización.
+
+
+## V1.90.1 — SEO Canonical Links Hotfix
+
+- Hotfix sobre V1.90.0 ya presente en `main`.
+- Los listados públicos de `/publicaciones` y `/hashtag/:tag` enlazan los Reels directamente a `/reel/:id/:slug`.
+- El JSON-LD `ItemList` usa también la URL canonical de Reel.
+- Se mantiene el 301 desde `/p/:id` como compatibilidad para enlaces antiguos.
+- Sin cambios en `src/routes/posts.js`, feed, privacidad, base de datos o monetización.
