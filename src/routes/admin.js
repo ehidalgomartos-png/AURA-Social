@@ -63,6 +63,177 @@ router.use(async (_req,res,next)=>{
   }
 });
 
+let betaOpsV171Ready=null;
+async function ensureBetaOpsV171(){
+  if(!betaOpsV171Ready){
+    betaOpsV171Ready=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS operational_incidents (
+          id BIGSERIAL PRIMARY KEY,
+          title VARCHAR(160) NOT NULL,
+          severity TEXT NOT NULL DEFAULT 'info' CHECK(severity IN ('info','warning','critical')),
+          status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','monitoring','resolved')),
+          note VARCHAR(2000) NOT NULL DEFAULT '',
+          created_by BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+          resolved_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_operational_incidents_status_created ON operational_incidents(status,severity,created_at DESC)');
+    })().catch(error=>{
+      betaOpsV171Ready=null;
+      throw error;
+    });
+  }
+  return betaOpsV171Ready;
+}
+
+router.use(async (_req,res,next)=>{
+  try{
+    await ensureBetaOpsV171();
+    next();
+  }catch(error){
+    console.error('RedLibertad V1.71 beta operations bootstrap failed:',error);
+    res.status(500).json({error:'beta_operations_bootstrap_failed'});
+  }
+});
+
+const incidentCreateSchema=z.object({
+  title:z.string().trim().min(3).max(160),
+  severity:z.enum(['info','warning','critical']).optional().default('info'),
+  note:z.string().trim().max(2000).optional().default('')
+});
+
+const incidentUpdateSchema=z.object({
+  status:z.enum(['open','monitoring','resolved']).optional(),
+  severity:z.enum(['info','warning','critical']).optional(),
+  note:z.string().trim().max(2000).optional()
+}).refine(value=>Object.keys(value).length>0,{message:'incident_update_required'});
+
+router.get('/beta-ops',async(_req,res)=>{
+  const [
+    newUsers24h,newUsers7d,activation7d,activeSocial7d,
+    posts24h,messages24h,follows24h,reports24h,incidents
+  ]=await Promise.all([
+    db.query("SELECT count(*)::int n FROM users WHERE is_admin=false AND created_at>=now()-interval '24 hours'"),
+    db.query("SELECT count(*)::int n FROM users WHERE is_admin=false AND created_at>=now()-interval '7 days'"),
+    db.query(`
+      WITH cohort AS (
+        SELECT id,created_at
+          FROM users
+         WHERE is_admin=false
+           AND created_at>=now()-interval '7 days'
+      ),
+      activated AS (
+        SELECT c.id
+          FROM cohort c
+         WHERE EXISTS(SELECT 1 FROM posts p WHERE p.user_id=c.id AND p.created_at>=c.created_at)
+            OR EXISTS(SELECT 1 FROM comments cm WHERE cm.user_id=c.id AND cm.created_at>=c.created_at)
+            OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=c.id AND f.created_at>=c.created_at)
+            OR EXISTS(SELECT 1 FROM messages m WHERE m.sender_id=c.id AND m.created_at>=c.created_at)
+      )
+      SELECT
+        (SELECT count(*)::int FROM cohort) cohort_count,
+        (SELECT count(*)::int FROM activated) activated_count
+    `),
+    db.query(`
+      SELECT count(DISTINCT actor_id)::int n
+        FROM (
+          SELECT user_id actor_id FROM posts WHERE created_at>=now()-interval '7 days'
+          UNION
+          SELECT user_id actor_id FROM comments WHERE created_at>=now()-interval '7 days'
+          UNION
+          SELECT follower_id actor_id FROM follows WHERE created_at>=now()-interval '7 days'
+          UNION
+          SELECT sender_id actor_id FROM messages WHERE created_at>=now()-interval '7 days'
+        ) activity
+       WHERE actor_id IS NOT NULL
+    `),
+    db.query("SELECT count(*)::int n FROM posts WHERE created_at>=now()-interval '24 hours'"),
+    db.query("SELECT count(*)::int n FROM messages WHERE created_at>=now()-interval '24 hours'"),
+    db.query("SELECT count(*)::int n FROM follows WHERE created_at>=now()-interval '24 hours'"),
+    db.query("SELECT count(*)::int n FROM reports WHERE created_at>=now()-interval '24 hours'"),
+    db.query(`
+      SELECT i.id,i.title,i.severity,i.status,i.note,i.resolved_at,i.created_at,i.updated_at,
+             creator.username created_by_username,
+             updater.username updated_by_username
+        FROM operational_incidents i
+        JOIN users creator ON creator.id=i.created_by
+        LEFT JOIN users updater ON updater.id=i.updated_by
+       ORDER BY
+         CASE i.status WHEN 'open' THEN 0 WHEN 'monitoring' THEN 1 ELSE 2 END,
+         CASE i.severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+         i.updated_at DESC
+       LIMIT 100
+    `)
+  ]);
+
+  const cohort=Number(activation7d.rows[0]?.cohort_count||0);
+  const activated=Number(activation7d.rows[0]?.activated_count||0);
+  const openIncidents=incidents.rows.filter(item=>item.status!=='resolved').length;
+  const criticalIncidents=incidents.rows.filter(item=>item.status!=='resolved'&&item.severity==='critical').length;
+
+  res.json({
+    metrics:{
+      newUsers24h:Number(newUsers24h.rows[0]?.n||0),
+      newUsers7d:Number(newUsers7d.rows[0]?.n||0),
+      activatedUsers7d:activated,
+      activationRate7d:cohort ? Math.round((activated/cohort)*100) : 0,
+      activeSocialUsers7d:Number(activeSocial7d.rows[0]?.n||0),
+      posts24h:Number(posts24h.rows[0]?.n||0),
+      messages24h:Number(messages24h.rows[0]?.n||0),
+      follows24h:Number(follows24h.rows[0]?.n||0),
+      reports24h:Number(reports24h.rows[0]?.n||0),
+      openIncidents,
+      criticalIncidents
+    },
+    privacy:{
+      mode:'aggregate_existing_product_data',
+      externalTracking:false,
+      messageBodiesAnalyzed:false
+    },
+    incidents:incidents.rows
+  });
+});
+
+router.post('/incidents',async(req,res)=>{
+  const parsed=incidentCreateSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_incident'});
+  const d=parsed.data;
+  const result=await db.query(`
+    INSERT INTO operational_incidents(title,severity,note,created_by,updated_by)
+    VALUES($1,$2,$3,$4,$4)
+    RETURNING *
+  `,[d.title,d.severity,d.note,req.user.id]);
+  res.status(201).json({incident:result.rows[0]});
+});
+
+router.patch('/incidents/:id',async(req,res)=>{
+  const parsed=incidentUpdateSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_incident_update'});
+  const current=await db.query('SELECT * FROM operational_incidents WHERE id=$1 LIMIT 1',[req.params.id]);
+  if(!current.rowCount)return res.status(404).json({error:'incident_not_found'});
+
+  const d=parsed.data;
+  const status=d.status ?? current.rows[0].status;
+  const severity=d.severity ?? current.rows[0].severity;
+  const note=d.note ?? current.rows[0].note;
+  const result=await db.query(`
+    UPDATE operational_incidents
+       SET status=$2,
+           severity=$3,
+           note=$4,
+           updated_by=$5,
+           resolved_at=CASE WHEN $2='resolved' THEN COALESCE(resolved_at,now()) ELSE NULL END,
+           updated_at=now()
+     WHERE id=$1
+     RETURNING *
+  `,[req.params.id,status,severity,note,req.user.id]);
+  res.json({incident:result.rows[0]});
+});
+
 async function autoReleaseExpiredSuspensions(){
   await db.query(`
     UPDATE users
