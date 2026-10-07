@@ -2176,3 +2176,21 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Mejora la claridad de navegación especialmente en móvil.
 - Mantiene autor, tiempo e interacciones sin cambios.
 - Sin cambios de base de datos ni en `src/routes/posts.js`.
+
+
+## V1.95.0 — Mobile Interaction Polish
+
+Mejoras recibidas de pruebas reales en móvil:
+
+- Vista previa de foto de perfil y portada dentro de Editar perfil antes de guardar.
+- La previsualización parte de las imágenes actuales y cambia al seleccionar nuevos archivos.
+- Pull-to-refresh propio en Inicio para recargar feed, Stories, “Desde tu última visita” y datos básicos de cuenta.
+- El gesto solo se activa arriba del todo, en dispositivos táctiles y fuera de formularios/modales.
+- Al editar una publicación se actualiza inmediatamente:
+  - la tarjeta/post visible;
+  - el feed;
+  - el perfil si está abierto;
+  - Reels si corresponde;
+  - la vista de detalle si permanecía abierta.
+- El botón de comentarios del post usa **💬** en lugar de un círculo genérico.
+- Sin cambios de base de datos ni en `src/routes/posts.js`.

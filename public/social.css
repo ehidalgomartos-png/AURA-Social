@@ -6060,3 +6060,119 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
     font-size:12px;
   }
 }
+
+
+/* RedLibertad V1.95 — Mobile Interaction Polish */
+.pull-refresh-indicator{
+  height:0;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  opacity:0;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  transition:height .18s ease,opacity .18s ease,padding .18s ease;
+  pointer-events:none;
+}
+.pull-refresh-indicator.visible{
+  height:40px;
+  padding:6px 0 8px;
+  opacity:1;
+}
+.pull-refresh-indicator>span{
+  display:inline-grid;
+  place-items:center;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  background:var(--soft);
+  color:var(--teal);
+  font-size:14px;
+  transition:transform .18s ease;
+}
+.pull-refresh-indicator.ready>span{
+  transform:rotate(180deg);
+}
+.pull-refresh-indicator.refreshing>span{
+  animation:pull-refresh-spin .8s linear infinite;
+}
+@keyframes pull-refresh-spin{
+  to{transform:rotate(360deg)}
+}
+.profile-edit-media-preview{
+  position:relative;
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+  background:var(--paper);
+  padding-bottom:28px;
+}
+.profile-edit-preview-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+}
+.profile-edit-preview-head b{
+  color:var(--navy);
+  font-size:12px;
+}
+.profile-edit-preview-head small{
+  color:var(--muted);
+  font-size:9px;
+}
+.profile-edit-cover-preview{
+  height:128px;
+  background-size:cover;
+  background-position:center;
+  background-color:var(--navy);
+  background-image:linear-gradient(135deg,var(--navy),var(--navy2));
+}
+.profile-edit-cover-preview.empty{
+  background-image:
+    radial-gradient(circle at 20% 20%,rgba(43,183,169,.28),transparent 8rem),
+    radial-gradient(circle at 80% 65%,rgba(239,94,85,.24),transparent 9rem),
+    linear-gradient(135deg,var(--navy),var(--navy2));
+}
+.profile-edit-avatar-preview{
+  position:absolute;
+  left:16px;
+  bottom:6px;
+  width:72px;
+  height:72px;
+  border:4px solid var(--paper);
+  border-radius:50%;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  background:var(--teal);
+  color:white;
+  font-weight:900;
+  box-shadow:0 5px 18px rgba(13,34,56,.14);
+}
+.profile-edit-avatar-preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+@media(min-width:760px){
+  .pull-refresh-indicator{display:none!important}
+}
+@media(max-width:620px){
+  .profile-edit-cover-preview{height:112px}
+  .profile-edit-avatar-preview{
+    width:66px;
+    height:66px;
+    left:14px;
+  }
+  .profile-edit-preview-head{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:2px;
+  }
+}

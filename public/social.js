@@ -592,7 +592,7 @@ function postHTML(p, options = {}) {
     ${communityToolHTML(p)}
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
-      <button data-comments="${p.id}">◯ ${p.comment_count || 0}</button>
+      <button data-comments="${p.id}">💬 ${p.comment_count || 0}</button>
       <button class="${reposted ? 'reposted' : ''}" ${ownPost || collaboratingMe || privateAudience ? 'disabled' : `data-repost="${p.id}" data-reposted="${reposted ? '1' : '0'}"`} title="${privateAudience ? 'El contenido de audiencia privada no se puede republicar' : ownPost ? 'No puedes republicar tu propia publicación' : collaboratingMe ? 'Ya apareces como colaborador en esta publicación' : reposted ? 'Quitar republicación' : 'Republicar'}">⟳ <span>${p.repost_count || 0}</span></button>
       <button class="${savedPostIds.has(String(p.id)) ? 'saved' : ''}" data-save-post="${p.id}" data-saved="${savedPostIds.has(String(p.id)) ? '1' : '0'}" title="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}" aria-label="${savedPostIds.has(String(p.id)) ? 'Quitar de guardados' : 'Guardar publicación'}">${savedPostIds.has(String(p.id)) ? '★' : '☆'}</button>
       <button class="share-action" data-share="${p.id}" data-share-type="${p.post_kind==='reel'?'reel':'post'}" data-share-audience="${esc(p.audience||'public')}" data-share-username="${esc(p.username||'')}">↗ <span class="share-label">Compartir</span></button>
@@ -1224,6 +1224,100 @@ function readLastHomeVisit() {
 function storeHomeVisit(date = new Date()) {
   try { localStorage.setItem(HOME_LAST_VISIT_KEY, date.toISOString()); } catch (_) {}
 }
+
+let pullRefreshStartY = 0;
+let pullRefreshDistance = 0;
+let pullRefreshTracking = false;
+let pullRefreshRefreshing = false;
+const PULL_REFRESH_THRESHOLD = 72;
+
+function pullRefreshIndicator() {
+  return $('#pullRefreshIndicator');
+}
+
+function canStartPullRefresh(target) {
+  if (!window.matchMedia?.('(pointer: coarse)').matches) return false;
+  if ($('#feedView')?.classList.contains('hidden')) return false;
+  const scrollTop = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+  if (scrollTop > 2) return false;
+  if (document.querySelector('.modal:not(.hidden)')) return false;
+  if (target?.closest('input,textarea,select,button,a,[contenteditable="true"],.stories,.segmented,.momentum-strip,.active-people-strip')) return false;
+  return true;
+}
+
+function updatePullRefreshIndicator(distance = 0, state = 'pull') {
+  const indicator = pullRefreshIndicator();
+  if (!indicator) return;
+  const visible = distance > 10 || state === 'refreshing';
+  indicator.classList.toggle('visible', visible);
+  indicator.classList.toggle('ready', state === 'ready');
+  indicator.classList.toggle('refreshing', state === 'refreshing');
+  indicator.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  const label = indicator.querySelector('small');
+  if (label) label.textContent = state === 'refreshing'
+    ? 'Actualizando…'
+    : state === 'ready'
+      ? 'Suelta para actualizar'
+      : 'Desliza para actualizar';
+}
+
+async function refreshHomeFromPull() {
+  if (pullRefreshRefreshing) return;
+  pullRefreshRefreshing = true;
+  updatePullRefreshIndicator(PULL_REFRESH_THRESHOLD, 'refreshing');
+  try {
+    await Promise.allSettled([
+      loadFeed(currentMode),
+      loadStories(),
+      loadHomeMomentum(),
+      loadMe()
+    ]);
+    toast('Inicio actualizado');
+  } finally {
+    setTimeout(() => {
+      pullRefreshRefreshing = false;
+      updatePullRefreshIndicator(0, 'pull');
+    }, 320);
+  }
+}
+
+document.addEventListener('touchstart', event => {
+  if (pullRefreshRefreshing || event.touches.length !== 1 || !canStartPullRefresh(event.target)) return;
+  pullRefreshStartY = event.touches[0].clientY;
+  pullRefreshDistance = 0;
+  pullRefreshTracking = true;
+}, { passive: true });
+
+document.addEventListener('touchmove', event => {
+  if (!pullRefreshTracking || event.touches.length !== 1) return;
+  const distance = event.touches[0].clientY - pullRefreshStartY;
+  if (distance <= 0) {
+    pullRefreshDistance = 0;
+    updatePullRefreshIndicator(0, 'pull');
+    return;
+  }
+  pullRefreshDistance = Math.min(distance, 120);
+  if (pullRefreshDistance > 8) event.preventDefault();
+  updatePullRefreshIndicator(
+    pullRefreshDistance,
+    pullRefreshDistance >= PULL_REFRESH_THRESHOLD ? 'ready' : 'pull'
+  );
+}, { passive: false });
+
+document.addEventListener('touchend', () => {
+  if (!pullRefreshTracking) return;
+  const shouldRefresh = pullRefreshDistance >= PULL_REFRESH_THRESHOLD;
+  pullRefreshTracking = false;
+  pullRefreshDistance = 0;
+  if (shouldRefresh) refreshHomeFromPull();
+  else updatePullRefreshIndicator(0, 'pull');
+}, { passive: true });
+
+document.addEventListener('touchcancel', () => {
+  pullRefreshTracking = false;
+  pullRefreshDistance = 0;
+  if (!pullRefreshRefreshing) updatePullRefreshIndicator(0, 'pull');
+}, { passive: true });
 
 function updateLatestModeBadge(count = 0) {
   const button = document.querySelector('[data-mode="latest"]');
@@ -4959,6 +5053,54 @@ document.addEventListener('click', async event => {
   }
 });
 
+let profileAvatarPreviewObjectUrl = '';
+let profileCoverPreviewObjectUrl = '';
+
+function revokeProfilePreviewObjectUrls() {
+  if (profileAvatarPreviewObjectUrl) URL.revokeObjectURL(profileAvatarPreviewObjectUrl);
+  if (profileCoverPreviewObjectUrl) URL.revokeObjectURL(profileCoverPreviewObjectUrl);
+  profileAvatarPreviewObjectUrl = '';
+  profileCoverPreviewObjectUrl = '';
+}
+
+function renderProfileMediaPreview() {
+  const avatarRoot = $('#profileAvatarPreview');
+  const coverRoot = $('#profileCoverPreview');
+  if (avatarRoot) avatarRoot.innerHTML = avatarHTML(me);
+  if (coverRoot) {
+    coverRoot.style.backgroundImage = me?.cover_url ? `url("${String(me.cover_url).replace(/"/g, '%22')}")` : '';
+    coverRoot.classList.toggle('empty', !me?.cover_url);
+  }
+}
+
+function previewProfileMediaFile(input, type) {
+  const file = input?.files?.[0];
+  if (!file) {
+    renderProfileMediaPreview();
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  if (type === 'avatar') {
+    if (profileAvatarPreviewObjectUrl) URL.revokeObjectURL(profileAvatarPreviewObjectUrl);
+    profileAvatarPreviewObjectUrl = url;
+    const root = $('#profileAvatarPreview');
+    if (root) root.innerHTML = `<img src="${esc(url)}" alt="Vista previa de la foto de perfil">`;
+    return;
+  }
+  if (profileCoverPreviewObjectUrl) URL.revokeObjectURL(profileCoverPreviewObjectUrl);
+  profileCoverPreviewObjectUrl = url;
+  const root = $('#profileCoverPreview');
+  if (root) {
+    root.style.backgroundImage = `url("${url}")`;
+    root.classList.remove('empty');
+  }
+}
+
+function closeProfileEditModal() {
+  $('#profileModal')?.classList.add('hidden');
+  revokeProfilePreviewObjectUrls();
+}
+
 async function openProfileModal() {
   const form = $('#profileForm');
   form.displayName.value = me.display_name || '';
@@ -4966,6 +5108,10 @@ async function openProfileModal() {
   form.bio.value = me.bio || '';
   form.locationLabel.value = me.location_label || '';
   form.websiteUrl.value = me.website_url || '';
+  $('#avatarFile').value = '';
+  $('#coverFile').value = '';
+  revokeProfilePreviewObjectUrls();
+  renderProfileMediaPreview();
 
   const catalog = await loadInterestCatalog();
   const selected = new Set(Array.isArray(me.interests) ? me.interests : []);
@@ -4979,7 +5125,12 @@ async function openProfileModal() {
   $('#profileMessage').textContent = '';
   $('#profileModal').classList.remove('hidden');
 }
-$('#closeProfileModal').onclick = () => $('#profileModal').classList.add('hidden');
+$('#closeProfileModal').onclick = closeProfileEditModal;
+$('#avatarFile')?.addEventListener('change', event => previewProfileMediaFile(event.currentTarget, 'avatar'));
+$('#coverFile')?.addEventListener('change', event => previewProfileMediaFile(event.currentTarget, 'cover'));
+$('#profileModal')?.addEventListener('click', event => {
+  if (event.target === $('#profileModal')) closeProfileEditModal();
+});
 $('#closePublicProfileModal').onclick = () => $('#publicProfileModal').classList.add('hidden');
 $('#profileForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -5003,7 +5154,7 @@ $('#profileForm').addEventListener('submit', async e => {
     const { r, d } = await api('/api/profiles/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!r.ok) throw new Error('No se pudo guardar el perfil.');
     me = { ...me, ...d.profile };
-    $('#profileModal').classList.add('hidden');
+    closeProfileEditModal();
     toast('Perfil actualizado');
     await loadMe(); await loadProfile(); await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
@@ -5630,11 +5781,13 @@ if ($('#postEditForm')) $('#postEditForm').addEventListener('submit', async even
   event.preventDefault();
   if (!activeManagePost) return;
 
+  const editedPostId = Number(activeManagePost);
+  const focusWasOpen = !$('#postFocusModal')?.classList.contains('hidden');
   const caption = $('#postEditCaption').value.trim();
   const status = $('#postEditStatus');
   status.textContent = 'Guardando...';
 
-  const { r, d } = await api(`/api/posts/${activeManagePost}`, {
+  const { r, d } = await api(`/api/posts/${editedPostId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ caption })
@@ -5651,9 +5804,11 @@ if ($('#postEditForm')) $('#postEditForm').addEventListener('submit', async even
 
   closePostManage();
   toast('Publicación actualizada');
+  await refreshPostArticle(editedPostId);
   await loadFeed(currentMode);
   if (!$('#profileView').classList.contains('hidden')) await loadProfile();
   if (!$('#reelsView').classList.contains('hidden')) await loadReels();
+  if (focusWasOpen) await openPostFocus(editedPostId);
 });
 
 if ($('#deletePostButton')) $('#deletePostButton').onclick = async () => {
