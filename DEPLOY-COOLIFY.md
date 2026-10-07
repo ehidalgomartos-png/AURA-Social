@@ -1,4 +1,4 @@
-# Despliegue RedLibertad V1.0 en Coolify
+# Despliegue RedLibertad V1.70 en Coolify
 
 ## Estrategia recomendada
 
@@ -20,7 +20,8 @@ Crea una nueva Application desde el repositorio:
 - Port: `3000`
 - Base directory: `/`
 - Start command: `npm start` (Railpack normalmente lo detecta)
-- Healthcheck: `/api/health`
+- Healthcheck: `/api/ready`
+- Liveness/diagnóstico: `/api/health`
 
 ## Variables
 
@@ -37,6 +38,9 @@ APP_ORIGIN=<URL temporal de RedLibertad durante pruebas>
 COOKIE_SECURE=false
 MEDIA_STORAGE=local
 UPLOAD_DIR=/data/uploads
+DB_POOL_MAX=10
+DB_IDLE_TIMEOUT_MS=30000
+DB_CONNECT_TIMEOUT_MS=5000
 ```
 
 Cuando pongas el dominio real con HTTPS:
@@ -68,3 +72,14 @@ Los enlaces públicos usan `/p/ID` y generan Open Graph con el mensaje **“Mira
 ## Antes de sustituir AURA
 
 Prueba desde móvil: registro, login, feed, posts, subir foto/vídeo, comentarios, borrar comentario, likes, follows, mensajes, Stories, Reels, consentimiento, moderación y compartir. Solo después cambia el dominio definitivo y retira AURA.
+
+
+## Comprobaciones V1.70 antes de producción
+
+1. Abre `/api/health`: debe responder `ok:true`, `version:"1.70.0"` y `configuration.criticalReady:true`.
+2. Abre `/api/ready`: debe responder HTTP 200 con `database:"ready"`.
+3. Si `/api/ready` devuelve 503 con `configuration_incomplete`, corrige las variables indicadas antes de publicar.
+4. En producción usa HTTPS, `APP_ORIGIN=https://...` y `COOKIE_SECURE=true`.
+5. Comprueba que `UPLOAD_DIR` apunta al volumen persistente si `MEDIA_STORAGE=local`.
+6. Ejecuta `npm run check:syntax` antes del despliegue.
+7. Conserva una copia de seguridad reciente de PostgreSQL y del volumen de multimedia antes de cambios importantes.
