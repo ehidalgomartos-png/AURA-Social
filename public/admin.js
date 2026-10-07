@@ -682,7 +682,7 @@ function verificationCard(item) {
     </div>
     <div class="verification-state-row">
       <span class="state ${item.status === 'rejected' ? 'danger-state' : item.status === 'pending' ? 'warning-state' : ''}">${verificationStateLabel(item.status)}</span>
-      ${verifiedAlready ? '<span class="state">Ya figura verificado</span>' : ''}
+      ${verifiedAlready ? '<span class="state">Ya figura verificado</span>' : item.status === 'approved' ? '<span class="state danger-state">Verificación actual retirada</span>' : ''}
     </div>
     ${item.request_note ? `<div class="verification-note"><b>Nota del usuario</b><p>${esc(item.request_note)}</p></div>` : ''}
     ${item.review_note ? `<div class="verification-note review"><b>Revisión</b><p>${esc(item.review_note)}</p></div>` : ''}
@@ -788,8 +788,8 @@ function userCard(u) {
       ${u.creator_verified ? '<span class="state">Creador verificado</span>' : ''}
     </div>
     <div class="actions">
-      ${!u.age_verified ? `<button class="soft" data-admin-action="verify-age" data-user-id="${u.id}">Verificar +18</button>` : ''}
-      ${!u.creator_verified ? `<button class="alt" data-admin-action="verify-creator" data-user-id="${u.id}">Verificar creador</button>` : ''}
+      ${!u.age_verified ? `<button class="soft" data-admin-action="verify-age" data-user-id="${u.id}">Verificar +18</button>` : `<button class="soft" data-admin-action="revoke-age" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Quitar +18</button>`}
+      ${!u.creator_verified ? `<button class="alt" data-admin-action="verify-creator" data-user-id="${u.id}">Verificar creador</button>` : `<button class="alt" data-admin-action="revoke-creator" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Quitar creador</button>`}
       <button data-admin-action="open-history" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Historial</button>
       <button class="${u.status === 'active' ? 'soft' : 'alt'}" data-admin-action="open-moderation" data-user-id="${u.id}" data-user-label="@${esc(u.username)}">Moderar</button>
     </div>
@@ -825,12 +825,28 @@ async function verifyCreator(id, button) {
   try {
     const { r, d } = await api(`/api/admin/users/${id}/verify-creator`, { method: 'POST' });
     if (!r.ok) throw new Error(d.error || 'verify_failed');
-    setAdminNotice('Creador verificado. También queda verificado como +18.');
+    setAdminNotice('Creador verificado.');
     await Promise.all([users($('#search').value), metrics()]);
   } catch (_) {
     setAdminNotice('No se pudo verificar al creador.', true);
   } finally {
     if (button) button.disabled = false;
+  }
+}
+
+async function revokeVerification(type,id,label,button) {
+  const kind=type==='age'?'+18':'creador';
+  if(!confirm(`¿Quitar la verificación ${kind} a ${label||'este usuario'}? La otra verificación no cambiará.`))return;
+  if(button)button.disabled=true;
+  try{
+    const {r,d}=await api(`/api/admin/users/${id}/revoke-${type}`,{method:'POST'});
+    if(!r.ok)throw new Error(d.error||'revoke_failed');
+    setAdminNotice(type==='age'?'Verificación +18 retirada.':'Verificación de creador retirada.');
+    await Promise.all([users($('#search').value),metrics(),verifications()]);
+  }catch(_){
+    setAdminNotice('No se pudo retirar la verificación.',true);
+  }finally{
+    if(button?.isConnected)button.disabled=false;
   }
 }
 
@@ -1004,6 +1020,8 @@ document.addEventListener('click', async event => {
   if (action === 'verification-decision') return decideVerification(button.dataset.id, button.dataset.decision, button);
   if (action === 'verify-age') return verifyAge(button.dataset.userId, button);
   if (action === 'verify-creator') return verifyCreator(button.dataset.userId, button);
+  if (action === 'revoke-age') return revokeVerification('age',button.dataset.userId,button.dataset.userLabel,button);
+  if (action === 'revoke-creator') return revokeVerification('creator',button.dataset.userId,button.dataset.userLabel,button);
   if (action === 'open-moderation') return openModeration(button.dataset.userId, button.dataset.userLabel);
   if (action === 'open-history') return openHistory(button.dataset.userId, button.dataset.userLabel);
   if (action === 'report-decision') {
