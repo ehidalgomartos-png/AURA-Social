@@ -217,3 +217,32 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 .support-admin-state.reviewing{background:#fff6dc;color:#765915}
 .support-admin-state.resolved{background:#edf8f5;color:#0c675b}
 @media(max-width:960px){.support-admin-list{grid-template-columns:1fr}}
+
+
+/* =========================================================
+   RedLibertad V1.73 — Beta Cohorts & Release Control
+   ========================================================= */
+.release-control-panel{margin-bottom:18px}
+.release-control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.release-subhead h3{margin:2px 0 0;color:var(--navy);font:800 18px Manrope,sans-serif}
+.release-create-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 12px;padding:12px;border:1px solid var(--line);border-radius:15px;background:#fbf9f4}
+.release-create-form input{min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff;color:var(--navy);font:inherit}
+.release-create-form input[name="description"],.release-create-form .status{grid-column:1/-1}
+.release-checkbox{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:10px}
+.release-card-list{display:grid;gap:9px}
+.release-card{padding:13px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.release-card.paused{opacity:.72;border-style:dashed}
+.release-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.release-card-head b{color:var(--navy)}
+.release-card-head small{display:block;margin-top:3px;color:var(--muted);font-size:9px}
+.release-state{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:8px;font-weight:900;text-transform:uppercase;background:#edf8f5;color:#0c675b}
+.release-state.paused{background:#fff0ec;color:#963e2d}
+.release-state.cohorts{background:#fff6dc;color:#765915}
+.release-card p{margin:8px 0;color:var(--muted);font-size:10px;line-height:1.45}
+.release-inline{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.release-inline input,.release-inline select{min-width:0;flex:1 1 150px;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff}
+.release-members,.release-assignments{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.release-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border-radius:999px;background:#f2f5f4;color:var(--navy);font-size:8px}
+.release-pill button{border:0;background:transparent;padding:0;color:var(--coral);font-weight:900;cursor:pointer}
+@media(max-width:980px){.release-control-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.release-create-form{grid-template-columns:1fr}.release-create-form>*{grid-column:1/-1}.release-card-head{display:grid}}
