@@ -116,3 +116,15 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Congelar la expansión ante regresiones, rendimiento anómalo o feedback repetido antes de usar el kill switch.
 - Usar el kill switch cuando la función cause daño funcional, de seguridad o disponibilidad.
 - Graduar al 100% solo cuando la función ya no necesite validación por cohortes/olas.
+
+
+## 13. Dominio canónico y lanzamiento público
+- Abrir `https://redlibertad.com` y comprobar HTTPS sin avisos.
+- Abrir `https://www.redlibertad.com` y confirmar redirección al dominio sin www.
+- Confirmar `/api/public-config` con `origin:"https://redlibertad.com"`.
+- Confirmar `/robots.txt` con sitemap en el dominio canónico.
+- Confirmar `/sitemap.xml` y revisar que no incluye posts sensibles.
+- Compartir un post, perfil e invitación y verificar que todos los enlaces empiezan por `https://redlibertad.com`.
+- Abrir un post público normal y revisar canonical/OG.
+- Abrir un post sensible público y confirmar que la vista externa está protegida y marcada noindex.
+- Instalar/abrir la PWA y verificar que sigue asociada a la aplicación tras el cambio de dominio.
