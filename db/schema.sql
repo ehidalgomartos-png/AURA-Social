@@ -1266,3 +1266,12 @@ CREATE INDEX IF NOT EXISTS idx_communities_public_discovery_v180
 CREATE INDEX IF NOT EXISTS idx_community_posts_public_discovery_v180
   ON community_posts(community_id,created_at DESC,id)
   WHERE moderation_status='published' AND content_level='normal';
+
+
+-- RedLibertad V1.81: Public Events & Event SEO
+CREATE INDEX IF NOT EXISTS idx_social_events_public_start_v181
+  ON social_events(starts_at,id)
+  WHERE visibility='public' AND cancelled_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_social_events_public_updated_v181
+  ON social_events(updated_at DESC,id)
+  WHERE visibility='public' AND cancelled_at IS NULL;

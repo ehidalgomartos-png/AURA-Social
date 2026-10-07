@@ -182,3 +182,25 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que `/sitemap.xml` incluye `/comunidades`.
 - Revisar `robots.txt` y confirmar `/comunidades`, `/comunidad/` y el nuevo sitemap.
 - Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades.
+
+
+## 18. Eventos públicos y SEO
+- Abrir `/eventos` y confirmar que solo aparecen eventos `visibility=public`.
+- Crear eventos de prueba `connections`, `circles` y `community` y confirmar que no aparecen en la capa pública.
+- Confirmar que un evento cancelado desaparece del directorio y del sitemap público.
+- Buscar con `/eventos?q=...` y confirmar `noindex,follow`.
+- Filtrar con `?tipo=in_person` y `?tipo=online` y confirmar `noindex,follow`.
+- Probar paginación y canonical del directorio.
+- Abrir un evento en `/evento/:id/:slug` y confirmar canonical.
+- Probar URL sin slug o con slug antiguo y confirmar redirección 301.
+- Confirmar que un evento online no expone nunca `online_url` en HTML, structured data ni metadatos.
+- Confirmar que no aparecen identidades de asistentes en la página pública.
+- Con `attendee_visibility=public`, confirmar solo contadores agregados.
+- Con `attendee_visibility=responders/private`, confirmar que tampoco aparecen contadores.
+- Asociar un evento a una comunidad privada y confirmar que no puede entrar en la superficie pública.
+- Poner `discoverable=false` al creador y confirmar que el evento desaparece de directorio y sitemap.
+- Revisar `/sitemap-events.xml`.
+- Confirmar que `/sitemap-index.xml` referencia el sitemap de eventos.
+- Confirmar que `/sitemap.xml` incluye `/eventos`.
+- Revisar `robots.txt` y confirmar `/eventos`, `/evento/` y el nuevo sitemap.
+- Confirmar enlaces cruzados Portada ↔ Personas ↔ Publicaciones ↔ Comunidades ↔ Eventos.
