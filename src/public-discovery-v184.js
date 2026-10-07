@@ -70,7 +70,7 @@ router.get('/descubrir',async(req,res)=>{
         SELECT ev.id,ev.title,ev.description,ev.event_type,ev.starts_at,ev.location_label,creator.username
         FROM social_events ev JOIN users creator ON creator.id=ev.creator_id
         WHERE ev.visibility='public' AND ev.cancelled_at IS NULL AND ev.starts_at>=now()-interval '2 hours'
-          AND creator.status='active' AND creator.discoverable=true
+          AND creator.status='active' AND creator.is_admin=false AND creator.discoverable=true
           AND (ev.community_id IS NULL OR EXISTS(
             SELECT 1 FROM communities pc JOIN users po ON po.id=pc.owner_id
             WHERE pc.id=ev.community_id AND pc.privacy='public' AND po.status='active' AND po.is_admin=false AND po.discoverable=true
