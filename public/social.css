@@ -5432,3 +5432,158 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .active,[aria-current="page"],[aria-selected="true"]{outline:1px solid CanvasText}
   .modal,.post,.person-card,.info-card{border:1px solid CanvasText}
 }
+
+
+/* =========================================================
+   RedLibertad V1.69 — Mobile UX Final Polish 3.0
+   ========================================================= */
+.ui-state-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--paper);
+  box-shadow:0 8px 24px rgba(13,34,56,.05);
+}
+.ui-state-icon{
+  width:42px;height:42px;border-radius:14px;
+  display:grid;place-items:center;
+  background:rgba(43,183,169,.10);color:var(--teal);
+  font-size:20px;font-weight:900;
+}
+.ui-state-copy{min-width:0}
+.ui-state-copy b{display:block;color:var(--navy)}
+.ui-state-copy p{margin:3px 0 0;color:var(--muted);font-size:12px;line-height:1.45}
+.ui-state-retry{min-height:42px;white-space:nowrap}
+
+@media(max-width:760px){
+  :root{--mobile-dock-space:104px}
+
+  html,body{overscroll-behavior-y:none}
+  body{padding-bottom:env(safe-area-inset-bottom)}
+  .social-main{
+    padding-left:max(8px,env(safe-area-inset-left));
+    padding-right:max(8px,env(safe-area-inset-right));
+    padding-bottom:calc(var(--mobile-dock-space) + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav{
+    left:max(6px,env(safe-area-inset-left));
+    right:max(6px,env(safe-area-inset-right));
+    bottom:max(6px,env(safe-area-inset-bottom));
+  }
+  .bottom-nav button{
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .modal{
+    padding-top:max(10px,env(safe-area-inset-top));
+    overscroll-behavior:contain;
+  }
+  .modal-card{
+    width:100%;
+    max-height:calc(100dvh - max(10px,env(safe-area-inset-top)));
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+    overscroll-behavior:contain;
+    scroll-padding-top:60px;
+  }
+  .modal-card::after{
+    content:"";
+    position:sticky;
+    display:block;
+    width:42px;height:4px;
+    margin:-10px auto 12px;
+    border-radius:99px;
+    background:rgba(13,34,56,.16);
+    top:7px;
+    pointer-events:none;
+  }
+  .modal input:not([type="checkbox"]):not([type="radio"]),
+  .modal textarea,
+  .modal select,
+  .message-inbox-tools input,
+  .global-social-search input,
+  .people-search input{
+    font-size:16px;
+    min-height:48px;
+  }
+  .modal textarea{min-height:112px}
+
+  .segmented,
+  .notification-filters,
+  .message-inbox-tabs,
+  .profile-content-tabs,
+  .content-tabs,
+  .global-search-filters{
+    display:flex;
+    max-width:100%;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scrollbar-width:none;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+  }
+  .segmented::-webkit-scrollbar,
+  .notification-filters::-webkit-scrollbar,
+  .message-inbox-tabs::-webkit-scrollbar,
+  .profile-content-tabs::-webkit-scrollbar,
+  .content-tabs::-webkit-scrollbar,
+  .global-search-filters::-webkit-scrollbar{display:none}
+  .segmented button,
+  .notification-filters button,
+  .message-inbox-tabs button,
+  .profile-content-tabs button,
+  .content-tabs button,
+  .global-search-filters button{
+    flex:0 0 auto;
+    min-height:44px;
+    scroll-snap-align:start;
+    white-space:nowrap;
+  }
+
+  .message-inbox-tools{
+    grid-template-columns:1fr;
+    gap:8px;
+    margin-inline:4px;
+  }
+  .message-inbox-tabs{
+    margin-inline:-2px;
+    padding-bottom:2px;
+  }
+  .message-inbox-summary{
+    min-height:20px;
+    padding-inline:2px;
+  }
+
+  .ui-state-card{
+    grid-template-columns:auto minmax(0,1fr);
+    margin:8px 4px;
+    border-radius:18px;
+  }
+  .ui-state-retry{
+    grid-column:1/-1;
+    width:100%;
+    min-height:48px;
+  }
+
+  .page-title>.secondary,
+  .page-title>.primary{
+    width:100%;
+    min-height:46px;
+  }
+  .notification-list,
+  .conversation-list{
+    padding-bottom:calc(18px + env(safe-area-inset-bottom));
+  }
+}
+
+@media(max-width:430px){
+  .page-title{padding-inline:14px}
+  .page-title h1{font-size:28px}
+  .modal-card{border-radius:24px 24px 0 0}
+  .ui-state-copy p{font-size:11px}
+}
