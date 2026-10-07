@@ -41,6 +41,12 @@
 - Enviar un Problema, una Sugerencia y una Duda de prueba.
 - Confirmar que el usuario ve el estado de sus propios envíos.
 - Confirmar que administración puede revisar, resolver, reabrir y añadir una nota visible.
+- Crear una cohorte beta de prueba y añadir/quitar un usuario.
+- Crear una feature flag de prueba limitada a cohortes.
+- Verificar que un usuario fuera de la cohorte recibe la función desactivada.
+- Verificar que un usuario dentro de la cohorte recibe la función activada.
+- Probar el kill switch global y confirmar que prevalece sobre cualquier cohorte.
+- Probar `support_center`: apagarlo, comprobar que desaparece/queda bloqueado, y reactivarlo.
 - Verificar que el contexto de soporte no contiene cuerpos de mensajes, posts ni archivos.
 - Registrar una incidencia operativa, pasarla a seguimiento, resolverla y reabrirla.
 - Confirmar que el panel muestra health/readiness sin exponer secretos.
@@ -76,3 +82,11 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - El contexto automático permanece limitado a información técnica básica y no incluye contenido social privado.
 - No usar feedback individual para ranking, publicidad, recomendaciones ni perfilado.
 - Usar el request ID únicamente para diagnóstico operativo.
+
+
+## 10. Release control durante la beta
+- Crear una feature flag antes de exponer una función experimental a usuarios.
+- Empezar con `default_enabled=false` y asignar una cohorte pequeña cuando la novedad necesite validación.
+- Usar el kill switch ante errores funcionales, de seguridad o rendimiento; no hace falta retirar todo el despliegue.
+- Pausar una cohorte conserva sus miembros para poder reanudarla después.
+- Antes de activar una función para todos, repetir los smoke tests con al menos una cohorte beta.
