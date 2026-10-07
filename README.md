@@ -2194,3 +2194,14 @@ Mejoras recibidas de pruebas reales en móvil:
   - la vista de detalle si permanecía abierta.
 - El botón de comentarios del post usa **💬** en lugar de un círculo genérico.
 - Sin cambios de base de datos ni en `src/routes/posts.js`.
+
+
+## V1.95.1 — Public Profile Layer Hotfix
+
+- Corrige el perfil público abierto desde publicaciones.
+- La portada queda en una capa inferior.
+- El cuerpo del perfil queda por encima.
+- El avatar se mantiene completamente visible sobre la portada.
+- Aplica en móvil y escritorio.
+- No modifica el perfil propio ni la lógica de datos.
+- Sin cambios en `src/routes/posts.js`.
