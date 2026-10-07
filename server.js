@@ -35,7 +35,7 @@ const { startPushWorker, isPushConfigured } = require('./src/services/push');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='1.77.0';
+const APP_VERSION='1.78.0';
 
 function configurationStatus(){
   const missing=[];
@@ -173,7 +173,7 @@ app.get('/api/health', (_req, res) => {
       '18-plus-registration','profiles','feed','discover','content-classification',
       'nsfw-gating','creator-verification-state','media-upload','bunny-ready',
       'stories','reels','reports','blocking','admin-moderation','responsive-social-ui',
-      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics','privacy-v1.9','message-privacy','discoverability-controls','activity-visibility','mute-users','block-management','muted-feed-filter','privacy-center','account-security-v1.10','revocable-sessions','password-change','logout-all-sessions','account-data-export','self-service-account-deletion','local-media-cleanup','trust-safety-v1.11','moderation-history','timed-suspensions','user-warnings','admin-user-actions','report-context','auto-suspension-expiry','verification-trust-v1.12','self-service-verification-requests','verification-review-queue','verification-history','public-trust-badges','creator-hub-v1.13','creator-analytics','featured-profile-posts','creator-profile-v1.14','creator-public-links','aggregate-link-clicks','creator-audience-v1.15','creator-broadcasts','broadcast-cooldown','broadcast-privacy-controls','creator-engagement-v1.16','active-audience-30d','private-top-fans','top-content-analytics','creator-vip-v1.17','private-vip-circle','vip-broadcasts','vip-follower-validation','exclusive-content-v1.18','vip-post-audience','vip-access-enforcement','vip-share-protection','vip-stories-v1.19','exclusive-vip-feed','vip-new-content-signal','vip-story-viewer','vip-free-access','creator-publishing-v1.20','creator-drafts','scheduled-posts','publishing-queue','consent-aware-scheduling','server-publish-scheduler','creator-calendar-v1.21','private-editorial-date','private-editorial-labels','calendar-audience-filter','creator-community-v1.22','creator-polls','open-creator-questions','private-community-inbox','aggregate-poll-results','community-management-v1.23','close-community-tools','archive-community-tools','private-starred-responses','community-status-filters','community-insights-v1.24','creator-community-notifications','first-participation-dedup','community-7d-30d-metrics','community-14d-trend','community-activity-v1.25','community-review-state','grouped-community-activity','review-all-community-activity','community-follow-up-v1.26','private-activity-notes','activity-priority','activity-follow-up','activity-focus-filters','follow-up-dashboard-v1.27','follow-up-due-windows','private-note-search','bulk-follow-up-actions','follow-up-date-index','follow-up-local-day-summary','follow-up-priority-filter','follow-up-quick-complete','follow-up-history-v1.28','follow-up-completed-at','follow-up-reopen','follow-up-reschedule-presets','follow-up-bulk-reschedule','creator-tasks-v1.29','creator-reminders','private-task-priority','creator-task-relations','creator-crm-v1.30','private-contact-notes','creator-contact-labels','creator-contact-priority','audience-segments-v1.31','automatic-audience-segments','manual-audience-segments','creator-communications-v1.32','communication-drafts','scheduled-communications','segmented-communications','communication-history','advanced-creator-analytics-v1.33','period-comparison','creator-growth-analytics','community-recurrence','community-automation-v1.34','creator-automation-rules','automation-hourly-runner','automation-idempotent-tasks','creator-hub-2-v1.35','creator-hub-command-center','creator-hub-area-navigation','creator-hub-live-summary','messaging-2-v1.36','conversation-pin','conversation-archive','conversation-mute','conversation-search','conversation-unread-filter','discovery-2-v1.37','personalized-explore','discovery-hide-post','discovery-hide-person','profiles-2-v1.38','profile-status','profile-social-context','profile-consented-activity','stories-reels-2-v1.39','story-view-signals','story-seen-rings','reel-view-signals','reel-ranked-feed','retention-growth-2-v1.40','cross-device-return-summary','return-pulse','unseen-story-reel-counts','muted-message-notification-fix','comments-2-v1.41','comment-replies','comment-thread-context','reply-notifications','live-activity-2-v1.42','server-sent-events','live-message-badges','live-notification-badges','live-active-chat-refresh','reels-immersive-2-v1.43','vertical-reel-snap','reel-autoplay-muted','reel-auto-pause','reduced-motion-safe-reels','connections-2-v1.44','mutual-follow-connections','connections-explore','connection-direct-message','connection-profile-signal','pwa-performance-2-v1.45','safe-shell-cache','static-stale-while-revalidate','offline-app-navigation','feed-content-visibility','async-image-decoding','chat-presence-v1.46','private-online-status','typing-indicator','message-read-receipts','message-replies-v1.47','message-reactions','sensitive-safe-reply-preview','live-reaction-sync','web-push-v1.48','push-device-opt-in','push-deep-links','push-job-queue','vapid-optional','mobile-social-polish-v1.49','visual-viewport-chat','per-view-scroll-memory','connectivity-banner','coarse-pointer-targets','reduced-motion-polish','group-chats-2-v1.50','group-membership','group-live-presence','group-read-receipts','group-sensitive-consent','group-history-privacy','share-to-chat-v1.51','connection-circles-v1.52','private-connection-circles','favorite-connections','connection-circle-filters','structured-shared-posts','share-chat-picker','shared-post-privacy-gate','shared-post-unavailable-marker','connections-center-2-v1.53','connection-search','connection-social-filters','connection-recent-conversation-signal','community-conversations-v1.54','conversation-resume-signals','gentle-social-continuity','connection-context-v1.55','shared-connection-context','conversation-starter-drafts','public-activity-context','private-audiences-v1.56','connections-audience','circle-audience-posts','circle-audience-stories','private-audience-share-protection','close-connections-v1.57','private-close-circle','close-connections-feed','close-audience-shortcut','social-communities-v1.58','community-discovery-v1.59','community-categories','community-interests','community-suggestion-hide','explainable-community-ranking','public-private-communities','community-membership','community-join-requests','community-rules','community-posts-comments','community-moderation','community-group-chat','events-meetups-v1.60','event-rsvp','event-private-audiences','event-reminders','event-attendee-privacy','collaborative-posts-v1.61','collaborative-reels','collaboration-approval','collaboration-profile-surface','collaboration-revocation','collaborator-management','advanced-mentions-sharing-v1.62','mention-privacy','mention-autocomplete','private-circle-mentions','audience-safe-sharing','profile-story-sharing','community-post-sharing','private-share-history','share-context','community-moderation-3-v1.63','social-search-2-v1.64','relationship-intelligence-v1.65','relationship-shared-interests','relationship-shared-communities','relationship-reconnect-signals','explainable-relationship-suggestions','private-relationship-hide','growth-onboarding-2-v1.66','opaque-invite-links','starter-connection-suggestions','auth-abuse-rate-limits','legacy-referral-compatibility','accessibility-ux-quality-2-v1.67','skip-links','dialog-focus-trap','keyboard-dialog-controls','visible-focus','screen-reader-live-regions','forced-colors-support','performance-reliability-2-v1.68','api-timeout-retry','get-request-deduplication','feed-race-guard','lazy-avatar-loading','database-pool-hardening','performance-query-indexes','readiness-check','graceful-shutdown','slow-api-observability','mobile-ux-final-polish-3-v1.69','mobile-safe-area-polish','mobile-bottom-sheet-polish','horizontal-filter-strips','mobile-retry-states','mobile-form-zoom-guard','product-maturity-launch-readiness-v1.70','request-id-tracing','api-no-store','api-json-404','safe-api-error-envelope','configuration-readiness','launch-checklist','beta-launch-real-user-operations-v1.71','aggregate-activation-metrics','privacy-preserving-product-metrics','admin-operational-incidents','beta-health-console','beta-feedback-support-center-v1.72','user-feedback-center','support-status-tracking','safe-technical-context','admin-feedback-queue','feedback-rate-limit','beta-cohorts-release-control-v1.73','release-feature-kill-switch','cohort-targeting','per-user-feature-evaluation','admin-release-console','support-center-release-gate','release-audit-safe-rollback-v1.74','release-before-after-snapshots','release-actor-audit','rollback-conflict-guard','transactional-release-rollback','release-request-correlation','controlled-rollout-waves-v1.75','deterministic-percentage-rollout','rollout-freeze','beta-graduation','rollout-stage-audit','message-profile-ui-hotfix-v1.75.1','collapsed-message-reactions','received-message-reaction-picker','desktop-profile-header-fix','reply-profile-layer-hotfix-v1.75.2','own-reply-label-fix','desktop-profile-avatar-layer-fix','message-own-actions-hotfix-v1.75.3','received-message-actions-only','production-domain-public-launch-polish-v1.76','canonical-public-origin','canonical-share-links','public-robots-sitemap','public-post-canonical','sensitive-post-noindex','stable-pwa-id','public-profiles-profile-seo-v1.77','clean-public-profile-urls','profile-canonical-og','profile-person-structured-data','discoverability-profile-noindex','profile-sitemap','clean-profile-share-links','global-search','search-private-content-guard','local-search-history','community-moderators','community-report-queue','temporary-community-sanctions','coordinated-report-signals','private-community-moderation-log'
+      'private-messaging','sensitive-message-consent','notifications','post-participant-consent','consent-revocation','pwa','social-sharing','public-post-links','mobile-first-branding','mobile-experience-v1.1','mobile-composer','mobile-chat-single-pane','mobile-share-cta','mobile-nav-badges','admin-hidden-discovery','clipboard-http-fallback','mobile-polish-v1.1.1','text-only-posts','social-feed-v1.2','toggle-likes','post-edit-delete','relative-timestamps','composer-counter','discovery-v1.3','hashtag-navigation','post-search','trending-content','saved-posts','engagement-rankings','smart-suggestions','visual-refresh-v1.4','glass-mobile-nav','animated-stories','microinteractions','view-transitions','card-depth-system','profile-mobile-hotfix','persistent-media-hotfix','cross-filesystem-upload-fallback','profile-avatar-layer-hotfix','community-v1.5','clickable-mentions','mention-notifications','reposts','repost-feed-propagation','followers-following-lists','internal-post-sharing','profiles-v1.6','profile-content-tabs','mutual-connections','profile-deep-links','activity-v1.6','notification-filters','notification-deep-navigation','post-focus-viewer','retention-v1.7','home-catchup','daily-highlights','recently-active-people','last-visit-momentum','new-content-badge','growth-v1.8','referral-links','referral-attribution','onboarding-checklist','invite-sharing','growth-metrics','privacy-v1.9','message-privacy','discoverability-controls','activity-visibility','mute-users','block-management','muted-feed-filter','privacy-center','account-security-v1.10','revocable-sessions','password-change','logout-all-sessions','account-data-export','self-service-account-deletion','local-media-cleanup','trust-safety-v1.11','moderation-history','timed-suspensions','user-warnings','admin-user-actions','report-context','auto-suspension-expiry','verification-trust-v1.12','self-service-verification-requests','verification-review-queue','verification-history','public-trust-badges','creator-hub-v1.13','creator-analytics','featured-profile-posts','creator-profile-v1.14','creator-public-links','aggregate-link-clicks','creator-audience-v1.15','creator-broadcasts','broadcast-cooldown','broadcast-privacy-controls','creator-engagement-v1.16','active-audience-30d','private-top-fans','top-content-analytics','creator-vip-v1.17','private-vip-circle','vip-broadcasts','vip-follower-validation','exclusive-content-v1.18','vip-post-audience','vip-access-enforcement','vip-share-protection','vip-stories-v1.19','exclusive-vip-feed','vip-new-content-signal','vip-story-viewer','vip-free-access','creator-publishing-v1.20','creator-drafts','scheduled-posts','publishing-queue','consent-aware-scheduling','server-publish-scheduler','creator-calendar-v1.21','private-editorial-date','private-editorial-labels','calendar-audience-filter','creator-community-v1.22','creator-polls','open-creator-questions','private-community-inbox','aggregate-poll-results','community-management-v1.23','close-community-tools','archive-community-tools','private-starred-responses','community-status-filters','community-insights-v1.24','creator-community-notifications','first-participation-dedup','community-7d-30d-metrics','community-14d-trend','community-activity-v1.25','community-review-state','grouped-community-activity','review-all-community-activity','community-follow-up-v1.26','private-activity-notes','activity-priority','activity-follow-up','activity-focus-filters','follow-up-dashboard-v1.27','follow-up-due-windows','private-note-search','bulk-follow-up-actions','follow-up-date-index','follow-up-local-day-summary','follow-up-priority-filter','follow-up-quick-complete','follow-up-history-v1.28','follow-up-completed-at','follow-up-reopen','follow-up-reschedule-presets','follow-up-bulk-reschedule','creator-tasks-v1.29','creator-reminders','private-task-priority','creator-task-relations','creator-crm-v1.30','private-contact-notes','creator-contact-labels','creator-contact-priority','audience-segments-v1.31','automatic-audience-segments','manual-audience-segments','creator-communications-v1.32','communication-drafts','scheduled-communications','segmented-communications','communication-history','advanced-creator-analytics-v1.33','period-comparison','creator-growth-analytics','community-recurrence','community-automation-v1.34','creator-automation-rules','automation-hourly-runner','automation-idempotent-tasks','creator-hub-2-v1.35','creator-hub-command-center','creator-hub-area-navigation','creator-hub-live-summary','messaging-2-v1.36','conversation-pin','conversation-archive','conversation-mute','conversation-search','conversation-unread-filter','discovery-2-v1.37','personalized-explore','discovery-hide-post','discovery-hide-person','profiles-2-v1.38','profile-status','profile-social-context','profile-consented-activity','stories-reels-2-v1.39','story-view-signals','story-seen-rings','reel-view-signals','reel-ranked-feed','retention-growth-2-v1.40','cross-device-return-summary','return-pulse','unseen-story-reel-counts','muted-message-notification-fix','comments-2-v1.41','comment-replies','comment-thread-context','reply-notifications','live-activity-2-v1.42','server-sent-events','live-message-badges','live-notification-badges','live-active-chat-refresh','reels-immersive-2-v1.43','vertical-reel-snap','reel-autoplay-muted','reel-auto-pause','reduced-motion-safe-reels','connections-2-v1.44','mutual-follow-connections','connections-explore','connection-direct-message','connection-profile-signal','pwa-performance-2-v1.45','safe-shell-cache','static-stale-while-revalidate','offline-app-navigation','feed-content-visibility','async-image-decoding','chat-presence-v1.46','private-online-status','typing-indicator','message-read-receipts','message-replies-v1.47','message-reactions','sensitive-safe-reply-preview','live-reaction-sync','web-push-v1.48','push-device-opt-in','push-deep-links','push-job-queue','vapid-optional','mobile-social-polish-v1.49','visual-viewport-chat','per-view-scroll-memory','connectivity-banner','coarse-pointer-targets','reduced-motion-polish','group-chats-2-v1.50','group-membership','group-live-presence','group-read-receipts','group-sensitive-consent','group-history-privacy','share-to-chat-v1.51','connection-circles-v1.52','private-connection-circles','favorite-connections','connection-circle-filters','structured-shared-posts','share-chat-picker','shared-post-privacy-gate','shared-post-unavailable-marker','connections-center-2-v1.53','connection-search','connection-social-filters','connection-recent-conversation-signal','community-conversations-v1.54','conversation-resume-signals','gentle-social-continuity','connection-context-v1.55','shared-connection-context','conversation-starter-drafts','public-activity-context','private-audiences-v1.56','connections-audience','circle-audience-posts','circle-audience-stories','private-audience-share-protection','close-connections-v1.57','private-close-circle','close-connections-feed','close-audience-shortcut','social-communities-v1.58','community-discovery-v1.59','community-categories','community-interests','community-suggestion-hide','explainable-community-ranking','public-private-communities','community-membership','community-join-requests','community-rules','community-posts-comments','community-moderation','community-group-chat','events-meetups-v1.60','event-rsvp','event-private-audiences','event-reminders','event-attendee-privacy','collaborative-posts-v1.61','collaborative-reels','collaboration-approval','collaboration-profile-surface','collaboration-revocation','collaborator-management','advanced-mentions-sharing-v1.62','mention-privacy','mention-autocomplete','private-circle-mentions','audience-safe-sharing','profile-story-sharing','community-post-sharing','private-share-history','share-context','community-moderation-3-v1.63','social-search-2-v1.64','relationship-intelligence-v1.65','relationship-shared-interests','relationship-shared-communities','relationship-reconnect-signals','explainable-relationship-suggestions','private-relationship-hide','growth-onboarding-2-v1.66','opaque-invite-links','starter-connection-suggestions','auth-abuse-rate-limits','legacy-referral-compatibility','accessibility-ux-quality-2-v1.67','skip-links','dialog-focus-trap','keyboard-dialog-controls','visible-focus','screen-reader-live-regions','forced-colors-support','performance-reliability-2-v1.68','api-timeout-retry','get-request-deduplication','feed-race-guard','lazy-avatar-loading','database-pool-hardening','performance-query-indexes','readiness-check','graceful-shutdown','slow-api-observability','mobile-ux-final-polish-3-v1.69','mobile-safe-area-polish','mobile-bottom-sheet-polish','horizontal-filter-strips','mobile-retry-states','mobile-form-zoom-guard','product-maturity-launch-readiness-v1.70','request-id-tracing','api-no-store','api-json-404','safe-api-error-envelope','configuration-readiness','launch-checklist','beta-launch-real-user-operations-v1.71','aggregate-activation-metrics','privacy-preserving-product-metrics','admin-operational-incidents','beta-health-console','beta-feedback-support-center-v1.72','user-feedback-center','support-status-tracking','safe-technical-context','admin-feedback-queue','feedback-rate-limit','beta-cohorts-release-control-v1.73','release-feature-kill-switch','cohort-targeting','per-user-feature-evaluation','admin-release-console','support-center-release-gate','release-audit-safe-rollback-v1.74','release-before-after-snapshots','release-actor-audit','rollback-conflict-guard','transactional-release-rollback','release-request-correlation','controlled-rollout-waves-v1.75','deterministic-percentage-rollout','rollout-freeze','beta-graduation','rollout-stage-audit','message-profile-ui-hotfix-v1.75.1','collapsed-message-reactions','received-message-reaction-picker','desktop-profile-header-fix','reply-profile-layer-hotfix-v1.75.2','own-reply-label-fix','desktop-profile-avatar-layer-fix','message-own-actions-hotfix-v1.75.3','received-message-actions-only','production-domain-public-launch-polish-v1.76','canonical-public-origin','canonical-share-links','public-robots-sitemap','public-post-canonical','sensitive-post-noindex','stable-pwa-id','public-profiles-profile-seo-v1.77','clean-public-profile-urls','profile-canonical-og','profile-person-structured-data','discoverability-profile-noindex','profile-sitemap','clean-profile-share-links','public-discovery-seo-hub-v1.78','public-profiles-directory','public-profile-search-noindex','public-profile-pagination','public-itemlist-structured-data','sitemap-index','public-internal-profile-links','global-search','search-private-content-guard','local-search-history','community-moderators','community-report-queue','temporary-community-sanctions','coordinated-report-signals','private-community-moderation-log'
     ]
   });
 });
@@ -409,6 +409,7 @@ app.get('/perfil/:username',async(req,res)=>{
         </div>
         <div class="public-profile-actions">
           <a class="button" href="/app?profile=${encodeURIComponent(profile.username)}">Ver perfil en RedLibertad</a>
+          <a class="button ghost" href="/perfiles">Descubrir perfiles</a>
           <a class="button ghost" href="/#registro">Crear cuenta</a>
         </div>
         ${!indexable?'<p class="public-profile-note">Este perfil no participa en la indexación pública de RedLibertad.</p>':''}
@@ -444,6 +445,222 @@ app.get('/sitemap-profiles.xml',async(req,res)=>{
   }
 });
 
+
+app.get('/perfiles',async(req,res)=>{
+  try{
+    await Promise.all([ensurePublicProfileSeoV177(),ensurePublicPostAudienceV18()]);
+    const origin=publicOrigin(req);
+    const rawQuery=String(req.query.q||'').trim().slice(0,60);
+    const requestedPage=Math.max(1,Math.min(500,Number.parseInt(req.query.page||'1',10)||1));
+    const pageSize=24;
+    const pattern=rawQuery ? `%${rawQuery.toLowerCase()}%` : null;
+
+    const countResult=await db.query(`
+      SELECT count(*)::int AS n
+        FROM users u
+       WHERE u.status='active'
+         AND u.is_admin=false
+         AND u.discoverable=true
+         AND (
+           $1::text IS NULL
+           OR lower(u.username) LIKE $1
+           OR lower(u.display_name) LIKE $1
+           OR lower(u.bio) LIKE $1
+           OR lower(u.creator_headline) LIKE $1
+         )
+    `,[pattern]);
+
+    const total=Number(countResult.rows[0]?.n||0);
+    const totalPages=Math.max(1,Math.ceil(total/pageSize));
+    const page=Math.min(requestedPage,totalPages);
+    const offset=(page-1)*pageSize;
+
+    const result=await db.query(`
+      SELECT
+        u.username,u.display_name,u.bio,u.avatar_url,u.creator_headline,
+        u.creator_verified,u.age_verified,u.updated_at,
+        (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) follower_count,
+        (SELECT count(*)::int FROM posts p
+          WHERE p.user_id=u.id
+            AND p.moderation_status='published'
+            AND p.audience='public') public_post_count
+      FROM users u
+      WHERE u.status='active'
+        AND u.is_admin=false
+        AND u.discoverable=true
+        AND (
+          $1::text IS NULL
+          OR lower(u.username) LIKE $1
+          OR lower(u.display_name) LIKE $1
+          OR lower(u.bio) LIKE $1
+          OR lower(u.creator_headline) LIKE $1
+        )
+      ORDER BY
+        u.creator_verified DESC,
+        follower_count DESC,
+        public_post_count DESC,
+        u.updated_at DESC,
+        u.username ASC
+      LIMIT $2 OFFSET $3
+    `,[pattern,pageSize,offset]);
+
+    const canonical=page>1 ? `${origin}/perfiles?page=${page}` : `${origin}/perfiles`;
+    const indexable=!rawQuery;
+    const title=rawQuery
+      ? `Buscar perfiles: ${rawQuery} — RedLibertad`
+      : page>1
+        ? `Perfiles públicos — Página ${page} — RedLibertad`
+        : 'Perfiles públicos — RedLibertad';
+    const description=rawQuery
+      ? `Resultados públicos para “${rawQuery}” en RedLibertad.`
+      : 'Descubre perfiles públicos en RedLibertad y encuentra personas con las que conectar.';
+    const querySuffix=rawQuery ? `&q=${encodeURIComponent(rawQuery)}` : '';
+    const previous=page>1
+      ? `/perfiles?${page-1>1?`page=${page-1}${querySuffix}`:rawQuery?`q=${encodeURIComponent(rawQuery)}`:''}`
+      : '';
+    const next=page<totalPages
+      ? `/perfiles?page=${page+1}${querySuffix}`
+      : '';
+    const cards=result.rows.map(profile=>{
+      const avatar=profile.avatar_url ? absoluteUrl(req,profile.avatar_url) : '';
+      const bio=String(profile.creator_headline || profile.bio || '').trim().slice(0,150);
+      const badge=profile.creator_verified
+        ? '<span class="directory-badge">✓ Creador</span>'
+        : profile.age_verified
+          ? '<span class="directory-badge subtle">✓ +18</span>'
+          : '';
+      return `<article class="directory-card">
+        <a class="directory-card-main" href="/perfil/${encodeURIComponent(profile.username)}">
+          ${avatar
+            ? `<img class="directory-avatar" src="${escapeHtml(avatar)}" loading="lazy" decoding="async" alt="Foto de perfil de ${escapeHtml(profile.display_name)}">`
+            : `<span class="directory-avatar placeholder" aria-hidden="true">${escapeHtml(String(profile.display_name||profile.username).slice(0,2).toUpperCase())}</span>`}
+          <span class="directory-card-copy">
+            <span class="directory-name">${escapeHtml(profile.display_name)} ${badge}</span>
+            <span class="directory-handle">@${escapeHtml(profile.username)}</span>
+            ${bio?`<span class="directory-bio">${escapeHtml(bio)}</span>`:''}
+            <span class="directory-stats"><b>${Number(profile.public_post_count||0)}</b> publicaciones · <b>${Number(profile.follower_count||0)}</b> seguidores</span>
+          </span>
+        </a>
+      </article>`;
+    }).join('');
+
+    const listStructured=indexable && page===1 ? `<script type="application/ld+json">${JSON.stringify({
+      '@context':'https://schema.org',
+      '@type':'ItemList',
+      name:'Perfiles públicos en RedLibertad',
+      itemListElement:result.rows.map((profile,index)=>({
+        '@type':'ListItem',
+        position:index+1,
+        url:`${origin}/perfil/${encodeURIComponent(profile.username)}`,
+        name:profile.display_name
+      }))
+    }).replace(/</g,'\\u003c')}</script>` : '';
+
+    res.type('html').send(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,follow'}">
+  <link rel="canonical" href="${escapeHtml(canonical)}">
+  ${previous?`<link rel="prev" href="${escapeHtml(origin+previous)}">`:''}
+  ${next?`<link rel="next" href="${escapeHtml(origin+next)}">`:''}
+  <meta property="og:site_name" content="RedLibertad">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonical)}">
+  <meta property="og:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad.png')}">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  ${listStructured}
+  <style>
+    .directory-page{min-height:100vh;background:var(--bg);color:var(--navy)}
+    .directory-top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px max(20px,calc((100vw - 1180px)/2));border-bottom:1px solid var(--line);background:rgba(255,253,249,.94);backdrop-filter:blur(16px)}
+    .directory-brand{display:flex;align-items:center;gap:9px;color:var(--navy);font-weight:900;text-decoration:none}
+    .directory-brand img{width:34px;height:34px}
+    .directory-top-actions{display:flex;gap:8px;align-items:center}
+    .directory-shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:46px 0 70px}
+    .directory-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:24px;align-items:end;margin-bottom:28px}
+    .directory-hero h1{margin:5px 0 8px;font:800 clamp(30px,5vw,52px) Manrope,sans-serif}
+    .directory-hero p{margin:0;color:var(--muted);line-height:1.6}
+    .directory-search{display:flex;gap:8px;padding:8px;border:1px solid var(--line);border-radius:16px;background:var(--paper);box-shadow:0 12px 34px rgba(13,34,56,.06)}
+    .directory-search input{min-width:0;flex:1;border:0;background:transparent;padding:10px 12px;font:inherit;color:var(--navy);outline:0}
+    .directory-count{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 14px;color:var(--muted);font-size:12px}
+    .directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .directory-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 9px 25px rgba(13,34,56,.05);transition:transform .16s ease,box-shadow .16s ease}
+    .directory-card:hover{transform:translateY(-2px);box-shadow:0 15px 34px rgba(13,34,56,.08)}
+    .directory-card-main{display:flex;gap:12px;padding:15px;color:inherit;text-decoration:none}
+    .directory-avatar{width:64px;height:64px;flex:0 0 64px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,var(--navy),var(--teal));border:3px solid #fff;box-shadow:0 7px 18px rgba(13,34,56,.10)}
+    .directory-avatar.placeholder{display:grid;place-items:center;color:white;font-weight:900}
+    .directory-card-copy{min-width:0;display:grid;align-content:start}
+    .directory-name{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:900}
+    .directory-handle{margin-top:2px;color:var(--muted);font-size:11px}
+    .directory-bio{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}
+    .directory-stats{margin-top:9px;color:var(--muted);font-size:9px}
+    .directory-stats b{color:var(--navy)}
+    .directory-badge{display:inline-flex;padding:4px 6px;border-radius:999px;background:rgba(43,183,169,.12);color:#0c675b;font-size:8px}
+    .directory-badge.subtle{background:#f1f4f3;color:var(--muted)}
+    .directory-empty{padding:38px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:var(--paper)}
+    .directory-pagination{display:flex;justify-content:center;gap:8px;margin-top:24px;align-items:center}
+    .directory-page-label{padding:8px 10px;color:var(--muted);font-size:11px}
+    @media(max-width:900px){.directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.directory-hero{grid-template-columns:1fr}}
+    @media(max-width:620px){.directory-shell{width:min(100% - 20px,1180px);padding-top:28px}.directory-grid{grid-template-columns:1fr}.directory-top{padding:10px 12px}.directory-top-actions .button.ghost{display:none}.directory-search{display:grid;grid-template-columns:1fr auto}.directory-card-main{padding:13px}.directory-avatar{width:58px;height:58px;flex-basis:58px}}
+  </style>
+</head>
+<body>
+  <main class="directory-page">
+    <header class="directory-top">
+      <a class="directory-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>
+      <div class="directory-top-actions">
+        <a class="button small ghost" href="/#acceso">Entrar</a>
+        <a class="button small" href="/#registro">Crear cuenta</a>
+      </div>
+    </header>
+    <div class="directory-shell">
+      <section class="directory-hero">
+        <div>
+          <span class="eyebrow">PERSONAS · COMUNIDAD</span>
+          <h1>Perfiles públicos</h1>
+          <p>Descubre personas que han decidido participar en la parte pública de RedLibertad.</p>
+        </div>
+        <form class="directory-search" method="get" action="/perfiles">
+          <input name="q" value="${escapeHtml(rawQuery)}" maxlength="60" placeholder="Buscar por nombre, usuario o bio" aria-label="Buscar perfiles">
+          <button class="button" type="submit">Buscar</button>
+        </form>
+      </section>
+      <div class="directory-count">
+        <span>${rawQuery?`${total} resultados para “${escapeHtml(rawQuery)}”`:`${total} perfiles públicos`}</span>
+        ${rawQuery?'<a href="/perfiles">Limpiar búsqueda</a>':''}
+      </div>
+      ${cards?`<section class="directory-grid" aria-label="Perfiles públicos">${cards}</section>`:'<div class="directory-empty"><b>No encontramos perfiles.</b><p>Prueba otra búsqueda o vuelve más tarde.</p></div>'}
+      <nav class="directory-pagination" aria-label="Paginación de perfiles">
+        ${previous?`<a class="button ghost small" rel="prev" href="${escapeHtml(previous)}">← Anterior</a>`:''}
+        <span class="directory-page-label">Página ${page} de ${totalPages}</span>
+        ${next?`<a class="button ghost small" rel="next" href="${escapeHtml(next)}">Siguiente →</a>`:''}
+      </nav>
+    </div>
+  </main>
+</body>
+</html>`);
+  }catch(error){
+    console.error('RedLibertad public profiles directory error:',error);
+    res.status(500).send('No se pudo cargar el directorio de perfiles.');
+  }
+});
+
+app.get('/sitemap-index.xml',(req,res)=>{
+  const origin=publicOrigin(req);
+  const now=new Date().toISOString();
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+});
+
 app.get('/robots.txt',(req,res)=>{
   const origin=publicOrigin(req);
   res.type('text/plain').send([
@@ -451,11 +668,13 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /',
     'Allow: /p/',
     'Allow: /perfil/',
+    'Allow: /perfiles',
     'Disallow: /app',
     'Disallow: /admin',
     'Disallow: /admin-recovery',
     'Disallow: /api/',
     'Disallow: /uploads/',
+    `Sitemap: ${origin}/sitemap-index.xml`,
     `Sitemap: ${origin}/sitemap.xml`,
     `Sitemap: ${origin}/sitemap-profiles.xml`
   ].join('\n'));
@@ -478,6 +697,7 @@ app.get('/sitemap.xml',async(req,res)=>{
     `);
     const urls=[
       `<url><loc>${escapeHtml(origin+'/')}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/perfiles')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       ...posts.rows.map(post=>`<url><loc>${escapeHtml(origin+'/p/'+encodeURIComponent(post.id))}</loc><lastmod>${new Date(post.created_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`)
     ];
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join('')}</urlset>`);
@@ -503,7 +723,7 @@ app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
 
-const server=app.listen(PORT, () => console.log(`RedLibertad V1.77.0 running on http://localhost:${PORT}`));
+const server=app.listen(PORT, () => console.log(`RedLibertad V1.78.0 running on http://localhost:${PORT}`));
 server.keepAliveTimeout=5000;
 server.headersTimeout=65000;
 server.requestTimeout=120000;

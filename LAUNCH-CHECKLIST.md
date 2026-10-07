@@ -139,3 +139,15 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que un perfil no descubrible no aparece en `/sitemap-profiles.xml`.
 - Confirmar que cuentas admin/inactivas no aparecen en el sitemap de perfiles.
 - Revisar `robots.txt` y confirmar las dos líneas Sitemap.
+
+
+## 15. Directorio público y SEO hub
+- Abrir `/perfiles` y confirmar que solo muestra perfiles descubribles.
+- Buscar con `/perfiles?q=...` y confirmar `noindex,follow`.
+- Probar paginación y enlaces Anterior/Siguiente conservando la búsqueda.
+- Confirmar que perfiles admin, inactivos o `discoverable=false` no aparecen.
+- Abrir una tarjeta del directorio y confirmar navegación a `/perfil/usuario`.
+- Confirmar que la portada enlaza a **Personas**.
+- Revisar `/sitemap-index.xml` y confirmar referencias a `/sitemap.xml` y `/sitemap-profiles.xml`.
+- Confirmar que `/sitemap.xml` incluye `/perfiles`.
+- Confirmar que `robots.txt` anuncia el sitemap índice.

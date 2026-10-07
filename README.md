@@ -1,4 +1,4 @@
-# RedLibertad V1.77.0 — Public Profiles & Profile SEO
+# RedLibertad V1.78.0 — Public Discovery & SEO Hub
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -1642,4 +1642,22 @@ V1.28 continúa completamente gratis: sin pagos, suscripciones, precios, checkou
 - Nuevo `/sitemap-profiles.xml` con hasta 10.000 perfiles activos y descubribles.
 - `robots.txt` anuncia el sitemap de perfiles y permite `/perfil/`.
 - Índice PostgreSQL específico para el sitemap/perfiles SEO.
+- Sin monetización.
+
+
+## V1.78.0 — Public Discovery & SEO Hub
+
+- Nuevo directorio público `/perfiles`.
+- Solo incluye cuentas activas, no-admin y con `discoverable=true`.
+- 24 perfiles por página con paginación server-rendered.
+- Búsqueda pública por nombre, usuario, bio y headline de creador.
+- Las búsquedas con `?q=` quedan `noindex,follow` para evitar indexar páginas internas de resultados.
+- Páginas normales del directorio quedan indexables y con canonical por página.
+- Prioridad visual a perfiles creador-verificado, seguida de seguidores, publicaciones públicas y actividad reciente.
+- Structured Data `ItemList` en la primera página del directorio.
+- Enlazado interno desde la landing a **Personas** y desde cada perfil público al directorio.
+- Nuevo `/sitemap-index.xml` que referencia posts y perfiles.
+- `robots.txt` anuncia el sitemap índice y mantiene los sitemaps individuales por compatibilidad.
+- `/perfiles` se incluye en el sitemap principal.
+- Mobile-first.
 - Sin monetización.
