@@ -466,3 +466,18 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que una publicación pública normal con imagen propia sigue usando su imagen real.
 - Confirmar que contenido sensible/no indexable sigue usando imagen de marca y no expone media protegida.
 - Revisar título, descripción e imagen en móvil y escritorio.
+
+
+## 37. Public Social Proof & Related Discovery
+- Confirmar `/api/health` con versión 1.93.0 y features `public-social-proof-v1.93` / `public-related-discovery-v1.93`.
+- Abrir un Post público normal y confirmar Me gusta / Comentarios / Republicaciones.
+- Confirmar que solo se muestran cifras agregadas y nunca identidades.
+- Abrir un enlace público sensible/protegido y confirmar que no aparecen esos contadores.
+- En un creador con más contenido público normal, confirmar sección “Más de este creador”.
+- Confirmar máximo 3 tarjetas relacionadas.
+- Confirmar que un Reel relacionado enlaza directamente a `/reel/:id/:slug`.
+- Poner `discoverable=false` en un autor de prueba y confirmar que la ficha directa no promociona contenido relacionado.
+- Abrir un Reel público y confirmar “Más Reels de este creador” cuando existan.
+- Confirmar que los Reels relacionados siguen las reglas public/normal/discoverable.
+- Revisar móvil y escritorio.
+- Confirmar que no cambian canonical, robots, sitemaps ni privacidad.
