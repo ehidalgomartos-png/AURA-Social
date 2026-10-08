@@ -24,3 +24,5 @@ jobs:
         run: npm run test:smoke
       - name: Mobile social experience regression tests
         run: npm run test:social
+      - name: Discover 3.0 ranking and UI tests
+        run: npm run test:discovery

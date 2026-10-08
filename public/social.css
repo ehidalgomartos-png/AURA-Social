@@ -6487,3 +6487,63 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .comments-retry-card{margin:8px 4px;padding:14px}
   .comments-retry-card button{width:100%}
 }
+
+/* V2.8 — Descubrir 3.0: mobile-first people modes and change recommendations */
+.discover-people-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:10px 0;
+}
+.discover-people-modes{
+  display:flex;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  gap:6px;
+  max-width:100%;
+  scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;
+}
+.discover-people-modes button{
+  min-height:44px;
+  flex:0 0 auto;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:10px 16px;
+  font:inherit;
+  font-weight:750;
+  font-size:13px;
+  color:var(--navy);
+  background:var(--paper);
+  cursor:pointer;
+}
+.discover-people-modes button.active{
+  border-color:var(--teal);
+  background:var(--navy);
+  color:#fff;
+}
+.discover-people-change{min-height:44px;white-space:normal}
+.discover-people-change:disabled{opacity:.48;cursor:not-allowed}
+.discover-people-status{
+  min-height:20px;
+  margin:0 0 12px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.discover-people-status button{min-height:44px;margin-inline-start:6px}
+.discover-people-modes button:focus-visible,
+.discover-people-change:focus-visible,
+.discover-people-status button:focus-visible{
+  outline:2px solid var(--teal);
+  outline-offset:2px;
+}
+#peopleSuggestions[aria-busy="true"]{min-height:120px}
+@media(max-width:620px){
+  .discover-people-controls{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .discover-people-modes{width:100%}
+  .discover-people-change{width:100%}
+  .discover-people-status button{display:block;margin:5px 0 0;width:100%}
+}

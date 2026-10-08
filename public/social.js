@@ -38,6 +38,11 @@ let activeEventId=null;
 let activeEventData=null;
 let interestCatalog = [];
 let activeExploreInterest = '';
+let peopleDiscoveryMode='for_you';
+let peopleDiscoveryPage=0;
+let peopleDiscoveryRequestSequence=0;
+let peopleDiscoveryHasMore=false;
+let peopleDiscoveryRetryPage=0;
 let globalSearchType='all';
 let globalSearchQuery='';
 const GLOBAL_SEARCH_HISTORY_KEY='redlibertad-search-history-v164';
@@ -1085,10 +1090,14 @@ async function openConnectionMessage(username,draft='') {
   }
 }
 
-function personCardHTML(user, compact = false) {
+function personCardHTML(user, compact = false, discoveryMode = 'for_you') {
   const shared = Number(user.shared_interest_count || 0);
   const followers = Number(user.follower_count || 0);
-  const reason = shared > 0
+  const reason = discoveryMode==='active'
+    ? 'Actividad pública reciente'
+    : discoveryMode==='new'
+      ? 'Se ha unido en los últimos 30 días'
+      : shared > 0
     ? `${shared} ${shared === 1 ? 'interés' : 'intereses'} en común`
     : followers > 0
       ? `${followers} ${followers === 1 ? 'seguidor' : 'seguidores'}`
@@ -1594,30 +1603,105 @@ async function renderInterestFilters() {
   ].join('');
 }
 
-async function loadPeopleSuggestions(interest = activeExploreInterest) {
-  activeExploreInterest = interest || '';
-  const query = activeExploreInterest ? `&interest=${encodeURIComponent(activeExploreInterest)}` : '';
-  const { d } = await api(`/api/profiles/suggestions?limit=18${query}`);
-  $('#peopleSuggestions').innerHTML = d.users?.length
-    ? d.users.map(u => personCardHTML(u)).join('')
-    : `<div class="info-card discovery-empty"><b>No encontramos personas con ese interés todavía.</b><p>Prueba otra categoría.</p></div>`;
-  await renderInterestFilters();
+function syncPeopleDiscoveryControls(searching=false){
+  all('[data-people-mode]').forEach(button=>{
+    const selected=button.dataset.peopleMode===peopleDiscoveryMode;
+    button.classList.toggle('active',selected);
+    button.setAttribute('aria-pressed',selected?'true':'false');
+  });
+  const change=$('#changePeopleSuggestions');
+  if(change)change.disabled=searching||!peopleDiscoveryHasMore;
 }
 
-async function searchPeople(query) {
-  const clean = String(query || '').trim();
-  if (clean.length < 2) {
-    $('#peopleDiscoveryTitle').textContent = 'Personas que podrías conocer';
+function peopleDiscoveryEmptyMessage(){
+  if(peopleDiscoveryMode==='active')return 'Todavía no hay perfiles con actividad pública reciente en esta selección.';
+  if(peopleDiscoveryMode==='new')return 'Todavía no hay nuevos perfiles en los últimos 30 días.';
+  return 'No encontramos más sugerencias con esos intereses.';
+}
+
+async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={}){
+  activeExploreInterest=interest||'';
+  const root=$('#peopleSuggestions'),status=$('#peopleSuggestionsStatus');
+  if(!root)return;
+  const requestId=++peopleDiscoveryRequestSequence;
+  root.setAttribute('aria-busy','true');
+  peopleDiscoveryHasMore=false;
+  syncPeopleDiscoveryControls();
+  if(status)status.textContent='Buscando personas para ti…';
+  const params=new URLSearchParams({
+    limit:'18',mode:peopleDiscoveryMode,page:String(page)
+  });
+  if(activeExploreInterest)params.set('interest',activeExploreInterest);
+  try{
+    const {r,d}=await api('/api/profiles/suggestions?'+params.toString(),{dedupe:false});
+    if(requestId!==peopleDiscoveryRequestSequence)return;
+    if(!r.ok)throw Error('suggestions_unavailable');
+    const users=Array.isArray(d.users)?d.users:[];
+    if(page>0&&!users.length){
+      return loadPeopleSuggestions(activeExploreInterest,{page:0});
+    }
+    peopleDiscoveryPage=page;
+    peopleDiscoveryHasMore=d.hasMore===true && page<10;
+    root.innerHTML=users.length
+      ? users.map(user=>personCardHTML(user,false,peopleDiscoveryMode)).join('')
+      : '<div class="info-card discovery-empty"><b>No hay perfiles en esta selección.</b><p>'+
+        esc(peopleDiscoveryEmptyMessage())+
+        '</p><button type="button" class="secondary" data-people-mode-reset>Ver todos</button></div>';
+    if(status)status.textContent=users.length
+      ? String(users.length)+' personas · '+(peopleDiscoveryMode==='active'?'Actividad pública en los últimos 7 días':peopleDiscoveryMode==='new'?'Registradas en los últimos 30 días':'Sugerencias según tus intereses')+
+        (peopleDiscoveryHasMore?' · Hay más sugerencias':'')
+      : peopleDiscoveryEmptyMessage();
+    syncPeopleDiscoveryControls();
+    await renderInterestFilters();
+  }catch(_){
+    if(requestId!==peopleDiscoveryRequestSequence)return;
+    peopleDiscoveryRetryPage=page;
+    if(status){
+      status.innerHTML='<span>No se pudieron cargar las sugerencias.</span> '+
+        '<button type="button" class="secondary" data-ui-retry="people">Reintentar</button>';
+    }
+    if(!root.querySelector('[data-person-card]')){
+      root.innerHTML=uiStateHTML({title:'No se pudo conectar con Descubrir',
+        copy:'Conservamos tus preferencias. Puedes intentar cargar las personas otra vez.',
+        retry:'people'});
+    }
+  }finally{
+    if(requestId===peopleDiscoveryRequestSequence)root.setAttribute('aria-busy','false');
+  }
+}
+
+async function searchPeople(query){
+  const clean=String(query||'').trim();
+  if(clean.length<2){
+    $('#peopleDiscoveryTitle').textContent='Personas que podrías conocer';
     $('#clearPeopleSearch').classList.add('hidden');
     return loadPeopleSuggestions(activeExploreInterest);
   }
-
-  const { d } = await api(`/api/profiles/search/users?q=${encodeURIComponent(clean)}`);
-  $('#peopleDiscoveryTitle').textContent = `Resultados para “${clean}”`;
-  $('#clearPeopleSearch').classList.remove('hidden');
-  $('#peopleSuggestions').innerHTML = d.users?.length
-    ? d.users.map(u => personCardHTML(u)).join('')
-    : `<div class="info-card discovery-empty"><b>No encontramos a nadie.</b><p>Prueba con otro nombre o @usuario.</p></div>`;
+  const requestId=++peopleDiscoveryRequestSequence;
+  const root=$('#peopleSuggestions'),status=$('#peopleSuggestionsStatus');
+  root?.setAttribute('aria-busy','true');
+  peopleDiscoveryHasMore=false;
+  syncPeopleDiscoveryControls(true);
+  if(status)status.textContent='Buscando “'+clean+'”…';
+  try{
+    const {r,d}=await api('/api/profiles/search/users?q='+encodeURIComponent(clean),{dedupe:false});
+    if(requestId!==peopleDiscoveryRequestSequence)return;
+    if(!r.ok)throw Error('search_unavailable');
+    const users=Array.isArray(d.users)?d.users:[];
+    $('#peopleDiscoveryTitle').textContent='Resultados para “'+clean+'”';
+    $('#clearPeopleSearch').classList.remove('hidden');
+    root.innerHTML=users.length
+      ? users.map(user=>personCardHTML(user)).join('')
+      : '<div class="info-card discovery-empty"><b>No encontramos a nadie.</b><p>Prueba con otro nombre o @usuario.</p></div>';
+    if(status)status.textContent=users.length?users.length+' resultados para tu búsqueda':'No hay resultados para esa búsqueda.';
+  }catch(_){
+    if(requestId!==peopleDiscoveryRequestSequence)return;
+    if(status)status.textContent='No se pudo completar la búsqueda. Revisa tu conexión.';
+    root.innerHTML=uiStateHTML({title:'La búsqueda no está disponible',
+      copy:'Revisa tu conexión y vuelve a intentarlo.',retry:'people-search'});
+  }finally{
+    if(requestId===peopleDiscoveryRequestSequence)root?.setAttribute('aria-busy','false');
+  }
 }
 
 async function uploadFile(file) {
@@ -7949,6 +8033,30 @@ all('[data-content-mode]').forEach(button => {
   };
 });
 
+// Mode changes only affect suggestions, not explicit person search.
+document.addEventListener('click',async event=>{
+  const modeButton=event.target.closest('[data-people-mode]');
+  const reset=event.target.closest('[data-people-mode-reset]');
+  if(!modeButton&&!reset)return;
+  event.preventDefault();
+  const mode=reset?'for_you':modeButton.dataset.peopleMode;
+  if(!['for_you','active','new'].includes(mode))return;
+  peopleDiscoveryMode=mode;
+  peopleDiscoveryPage=0;
+  peopleDiscoveryHasMore=false;
+  const search=$('#peopleSearchInput');
+  if(search)search.value='';
+  $('#clearPeopleSearch')?.classList.add('hidden');
+  if($('#peopleDiscoveryTitle'))$('#peopleDiscoveryTitle').textContent='Personas que podrías conocer';
+  await loadPeopleSuggestions(activeExploreInterest,{page:0});
+});
+
+$('#changePeopleSuggestions')?.addEventListener('click',async()=>{
+  if(!peopleDiscoveryHasMore)return;
+  if(String($('#peopleSearchInput')?.value||'').trim().length>=2)return;
+  await loadPeopleSuggestions(activeExploreInterest,{page:peopleDiscoveryPage+1});
+});
+
 $('#peopleSearchForm').addEventListener('submit', async event => {
   event.preventDefault();
   await searchPeople($('#peopleSearchInput').value);
@@ -9400,6 +9508,8 @@ document.addEventListener('click',async event=>{
     else if(action==='notifications')await loadNotifications();
     else if(action==='conversations')await loadConversations();
     else if(action==='consents')await loadConsents();
+    else if(action==='people')await loadPeopleSuggestions(activeExploreInterest,{page:peopleDiscoveryRetryPage});
+    else if(action==='people-search')await searchPeople($('#peopleSearchInput')?.value);
   }finally{
     if(button.isConnected)button.disabled=false;
   }

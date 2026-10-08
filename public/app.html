@@ -157,7 +157,16 @@
           <div><span class="eyebrow">PERSONAS</span><h2 id="peopleDiscoveryTitle">Personas que podrías conocer</h2></div>
           <button id="clearPeopleSearch" class="tiny-action hidden" type="button">Limpiar búsqueda</button>
         </div>
-        <div id="peopleSuggestions" class="people-grid"></div>
+        <div class="discover-people-controls" role="group" aria-label="Ordenar sugerencias de personas">
+          <div class="discover-people-modes">
+            <button type="button" data-people-mode="for_you" class="active" aria-pressed="true">Para ti</button>
+            <button type="button" data-people-mode="active" aria-pressed="false">Activos</button>
+            <button type="button" data-people-mode="new" aria-pressed="false">Nuevos</button>
+          </div>
+          <button type="button" id="changePeopleSuggestions" class="secondary discover-people-change" disabled>Cambiar sugerencias ↻</button>
+        </div>
+        <p id="peopleSuggestionsStatus" class="discover-people-status" role="status" aria-live="polite"></p>
+        <div id="peopleSuggestions" class="people-grid" aria-busy="false"></div>
       </section>
       <section class="content-discovery">
         <div class="discovery-heading"><div><span class="eyebrow">CONTENIDO</span><h2 id="contentDiscoveryTitle">Lo que está pasando</h2></div></div>
