@@ -28,6 +28,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Optional operational alert delivery regression tests
+        run: npm run test:delivery
       - name: Operational alerts and incident response regression tests
         run: npm run test:ops-alerts
       - name: Dependency recovery and operations regression tests
