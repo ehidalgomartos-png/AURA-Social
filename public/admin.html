@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V2.12 · Rendimiento 3.0</small></div>
+  <div><b>Moderación</b><small>V2.13 · Observabilidad 3.0</small></div>
 </header>
 
 <main>
@@ -23,6 +23,18 @@
     <div id="metrics" class="metrics"></div>
   </section>
 
+  <section class="panel runtime-ops-panel" aria-labelledby="runtimeOpsTitle">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">OPERACIONES · V2.13</span><h2 id="runtimeOpsTitle">Diagnóstico del servidor</h2>
+        <p class="panel-copy">Errores y latencia de esta instancia durante los últimos 15 minutos. Sin direcciones IP, usuarios ni contenido privado.</p>
+      </div>
+      <button id="reloadRuntimeOps" type="button">Actualizar</button>
+    </div>
+    <div id="runtimeOpsSummary" class="beta-metrics" aria-live="polite">Cargando métricas…</div>
+    <div id="runtimeOpsGroups" class="report-list"></div>
+    <p id="runtimeOpsNote" class="beta-privacy-note">Los datos se reinician al reiniciar esta instancia; no representan otros servidores.</p>
+  </section>
   <section class="panel security-v211-panel">
     <div class="panel-head"><div><span class="eyebrow">SEGURIDAD V2.11</span><h2>Alertas antiabuso</h2><p class="panel-copy">Acciones automatizadas bloqueadas y revisión manual sin revelar direcciones IP ni contenido privado.</p></div><button id="reloadSecurity" type="button">Actualizar</button></div>
     <div id="securityMetrics" class="beta-metrics" aria-live="polite"></div>

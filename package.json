@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.12.0",
+  "version": "2.13.0",
   "private": true,
-  "description": "RedLibertad V2.12 — rendimiento móvil, recursos multimedia y caché PWA segura.",
+  "description": "RedLibertad V2.13 — diagnósticos privados de rendimiento, errores y estabilidad.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -18,7 +18,8 @@
     "test:activation": "node --test tests/activation-v29.test.js",
     "test:notifications": "node --test tests/notifications-v210.test.js",
     "test:security": "node --test tests/security-v211.test.js",
-    "test:performance": "node --test tests/performance-v212.test.js"
+    "test:performance": "node --test tests/performance-v212.test.js",
+    "test:observability": "node --test tests/observability-v213.test.js"
   },
   "engines": {
     "node": ">=20"

@@ -1200,6 +1200,44 @@ $('#securityEvents')?.addEventListener('click',async event=>{
   }catch(error){setAdminNotice('No se pudo guardar la revisión.',true);button.disabled=false;}
 });
 
+
+function runtimeLatencyLabel(value){
+  const ms=Number(value||0);
+  return ms>=10000?'≥ 10 s':ms>=1000?'≤ '+(ms/1000).toFixed(1)+' s':'≤ '+ms+' ms';
+}
+async function runtimeOps(){
+  const summary=$('#runtimeOpsSummary'),groups=$('#runtimeOpsGroups'),note=$('#runtimeOpsNote');
+  if(!summary||!groups)return;
+  try{
+    const {r,d}=await api('/api/admin/ops/runtime');
+    if(!r.ok)throw new Error('runtime_metrics_unavailable');
+    const total=d.overall||{};
+    const severity={ok:'Sin alertas',warning:'Vigilar',critical:'Revisar ahora'}[d.level]||'Sin datos';
+    const items=[
+      ['Estado',severity],
+      ['Peticiones (15 min)',total.requests||0],
+      ['Errores 5xx',total.serverErrors||0],
+      ['Lentas (>1,5 s)',total.slow||0],
+      ['Latencia p95',runtimeLatencyLabel(total.p95UpperBoundMs)],
+      ['Memoria (RSS)',Number(d.rssMB||0)+' MB']
+    ];
+    summary.innerHTML=items.map(([label,value])=>
+      '<div class="metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>'
+    ).join('');
+    groups.innerHTML=(d.groups||[]).length?(d.groups||[]).map(group=>
+      '<article class="report-card"><div><b>'+esc(group.category)+'</b>'+
+      '<p>'+compact(group.requests)+' peticiones · '+esc(group.errorRatePct)+'% errores 5xx · '+esc(group.slowRatePct)+'% lentas</p>'+
+      '<small>Media '+esc(group.avgMs)+' ms · p95 '+esc(runtimeLatencyLabel(group.p95UpperBoundMs))+'</small></div></article>'
+    ).join(''):'<div class="empty-admin">Todavía no hay suficientes solicitudes registradas.</div>';
+    if(note)note.textContent='Métricas solo de esta instancia · ventana de '+Number(d.windowMinutes||15)+' min. '+
+      (d.sampleNote||'')+' Se reinician cuando se reinicia el servidor.';
+  }catch(_){
+    summary.textContent='No se pudieron recuperar las métricas del servidor.';
+    groups.textContent='Puedes volver a intentarlo con Actualizar.';
+  }
+}
+$('#reloadRuntimeOps')?.addEventListener('click',runtimeOps);
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -1210,5 +1248,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
