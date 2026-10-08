@@ -472,82 +472,89 @@ router.get('/me/summary', requireAuth, async (req,res)=>{
 });
 
 router.get('/suggestions', requireAuth, async (req, res) => {
-  const interest = normalizedInterest(req.query.interest);
-  const requestedLimit = Number(req.query.limit || 12);
-  const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 12, 1), 30);
+  const interest=normalizedInterest(req.query.interest);
+  const mode=['for_you','active','new'].includes(String(req.query.mode||''))
+    ? String(req.query.mode) : 'for_you';
+  const requestedLimit=Number(req.query.limit||12);
+  const limit=Math.min(Math.max(Number.isFinite(requestedLimit)?Math.trunc(requestedLimit):12,1),30);
+  const requestedPage=Number(req.query.page||0);
+  const page=Math.min(Math.max(Number.isSafeInteger(requestedPage)?requestedPage:0,0),10);
+  const offset=page*limit;
 
-  const r = await db.query(`
+  // Only public published activity from profiles with public activity enabled.
+  const r=await db.query(`
     SELECT
-      u.id,
-      u.username,
-      u.display_name,
-      u.bio,
-      u.avatar_url,
-      u.cover_url,
-      u.location_label,
-      u.creator_verified,
+      u.id,u.username,u.display_name,u.bio,u.avatar_url,u.cover_url,
+      u.location_label,u.creator_verified,u.created_at,
       EXISTS(
-        SELECT 1
-          FROM follows f
-         WHERE f.follower_id=$1
-           AND f.following_id=u.id
+        SELECT 1 FROM follows f WHERE f.follower_id=$1 AND f.following_id=u.id
       ) AS following,
       (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) AS follower_count,
       (
-        SELECT count(*)::int
-          FROM user_interests target_interest
-         WHERE target_interest.user_id=u.id
-           AND target_interest.interest IN (
-             SELECT mine.interest
-               FROM user_interests mine
-              WHERE mine.user_id=$1
-           )
+        SELECT count(*)::int FROM user_interests ti
+         WHERE ti.user_id=u.id
+           AND ti.interest IN (SELECT mine.interest FROM user_interests mine WHERE mine.user_id=$1)
       ) AS shared_interest_count,
       COALESCE(
         (SELECT array_agg(ui.interest ORDER BY ui.interest)
-           FROM user_interests ui
-          WHERE ui.user_id=u.id),
-        ARRAY[]::text[]
-      ) interests
+         FROM user_interests ui WHERE ui.user_id=u.id),ARRAY[]::text[]
+      ) AS interests,
+      CASE WHEN u.show_activity
+        THEN NULLIF(activity.last_activity_at,'epoch'::timestamptz)
+        ELSE NULL END AS last_activity_at
     FROM users u
-    WHERE u.status='active'
-      AND u.is_admin=false
-      AND u.discoverable=true
+    CROSS JOIN LATERAL (
+      SELECT GREATEST(
+        COALESCE((
+          SELECT max(p.created_at) FROM posts p
+           WHERE p.user_id=u.id AND p.moderation_status='published' AND p.audience='public'
+        ),'epoch'::timestamptz),
+        COALESCE((
+          SELECT max(s.created_at) FROM stories s
+           WHERE s.user_id=u.id AND s.moderation_status='published' AND s.audience='public'
+        ),'epoch'::timestamptz)
+      ) AS last_activity_at
+    ) activity
+    WHERE u.status='active' AND u.is_admin=false AND u.discoverable=true
       AND u.id<>$1
-      AND u.id NOT IN (
-        SELECT blocked_id FROM blocks WHERE blocker_id=$1
-        UNION
-        SELECT blocker_id FROM blocks WHERE blocked_id=$1
+      AND NOT EXISTS(
+        SELECT 1 FROM blocks blocked
+         WHERE (blocked.blocker_id=$1 AND blocked.blocked_id=u.id)
+            OR (blocked.blocker_id=u.id AND blocked.blocked_id=$1)
       )
-      AND u.id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+      AND NOT EXISTS(SELECT 1 FROM mutes muted WHERE muted.muter_id=$1 AND muted.muted_id=u.id)
       AND NOT EXISTS(
         SELECT 1 FROM discovery_hidden_items hidden
          WHERE hidden.user_id=$1 AND hidden.item_type='user' AND hidden.item_id=u.id
       )
-      AND (
-        $2::text IS NULL
-        OR EXISTS (
-          SELECT 1
-            FROM user_interests filtered_interest
-           WHERE filtered_interest.user_id=u.id
-             AND filtered_interest.interest=$2
-        )
-      )
+      AND ($2::text IS NULL OR EXISTS(
+        SELECT 1 FROM user_interests filtered
+         WHERE filtered.user_id=u.id AND filtered.interest=$2
+      ))
+      AND ($4::text<>'active' OR (
+        u.show_activity=true AND activity.last_activity_at>=now()-interval '7 days'
+      ))
+      AND ($4::text<>'new' OR u.created_at>=now()-interval '30 days')
     ORDER BY
-      EXISTS(
-        SELECT 1
-          FROM follows already_following
-         WHERE already_following.follower_id=$1
-           AND already_following.following_id=u.id
-      ) ASC,
+      following ASC,
+      CASE WHEN $4::text='new' THEN u.created_at END DESC NULLS LAST,
+      CASE WHEN $4::text='active' THEN activity.last_activity_at END DESC NULLS LAST,
       shared_interest_count DESC,
+      CASE WHEN $4::text='for_you' THEN
+        (u.show_activity AND activity.last_activity_at>=now()-interval '7 days')::int
+      END DESC NULLS LAST,
       u.creator_verified DESC,
       follower_count DESC,
-      u.updated_at DESC
-    LIMIT $3
-  `, [req.user.id, interest, limit]);
+      u.created_at DESC,
+      u.id DESC
+    LIMIT $3 OFFSET $5
+  `,[req.user.id,interest,limit+1,mode,offset]);
 
-  res.json({ users: r.rows, interest, interests: INTERESTS });
+  const hasMore=r.rows.length>limit;
+  res.json({
+    users:r.rows.slice(0,limit),interest,interests:INTERESTS,
+    mode,page,hasMore
+  });
 });
 
 async function ensureFavoritesCircle(userId){
