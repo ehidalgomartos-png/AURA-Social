@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.14.0",
+  "version": "2.15.0",
   "private": true,
-  "description": "RedLibertad V2.14 — diagnósticos preventivos, dependencias y centro de recuperación.",
+  "description": "RedLibertad V2.15 — alertas operativas, reconocimiento y trazabilidad administrativa.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -20,7 +20,8 @@
     "test:security": "node --test tests/security-v211.test.js",
     "test:performance": "node --test tests/performance-v212.test.js",
     "test:observability": "node --test tests/observability-v213.test.js",
-    "test:recovery": "node --test tests/recovery-v214.test.js"
+    "test:recovery": "node --test tests/recovery-v214.test.js",
+    "test:ops-alerts": "node --test tests/operational-alerts-v215.test.js"
   },
   "engines": {
     "node": ">=20"
