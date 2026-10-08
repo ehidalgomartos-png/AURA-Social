@@ -137,7 +137,7 @@ test('existing profile previews and shared Connections views remain present',()=
   const html=read('public/app.html');
   const s=read('public/social.js');
   assert.match(s,/id="profileFull"|#profileFull/);
-  assert.match(s,/profile-edit-cover-preview/);
+  assert.match(html,/profile-edit-cover-preview/);
   assert.match(html,/id="connectionsCenterCircleFilters"/);
   assert.match(s,/renderConnectionsCenterCircleFilters/);
 });
