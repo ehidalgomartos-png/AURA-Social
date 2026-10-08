@@ -432,6 +432,14 @@
       <div id="notificationsList" class="notification-list"></div>
     </section>
 
+    <section id="publicProfileView" class="view hidden" aria-label="Perfil de otra persona">
+      <div class="visited-profile-toolbar">
+        <button id="backPublicProfile" type="button" class="secondary" aria-label="Volver a la sección anterior">← Volver</button>
+        <span class="eyebrow">PERFIL DE LA COMUNIDAD</span>
+      </div>
+      <div id="publicProfileContent" class="visited-profile-content"></div>
+    </section>
+
     <section id="profileView" class="view hidden">
       <div id="profileFull" class="profile-full"></div>
       <div class="profile-content-tabs" role="tablist" aria-label="Contenido del perfil">
@@ -1245,14 +1253,6 @@
     </div>
   </div>
 </div>
-
-<div id="publicProfileModal" class="modal hidden">
-  <div class="modal-card public-profile-modal-card">
-    <button id="closePublicProfileModal" class="modal-close">×</button>
-    <div id="publicProfileContent"></div>
-  </div>
-</div>
-
 
 <div id="commentsModal" class="modal hidden">
   <div class="modal-card comments-modal-card">
