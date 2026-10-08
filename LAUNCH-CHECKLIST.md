@@ -599,3 +599,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Descargar la exportación de datos y confirmar `legalAcceptances`.
 - Eliminar una cuenta de prueba y confirmar borrado en cascada de sus aceptaciones.
 - Confirmar registro normal sin regresiones.
+
+
+## 48. Legal Consent Center
+- Confirmar `/api/health` con versión 1.99.0 y features `legal-consent-center-v1.99` / `legal-consent-user-transparency-v1.99`.
+- Entrar en Perfil → Más → Cuenta.
+- Confirmar bloque “Términos y privacidad”.
+- Con una cuenta creada en V1.98+, confirmar:
+  - Términos 1.0 como Actual;
+  - Normas 1.0 como Actual;
+  - Privacidad 1.0 como Actual.
+- Confirmar fecha/hora visible y correcta.
+- Abrir “Ver texto” en los tres documentos y comprobar rutas correctas.
+- Con una cuenta antigua, confirmar que `legacy` aparece como Histórico y no como versión actual.
+- Confirmar que no se muestra una aceptación inexistente de Privacidad o Normas en cuentas legacy.
+- Revisar móvil y escritorio.
+- Confirmar que Descargar mis datos sigue funcionando.
