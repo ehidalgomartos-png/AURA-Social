@@ -1,6 +1,7 @@
 const express=require('express');
 const db=require('../db');
 const { requireAdmin }=require('../middleware/auth');
+const { GUIDES }=require('../public-guides-v218');
 
 const router=express.Router();
 router.use(requireAdmin);
@@ -184,6 +185,7 @@ router.get('/seo-health',async(_req,res)=>{
       communities:Number(communitiesR.rows[0]?.n||0),
       events:Number(eventsR.rows[0]?.n||0),
       hashtags:hashtagCount(hashtagRowsR.rows),
+      guides:GUIDES.length+1,
       topics:topicCountsR.rows.filter(row=>
         Number(row.people||0)+Number(row.communities||0)+Number(row.posts||0)>=2
       ).length
@@ -199,7 +201,8 @@ router.get('/seo-health',async(_req,res)=>{
       {path:'/sitemap-communities.xml',label:'Comunidades',count:counts.communities},
       {path:'/sitemap-events.xml',label:'Eventos',count:counts.events},
       {path:'/sitemap-reels.xml',label:'Reels',count:counts.reels},
-      {path:'/sitemap-topics.xml',label:'Temas',count:counts.topics}
+      {path:'/sitemap-topics.xml',label:'Temas',count:counts.topics},
+      {path:'/sitemap-guias.xml',label:'Guías',count:counts.guides}
     ].map(item=>({...item,status:item.count>0?'ok':'empty'}));
 
     const warnings=[];
