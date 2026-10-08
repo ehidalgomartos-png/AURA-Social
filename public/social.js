@@ -2,6 +2,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let publicOrigin=location.origin.replace(/\/$/,'');
+let clientAppVersion='unknown';
 let currentMode = 'foryou';
 let feedRequestSequence = 0;
 let releaseFlags={support_center:true};
@@ -290,6 +291,7 @@ async function loadReleaseFlags(){
 
 async function loadPublicConfig(){
   const {r,d}=await api('/api/public-config',{dedupe:false});
+  if(r.ok && d.version)clientAppVersion=String(d.version).slice(0,32);
   if(r.ok && /^https?:\/\//i.test(String(d.origin||''))){
     publicOrigin=String(d.origin).replace(/\/$/,'');
   }
@@ -5587,31 +5589,60 @@ function startCommentReply(button) {
   if(submit)submit.textContent='Responder';
 }
 
-async function loadComments(postId) {
-  const list = $('#commentsList');
-  list.innerHTML = '<div class="comments-loading">Cargando comentarios...</div>';
-
-  const { r, d } = await api(`/api/posts/${postId}/comments`);
-  if (!r.ok) {
-    list.innerHTML = '<div class="info-card"><b>No se pudieron cargar los comentarios.</b></div>';
-    return;
-  }
-
-  list.innerHTML = d.comments?.length
-    ? d.comments.map(commentHTML).join('')
-    : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
-
-  all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
-  list.scrollTop = list.scrollHeight;
+// Prevent outdated requests from replacing a newly opened comment thread.
+let commentsRequestSequence=0;
+function commentsRequestIsCurrent(requestId,postId){
+  return requestId===commentsRequestSequence &&
+    String(activeCommentsPostId||'')===String(postId||'') &&
+    !$('#commentsModal')?.classList.contains('hidden');
 }
 
+async function loadComments(postId) {
+  const list=$('#commentsList');
+  if(!list)return;
+  const requestId=++commentsRequestSequence;
+  list.setAttribute('aria-busy','true');
+  list.innerHTML='<div class="comments-loading">Cargando comentarios...</div>';
+  try{
+    const {r,d}=await api('/api/posts/'+encodeURIComponent(postId)+'/comments',{dedupe:false});
+    if(!commentsRequestIsCurrent(requestId,postId))return;
+    if(!r.ok){
+      list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
+        '<b>No se pudieron cargar los comentarios.</b>'+
+        '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
+        '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
+      return;
+    }
+    list.innerHTML=Array.isArray(d.comments)&&d.comments.length
+      ? d.comments.map(commentHTML).join('')
+      : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
+    all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
+    list.scrollTop=list.scrollHeight;
+  }catch(_){
+    if(!commentsRequestIsCurrent(requestId,postId))return;
+    list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
+      '<b>No se pudieron cargar los comentarios.</b>'+
+      '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
+      '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
+  }finally{
+    if(commentsRequestIsCurrent(requestId,postId))list.setAttribute('aria-busy','false');
+  }
+}
+
+$('#commentsList')?.addEventListener('click',event=>{
+  if(!event.target.closest('[data-comments-retry]')||!activeCommentsPostId)return;
+  loadComments(activeCommentsPostId);
+});
+
 async function openComments(postId) {
-  activeCommentsPostId = Number(postId);
-  $('#commentBody').value = '';
-  $('#commentStatus').textContent = '';
+  const value=Number(postId);
+  if(!Number.isSafeInteger(value)||value<1)return;
+  activeCommentsPostId=value;
+  $('#commentBody').value='';
+  $('#commentStatus').textContent='';
   clearCommentReply();
   $('#commentsModal').classList.remove('hidden');
-  await loadComments(activeCommentsPostId);
+  await loadComments(value);
 }
 
 function openReport(postId) {
@@ -6260,16 +6291,36 @@ $('#confirmDeleteComment').onclick = async () => {
 };
 
 $('#closeCommentsModal').onclick = () => {
+  commentsRequestSequence++;
   $('#commentsModal').classList.add('hidden');
   activeCommentsPostId = null;
   clearCommentReply();
 };
 $('#cancelCommentReply')?.addEventListener('click',clearCommentReply);
 
+// Keep publication actions single-flight on slow mobile networks.
+const socialSubmittingForms=new WeakSet();
+async function runSocialSubmitOnce(form,action){
+  if(socialSubmittingForms.has(form))return;
+  socialSubmittingForms.add(form);
+  const buttons=[...form.querySelectorAll('button[type="submit"]')];
+  const initial=buttons.map(button=>button.disabled);
+  buttons.forEach(button=>{button.disabled=true;});
+  try{
+    return await action();
+  }finally{
+    buttons.forEach((button,index)=>{button.disabled=initial[index];});
+    socialSubmittingForms.delete(form);
+  }
+}
+
 $('#commentForm').addEventListener('submit', async event => {
   event.preventDefault();
+  return runSocialSubmitOnce(event.currentTarget,async()=>{
   if (!activeCommentsPostId) return;
 
+  const commentPostId=activeCommentsPostId;
+  const commentReplyId=activeCommentReply?.id || null;
   const body = $('#commentBody').value.trim();
   if (!body) return;
 
@@ -6280,12 +6331,12 @@ $('#commentForm').addEventListener('submit', async event => {
   $('#commentStatus').textContent = '';
 
   try {
-    const { r, d } = await api(`/api/posts/${activeCommentsPostId}/comments`, {
+    const { r, d } = await api(`/api/posts/${commentPostId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         body,
-        parentCommentId:activeCommentReply?.id || null
+        parentCommentId:commentReplyId
       })
     });
 
@@ -6295,7 +6346,9 @@ $('#commentForm').addEventListener('submit', async event => {
         : 'No se pudo publicar el comentario.');
     }
 
-    const wasReply=!!activeCommentReply;
+    // A previous request must not erase a draft in a different thread.
+    if(String(activeCommentsPostId||'')!==String(commentPostId))return;
+    const wasReply=!!commentReplyId;
     $('#commentBody').value = '';
     clearCommentReply();
     $('#commentStatus').textContent = wasReply ? 'Respuesta publicada.' : 'Comentario publicado.';
@@ -6308,6 +6361,7 @@ $('#commentForm').addEventListener('submit', async event => {
     button.disabled = false;
     button.textContent = original;
   }
+  });
 });
 
 $('#closeReportModal').onclick = () => {
@@ -8749,6 +8803,8 @@ document.addEventListener('click',async event=>{
 });
 
 function showView(name) {
+  const view=document.getElementById(String(name||'')+'View');
+  if(!view||!view.classList.contains('view'))return;
   const switching=name!==activeViewName;
   if(!switching){
     window.scrollTo({top:0,behavior:'smooth'});
@@ -8758,8 +8814,6 @@ function showView(name) {
   if(name!=='messages' && activeConversationId)sendChatPresence({typing:false,conversationId:null});
   if(name!=='reels')pauseReelVideos();
   all('.view').forEach(v => { v.classList.add('hidden'); v.setAttribute('aria-hidden','true'); });
-  const view = document.querySelector('#' + name + 'View');
-  if (!view) return;
   view.classList.remove('hidden');
   view.setAttribute('aria-hidden','false');
   activeViewName=name;
@@ -8905,7 +8959,12 @@ async function openModal() {
 function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = openModal); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');
+let postMediaPreviewUrl=null;
+function revokePostMediaPreview(){
+  if(postMediaPreviewUrl){URL.revokeObjectURL(postMediaPreviewUrl);postMediaPreviewUrl=null;}
+}
 function clearPostMedia() {
+  revokePostMediaPreview();
   const file = $('#mediaFile');
   if (file) file.value = '';
   currentFileMedia = null;
@@ -8922,7 +8981,9 @@ $('#mediaFile').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return clearPostMedia();
   currentFileMedia = null;
+  revokePostMediaPreview();
   const u = URL.createObjectURL(f);
+  postMediaPreviewUrl=u;
   $('#uploadText').classList.add('hidden');
   $('#removePostMedia')?.classList.remove('hidden');
   const p = $('#preview');
@@ -8945,7 +9006,7 @@ async function ensureUpload() {
   currentFileMedia = await uploadFile(f); return currentFileMedia;
 }
 $('#createForm').addEventListener('submit', async e => {
-  e.preventDefault(); const msg = $('#createMessage');
+  e.preventDefault(); return runSocialSubmitOnce(e.currentTarget,async()=>{ const msg = $('#createMessage');
   try {
     const fd = new FormData(e.target);
     const file = $('#mediaFile').files[0];
@@ -9092,8 +9153,9 @@ $('#createForm').addEventListener('submit', async e => {
     await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
 });
+});
 $('#storyForm').addEventListener('submit', async e => {
-  e.preventDefault(); const msg = $('#storyMessage');
+  e.preventDefault(); return runSocialSubmitOnce(e.currentTarget,async()=>{ const msg = $('#storyMessage');
   try {
     msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#createForm [name="contentLevel"]').value;
     const requestedAudience=$('#storyForm [name="audience"]')?.value || 'public';
@@ -9122,6 +9184,7 @@ $('#storyForm').addEventListener('submit', async e => {
     );
     toast(requestedAudience==='vip' ? 'Story VIP publicada durante 24 h' : requestedAudience==='close' ? 'Story publicada para Cercanas' : requestedAudience==='circles' ? 'Story publicada para tus círculos' : requestedAudience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
   } catch (err) { msg.textContent = err.message; }
+});
 });
 $('#shareInternalForm')?.addEventListener('submit', async event => {
   event.preventDefault();
@@ -9173,7 +9236,7 @@ function supportContext(){
     path:String(location.pathname||'/').slice(0,160),
     viewportClass:supportViewportClass(),
     online:navigator.onLine!==false,
-    appVersion:'1.72.0'
+    appVersion:clientAppVersion
   };
 }
 

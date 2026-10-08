@@ -22,3 +22,5 @@ jobs:
         run: npm run test:legal
       - name: Social, PWA and authentication smoke tests
         run: npm run test:smoke
+      - name: Mobile social experience regression tests
+        run: npm run test:social

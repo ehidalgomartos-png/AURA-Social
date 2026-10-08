@@ -723,3 +723,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - [ ] Probar en Android, iPhone (Safari) y escritorio antes de declarar estable la experiencia real.
 - [ ] Confirmar que multimedia está en un volumen persistente y existe un backup restaurable de PostgreSQL y ficheros.
 - [ ] No borrar/alterar datos existentes; mantener la V2.5 en `main` hasta aprobación del PR.
+
+
+## 56. Experiencia Social 3.0 — V2.7.0
+
+- [ ] Confirmar `/api/health` con `version:2.7.0`, `social-experience-3-v2.7`, `comment-retry-and-race-guard-v2.7` y `mobile-submit-safety-v2.7`.
+- [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke` y `npm run test:social`; revisar GitHub Actions.
+- [ ] En móvil, abrir comentarios sin red: aparece error y botón **Reintentar**; al recuperar conexión carga el hilo correcto.
+- [ ] Cambiar rápidamente de comentarios de una publicación a otra; una respuesta tardía no debe mostrar el hilo anterior.
+- [ ] Publicar comentarios y respuestas: pulsaciones rápidas no crean duplicados; errores conservan el borrador.
+- [ ] Probar Crear publicación y Story con varios toques en conexión lenta: no se envían varias veces y los botones vuelven al estado original.
+- [ ] Cerrar/reabrir vistas de comentarios durante peticiones y verificar que no aparecen contenidos anteriores.
+- [ ] Comprobar que cambiar la foto/vídeo de una publicación actualiza la previsualización y no mantiene imágenes antiguas.
+- [ ] Verificar navegación inferior (Inicio, Explorar, Comunidades, Mensajes, Perfil); destinos inválidos no dejan la pantalla vacía.
+- [ ] Enviar un ticket de ayuda de prueba y revisar que el contexto incluye la versión real del servidor.
+- [ ] Revisar Android Chrome, Safari iOS y escritorio con teclado, lectores de pantalla y conexiones deficientes.
+- [ ] Mantener los controles P0 de `AUDIT-V2.6.md` antes de considerar estable la experiencia de producción.
+- [ ] Confirmar que `src/routes/posts.js`, base de datos y monetización no cambian.
