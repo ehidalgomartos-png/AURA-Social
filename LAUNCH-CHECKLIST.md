@@ -583,3 +583,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que el footer no tapa la barra móvil fija de Crear cuenta / Entrar.
 - Revisar móvil y escritorio.
 - Confirmar que no cambian canonical, robots, sitemaps ni reglas de privacidad.
+
+
+## 47. Legal Consent Versioning & Audit Trail
+- Confirmar `/api/health` con versión 1.98.0 y features `legal-consent-versioning-v1.98` / `legal-consent-audit-v1.98`.
+- Crear una cuenta nueva aceptando el alta legal.
+- Confirmar tres filas en `legal_acceptances`:
+  - terms / 1.0 / accepted;
+  - community_guidelines / 1.0 / accepted;
+  - privacy / 1.0 / acknowledged.
+- Confirmar que las tres filas usan origen `registration` y fecha/hora del alta.
+- Confirmar que si la transacción de alta falla no quedan aceptaciones huérfanas.
+- Confirmar backfill de cuentas antiguas únicamente como terms / legacy / accepted / legacy-terms-column.
+- Confirmar que no se crean aceptaciones retroactivas de privacy o community_guidelines.
+- Descargar la exportación de datos y confirmar `legalAcceptances`.
+- Eliminar una cuenta de prueba y confirmar borrado en cascada de sus aceptaciones.
+- Confirmar registro normal sin regresiones.
