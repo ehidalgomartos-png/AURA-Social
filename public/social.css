@@ -6353,3 +6353,18 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .legal-receipt-download{grid-template-columns:minmax(0,1fr)}
   .legal-receipt-download button{width:100%}
 }
+
+/* V2.3 — readable and structured privacy export choices */
+.legal-receipt-buttons{
+  display:flex;
+  align-items:stretch;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.legal-receipt-buttons button{min-height:44px;white-space:normal}
+.legal-receipt-buttons button:disabled{opacity:.6;cursor:wait}
+@media(max-width:620px){
+  .legal-receipt-buttons{display:grid;grid-template-columns:minmax(0,1fr);width:100%}
+  .legal-receipt-buttons button{width:100%}
+}
