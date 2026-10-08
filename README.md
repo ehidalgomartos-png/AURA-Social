@@ -2336,3 +2336,16 @@ Mejoras recibidas de pruebas reales en móvil:
 - No altera aceptaciones ni requiere nuevo consentimiento; la exportación general de datos sigue disponible.
 - No cambia el esquema, las versiones legales 1.0, `src/routes/posts.js` ni monetización.
 - Validación automatizada: `npm run check:syntax` y `npm run test:legal`.
+
+
+## V2.3.0 — Registro legal legible e imprimible
+
+- En **Perfil → Más → Cuenta → Términos y privacidad**, la descarga dispone de dos opciones:
+  - **Descargar versión legible**: archivo HTML autocontenido, sin scripts ni dependencias externas, adaptado al móvil y a la impresión en A4.
+  - **Descargar JSON**: conserva intacto el formato estructurado de V2.2.
+- Ambos formatos consultan **los mismos registros reales** de la cuenta autenticada mediante `GET /api/auth/account/legal-consent/receipt`. El parámetro `format=html` activa la versión legible; sin formato sigue devolviendo JSON.
+- El HTML muestra usuario, alta, momento de generación (UTC), versiones actualmente vigentes y cada registro histórico con documento, versión, acción, origen y fecha.
+- Los datos variables se escapan en HTML y se limita el contenido ejecutable mediante CSP. El archivo no carga imágenes, scripts ni recursos externos; se sirve con `Content-Disposition: attachment`, `no-store` y `nosniff`.
+- Identifica `legacy` fielmente y advierte que **no es un certificado ni contiene los textos legales históricos**.
+- No modifica el registro legal ni las versiones actuales (1.0), esquema SQL, `src/routes/posts.js` ni monetización.
+- Pruebas: `npm run check:syntax` y `npm run test:legal` (incluidas ocho pruebas nuevas de HTML legible).
