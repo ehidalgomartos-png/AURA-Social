@@ -1203,6 +1203,60 @@ $('#securityEvents')?.addEventListener('click',async event=>{
 
 
 
+
+async function alertDeliveries(){
+  const summary=$('#alertDeliveryStatus'),list=$('#alertDeliveryList');
+  if(!summary||!list)return;
+  try{
+    const {r,d}=await api('/api/admin/ops/alert-deliveries');
+    if(!r.ok)throw new Error('alert_delivery_unavailable');
+    const config=d.config||{},counts=d.counts||{};
+    if(!config.enabled){
+      summary.textContent=config.configurationError
+        ?'Configuración del webhook no válida. Revisa la variable segura en Coolify.'
+        :'Envío externo desactivado. No se enviarán alertas hasta configurar OPS_ALERT_WEBHOOK_URL.';
+      list.textContent='Puedes seguir gestionando todas las incidencias desde la bandeja interna.';
+      return;
+    }
+    summary.innerHTML=[
+      ['Canal',config.provider==='discord'?'Discord':'Slack'],
+      ['Pendientes',counts.pending||0],['Entregadas',counts.sent||0],['Fallidas',counts.failed||0],
+      ['Último envío',timeLabel(config.lastSuccessAt)]
+    ].map(([label,value])=>'<div class="metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>').join('');
+    list.innerHTML=(d.deliveries||[]).map(item=>{
+      const id=esc(item.id);
+      return '<article class="report-card"><div><b>'+esc(item.title)+' · '+esc(item.status)+'</b>'+
+        '<p>Intentos: '+Math.max(0,Number(item.attempts||0))+' · '+esc(timeLabel(item.last_attempt_at))+
+        (item.last_error_code?' · Error: '+esc(item.last_error_code):'')+'</p>'+
+        (item.status==='failed'?'<label class="panel-copy">Motivo para reintentar'+
+        '<textarea maxlength="500" rows="2" data-delivery-note="'+id+'" placeholder="Qué has comprobado"></textarea></label>'+
+        '<button type="button" data-delivery-retry="'+id+'">Reintentar</button>':'')+
+        '</div></article>';
+    }).join('')||'<div class="empty-admin">Todavía no existen entregas externas.</div>';
+  }catch(_){
+    summary.textContent='No se pudo comprobar el estado de entrega.';
+    list.textContent='Puedes volver a intentarlo.';
+  }
+}
+$('#reloadAlertDeliveries')?.addEventListener('click',alertDeliveries);
+$('#alertDeliveryList')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-delivery-retry]');
+  if(!button)return;
+  const id=String(button.dataset.deliveryRetry||'');
+  if(!/^[0-9]+$/.test(id))return;
+  const note=String(document.querySelector('[data-delivery-note="'+CSS.escape(id)+'"]')?.value||'').trim();
+  if(note.length<3){setAdminNotice('Explica por qué reintentar (mínimo 3 caracteres).',true);return;}
+  button.disabled=true;
+  try{
+    const {r}=await api('/api/admin/ops/alert-deliveries/'+encodeURIComponent(id)+'/retry',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note})
+    });
+    if(!r.ok)throw Error('retry_failed');
+    setAdminNotice('Reintento programado para la siguiente comprobación.');
+    await alertDeliveries();
+  }catch(_){setAdminNotice('No se pudo programar el reintento.',true);button.disabled=false;}
+});
+
 function operationalAlertStatusLabel(status){
   return ({open:'Abierta',acknowledged:'En seguimiento',resolved:'Resuelta'})[status]||status;
 }
@@ -1351,5 +1405,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();

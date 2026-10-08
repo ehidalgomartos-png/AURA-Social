@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V2.15 · Alertas operativas</small></div>
+  <div><b>Moderación</b><small>V2.16 · Escalado operativo</small></div>
 </header>
 
 <main>
@@ -23,6 +23,19 @@
     <div id="metrics" class="metrics"></div>
   </section>
 
+  <section class="panel alert-delivery-v216" aria-labelledby="deliveryHeading">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">ESCALADO · V2.16</span>
+        <h2 id="deliveryHeading">Avisos externos de incidencias</h2>
+        <p class="panel-copy">Entrega opcional de incidencias críticas a Slack o Discord. Activación desde las variables seguras de Coolify.</p>
+      </div>
+      <button type="button" id="reloadAlertDeliveries">Actualizar</button>
+    </div>
+    <div id="alertDeliveryStatus" class="beta-metrics" aria-live="polite">Consultando configuración…</div>
+    <div id="alertDeliveryList" class="report-list"></div>
+    <p class="beta-privacy-note">No se envían datos de usuarios ni mensajes privados. Una caída completa del servidor requiere supervisión externa independiente.</p>
+  </section>
   <section class="panel operational-alerts-v215" aria-labelledby="operationalAlertsHeading">
     <div class="panel-head">
       <div>
