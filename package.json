@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "private": true,
-  "description": "RedLibertad V2.10 — categorías push elegidas por cada usuario y notificaciones sin leer fiables.",
+  "description": "RedLibertad V2.11 — protección antispam, límites distribuidos y alertas de seguridad.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,8 @@
     "test:social": "node --test tests/social-experience.test.js",
     "test:discovery": "node --test tests/discovery-v28.test.js",
     "test:activation": "node --test tests/activation-v29.test.js",
-    "test:notifications": "node --test tests/notifications-v210.test.js"
+    "test:notifications": "node --test tests/notifications-v210.test.js",
+    "test:security": "node --test tests/security-v211.test.js"
   },
   "engines": {
     "node": ">=20"
