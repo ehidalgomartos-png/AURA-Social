@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "private": true,
-  "description": "RedLibertad V3.0.3 — perfiles en pantalla principal, publicaciones completas y textos corregidos.",
+  "description": "RedLibertad V3.0.4 — auditoría de persistencia multimedia y sitemaps públicos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -15,6 +15,9 @@
     "smoke:production": "node scripts/smoke-http.js",
     "gate:config": "node scripts/launch-preflight-v300.js",
     "gate:public": "node scripts/release-gate-v300.js",
+    "gate:storage": "node scripts/storage-audit-v304.js",
+    "gate:seo": "node scripts/seo-sitemap-audit-v304.js",
+    "test:production-safety": "node --test tests/production-safety-v304.test.js",
     "test:launch-gates": "node --test tests/launch-gates-v300.test.js",
     "test:social": "node --test tests/social-experience.test.js",
     "test:discovery": "node --test tests/discovery-v28.test.js",
