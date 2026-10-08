@@ -4644,6 +4644,53 @@ function accountSummaryHTML(account) {
   </div>`;
 }
 
+function legalConsentDate(value){
+  if(!value)return 'Sin fecha';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return 'Sin fecha';
+  return date.toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function legalConsentHistoryHTML(items=[],documents={}){
+  const definitions=[
+    {key:'terms',label:'Términos de Uso',action:'accepted',actionLabel:'Aceptados',fallbackPath:'/terms/'},
+    {key:'community_guidelines',label:'Normas de la Comunidad',action:'accepted',actionLabel:'Aceptadas',fallbackPath:'/community-guidelines/'},
+    {key:'privacy',label:'Política de Privacidad',action:'acknowledged',actionLabel:'Leída',fallbackPath:'/privacy/'}
+  ];
+  const history=Array.isArray(items)?items:[];
+  const rows=definitions.map(def=>{
+    const currentVersion=String(documents?.[def.key]?.version || '');
+    const current=history.find(item=>
+      item.document_key===def.key &&
+      String(item.document_version)===currentVersion &&
+      item.action===def.action
+    );
+    const latest=history.find(item=>item.document_key===def.key);
+    const record=current || latest || null;
+    const isCurrent=Boolean(current);
+    const version=record ? String(record.document_version || '') : '';
+    const path=documents?.[def.key]?.path || def.fallbackPath;
+    const stateClass=isCurrent?'current':record?'historical':'missing';
+    const stateLabel=isCurrent?'Actual':record?'Histórico':'Sin registro';
+    const detail=record
+      ? `${def.actionLabel} · versión ${esc(version || 'sin versión')} · ${legalConsentDate(record.accepted_at)}`
+      : `No consta la versión actual (${esc(currentVersion || '—')}) en tu historial.`;
+    return `<article class="legal-consent-row ${stateClass}">
+      <div class="legal-consent-copy">
+        <div class="legal-consent-title"><b>${esc(def.label)}</b><span>${stateLabel}</span></div>
+        <small>${detail}</small>
+      </div>
+      <a class="tiny-action" href="${esc(path)}" target="_blank" rel="noopener">Ver texto</a>
+    </article>`;
+  }).join('');
+
+  const hasLegacy=history.some(item=>String(item.document_version)==='legacy');
+  const note=hasLegacy
+    ? '<p class="legal-consent-note">Los registros “legacy” conservan la aceptación histórica anterior al versionado legal. No significan que aceptaras documentos posteriores.</p>'
+    : '<p class="legal-consent-note">Este historial refleja las versiones registradas en tu cuenta. Los textos pueden consultarse en cualquier momento.</p>';
+  return rows+note;
+}
+
 function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
   const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
@@ -4771,6 +4818,7 @@ async function openAccountModal() {
   modal.classList.remove('hidden');
   $('#accountSummary').classList.add('skeleton');
   $('#accountSummary').innerHTML = '<div class="mini-loading">Cargando cuenta...</div>';
+  if($('#legalConsentHistory'))$('#legalConsentHistory').innerHTML='<div class="mini-loading">Cargando historial legal…</div>';
   $('#changePasswordStatus').textContent = '';
   $('#accountToolsStatus').textContent = '';
   $('#deleteAccountStatus').textContent = '';
@@ -4783,12 +4831,16 @@ async function openAccountModal() {
   if (!r.ok || !d.account) {
     $('#accountSummary').classList.remove('skeleton');
     $('#accountSummary').innerHTML = '<div class="info-card"><b>No se pudo cargar la cuenta.</b></div>';
+    if($('#legalConsentHistory'))$('#legalConsentHistory').innerHTML='<div class="info-card"><b>No se pudo cargar el historial legal.</b></div>';
     return;
   }
 
   const account = d.account;
   $('#accountSummary').classList.remove('skeleton');
   $('#accountSummary').innerHTML = accountSummaryHTML(account);
+  if($('#legalConsentHistory')){
+    $('#legalConsentHistory').innerHTML=legalConsentHistoryHTML(d.legalAcceptances,d.legalDocuments);
+  }
 
   const usernameInput = $('#deleteAccountUsername');
   if (usernameInput) usernameInput.placeholder = `@${account.username}`;
