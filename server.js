@@ -312,6 +312,9 @@ function publicEntryBarV192(type,key,pathValue){
   const login=publicEntryHrefV188(type,key,pathValue,'acceso');
   return `<div class="public-entry-spacer-v192" aria-hidden="true"></div><nav class="public-entry-bar-v192" aria-label="Acceso a RedLibertad"><a class="button" href="${escapeHtml(signup)}">Crear cuenta</a><a class="button ghost" href="${escapeHtml(login)}">Entrar</a></nav>`;
 }
+function publicLegalFooterV197(){
+  return `<footer class="public-legal-footer-v197"><div class="public-legal-brand">RedLibertad · 18+</div><nav aria-label="Información legal"><a href="/legal/">Aviso Legal</a><a href="/privacy/">Privacidad</a><a href="/cookies/">Cookies</a><a href="/terms/">Términos</a><a href="/community-guidelines/">Normas</a><a href="/moderation/">Moderación</a></nav><p class="public-legal-note">Libertad de expresión con límites de legalidad, seguridad y consentimiento.</p></footer>`;
+}
 function seoSlugV190(value=''){
   return String(value||'reel')
     .normalize('NFD')
@@ -413,7 +416,7 @@ app.get('/p/:id', async (req, res) => {
         relatedHtml=`<section class="shared-related"><div class="shared-related-head"><div><small>SEGUIR DESCUBRIENDO</small><h2>Más de ${escapeHtml(post.display_name)}</h2></div><a href="/perfil/${encodeURIComponent(post.username)}">Ver perfil →</a></div><div class="shared-related-grid">${relatedCards}</div></section>`;
       }
     }
-    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css"><script defer src="/public-share-v187.js"></script><style>
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${indexable?'index,follow,max-image-preview:large':'noindex,nofollow'}"><link rel="canonical" href="${escapeHtml(publicUrl)}"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="article"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(publicUrl)}"><meta property="og:image" content="${escapeHtml(ogImage)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeHtml(title)}"><meta name="twitter:description" content="${escapeHtml(description)}"><meta name="twitter:image" content="${escapeHtml(ogImage)}"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css"><link rel="stylesheet" href="/public-footer-v197.css"><script defer src="/public-share-v187.js"></script><style>
 .shared-page{min-height:100vh;padding:0 18px 28px;background:radial-gradient(circle at 92% 3%,rgba(239,94,85,.11),transparent 28rem),linear-gradient(180deg,#f8f5ef 0%,var(--ivory) 100%)}
 .shared-shell{width:min(760px,100%);margin:0 auto;padding-top:14px}
 .shared-topbar{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;padding:9px 12px;border:1px solid var(--line);border-radius:17px;background:rgba(255,253,249,.92);box-shadow:0 8px 24px rgba(13,34,56,.05)}
@@ -431,7 +434,7 @@ app.get('/p/:id', async (req, res) => {
 .shared-social-proof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 14px}.shared-social-proof span{padding:10px 8px;border-radius:13px;background:#f5f6f3;text-align:center}.shared-social-proof b,.shared-social-proof small{display:block}.shared-social-proof b{color:var(--navy);font-size:16px}.shared-social-proof small{margin-top:2px;color:var(--muted);font-size:9px}
 .shared-related{margin-top:16px;padding:18px;border:1px solid var(--line);border-radius:22px;background:rgba(255,253,249,.88)}.shared-related-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:12px}.shared-related-head small{color:var(--teal);font-size:8px;font-weight:900;letter-spacing:.12em}.shared-related-head h2{margin:3px 0 0;color:var(--navy);font:800 19px Manrope,sans-serif}.shared-related-head>a{font-size:11px;font-weight:800}.shared-related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.shared-related-card{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:var(--paper);color:inherit;text-decoration:none}.shared-related-media{height:88px;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,var(--navy),#173d58)}.shared-related-media img{width:100%;height:100%;object-fit:cover}.shared-related-placeholder{color:#fff;font:900 24px Manrope,sans-serif}.shared-related-copy{display:block;padding:10px}.shared-related-copy small,.shared-related-copy b,.shared-related-copy em{display:block}.shared-related-copy small{color:var(--teal);font-size:7px;font-weight:900;letter-spacing:.1em}.shared-related-copy b{margin-top:4px;color:var(--navy);font-size:11px;line-height:1.35}.shared-related-copy em{margin-top:6px;color:var(--muted);font-size:8px;font-style:normal}
 @media(max-width:620px){.shared-page{padding:0 10px 18px}.shared-shell{padding-top:8px}.shared-topbar{margin-bottom:10px;border-radius:15px}.shared-card{border-radius:20px}.shared-head{padding:14px}.shared-avatar{width:42px;height:42px;flex-basis:42px}.shared-text-post{margin:0 12px 2px;min-height:160px;padding:24px 18px;border-radius:17px}.shared-text-post p{font-size:clamp(22px,7vw,30px)}.shared-copy{padding:14px}.shared-join{margin-top:2px}.shared-actions{grid-template-columns:1fr}.shared-related{padding:14px;border-radius:18px}.shared-related-grid{grid-template-columns:1fr}.shared-related-card{display:grid;grid-template-columns:82px 1fr}.shared-related-media{height:100%;min-height:82px}.shared-public-label{font-size:8px}}
-</style></head><body><main class="shared-page"><div class="shared-shell"><header class="shared-topbar"><a class="shared-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><span class="shared-public-label">Contenido público</span></header><article class="shared-card"><div class="shared-head">${authorAvatar}<div class="shared-author"><div class="shared-author-line">${authorName}${creatorBadge}</div><small>@${escapeHtml(post.username)}${publishedLabel?' · '+escapeHtml(publishedLabel):''}</small></div></div>${media}<div class="shared-copy">${caption}${socialProof}<div class="shared-join"><b>Participa en la conversación</b><span>Crea tu cuenta para responder, seguir a este creador y descubrir más contenido.</span></div><span class="public-entry-inline-v192"><a class="button" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id)))}">Crear cuenta para participar</a><a class="button ghost" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id),'acceso'))}">Entrar y volver aquí</a></span><div class="shared-actions"><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></div></article>${relatedHtml}</div></main>${publicEntryBarV192('post',post.id,'/p/'+encodeURIComponent(post.id))}</body></html>`);
+</style></head><body><main class="shared-page"><div class="shared-shell"><header class="shared-topbar"><a class="shared-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><span class="shared-public-label">Contenido público</span></header><article class="shared-card"><div class="shared-head">${authorAvatar}<div class="shared-author"><div class="shared-author-line">${authorName}${creatorBadge}</div><small>@${escapeHtml(post.username)}${publishedLabel?' · '+escapeHtml(publishedLabel):''}</small></div></div>${media}<div class="shared-copy">${caption}${socialProof}<div class="shared-join"><b>Participa en la conversación</b><span>Crea tu cuenta para responder, seguir a este creador y descubrir más contenido.</span></div><span class="public-entry-inline-v192"><a class="button" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id)))}">Crear cuenta para participar</a><a class="button ghost" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id),'acceso'))}">Entrar y volver aquí</a></span><div class="shared-actions"><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></div></article>${relatedHtml}</div></main>${publicLegalFooterV197()}${publicEntryBarV192('post',post.id,'/p/'+encodeURIComponent(post.id))}</body></html>`);
   } catch (error) {
     console.error('RedLibertad public post error:', error);
     res.status(500).send('No se pudo cargar la publicación.');
@@ -521,7 +524,7 @@ app.get('/perfil/:username',async(req,res)=>{
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css"><link rel="stylesheet" href="/public-footer-v197.css">
   <script defer src="/public-share-v187.js"></script>
   ${structured}
   <style>
@@ -580,6 +583,7 @@ app.get('/perfil/:username',async(req,res)=>{
       </div>
     </article>
   </main>
+  ${publicLegalFooterV197()}
   ${publicEntryBarV192('profile',profile.username,'/perfil/'+encodeURIComponent(profile.username))}
 </body>
 </html>`);
@@ -744,7 +748,7 @@ app.get('/perfiles',async(req,res)=>{
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css"><link rel="stylesheet" href="/public-footer-v197.css">
   ${listStructured}
   <style>
     .directory-page{min-height:100vh;background:var(--bg);color:var(--navy)}
@@ -818,6 +822,7 @@ app.get('/perfiles',async(req,res)=>{
       </nav>
     </div>
   </main>
+  ${publicLegalFooterV197()}
 </body>
 </html>`);
   }catch(error){
@@ -1028,7 +1033,7 @@ async function renderPublicContentV179(req,res,{tag=null}={}){
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(origin+'/assets/og-redlibertad-v1922.jpg')}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css">
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/public-nav-v196.css"><link rel="stylesheet" href="/public-footer-v197.css">
   ${listStructured}
   <style>
     .public-content-page{min-height:100vh;background:var(--bg);color:var(--navy)}
@@ -1081,6 +1086,7 @@ async function renderPublicContentV179(req,res,{tag=null}={}){
       <nav class="public-content-pagination" aria-label="Paginación de publicaciones">${previous?`<a class="button ghost small" rel="prev" href="${escapeHtml(previous)}">← Anterior</a>`:''}<span class="public-content-page-label">Página ${page} de ${totalPages}</span>${next?`<a class="button ghost small" rel="next" href="${escapeHtml(next)}">Siguiente →</a>`:''}</nav>
     </div>
   </main>
+  ${publicLegalFooterV197()}
 </body>
 </html>`);
 }
