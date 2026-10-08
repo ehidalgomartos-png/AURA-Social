@@ -2,6 +2,7 @@
 
 // Optional external notification bridge; disabled unless a supported
 // Slack or Discord webhook is explicitly configured in Coolify.
+const {ensureOperationalAlerts}=require('./operational-alerts-v215');
 const DEFAULT_POLL_MS=120000;
 const MAX_ATTEMPTS=5;
 
@@ -62,7 +63,10 @@ function createAlertDeliveryService({db,url=process.env.OPS_ALERT_WEBHOOK_URL,
   let schema=null,working=null,timer=null,stopped=false,lastAttemptAt=null,lastSuccessAt=null;
 
   function ensureSchema(){
-    if(!schema) schema=ensureDeliverySchema(db).catch(error=>{schema=null;throw error;});
+    if(!schema) schema=(async()=>{
+      await ensureOperationalAlerts(db);
+      await ensureDeliverySchema(db);
+    })().catch(error=>{schema=null;throw error;});
     return schema;
   }
   function status(){
