@@ -3,21 +3,22 @@
 const express=require('express');
 const db=require('../db');
 const {requireAuth}=require('../middleware/auth');
-const router=express.Router();
 const SNOOZE_DAYS=7;
 const MAX_ITEMS=3;
 
+function createRetentionRouter({database=db,auth=requireAuth}={}){
+const router=express.Router();
 let schemaReady=null;
 function ensureRetentionSchema(){
   if(!schemaReady){
-    schemaReady=db.query(
+    schemaReady=database.query(
       "CREATE TABLE IF NOT EXISTS community_return_snoozes_v220 ("+
       "user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,"+
       "community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,"+
       "hidden_until TIMESTAMPTZ NOT NULL,"+
       "updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),"+
       "PRIMARY KEY(user_id,community_id))"
-    ).then(()=>db.query(
+    ).then(()=>database.query(
       'CREATE INDEX IF NOT EXISTS idx_community_return_snoozes_v220_user_until '+
       'ON community_return_snoozes_v220(user_id,hidden_until)'
     )).catch(error=>{schemaReady=null;throw error;});
@@ -36,11 +37,11 @@ function safeCommunityReturn(row){
   };
 }
 
-router.get('/retention/communities',requireAuth,async(req,res)=>{
+router.get('/retention/communities',auth,async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   try{
     await ensureRetentionSchema();
-    const result=await db.query(SUGGESTIONS_SQL,[req.user.id]);
+    const result=await database.query(SUGGESTIONS_SQL,[req.user.id]);
     res.json({
       items:result.rows.map(safeCommunityReturn),
       intervalDays:7,countIsExact:false,scope:'joined_communities_only',
@@ -49,13 +50,13 @@ router.get('/retention/communities',requireAuth,async(req,res)=>{
   }catch(_){res.status(503).json({error:'community_return_unavailable'});}
 });
 
-router.post('/retention/communities/:id/snooze',requireAuth,async(req,res)=>{
+router.post('/retention/communities/:id/snooze',auth,async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   const id=String(req.params.id||'');
   if(!/^[1-9][0-9]{0,17}$/.test(id))return res.status(400).json({error:'invalid_community_id'});
   try{
     await ensureRetentionSchema();
-    const result=await db.query(
+    const result=await database.query(
       "INSERT INTO community_return_snoozes_v220(user_id,community_id,hidden_until) "+
       "SELECT $1,c.id,now()+interval '7 days' FROM communities c "+
       "JOIN community_members cm ON cm.community_id=c.id AND cm.user_id=$1 "+
@@ -70,4 +71,6 @@ router.post('/retention/communities/:id/snooze',requireAuth,async(req,res)=>{
   }catch(_){res.status(503).json({error:'community_snooze_failed'});}
 });
 
-module.exports={router,SUGGESTIONS_SQL,safeCommunityReturn,ensureRetentionSchema,MAX_ITEMS,SNOOZE_DAYS};
+return router;
+}
+module.exports={router:createRetentionRouter(),createRetentionRouter,SUGGESTIONS_SQL,safeCommunityReturn,MAX_ITEMS,SNOOZE_DAYS};
