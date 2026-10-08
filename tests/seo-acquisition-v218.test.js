@@ -121,7 +121,7 @@ test('server mounts guide router before public catch-all and adds sitemap index 
   assert.match(src,/Allow: \/guias/);
   assert.match(src,/const APP_VERSION='2\.18\.0'/);
   assert.match(src,/seo-acquisition-guides-v2\.18/);
-}));
+});
 
 test('homepage links to guides from navigation and visitor orientation section',()=>{
   const html=read('public/index.html');
