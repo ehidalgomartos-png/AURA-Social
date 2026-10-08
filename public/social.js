@@ -4803,30 +4803,6 @@ function legalConsentHistoryHTML(items=[],documents={}){
   return rows+note+legalConsentTimelineHTML(history,definitions,documents);
 }
 
-// Delegated handlers survive account updates and do not contact the server.
-function updateLegalHistoryFilter(event){
-  const field=event.target.closest('[data-legal-history-filter]');
-  if(!field)return;
-  const key=field.dataset.legalHistoryFilter;
-  if(!['document','state','query'].includes(key))return;
-  legalHistoryFilterState[key]=String(field.value||'').slice(0,80);
-  applyLegalHistoryFilters();
-}
-$('#legalConsentHistory')?.addEventListener('input',updateLegalHistoryFilter);
-$('#legalConsentHistory')?.addEventListener('change',updateLegalHistoryFilter);
-$('#legalConsentHistory')?.addEventListener('click',event=>{
-  const reset=event.target.closest('[data-legal-history-clear]');
-  if(!reset)return;
-  legalHistoryFilterState.document='all';
-  legalHistoryFilterState.state='all';
-  legalHistoryFilterState.query='';
-  const timeline=$('#legalConsentHistory')?.querySelector('.legal-timeline');
-  timeline?.querySelectorAll('[data-legal-history-filter]').forEach(field=>{
-    field.value=field.dataset.legalHistoryFilter==='query'?'':'all';
-  });
-  applyLegalHistoryFilters();
-});
-
 $('#legalConsentHistory')?.addEventListener('change',event=>{
   const form=event.target.closest('form.legal-confirm-form');
   if(!form)return;
@@ -4858,6 +4834,30 @@ $('#legalConsentHistory')?.addEventListener('submit',async event=>{
     status.textContent='Error de conexión. Comprueba el estado de tu confirmación.';
     button.disabled=!checkbox.checked;
   }
+});
+
+// Delegated handlers survive account updates and do not contact the server.
+function updateLegalHistoryFilter(event){
+  const field=event.target.closest('[data-legal-history-filter]');
+  if(!field)return;
+  const key=field.dataset.legalHistoryFilter;
+  if(!['document','state','query'].includes(key))return;
+  legalHistoryFilterState[key]=String(field.value||'').slice(0,80);
+  applyLegalHistoryFilters();
+}
+$('#legalConsentHistory')?.addEventListener('input',updateLegalHistoryFilter);
+$('#legalConsentHistory')?.addEventListener('change',updateLegalHistoryFilter);
+$('#legalConsentHistory')?.addEventListener('click',event=>{
+  const reset=event.target.closest('[data-legal-history-clear]');
+  if(!reset)return;
+  legalHistoryFilterState.document='all';
+  legalHistoryFilterState.state='all';
+  legalHistoryFilterState.query='';
+  const timeline=$('#legalConsentHistory')?.querySelector('.legal-timeline');
+  timeline?.querySelectorAll('[data-legal-history-filter]').forEach(field=>{
+    field.value=field.dataset.legalHistoryFilter==='query'?'':'all';
+  });
+  applyLegalHistoryFilters();
 });
 
 function urlBase64ToUint8Array(base64String){
