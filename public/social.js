@@ -4675,12 +4675,20 @@ function legalConsentHistoryHTML(items=[],documents={}){
     const detail=record
       ? `${def.actionLabel} · versión ${esc(version || 'sin versión')} · ${legalConsentDate(record.accepted_at)}`
       : `No consta la versión actual (${esc(currentVersion || '—')}) en tu historial.`;
+    const pending=!isCurrent && Boolean(currentVersion);
+    const form=pending ? `<form class="legal-confirm-form" data-key="${esc(def.key)}" data-version="${esc(currentVersion)}">
+      <p>Versión actual: <b>${esc(currentVersion)}</b>. No consta tu confirmación.</p>
+      <label><input type="checkbox" required><span>${def.key==='privacy'?'He consultado la Política de Privacidad':'He leído y acepto este documento'} (versión ${esc(currentVersion)}).</span></label>
+      <button class="secondary" type="submit" disabled>${def.key==='privacy'?'Confirmar lectura':'Aceptar versión actual'}</button>
+      <small class="legal-confirm-status" role="status" aria-live="polite"></small>
+    </form>` : '';
     return `<article class="legal-consent-row ${stateClass}">
       <div class="legal-consent-copy">
         <div class="legal-consent-title"><b>${esc(def.label)}</b><span>${stateLabel}</span></div>
         <small>${detail}</small>
       </div>
-      <a class="tiny-action" href="${esc(path)}" target="_blank" rel="noopener">Ver texto</a>
+      <a class="tiny-action" href="${esc(path)}" target="_blank" rel="noopener noreferrer">Ver texto</a>
+      ${form}
     </article>`;
   }).join('');
 
@@ -4690,6 +4698,38 @@ function legalConsentHistoryHTML(items=[],documents={}){
     : '<p class="legal-consent-note">Este historial refleja las versiones registradas en tu cuenta. Los textos pueden consultarse en cualquier momento.</p>';
   return rows+note;
 }
+
+$('#legalConsentHistory')?.addEventListener('change',event=>{
+  const form=event.target.closest('form.legal-confirm-form');
+  if(!form)return;
+  form.querySelector('button').disabled=!form.querySelector('input').checked;
+});
+$('#legalConsentHistory')?.addEventListener('submit',async event=>{
+  const form=event.target.closest('form.legal-confirm-form');
+  if(!form)return;
+  event.preventDefault();
+  const button=form.querySelector('button'),checkbox=form.querySelector('input'),status=form.querySelector('.legal-confirm-status');
+  if(!checkbox.checked || button.disabled)return;
+  button.disabled=true; status.textContent='Registrando confirmación…';
+  try{
+    const {r,d}=await api('/api/auth/account/legal-consent',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({documentKey:form.dataset.key,documentVersion:form.dataset.version,confirmed:true})
+    });
+    if(!r.ok){
+      status.textContent=d.error==='legal_document_version_changed'?'La versión ha cambiado. Vuelve a abrir Cuenta.':'No se pudo guardar. Inténtalo de nuevo.';
+      button.disabled=!checkbox.checked; return;
+    }
+    const fresh=await api('/api/auth/account',{dedupe:false});
+    if(fresh.r.ok && fresh.d.account){
+      $('#legalConsentHistory').innerHTML=legalConsentHistoryHTML(fresh.d.legalAcceptances,fresh.d.legalDocuments);
+      toast('Confirmación registrada');
+    }else status.textContent='Confirmación registrada. Reabre Cuenta para actualizar.';
+  }catch(_){
+    status.textContent='Error de conexión. Comprueba el estado de tu confirmación.';
+    button.disabled=!checkbox.checked;
+  }
+});
 
 function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
