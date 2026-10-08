@@ -2349,3 +2349,18 @@ Mejoras recibidas de pruebas reales en móvil:
 - Identifica `legacy` fielmente y advierte que **no es un certificado ni contiene los textos legales históricos**.
 - No modifica el registro legal ni las versiones actuales (1.0), esquema SQL, `src/routes/posts.js` ni monetización.
 - Pruebas: `npm run check:syntax` y `npm run test:legal` (incluidas ocho pruebas nuevas de HTML legible).
+
+
+## V2.4.0 — Legal History Filters & Local Search
+
+- En **Perfil → Más → Cuenta → Términos y privacidad → Historial completo**, el usuario puede filtrar sus registros de aceptación/lectura:
+  - por documento: Términos de Uso, Normas de la Comunidad o Política de Privacidad;
+  - por estado: versión actual, histórica o `legacy`;
+  - por texto libre: versión, fecha, origen y datos visibles del registro.
+- Búsqueda sin distinción de mayúsculas y acentos; contador accesible de resultados y botón **Limpiar filtros**.
+- Se muestran filtros cuando el historial contiene al menos dos registros; con cero o uno no se añade complejidad.
+- Filtrado exclusivamente local (sin nuevas llamadas a la API, sin escrituras a PostgreSQL), compatible con el historial `legacy`, confirmación explícita y descargas HTML/JSON de V2.3.
+- Se mantiene la selección de filtros cuando el historial se refresca dentro de la misma sesión de pantalla.
+- Control mobile-first, elementos nativos de formulario y estado de resultados anunciado a lectores de pantalla.
+- No modifica los textos legales, las versiones vigentes (1.0), rutas del servidor, esquema, publicaciones ni monetización.
+- Pruebas: `npm run check:syntax` y `npm run test:legal` (9 nuevos casos de filtros).

@@ -4652,6 +4652,50 @@ function legalConsentDate(value){
 }
 
 
+// Filters are local to the signed-in account screen; they never change audit data.
+const legalHistoryFilterState={document:'all',state:'all',query:''};
+
+function legalHistoryNormalize(value){
+  return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
+}
+
+function legalHistoryRecordState(item,documents){
+  const version=String(item?.document_version||'');
+  if(version==='legacy')return 'legacy';
+  const current=String(documents?.[item?.document_key]?.version||'');
+  return current && version===current?'current':'historical';
+}
+
+function legalHistoryMatchesFilter(record,filters=legalHistoryFilterState){
+  if(filters.document && filters.document!=='all' && record.documentKey!==filters.document)return false;
+  if(filters.state && filters.state!=='all' && record.state!==filters.state)return false;
+  const query=legalHistoryNormalize(filters.query);
+  return !query || legalHistoryNormalize(record.searchText).includes(query);
+}
+
+function applyLegalHistoryFilters(){
+  const container=$('#legalConsentHistory');
+  const timeline=container?.querySelector('.legal-timeline');
+  if(!timeline)return;
+  const entries=[...timeline.querySelectorAll('.legal-history-item')];
+  // Do not apply a stale filter when the UI intentionally hides filters for <=1 row.
+  if(entries.length<=1){entries.forEach(item=>{item.hidden=false;});return;}
+  let shown=0;
+  entries.forEach(item=>{
+    const visible=legalHistoryMatchesFilter({
+      documentKey:item.dataset.legalDocument,
+      state:item.dataset.legalState,
+      searchText:item.textContent
+    });
+    item.hidden=!visible;
+    if(visible)shown++;
+  });
+  const count=timeline.querySelector('.legal-timeline-count');
+  if(count)count.textContent='Mostrando '+shown+' de '+entries.length+' registros';
+  const empty=timeline.querySelector('.legal-timeline-filter-empty');
+  if(empty)empty.hidden=shown!==0;
+}
+
 function legalConsentTimelineHTML(items,definitions,documents){
   const byKey=new Map(definitions.map(def=>[def.key,def]));
   const records=(Array.isArray(items)?items:[])
@@ -4670,24 +4714,44 @@ function legalConsentTimelineHTML(items,definitions,documents){
   const entries=records.map(item=>{
     const def=byKey.get(item.document_key);
     const version=String(item.document_version||'sin versión');
-    const current=String(documents?.[item.document_key]?.version||'');
-    const isLegacy=version==='legacy';
-    const isCurrent=!isLegacy && current && version===current;
-    const relation=isLegacy?'Legacy':isCurrent?'Versión actual':'Versión histórica';
+    const state=legalHistoryRecordState(item,documents);
+    const relation=state==='legacy'?'Legacy':state==='current'?'Versión actual':'Versión histórica';
     const action=def.key==='privacy'?'Lectura reconocida':'Aceptación registrada';
     const source=sourceLabel[item.source]||'Origen no identificado';
-    return '<li class="legal-history-item">'+
+    return '<li class="legal-history-item" data-legal-document="'+esc(def.key)+'" data-legal-state="'+esc(state)+'">'+
       '<div class="legal-history-item-head"><b>'+esc(def.label)+'</b>'+
       '<span>'+esc(relation)+'</span></div>'+
       '<p>'+esc(action)+' · versión '+esc(version)+' · '+esc(legalConsentDate(item.accepted_at))+'</p>'+
       '<small>'+esc(source)+'</small>'+
-      (isLegacy?'<small>Sin aceptación registrada de versiones posteriores.</small>':'')+
+      (state==='legacy'?'<small>Sin aceptación registrada de versiones posteriores.</small>':'')+
     '</li>';
   }).join('');
   const summary=records.length===1?'1 registro':String(records.length)+' registros';
+  const option=(value,label,current)=>
+    '<option value="'+esc(value)+'"'+(current===value?' selected':'')+'>'+esc(label)+'</option>';
+  const filters=records.length>1 ?
+    '<div class="legal-timeline-filters" role="group" aria-label="Filtros del historial legal">'+
+      '<label>Documento<select data-legal-history-filter="document">'+
+        option('all','Todos los documentos',legalHistoryFilterState.document)+
+        definitions.map(def=>option(def.key,def.label,legalHistoryFilterState.document)).join('')+
+      '</select></label>'+
+      '<label>Estado<select data-legal-history-filter="state">'+
+        option('all','Todos los estados',legalHistoryFilterState.state)+
+        option('current','Versión actual',legalHistoryFilterState.state)+
+        option('historical','Históricos',legalHistoryFilterState.state)+
+        option('legacy','Legacy',legalHistoryFilterState.state)+
+      '</select></label>'+
+      '<label class="legal-timeline-search">Buscar en el historial'+
+        '<input type="search" data-legal-history-filter="query" maxlength="80" autocomplete="off"'+
+        ' placeholder="Versión, fecha u origen" value="'+esc(legalHistoryFilterState.query)+'"></label>'+
+      '<button type="button" class="secondary legal-timeline-clear" data-legal-history-clear>Limpiar filtros</button>'+
+    '</div>'+
+    '<p class="legal-timeline-count" role="status" aria-live="polite">Mostrando '+records.length+' de '+records.length+' registros</p>'+
+    '<p class="legal-timeline-filter-empty" hidden>No hay registros que coincidan con esos filtros.</p>' : '';
   return '<details class="legal-timeline" aria-label="Historial de consentimientos legales">'+
     '<summary>Historial completo · '+summary+'</summary>'+
     '<p class="legal-timeline-hint">Los enlaces «Ver texto actual» muestran los documentos vigentes, no una copia archivada de cada versión histórica.</p>'+
+    filters+
     (records.length?'<ol class="legal-history-list">'+entries+'</ol>':
       '<p class="legal-timeline-empty">Todavía no constan confirmaciones legales registradas.</p>')+
     '</details>';
@@ -4765,12 +4829,37 @@ $('#legalConsentHistory')?.addEventListener('submit',async event=>{
     const fresh=await api('/api/auth/account',{dedupe:false});
     if(fresh.r.ok && fresh.d.account){
       $('#legalConsentHistory').innerHTML=legalConsentHistoryHTML(fresh.d.legalAcceptances,fresh.d.legalDocuments);
+      applyLegalHistoryFilters();
       toast('Confirmación registrada');
     }else status.textContent='Confirmación registrada. Reabre Cuenta para actualizar.';
   }catch(_){
     status.textContent='Error de conexión. Comprueba el estado de tu confirmación.';
     button.disabled=!checkbox.checked;
   }
+});
+
+// Delegated handlers survive account updates and do not contact the server.
+function updateLegalHistoryFilter(event){
+  const field=event.target.closest('[data-legal-history-filter]');
+  if(!field)return;
+  const key=field.dataset.legalHistoryFilter;
+  if(!['document','state','query'].includes(key))return;
+  legalHistoryFilterState[key]=String(field.value||'').slice(0,80);
+  applyLegalHistoryFilters();
+}
+$('#legalConsentHistory')?.addEventListener('input',updateLegalHistoryFilter);
+$('#legalConsentHistory')?.addEventListener('change',updateLegalHistoryFilter);
+$('#legalConsentHistory')?.addEventListener('click',event=>{
+  const reset=event.target.closest('[data-legal-history-clear]');
+  if(!reset)return;
+  legalHistoryFilterState.document='all';
+  legalHistoryFilterState.state='all';
+  legalHistoryFilterState.query='';
+  const timeline=$('#legalConsentHistory')?.querySelector('.legal-timeline');
+  timeline?.querySelectorAll('[data-legal-history-filter]').forEach(field=>{
+    field.value=field.dataset.legalHistoryFilter==='query'?'':'all';
+  });
+  applyLegalHistoryFilters();
 });
 
 function urlBase64ToUint8Array(base64String){
@@ -4922,6 +5011,7 @@ async function openAccountModal() {
   $('#accountSummary').innerHTML = accountSummaryHTML(account);
   if($('#legalConsentHistory')){
     $('#legalConsentHistory').innerHTML=legalConsentHistoryHTML(d.legalAcceptances,d.legalDocuments);
+    applyLegalHistoryFilters();
   }
 
   const usernameInput = $('#deleteAccountUsername');

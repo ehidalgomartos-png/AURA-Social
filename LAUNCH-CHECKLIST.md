@@ -672,3 +672,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Verificar `?format=html`, `?format=json`, formato omitido y `?format=otro` (400).
 - Comprobar `Content-Disposition: attachment`, `Cache-Control: private, no-store`, `Content-Security-Policy` para HTML y `X-Content-Type-Options: nosniff`.
 - Ejecutar `npm run check:syntax` y `npm run test:legal`, confirmar que no se ha cambiado `src/routes/posts.js` ni SQL.
+
+
+## 53. Legal History Filters & Local Search — V2.4.0
+
+- Revisar /api/health con 2.4.0, `legal-history-filters-v2.4` y `local-legal-history-search-v2.4`.
+- Abrir una cuenta con 2+ registros legales. Expandir Historial completo y verificar filtros Documento, Estado y búsqueda.
+- Seleccionar solo Términos; combinar con Histórico o Legacy y comprobar el contador.
+- Buscar «términos» / «TERMINOS»: deben dar los mismos resultados.
+- Buscar una versión y una fecha; comprobar que filtra por texto mostrado, sin afectar la base de datos.
+- Seleccionar filtros incompatibles y comprobar «No hay registros...» y el contador 0.
+- Pulsar «Limpiar filtros» y comprobar que vuelven a mostrarse todos los registros.
+- En cuentas con 0/1 registro, comprobar que no aparecen filtros innecesarios.
+- Verificar que confirmaciones expresas actuales siguen funcionando y que los registros `legacy` mantienen su condición histórica.
+- Comprobar diseño y operación con teclado/tacto en móvil y escritorio; estado de resultados accesible.
+- Descargar HTML y JSON y comprobar que contienen los registros completos, independientemente del filtro visual.
+- Ejecutar `npm run check:syntax` y `npm run test:legal`.
+- Confirmar que `src/routes/posts.js`, SQL y sistema de monetización siguen intactos.
