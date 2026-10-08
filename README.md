@@ -2227,3 +2227,30 @@ Mejoras recibidas de pruebas reales en móvil:
   - páginas públicas dinámicas generadas por server.js.
 - Estilos compartidos en `public/public-nav-v196.css` para evitar divergencias futuras.
 - Sin cambios de base de datos ni en `src/routes/posts.js`.
+
+
+## V1.97.0 — Public Legal Footer & Trust Polish
+
+- Añade un footer legal y de confianza consistente a todas las superficies públicas.
+- Enlaces incluidos:
+  - Aviso Legal;
+  - Privacidad;
+  - Cookies;
+  - Términos;
+  - Normas de la Comunidad;
+  - Moderación.
+- Añade mensaje de confianza: “Libertad de expresión con límites de legalidad, seguridad y consentimiento.”
+- Aplica a:
+  - perfiles públicos;
+  - publicaciones y hashtags;
+  - comunidades;
+  - eventos;
+  - Reels y Multimedia;
+  - búsqueda;
+  - descubrir;
+  - temas;
+  - historias;
+  - páginas públicas de detalle generadas por `server.js`.
+- Estilos compartidos en `public/public-footer-v197.css`.
+- Compatible con la barra móvil de entrada pública V1.92.
+- Sin cambios de base de datos ni en `src/routes/posts.js`.
