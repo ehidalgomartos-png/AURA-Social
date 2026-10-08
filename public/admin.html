@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V2.14 · Centro de recuperación</small></div>
+  <div><b>Moderación</b><small>V2.15 · Alertas operativas</small></div>
 </header>
 
 <main>
@@ -23,6 +23,28 @@
     <div id="metrics" class="metrics"></div>
   </section>
 
+  <section class="panel operational-alerts-v215" aria-labelledby="operationalAlertsHeading">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">ALERTAS OPERATIVAS · V2.15</span>
+        <h2 id="operationalAlertsHeading">Bandeja de incidencias técnicas</h2>
+        <p class="panel-copy">Alertas automáticas de errores, latencia, PostgreSQL y multimedia. Se agrupan por causa; solo los administradores pueden reconocerlas o cerrarlas.</p>
+      </div>
+      <div class="panel-tools">
+        <select id="operationalAlertStatus" aria-label="Filtrar alertas técnicas">
+          <option value="active">Por atender</option>
+          <option value="open">Abiertas</option>
+          <option value="acknowledged">En seguimiento</option>
+          <option value="resolved">Resueltas</option>
+          <option value="all">Todas</option>
+        </select>
+        <button id="reloadOperationalAlerts" type="button">Actualizar</button>
+      </div>
+    </div>
+    <p class="beta-privacy-note" id="operationalAlertSummary" role="status">Consultando incidencias…</p>
+    <div id="operationalAlertList" class="report-list" aria-live="polite"></div>
+    <p class="beta-privacy-note">Las alertas se comprueban cada 2 minutos mientras esté activo el servidor. No envían mensajes a usuarios ni realizan sanciones automáticas. La indisponibilidad total requiere vigilancia externa desde Coolify.</p>
+  </section>
   <section class="panel recovery-v214-panel" aria-labelledby="recoveryTitle">
     <div class="panel-head">
       <div>
