@@ -6919,6 +6919,7 @@ function notificationIcon(type) {
 
 function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
+  if (filter === 'unread') return !notification.read_at;
   if (filter === 'mentions') return ['mention','circle_mention'].includes(notification.type);
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
@@ -6947,10 +6948,16 @@ function renderNotifications() {
       const notification = notificationCache.find(n => String(n.id) === String(id));
 
       if (notification && !notification.read_at) {
-        await api(`/api/notifications/${id}/read`, { method: 'POST' });
-        notification.read_at = new Date().toISOString();
-        item.classList.remove('unread');
-        updateNotificationBadge(notificationCache.filter(n => !n.read_at).length);
+        const {r,d}=await api(`/api/notifications/${id}/read`,{method:'POST'});
+        if(r.ok){
+          notification.read_at=new Date().toISOString();
+          liveActivityState.notificationUnread=Number(d.unread||0);
+          updateNotificationBadge(liveActivityState.notificationUnread);
+          if(activeNotificationFilter==='unread')renderNotifications();
+          else item.classList.remove('unread');
+        }else{
+          toast('No se pudo marcar como leída. Puedes intentarlo de nuevo.');
+        }
       }
 
       if (notification) await navigateNotification(notification);
@@ -7090,11 +7097,22 @@ $('#messageConversationSearch')?.addEventListener('input',event=>{
 });
 
 $('#readAllNotifications').onclick = async () => {
-  await api('/api/notifications/read-all', { method: 'POST' });
-  notificationCache = notificationCache.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }));
-  updateNotificationBadge(0);
-  renderNotifications();
-  toast('Notificaciones marcadas como leídas');
+  const button=$('#readAllNotifications');
+  if(button?.disabled)return;
+  if(button)button.disabled=true;
+  try{
+    const {r}=await api('/api/notifications/read-all',{method:'POST'});
+    if(!r.ok)throw Error('read_all_failed');
+    notificationCache=notificationCache.map(n=>({...n,read_at:n.read_at||new Date().toISOString()}));
+    liveActivityState.notificationUnread=0;
+    updateNotificationBadge(0);
+    renderNotifications();
+    toast('Notificaciones marcadas como leídas');
+  }catch(_){
+    toast('No se pudieron marcar como leídas. Inténtalo de nuevo.');
+  }finally{
+    if(button)button.disabled=false;
+  }
 };
 
 function conversationListIdentity(conversation){
