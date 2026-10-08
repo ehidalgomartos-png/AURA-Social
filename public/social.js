@@ -4818,7 +4818,7 @@ function legalConsentHistoryHTML(items=[],documents={}){
       String(item.document_version)===currentVersion &&
       item.action===def.action
     );
-    const latest=history.find(item=>item.document_key===def.key);
+    const latest=history.find(item=>item.document_key===def.key && item.action===def.action);
     const record=current || latest || null;
     const isCurrent=Boolean(current);
     const version=record ? String(record.document_version || '') : '';
