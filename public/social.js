@@ -1412,6 +1412,56 @@ function returnPulseCard(label,value,action,detail='') {
   </button>`;
 }
 
+
+function communityReturnCard(item){
+  const id=String(item.communityId||'');
+  if(!/^[1-9][0-9]*$/.test(id))return '';
+  const n=Math.max(0,Math.min(10,Number(item.recentCount)||0));
+  const count=n===10?'Hasta 10 publicaciones recientes':n===1?'1 publicación reciente':n+' publicaciones recientes';
+  return '<article class="community-return-card" data-community-return="'+esc(id)+'">'+
+    '<b>'+esc(item.name||'Comunidad')+'</b>'+
+    '<small>'+esc(count)+' durante los últimos 7 días</small>'+
+    '<div class="community-return-actions">'+
+    '<button class="primary" type="button" data-community-return-open="'+esc(id)+'">Ver comunidad</button>'+
+    '<button class="community-return-snooze" type="button" data-community-return-snooze="'+esc(id)+'" aria-label="Ocultar '+esc(item.name||'comunidad')+' durante 7 días">Ocultar 7 días</button>'+
+    '</div></article>';
+}
+async function loadCommunityReturn(){
+  const section=$('#communityReturn'),list=$('#communityReturnList');
+  if(!section||!list)return;
+  const {r,d}=await api('/api/growth/retention/communities');
+  if(!r.ok){
+    section.classList.add('hidden');
+    return;
+  }
+  const items=Array.isArray(d.items)?d.items.slice(0,3):[];
+  list.innerHTML=items.map(communityReturnCard).join('');
+  section.classList.toggle('hidden',!list.children.length);
+}
+$('#communityReturnRefresh')?.addEventListener('click',loadCommunityReturn);
+$('#communityReturnList')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-community-return-open],[data-community-return-snooze]');
+  if(!button)return;
+  const id=String(button.dataset.communityReturnOpen||button.dataset.communityReturnSnooze||'');
+  if(!/^[1-9][0-9]{0,17}$/.test(id))return;
+  event.preventDefault();
+  if(button.dataset.communityReturnOpen){
+    showView('communities');
+    await openCommunityDetail(id);
+    return;
+  }
+  button.disabled=true;
+  const {r}=await api('/api/growth/retention/communities/'+encodeURIComponent(id)+'/snooze',{method:'POST'});
+  if(!r.ok){
+    button.disabled=false;
+    toast('No se pudo ocultar esta sugerencia.');
+    return;
+  }
+  button.closest('[data-community-return]')?.remove();
+  if(!$('#communityReturnList')?.children.length)$('#communityReturn')?.classList.add('hidden');
+  toast('No te mostraremos esta comunidad aquí durante 7 días.');
+});
+
 async function loadReturnPulse(force=false) {
   const section=$('#returnPulse');
   const grid=$('#returnPulseGrid');
@@ -9034,7 +9084,7 @@ function showView(name) {
     live.textContent='Sección '+title;
   }
   if(switching)restoreViewScroll(name);
-  if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); }
+  if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); loadCommunityReturn(); }
   if (name === 'explore') loadExplore();
   if (name === 'connections') loadConnectionsCenter();
   if (name === 'communities') {
@@ -9583,7 +9633,7 @@ async function handleInitialDeepLink() {
     await loadMe();
     await loadReleaseFlags();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel()]);
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel(), loadCommunityReturn()]);
     startLiveActivity();
     startPresenceHeartbeat();
     syncVisualViewport();
