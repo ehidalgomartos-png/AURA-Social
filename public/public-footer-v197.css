@@ -1,0 +1,62 @@
+/*
+ * RedLibertad V1.97 — Public Legal Footer & Trust Polish
+ */
+.public-legal-footer-v197{
+  width:min(1180px,calc(100% - 32px));
+  margin:28px auto 0;
+  padding:18px 0 28px;
+  border-top:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px 18px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:11px;
+}
+.public-legal-footer-v197 .public-legal-brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--navy);
+  font-weight:900;
+}
+.public-legal-footer-v197 nav{
+  display:flex;
+  gap:8px 14px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.public-legal-footer-v197 a{
+  color:var(--muted);
+  text-decoration:none;
+  font-weight:700;
+}
+.public-legal-footer-v197 a:hover,
+.public-legal-footer-v197 a:focus-visible{
+  color:var(--navy);
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.public-legal-footer-v197 .public-legal-note{
+  flex-basis:100%;
+  margin:0;
+  color:var(--muted);
+  line-height:1.45;
+}
+@media(max-width:760px){
+  .public-legal-footer-v197{
+    width:calc(100% - 20px);
+    margin-top:22px;
+    padding:16px 0 calc(22px + env(safe-area-inset-bottom));
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .public-legal-footer-v197 nav{
+    justify-content:flex-start;
+    gap:10px 13px;
+  }
+  .public-legal-footer-v197 .public-legal-note{
+    font-size:10px;
+  }
+}
