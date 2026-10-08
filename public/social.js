@@ -6296,8 +6296,25 @@ $('#closeCommentsModal').onclick = () => {
 };
 $('#cancelCommentReply')?.addEventListener('click',clearCommentReply);
 
+// Keep publication actions single-flight on slow mobile networks.
+const socialSubmittingForms=new WeakSet();
+async function runSocialSubmitOnce(form,action){
+  if(socialSubmittingForms.has(form))return;
+  socialSubmittingForms.add(form);
+  const buttons=[...form.querySelectorAll('button[type="submit"]')];
+  const initial=buttons.map(button=>button.disabled);
+  buttons.forEach(button=>{button.disabled=true;});
+  try{
+    return await action();
+  }finally{
+    buttons.forEach((button,index)=>{button.disabled=initial[index];});
+    socialSubmittingForms.delete(form);
+  }
+}
+
 $('#commentForm').addEventListener('submit', async event => {
   event.preventDefault();
+  return runSocialSubmitOnce(event.currentTarget,async()=>{
   if (!activeCommentsPostId) return;
 
   const body = $('#commentBody').value.trim();
@@ -6338,6 +6355,7 @@ $('#commentForm').addEventListener('submit', async event => {
     button.disabled = false;
     button.textContent = original;
   }
+  });
 });
 
 $('#closeReportModal').onclick = () => {
@@ -8975,7 +8993,7 @@ async function ensureUpload() {
   currentFileMedia = await uploadFile(f); return currentFileMedia;
 }
 $('#createForm').addEventListener('submit', async e => {
-  e.preventDefault(); const msg = $('#createMessage');
+  e.preventDefault(); return runSocialSubmitOnce(e.currentTarget,async()=>{ const msg = $('#createMessage');
   try {
     const fd = new FormData(e.target);
     const file = $('#mediaFile').files[0];
@@ -9122,8 +9140,9 @@ $('#createForm').addEventListener('submit', async e => {
     await loadGrowthPanel();
   } catch (err) { msg.textContent = err.message; }
 });
+});
 $('#storyForm').addEventListener('submit', async e => {
-  e.preventDefault(); const msg = $('#storyMessage');
+  e.preventDefault(); return runSocialSubmitOnce(e.currentTarget,async()=>{ const msg = $('#storyMessage');
   try {
     msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#createForm [name="contentLevel"]').value;
     const requestedAudience=$('#storyForm [name="audience"]')?.value || 'public';
@@ -9152,6 +9171,7 @@ $('#storyForm').addEventListener('submit', async e => {
     );
     toast(requestedAudience==='vip' ? 'Story VIP publicada durante 24 h' : requestedAudience==='close' ? 'Story publicada para Cercanas' : requestedAudience==='circles' ? 'Story publicada para tus círculos' : requestedAudience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
   } catch (err) { msg.textContent = err.message; }
+});
 });
 $('#shareInternalForm')?.addEventListener('submit', async event => {
   event.preventDefault();
