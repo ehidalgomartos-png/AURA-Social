@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install app dependencies for HTTP route integration tests
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
       - name: Legal timeline regression tests
@@ -28,6 +30,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: SEO acquisition, public guides and signup safety tests
+        run: npm run test:seo-acquisition
       - name: Safe release verification and smoke regression tests
         run: npm run test:release-verification
       - name: Optional operational alert delivery regression tests

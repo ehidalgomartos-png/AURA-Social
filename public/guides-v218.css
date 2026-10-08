@@ -1,0 +1,48 @@
+/* V2.18: mobile-first editorial landings; no external fonts or trackers. */
+:root{color-scheme:light;--g-bg:#f8fafc;--g-ink:#10243a;--g-muted:#516579;--g-primary:#087f77;--g-border:#dfe7ee;--g-card:#fff}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--g-bg);color:var(--g-ink);font:16px/1.68 system-ui,-apple-system,Segoe UI,sans-serif}
+a{color:#08736b}
+a:hover{text-decoration:underline}
+a:focus-visible{outline:3px solid #129d91;outline-offset:3px;border-radius:4px}
+.guide-skip{position:absolute;top:-60px;left:12px;background:#fff;padding:10px;z-index:50}
+.guide-skip:focus{top:12px}
+.guide-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px max(16px,calc((100% - 1120px)/2));border-bottom:1px solid var(--g-border);background:#fff}
+.guide-brand{display:flex;align-items:center;gap:8px;text-decoration:none;font-weight:850;color:var(--g-ink)}
+.guide-brand img{width:33px;height:33px}
+.guide-header nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.guide-header nav a{font-size:14px;font-weight:650}
+.guide-container{max-width:970px;margin:0 auto;padding:22px 16px 70px}
+.guide-container nav[aria-label="Ruta de navegación"]{font-size:13px;color:var(--g-muted);margin-bottom:18px}
+.guide-hero{background:linear-gradient(145deg,#f6fffc,#eaf5fc);border:1px solid #d8e9e6;border-radius:22px;padding:28px 22px;margin:0 0 28px}
+.guide-eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:800;color:#147b74}
+h1,h2{line-height:1.2;letter-spacing:-.02em}
+h1{font-size:clamp(30px,5.5vw,50px);max-width:760px;margin:10px 0 18px}
+h2{font-size:clamp(22px,3vw,29px)}
+p{max-width:74ch}
+.guide-hero p{font-size:17px;color:var(--g-muted);margin-bottom:22px}
+.guide-button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 18px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:750;background:var(--g-primary);color:#fff}
+.guide-button:hover{background:#096a65;color:#fff;text-decoration:none}
+.guide-button-ghost{background:#fff;border:1px solid var(--g-primary);color:var(--g-primary)}
+.guide-button-ghost:hover{color:#fff}
+.guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.guide-card{border:1px solid var(--g-border);border-radius:18px;background:var(--g-card);padding:20px;box-shadow:0 6px 22px rgba(16,36,58,.04)}
+.guide-card h2{font-size:20px;margin:0 0 12px}
+.guide-card h2 a{color:var(--g-ink);text-decoration:none}
+.guide-card p{color:var(--g-muted);font-size:15px}
+.guide-inline-link{display:inline-block;font-weight:750;margin:5px 0 10px}
+.guide-article{max-width:790px;margin:auto}
+.guide-section{padding:18px 0 22px;border-bottom:1px solid var(--g-border)}
+.guide-section h2{margin:8px 0 16px}
+.guide-section p{color:#354a5b}
+.guide-next{border:1px solid #bbd9d4;border-radius:18px;background:#eaf7f4;padding:24px;margin-top:30px}
+.guide-next h2{margin-top:0}
+.guide-actions{display:flex;gap:10px;flex-wrap:wrap}
+.guide-related{margin-top:38px}
+.guide-footer{border-top:1px solid var(--g-border);padding:25px 16px;text-align:center;color:var(--g-muted);background:#fff;font-size:13px}
+.guide-footer p{margin:0 auto 10px}
+.guide-footer nav{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:10px 0}
+@media(max-width:750px){.guide-grid{grid-template-columns:1fr}.guide-header{padding:10px 12px}.guide-header nav{gap:8px}.guide-hero{padding:22px 17px}.guide-container{padding:18px 12px 50px}.guide-header nav a:nth-child(2){display:none}}
+@media(max-width:390px){.guide-header nav a:not(.guide-button){display:none}.guide-hero p{font-size:16px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

@@ -187,7 +187,7 @@ const registerSchema = z.object({
   entryPath: z.string().max(280).optional().default('')
 });
 
-const PUBLIC_ENTRY_TYPES=new Set(['profile','post','community','event','reel','topic','story']);
+const PUBLIC_ENTRY_TYPES=new Set(['profile','post','community','event','reel','topic','story','guide']);
 function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
   const type=String(entryType||'').trim().toLowerCase();
   const key=String(entryKey||'').trim().slice(0,120);
@@ -200,6 +200,7 @@ function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
     event:/^\/evento\/\d+(?:\/[a-z0-9-]{1,100})?$/,
     reel:/^\/reel\/\d+(?:\/[a-z0-9-]{1,100})?$/,
     topic:/^\/tema\/[a-z0-9-]{1,80}$/,
+    guide:/^\/guias\/[a-z0-9-]{1,80}$/,
     story:/^\/historia\/\d+$/
   }[type];
   if(!routeOk?.test(path))return null;
@@ -210,9 +211,11 @@ function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
     event:/^\d+$/,
     reel:/^\d+$/,
     topic:/^[a-z0-9-]{1,80}$/,
+    guide:/^[a-z0-9-]{1,80}$/,
     story:/^\d+$/
   }[type];
   if(!keyOk?.test(key))return null;
+  if(type==='guide' && path!=='/guias/'+key)return null;
   return {type,key,path};
 }
 
