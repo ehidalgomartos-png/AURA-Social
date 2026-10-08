@@ -2,6 +2,24 @@ const qs=s=>document.querySelector(s);
 const esc=s=>String(s||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const register=qs('#registerForm'),login=qs('#loginForm');
 async function jsonFetch(url,options={}){const r=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});let d={};try{d=await r.json()}catch{}return {r,d};}
+// Avoid duplicate requests on slow mobile connections and always restore controls.
+const activeAuthSubmissions=new WeakSet();
+async function submitOnce(form,messageSelector,run){
+  if(activeAuthSubmissions.has(form))return;
+  activeAuthSubmissions.add(form);
+  const button=form.querySelector('[type="submit"]');
+  const previouslyDisabled=Boolean(button?.disabled);
+  if(button)button.disabled=true;
+  try{
+    await run();
+  }catch(_){
+    const message=qs(messageSelector);
+    if(message)message.textContent='No se pudo conectar. Comprueba tu conexión e inténtalo de nuevo.';
+  }finally{
+    if(button)button.disabled=previouslyDisabled;
+    activeAuthSubmissions.delete(form);
+  }
+}
 const PUBLIC_ENTRY_STORAGE='redlibertad-public-entry-v188';
 function validPublicEntry(value){
   const type=String(value?.type||'').trim().toLowerCase();
@@ -47,8 +65,8 @@ function registrationValidationMessage(data){
   if(fields.acceptTerms?.length)messages.push('Debes confirmar que eres mayor de 18 años y aceptar las condiciones.');
   return messages.length?messages.join(' '):'Hay datos que no son válidos. Revisa los campos indicados e inténtalo de nuevo.';
 }
-if(register)register.addEventListener('submit',async e=>{e.preventDefault();const m=qs('#formMessage'),fd=new FormData(register);m.textContent='Creando cuenta...';const {r,d}=await jsonFetch('/api/auth/register',{method:'POST',body:JSON.stringify({displayName:fd.get('displayName'),username:fd.get('username'),email:fd.get('email'),password:fd.get('password'),birthDate:fd.get('birthDate'),acceptTerms:fd.get('acceptTerms')==='on',referralUsername:fd.get('referralUsername')||'',referralToken:fd.get('referralToken')||'',entryType:publicEntry?.type||'',entryKey:publicEntry?.key||'',entryPath:publicEntry?.path||''})});if(!r.ok){m.textContent=({adult_only:'RedLibertad es exclusiva para mayores de 18 años.',account_exists:'Ya existe una cuenta con ese email o usuario.',invalid_data:registrationValidationMessage(d),invalid_birth_date:'La fecha de nacimiento no es válida. Selecciona una fecha correcta.',registration_failed:'No se pudo completar el registro. Inténtalo de nuevo.',too_many_registration_attempts:(()=>{const mins=Math.max(1,Math.ceil(Number(d.retryAfterSeconds||0)/60));return `Hemos detectado varios intentos con estos datos o desde esta red. Espera ${mins} ${mins===1?'minuto':'minutos'} y vuelve a intentarlo.`;})()})[d.error]||'No se pudo crear la cuenta.';return}finishPublicEntry(d.returnPath||'');});
-if(login)login.addEventListener('submit',async e=>{e.preventDefault();const m=qs('#loginMessage'),fd=new FormData(login);m.textContent='Entrando...';const {r,d}=await jsonFetch('/api/auth/login',{method:'POST',body:JSON.stringify({email:fd.get('email'),password:fd.get('password')})});if(!r.ok){if(d.error==='too_many_login_attempts'){m.textContent='Demasiados intentos de acceso. Espera unos minutos antes de volver a intentarlo.';return}if(d.error==='account_suspended'){const until=d.suspendedUntil?new Date(d.suspendedUntil).toLocaleString('es-ES'):'hasta nuevo aviso';m.textContent='Cuenta suspendida '+until+(d.reason?' · '+d.reason:'');return}if(d.error==='account_banned'){m.textContent='Esta cuenta ha sido bloqueada por moderación.';return}m.textContent=d.error==='account_unavailable'?'Esta cuenta no está disponible.':'Email o contraseña incorrectos.';return}finishPublicEntry();});
+if(register)register.addEventListener('submit',async e=>{e.preventDefault();await submitOnce(register,'#formMessage',async()=>{const m=qs('#formMessage'),fd=new FormData(register);m.textContent='Creando cuenta...';const {r,d}=await jsonFetch('/api/auth/register',{method:'POST',body:JSON.stringify({displayName:fd.get('displayName'),username:fd.get('username'),email:fd.get('email'),password:fd.get('password'),birthDate:fd.get('birthDate'),acceptTerms:fd.get('acceptTerms')==='on',referralUsername:fd.get('referralUsername')||'',referralToken:fd.get('referralToken')||'',entryType:publicEntry?.type||'',entryKey:publicEntry?.key||'',entryPath:publicEntry?.path||''})});if(!r.ok){m.textContent=({adult_only:'RedLibertad es exclusiva para mayores de 18 años.',account_exists:'Ya existe una cuenta con ese email o usuario.',invalid_data:registrationValidationMessage(d),invalid_birth_date:'La fecha de nacimiento no es válida. Selecciona una fecha correcta.',registration_failed:'No se pudo completar el registro. Inténtalo de nuevo.',too_many_registration_attempts:(()=>{const mins=Math.max(1,Math.ceil(Number(d.retryAfterSeconds||0)/60));return `Hemos detectado varios intentos con estos datos o desde esta red. Espera ${mins} ${mins===1?'minuto':'minutos'} y vuelve a intentarlo.`;})()})[d.error]||'No se pudo crear la cuenta.';return}finishPublicEntry(d.returnPath||'');});});
+if(login)login.addEventListener('submit',async e=>{e.preventDefault();await submitOnce(login,'#loginMessage',async()=>{const m=qs('#loginMessage'),fd=new FormData(login);m.textContent='Entrando...';const {r,d}=await jsonFetch('/api/auth/login',{method:'POST',body:JSON.stringify({email:fd.get('email'),password:fd.get('password')})});if(!r.ok){if(d.error==='too_many_login_attempts'){m.textContent='Demasiados intentos de acceso. Espera unos minutos antes de volver a intentarlo.';return}if(d.error==='account_suspended'){const until=d.suspendedUntil?new Date(d.suspendedUntil).toLocaleString('es-ES'):'hasta nuevo aviso';m.textContent='Cuenta suspendida '+until+(d.reason?' · '+d.reason:'');return}if(d.error==='account_banned'){m.textContent='Esta cuenta ha sido bloqueada por moderación.';return}m.textContent=d.error==='account_unavailable'?'Esta cuenta no está disponible.':'Email o contraseña incorrectos.';return}finishPublicEntry();});});
 
 (async()=>{
   if(!register)return;

@@ -1,5 +1,5 @@
-const SHELL_CACHE='redlibertad-v250-shell';
-const STATIC_CACHE='redlibertad-v250-static';
+const SHELL_CACHE='redlibertad-v260-shell';
+const STATIC_CACHE='redlibertad-v260-static';
 const CACHE_PREFIX='redlibertad-';
 
 const SHELL_ASSETS=[
@@ -43,9 +43,9 @@ function shouldBypass(url,request){
   if(request.method!=='GET')return true;
   if(url.origin!==self.location.origin)return true;
   return (
-    url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/uploads/') ||
-    url.pathname.startsWith('/p/')
+    (url.pathname==='/api' || url.pathname.startsWith('/api/')) ||
+    (url.pathname==='/uploads' || url.pathname.startsWith('/uploads/')) ||
+    (url.pathname==='/p' || url.pathname.startsWith('/p/'))
   );
 }
 
@@ -141,9 +141,23 @@ self.addEventListener('push',event=>{
   event.waitUntil(self.registration.showNotification(title,options));
 });
 
+// Push payloads are data, not trusted navigation instructions.
+// Only links to the authenticated social app may be opened from a push.
+function safeNotificationTarget(value){
+  const fallback=new URL('/app',self.location.origin).href;
+  try{
+    const target=new URL(String(value||'/app'),self.location.origin);
+    if(target.origin!==self.location.origin)return fallback;
+    if(target.pathname!=='/app' && !target.pathname.startsWith('/app/'))return fallback;
+    return target.href;
+  }catch(_){
+    return fallback;
+  }
+}
+
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
-  const target=new URL(event.notification.data?.url || '/app',self.location.origin).href;
+  const target=safeNotificationTarget(event.notification.data?.url);
 
   event.waitUntil((async()=>{
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});

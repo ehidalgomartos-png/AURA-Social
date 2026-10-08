@@ -1,4 +1,4 @@
-# RedLibertad V1.79.0 — Public Content Discovery & SEO
+# RedLibertad — V2.6.0 Stability & Quality Audit
 
 RedLibertad nace sobre la base funcional de AURA V0.4.3, conservando usuarios, perfiles, feed, follows, likes, comentarios, borrado de comentarios, Stories, Reels, mensajería, notificaciones, intereses, consentimiento, contenido sensible, denuncias, moderación, PWA y PostgreSQL.
 
@@ -2377,3 +2377,24 @@ Mejoras recibidas de pruebas reales en móvil:
 - El panel es responsivo y accesible; mantiene los filtros, historial y descargas HTML/JSON de versiones anteriores.
 - Sin cambios en tablas, API, documentos legales actuales, `src/routes/posts.js` ni monetización.
 - Pruebas: `npm run check:syntax` y `npm run test:legal` (7 nuevos casos de estados y navegación).
+
+
+## V2.6.0 — Stability & Quality Audit
+
+Esta fase refuerza la fiabilidad de la base existente antes de introducir más funciones sociales:
+
+- Registro/login en móvil: se evita enviar dos peticiones al pulsar repetidamente y se muestra un error comprensible si la red falla. El botón se rehabilita tras la respuesta o el error.
+- Notificaciones push: los enlaces recibidos se limitan a rutas de la app (`/app`), sin navegación a dominios externos, scripts o páginas administrativas.
+- PWA: la exclusión de caché de las rutas de API, multimedia y publicaciones públicas incluye las rutas raíz, además de sus subrutas.
+- Los logs de arranque usan `APP_VERSION`, no la antigua V1.99.
+- `npm run check:syntax` revisa **todos** los `.js` de servidor, src, public, db, scripts y tests, en vez de una lista manual.
+- `npm run test:smoke` valida prevención de doble envío, fallback de red, enlaces push, límites de caché, assets offline, pantallas, rutas críticas y readiness.
+- `npm test` ejecuta las pruebas legales y las nuevas pruebas de estabilidad.
+- GitHub Actions añade el conjunto de smoke tests además de los tests legales y la sintaxis completa.
+- `npm run smoke:production -- https://redlibertad.com` realiza **solo peticiones GET** y no inicia sesión ni cambia datos. Comprueba health, readiness PostgreSQL, shell /app, robots, sitemap y protección 401 de endpoints privados. Debe ejecutarse **después del despliegue**.
+
+**Operación Coolify:** mantener `/api/health` como señal de proceso; usar `/api/ready` para comprobar también base de datos durante la validación de despliegue. Cambiar el healthcheck de Coolify requiere revisarlo en su interfaz: este PR no modifica su configuración.
+
+**Límites de esta auditoría:** las pruebas automáticas no acreditan que feed, Stories, Reels, chat, moderación o carga de vídeos funcionen en producción. Las pruebas de navegador, usuarios de prueba y móviles reales siguen pendientes y se registran en `AUDIT-V2.6.md`.
+
+No se cambian publicaciones, SQL, monetización, textos legales ni el consentimiento registrado.
