@@ -74,7 +74,7 @@ test('dock is mobile-only and keyboard-open safeguards remain',()=>{
   assert.match(styles,/@media\(max-width:760px\)/);
   assert.match(css,/body\.keyboard-open \.bottom-nav\{/);
   assert.match(css,/body\.keyboard-open \.social-main\{/);
-  assert.match(css,/\.bottom-nav\{left:max\(6px,env\(safe-area-inset-left\)\)/);
+  assert.match(css,/\.bottom-nav\{\s*left:max\(6px,env\(safe-area-inset-left\)\)/);
 });
 test('release and CI contain navigation polish regression check',()=>{
   const pkg=require('../package.json');
