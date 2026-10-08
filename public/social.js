@@ -4678,6 +4678,8 @@ function applyLegalHistoryFilters(){
   const timeline=container?.querySelector('.legal-timeline');
   if(!timeline)return;
   const entries=[...timeline.querySelectorAll('.legal-history-item')];
+  // Do not apply a stale filter when the UI intentionally hides filters for <=1 row.
+  if(entries.length<=1){entries.forEach(item=>{item.hidden=false;});return;}
   let shown=0;
   entries.forEach(item=>{
     const visible=legalHistoryMatchesFilter({
