@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.20.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "RedLibertad V2.20 — continuidad de comunidades, actividad reciente y controles de sugerencias.",
+  "description": "RedLibertad V3.0 — Growth Ready, puertas de lanzamiento y auditoría de producción.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,6 +13,9 @@
     "test:smoke": "node --test tests/stability-*.test.js",
     "test": "node --test tests/*.test.js",
     "smoke:production": "node scripts/smoke-http.js",
+    "gate:config": "node scripts/launch-preflight-v300.js",
+    "gate:public": "node scripts/release-gate-v300.js",
+    "test:launch-gates": "node --test tests/launch-gates-v300.test.js",
     "test:social": "node --test tests/social-experience.test.js",
     "test:discovery": "node --test tests/discovery-v28.test.js",
     "test:activation": "node --test tests/activation-v29.test.js",
