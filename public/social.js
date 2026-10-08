@@ -178,6 +178,7 @@ setConnectivityStatus(navigator.onLine,{initial:true});
 const apiInFlightGets=new Map();
 const API_TIMEOUT_MS=15000;
 const API_RETRYABLE_STATUSES=new Set([502,503,504]);
+let lastSecurityLimitNoticeAt=0;
 
 function apiSleep(ms){
   return new Promise(resolve=>setTimeout(resolve,ms));
@@ -228,6 +229,14 @@ async function performApi(url,opts={}){
 
     let d={};
     try{d=await r.json();}catch(_){}
+    if(r.status===429 && d.error==='action_rate_limited'){
+      const now=Date.now();
+      if(now-lastSecurityLimitNoticeAt>5000){
+        lastSecurityLimitNoticeAt=now;
+        const minutes=Math.max(1,Math.ceil(Number(d.retryAfterSeconds||60)/60));
+        toast('Has realizado muchas acciones seguidas. Prueba de nuevo en '+minutes+' min.');
+      }
+    }
     if(r.status===401){
       location.href='/';
       throw new Error('unauthorized');

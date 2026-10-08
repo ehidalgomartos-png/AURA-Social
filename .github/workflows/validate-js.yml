@@ -28,5 +28,7 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Advanced security regression tests
+        run: npm run test:security
       - name: Push preferences and notification tests
         run: npm run test:notifications
