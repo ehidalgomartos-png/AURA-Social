@@ -30,6 +30,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Own profile full posts, tabs and mobile interaction regression tests
+        run: npm run test:own-profile
       - name: Production media persistence and sitemap safety audit regression tests
         run: npm run test:production-safety
       - name: Profile main-view, full posts, SEO copy and mobile regressions
