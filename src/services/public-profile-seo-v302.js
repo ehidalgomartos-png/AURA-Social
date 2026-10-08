@@ -29,8 +29,10 @@ function publicProfileSeo(profile,{url,avatar}={}){
   const count=Math.max(0,Number(profile.public_post_count)||0);
   const summary=shorten(individualText
     ?label+' en RedLibertad: '+individualText
-    :count>0
-      ?'Conoce a '+label+' en RedLibertad y descubre sus '+count+' publicaciones públicas y su perfil.'
+    :count===1
+      ?'Descubre el perfil público de '+label+' en RedLibertad y conoce su publicación y sus ideas.'
+      :count>1
+        ?'Descubre el perfil público de '+label+' en RedLibertad, conoce sus publicaciones y participa en la conversación.'
       :'Conoce a '+label+' en RedLibertad. Visita su perfil público y descubre una comunidad para compartir ideas y conversar.',158);
   const indexable=profile.discoverable===true;
   if(!indexable){
