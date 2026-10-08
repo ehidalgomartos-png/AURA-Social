@@ -48,7 +48,7 @@ function createAlertDeliveryAdminRoutes({db,delivery}){
         "WITH changed AS ("+
         "UPDATE operational_alert_deliveries_v216 SET status='pending',attempts=0,"+
         "next_attempt_at=now(),locked_until=NULL,last_error_code='' "+
-        "WHERE id=$1 AND status='failed' RETURNING id),"+
+        "WHERE id=$1 AND status='failed' AND EXISTS (SELECT 1 FROM operational_alerts_v215 a WHERE a.id=operational_alert_deliveries_v216.alert_id AND a.is_active=TRUE AND a.status='open') RETURNING id),"+
         "audit AS (INSERT INTO operational_delivery_audit_v216(delivery_id,admin_id,action,note) "+
         "SELECT id,$2,'retry_requested',$3 FROM changed RETURNING delivery_id) "+
         "SELECT changed.id FROM changed JOIN audit ON audit.delivery_id=changed.id",
