@@ -544,6 +544,42 @@ router.get('/account', requireAuth, async (req,res)=>{
   });
 });
 
+
+const legalConsentConfirmationSchema=z.object({
+  documentKey:z.enum(['terms','community_guidelines','privacy']),
+  documentVersion:z.string().min(1).max(20),
+  confirmed:z.literal(true)
+}).strict();
+
+// Fetching documents or account details never constitutes consent.
+router.post('/account/legal-consent',requireAuth,async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  const parsed=legalConsentConfirmationSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_legal_confirmation'});
+  const {documentKey,documentVersion}=parsed.data;
+  const currentVersion=LEGAL_DOCUMENT_VERSIONS[documentKey];
+  if(documentVersion!==currentVersion){
+    return res.status(409).json({error:'legal_document_version_changed'});
+  }
+  const user=await db.query(
+    "SELECT id FROM users WHERE id=$1 AND status='active' LIMIT 1",
+    [req.user.id]
+  );
+  if(!user.rowCount)return res.status(404).json({error:'user_not_found'});
+  const action=documentKey==='privacy'?'acknowledged':'accepted';
+  const saved=await db.query(
+    "INSERT INTO legal_acceptances (user_id,document_key,document_version,action,source,accepted_at) "+
+    "VALUES ($1,$2,$3,$4,'account-legal-center',now()) "+
+    "ON CONFLICT (user_id,document_key,document_version,action) DO NOTHING "+
+    "RETURNING document_key,document_version,action,source,accepted_at",
+    [req.user.id,documentKey,currentVersion,action]
+  );
+  return res.status(saved.rowCount?201:200).json({
+    ok:true,alreadyRecorded:!saved.rowCount,
+    documentKey,documentVersion:currentVersion,action,acceptance:saved.rows[0]||null
+  });
+});
+
 const passwordChangeSchema=z.object({
   currentPassword:z.string().min(1).max(128),
   newPassword:z.string().min(10).max(128)

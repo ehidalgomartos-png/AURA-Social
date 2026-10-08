@@ -616,3 +616,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que no se muestra una aceptación inexistente de Privacidad o Normas en cuentas legacy.
 - Revisar móvil y escritorio.
 - Confirmar que Descargar mis datos sigue funcionando.
+
+
+## 49. Legal Consent Lifecycle — V2.0.0
+- Confirmar health 2.0.0 y features legal-consent-lifecycle-v2.0 / explicit-legal-confirmation-v2.0.
+- Cuenta moderna con los tres documentos 1.0: sin confirmaciones redundantes.
+- Cuenta legacy: histórico honesto, sin aceptaciones inventadas.
+- El botón está inhabilitado hasta marcar la casilla.
+- Verificar guardado y actualización de estado tras POST válido.
+- Comprobar idempotencia y no duplicados.
+- POST sin confirmed:true o documento inválido devuelve 400; versión obsoleta devuelve 409.
+- Verificar trazabilidad en exportación y UX móvil/escritorio.

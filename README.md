@@ -2300,3 +2300,14 @@ Mejoras recibidas de pruebas reales en móvil:
 - No se modifican los textos legales ni su versionado actual.
 - Sin cambios de base de datos.
 - Sin cambios en `src/routes/posts.js`.
+
+
+## V2.0.0 — Legal Consent Lifecycle
+
+- Confirmación legal explícita y voluntaria en Cuenta y seguridad.
+- Formularios solo para documentos cuya versión vigente no conste en el historial.
+- POST /api/auth/account/legal-consent autenticado, validado, bloqueado a la versión actual e idempotente.
+- Términos y Normas: accepted; Privacidad: acknowledged. Fuente account-legal-center.
+- Las aceptaciones legacy conservan su identidad histórica; no hay reconsentimiento automático.
+- No modifica textos legales ni versiones (1.0); no bloquea acceso ni cambia posts.js.
+- Sin monetización ni migraciones nuevas.
