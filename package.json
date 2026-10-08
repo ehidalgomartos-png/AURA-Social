@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.97.0",
+  "version": "1.98.0",
   "private": true,
-  "description": "RedLibertad V1.97 Public Legal Footer & Trust Polish - footer legal y enlaces de confianza consistentes en todas las superficies públicas.",
+  "description": "RedLibertad V1.98 Legal Consent Versioning & Audit Trail - registra versión, acción, origen y fecha de Términos, Normas y Privacidad.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
