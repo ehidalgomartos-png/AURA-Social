@@ -8,6 +8,7 @@ const { z } = require('zod');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { buildLegalConsentReceipt } = require('../services/legal-consent-receipt');
+const { renderLegalConsentReceiptHTML } = require('../services/legal-consent-readable');
 
 const router = express.Router();
 
@@ -549,6 +550,8 @@ router.get('/account', requireAuth, async (req,res)=>{
 // Private, no-store export. This is a factual record, not an authenticated certificate.
 router.get('/account/legal-consent/receipt',requireAuth,async(req,res)=>{
   res.setHeader('Cache-Control','private, no-store, max-age=0');
+  const format=req.query.format==null?'json':String(req.query.format);
+  if(format!=='json' && format!=='html')return res.status(400).json({error:'invalid_receipt_format'});
   res.setHeader('X-Content-Type-Options','nosniff');
   const [account,records]=await Promise.all([
     db.query("SELECT username,created_at FROM users WHERE id=$1 AND status='active' LIMIT 1",[req.user.id]),
@@ -568,8 +571,13 @@ router.get('/account/legal-consent/receipt',requireAuth,async(req,res)=>{
     legalAcceptances:records.rows,
     legalDocuments:documents
   });
+  if(format==='html'){
+    res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    res.setHeader('Content-Disposition',`attachment; filename="redlibertad-consentimientos-${username}.html"`);
+    return res.type('html').send(renderLegalConsentReceiptHTML(receipt));
+  }
   res.setHeader('Content-Disposition',`attachment; filename="redlibertad-consentimientos-${username}.json"`);
-  res.type('json').json(receipt);
+  return res.type('json').json(receipt);
 });
 
 const legalConsentConfirmationSchema=z.object({
