@@ -740,3 +740,22 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - [ ] Revisar Android Chrome, Safari iOS y escritorio con teclado, lectores de pantalla y conexiones deficientes.
 - [ ] Mantener los controles P0 de `AUDIT-V2.6.md` antes de considerar estable la experiencia de producción.
 - [ ] Confirmar que `src/routes/posts.js`, base de datos y monetización no cambian.
+
+
+## 57. Descubrir 3.0 — V2.8.0
+
+- [ ] Verificar `/api/health` versión 2.8.0 y features `discover-3-v2.8`, `discovery-modes-v2.8` y `privacy-aware-activity-ranking-v2.8`.
+- [ ] En móvil abrir Explorar → Personas: Para ti / Activos / Nuevos y «Cambiar sugerencias».
+- [ ] Comprobar que «Activos» representa actividad pública reciente (7 días), nunca «en línea».
+- [ ] Comprobar «Nuevos» con cuentas creadas en los últimos 30 días; no inventar perfiles si hay pocos.
+- [ ] Comprobar «Cambiar» con suficientes perfiles: no repite la misma página; se desactiva cuando no quedan más.
+- [ ] Con pocos usuarios, verificar tarjetas vacías honestas y la acción «Ver todos».
+- [ ] Probar intereses combinados con los modos y búsqueda explícita por nombre; no mostrar respuestas antiguas tras cambios rápidos.
+- [ ] Cortar la red durante sugerencias y búsqueda: mostrar error correcto y «Reintentar», no confundir error con lista vacía.
+- [ ] Comprobar que bloqueo mutuo, silencio, cuentas no descubribles, administradores y sugerencias ocultas nunca aparecen.
+- [ ] Apagar «Mostrar actividad» en una cuenta de prueba: no debe figurar en Activos ni revelarse su actividad.
+- [ ] Publicar posts/Stories privados, confirmar que no se usan para considerar una cuenta «Activa».
+- [ ] Comprobar Seguimiento y Ocultar sugerencia desde cada pestaña, sin perder permisos ni privacidad.
+- [ ] Revisar accesibilidad de pulsación, lectura y teclado en iPhone, Android y escritorio.
+- [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke`, `npm run test:social` y `npm run test:discovery`.
+- [ ] No fusionar sin validación GitHub Actions; tras despliegue comprobar funcionamiento en Coolify y registrar pruebas manuales.
