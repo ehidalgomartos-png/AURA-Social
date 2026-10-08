@@ -150,7 +150,7 @@ test('admin mobile screen offers release checklist without claiming production v
     assert.ok(html.includes('id="'+id+'"'),id);
   }
   assert.match(js,/async function releaseVerification\(/);
-  assert.match(js,/external/); // UI explicitly describes the external-verification limitation.
+  assert.match(js,/Coolify/); // UI explicitly describes the external-verification limitation.
   assert.match(js,/releaseVerification\(\), alertDeliveries\(\)/);
 });
 test('server mounts safe release checks and shares declared version with package',()=>{
