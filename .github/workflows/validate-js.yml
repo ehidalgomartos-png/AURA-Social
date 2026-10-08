@@ -30,6 +30,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Mobile navigation icon, dock opacity and small-screen regression tests
+        run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
         run: npm run test:own-profile
       - name: Production media persistence and sitemap safety audit regression tests
