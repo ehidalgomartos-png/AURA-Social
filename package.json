@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "private": true,
-  "description": "RedLibertad V3.0.1 — correcciones SEO, Stories, portada y Conexiones.",
+  "description": "RedLibertad V3.0.2 — SEO de perfiles, fragmentos de Google y datos estructurados.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -30,7 +30,8 @@
     "test:seo-acquisition": "node --test tests/seo-acquisition-v218.test.js",
     "test:growth-center": "node --test tests/growth-center-v219.test.js",
     "test:retention": "node --test tests/retention-v220.test.js",
-    "test:hotfix": "node --test tests/seo-ui-hotfix-v301.test.js"
+    "test:hotfix": "node --test tests/seo-ui-hotfix-v301.test.js",
+    "test:profile-seo": "node --test tests/profile-seo-v302.test.js"
   },
   "engines": {
     "node": ">=20"
