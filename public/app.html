@@ -79,8 +79,10 @@
         <div class="growth-onboarding">
           <div class="growth-heading">
             <div><span class="eyebrow">PRIMEROS PASOS</span><h2>Haz tu RedLibertad más tuya</h2><p>Completa estos pasos para aprovechar mejor la comunidad.</p></div>
-            <div class="growth-progress-ring"><span id="growthProgressValue">0%</span></div>
+            <div class="growth-progress-ring" role="progressbar" aria-label="Progreso de primeros pasos" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="growthProgressValue">0%</span></div>
           </div>
+          <p id="growthProgressDescription" class="growth-progress-description" role="status" aria-live="polite">Preparando tus primeros pasos…</p>
+          <div id="growthNextStep" class="growth-next-step" aria-live="polite"></div>
           <div id="growthSteps" class="growth-steps"></div>
           <div class="growth-starter">
             <div class="growth-starter-head"><div><span class="eyebrow">EMPIEZA A CONECTAR</span><h3>Personas para tu primer círculo</h3></div><button type="button" class="tiny-action" data-growth-action="explore">Ver más</button></div>
