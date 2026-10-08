@@ -612,6 +612,7 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar fecha/hora visible y correcta.
 - Abrir “Ver texto” en los tres documentos y comprobar rutas correctas.
 - Con una cuenta antigua, confirmar que `legacy` aparece como Histórico y no como versión actual.
+- Confirmar que una cuenta con terms 1.0 no recibe además terms / legacy tras reiniciar la app o ejecutar el bootstrap.
 - Confirmar que no se muestra una aceptación inexistente de Privacidad o Normas en cuentas legacy.
 - Revisar móvil y escritorio.
 - Confirmar que Descargar mis datos sigue funcionando.
