@@ -28,3 +28,5 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Push preferences and notification tests
+        run: npm run test:notifications
