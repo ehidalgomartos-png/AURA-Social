@@ -77,7 +77,7 @@ test('missing feed target is tolerated for delayed navigation',()=>{
   assert.equal(x.calls.length,0);
 });
 test('error state reports failed API, not a fabricated empty feed',()=>{
-  const source=js.slice(js.indexOf('async function loadProfile('),js.indexOf('function publicProfileCreatorShowcaseHTML('));
+  const source=js.slice(js.indexOf('async function loadProfile('),js.indexOf('function shareProfile(profile) {'));
   assert.ok(source.includes("if(!r?.ok)"));
   assert.ok(source.includes('No se pudo cargar el contenido.'));
   assert.match(source,/renderOwnProfilePostFeed\(ownPostsRoot,d\?\.posts,emptyText\)/);
@@ -90,7 +90,7 @@ test('rapid tab changes cannot let stale requests replace the latest result',()=
   assert.match(js,/String\(me\?\.username\)!==username/);
 });
 test('own profile still provides editing, sharing, verification and Creator Center',()=>{
-  const source=js.slice(js.indexOf('async function loadProfile('),js.indexOf('function publicProfileCreatorShowcaseHTML('));
+  const source=js.slice(js.indexOf('async function loadProfile('),js.indexOf('function shareProfile(profile) {'));
   for(const id of ['editProfile','shareOwnProfile','creatorCenter','profileMoreToggle','privacySettings','trustSettings','sensitiveToggle'])
     assert.ok(source.includes(id),id);
   assert.match(html,/id="profileFull"/);
