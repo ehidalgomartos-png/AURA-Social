@@ -2323,3 +2323,16 @@ Mejoras recibidas de pruebas reales en móvil:
 - Se conserva la confirmación individual explícita de V2.0, sin escribir al consultar el historial.
 - Sin cambios en el esquema, textos legales, API o `src/routes/posts.js`, ni monetización.
 - Pruebas automatizadas: `npm run test:legal`.
+
+
+## V2.2.0 — Legal Consent Receipt & Private Export
+
+- **Perfil → Más → Cuenta → Términos y privacidad** incluye **Descargar registro legal**.
+- Solo la cuenta autenticada puede descargar su propio registro en JSON mediante `GET /api/auth/account/legal-consent/receipt`.
+- Consulta los eventos de `legal_acceptances` en PostgreSQL en cada descarga; muestra versión, acción, origen y marca temporal reales, incluidos registros `legacy`.
+- Incluye el nombre público de usuario, la fecha de creación de cuenta y versiones/rutas vigentes de los tres documentos (no los textos históricos).
+- No incorpora correo, contraseñas, tokens, mensajes, IP ni datos de otras cuentas.
+- Descarga privada sin caché, con nombre de archivo seguro y etiqueta visible sobre su naturaleza informativa; no se presenta como certificado ni como prueba de lectura de versiones no registradas.
+- No altera aceptaciones ni requiere nuevo consentimiento; la exportación general de datos sigue disponible.
+- No cambia el esquema, las versiones legales 1.0, `src/routes/posts.js` ni monetización.
+- Validación automatizada: `npm run check:syntax` y `npm run test:legal`.
