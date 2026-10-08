@@ -122,7 +122,8 @@ test('the API is strictly admin-only, GET-only, no-store, and manual refresh is 
   assert.match(js,/Cache-Control','no-store'/);
   assert.match(js,/req\.query\?\.refresh==='1'/);
   assert.doesNotMatch(js,/router\.(post|put|patch|delete)\(/);
-  assert.match(server,/createRecoveryAdminRoutes\(createDependencyInspector/);
+  assert.match(server,/createRecoveryAdminRoutes\(dependencyInspector\)/);
+  assert.match(server,/const dependencyInspector=createDependencyInspector\(/);
 });
 test('mobile administration includes recovery status, actionable hints and one-touch refresh',()=>{
   const html=fs.readFileSync(path.join(root,'public/admin.html'),'utf8');
