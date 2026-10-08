@@ -1,5 +1,6 @@
 const webpush = require('web-push');
 const db = require('../db');
+const {shouldDeliverPush}=require('./push-preferences');
 
 const VAPID_PUBLIC_KEY=String(process.env.PUSH_VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE_KEY=String(process.env.PUSH_VAPID_PRIVATE_KEY || '').trim();
@@ -34,6 +35,20 @@ async function ensurePushSchema(){
         )
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id,enabled)');
+
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS push_preferences (
+          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          messages BOOLEAN NOT NULL DEFAULT TRUE,
+          mentions BOOLEAN NOT NULL DEFAULT TRUE,
+          interactions BOOLEAN NOT NULL DEFAULT TRUE,
+          community BOOLEAN NOT NULL DEFAULT TRUE,
+          consents BOOLEAN NOT NULL DEFAULT TRUE,
+          system BOOLEAN NOT NULL DEFAULT TRUE,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+
 
       await db.query(`
         CREATE TABLE IF NOT EXISTS push_jobs (
@@ -148,6 +163,7 @@ async function processPushJobs(){
        LIMIT 20
     `);
 
+    const preferencesByUser=new Map();
     for(const job of jobs.rows){
       if(job.actor_id){
         const suppressed=await db.query(`
@@ -167,6 +183,21 @@ async function processPushJobs(){
           await markJob(job.id,'sent',job.attempts);
           continue;
         }
+      }
+
+      // Query preferences at delivery time so newly disabled categories
+      // also suppress already-queued pushes. Never delete the in-app alert.
+      const userKey=String(job.user_id);
+      if(!preferencesByUser.has(userKey)){
+        const prefs=await db.query(
+          'SELECT messages,mentions,interactions,community,consents,system FROM push_preferences WHERE user_id=$1',
+          [job.user_id]
+        );
+        preferencesByUser.set(userKey,prefs.rows[0]||null);
+      }
+      if(!shouldDeliverPush(job.type,preferencesByUser.get(userKey))){
+        await markJob(job.id,'sent',job.attempts);
+        continue;
       }
 
       const subscriptions=await db.query(`

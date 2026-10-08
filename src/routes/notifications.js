@@ -60,7 +60,14 @@ router.post('/read-all', async (req, res) => {
 
 router.post('/:id/read', async (req, res) => {
   await db.query(`UPDATE notifications SET read_at=COALESCE(read_at,now()) WHERE id=$1 AND user_id=$2`, [req.params.id, req.user.id]);
-  res.json({ ok: true });
+  const count=await db.query(`
+    SELECT count(*)::int AS n FROM notifications
+     WHERE user_id=$1 AND read_at IS NULL
+       AND (actor_id IS NULL OR actor_id NOT IN (
+         SELECT muted_id FROM mutes WHERE muter_id=$1
+       ))
+  `,[req.user.id]);
+  res.json({ok:true,unread:Number(count.rows[0]?.n||0)});
 });
 
 module.exports = router;

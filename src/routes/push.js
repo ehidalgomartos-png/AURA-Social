@@ -3,6 +3,7 @@ const {z}=require('zod');
 const db=require('../db');
 const {requireAuth}=require('../middleware/auth');
 const {ensurePushSchema,publicPushConfig}=require('../services/push');
+const {normalizePushPreferences}=require('../services/push-preferences');
 
 const router=express.Router();
 router.use(requireAuth);
@@ -21,12 +22,37 @@ router.get('/config',async(req,res)=>{
     'SELECT count(*)::int AS n FROM push_subscriptions WHERE user_id=$1 AND enabled=true',
     [req.user.id]
   );
+  const settings=await db.query(
+    'SELECT messages,mentions,interactions,community,consents,system FROM push_preferences WHERE user_id=$1',
+    [req.user.id]
+  );
   res.json({
     ...publicPushConfig(),
-    subscriptionCount:Number(count.rows[0]?.n || 0)
+    subscriptionCount:Number(count.rows[0]?.n || 0),
+    preferences:normalizePushPreferences(settings.rows[0])
   });
 });
 
+// Preferences affect Web Push delivery only; in-app records remain unchanged.
+const preferencesSchema=z.object({
+  messages:z.boolean(), mentions:z.boolean(), interactions:z.boolean(),
+  community:z.boolean(), consents:z.boolean(), system:z.boolean()
+}).strict();
+
+router.put('/preferences',async(req,res)=>{
+  const parsed=preferencesSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_push_preferences'});
+  const p=parsed.data;
+  await db.query(`
+    INSERT INTO push_preferences(user_id,messages,mentions,interactions,community,consents,system,updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,now())
+    ON CONFLICT(user_id) DO UPDATE SET
+      messages=excluded.messages, mentions=excluded.mentions,
+      interactions=excluded.interactions, community=excluded.community,
+      consents=excluded.consents, system=excluded.system, updated_at=now()
+  `,[req.user.id,p.messages,p.mentions,p.interactions,p.community,p.consents,p.system]);
+  res.json({ok:true,preferences:normalizePushPreferences(p)});
+});
 const subscriptionSchema=z.object({
   endpoint:z.string().url().max(4096),
   keys:z.object({

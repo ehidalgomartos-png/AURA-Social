@@ -2452,3 +2452,21 @@ Se amplía el sistema de primeros pasos que ya estaba disponible en Inicio, sin 
 **Pruebas:** `npm run test:activation` además de las suites anteriores; validar en móvil Android/iOS, escritorio y con varias cuentas de prueba en Coolify.
 
 Sin monetización, cambios de permisos, cambios de publicaciones ni nuevas tablas.
+
+
+## V2.10.0 — Notificaciones 3.0
+
+Preferencias de avisos **Web Push por cuenta**, más un filtro directo de notificaciones no leídas:
+
+- En Cuenta y seguridad → **Notificaciones push** se pueden activar o desactivar por separado las categorías: mensajes, menciones, interacciones, comunidad, consentimientos y sistema/seguridad.
+- Las preferencias se guardan en `push_preferences` (una fila por usuario, seis booleanos, todos `true` por defecto). **No solicitan permiso del navegador ni activan automáticamente Web Push**; cada dispositivo sigue necesitando su propia autorización y suscripción.
+- `GET /api/push/config` devuelve las categorías elegidas, además de la configuración y el número de suscripciones. `PUT /api/push/preferences` valida seis booleanos obligatorios, sin campos extra, y almacena exclusivamente para el usuario autenticado.
+- El trabajador push comprueba las preferencias **antes de enviar**; se aplica incluso a trabajos en cola. La desactivación de una categoría únicamente evita el aviso en el dispositivo: **no borra ni oculta notificaciones dentro de RedLibertad**, tampoco altera el contador sin leer.
+- Categorías desconocidas se tratan como sistema/seguridad. La persona también puede desactivar esta categoría; ningún aviso del dispositivo está forzado.
+- El centro de Notificaciones añade **Sin leer**. Las acciones individuales y «Marcar todo leído» solo cambian la interfaz tras éxito real del servidor. El endpoint individual devuelve el contador sin leer autorizado por el servidor.
+- Diseño mobile-first y guardado con errores/reintentos claros, incluidos navegadores sin Web Push o servidores sin VAPID.
+- Pruebas: `npm run test:notifications` y suites anteriores. No se modifica el contenido, envío ni caducidad de las notificaciones almacenadas.
+
+**Despliegue Coolify:** necesita crear `push_preferences` al arrancar `ensurePushSchema`. Antes de validar, comprobar que la cuenta de PostgreSQL tiene permisos para crear la tabla; confirmar VAPID y el proceso worker. Esta versión no modifica el sistema de correo ni implementa digest/resúmenes por email.
+
+Sin monetización ni modificaciones en publicaciones, permisos, seguidores o mensajes.

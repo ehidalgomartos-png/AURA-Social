@@ -5048,46 +5048,88 @@ async function localPushSubscription(){
   return registration.pushManager.getSubscription();
 }
 
+const pushPreferenceKeys=['messages','mentions','interactions','community','consents','system'];
+
+function fillPushPreferenceControls(prefs){
+  const form=$('#pushPreferencesForm');
+  if(!form)return;
+  pushPreferenceKeys.forEach(key=>{
+    const field=form.elements.namedItem(key);
+    if(field)field.checked=prefs?.[key]!==false;
+  });
+}
+
 async function loadPushSettings(){
   const button=$('#pushNotificationsToggle');
   const state=$('#pushNotificationsState');
   const status=$('#pushNotificationsStatus');
-  if(!button || !state)return;
+  const form=$('#pushPreferencesForm');
+  const save=$('#pushPreferencesSave');
+  const preferencesStatus=$('#pushPreferencesStatus');
+  if(!button||!state)return;
 
-  if(!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)){
-    state.innerHTML='<b>No disponible en este navegador</b><small>Tu navegador o modo actual no admite Web Push.</small>';
+  if(save)save.disabled=true;
+  const {r,d}=await api('/api/push/config',{dedupe:false});
+  if(!r.ok){
+    state.innerHTML='<b>No se pudo comprobar</b><small>Prueba de nuevo más tarde.</small>';
+    button.disabled=true;
+    if(preferencesStatus)preferencesStatus.textContent='No se pudieron cargar tus preferencias. Cierra y vuelve a abrir Cuenta.';
+    return;
+  }
+  fillPushPreferenceControls(d.preferences);
+  if(save)save.disabled=false;
+  if(preferencesStatus)preferencesStatus.textContent='';
+
+  if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
+    state.innerHTML='<b>No disponible en este navegador</b><small>Puedes guardar preferencias para otros dispositivos compatibles.</small>';
     button.disabled=true;
     button.textContent='No disponible';
     return;
   }
-
-  const {r,d}=await api('/api/push/config');
-  if(!r.ok){
-    state.innerHTML='<b>No se pudo comprobar</b><small>Prueba de nuevo más tarde.</small>';
-    button.disabled=true;
-    return;
-  }
-
   if(!d.enabled){
-    state.innerHTML='<b>Preparado, pendiente de configuración del servidor</b><small>Faltan las claves VAPID en el entorno de producción.</small>';
+    state.innerHTML='<b>Pendiente de configuración del servidor</b><small>Faltan las claves VAPID de producción. Puedes guardar las preferencias para cuando esté activo.</small>';
     button.disabled=true;
     button.textContent='Pendiente';
-    if(status)status.textContent='';
     return;
   }
-
   const subscription=await localPushSubscription();
   const active=!!subscription;
   state.innerHTML=active
     ? '<b>Activadas en este dispositivo</b><small>Los avisos pueden llegar aunque RedLibertad no esté abierta.</small>'
     : '<b>Desactivadas en este dispositivo</b><small>Actívalas solo si quieres recibir avisos del sistema.</small>';
   button.disabled=false;
-  button.textContent=active ? 'Desactivar' : 'Activar';
-  button.dataset.pushPublicKey=d.publicKey || '';
+  button.textContent=active?'Desactivar':'Activar';
+  button.dataset.pushPublicKey=d.publicKey||'';
   if(status)status.textContent=Notification.permission==='denied'
     ? 'El navegador tiene bloqueadas las notificaciones para este sitio.'
     : '';
 }
+
+$('#pushPreferencesForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const button=$('#pushPreferencesSave');
+  const status=$('#pushPreferencesStatus');
+  if(!button||button.disabled)return;
+  const prefs=Object.fromEntries(pushPreferenceKeys.map(key=>[
+    key,form.elements.namedItem(key)?.checked===true
+  ]));
+  button.disabled=true;
+  if(status)status.textContent='Guardando preferencias…';
+  try{
+    const {r}=await api('/api/push/preferences',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(prefs)
+    });
+    if(!r.ok)throw Error('save_failed');
+    if(status)status.textContent='Preferencias guardadas. No modifican las notificaciones de la aplicación.';
+  }catch(_){
+    if(status)status.textContent='No se pudieron guardar los cambios. Inténtalo de nuevo.';
+  }finally{
+    button.disabled=false;
+  }
+});
 
 async function togglePushNotifications(){
   const button=$('#pushNotificationsToggle');
@@ -6877,6 +6919,7 @@ function notificationIcon(type) {
 
 function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
+  if (filter === 'unread') return !notification.read_at;
   if (filter === 'mentions') return ['mention','circle_mention'].includes(notification.type);
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
@@ -6905,10 +6948,16 @@ function renderNotifications() {
       const notification = notificationCache.find(n => String(n.id) === String(id));
 
       if (notification && !notification.read_at) {
-        await api(`/api/notifications/${id}/read`, { method: 'POST' });
-        notification.read_at = new Date().toISOString();
-        item.classList.remove('unread');
-        updateNotificationBadge(notificationCache.filter(n => !n.read_at).length);
+        const {r,d}=await api(`/api/notifications/${id}/read`,{method:'POST'});
+        if(r.ok){
+          notification.read_at=new Date().toISOString();
+          liveActivityState.notificationUnread=Number(d.unread||0);
+          updateNotificationBadge(liveActivityState.notificationUnread);
+          if(activeNotificationFilter==='unread')renderNotifications();
+          else item.classList.remove('unread');
+        }else{
+          toast('No se pudo marcar como leída. Puedes intentarlo de nuevo.');
+        }
       }
 
       if (notification) await navigateNotification(notification);
@@ -7048,11 +7097,22 @@ $('#messageConversationSearch')?.addEventListener('input',event=>{
 });
 
 $('#readAllNotifications').onclick = async () => {
-  await api('/api/notifications/read-all', { method: 'POST' });
-  notificationCache = notificationCache.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() }));
-  updateNotificationBadge(0);
-  renderNotifications();
-  toast('Notificaciones marcadas como leídas');
+  const button=$('#readAllNotifications');
+  if(button?.disabled)return;
+  if(button)button.disabled=true;
+  try{
+    const {r}=await api('/api/notifications/read-all',{method:'POST'});
+    if(!r.ok)throw Error('read_all_failed');
+    notificationCache=notificationCache.map(n=>({...n,read_at:n.read_at||new Date().toISOString()}));
+    liveActivityState.notificationUnread=0;
+    updateNotificationBadge(0);
+    renderNotifications();
+    toast('Notificaciones marcadas como leídas');
+  }catch(_){
+    toast('No se pudieron marcar como leídas. Inténtalo de nuevo.');
+  }finally{
+    if(button)button.disabled=false;
+  }
 };
 
 function conversationListIdentity(conversation){
