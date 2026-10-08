@@ -2433,3 +2433,22 @@ El apartado **Explorar → Personas** incorpora tres modalidades de sugerencias 
 - Mantiene sugerencias del Inicio, búsqueda global, comunidades, mensajes y moderación.
 
 Pruebas: `npm run test:discovery` y todas las suites anteriores. La comprobación con usuarios y dispositivo reales en Coolify sigue pendiente.
+
+
+## V2.9.0 — Activación de usuarios
+
+Se amplía el sistema de primeros pasos que ya estaba disponible en Inicio, sin crear un onboarding paralelo.
+
+- El usuario ve un **siguiente paso recomendado**, entre los seis objetivos existentes: foto de perfil, biografía/intereses, seguir tres personas, unirse a comunidad, primera publicación e interacción.
+- La recomendación procede del primer objetivo real pendiente; no simula logros ni marca tareas automáticamente.
+- Un botón **Continuar ahora** lleva directamente a la pantalla/función necesaria, conservando el flujo de permisos habitual.
+- El resumen de progreso muestra `N de 6 pasos` y un indicador accesible. Para seguir personas se muestra el avance parcial `0–3 de 3 personas seguidas`.
+- Se adapta el saludo en los siete primeros días de antigüedad, sin usar presencia privada ni publicar la fecha de alta de la persona.
+- Al completar los seis pasos aparece una felicitación informativa sin acciones pendientes. Si los datos cambian, el panel vuelve al estado real.
+- Las personas sugeridas para empezar a conectar respetan bloqueos, silencios, `discoverable`, cuentas admin y sugerencias ocultadas mediante `discovery_hidden_items`.
+- Las invitaciones siguen siendo opcionales: no forman parte del porcentaje ni se requieren para completar la activación.
+- Los registros y contadores se calculan desde la base de datos; no se añaden columnas, cookies ni mecanismos de seguimiento nuevos.
+
+**Pruebas:** `npm run test:activation` además de las suites anteriores; validar en móvil Android/iOS, escritorio y con varias cuentas de prueba en Coolify.
+
+Sin monetización, cambios de permisos, cambios de publicaciones ni nuevas tablas.
