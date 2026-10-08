@@ -2254,3 +2254,28 @@ Mejoras recibidas de pruebas reales en móvil:
 - Estilos compartidos en `public/public-footer-v197.css`.
 - Compatible con la barra móvil de entrada pública V1.92.
 - Sin cambios de base de datos ni en `src/routes/posts.js`.
+
+
+## V1.98.0 — Legal Consent Versioning & Audit Trail
+
+- Convierte la aceptación legal del alta en un registro versionado y auditable.
+- Documentos actuales:
+  - Términos de Uso `1.0` — acción `accepted`;
+  - Normas de la Comunidad `1.0` — acción `accepted`;
+  - Política de Privacidad `1.0` — acción `acknowledged`.
+- Cada registro guarda:
+  - usuario;
+  - documento;
+  - versión;
+  - acción;
+  - origen;
+  - fecha/hora.
+- Las tres entradas nuevas se crean dentro de la misma transacción que la cuenta.
+- Cuentas antiguas:
+  - solo se conserva la aceptación histórica de términos ya existente;
+  - se marca como versión `legacy`;
+  - no se inventan aceptaciones de Privacidad o Normas nuevas.
+- La exportación de datos del usuario incluye `legalAcceptances`.
+- La tabla usa `ON DELETE CASCADE` para respetar el borrado de cuenta.
+- Sin cambios visuales en el alta.
+- Sin cambios en `src/routes/posts.js`.
