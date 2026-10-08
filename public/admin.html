@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V2.13 · Observabilidad 3.0</small></div>
+  <div><b>Moderación</b><small>V2.14 · Centro de recuperación</small></div>
 </header>
 
 <main>
@@ -23,6 +23,19 @@
     <div id="metrics" class="metrics"></div>
   </section>
 
+  <section class="panel recovery-v214-panel" aria-labelledby="recoveryTitle">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">FIABILIDAD · V2.14</span>
+        <h2 id="recoveryTitle">Centro de recuperación</h2>
+        <p class="panel-copy">Comprueba PostgreSQL, espacio disponible para fotos y vídeos, y configuración push. Solo diagnóstico: no modifica archivos ni cuentas.</p>
+      </div>
+      <button id="reloadRecovery" type="button">Comprobar ahora</button>
+    </div>
+    <div id="recoverySummary" class="beta-metrics" aria-live="polite">Comprobando dependencias…</div>
+    <div id="recoveryServices" class="report-list"></div>
+    <p id="recoveryNote" class="beta-privacy-note">Los indicadores pertenecen a la instancia actual. Comprueba también los registros de Coolify.</p>
+  </section>
   <section class="panel runtime-ops-panel" aria-labelledby="runtimeOpsTitle">
     <div class="panel-head">
       <div>
