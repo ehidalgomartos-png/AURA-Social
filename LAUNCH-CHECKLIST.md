@@ -656,3 +656,19 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Exportar la cuenta de forma general y confirmar que su JSON sigue incluyendo legalAcceptances.
 - Comprobar móvil, escritorio, descarga, error de red y mensajes accesibles.
 - Ejecutar npm run check:syntax y npm run test:legal; confirmar posts.js inalterado.
+
+
+## 52. Registro legal legible — V2.3.0
+
+- Confirmar `/api/health` 2.3.0 con `readable-legal-receipt-v2.3` y `offline-printable-legal-record-v2.3`.
+- Abrir Perfil → Más → Cuenta → Términos y privacidad en móvil y ordenador.
+- Comprobar los botones **Descargar versión legible** y **Descargar JSON**.
+- Descargar HTML con una cuenta nueva y revisar cada documento y la fecha real (UTC).
+- Abrir el HTML sin conexión; comprobar diseño legible, impresión en A4 y ausencia de llamadas externas.
+- Descargar HTML de una cuenta legacy y confirmar que NO afirma una aceptación de la versión vigente.
+- Probar campo malicioso de versión o usuario en entorno de pruebas: debe salir como texto, no ejecutarse como HTML.
+- Comparar el contenido del HTML con el JSON para la misma cuenta; no deben aparecer aceptaciones adicionales.
+- Intentar descargar sin sesión; debe devolver 401 y no revelar datos.
+- Verificar `?format=html`, `?format=json`, formato omitido y `?format=otro` (400).
+- Comprobar `Content-Disposition: attachment`, `Cache-Control: private, no-store`, `Content-Security-Policy` para HTML y `X-Content-Type-Options: nosniff`.
+- Ejecutar `npm run check:syntax` y `npm run test:legal`, confirmar que no se ha cambiado `src/routes/posts.js` ni SQL.
