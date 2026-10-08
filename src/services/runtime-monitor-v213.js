@@ -14,7 +14,7 @@ function classifyApiPath(path=''){
 
 function excludeTelemetry(req){
   if(!String(req.path||'').startsWith('/api/'))return true;
-  return ['/api/health','/api/ready','/api/admin/ops/runtime','/api/admin/ops/dependencies'].includes(req.path);
+  return ['/api/health','/api/ready','/api/admin/ops/runtime','/api/admin/ops/dependencies'].includes(req.path) || req.path.startsWith('/api/admin/ops/alerts');
 }
 
 function createRuntimeMonitor({
@@ -31,7 +31,7 @@ function createRuntimeMonitor({
     }
   }
   function record({path,method='GET',status=200,durationMs=0,at=now()}){
-    if(!String(path||'').startsWith('/api/') || ['/api/health','/api/ready','/api/admin/ops/runtime','/api/admin/ops/dependencies'].includes(path))return;
+    if(!String(path||'').startsWith('/api/') || ['/api/health','/api/ready','/api/admin/ops/runtime','/api/admin/ops/dependencies'].includes(path) || String(path).startsWith('/api/admin/ops/alerts'))return;
     prune(at);
     const group=classifyApiPath(path);
     const minute=Math.floor(at/60000);
