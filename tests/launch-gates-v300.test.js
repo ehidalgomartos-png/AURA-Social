@@ -11,7 +11,7 @@ const {checkLaunchConfiguration}=require('../scripts/launch-preflight-v300');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-const version='3.0.0';
+const version=require('../package.json').version;
 function fakeBody(key){
   const bodies={
     health:JSON.stringify({ok:true,version,configuration:{criticalReady:true}}),
@@ -181,6 +181,6 @@ test('integration documents release gate and project is declared as V3.0',()=>{
   assert.equal(pkg.version,version);
   assert.match(pkg.scripts['gate:public'],/release-gate-v300/);
   assert.match(pkg.scripts['gate:config'],/launch-preflight-v300/);
-  assert.match(read('server.js'),/const APP_VERSION='3\.0\.0'/);
+  assert.match(read('server.js'),new RegExp("const APP_VERSION='"+version.replace(/\./g,'\\.')+"'"));
   assert.match(read('.github/workflows/validate-js.yml'),/test:launch-gates/);
 });
