@@ -7,6 +7,7 @@ const path = require('path');
 const { z } = require('zod');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { buildLegalConsentReceipt } = require('../services/legal-consent-receipt');
 
 const router = express.Router();
 
@@ -544,6 +545,32 @@ router.get('/account', requireAuth, async (req,res)=>{
   });
 });
 
+
+// Private, no-store export. This is a factual record, not an authenticated certificate.
+router.get('/account/legal-consent/receipt',requireAuth,async(req,res)=>{
+  res.setHeader('Cache-Control','private, no-store, max-age=0');
+  res.setHeader('X-Content-Type-Options','nosniff');
+  const [account,records]=await Promise.all([
+    db.query("SELECT username,created_at FROM users WHERE id=$1 AND status='active' LIMIT 1",[req.user.id]),
+    db.query(`SELECT document_key,document_version,action,source,accepted_at
+      FROM legal_acceptances WHERE user_id=$1
+      ORDER BY accepted_at DESC,id DESC`,[req.user.id])
+  ]);
+  if(!account.rowCount)return res.status(404).json({error:'user_not_found'});
+  const username=String(account.rows[0].username||'user').replace(/[^a-zA-Z0-9_.-]/g,'_').slice(0,40);
+  const documents={
+    terms:{version:LEGAL_DOCUMENT_VERSIONS.terms,path:'/terms/'},
+    community_guidelines:{version:LEGAL_DOCUMENT_VERSIONS.community_guidelines,path:'/community-guidelines/'},
+    privacy:{version:LEGAL_DOCUMENT_VERSIONS.privacy,path:'/privacy/'}
+  };
+  const receipt=buildLegalConsentReceipt({
+    account:account.rows[0],
+    legalAcceptances:records.rows,
+    legalDocuments:documents
+  });
+  res.setHeader('Content-Disposition',`attachment; filename="redlibertad-consentimientos-${username}.json"`);
+  res.type('json').json(receipt);
+});
 
 const legalConsentConfirmationSchema=z.object({
   documentKey:z.enum(['terms','community_guidelines','privacy']),
