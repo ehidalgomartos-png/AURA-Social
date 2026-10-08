@@ -5587,31 +5587,60 @@ function startCommentReply(button) {
   if(submit)submit.textContent='Responder';
 }
 
-async function loadComments(postId) {
-  const list = $('#commentsList');
-  list.innerHTML = '<div class="comments-loading">Cargando comentarios...</div>';
-
-  const { r, d } = await api(`/api/posts/${postId}/comments`);
-  if (!r.ok) {
-    list.innerHTML = '<div class="info-card"><b>No se pudieron cargar los comentarios.</b></div>';
-    return;
-  }
-
-  list.innerHTML = d.comments?.length
-    ? d.comments.map(commentHTML).join('')
-    : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
-
-  all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
-  list.scrollTop = list.scrollHeight;
+// Prevent outdated requests from replacing a newly opened comment thread.
+let commentsRequestSequence=0;
+function commentsRequestIsCurrent(requestId,postId){
+  return requestId===commentsRequestSequence &&
+    String(activeCommentsPostId||'')===String(postId||'') &&
+    !$('#commentsModal')?.classList.contains('hidden');
 }
 
+async function loadComments(postId) {
+  const list=$('#commentsList');
+  if(!list)return;
+  const requestId=++commentsRequestSequence;
+  list.setAttribute('aria-busy','true');
+  list.innerHTML='<div class="comments-loading">Cargando comentarios...</div>';
+  try{
+    const {r,d}=await api('/api/posts/'+encodeURIComponent(postId)+'/comments',{dedupe:false});
+    if(!commentsRequestIsCurrent(requestId,postId))return;
+    if(!r.ok){
+      list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
+        '<b>No se pudieron cargar los comentarios.</b>'+
+        '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
+        '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
+      return;
+    }
+    list.innerHTML=Array.isArray(d.comments)&&d.comments.length
+      ? d.comments.map(commentHTML).join('')
+      : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
+    all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
+    list.scrollTop=list.scrollHeight;
+  }catch(_){
+    if(!commentsRequestIsCurrent(requestId,postId))return;
+    list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
+      '<b>No se pudieron cargar los comentarios.</b>'+
+      '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
+      '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
+  }finally{
+    if(commentsRequestIsCurrent(requestId,postId))list.setAttribute('aria-busy','false');
+  }
+}
+
+$('#commentsList')?.addEventListener('click',event=>{
+  if(!event.target.closest('[data-comments-retry]')||!activeCommentsPostId)return;
+  loadComments(activeCommentsPostId);
+});
+
 async function openComments(postId) {
-  activeCommentsPostId = Number(postId);
-  $('#commentBody').value = '';
-  $('#commentStatus').textContent = '';
+  const value=Number(postId);
+  if(!Number.isSafeInteger(value)||value<1)return;
+  activeCommentsPostId=value;
+  $('#commentBody').value='';
+  $('#commentStatus').textContent='';
   clearCommentReply();
   $('#commentsModal').classList.remove('hidden');
-  await loadComments(activeCommentsPostId);
+  await loadComments(value);
 }
 
 function openReport(postId) {
@@ -6260,6 +6289,7 @@ $('#confirmDeleteComment').onclick = async () => {
 };
 
 $('#closeCommentsModal').onclick = () => {
+  commentsRequestSequence++;
   $('#commentsModal').classList.add('hidden');
   activeCommentsPostId = null;
   clearCommentReply();
