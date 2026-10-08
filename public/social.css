@@ -6802,3 +6802,100 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(prefers-reduced-motion:reduce){
   #profileView #profilePosts.own-profile-feed *{scroll-behavior:auto}
 }
+
+
+/* V3.0.6 — expressive mobile navigation and solid dock over long posts. */
+@media(max-width:760px){
+  :root{--mobile-dock-space:112px}
+  .bottom-nav{
+    background:#fffdf9;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    border:1px solid rgba(13,34,56,.14);
+    box-shadow:0 10px 32px rgba(13,34,56,.20),0 0 0 1px rgba(255,255,255,.7) inset;
+    padding:6px 7px;
+    height:76px;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    align-items:center;
+    isolation:isolate;
+  }
+  .bottom-nav button{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    align-items:center;
+    justify-content:center;
+    padding:6px 2px 5px;
+    color:#425569;
+    font-weight:800;
+    background:transparent;
+    border-radius:15px;
+    min-height:60px;
+    opacity:1;
+  }
+  .bottom-nav button.active{
+    color:#087c73;
+    background:#e7f7f4;
+  }
+  .bottom-nav button.active::after{
+    background:#13a597;
+    width:24px;
+    bottom:0;
+  }
+  .bottom-nav-icon{
+    width:25px;
+    height:25px;
+    display:block;
+    flex:0 0 auto;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2.2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    transition:transform .18s ease;
+  }
+  .bottom-nav button.active .bottom-nav-icon{stroke-width:2.6;transform:translateY(-1px)}
+  .bottom-nav small{font-size:10px;font-weight:800;color:inherit;line-height:1.2;letter-spacing:.01em}
+  .bottom-nav .bottom-icon-wrap{width:25px;height:25px;display:grid;place-items:center}
+  .bottom-nav .create-mobile{
+    color:#0d2238;
+    gap:2px;
+    transform:translateY(-7px);
+    padding:2px;
+    background:transparent!important;
+  }
+  .bottom-nav .create-mobile b{
+    display:grid;
+    place-items:center;
+    width:51px;
+    height:51px;
+    border:4px solid #fffdf9;
+    border-radius:50%;
+    background:linear-gradient(135deg,#f17a5d,#ef9b62);
+    box-shadow:0 8px 20px rgba(239,122,93,.32);
+  }
+  .bottom-nav-create-icon{
+    display:block;
+    width:26px;
+    height:26px;
+    fill:none;
+    stroke:#fff;
+    stroke-width:3.2;
+    stroke-linecap:round;
+  }
+  .bottom-nav .create-mobile small{margin:0;color:#0d2238}
+  .bottom-nav button:focus-visible{outline:3px solid #087c73;outline-offset:2px}
+  .bottom-nav .create-mobile:active{transform:translateY(-7px) scale(.96)}
+  .social-main{padding-bottom:calc(var(--mobile-dock-space) + env(safe-area-inset-bottom))}
+  #profileView #profilePosts.own-profile-feed{
+    padding-bottom:calc(var(--mobile-dock-space) + env(safe-area-inset-bottom));
+  }
+}
+@media(max-width:380px){
+  .bottom-nav{padding-inline:4px}
+  .bottom-nav small{font-size:9px}
+  .bottom-nav-icon{width:23px;height:23px}
+}
+@media(prefers-reduced-motion:reduce){
+  .bottom-nav-icon{transition:none!important}
+}
