@@ -3,6 +3,8 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+// A dedicated non-production key for deterministic CI hashes; never used by the application.
+process.env.JWT_SECRET='v211-test-key-not-for-production-0000000000000000';
 const {matchPolicy,actorHash,createAbuseGuard,POLICIES}=require('../src/services/abuse-guard');
 
 function makeHarness({ip='198.51.100.3',user={id:42},now=()=>1_800_000_000_000}={}){
