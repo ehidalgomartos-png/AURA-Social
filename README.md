@@ -2415,3 +2415,21 @@ Mejoras de interacción mobile-first, sin alterar la API de publicaciones ni la 
 **Pruebas:** `npm run test:social`, `npm run test:smoke`, `npm run test:legal` y `npm run check:syntax`. GitHub Actions ejecuta las cuatro verificaciones. La validación visual real en móvil/Coolify sigue siendo necesaria tras el despliegue.
 
 **No se modifican** `src/routes/posts.js`, SQL, permisos, consentimientos ni monetización.
+
+
+## V2.8.0 — Descubrir 3.0
+
+El apartado **Explorar → Personas** incorpora tres modalidades de sugerencias y la opción «Cambiar sugerencias»:
+
+- **Para ti:** prioriza intereses compartidos y perfiles con actividad pública reciente (solo si han elegido mostrar actividad), sin basarse exclusivamente en número de seguidores.
+- **Activos:** muestra cuentas descubribles con actividad pública publicada en los últimos 7 días y con la visibilidad de actividad activada. No es un indicador de conexión en tiempo real.
+- **Nuevos:** muestra cuentas creadas durante los últimos 30 días, priorizando personas que todavía no sigues.
+- **Cambiar sugerencias:** pagina resultados con un orden estable, hasta 11 páginas, evitando mostrar siempre las mismas personas. Se desactiva cuando no hay más.
+- **Experiencia móvil:** pestañas accesibles, contador y estado de carga, resultados vacíos explicados y opción «Reintentar» ante problemas de red.
+- Las búsquedas por nombre continúan siendo independientes de los modos y no son sobrescritas por solicitudes antiguas.
+- La API `GET /api/profiles/suggestions` acepta `mode=for_you|active|new`, `page=0..10` y `limit=1..30`, y devuelve `hasMore`; `interest` mantiene su comportamiento.
+- El servidor conserva filtros de perfiles activos, no administradores, descubribles, sin bloqueos ni silencios, sin sugerencias ocultadas. Las señales de actividad se calculan solo a partir de publicaciones/Stories públicas publicadas y se muestran únicamente si la persona permite visualizar actividad.
+- No se activa visibilidad de actividad en ninguna cuenta. El modo «Nuevos» no divulga estado «en línea» ni una ubicación exacta.
+- Mantiene sugerencias del Inicio, búsqueda global, comunidades, mensajes y moderación.
+
+Pruebas: `npm run test:discovery` y todas las suites anteriores. La comprobación con usuarios y dispositivo reales en Coolify sigue pendiente.
