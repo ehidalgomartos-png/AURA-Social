@@ -6641,3 +6641,24 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .push-preference-options{grid-template-columns:minmax(0,1fr)}
   .push-preferences-form button[type="submit"]{width:100%}
 }
+
+
+/* RedLibertad V2.20 — community return, mobile-first and low-pressure. */
+.community-return{margin:14px 0;padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:19px}
+.community-return-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.community-return-head h2{margin:3px 0;font:800 19px/1.25 Manrope,sans-serif;color:var(--navy)}
+.community-return-head p,.community-return-footnote{font-size:11px;line-height:1.5;color:var(--muted)}
+.community-return-head p{margin:6px 0 0}
+.community-return-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:13px}
+.community-return-card{display:flex;flex-direction:column;gap:8px;min-width:0;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:12px}
+.community-return-card b{font-size:13px;color:var(--navy);overflow-wrap:anywhere}
+.community-return-card small{font-size:10px;color:var(--muted)}
+.community-return-actions{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:auto;flex-wrap:wrap}
+.community-return-actions button{min-height:40px;font-size:12px;border-radius:11px}
+.community-return-actions .community-return-snooze{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.community-return-actions button:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.community-return-actions button:disabled{opacity:.55;cursor:wait}
+.community-return-footnote{display:block;margin-top:10px}
+@media(max-width:850px){.community-return-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.community-return{padding:12px;margin:12px 0}.community-return-head{align-items:start}.community-return-list{grid-template-columns:1fr}.community-return-card{padding:12px}.community-return-actions button{min-height:44px}}
+@media(prefers-reduced-motion:reduce){.community-return *{transition:none!important}}

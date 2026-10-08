@@ -30,6 +30,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Privacy-safe community retention regression tests
+        run: npm run test:retention
       - name: Growth cohorts, attribution and dashboard regression tests
         run: npm run test:growth-center
       - name: SEO acquisition, public guides and signup safety tests
