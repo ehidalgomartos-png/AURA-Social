@@ -1204,6 +1204,37 @@ $('#securityEvents')?.addEventListener('click',async event=>{
 
 
 
+
+function releaseCheckStatusLabel(status){
+  return ({ok:'Correcto',warning:'Atención',critical:'Incidencia'})[status]||'Sin datos';
+}
+async function releaseVerification(refresh=false){
+  const summary=$('#releaseVerificationSummary'),list=$('#releaseVerificationChecks'),note=$('#releaseVerificationNote');
+  if(!summary||!list)return;
+  summary.textContent='Comprobando la versión…';
+  try{
+    const {r,d}=await api('/api/admin/ops/release-verification'+(refresh?'?refresh=1':''));
+    if(!r.ok)throw new Error('release_verification_unavailable');
+    summary.innerHTML=[
+      ['Versión esperada',String(d.expectedVersion||'—')],
+      ['Estado',releaseCheckStatusLabel(d.level)],
+      ['Comprobaciones',Number(d.passed||0)+' / '+Number(d.total||0)],
+      ['Última revisión',timeLabel(d.checkedAt)]
+    ].map(([label,value])=>'<div class="metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>').join('');
+    list.innerHTML=(d.checks||[]).map(item=>
+      '<article class="report-card"><div><b>'+esc(item.label)+' — '+esc(releaseCheckStatusLabel(item.status))+'</b>'+
+      '<p>'+esc(item.advice||'')+'</p>'+
+      '<small>HTTP '+esc(item.httpStatus===null?'Sin respuesta':item.httpStatus)+' · '+Math.max(0,Number(item.elapsedMs||0))+' ms'+
+      (item.reason?' · '+esc(item.reason):'')+'</small></div></article>'
+    ).join('')||'<div class="empty-admin">No se pudieron recuperar comprobaciones.</div>';
+    if(note)note.textContent='Comprobación interna, solo de la instancia actual, sin modificar datos. No valida el acceso público, la CDN ni el estado del despliegue en Coolify.';
+  }catch(_){
+    summary.textContent='No se pudo comprobar el despliegue.';
+    list.textContent='Revisa los registros de Coolify y vuelve a intentarlo.';
+  }
+}
+$('#reloadReleaseVerification')?.addEventListener('click',()=>releaseVerification(true));
+
 async function alertDeliveries(){
   const summary=$('#alertDeliveryStatus'),list=$('#alertDeliveryList');
   if(!summary||!list)return;
@@ -1405,5 +1436,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
