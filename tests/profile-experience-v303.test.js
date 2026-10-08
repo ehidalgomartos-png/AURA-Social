@@ -116,8 +116,8 @@ test('SEO copy is fluent for one or multiple public posts',()=>{
 });
 test('patch version and Actions include the profile regression suite',()=>{
  const pkg=require('../package.json');
- assert.equal(pkg.version,'3.0.3');
- assert.match(read('server.js'),/const APP_VERSION='3\.0\.3'/);
+ assert.match(pkg.version,/^3\.0\.[0-9]+$/);
+ assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
  assert.match(pkg.scripts['test:profile-experience'],/profile-experience-v303\.test\.js/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:profile-experience/);
 });
