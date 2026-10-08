@@ -1201,6 +1201,34 @@ $('#securityEvents')?.addEventListener('click',async event=>{
 });
 
 
+
+function recoveryStatusLabel(status){
+  return ({ok:'Correcto',warning:'Atención',critical:'Incidencia',disabled:'Opcional'})[status]||'Sin datos';
+}
+async function recoveryOverview(force=false){
+  const summary=$('#recoverySummary'),servicesRoot=$('#recoveryServices'),note=$('#recoveryNote');
+  if(!summary||!servicesRoot)return;
+  summary.textContent='Comprobando dependencias…';
+  try{
+    const {r,d}=await api('/api/admin/ops/dependencies'+(force?'?refresh=1':''));
+    if(!r.ok)throw new Error('dependency_check_failed');
+    const services=Array.isArray(d.services)?d.services:[];
+    const main=[['Estado',recoveryStatusLabel(d.level)],['Dependencias comprobadas',Number(services.length)],['Última comprobación',timeLabel(d.checkedAt)]];
+    summary.innerHTML=main.map(([label,value])=>'<div class="metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>').join('');
+    servicesRoot.innerHTML=services.map(item=>{
+      const storage=item.key==='media' && item.freeMB!=null?' · '+Math.max(0,Number(item.freeMB))+' MB libres ('+esc(item.freePercent)+'%)':'';
+      const latency=item.key==='database' && item.latencyMs!=null?' · '+Math.max(0,Number(item.latencyMs))+' ms':'';
+      return '<article class="report-card"><div><b>'+esc(item.label)+' — '+esc(recoveryStatusLabel(item.status))+'</b>'+
+        '<p>'+esc(item.advice||'')+'</p><small>'+esc(storage+latency)+'</small></div></article>';
+    }).join('')||'<div class="empty-admin">No hay datos de dependencias.</div>';
+    if(note)note.textContent='Comprobación de la instancia actual · '+timeLabel(d.checkedAt)+'. No modifica datos. El almacenamiento externo y la entrega real de push requieren pruebas adicionales.';
+  }catch(_){
+    summary.textContent='No se pudo completar la comprobación.';
+    servicesRoot.textContent='Consulta los registros de Coolify y vuelve a intentarlo.';
+  }
+}
+$('#reloadRecovery')?.addEventListener('click',()=>recoveryOverview(true));
+
 function runtimeLatencyLabel(value){
   const ms=Number(value||0);
   return ms>=10000?'≥ 10 s':ms>=1000?'≤ '+(ms/1000).toFixed(1)+' s':'≤ '+ms+' ms';
@@ -1248,5 +1276,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
