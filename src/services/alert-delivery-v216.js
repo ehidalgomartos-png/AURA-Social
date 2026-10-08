@@ -82,6 +82,14 @@ function createAlertDeliveryService({db,url=process.env.OPS_ALERT_WEBHOOK_URL,
       "ON CONFLICT(alert_id,cycle_key) DO NOTHING"
     );
   }
+  async function retireCleared(){
+    await db.query(
+      "UPDATE operational_alert_deliveries_v216 d SET status='failed',"+
+      "last_error_code='incident_cleared',locked_until=NULL "+
+      "FROM operational_alerts_v215 a WHERE a.id=d.alert_id AND d.status='pending' "+
+      "AND (a.is_active=FALSE OR a.status<>'open')"
+    );
+  }
   async function claim(){
     return db.query(
       "WITH claim AS ("+
@@ -143,6 +151,7 @@ function createAlertDeliveryService({db,url=process.env.OPS_ALERT_WEBHOOK_URL,
       try{
         await ensureSchema();
         await enqueue();
+        await retireCleared();
         const jobs=await claim();
         for(const item of jobs.rows){
           lastAttemptAt=new Date().toISOString();
