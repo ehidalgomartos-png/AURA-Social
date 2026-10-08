@@ -2364,3 +2364,16 @@ Mejoras recibidas de pruebas reales en móvil:
 - Control mobile-first, elementos nativos de formulario y estado de resultados anunciado a lectores de pantalla.
 - No modifica los textos legales, las versiones vigentes (1.0), rutas del servidor, esquema, publicaciones ni monetización.
 - Pruebas: `npm run check:syntax` y `npm run test:legal` (9 nuevos casos de filtros).
+
+
+## V2.5.0 — Legal Status Overview & Pending Documents
+
+- En **Perfil → Más → Cuenta → Términos y privacidad** se muestra un resumen inmediato de los documentos con versión vigente registrada, con versión anterior y sin registro.
+- El estado se determina **por documento y acción**: `accepted` para Términos/Normas y `acknowledged` para Privacidad. Un registro de otro tipo no se considera consentimiento.
+- Los `legacy` solo cuentan como antecedentes históricos; nunca como aceptación de una versión actual.
+- Cuando no está disponible la versión vigente de un documento, se identifica como `sin versión disponible`, sin presentar una confirmación pendiente inventada.
+- El botón **Ver documentos pendientes** desplaza la vista hasta el formulario del primer documento sin versión vigente registrada. No marca casillas, no llama a la API y no registra consentimientos.
+- Al confirmar explícitamente desde los formularios existentes, el resumen se vuelve a calcular a partir de la respuesta actualizada de la cuenta.
+- El panel es responsivo y accesible; mantiene los filtros, historial y descargas HTML/JSON de versiones anteriores.
+- Sin cambios en tablas, API, documentos legales actuales, `src/routes/posts.js` ni monetización.
+- Pruebas: `npm run check:syntax` y `npm run test:legal` (7 nuevos casos de estados y navegación).

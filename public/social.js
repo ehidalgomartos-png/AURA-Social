@@ -4757,6 +4757,53 @@ function legalConsentTimelineHTML(items,definitions,documents){
     '</details>';
 }
 
+// Each document has its own legal action: accepted (Terms/Rules) or
+// acknowledged (Privacy). Absence of a matching record is never consent.
+function legalStatusOverview(items,documents,definitions){
+  const history=Array.isArray(items)?items:[];
+  const states=definitions.map(def=>{
+    const version=String(documents?.[def.key]?.version||'');
+    const records=history.filter(item=>item &&
+      item.document_key===def.key && item.action===def.action);
+    const current=Boolean(version && records.some(item=>
+      String(item.document_version)===version));
+    return {
+      key:def.key,
+      label:def.label,
+      state:!version?'unknown':current?'current':records.length?'historical':'missing'
+    };
+  });
+  const totals={current:0,historical:0,missing:0,unknown:0};
+  states.forEach(item=>{totals[item.state]++;});
+  const available=states.length-totals.unknown;
+  const pending=totals.historical+totals.missing;
+  const firstPending=states.find(item=>item.state==='historical'||item.state==='missing')||null;
+  return {states,totals,available,pending,firstPending};
+}
+
+function legalStatusOverviewHTML(items,documents,definitions){
+  const {totals,available,pending,firstPending}=legalStatusOverview(items,documents,definitions);
+  const summary=available
+    ? String(totals.current)+' de '+String(available)+' documentos con versión vigente registrada'
+    : 'No se pudo comprobar la versión vigente de los documentos';
+  const action=firstPending
+    ? '<button type="button" class="secondary legal-overview-pending" data-legal-go-pending>'+
+      'Ver documentos pendientes ('+pending+')</button>'
+    : '';
+  return '<div class="legal-overview" role="region" aria-label="Resumen de documentos legales">'+
+    '<div class="legal-overview-top"><strong>Estado de tus documentos</strong>'+
+    '<span role="status" aria-live="polite">'+esc(summary)+'</span></div>'+
+    '<div class="legal-overview-stats">'+
+      '<span><b>'+totals.current+'</b> vigentes registrados</span>'+
+      '<span><b>'+totals.historical+'</b> con versión anterior</span>'+
+      '<span><b>'+totals.missing+'</b> sin registro</span>'+
+      (totals.unknown?'<span><b>'+totals.unknown+'</b> sin versión disponible</span>':'')+
+    '</div>'+
+    '<p>Este resumen refleja únicamente los registros de tu cuenta. Privacidad indica lectura reconocida, no aceptación.</p>'+
+    action+
+  '</div>';
+}
+
 function legalConsentHistoryHTML(items=[],documents={}){
   const definitions=[
     {key:'terms',label:'Términos de Uso',action:'accepted',actionLabel:'Aceptados',fallbackPath:'/terms/'},
@@ -4771,7 +4818,7 @@ function legalConsentHistoryHTML(items=[],documents={}){
       String(item.document_version)===currentVersion &&
       item.action===def.action
     );
-    const latest=history.find(item=>item.document_key===def.key);
+    const latest=history.find(item=>item.document_key===def.key && item.action===def.action);
     const record=current || latest || null;
     const isCurrent=Boolean(current);
     const version=record ? String(record.document_version || '') : '';
@@ -4788,7 +4835,7 @@ function legalConsentHistoryHTML(items=[],documents={}){
       <button class="secondary" type="submit" disabled>${def.key==='privacy'?'Confirmar lectura':'Aceptar versión actual'}</button>
       <small class="legal-confirm-status" role="status" aria-live="polite"></small>
     </form>` : '';
-    return `<article class="legal-consent-row ${stateClass}">
+    return `<article class="legal-consent-row ${stateClass}" data-legal-document="${esc(def.key)}">
       <div class="legal-consent-copy">
         <div class="legal-consent-title"><b>${esc(def.label)}</b><span>${stateLabel}</span></div>
         <small>${detail}</small>
@@ -4802,7 +4849,7 @@ function legalConsentHistoryHTML(items=[],documents={}){
   const note=hasLegacy
     ? '<p class="legal-consent-note">Los registros “legacy” conservan la aceptación histórica anterior al versionado legal. No significan que aceptaras documentos posteriores.</p>'
     : '<p class="legal-consent-note">Este historial refleja las versiones registradas en tu cuenta. Los textos pueden consultarse en cualquier momento.</p>';
-  return rows+note+legalConsentTimelineHTML(history,definitions,documents);
+  return legalStatusOverviewHTML(history,documents,definitions)+rows+note+legalConsentTimelineHTML(history,definitions,documents);
 }
 
 $('#legalConsentHistory')?.addEventListener('change',event=>{
@@ -4860,6 +4907,19 @@ $('#legalConsentHistory')?.addEventListener('click',event=>{
     field.value=field.dataset.legalHistoryFilter==='query'?'':'all';
   });
   applyLegalHistoryFilters();
+});
+
+// Navigates to a pending form but never checks a box or records consent.
+$('#legalConsentHistory')?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-legal-go-pending]');
+  if(!button)return;
+  const container=$('#legalConsentHistory');
+  const row=[...container.querySelectorAll('.legal-consent-row')]
+    .find(item=>Boolean(item.querySelector('.legal-confirm-form')));
+  if(!row)return;
+  row.scrollIntoView({behavior:'smooth',block:'center'});
+  const field=row.querySelector('.legal-confirm-form input[type="checkbox"]');
+  field?.focus({preventScroll:true});
 });
 
 function urlBase64ToUint8Array(base64String){
