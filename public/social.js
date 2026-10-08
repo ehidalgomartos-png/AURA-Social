@@ -6317,6 +6317,8 @@ $('#commentForm').addEventListener('submit', async event => {
   return runSocialSubmitOnce(event.currentTarget,async()=>{
   if (!activeCommentsPostId) return;
 
+  const commentPostId=activeCommentsPostId;
+  const commentReplyId=activeCommentReply?.id || null;
   const body = $('#commentBody').value.trim();
   if (!body) return;
 
@@ -6327,12 +6329,12 @@ $('#commentForm').addEventListener('submit', async event => {
   $('#commentStatus').textContent = '';
 
   try {
-    const { r, d } = await api(`/api/posts/${activeCommentsPostId}/comments`, {
+    const { r, d } = await api(`/api/posts/${commentPostId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         body,
-        parentCommentId:activeCommentReply?.id || null
+        parentCommentId:commentReplyId
       })
     });
 
@@ -6342,7 +6344,9 @@ $('#commentForm').addEventListener('submit', async event => {
         : 'No se pudo publicar el comentario.');
     }
 
-    const wasReply=!!activeCommentReply;
+    // A previous request must not erase a draft in a different thread.
+    if(String(activeCommentsPostId||'')!==String(commentPostId))return;
+    const wasReply=!!commentReplyId;
     $('#commentBody').value = '';
     clearCommentReply();
     $('#commentStatus').textContent = wasReply ? 'Respuesta publicada.' : 'Comentario publicado.';
@@ -8797,6 +8801,8 @@ document.addEventListener('click',async event=>{
 });
 
 function showView(name) {
+  const view=document.getElementById(String(name||'')+'View');
+  if(!view||!view.classList.contains('view'))return;
   const switching=name!==activeViewName;
   if(!switching){
     window.scrollTo({top:0,behavior:'smooth'});
@@ -8806,8 +8812,6 @@ function showView(name) {
   if(name!=='messages' && activeConversationId)sendChatPresence({typing:false,conversationId:null});
   if(name!=='reels')pauseReelVideos();
   all('.view').forEach(v => { v.classList.add('hidden'); v.setAttribute('aria-hidden','true'); });
-  const view = document.querySelector('#' + name + 'View');
-  if (!view) return;
   view.classList.remove('hidden');
   view.setAttribute('aria-hidden','false');
   activeViewName=name;
