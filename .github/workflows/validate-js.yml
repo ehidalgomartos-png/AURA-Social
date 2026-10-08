@@ -28,6 +28,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Dependency recovery and operations regression tests
+        run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
       - name: Mobile performance and PWA cache regression tests
