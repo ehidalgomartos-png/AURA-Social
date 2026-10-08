@@ -8957,7 +8957,12 @@ async function openModal() {
 function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = openModal); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');
+let postMediaPreviewUrl=null;
+function revokePostMediaPreview(){
+  if(postMediaPreviewUrl){URL.revokeObjectURL(postMediaPreviewUrl);postMediaPreviewUrl=null;}
+}
 function clearPostMedia() {
+  revokePostMediaPreview();
   const file = $('#mediaFile');
   if (file) file.value = '';
   currentFileMedia = null;
@@ -8974,7 +8979,9 @@ $('#mediaFile').addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return clearPostMedia();
   currentFileMedia = null;
+  revokePostMediaPreview();
   const u = URL.createObjectURL(f);
+  postMediaPreviewUrl=u;
   $('#uploadText').classList.add('hidden');
   $('#removePostMedia')?.classList.remove('hidden');
   const p = $('#preview');
