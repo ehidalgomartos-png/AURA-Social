@@ -88,7 +88,7 @@ router.get('/sitemap-reels.xml',async(req,res)=>{
   try{
     await ensure();const o=origin(req);
     const r=await db.query("SELECT p.id,p.caption,p.updated_at,u.username,u.display_name FROM posts p JOIN users u ON u.id=p.user_id WHERE "+publicFilter+" AND p.post_kind='reel' AND p.media_type='video' ORDER BY p.updated_at DESC,p.id DESC LIMIT 5000");
-    res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+r.rows.map(x=>'<url><loc>'+esc(o+reelPath(x))+'</loc><lastmod>'+new Date(x.updated_at).toISOString()+'</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>').join('')+'</urlset>');
+    res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+(r.rows.length?r.rows.map(x=>'<url><loc>'+esc(o+reelPath(x))+'</loc><lastmod>'+new Date(x.updated_at).toISOString()+'</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>').join(''):'<url><loc>'+esc(o+'/reels')+'</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>')+'</urlset>');
   }catch(e){console.error('RedLibertad reels sitemap error:',e);res.status(500).type('text/plain').send('Reels sitemap unavailable');}
 });
 

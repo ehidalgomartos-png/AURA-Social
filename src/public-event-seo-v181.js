@@ -101,7 +101,7 @@ router.get('/sitemap-events.xml',async(req,res)=>{
     const o=origin(req);
     const r=await db.query("SELECT e.id,e.title,e.updated_at FROM social_events e JOIN users creator ON creator.id=e.creator_id WHERE "+eligibility('e')+" AND e.starts_at>=now()-interval '2 hours' ORDER BY e.starts_at ASC,e.id ASC LIMIT 5000");
     const urls=r.rows.map(x=>'<url><loc>'+e(o+pathFor(x))+'</loc><lastmod>'+new Date(x.updated_at).toISOString()+'</lastmod><changefreq>daily</changefreq><priority>0.6</priority></url>');
-    res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
+    if(!urls.length)urls.push('<url><loc>'+e(o+'/eventos')+'</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>');res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(err){
     console.error('RedLibertad events sitemap error:',err);
     res.status(500).type('text/plain').send('Events sitemap unavailable');
