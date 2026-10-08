@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.99.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "RedLibertad V1.99 Legal Consent Center - historial legal visible para el usuario con versiones, fechas, estado y enlaces a los textos actuales.",
+  "description": "RedLibertad V2.0 Legal Consent Lifecycle - confirmaciones expresas y versionadas de documentos legales.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
