@@ -706,3 +706,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Verificar que siguen funcionando historial, búsqueda/filtros, descarga HTML y descarga JSON.
 - Ejecutar `npm run check:syntax` y `npm run test:legal`.
 - Confirmar ausencia de cambios en publicaciones, SQL y monetización.
+
+
+## 55. Stability & Quality Audit — V2.6.0
+
+- [ ] Verificar que `/api/health` anuncia 2.6.0 y las features nuevas tras desplegar.
+- [ ] Consultar `/api/ready` y validar `database=ready` con el PostgreSQL real.
+- [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke` y comprobar GitHub Actions.
+- [ ] Ejecutar `npm run smoke:production -- https://redlibertad.com` desde entorno autorizado, **después** del despliegue.
+- [ ] Registrar y resolver anomalías observadas en la matriz `AUDIT-V2.6.md`.
+- [ ] Verificar en móvil: login, registro, retorno tras error de red, envío repetido, navegación inferior y creación/edición.
+- [ ] Comprobar feed, publicación solo texto, foto, vídeo, comentarios, likes, borrado y Reels en cuentas de prueba.
+- [ ] Comprobar Stories, chat, recibos, notificaciones, permisos y deep links desde móvil.
+- [ ] Verificar límites de privacidad y consentimiento: bloqueos, contenido sensible, moderación, perfiles privados y enlaces públicos.
+- [ ] Comprobar PWA: instalación, nueva versión, navegación offline parcial y regreso a red.
+- [ ] Probar en Android, iPhone (Safari) y escritorio antes de declarar estable la experiencia real.
+- [ ] Confirmar que multimedia está en un volumen persistente y existe un backup restaurable de PostgreSQL y ficheros.
+- [ ] No borrar/alterar datos existentes; mantener la V2.5 en `main` hasta aprobación del PR.
