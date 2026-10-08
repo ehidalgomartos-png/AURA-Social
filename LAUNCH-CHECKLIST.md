@@ -627,3 +627,17 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Comprobar idempotencia y no duplicados.
 - POST sin confirmed:true o documento inválido devuelve 400; versión obsoleta devuelve 409.
 - Verificar trazabilidad en exportación y UX móvil/escritorio.
+
+
+## 50. Legal Consent Timeline & Transparency — V2.1.0
+
+- `/api/health`: versión 2.1.0 y features `legal-consent-timeline-v2.1`, `legal-version-link-clarity-v2.1`.
+- Cuenta nueva: tres documentos actuales, historial de tres registros y sin botones redundantes.
+- Cuenta legacy: `legacy` histórico, sin afirmar aceptación de Privacidad/Normas.
+- Tras confirmar desde Cuenta, comprobar fuente `Confirmación desde Cuenta` y fecha.
+- Abrir **Historial completo** y comprobar todos los registros por fecha, incluido un cambio de versión simulado.
+- Confirmar que **Ver texto actual** abre solamente el documento vigente, sin presentarlo como versión archivada.
+- En móvil: resumen y detalles accesibles con tacto/teclado; sin desbordamientos.
+- Ejecutar `npm run check:syntax` y `npm run test:legal`.
+- Verificar la exportación legal y que V2.0 sigue permitiendo confirmaciones explícitas.
+- Confirmar `src/routes/posts.js` sin modificar y sin monetización.

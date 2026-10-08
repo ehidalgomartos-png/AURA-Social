@@ -6312,3 +6312,22 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 .legal-confirm-form button:disabled{opacity:.55;cursor:not-allowed}
 .legal-confirm-status{min-height:1em;font-size:12px}
 @media(max-width:520px){.legal-confirm-form button{width:100%}}
+
+/* RedLibertad V2.1 — readable, native mobile-friendly legal history */
+.legal-timeline{margin-top:8px;border:1px solid var(--line);border-radius:14px;background:var(--paper);overflow:hidden}
+.legal-timeline>summary{cursor:pointer;padding:14px 13px;min-height:44px;color:var(--navy);font-weight:800;font-size:13px;list-style-position:inside}
+.legal-timeline>summary:focus-visible{outline:3px solid var(--teal);outline-offset:-3px}
+.legal-timeline[open]>summary{border-bottom:1px solid var(--line)}
+.legal-timeline-hint,.legal-timeline-empty{margin:12px 13px;font-size:12px;line-height:1.55;color:var(--muted)}
+.legal-history-list{list-style:none;margin:0;padding:0 13px 8px;display:grid;gap:8px}
+.legal-history-item{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.6)}
+.legal-history-item-head{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.legal-history-item-head b{font-size:13px;color:var(--navy)}
+.legal-history-item-head span{font-size:11px;color:var(--muted);font-weight:700}
+.legal-history-item p{font-size:12px;line-height:1.5;margin:5px 0;color:var(--ink);overflow-wrap:anywhere}
+.legal-history-item small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:2px}
+@media(max-width:520px){
+  .legal-timeline>summary{font-size:13px}
+  .legal-history-item{padding:11px}
+  .legal-history-item-head{align-items:flex-start;flex-direction:column;gap:3px}
+}

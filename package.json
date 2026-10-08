@@ -1,14 +1,15 @@
 {
   "name": "redlibertad-social",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
-  "description": "RedLibertad V2.0 Legal Consent Lifecycle - confirmaciones expresas y versionadas de documentos legales.",
+  "description": "RedLibertad V2.1 — historial legal completo y trazable, con distinción de documentos vigentes y versiones anteriores.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
-    "check:syntax": "node --check server.js && node --check src/public-community-seo-v180.js && node --check src/public-event-seo-v181.js && node --check src/public-media-seo-v182.js && node --check src/public-search-v183.js && node --check src/public-discovery-v184.js && node --check src/public-topics-v185.js && node --check src/public-stories-v186.js && node --check public/public-share-v187.js && node --check src/routes/auth.js && node --check src/db.js && node --check src/services/release-control.js && node --check src/routes/admin.js && node --check src/routes/admin-verification-v1891.js && node --check src/routes/admin-seo-v190.js && node --check src/routes/support.js && node --check src/routes/release-control.js && node --check public/app.js && node --check public/social.js && node --check public/admin.js && node --check public/sw.js"
+    "check:syntax": "node --check server.js && node --check src/public-community-seo-v180.js && node --check src/public-event-seo-v181.js && node --check src/public-media-seo-v182.js && node --check src/public-search-v183.js && node --check src/public-discovery-v184.js && node --check src/public-topics-v185.js && node --check src/public-stories-v186.js && node --check public/public-share-v187.js && node --check src/routes/auth.js && node --check src/db.js && node --check src/services/release-control.js && node --check src/routes/admin.js && node --check src/routes/admin-verification-v1891.js && node --check src/routes/admin-seo-v190.js && node --check src/routes/support.js && node --check src/routes/release-control.js && node --check public/app.js && node --check public/social.js && node --check public/admin.js && node --check public/sw.js",
+    "test:legal": "node --test tests/legal-consent-timeline.test.js"
   },
   "engines": {
     "node": ">=20"
