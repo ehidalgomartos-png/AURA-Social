@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.17.0",
+  "version": "2.18.0",
   "private": true,
-  "description": "RedLibertad V2.17 — comprobación segura de despliegues, PostgreSQL, PWA y SEO.",
+  "description": "RedLibertad V2.18 — guías públicas, indexación y captación medible respetando la privacidad.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -23,7 +23,8 @@
     "test:recovery": "node --test tests/recovery-v214.test.js",
     "test:ops-alerts": "node --test tests/operational-alerts-v215.test.js",
     "test:delivery": "node --test tests/alert-delivery-v216.test.js",
-    "test:release-verification": "node --test tests/release-verification-v217.test.js"
+    "test:release-verification": "node --test tests/release-verification-v217.test.js",
+    "test:seo-acquisition": "node --test tests/seo-acquisition-v218.test.js"
   },
   "engines": {
     "node": ">=20"
