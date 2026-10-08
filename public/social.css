@@ -6199,3 +6199,106 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
     0 0 0 4px rgba(255,253,249,.98),
     0 14px 30px rgba(13,34,56,.16);
 }
+
+
+/* RedLibertad V1.99 — Legal Consent Center */
+.legal-consent-section{
+  background:
+    radial-gradient(circle at 92% 8%,rgba(43,183,169,.08),transparent 11rem),
+    rgba(255,253,249,.96);
+}
+.legal-consent-history{
+  display:grid;
+  gap:8px;
+}
+.legal-consent-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.72);
+}
+.legal-consent-row.current{
+  border-color:rgba(43,183,169,.20);
+  background:rgba(43,183,169,.055);
+}
+.legal-consent-row.historical{
+  border-color:rgba(231,165,65,.20);
+  background:rgba(255,249,236,.78);
+}
+.legal-consent-row.missing{
+  border-color:rgba(202,63,63,.14);
+  background:rgba(255,247,245,.72);
+}
+.legal-consent-copy{
+  min-width:0;
+}
+.legal-consent-title{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+}
+.legal-consent-title b{
+  color:var(--navy);
+  font-size:11px;
+}
+.legal-consent-title span{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:var(--soft);
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.legal-consent-row.current .legal-consent-title span{
+  background:var(--teal-soft);
+  color:var(--teal);
+}
+.legal-consent-row.historical .legal-consent-title span{
+  background:rgba(231,165,65,.12);
+  color:#8a5a12;
+}
+.legal-consent-row.missing .legal-consent-title span{
+  background:rgba(202,63,63,.09);
+  color:#a83434;
+}
+.legal-consent-copy small{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.45;
+}
+.legal-consent-row .tiny-action{
+  white-space:nowrap;
+}
+.legal-consent-note{
+  margin:2px 2px 0;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.5;
+}
+@media(max-width:520px){
+  .legal-consent-row{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .legal-consent-row .tiny-action{
+    width:100%;
+    justify-content:center;
+  }
+  .legal-consent-title{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:4px;
+  }
+}
