@@ -80,6 +80,7 @@ function routeHarness(){
   };
   const z={
     boolean:()=>({kind:'boolean'}),
+    string:()=>({url(){return this;},max(){return this;},min(){return this;},optional(){return this;},default(){return this;}}),
     object(fields){return{
       strict(){return this;},
       safeParse(value){
