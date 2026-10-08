@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.96.0",
+  "version": "1.97.0",
   "private": true,
-  "description": "RedLibertad V1.96 Public Navigation Responsive Polish - cabecera pública unificada y responsive en directorios, descubrimiento y superficies SEO.",
+  "description": "RedLibertad V1.97 Public Legal Footer & Trust Polish - footer legal y enlaces de confianza consistentes en todas las superficies públicas.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
