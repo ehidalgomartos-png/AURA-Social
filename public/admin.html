@@ -12,7 +12,7 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V2.17 · Verificación de despliegue</small></div>
+  <div><b>Moderación</b><small>V2.19 · Centro de crecimiento</small></div>
 </header>
 
 <main>
@@ -167,6 +167,40 @@
 
     <div id="seoHealthWarnings" class="seo-warning-list"></div>
     <p id="seoHealthNote" class="beta-privacy-note"></p>
+  </section>
+
+  <section class="panel growth-center-v219" aria-labelledby="growthCenterTitle">
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">CRECIMIENTO · V2.19</span>
+        <h2 id="growthCenterTitle">Centro de crecimiento 3.0</h2>
+        <p class="panel-copy">Registros, primera participación y actividad D1/D7. Comparaciones por origen y guías, solo datos agregados.</p>
+      </div>
+      <div class="panel-tools">
+        <select id="growthCenterDays" aria-label="Periodo del centro de crecimiento">
+          <option value="7">7 días</option>
+          <option value="30" selected>30 días</option>
+          <option value="90">90 días</option>
+        </select>
+        <button id="reloadGrowthCenter" type="button">Actualizar</button>
+      </div>
+    </div>
+    <div id="growthCenterMetrics" class="beta-metrics" aria-live="polite"></div>
+    <div class="growth-attribution-layout">
+      <section class="growth-attribution-block" aria-labelledby="growthCenterSourceTitle">
+        <div class="growth-attribution-subhead"><span class="eyebrow">CANALES</span><h3 id="growthCenterSourceTitle">Registros y primera participación</h3></div>
+        <div id="growthCenterSources" class="growth-type-list"></div>
+      </section>
+      <section class="growth-attribution-block" aria-labelledby="growthCenterGuidesTitle">
+        <div class="growth-attribution-subhead"><span class="eyebrow">SEO</span><h3 id="growthCenterGuidesTitle">Rendimiento de las guías</h3></div>
+        <div id="growthCenterGuides" class="growth-type-list"></div>
+      </section>
+    </div>
+    <section class="growth-daily-block" aria-labelledby="growthCenterDailyTitle">
+      <div class="growth-attribution-subhead"><span class="eyebrow">TENDENCIA</span><h3 id="growthCenterDailyTitle">Nuevas cuentas por día</h3></div>
+      <div id="growthCenterDaily" class="growth-daily-bars" aria-label="Altas por día"></div>
+    </section>
+    <p id="growthCenterMethod" class="beta-privacy-note">D1 y D7 solo consideran cuentas suficientemente antiguas. El seguimiento se basa en acciones propias de la comunidad, sin analítica publicitaria ni lectura del contenido de mensajes.</p>
   </section>
 
   <section class="panel growth-attribution-panel">

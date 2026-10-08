@@ -168,6 +168,71 @@ async function seoHealth(){
   }
 }
 
+
+function growthCenterRate(value,eligible){
+  return value===null||!Number(eligible)?'—':Number(value).toLocaleString('es-ES',{maximumFractionDigits:1})+'%';
+}
+async function growthCenter(){
+  const metricsRoot=$('#growthCenterMetrics'),sourcesRoot=$('#growthCenterSources');
+  const guidesRoot=$('#growthCenterGuides'),dailyRoot=$('#growthCenterDaily'),noteRoot=$('#growthCenterMethod');
+  if(!metricsRoot||!sourcesRoot||!guidesRoot||!dailyRoot)return;
+  const raw=$('#growthCenterDays')?.value||'30';
+  const days=['7','30','90'].includes(raw)?raw:'30';
+  metricsRoot.textContent='Consultando el crecimiento…';
+  try{
+    const {r,d}=await api('/api/admin/growth-center?days='+encodeURIComponent(days));
+    if(!r.ok)throw new Error('growth_center_failed');
+    const t=d.totals||{};
+    const metricCards=[
+      ['Registros · '+days+' días',t.signups||0],
+      ['Origen conocido',t.attributedSignups||0],
+      ['Primeros 7 días',growthCenterRate(t.firstWeekRatePct,t.eligibleWeek)],
+      ['Actividad D1',growthCenterRate(t.d1RatePct,t.eligibleD1)],
+      ['Actividad D7',growthCenterRate(t.d7RatePct,t.eligibleD7)],
+      ['Cobertura origen',growthCenterRate(t.attributionRatePct,t.signups)]
+    ];
+    metricsRoot.innerHTML=metricCards.map(([label,value])=>
+      '<div class="beta-metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>'
+    ).join('');
+    sourcesRoot.innerHTML=(d.sources||[]).map(item=>{
+      const label=item.source==='unattributed'?'Sin atribución':growthSourceTypeLabel(item.source);
+      return '<article class="growth-type-card"><div><b>'+esc(label)+'</b><small>'+
+        Number(item.signups||0)+' altas · '+Number(item.firstWeek||0)+' primeras interacciones de '+
+        Number(item.eligibleWeek||0)+' cuentas elegibles</small></div><span>'+
+        esc(growthCenterRate(item.firstWeekRatePct,item.eligibleWeek))+'</span></article>';
+    }).join('')||'<div class="empty-admin">Todavía no hay registros en este periodo.</div>';
+    guidesRoot.innerHTML=(d.guides||[]).map(item=>
+      '<article class="growth-type-card"><div><b>'+esc(item.title)+'</b><small>'+
+      Number(item.signups||0)+' registros · '+Number(item.firstWeek||0)+' participaciones de '+
+      Number(item.eligibleWeek||0)+' cuentas elegibles</small>'+
+      '<a href="/guias/'+encodeURIComponent(item.slug)+'" target="_blank" rel="noopener">Ver guía ↗</a></div><span>'+
+      esc(growthCenterRate(item.firstWeekRatePct,item.eligibleWeek))+'</span></article>'
+    ).join('')||'<div class="empty-admin">Sin datos de guías.</div>';
+    const daily=(d.daily||[]).slice(-30);
+    const max=Math.max(1,...daily.map(x=>Number(x.signups||0)));
+    dailyRoot.innerHTML=daily.map(item=>{
+      const count=Math.max(0,Number(item.signups||0));
+      const label=String(item.day||'').slice(5);
+      const height=count?Math.max(8,Math.round(100*count/max)):4;
+      return '<div class="growth-day" title="'+esc(label)+' · '+count+' registros">'+
+        '<b style="height:'+height+'%"></b><span>'+esc(label)+'</span><small>'+count+'</small></div>';
+    }).join('')||'<div class="empty-admin">Todavía no hay altas.</div>';
+    if(noteRoot)noteRoot.textContent=
+      'Muestra elegible: primera semana '+Number(t.eligibleWeek||0)+
+      ', D1 '+Number(t.eligibleD1||0)+', D7 '+Number(t.eligibleD7||0)+
+      '. D1 = acciones entre 24 y 48 h; D7 = acciones entre 7 y 8 días. '+
+      'No mide sesiones, visitas ni conversiones desde impresiones. Sin atribución no significa tráfico directo. '+
+      'Datos internos agregados; nunca se leen mensajes privados.';
+  }catch(_){
+    metricsRoot.textContent='No se pudieron recuperar las métricas.';
+    sourcesRoot.textContent='Inténtalo de nuevo.';
+    guidesRoot.textContent='';
+    dailyRoot.textContent='';
+  }
+}
+$('#reloadGrowthCenter')?.addEventListener('click',growthCenter);
+$('#growthCenterDays')?.addEventListener('change',growthCenter);
+
 function growthSourceTypeLabel(type){
   return ({
     profile:'Perfil',
@@ -176,7 +241,8 @@ function growthSourceTypeLabel(type){
     event:'Evento',
     reel:'Reel',
     topic:'Tema',
-    story:'Historia'
+    story:'Historia',
+    guide:'Guía' 
   })[type] || type || 'Origen';
 }
 
@@ -1436,5 +1502,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();

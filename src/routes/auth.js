@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { z } = require('zod');
 const db = require('../db');
+const {ensureSignupAttributionSchema}=require('../services/signup-attribution-schema-v219');
 const { requireAuth } = require('../middleware/auth');
 const { buildLegalConsentReceipt } = require('../services/legal-consent-receipt');
 const { renderLegalConsentReceiptHTML } = require('../services/legal-consent-readable');
@@ -146,16 +147,8 @@ async function ensureReferralsTable() {
       await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_growth_invite_links_active_user ON growth_invite_links(user_id) WHERE disabled_at IS NULL');
       await db.query('ALTER TABLE referrals ADD COLUMN IF NOT EXISTS invite_link_id BIGINT REFERENCES growth_invite_links(id) ON DELETE SET NULL');
       await db.query("ALTER TABLE referrals ADD COLUMN IF NOT EXISTS attribution TEXT NOT NULL DEFAULT 'legacy_username'");
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS signup_attributions (
-          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-          source_type VARCHAR(20) NOT NULL CHECK(source_type IN ('profile','post','community','event','reel','topic','story')),
-          source_key VARCHAR(120) NOT NULL DEFAULT '',
-          source_path VARCHAR(280) NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `);
-      await db.query('CREATE INDEX IF NOT EXISTS idx_signup_attributions_source_created ON signup_attributions(source_type,created_at DESC)');
+      await ensureSignupAttributionSchema(db);
+
     })().catch(error => {
       referralsReady = null;
       throw error;
