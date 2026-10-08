@@ -4992,42 +4992,47 @@ $('#changePasswordForm')?.addEventListener('submit', async event => {
   }
 });
 
-$('#downloadLegalConsentReceipt')?.addEventListener('click',async()=>{
-  const button=$('#downloadLegalConsentReceipt');
+async function downloadLegalConsentReceipt(format='json'){
+  const isHTML=format==='html';
+  const buttons=['#downloadReadableLegalReceipt','#downloadLegalConsentReceipt']
+    .map(selector=>$(selector)).filter(Boolean);
   const status=$('#legalReceiptStatus');
-  if(!button || !status || button.disabled)return;
-  button.disabled=true;
-  status.textContent='Preparando tu registro legal…';
+  if(!status || buttons.some(button=>button.disabled))return;
+  buttons.forEach(button=>{button.disabled=true;});
+  status.textContent=isHTML?'Preparando tu registro legible…':'Preparando tu registro JSON…';
   try{
-    const response=await fetch('/api/auth/account/legal-consent/receipt',{
+    const endpoint='/api/auth/account/legal-consent/receipt'+(isHTML?'?format=html':'');
+    const response=await fetch(endpoint,{
       method:'GET',credentials:'same-origin',cache:'no-store',
-      headers:{'Accept':'application/json'}
+      headers:{Accept:isHTML?'text/html':'application/json'}
     });
     if(response.status===401){location.href='/';return;}
     if(!response.ok)throw new Error('legal_receipt_failed');
     const blob=await response.blob();
     const disposition=response.headers.get('content-disposition')||'';
     const match=disposition.match(/filename="([^"]+)"/i);
-    const filename=match?.[1] || 'redlibertad-consentimientos.json';
-    const objectUrl=URL.createObjectURL(blob);
+    const filename=match?.[1] || (isHTML?'redlibertad-consentimientos.html':'redlibertad-consentimientos.json');
+    const url=URL.createObjectURL(blob);
     try{
       const anchor=document.createElement('a');
-      anchor.href=objectUrl;
+      anchor.href=url;
       anchor.download=filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      status.textContent='Registro legal preparado. Guárdalo en un lugar privado.';
-      toast('Registro legal preparado');
+      status.textContent='Registro preparado. Guárdalo en un lugar privado.';
+      toast(isHTML?'Registro legible preparado':'Registro JSON preparado');
     }finally{
-      setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
   }catch(_){
-    status.textContent='No se pudo descargar el registro legal. Inténtalo de nuevo.';
+    status.textContent='No se pudo preparar el registro legal. Inténtalo de nuevo.';
   }finally{
-    button.disabled=false;
+    buttons.forEach(button=>{button.disabled=false;});
   }
-});
+}
+$('#downloadReadableLegalReceipt')?.addEventListener('click',()=>downloadLegalConsentReceipt('html'));
+$('#downloadLegalConsentReceipt')?.addEventListener('click',()=>downloadLegalConsentReceipt('json'));
 
 $('#exportAccountData')?.addEventListener('click', async () => {
   const button = $('#exportAccountData');
