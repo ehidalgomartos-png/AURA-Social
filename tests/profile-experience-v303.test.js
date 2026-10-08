@@ -101,7 +101,7 @@ test('cover image is complete and avatar stays above the cover',()=>{
 test('public and in-app profiles use correct Spanish singular labels',()=>{
  const server=read('server.js');
  for(const label of ["'publicación pública':'publicaciones públicas'","'seguidor':'seguidores'","'publicación':'publicaciones'"])assert.ok(server.includes(label),label);
- assert.match(js,/Number\(profile\.post_count\).*'publicación'/);
+ assert.match(js,/profileCountLabel\(profile\.post_count,'publicación','publicaciones'\)/);
  assert.match(js,/Number\(profile\.follower_count\)===1\?'seguidor':'seguidores'/);
  assert.match(js,/Number\(me\.post_count\)===1\?'publicación':'publicaciones'/);
 });
