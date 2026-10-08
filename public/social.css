@@ -6753,3 +6753,52 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #publicProfileView .public-profile-card>.cover{height:160px}
   #publicProfileView .public-profile-actions button{font-size:11px}
 }
+
+
+/* V3.0.5 — own profile: same full-post reading experience as visited profiles. */
+#profileView #profilePosts.own-profile-feed{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  width:100%;
+  max-width:900px;
+  min-width:0;
+  margin:0 auto;
+  padding:4px 0 34px;
+}
+#profileView #profilePosts.own-profile-feed>.post{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin:0;
+  border-radius:20px;
+}
+#profileView #profilePosts.own-profile-feed .post-media{
+  min-height:0;
+  max-width:100%;
+}
+#profileView #profilePosts.own-profile-feed .post-media img,
+#profileView #profilePosts.own-profile-feed .post-media video{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:min(90vh,1000px);
+  object-fit:contain;
+}
+#profileView #profilePosts.own-profile-feed .post-caption{
+  overflow-wrap:anywhere;
+}
+#profileView #profilePosts.own-profile-feed .profile-content-empty{
+  width:100%;
+  min-height:160px;
+}
+@media(max-width:760px){
+  #profileView #profilePosts.own-profile-feed{
+    gap:12px;
+    padding:0 0 calc(80px + env(safe-area-inset-bottom));
+  }
+  #profileView #profilePosts.own-profile-feed>.post{border-radius:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  #profileView #profilePosts.own-profile-feed *{scroll-behavior:auto}
+}
