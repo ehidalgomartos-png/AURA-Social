@@ -1202,6 +1202,81 @@ $('#securityEvents')?.addEventListener('click',async event=>{
 
 
 
+
+function operationalAlertStatusLabel(status){
+  return ({open:'Abierta',acknowledged:'En seguimiento',resolved:'Resuelta'})[status]||status;
+}
+async function operationalAlerts(){
+  const list=$('#operationalAlertList'),summary=$('#operationalAlertSummary');
+  if(!list||!summary)return;
+  const status=$('#operationalAlertStatus')?.value||'active';
+  try{
+    const {r,d}=await api('/api/admin/ops/alerts?status='+encodeURIComponent(status));
+    if(!r.ok)throw Error('operational_alerts_failed');
+    const alerts=Array.isArray(d.alerts)?d.alerts:[];
+    const current=alerts.filter(a=>a.is_active && a.status!=='resolved').length;
+    summary.textContent=alerts.length?alerts.length+' alerta(s) en este filtro; '+current+' con señal activa pendiente de cierre.':'No hay alertas en el filtro seleccionado.';
+    list.innerHTML=alerts.map(item=>{
+      const active=item.is_active?'Señal detectada recientemente':'Señal recuperada';
+      const id=esc(item.id);
+      const actions=item.status==='resolved'?'':(
+        '<div class="actions">'+
+        (item.status==='open'?'<button class="soft" type="button" data-operational-action="acknowledge" data-id="'+id+'">En seguimiento</button>':'')+
+        '<button class="alt" type="button" data-operational-action="resolve" data-id="'+id+'">Resolver</button></div>'+
+        '<label class="panel-copy">Nota de seguimiento (obligatoria para resolver)'+
+        '<textarea rows="2" maxlength="500" data-operational-note="'+id+'" placeholder="Qué se revisó y cómo quedó solucionado"></textarea></label>'
+      );
+      return '<article class="report-card" data-operational-id="'+id+'"><div>'+
+        '<b>'+esc(item.title)+' · '+esc(operationalAlertStatusLabel(item.status))+'</b>'+
+        '<p>'+esc(item.detail)+'</p>'+
+        '<small>'+esc(item.severity==='critical'?'Crítica':'Atención')+' · '+esc(active)+' · Último aviso '+
+        esc(timeLabel(item.last_seen_at))+' · '+Math.max(1,Number(item.occurrences||1))+' comprobaciones</small>'+
+        actions+'<div class="actions"><button class="soft" type="button" data-operational-history="'+id+'">Ver historial</button></div>'+
+        '<div data-operational-history-content="'+id+'" aria-live="polite"></div></div></article>';
+    }).join('')||'<div class="empty-admin">No hay incidencias técnicas registradas.</div>';
+  }catch(_){
+    summary.textContent='No se pudieron cargar las alertas.';
+    list.textContent='Puedes reintentarlo desde Actualizar.';
+  }
+}
+$('#reloadOperationalAlerts')?.addEventListener('click',operationalAlerts);
+$('#operationalAlertStatus')?.addEventListener('change',operationalAlerts);
+$('#operationalAlertList')?.addEventListener('click',async event=>{
+  const button=event.target.closest('button[data-operational-action],button[data-operational-history]');
+  if(!button)return;
+  const id=String(button.dataset.id||button.dataset.operationalHistory||'');
+  if(!/^[0-9]+$/.test(id))return;
+  button.disabled=true;
+  if(button.dataset.operationalHistory){
+    try{
+      const {r,d}=await api('/api/admin/ops/alerts/'+encodeURIComponent(id)+'/history');
+      if(!r.ok)throw Error('history_failed');
+      const target=document.querySelector('[data-operational-history-content="'+CSS.escape(id)+'"]');
+      if(target)target.innerHTML=(d.history||[]).length
+        ?d.history.map(row=>'<p>'+esc(timeLabel(row.created_at))+' · '+esc(row.admin_username||'Administrador')+
+          ' · '+esc(operationalAlertStatusLabel(row.action))+(row.note?' · '+esc(row.note):'')+'</p>').join('')
+        :'<p>Sin revisiones anteriores.</p>';
+    }catch(_){setAdminNotice('No se pudo consultar el historial.',true);}
+    finally{button.disabled=false;}
+    return;
+  }
+  const action=button.dataset.operationalAction;
+  const note=String(document.querySelector('[data-operational-note="'+CSS.escape(id)+'"]')?.value||'').trim();
+  if(action==='resolve' && note.length<3){
+    button.disabled=false;
+    setAdminNotice('Para resolver, explica la solución (mínimo 3 caracteres).',true);return;
+  }
+  try{
+    const {r}=await api('/api/admin/ops/alerts/'+encodeURIComponent(id)+'/action',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,note})
+    });
+    if(!r.ok)throw Error('alert_update_failed');
+    setAdminNotice(action==='resolve'?'Alerta resuelta.':'Alerta puesta en seguimiento.');
+    await operationalAlerts();
+  }catch(_){button.disabled=false;setAdminNotice('No se pudo actualizar la alerta.',true);}
+});
+
 function recoveryStatusLabel(status){
   return ({ok:'Correcto',warning:'Atención',critical:'Incidencia',disabled:'Opcional'})[status]||'Sin datos';
 }
@@ -1276,5 +1351,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
