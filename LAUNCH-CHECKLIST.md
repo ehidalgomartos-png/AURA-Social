@@ -641,3 +641,18 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Ejecutar `npm run check:syntax` y `npm run test:legal`.
 - Verificar la exportación legal y que V2.0 sigue permitiendo confirmaciones explícitas.
 - Confirmar `src/routes/posts.js` sin modificar y sin monetización.
+
+
+## 51. Legal Consent Receipt & Private Export — V2.2.0
+
+- Confirmar /api/health con version 2.2.0 y features legal-consent-receipt-v2.2 / private-legal-export-v2.2.
+- Iniciar sesión en una cuenta de prueba y abrir Perfil → Más → Cuenta → Términos y privacidad.
+- Pulsar Descargar registro legal; comprobar archivo JSON y aviso de descarga privada.
+- Confirmar cabecera de archivo, no-store, versión de esquema, fecha de generación, username, fecha de alta, versiones/rutas vigentes y registros reales.
+- Revisar que legacy mantiene la versión "legacy" y no se atribuyen confirmaciones inexistentes.
+- Verificar que en una cuenta nueva figuran terms/accepted, community_guidelines/accepted y privacy/acknowledged.
+- Abrir GET sin sesión: debe devolver 401 sin información sensible.
+- Iniciar sesión con otra cuenta y comprobar que solo muestra sus propias filas.
+- Exportar la cuenta de forma general y confirmar que su JSON sigue incluyendo legalAcceptances.
+- Comprobar móvil, escritorio, descarga, error de red y mensajes accesibles.
+- Ejecutar npm run check:syntax y npm run test:legal; confirmar posts.js inalterado.

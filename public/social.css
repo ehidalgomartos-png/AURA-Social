@@ -6331,3 +6331,25 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .legal-history-item{padding:11px}
   .legal-history-item-head{align-items:flex-start;flex-direction:column;gap:3px}
 }
+
+/* V2.2 — private legal consent receipt download */
+.legal-receipt-download{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px 14px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--paper);
+}
+.legal-receipt-download b{display:block;font-size:13px;color:var(--navy)}
+.legal-receipt-download small{display:block;margin-top:4px;font-size:12px;line-height:1.5;color:var(--muted)}
+.legal-receipt-download button{min-height:44px;white-space:normal}
+.legal-receipt-download button:disabled{opacity:.6;cursor:wait}
+.legal-receipt-download .status{grid-column:1/-1;margin:0;font-size:12px;line-height:1.45}
+.legal-receipt-download .status:empty{display:none}
+@media(max-width:620px){
+  .legal-receipt-download{grid-template-columns:minmax(0,1fr)}
+  .legal-receipt-download button{width:100%}
+}

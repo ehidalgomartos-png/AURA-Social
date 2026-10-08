@@ -4992,6 +4992,43 @@ $('#changePasswordForm')?.addEventListener('submit', async event => {
   }
 });
 
+$('#downloadLegalConsentReceipt')?.addEventListener('click',async()=>{
+  const button=$('#downloadLegalConsentReceipt');
+  const status=$('#legalReceiptStatus');
+  if(!button || !status || button.disabled)return;
+  button.disabled=true;
+  status.textContent='Preparando tu registro legal…';
+  try{
+    const response=await fetch('/api/auth/account/legal-consent/receipt',{
+      method:'GET',credentials:'same-origin',cache:'no-store',
+      headers:{'Accept':'application/json'}
+    });
+    if(response.status===401){location.href='/';return;}
+    if(!response.ok)throw new Error('legal_receipt_failed');
+    const blob=await response.blob();
+    const disposition=response.headers.get('content-disposition')||'';
+    const match=disposition.match(/filename="([^"]+)"/i);
+    const filename=match?.[1] || 'redlibertad-consentimientos.json';
+    const objectUrl=URL.createObjectURL(blob);
+    try{
+      const anchor=document.createElement('a');
+      anchor.href=objectUrl;
+      anchor.download=filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      status.textContent='Registro legal preparado. Guárdalo en un lugar privado.';
+      toast('Registro legal preparado');
+    }finally{
+      setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+    }
+  }catch(_){
+    status.textContent='No se pudo descargar el registro legal. Inténtalo de nuevo.';
+  }finally{
+    button.disabled=false;
+  }
+});
+
 $('#exportAccountData')?.addEventListener('click', async () => {
   const button = $('#exportAccountData');
   const status = $('#accountToolsStatus');
