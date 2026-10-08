@@ -10,6 +10,44 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+const LEGAL_DOCUMENT_VERSIONS=Object.freeze({
+  terms:'1.0',
+  community_guidelines:'1.0',
+  privacy:'1.0'
+});
+
+let legalConsentReady=null;
+async function ensureLegalConsentAudit(){
+  if(!legalConsentReady){
+    legalConsentReady=(async()=>{
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS legal_acceptances (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          document_key VARCHAR(40) NOT NULL CHECK(document_key IN ('terms','community_guidelines','privacy')),
+          document_version VARCHAR(20) NOT NULL,
+          action VARCHAR(20) NOT NULL CHECK(action IN ('accepted','acknowledged')),
+          source VARCHAR(40) NOT NULL DEFAULT 'registration',
+          accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          UNIQUE(user_id,document_key,document_version,action)
+        )
+      `);
+      await db.query('CREATE INDEX IF NOT EXISTS idx_legal_acceptances_user_date ON legal_acceptances(user_id,accepted_at DESC,id DESC)');
+      await db.query(`
+        INSERT INTO legal_acceptances (user_id,document_key,document_version,action,source,accepted_at)
+        SELECT id,'terms','legacy','accepted','legacy-terms-column',terms_accepted_at
+          FROM users
+         WHERE terms_accepted_at IS NOT NULL
+        ON CONFLICT (user_id,document_key,document_version,action) DO NOTHING
+      `);
+    })().catch(error=>{
+      legalConsentReady=null;
+      throw error;
+    });
+  }
+  return legalConsentReady;
+}
+
 let accountSecurityReady = null;
 async function ensureAccountSecurity() {
   if (!accountSecurityReady) {
@@ -49,9 +87,10 @@ async function ensureAccountSecurity() {
 router.use(async (_req,res,next)=>{
   try {
     await ensureAccountSecurity();
+    await ensureLegalConsentAudit();
     next();
   } catch (error) {
-    console.error('RedLibertad V1.10 account security bootstrap failed:', error);
+    console.error('RedLibertad auth bootstrap failed:', error);
     res.status(500).json({ error: 'account_security_bootstrap_failed' });
   }
 });
@@ -242,10 +281,27 @@ router.post('/register', async (req, res) => {
         is_admin, age_verified, show_sensitive, terms_accepted_at
       )
       VALUES ($1,$2,$3,$4,$5,$6,false,false,now())
-      RETURNING id,email,username,display_name,is_admin,age_verified,show_sensitive,auth_token_version
+      RETURNING id,email,username,display_name,is_admin,age_verified,show_sensitive,auth_token_version,terms_accepted_at
     `, [email, username, displayName, passwordHash, birthDate, isAdmin]);
 
     user = result.rows[0];
+
+    await client.query(`
+      INSERT INTO legal_acceptances (
+        user_id,document_key,document_version,action,source,accepted_at
+      )
+      VALUES
+        ($1,'terms',$2,'accepted','registration',$5),
+        ($1,'community_guidelines',$3,'accepted','registration',$5),
+        ($1,'privacy',$4,'acknowledged','registration',$5)
+      ON CONFLICT (user_id,document_key,document_version,action) DO NOTHING
+    `,[
+      user.id,
+      LEGAL_DOCUMENT_VERSIONS.terms,
+      LEGAL_DOCUMENT_VERSIONS.community_guidelines,
+      LEGAL_DOCUMENT_VERSIONS.privacy,
+      user.terms_accepted_at
+    ]);
 
     if(signupAttribution){
       await client.query(`
@@ -518,7 +574,8 @@ router.get('/account/export',requireAuth,async(req,res)=>{
     blocks,
     muted,
     messages,
-    referrals
+    referrals,
+    legalAcceptances
   ]=await Promise.all([
     db.query(`
       SELECT id,email,username,display_name,birth_date,bio,avatar_url,cover_url,
@@ -567,6 +624,12 @@ router.get('/account/export',requireAuth,async(req,res)=>{
       SELECT u.username,u.display_name,r.created_at
         FROM referrals r JOIN users u ON u.id=r.invited_user_id
        WHERE r.inviter_user_id=$1 ORDER BY r.created_at DESC
+    `,[userId]),
+    db.query(`
+      SELECT document_key,document_version,action,source,accepted_at
+        FROM legal_acceptances
+       WHERE user_id=$1
+       ORDER BY accepted_at DESC,id DESC
     `,[userId])
   ]);
 
@@ -584,7 +647,8 @@ router.get('/account/export',requireAuth,async(req,res)=>{
     blocked:blocks.rows,
     muted:muted.rows,
     messages:messages.rows,
-    invitedUsers:referrals.rows
+    invitedUsers:referrals.rows,
+    legalAcceptances:legalAcceptances.rows
   });
 });
 
