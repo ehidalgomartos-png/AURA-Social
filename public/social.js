@@ -4651,6 +4651,48 @@ function legalConsentDate(value){
   return date.toLocaleString('es-ES',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
+
+function legalConsentTimelineHTML(items,definitions,documents){
+  const byKey=new Map(definitions.map(def=>[def.key,def]));
+  const records=(Array.isArray(items)?items:[])
+    .filter(item=>item && byKey.has(item.document_key) && item.action===byKey.get(item.document_key).action)
+    .slice()
+    .sort((a,b)=>{
+      const timeA=Date.parse(a.accepted_at)||0;
+      const timeB=Date.parse(b.accepted_at)||0;
+      return timeB-timeA;
+    });
+  const sourceLabel={
+    registration:'Durante el alta',
+    'account-legal-center':'Confirmación desde Cuenta',
+    'legacy-terms-column':'Registro anterior al versionado'
+  };
+  const entries=records.map(item=>{
+    const def=byKey.get(item.document_key);
+    const version=String(item.document_version||'sin versión');
+    const current=String(documents?.[item.document_key]?.version||'');
+    const isLegacy=version==='legacy';
+    const isCurrent=!isLegacy && current && version===current;
+    const relation=isLegacy?'Legacy':isCurrent?'Versión actual':'Versión histórica';
+    const action=def.key==='privacy'?'Lectura reconocida':'Aceptación registrada';
+    const source=sourceLabel[item.source]||'Origen no identificado';
+    return '<li class="legal-history-item">'+
+      '<div class="legal-history-item-head"><b>'+esc(def.label)+'</b>'+
+      '<span>'+esc(relation)+'</span></div>'+
+      '<p>'+esc(action)+' · versión '+esc(version)+' · '+esc(legalConsentDate(item.accepted_at))+'</p>'+
+      '<small>'+esc(source)+'</small>'+
+      (isLegacy?'<small>Sin aceptación registrada de versiones posteriores.</small>':'')+
+    '</li>';
+  }).join('');
+  const summary=records.length===1?'1 registro':String(records.length)+' registros';
+  return '<details class="legal-timeline" aria-label="Historial de consentimientos legales">'+
+    '<summary>Historial completo · '+summary+'</summary>'+
+    '<p class="legal-timeline-hint">Los enlaces «Ver texto actual» muestran los documentos vigentes, no una copia archivada de cada versión histórica.</p>'+
+    (records.length?'<ol class="legal-history-list">'+entries+'</ol>':
+      '<p class="legal-timeline-empty">Todavía no constan confirmaciones legales registradas.</p>')+
+    '</details>';
+}
+
 function legalConsentHistoryHTML(items=[],documents={}){
   const definitions=[
     {key:'terms',label:'Términos de Uso',action:'accepted',actionLabel:'Aceptados',fallbackPath:'/terms/'},
@@ -4687,7 +4729,7 @@ function legalConsentHistoryHTML(items=[],documents={}){
         <div class="legal-consent-title"><b>${esc(def.label)}</b><span>${stateLabel}</span></div>
         <small>${detail}</small>
       </div>
-      <a class="tiny-action" href="${esc(path)}" target="_blank" rel="noopener noreferrer">Ver texto</a>
+      <a class="tiny-action" href="${esc(path)}" target="_blank" rel="noopener noreferrer" aria-label="Ver texto actual de ${esc(def.label)}">Ver texto actual</a>
       ${form}
     </article>`;
   }).join('');
@@ -4696,7 +4738,7 @@ function legalConsentHistoryHTML(items=[],documents={}){
   const note=hasLegacy
     ? '<p class="legal-consent-note">Los registros “legacy” conservan la aceptación histórica anterior al versionado legal. No significan que aceptaras documentos posteriores.</p>'
     : '<p class="legal-consent-note">Este historial refleja las versiones registradas en tu cuenta. Los textos pueden consultarse en cualquier momento.</p>';
-  return rows+note;
+  return rows+note+legalConsentTimelineHTML(history,definitions,documents);
 }
 
 $('#legalConsentHistory')?.addEventListener('change',event=>{
