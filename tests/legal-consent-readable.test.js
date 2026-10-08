@@ -77,7 +77,7 @@ test('does not embed personal email, tokens, messages or any remote resources',(
   assert.doesNotMatch(html,/secret@redlibertad\.test|password_hash|aura_token|api\/auth\/account/);
   assert.doesNotMatch(html,/<link\b|<script\b|<img\b|@import|https?:\/\//i);
   assert.match(html,/no certificado ni firmado digitalmente/);
-  assert.match(html,/no son una copia de las versiones aceptadas históricamente/);
+  assert.match(html,/No son una copia de las versiones aceptadas históricamente/i);
 });
 
 test('returns predictable UTC dates without guessing absent timestamps',()=>{
