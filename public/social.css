@@ -6662,3 +6662,56 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(max-width:850px){.community-return-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){.community-return{padding:12px;margin:12px 0}.community-return-head{align-items:start}.community-return-list{grid-template-columns:1fr}.community-return-card{padding:12px}.community-return-actions button{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.community-return *{transition:none!important}}
+
+/* V3.0.1 — profile covers: no cropping on phone, desktop or edit preview.
+   The entire uploaded photograph is visible; uncovered space uses navy. */
+.profile-full .cover{
+  background-color:var(--navy);
+  background-size:contain;
+  background-position:center;
+  background-repeat:no-repeat;
+  width:100%;
+  height:clamp(180px,28vw,310px);
+}
+.profile-edit-cover-preview:not(.empty){
+  background-color:var(--navy);
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+}
+@media(max-width:760px){
+  .profile-full .cover{height:clamp(160px,43vw,230px)}
+}
+@media(max-width:460px){
+  .profile-full .cover{height:180px}
+}
+
+/* V3.0.1 — circle filters in the light Connections toolbar must not use
+   the dark hero strip's translucent-white chips. */
+.connections-center-toolbar .connection-circle-filters button{
+  background:#fff;
+  border:1px solid #b8c7d0;
+  color:#173a52;
+  font-size:11px;
+  font-weight:800;
+  min-height:40px;
+  padding:8px 13px;
+  opacity:1;
+}
+.connections-center-toolbar .connection-circle-filters button.active{
+  background:#d8f5f0;
+  border-color:#138b80;
+  color:#06574e;
+}
+.connections-center-toolbar .connection-circle-filters button span{
+  background:#dbe8ec;
+  color:#173a52;
+}
+.connections-center-toolbar .connection-circle-filters button.active span{
+  background:#b9e7de;
+  color:#06574e;
+}
+.connections-center-toolbar .connection-circle-filters button:focus-visible{
+  outline:3px solid #138b80;
+  outline-offset:2px;
+}
