@@ -76,10 +76,10 @@ function commentHarness(api){
   const modal={classList:{contains:()=>closed}};
   const $=selector=>selector==='#commentsList'?list:selector==='#commentsModal'?modal:null;
   const js=part('// Prevent outdated requests from replacing a newly opened comment thread.','function openReport(postId) {');
-  const factory=new Function('api','$','all','commentHTML','startCommentReply',
+  const factory=new Function('api','$','all','commentHTML','startCommentReply','listeners',
     'let activeCommentsPostId=null;\n'+js+
     '\nreturn {load:loadComments,setPostId(id){activeCommentsPostId=id;},close(){closed=true;commentsRequestSequence++;},listeners};');
-  const harness=factory(api,$,()=>[],row=>'<article>'+row.body+'</article>',()=>{});
+  const harness=factory(api,$,()=>[],row=>'<article>'+row.body+'</article>',()=>{},listeners);
   return {...harness,list};
 }
 
