@@ -1509,7 +1509,18 @@ async function handleReturnPulseAction(action) {
   }
   if(action==='stories'){
     showView('feed');
-    document.querySelector('#stories')?.scrollIntoView({behavior:'smooth',block:'center'});
+    // The summary is actionable: open the first accessible unseen Story.
+    // Refresh the story list to avoid opening an expired or already viewed item.
+    await loadStories();
+    const firstUnseen=visibleStories.find(story=>!story.gated && !story.viewed_by_me &&
+      (!me || String(story.user_id)!==String(me.id)));
+    if(firstUnseen){
+      const group=storyGroups.get(String(firstUnseen.user_id))||[];
+      openStoryViewer(firstUnseen.user_id,Math.max(0,group.findIndex(item=>String(item.id)===String(firstUnseen.id))));
+    }else{
+      document.querySelector('#stories')?.scrollIntoView({behavior:'smooth',block:'center'});
+      toast('No quedan Stories nuevas disponibles.');
+    }
     return;
   }
   if(action==='reels'){showView('reels');return;}
@@ -1965,6 +1976,9 @@ async function markStoryViewed(story){
   const allSeen=group.every(item=>item.gated || item.viewed_by_me || (me && String(item.user_id)===String(me.id)));
   const button=document.querySelector(`[data-story-user="${CSS.escape(String(story.user_id))}"]`);
   button?.classList.toggle('seen',allSeen);
+  // Keep the "Stories sin ver" counter in sync immediately after viewing.
+  returnPulseLoaded=false;
+  void loadReturnPulse(true);
 }
 
 function openStoryViewer(userId,index=0) {
