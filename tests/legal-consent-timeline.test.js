@@ -54,7 +54,8 @@ test('old and current versions are both visible, sorted newest first',()=>{
   assert.match(timeline,/Historial completo · 2 registros/);
   assert.ok(timeline.indexOf('versión 1.0')<timeline.indexOf('versión legacy'));
   assert.match(timeline,/Confirmación desde Cuenta/);
-  assert.doesNotMatch(html,/class="legal-confirm-form"/);
+  assert.doesNotMatch(html,/data-key="terms"/);
+  assert.equal((html.match(/class="legal-confirm-form"/g)||[]).length,2);
 });
 
 test('future version requires explicit confirmation and historic text is not mislinked',()=>{
