@@ -1168,6 +1168,38 @@ $('#reloadSeoHealth')?.addEventListener('click',seoHealth);
 $('#reloadGrowthAttribution')?.addEventListener('click',growthAttribution);
 $('#growthAttributionDays')?.addEventListener('change',growthAttribution);
 
+
+async function securityOverview(){
+  const root=$('#securityEvents'),stats=$('#securityMetrics');
+  if(!root||!stats)return;
+  try {
+    const {r,d}=await api('/api/admin/security/overview');
+    if(!r.ok)throw new Error('security_unavailable');
+    stats.innerHTML=(d.metrics||[]).length?(d.metrics||[]).map(item=>'<div class="metric"><b>'+compact(item.blocked_requests)+'</b><span>'+esc(item.category)+' · bloqueos (7 días)</span></div>').join(''):'<p>No hay límites superados durante los últimos 7 días.</p>';
+    root.innerHTML=(d.events||[]).length?(d.events||[]).map(item=>
+      '<article class="report-card"><div><b>'+esc(item.category)+'</b> · '+(item.user_id?'@'+esc(item.username||'Cuenta '+item.user_id):'Red anónima')+
+      '<p>'+Math.max(0,Number(item.blocked_hits)-Number(item.threshold))+' solicitudes bloqueadas · '+esc(timeLabel(item.last_seen_at))+'</p>'+
+      (item.reviewed_at?'<small>Revisada · '+esc(item.review_note)+'</small>':'<button type="button" data-security-review="'+esc(item.id)+'">Marcar revisada</button>')+
+      '</div></article>').join(''):'<p>No hay alertas registradas.</p>';
+  }catch(error){stats.textContent='No se pudieron consultar las alertas.';root.textContent='Inténtalo de nuevo.';}
+}
+$('#reloadSecurity')?.addEventListener('click',securityOverview);
+$('#securityEvents')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-security-review]');
+  if(!button)return;
+  const note=prompt('Nota de revisión (mínimo 3 caracteres):');
+  if(note===null)return;
+  if(note.trim().length<3)return setAdminNotice('Escribe un motivo de al menos 3 caracteres.',true);
+  button.disabled=true;
+  try {
+    const {r}=await api('/api/admin/security/events/'+encodeURIComponent(button.dataset.securityReview)+'/review',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:note.trim()})
+    });
+    if(!r.ok)throw new Error('review_failed');
+    await securityOverview();
+  }catch(error){setAdminNotice('No se pudo guardar la revisión.',true);button.disabled=false;}
+});
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -1178,5 +1210,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
