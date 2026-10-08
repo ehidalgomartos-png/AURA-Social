@@ -6462,3 +6462,28 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(max-width:350px){
   .legal-overview-stats{grid-template-columns:minmax(0,1fr)}
 }
+
+/* V2.7 — reliable mobile comment loading and publication feedback */
+.comments-retry-card{
+  display:grid;
+  gap:10px;
+  justify-items:start;
+  margin:12px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--paper);
+}
+.comments-retry-card p{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.comments-retry-card button{min-height:44px;min-width:120px}
+.comments-list[aria-busy="true"]{min-height:90px}
+.comment-form button[type="submit"]:disabled,
+#createForm button[type="submit"]:disabled,
+#storyForm button[type="submit"]:disabled{
+  opacity:.58;
+  cursor:wait;
+}
+@media(max-width:620px){
+  .comments-retry-card{margin:8px 4px;padding:14px}
+  .comments-retry-card button{width:100%}
+}
