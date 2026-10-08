@@ -30,6 +30,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: V3 launch config, SEO, PWA and privacy gate regressions
+        run: npm run test:launch-gates
       - name: Privacy-safe community retention regression tests
         run: npm run test:retention
       - name: Growth cohorts, attribution and dashboard regression tests
