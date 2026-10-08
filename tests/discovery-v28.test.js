@@ -115,13 +115,17 @@ function clientHarness(api){
   };
   const status={textContent:'',innerHTML:''};
   const change={disabled:true};
+  const title={textContent:''};
+  const clear={classList:{add(){},remove(){}}};
   const modes=['for_you','active','new'].map(mode=>({
     dataset:{peopleMode:mode},attributes:{},
     classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v;}
   }));
   const $=key=>({
     '#peopleSuggestions':root,'#peopleSuggestionsStatus':status,
-    '#changePeopleSuggestions':change
+    '#changePeopleSuggestions':change,
+    '#peopleDiscoveryTitle':title,
+    '#clearPeopleSearch':clear
   })[key]||null;
   const all=query=>query==='[data-people-mode]'?modes:[];
   const personCardHTML=user=>'<article data-person-card="'+String(user.id)+'"></article>';
