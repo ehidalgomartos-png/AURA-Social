@@ -34,7 +34,7 @@ function checkLaunchConfiguration(env,{stat=fs.statSync}={}){
   const blocked=checks.filter(c=>c.status==='block').length;
   const warnings=checks.filter(c=>c.status==='warning').length;
   return {
-    version:require('../../package.json').version,
+    version:require('../package.json').version,
     scope:'local_configuration',
     status:blocked?'blocked':warnings?'review':'pass',
     blocked,warnings,checks,
