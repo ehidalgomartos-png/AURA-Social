@@ -2295,6 +2295,7 @@ Mejoras recibidas de pruebas reales en móvil:
   - fecha y hora;
   - enlace al texto correspondiente.
 - Las cuentas antiguas con `legacy` quedan identificadas de forma explícita.
+- Evita que una cuenta con aceptación versionada reciba además un `legacy` sintético tras reinicios o `db:init`; limpia duplicados legacy si existieran.
 - No se fuerza una nueva aceptación en esta versión.
 - No se modifican los textos legales ni su versionado actual.
 - Sin cambios de base de datos.
