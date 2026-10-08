@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
-  "description": "RedLibertad V3.0 — Growth Ready, puertas de lanzamiento y auditoría de producción.",
+  "description": "RedLibertad V3.0.1 — correcciones SEO, Stories, portada y Conexiones.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -29,7 +29,8 @@
     "test:release-verification": "node --test tests/release-verification-v217.test.js",
     "test:seo-acquisition": "node --test tests/seo-acquisition-v218.test.js",
     "test:growth-center": "node --test tests/growth-center-v219.test.js",
-    "test:retention": "node --test tests/retention-v220.test.js"
+    "test:retention": "node --test tests/retention-v220.test.js",
+    "test:hotfix": "node --test tests/seo-ui-hotfix-v301.test.js"
   },
   "engines": {
     "node": ">=20"
