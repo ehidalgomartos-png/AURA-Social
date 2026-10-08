@@ -2279,3 +2279,23 @@ Mejoras recibidas de pruebas reales en móvil:
 - La tabla usa `ON DELETE CASCADE` para respetar el borrado de cuenta.
 - Sin cambios visuales en el alta.
 - Sin cambios en `src/routes/posts.js`.
+
+
+## V1.99.0 — Legal Consent Center
+
+- Añade transparencia legal visible dentro de Cuenta y seguridad.
+- El endpoint `/api/auth/account` devuelve:
+  - historial `legalAcceptances`;
+  - versiones legales actuales;
+  - rutas de Términos, Normas y Privacidad.
+- Nuevo bloque “Términos y privacidad” en la cuenta.
+- Para cada documento muestra:
+  - estado Actual / Histórico / Sin registro;
+  - versión registrada;
+  - fecha y hora;
+  - enlace al texto correspondiente.
+- Las cuentas antiguas con `legacy` quedan identificadas de forma explícita.
+- No se fuerza una nueva aceptación en esta versión.
+- No se modifican los textos legales ni su versionado actual.
+- Sin cambios de base de datos.
+- Sin cambios en `src/routes/posts.js`.
