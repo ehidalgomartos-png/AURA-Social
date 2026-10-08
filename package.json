@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.15.0",
+  "version": "2.16.0",
   "private": true,
-  "description": "RedLibertad V2.15 — alertas operativas, reconocimiento y trazabilidad administrativa.",
+  "description": "RedLibertad V2.16 — entrega externa opcional y segura de alertas críticas.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -21,7 +21,8 @@
     "test:performance": "node --test tests/performance-v212.test.js",
     "test:observability": "node --test tests/observability-v213.test.js",
     "test:recovery": "node --test tests/recovery-v214.test.js",
-    "test:ops-alerts": "node --test tests/operational-alerts-v215.test.js"
+    "test:ops-alerts": "node --test tests/operational-alerts-v215.test.js",
+    "test:delivery": "node --test tests/alert-delivery-v216.test.js"
   },
   "engines": {
     "node": ">=20"
