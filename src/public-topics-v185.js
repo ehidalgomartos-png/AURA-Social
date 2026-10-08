@@ -136,6 +136,9 @@ router.get('/sitemap-topics.xml',async(req,res)=>{
   try{
     const o=origin(req),eligible=(await allCounts()).filter(c=>c.people+c.communities+c.posts>=2).map(c=>c.topic);
     const urls=eligible.map(topic=>'<url><loc>'+esc(o+'/tema/'+slug(topic))+'</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>');
+    // An empty urlset is rejected by Search Console as a missing mandatory <url>.
+    // The indexable /temas hub is the safe, public fallback until topics qualify.
+    if(!urls.length)urls.push('<url><loc>'+esc(o+'/temas')+'</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>');
     res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(err){
     console.error('RedLibertad topics sitemap error:',err);
