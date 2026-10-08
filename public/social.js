@@ -68,6 +68,10 @@ let activePostSearch = '';
 let savedPostIds = new Set();
 let toastTimer = null;
 let ownProfileMode = 'posts';
+let publicProfileReturnView='feed';
+let activePublicProfileUsername='';
+let publicProfileRequestSequence=0;
+let publicProfilePostsSequence=0;
 let activeNotificationFilter = 'all';
 let notificationCache = [];
 let liveActivitySource = null;
@@ -2294,6 +2298,11 @@ function profileTilesHTML(posts = [], emptyText = 'Todavía no hay publicaciones
   }).join('');
 }
 
+function profileCountLabel(value,singular,plural){
+  const n=Math.max(0,Number(value)||0);
+  return n+' '+(n===1?singular:plural);
+}
+
 function setOwnProfileMode(mode) {
   ownProfileMode = ['posts','reposts','media'].includes(mode) ? mode : 'posts';
   all('[data-own-profile-mode]').forEach(button => {
@@ -2308,7 +2317,7 @@ async function loadProfile(mode = ownProfileMode) {
   const { d } = await api(`/api/posts/user/${encodeURIComponent(me.username)}?mode=${encodeURIComponent(ownProfileMode)}`);
   const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
 
-  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons profile-actions-shell"><div class="profile-primary-actions"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir</button><button id="profileMoreToggle" class="secondary profile-more-toggle" type="button" aria-expanded="false" aria-controls="profileMoreMenu"><span>Más</span><span class="profile-more-chevron" aria-hidden="true">⌄</span></button></div><div id="profileMoreMenu" class="profile-more-menu profile-more-inline hidden"><button id="trustSettings" class="profile-more-option" type="button"><span><b>Confianza</b><small>Verificación y estado</small></span><span aria-hidden="true">›</span></button><button id="privacySettings" class="profile-more-option" type="button"><span><b>Privacidad</b><small>Visibilidad y bloqueos</small></span><span aria-hidden="true">›</span></button><button id="accountSettings" class="profile-more-option" type="button"><span><b>Cuenta</b><small>Seguridad y datos</small></span><span aria-hidden="true">›</span></button><button id="supportSettings" class="profile-more-option" type="button" data-release-feature="support_center"><span><b>Ayuda</b><small>Soporte y comentarios</small></span><span aria-hidden="true">›</span></button><button id="sensitiveToggle" class="profile-more-option" type="button"><span><b>Contenido sensible</b><small>${me.show_sensitive ? 'Ocultarlo en el feed' : 'Mostrarlo en el feed'}</small></span><span aria-hidden="true">›</span></button></div>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button profile-creator-entry"><span><b>Centro de creador</b><small>Publicación, comunidad y analítica</small></span><span aria-hidden="true">→</span></button>' : ''}</div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> publicaciones</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> seguidores</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div></div>`;
+  $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons profile-actions-shell"><div class="profile-primary-actions"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir</button><button id="profileMoreToggle" class="secondary profile-more-toggle" type="button" aria-expanded="false" aria-controls="profileMoreMenu"><span>Más</span><span class="profile-more-chevron" aria-hidden="true">⌄</span></button></div><div id="profileMoreMenu" class="profile-more-menu profile-more-inline hidden"><button id="trustSettings" class="profile-more-option" type="button"><span><b>Confianza</b><small>Verificación y estado</small></span><span aria-hidden="true">›</span></button><button id="privacySettings" class="profile-more-option" type="button"><span><b>Privacidad</b><small>Visibilidad y bloqueos</small></span><span aria-hidden="true">›</span></button><button id="accountSettings" class="profile-more-option" type="button"><span><b>Cuenta</b><small>Seguridad y datos</small></span><span aria-hidden="true">›</span></button><button id="supportSettings" class="profile-more-option" type="button" data-release-feature="support_center"><span><b>Ayuda</b><small>Soporte y comentarios</small></span><span aria-hidden="true">›</span></button><button id="sensitiveToggle" class="profile-more-option" type="button"><span><b>Contenido sensible</b><small>${me.show_sensitive ? 'Ocultarlo en el feed' : 'Mostrarlo en el feed'}</small></span><span aria-hidden="true">›</span></button></div>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button profile-creator-entry"><span><b>Centro de creador</b><small>Publicación, comunidad y analítica</small></span><span aria-hidden="true">→</span></button>' : ''}</div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> ${Number(me.post_count)===1?'publicación':'publicaciones'}</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> ${Number(me.follower_count)===1?'seguidor':'seguidores'}</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div></div>`;
 
   const emptyText = ownProfileMode === 'reposts'
     ? 'Todavía no has republicado nada.'
@@ -2399,6 +2408,7 @@ async function loadPublicProfileContent(username, mode = 'posts') {
   const root = $('#publicProfilePosts');
   if (!root) return;
 
+  const sequence=++publicProfilePostsSequence;
   const cleanMode = ['posts','reposts','media'].includes(mode) ? mode : 'posts';
   all('[data-public-profile-mode]').forEach(button => {
     button.classList.toggle('active', button.dataset.publicProfileMode === cleanMode);
@@ -2418,22 +2428,36 @@ async function loadPublicProfileContent(username, mode = 'posts') {
       ? 'Todavía no tiene fotos o vídeos publicados.'
       : 'Todavía no tiene publicaciones visibles.';
 
-  root.innerHTML = profileTilesHTML(Array.isArray(d.posts) ? d.posts : [], emptyText);
+  // Full readable cards rather than cropped, thumbnail-only tiles.
+  if(sequence!==publicProfilePostsSequence || activePublicProfileUsername.toLowerCase()!==String(username).toLowerCase())return;
+  const posts=Array.isArray(d.posts)?d.posts:[];
+  root.innerHTML=posts.length?posts.map(post=>postHTML(post)).join(''):'<div class="profile-content-empty">'+esc(emptyText)+'</div>';
+  bindPostActions(root);
 }
+
+function leavePublicProfile(){
+  publicProfileRequestSequence++;
+  publicProfilePostsSequence++;
+  activePublicProfileUsername='';
+  showView(publicProfileReturnView==='publicProfile'?'feed':publicProfileReturnView);
+}
+$('#backPublicProfile')?.addEventListener('click',leavePublicProfile);
 
 async function openPublicProfile(username) {
   const clean = String(username || '').replace(/^@/, '').trim();
   if (!clean) return;
 
   if (me && clean.toLowerCase() === String(me.username).toLowerCase()) {
-    $('#publicProfileModal').classList.add('hidden');
     showView('profile');
     return;
   }
 
-  const modal = $('#publicProfileModal');
+  if(activeViewName!=='publicProfile')publicProfileReturnView=activeViewName||'feed';
+  const requestSequence=++publicProfileRequestSequence;
+  activePublicProfileUsername=clean;
+  viewScrollPositions.set('publicProfile',0);
+  showView('publicProfile');
   const content = $('#publicProfileContent');
-  modal.classList.remove('hidden');
   content.innerHTML = '<div class="public-profile-loading">Cargando perfil...</div>';
 
   try {
@@ -2443,6 +2467,7 @@ async function openPublicProfile(username) {
       throw new Error('profile_not_found');
     }
 
+    if(requestSequence!==publicProfileRequestSequence || activePublicProfileUsername.toLowerCase()!==clean.toLowerCase())return;
     const profile = profileData.profile;
     const website = profile.website_url
       ? `<a href="${esc(profile.website_url)}" target="_blank" rel="noopener noreferrer">${esc(profile.website_url)}</a>`
@@ -2492,8 +2517,8 @@ async function openPublicProfile(username) {
             ${website}
           </div>
           <div class="profile-stats">
-            <span><b>${profile.post_count || 0}</b> publicaciones</span>
-            <button type="button" data-social-list="followers" data-social-username="${esc(profile.username)}"><b>${profile.follower_count || 0}</b> seguidores</button>
+            <span>${esc(profileCountLabel(profile.post_count,'publicación','publicaciones'))}</span>
+            <button type="button" data-social-list="followers" data-social-username="${esc(profile.username)}"><b>${profile.follower_count || 0}</b> ${Number(profile.follower_count)===1?'seguidor':'seguidores'}</button>
             <button type="button" data-social-list="following" data-social-username="${esc(profile.username)}"><b>${profile.following_count || 0}</b> siguiendo</button>
           </div>
         </div>
@@ -2503,7 +2528,7 @@ async function openPublicProfile(username) {
         <button type="button" data-public-profile-mode="reposts" data-profile-username="${esc(profile.username)}">Republicados</button>
         <button type="button" data-public-profile-mode="media" data-profile-username="${esc(profile.username)}">Multimedia</button>
       </div>
-      <div id="publicProfilePosts" class="public-profile-posts explore-grid">
+      <div id="publicProfilePosts" class="public-profile-posts visited-profile-feed">
         <div class="profile-content-empty"><span>Cargando contenido...</span></div>
       </div>
     `;
@@ -2544,7 +2569,6 @@ async function openPublicProfile(username) {
                 : 'No se pudo abrir la conversación.';
           return toast(message);
         }
-        modal.classList.add('hidden');
         showView('messages');
         await loadConversations(d.conversationId);
       };
@@ -2587,14 +2611,14 @@ async function openPublicProfile(username) {
         if (!r.ok) return toast('No se pudo actualizar el bloqueo.');
 
         toast(blocked ? 'Usuario desbloqueado' : 'Usuario bloqueado');
-        if (!blocked) modal.classList.add('hidden');
+        if (!blocked) leavePublicProfile();
         await loadMe();
         await Promise.all([loadFeed(currentMode),loadStories(),loadNotifications(),loadHomeSuggestions(),loadActivePeople(),loadHomeMomentum()]);
         if (blocked) await openPublicProfile(profile.username);
       };
     }
   } catch (error) {
-    content.innerHTML = '<div class="info-card"><b>No se pudo abrir el perfil.</b><p>Puede que esta cuenta ya no esté disponible.</p></div>';
+    if(requestSequence===publicProfileRequestSequence)content.innerHTML = '<div class="info-card"><b>No se pudo abrir el perfil.</b><p>Puede que esta cuenta ya no esté disponible.</p></div>';
   }
 }
 
@@ -5685,7 +5709,7 @@ $('#coverFile')?.addEventListener('change', event => previewProfileMediaFile(eve
 $('#profileModal')?.addEventListener('click', event => {
   if (event.target === $('#profileModal')) closeProfileEditModal();
 });
-$('#closePublicProfileModal').onclick = () => $('#publicProfileModal').classList.add('hidden');
+
 $('#profileForm').addEventListener('submit', async e => {
   e.preventDefault();
   const msg = $('#profileMessage');
