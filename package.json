@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "1.98.0",
+  "version": "1.99.0",
   "private": true,
-  "description": "RedLibertad V1.98 Legal Consent Versioning & Audit Trail - registra versión, acción, origen y fecha de Términos, Normas y Privacidad.",
+  "description": "RedLibertad V1.99 Legal Consent Center - historial legal visible para el usuario con versiones, fechas, estado y enlaces a los textos actuales.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

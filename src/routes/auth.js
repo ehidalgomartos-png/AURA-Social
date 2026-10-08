@@ -34,10 +34,31 @@ async function ensureLegalConsentAudit(){
       `);
       await db.query('CREATE INDEX IF NOT EXISTS idx_legal_acceptances_user_date ON legal_acceptances(user_id,accepted_at DESC,id DESC)');
       await db.query(`
+        DELETE FROM legal_acceptances legacy
+         WHERE legacy.document_key='terms'
+           AND legacy.document_version='legacy'
+           AND legacy.action='accepted'
+           AND EXISTS (
+             SELECT 1
+               FROM legal_acceptances versioned
+              WHERE versioned.user_id=legacy.user_id
+                AND versioned.document_key='terms'
+                AND versioned.document_version<>'legacy'
+                AND versioned.action='accepted'
+           )
+      `);
+      await db.query(`
         INSERT INTO legal_acceptances (user_id,document_key,document_version,action,source,accepted_at)
-        SELECT id,'terms','legacy','accepted','legacy-terms-column',terms_accepted_at
-          FROM users
-         WHERE terms_accepted_at IS NOT NULL
+        SELECT u.id,'terms','legacy','accepted','legacy-terms-column',u.terms_accepted_at
+          FROM users u
+         WHERE u.terms_accepted_at IS NOT NULL
+           AND NOT EXISTS (
+             SELECT 1
+               FROM legal_acceptances existing
+              WHERE existing.user_id=u.id
+                AND existing.document_key='terms'
+                AND existing.action='accepted'
+           )
         ON CONFLICT (user_id,document_key,document_version,action) DO NOTHING
       `);
     })().catch(error=>{
@@ -491,20 +512,36 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.get('/account', requireAuth, async (req,res)=>{
   res.setHeader('Cache-Control','no-store');
-  const result=await db.query(`
-    SELECT
-      id,email,username,display_name,is_admin,status,created_at,password_changed_at,
-      (SELECT count(*)::int FROM posts WHERE user_id=users.id) post_count,
-      (SELECT count(*)::int FROM comments WHERE user_id=users.id) comment_count,
-      (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
-      (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count
-      FROM users
-     WHERE id=$1
-     LIMIT 1
-  `,[req.user.id]);
+  const [result,legalAcceptances]=await Promise.all([
+    db.query(`
+      SELECT
+        id,email,username,display_name,is_admin,status,created_at,password_changed_at,
+        (SELECT count(*)::int FROM posts WHERE user_id=users.id) post_count,
+        (SELECT count(*)::int FROM comments WHERE user_id=users.id) comment_count,
+        (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
+        (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count
+        FROM users
+       WHERE id=$1
+       LIMIT 1
+    `,[req.user.id]),
+    db.query(`
+      SELECT document_key,document_version,action,source,accepted_at
+        FROM legal_acceptances
+       WHERE user_id=$1
+       ORDER BY accepted_at DESC,id DESC
+    `,[req.user.id])
+  ]);
 
   if(!result.rowCount)return res.status(404).json({error:'user_not_found'});
-  res.json({account:result.rows[0]});
+  res.json({
+    account:result.rows[0],
+    legalAcceptances:legalAcceptances.rows,
+    legalDocuments:{
+      terms:{version:LEGAL_DOCUMENT_VERSIONS.terms,path:'/terms/'},
+      community_guidelines:{version:LEGAL_DOCUMENT_VERSIONS.community_guidelines,path:'/community-guidelines/'},
+      privacy:{version:LEGAL_DOCUMENT_VERSIONS.privacy,path:'/privacy/'}
+    }
+  });
 });
 
 const passwordChangeSchema=z.object({
