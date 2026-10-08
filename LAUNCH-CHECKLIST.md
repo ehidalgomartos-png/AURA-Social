@@ -572,3 +572,14 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Confirmar que no quedan botones secundarios en dos filas en móvil.
 - Revisar páginas de detalle públicas para comprobar ausencia de regresiones.
 - Confirmar que `public-nav-v196.css` carga en todas las familias públicas generadas por servidor.
+
+
+## 46. Public Legal Footer & Trust Polish
+- Confirmar `/api/health` con versión 1.97.0 y features `public-legal-footer-v1.97` / `public-trust-links-v1.97`.
+- Revisar footer en /perfiles, /publicaciones, /comunidades, /eventos, /reels, /multimedia, /buscar, /descubrir, /temas y /historias.
+- Abrir un perfil público individual y una publicación pública individual.
+- Confirmar presencia de Aviso Legal, Privacidad, Cookies, Términos, Normas y Moderación.
+- Confirmar que los seis enlaces abren las rutas correctas.
+- Confirmar que el footer no tapa la barra móvil fija de Crear cuenta / Entrar.
+- Revisar móvil y escritorio.
+- Confirmar que no cambian canonical, robots, sitemaps ni reglas de privacidad.
