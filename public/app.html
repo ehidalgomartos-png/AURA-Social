@@ -411,6 +411,7 @@
       <div class="page-title"><div><span class="eyebrow">ACTIVIDAD</span><h1>Notificaciones</h1></div><button id="readAllNotifications" class="secondary">Marcar todo leído</button></div>
       <div class="notification-filters" role="tablist" aria-label="Filtrar actividad">
         <button type="button" class="active" data-notification-filter="all">Todo</button>
+        <button type="button" data-notification-filter="unread">Sin leer</button>
         <button type="button" data-notification-filter="mentions">Menciones</button>
         <button type="button" data-notification-filter="interactions">Interacciones</button>
         <button type="button" data-notification-filter="community">Comunidad</button>
@@ -997,6 +998,20 @@
         <button id="pushNotificationsToggle" class="secondary" type="button">Configurar</button>
       </div>
       <p id="pushNotificationsStatus" class="status"></p>
+      <form id="pushPreferencesForm" class="push-preferences-form">
+        <strong>Qué avisos quieres recibir</strong>
+        <p>Estas preferencias afectan a los avisos push de todos tus dispositivos. La actividad seguirá visible dentro de RedLibertad.</p>
+        <div class="push-preference-options">
+          <label><input type="checkbox" name="messages" checked> <span><b>Mensajes</b><small>Nuevos mensajes privados</small></span></label>
+          <label><input type="checkbox" name="mentions" checked> <span><b>Menciones</b><small>Cuando te mencionan</small></span></label>
+          <label><input type="checkbox" name="interactions" checked> <span><b>Interacciones</b><small>Me gusta, comentarios y republicaciones</small></span></label>
+          <label><input type="checkbox" name="community" checked> <span><b>Comunidad</b><small>Seguidores, creadores y eventos</small></span></label>
+          <label><input type="checkbox" name="consents" checked> <span><b>Consentimientos</b><small>Solicitudes y colaboraciones</small></span></label>
+          <label><input type="checkbox" name="system" checked> <span><b>Sistema y seguridad</b><small>Otros avisos de la plataforma</small></span></label>
+        </div>
+        <button type="submit" class="secondary" id="pushPreferencesSave" disabled>Guardar preferencias</button>
+        <p id="pushPreferencesStatus" class="status" role="status" aria-live="polite"></p>
+      </form>
     </section>
 
     <section class="account-section legal-consent-section">
