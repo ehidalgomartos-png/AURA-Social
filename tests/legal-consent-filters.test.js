@@ -140,3 +140,17 @@ test('filter logic is local and never invokes a network request',()=>{
   const filterCode=source.slice(from,to);
   assert.doesNotMatch(filterCode,/\bfetch\s*\(|\bapi\s*\(|\bdb\.query\s*\(/);
 });
+
+
+test('stale filter cannot hide the only record when no controls are displayed',()=>{
+  reset();
+  const item={dataset:{legalDocument:'terms',legalState:'current'},textContent:'Términos versión 1.0',hidden:true};
+  const timeline={querySelectorAll:()=>[item],querySelector:()=>null};
+  mockContainer={querySelector:()=>timeline};
+  tools.filters.document='privacy';
+  tools.filters.state='legacy';
+  tools.filters.query='sin coincidencia';
+  tools.apply();
+  assert.equal(item.hidden,false);
+  mockContainer=null;reset();
+});
