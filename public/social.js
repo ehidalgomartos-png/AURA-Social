@@ -434,13 +434,13 @@ function gateText(reason) {
     permission_required: 'Primero debes aceptar contenido sensible de esta persona.'
   })[reason] || 'Contenido protegido.';
 }
-function mediaHTML(p, compact = false) {
+function mediaHTML(p, compact = false, priority = false) {
   if (p.gated) return `<div class="${compact ? 'tile-gate' : 'gate'}"><div>${compact ? '18+' : `<span class="badge">18+</span><b>Contenido sensible</b><p>${gateText(p.gate_reason)}</p>`}</div></div>`;
   const url = p.playback_url || p.media_url;
   if (!url) return '';
-  if (p.media_type === 'image') return `<img src="${esc(url)}" loading="lazy" decoding="async" alt="Contenido de ${esc(p.username || '')}">`;
+  if (p.media_type === 'image') return `<img src="${esc(url)}" loading="${priority ? 'eager' : 'lazy'}" fetchpriority="${priority ? 'high' : 'auto'}" decoding="async" alt="Contenido de ${esc(p.username || '')}">`;
   if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
-  return `<video src="${esc(url)}" controls playsinline preload="metadata"></video>`;
+  return `<video src="${esc(url)}" controls playsinline preload="${priority ? 'metadata' : 'none'}"></video>`;
 }
 function profileLink(username, label, className = '') {
   return `<button type="button" class="profile-link ${className}" data-profile="${esc(username)}">${label}</button>`;
@@ -568,7 +568,7 @@ function communityToolHTML(p) {
 }
 
 function postHTML(p, options = {}) {
-  const media = mediaHTML(p);
+  const media = mediaHTML(p, false, !!options.priorityMedia);
   const textOnly = !media;
   const ownPost = !!me && String(me.id) === String(p.user_id);
   const collaboratingMe=!!me && Array.isArray(p.collaborators) && p.collaborators.some(x=>String(x.id)===String(me.id));
@@ -1859,7 +1859,7 @@ async function loadFeed(mode = currentMode) {
 
   if(!feedRoot)return;
   feedRoot.innerHTML = posts.length
-    ? posts.map(postHTML).join('')
+    ? posts.map((post,index)=>postHTML(post,{priorityMedia:index===0})).join('')
     : `<div class="empty-feed-card ${mode==='vip' ? 'vip-empty-feed' : ''}">
         <span class="empty-feed-icon">${mode==='vip' ? '★' : 'A'}</span>
         <h2>${emptyTitle}</h2>
@@ -1879,7 +1879,7 @@ function renderStoryViewer() {
   const root=$('#storyViewerContent');
   if(!story || !root)return;
 
-  const media=mediaHTML(story);
+  const media=mediaHTML(story,false,true);
   const storyAudienceBadge=story.audience==='vip'
     ? '★ SOLO VIP'
     : story.audience==='connections'

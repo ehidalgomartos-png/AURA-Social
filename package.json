@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "private": true,
-  "description": "RedLibertad V2.11 — protección antispam, límites distribuidos y alertas de seguridad.",
+  "description": "RedLibertad V2.12 — rendimiento móvil, recursos multimedia y caché PWA segura.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -17,7 +17,8 @@
     "test:discovery": "node --test tests/discovery-v28.test.js",
     "test:activation": "node --test tests/activation-v29.test.js",
     "test:notifications": "node --test tests/notifications-v210.test.js",
-    "test:security": "node --test tests/security-v211.test.js"
+    "test:security": "node --test tests/security-v211.test.js",
+    "test:performance": "node --test tests/performance-v212.test.js"
   },
   "engines": {
     "node": ">=20"

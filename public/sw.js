@@ -1,6 +1,8 @@
-const SHELL_CACHE='redlibertad-v2100-shell';
-const STATIC_CACHE='redlibertad-v2100-static';
+'use strict';
+const SHELL_CACHE='redlibertad-v2120-shell';
+const STATIC_CACHE='redlibertad-v2120-static';
 const CACHE_PREFIX='redlibertad-';
+const MAX_STATIC_ENTRIES=64;
 
 const SHELL_ASSETS=[
   '/',
@@ -42,16 +44,29 @@ self.addEventListener('activate',event=>{
 function shouldBypass(url,request){
   if(request.method!=='GET')return true;
   if(url.origin!==self.location.origin)return true;
+  if(request.headers?.has?.('range'))return true;
+  if(['video','audio'].includes(request.destination))return true;
   return (
     (url.pathname==='/api' || url.pathname.startsWith('/api/')) ||
     (url.pathname==='/uploads' || url.pathname.startsWith('/uploads/')) ||
-    (url.pathname==='/p' || url.pathname.startsWith('/p/'))
+    (url.pathname==='/p' || url.pathname.startsWith('/p/')) ||
+    url.pathname==='/admin' || url.pathname.startsWith('/admin/') ||
+    url.pathname==='/admin-recovery'
   );
 }
 
 function isStaticAsset(url,request){
-  if(['style','script','image','font'].includes(request.destination))return true;
-  return /\.(?:css|js|svg|png|jpg|jpeg|webp|ico|webmanifest)$/i.test(url.pathname);
+  if(['video','audio','document'].includes(request.destination))return false;
+  const pathname=url.pathname;
+  return (
+    /^\/(?:assets|icons)\/[A-Za-z0-9_./-]+\.(?:svg|png|jpg|jpeg|webp|ico)$/i.test(pathname) ||
+    /^\/[a-z0-9_-]+\.(?:css|js)$/i.test(pathname) ||
+    pathname==='/manifest.webmanifest'
+  );
+}
+
+function isMutableCodeAsset(url){
+  return /\.(?:js|css|webmanifest)$/i.test(url.pathname);
 }
 
 async function fetchWithTimeout(request,timeoutMs=10000){
@@ -64,39 +79,65 @@ async function fetchWithTimeout(request,timeoutMs=10000){
   }
 }
 
+// Only the public HTML shells can be cached; no personalized URL parameters.
 async function networkFirstNavigation(request,url){
   try{
     const response=await fetchWithTimeout(request,8000);
-    if(response.ok && response.type==='basic'){
+    if(response.ok && response.type==='basic' && ['/', '/app'].includes(url.pathname)){
       const cache=await caches.open(SHELL_CACHE);
-      cache.put(request,response.clone()).catch(()=>{});
+      cache.put(url.pathname,response.clone()).catch(()=>{});
     }
     return response;
   }catch(_){
-    const exact=await caches.match(request);
-    if(exact)return exact;
-    if(url.pathname.startsWith('/app'))return (await caches.match('/app')) || (await caches.match('/'));
-    return (await caches.match('/')) || Response.error();
+    if(url.pathname==='/app')return (await caches.match('/app')) || (await caches.match('/'));
+    if(url.pathname==='/')return (await caches.match('/')) || Response.error();
+    return Response.error();
   }
 }
 
-async function staleWhileRevalidate(request){
+async function trimStaticCache(cache){
+  const keys=await cache.keys();
+  if(keys.length>MAX_STATIC_ENTRIES){
+    await Promise.all(keys.slice(0,keys.length-MAX_STATIC_ENTRIES).map(key=>cache.delete(key)));
+  }
+}
+
+async function storeStaticResponse(cache,request,response){
+  if(response.ok && response.type==='basic'){
+    try{
+      await cache.put(request,response.clone());
+      await trimStaticCache(cache);
+    }catch(_){}
+  }
+}
+
+// Mutable scripts/styles prefer the latest version, but still work offline.
+async function networkFirstAsset(request){
+  const cache=await caches.open(STATIC_CACHE);
+  try{
+    const response=await fetchWithTimeout(request,4000);
+    await storeStaticResponse(cache,request,response);
+    return response;
+  }catch(_){
+    return (await cache.match(request)) || (await caches.match(request)) || Response.error();
+  }
+}
+
+// Decorative static images can paint instantly from a bounded cache.
+async function staleWhileRevalidate(request,event){
   const cache=await caches.open(STATIC_CACHE);
   const cached=await cache.match(request);
   const network=fetchWithTimeout(request,10000)
-    .then(response=>{
-      if(response.ok && response.type==='basic'){
-        cache.put(request,response.clone()).catch(()=>{});
-      }
+    .then(async response=>{
+      await storeStaticResponse(cache,request,response);
       return response;
     })
     .catch(()=>null);
 
   if(cached){
-    network.catch(()=>{});
+    event.waitUntil(network);
     return cached;
   }
-
   return (await network) || Response.error();
 }
 
@@ -111,10 +152,11 @@ self.addEventListener('fetch',event=>{
   }
 
   if(isStaticAsset(url,request)){
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(isMutableCodeAsset(url)
+      ? networkFirstAsset(request)
+      : staleWhileRevalidate(request,event));
   }
 });
-
 
 self.addEventListener('push',event=>{
   let payload={};
