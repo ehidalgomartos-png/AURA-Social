@@ -1,6 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const db = require('../db');
+const {ensureSignupAttributionSchema}=require('../services/signup-attribution-schema-v219');
 const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -108,16 +109,8 @@ let growthAttributionV189Ready=null;
 async function ensureGrowthAttributionV189(){
   if(!growthAttributionV189Ready){
     growthAttributionV189Ready=(async()=>{
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS signup_attributions (
-          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-          source_type VARCHAR(20) NOT NULL CHECK(source_type IN ('profile','post','community','event','reel','topic','story')),
-          source_key VARCHAR(120) NOT NULL DEFAULT '',
-          source_path VARCHAR(280) NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )
-      `);
-      await db.query('CREATE INDEX IF NOT EXISTS idx_signup_attributions_source_created ON signup_attributions(source_type,created_at DESC)');
+      await ensureSignupAttributionSchema(db);
+
     })().catch(error=>{
       growthAttributionV189Ready=null;
       throw error;
