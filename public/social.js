@@ -2,6 +2,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let publicOrigin=location.origin.replace(/\/$/,'');
+let clientAppVersion='unknown';
 let currentMode = 'foryou';
 let feedRequestSequence = 0;
 let releaseFlags={support_center:true};
@@ -290,6 +291,7 @@ async function loadReleaseFlags(){
 
 async function loadPublicConfig(){
   const {r,d}=await api('/api/public-config',{dedupe:false});
+  if(r.ok && d.version)clientAppVersion=String(d.version).slice(0,32);
   if(r.ok && /^https?:\/\//i.test(String(d.origin||''))){
     publicOrigin=String(d.origin).replace(/\/$/,'');
   }
@@ -9234,7 +9236,7 @@ function supportContext(){
     path:String(location.pathname||'/').slice(0,160),
     viewportClass:supportViewportClass(),
     online:navigator.onLine!==false,
-    appVersion:'1.72.0'
+    appVersion:clientAppVersion
   };
 }
 
