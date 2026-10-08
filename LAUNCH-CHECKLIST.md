@@ -759,3 +759,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - [ ] Revisar accesibilidad de pulsación, lectura y teclado en iPhone, Android y escritorio.
 - [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke`, `npm run test:social` y `npm run test:discovery`.
 - [ ] No fusionar sin validación GitHub Actions; tras despliegue comprobar funcionamiento en Coolify y registrar pruebas manuales.
+
+
+## 58. Activación de usuarios — V2.9.0
+
+- [ ] Comprobar `/api/health` versión 2.9.0 y flags `user-activation-guide-v2.9`, `activation-next-step-v2.9`, `starter-profile-privacy-v2.9`.
+- [ ] Probar una cuenta nueva con 0/6 pasos: foto de perfil aparece como siguiente objetivo, progreso 0%.
+- [ ] Añadir foto, bio e intereses: se recalcula el siguiente objetivo tras actualizar el perfil.
+- [ ] Seguir a 1, 2 y 3 personas: comprobar `1 de 3`, `2 de 3`, objetivo completado al alcanzar 3.
+- [ ] Comprobar accesos guiados a Explorar, Comunidades, Crear publicación y feed.
+- [ ] Probar una cuenta que ya tiene 6/6: indicador 100%, felicitación y ninguna acción pendiente.
+- [ ] Dejar de seguir a una persona tras completar pasos y actualizar: progreso recalculado, sin mensaje antiguo de 100%.
+- [ ] Crear una cuenta reciente y otra antigua: saludo de bienvenida solo para nuevas incorporaciones.
+- [ ] Verificar que las personas bloqueadas, silenciadas, no descubribles, administradoras u ocultadas no aparecen entre los perfiles de inicio.
+- [ ] Confirmar que compartir invitaciones es voluntario y que no se altera el número de pasos ni se crean datos de seguimiento nuevos.
+- [ ] Comprobar navegación y toque en Android, iOS Safari y escritorio; texto de progreso legible y lector de pantalla.
+- [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke`, `npm run test:social`, `npm run test:discovery` y `npm run test:activation`.
+- [ ] Ejecutar auditoría manual P0 de `AUDIT-V2.6.md` antes de declarar la producción validada.

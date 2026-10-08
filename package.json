@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "private": true,
-  "description": "RedLibertad V2.8 — recomendaciones de personas por intereses, actividad pública visible y nuevas altas; paginación y reintentos.",
+  "description": "RedLibertad V2.9 — activación guiada con progreso real, siguiente paso y sugerencias iniciales privadas.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,8 @@
     "test": "node --test tests/*.test.js",
     "smoke:production": "node scripts/smoke-http.js",
     "test:social": "node --test tests/social-experience.test.js",
-    "test:discovery": "node --test tests/discovery-v28.test.js"
+    "test:discovery": "node --test tests/discovery-v28.test.js",
+    "test:activation": "node --test tests/activation-v29.test.js"
   },
   "engines": {
     "node": ">=20"

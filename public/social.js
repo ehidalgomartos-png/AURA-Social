@@ -1473,7 +1473,7 @@ function growthInviteText() {
 function growthStepHTML(step) {
   return `<button type="button" class="growth-step ${step.done ? 'done' : ''}" data-growth-action="${esc(step.action)}" ${step.done ? 'disabled' : ''}>
     <span class="growth-step-check">${step.done ? '✓' : '○'}</span>
-    <span><b>${esc(step.label)}</b><small>${step.done ? 'Completado' : 'Continuar'}</small></span>
+    <span><b>${esc(step.label)}</b><small>${step.done ? 'Completado' : esc(step.detail || 'Continuar')}</small></span>
     <i>›</i>
   </button>`;
 }
@@ -1493,13 +1493,36 @@ async function loadGrowthPanel() {
 
   growthInviteCode = String(d.inviteCode || me?.username || '');
   growthInviteToken = String(d.inviteLink?.token || '');
-  $('#growthProgressValue').textContent = `${Number(d.progress || 0)}%`;
+  const steps=Array.isArray(d.steps)?d.steps:[];
+  const progress=Math.max(0,Math.min(100,Number(d.progress)||0));
+  const completed=steps.filter(step=>step?.done).length;
+  const current=steps.find(step=>step&&!step.done)||null;
+  const next=d.nextStep && current?.id===d.nextStep.id ? d.nextStep : current;
+  const firstWeek=d.firstWeek===true;
+  const summary=$('#growthProgressDescription');
+  if(summary)summary.textContent=completed+' de '+steps.length+' pasos completados'+
+    (firstWeek&&completed<steps.length?' · Bienvenido a RedLibertad.':'');
+  const nextRoot=$('#growthNextStep');
+  const allowedActions=new Set(['profile','explore','communities','create','feed']);
+  if(nextRoot){
+    nextRoot.innerHTML=next&&allowedActions.has(String(next.action||''))?
+      '<span class="growth-next-eyebrow">TU SIGUIENTE PASO</span>'+
+      '<strong>'+esc(next.label)+'</strong>'+
+      '<p>Avanza a tu ritmo. Puedes realizar los demás pasos cuando quieras.</p>'+
+      '<button type="button" class="primary" data-growth-action="'+esc(next.action)+'">Continuar ahora →</button>':
+      '<div class="growth-next-complete"><strong>¡Tus primeros pasos están completos!</strong>'+
+      '<p>Puedes seguir explorando y participando en la comunidad.</p></div>';
+  }
+  $('#growthProgressValue').textContent = `${progress}%`;
   const ring = panel.querySelector('.growth-progress-ring');
-  if (ring) ring.style.setProperty('--progress', `${Number(d.progress || 0) * 3.6}deg`);
+  if(ring){
+    ring.style.setProperty('--progress', `${progress * 3.6}deg`);
+    ring.setAttribute('aria-valuenow',String(progress));
+  }
 
   $('#growthReferralTotal').textContent = Number(d.referrals?.total || 0);
   $('#growthReferralActivated').textContent = Number(d.referrals?.activated || 0);
-  $('#growthSteps').innerHTML = Array.isArray(d.steps) ? d.steps.map(growthStepHTML).join('') : '';
+  $('#growthSteps').innerHTML=steps.map(growthStepHTML).join('');
   const starterRoot=$('#growthStarterPeople');
   if(starterRoot){
     const starters=Array.isArray(d.starterProfiles)?d.starterProfiles:[];
@@ -1522,6 +1545,10 @@ async function loadGrowthPanel() {
     if (heading) heading.textContent = 'Tu perfil ya está en marcha';
     if (copy) copy.textContent = 'Has completado los pasos principales. Sigue participando y haciendo crecer tu comunidad.';
   } else {
+    const heading=panel.querySelector('.growth-onboarding h2');
+    const copy=panel.querySelector('.growth-onboarding .growth-heading p');
+    if(heading)heading.textContent=firstWeek?'Bienvenido a RedLibertad':'Haz tu RedLibertad más tuya';
+    if(copy)copy.textContent='Completa estos pasos para aprovechar mejor la comunidad.';
     panel.classList.remove('growth-complete');
   }
 }

@@ -118,7 +118,7 @@ router.post('/invites/:token/open', async (req,res)=>{
 router.get('/me', requireAuth, async (req,res)=>{
   const profile=await db.query(`
     SELECT
-      u.id,u.username,u.display_name,u.avatar_url,u.bio,
+      u.id,u.username,u.display_name,u.avatar_url,u.bio,u.created_at,
       (SELECT count(*)::int FROM user_interests ui WHERE ui.user_id=u.id) interest_count,
       (SELECT count(*)::int FROM follows f WHERE f.follower_id=u.id) following_count,
       (SELECT count(*)::int FROM community_members cm WHERE cm.user_id=u.id) community_count,
@@ -166,6 +166,7 @@ router.get('/me', requireAuth, async (req,res)=>{
     {
       id:'follow',
       label:'Sigue al menos a 3 personas',
+      detail:String(Math.min(3,Math.max(0,Number(user.following_count)||0)))+' de 3 personas seguidas',
       done:Number(user.following_count||0)>=3,
       action:'explore'
     },
@@ -191,6 +192,9 @@ router.get('/me', requireAuth, async (req,res)=>{
 
   const completed=steps.filter(step=>step.done).length;
   const progress=Math.round((completed/steps.length)*100);
+  const nextStep=steps.find(step=>!step.done)||null;
+  const joinedAt=new Date(user.created_at).getTime();
+  const firstWeek=Number.isFinite(joinedAt)&&joinedAt<=Date.now()&&joinedAt>=Date.now()-7*24*60*60*1000;
   const inviteLink=await ensurePersonalInvite(req.user.id);
   const starterProfiles=await db.query(`
     SELECT u.id,u.username,u.display_name,u.avatar_url,u.bio,u.creator_verified,u.location_label,
@@ -210,7 +214,8 @@ router.get('/me', requireAuth, async (req,res)=>{
       AND NOT EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=$1 AND f.following_id=u.id)
       AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=$1))
       AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=u.id)
-    ORDER BY shared_interest_count DESC,follower_count DESC,u.created_at DESC
+       AND NOT EXISTS(SELECT 1 FROM discovery_hidden_items h WHERE h.user_id=$1 AND h.item_type='user' AND h.item_id=u.id)
+     ORDER BY shared_interest_count DESC,follower_count DESC,u.created_at DESC
     LIMIT 6
   `,[req.user.id]);
 
@@ -218,6 +223,8 @@ router.get('/me', requireAuth, async (req,res)=>{
     inviteCode:user.username,
     inviteLink:{token:inviteLink.token,path:'/?invite='+encodeURIComponent(inviteLink.token)+'#registro',opens:Number(inviteLink.open_count||0),joins:Number(inviteLink.join_count||0)},
     starterProfiles:starterProfiles.rows,
+    nextStep,
+    firstWeek,
     steps,
     completed,
     totalSteps:steps.length,
