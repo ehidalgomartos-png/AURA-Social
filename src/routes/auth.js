@@ -491,20 +491,36 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.get('/account', requireAuth, async (req,res)=>{
   res.setHeader('Cache-Control','no-store');
-  const result=await db.query(`
-    SELECT
-      id,email,username,display_name,is_admin,status,created_at,password_changed_at,
-      (SELECT count(*)::int FROM posts WHERE user_id=users.id) post_count,
-      (SELECT count(*)::int FROM comments WHERE user_id=users.id) comment_count,
-      (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
-      (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count
-      FROM users
-     WHERE id=$1
-     LIMIT 1
-  `,[req.user.id]);
+  const [result,legalAcceptances]=await Promise.all([
+    db.query(`
+      SELECT
+        id,email,username,display_name,is_admin,status,created_at,password_changed_at,
+        (SELECT count(*)::int FROM posts WHERE user_id=users.id) post_count,
+        (SELECT count(*)::int FROM comments WHERE user_id=users.id) comment_count,
+        (SELECT count(*)::int FROM follows WHERE follower_id=users.id) following_count,
+        (SELECT count(*)::int FROM follows WHERE following_id=users.id) follower_count
+        FROM users
+       WHERE id=$1
+       LIMIT 1
+    `,[req.user.id]),
+    db.query(`
+      SELECT document_key,document_version,action,source,accepted_at
+        FROM legal_acceptances
+       WHERE user_id=$1
+       ORDER BY accepted_at DESC,id DESC
+    `,[req.user.id])
+  ]);
 
   if(!result.rowCount)return res.status(404).json({error:'user_not_found'});
-  res.json({account:result.rows[0]});
+  res.json({
+    account:result.rows[0],
+    legalAcceptances:legalAcceptances.rows,
+    legalDocuments:{
+      terms:{version:LEGAL_DOCUMENT_VERSIONS.terms,path:'/terms/'},
+      community_guidelines:{version:LEGAL_DOCUMENT_VERSIONS.community_guidelines,path:'/community-guidelines/'},
+      privacy:{version:LEGAL_DOCUMENT_VERSIONS.privacy,path:'/privacy/'}
+    }
+  });
 });
 
 const passwordChangeSchema=z.object({
