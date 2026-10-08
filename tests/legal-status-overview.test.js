@@ -61,7 +61,7 @@ test('privacy accepted with the wrong action is not counted as acknowledged',()=
  const status=helper.summarize(records,documents,defs);
  assert.deepEqual(status.totals,{current:1,historical:0,missing:2,unknown:0});
  const html=helper.render(records,documents);
- assert.match(html,/2 sin registro/);
+ assert.match(html,/<b>2<\/b> sin registro/);
  assert.doesNotMatch(html,/Leída · versión 1.0/);
  assert.equal((html.match(/class="legal-confirm-form"/g)||[]).length,2);
 });
