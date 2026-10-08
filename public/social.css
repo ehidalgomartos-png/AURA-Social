@@ -6582,3 +6582,62 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .growth-next-step{padding:14px}
   .growth-next-step button{width:100%}
 }
+
+/* V2.10 — Per-user Web Push preferences in Account & Security */
+.push-preferences-form{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+.push-preferences-form>strong{font-size:14px;color:var(--navy)}
+.push-preferences-form>p:not(.status){
+  margin:0;
+  font-size:12px;
+  line-height:1.5;
+  color:var(--muted);
+}
+.push-preference-options{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.push-preference-options label{
+  display:flex;
+  align-items:center;
+  min-height:56px;
+  gap:10px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--paper);
+  cursor:pointer;
+}
+.push-preference-options input{
+  width:19px;
+  height:19px;
+  flex:none;
+  accent-color:var(--teal);
+}
+.push-preference-options span{min-width:0}
+.push-preference-options b{display:block;font-size:12px;color:var(--navy)}
+.push-preference-options small{
+  display:block;
+  font-size:11px;
+  line-height:1.4;
+  color:var(--muted);
+}
+.push-preference-options input:focus-visible{
+  outline:2px solid var(--teal);
+  outline-offset:3px;
+}
+.push-preferences-form button[type="submit"]{
+  justify-self:start;
+  min-height:44px;
+}
+.push-preferences-form button[type="submit"]:disabled{opacity:.5}
+@media(max-width:620px){
+  .push-preference-options{grid-template-columns:minmax(0,1fr)}
+  .push-preferences-form button[type="submit"]{width:100%}
+}
