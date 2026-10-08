@@ -131,8 +131,8 @@ test('home contains accessible voluntary community return section',()=>{
   const html=read('public/app.html');
   for(const id of ['communityReturn','communityReturnTitle','communityReturnList','communityReturnRefresh'])
     assert.match(html,new RegExp('id="'+id+'"'));
-  assert.match(html,/Ocultar 7 días/);
   assert.match(html,/No recibirás recordatorios/);
+  assert.match(read('public/social.js'),/Ocultar 7 días/);
 });
 test('client shows a maximum of three items, opens community and supports 7-day snooze',()=>{
   const js=read('public/social.js');
