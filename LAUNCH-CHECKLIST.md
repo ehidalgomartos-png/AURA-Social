@@ -776,3 +776,23 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - [ ] Comprobar navegación y toque en Android, iOS Safari y escritorio; texto de progreso legible y lector de pantalla.
 - [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke`, `npm run test:social`, `npm run test:discovery` y `npm run test:activation`.
 - [ ] Ejecutar auditoría manual P0 de `AUDIT-V2.6.md` antes de declarar la producción validada.
+
+
+## 59. Notificaciones 3.0 — V2.10.0
+
+- [ ] Comprobar `/api/health` versión 2.10.0 y flags `notifications-3-v2.10`, `push-category-preferences-v2.10` y `unread-notifications-filter-v2.10`.
+- [ ] Verificar que `ensurePushSchema` ha creado `push_preferences` en PostgreSQL y no ha cambiado registros existentes.
+- [ ] Con una cuenta anterior, confirmar que los seis tipos de push están habilitados por defecto, pero sin activar permisos del navegador.
+- [ ] Desactivar solo Interacciones; publicar un comentario de prueba; verificar que permanece visible **dentro** de Notificaciones, pero no llega como push.
+- [ ] Habilitar de nuevo Interacciones; validar push desde un navegador y dispositivo suscritos, con VAPID configurado.
+- [ ] Desactivar todas las categorías y comprobar que no llegan pushes de esos tipos; la actividad sigue guardada.
+- [ ] Cambiar preferencias desde dos cuentas: las opciones no se cruzan; comprobar almacenamiento por `user_id` autenticado.
+- [ ] Probar en navegador sin Web Push o cuando VAPID está ausente: sigue siendo posible guardar preferencias para otro dispositivo.
+- [ ] Cortar la red durante Guardar preferencias: aparece error y no se finge persistencia.
+- [ ] Comprobar los filtros Todo, Sin leer, Menciones, Interacciones, Comunidad, Mensajes y Consentimientos.
+- [ ] Abrir una notificación sin leer: pasa a leída solo con confirmación del servidor y el contador queda correcto.
+- [ ] Probar «Marcar todo leído» sin conexión: mantener elementos y contadores, mostrar error.
+- [ ] Probar botones y navegación con teclado, iPhone Safari y Android Chrome; comprobar permisos push en PWA instalada cuando aplique.
+- [ ] Ejecutar `npm run check:syntax`, `npm run test:legal`, `npm run test:smoke`, `npm run test:social`, `npm run test:discovery`, `npm run test:activation` y `npm run test:notifications`.
+- [ ] Revisar tareas push pendientes de antes de cambiar preferencias: se aplican las elecciones al procesarlas.
+- [ ] No marcar como validado en producción hasta pasar los flujos P0 de `AUDIT-V2.6.md` y comprobar el comportamiento real de Web Push.
