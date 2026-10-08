@@ -30,6 +30,8 @@ jobs:
         run: npm run test:discovery
       - name: User activation guide tests
         run: npm run test:activation
+      - name: Profile main-view, full posts, SEO copy and mobile regressions
+        run: npm run test:profile-experience
       - name: Google public-profile snippets, markup and privacy regression tests
         run: npm run test:profile-seo
       - name: Search Console, unseen Stories and mobile visual regression tests

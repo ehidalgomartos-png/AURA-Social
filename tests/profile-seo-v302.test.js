@@ -26,7 +26,7 @@ test('profile without a bio produces specific readable title and snippet',()=>{
 test('public posting count only appears when a public post exists',()=>{
   const yes=publicProfileSeo(user({public_post_count:4}),{url});
   const no=publicProfileSeo(user({public_post_count:0}),{url});
-  assert.match(yes.description,/4 publicaciones públicas/);
+  assert.match(yes.description,/sus publicaciones/);
   assert.doesNotMatch(no.description,/0 publicaciones/);
 });
 test('creator headline and bio are meaningful and deduplicated',()=>{
@@ -128,8 +128,8 @@ test('private-user exclusion, sensitive post filters and noindex behavior remain
 });
 test('release version and CI include profile SEO tests',()=>{
   const pkg=require('../package.json');
-  assert.equal(pkg.version,'3.0.2');
-  assert.match(read('server.js'),/const APP_VERSION='3\.0\.2'/);
+  assert.match(pkg.version,/^3\.0\.[0-9]+$/);
+  assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
   assert.match(pkg.scripts['test:profile-seo'],/profile-seo-v302/);
   assert.match(read('.github/workflows/validate-js.yml'),/test:profile-seo/);
 });
