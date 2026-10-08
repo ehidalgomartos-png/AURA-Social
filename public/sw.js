@@ -43,9 +43,9 @@ function shouldBypass(url,request){
   if(request.method!=='GET')return true;
   if(url.origin!==self.location.origin)return true;
   return (
-    url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/uploads/') ||
-    url.pathname.startsWith('/p/')
+    (url.pathname==='/api' || url.pathname.startsWith('/api/')) ||
+    (url.pathname==='/uploads' || url.pathname.startsWith('/uploads/')) ||
+    (url.pathname==='/p' || url.pathname.startsWith('/p/'))
   );
 }
 
