@@ -34,10 +34,12 @@ function validPublicEntry(value){
     event:{key:/^\d+$/,path:/^\/evento\/\d+(?:\/[a-z0-9-]{1,100})?$/},
     reel:{key:/^\d+$/,path:/^\/reel\/\d+(?:\/[a-z0-9-]{1,100})?$/},
     topic:{key:/^[a-z0-9-]{1,80}$/,path:/^\/tema\/[a-z0-9-]{1,80}$/},
+    guide:{key:/^[a-z0-9-]{1,80}$/,path:/^\/guias\/[a-z0-9-]{1,80}$/},
     story:{key:/^\d+$/,path:/^\/historia\/\d+$/}
   };
   const rule=patterns[type];
-  return rule&&rule.key.test(key)&&rule.path.test(path)?{type,key,path,ts:ts||Date.now()}:null;
+  return rule&&rule.key.test(key)&&rule.path.test(path)&&
+    (type!=='guide'||path==='/guias/'+key)?{type,key,path,ts:ts||Date.now()}:null;
 }
 function loadPublicEntry(){
   const params=new URLSearchParams(location.search);
@@ -77,7 +79,7 @@ if(login)login.addEventListener('submit',async e=>{e.preventDefault();await subm
   const hiddenToken=register.querySelector('[name="referralToken"]');
   const notice=qs('#inviteNotice');
   if(notice&&publicEntry){
-    const labels={profile:'un perfil',post:'una publicación',community:'una comunidad',event:'un evento',reel:'un Reel',topic:'un tema',story:'una historia'};
+    const labels={profile:'un perfil',post:'una publicación',community:'una comunidad',event:'un evento',reel:'un Reel',topic:'un tema',guide:'una guía',story:'una historia'};
     notice.innerHTML='<span class="invite-notice-avatar">↩</span><span>Continúa donde estabas.<small>Después de entrar o crear tu cuenta volverás a '+esc(labels[publicEntry.type]||'ese contenido')+'.</small></span>';
     notice.classList.remove('hidden');
   }
