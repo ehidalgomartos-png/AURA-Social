@@ -1090,10 +1090,14 @@ async function openConnectionMessage(username,draft='') {
   }
 }
 
-function personCardHTML(user, compact = false) {
+function personCardHTML(user, compact = false, discoveryMode = 'for_you') {
   const shared = Number(user.shared_interest_count || 0);
   const followers = Number(user.follower_count || 0);
-  const reason = shared > 0
+  const reason = discoveryMode==='active'
+    ? 'Actividad pública reciente'
+    : discoveryMode==='new'
+      ? 'Se ha unido en los últimos 30 días'
+      : shared > 0
     ? `${shared} ${shared === 1 ? 'interés' : 'intereses'} en común`
     : followers > 0
       ? `${followers} ${followers === 1 ? 'seguidor' : 'seguidores'}`
@@ -1639,7 +1643,7 @@ async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={})
     peopleDiscoveryPage=page;
     peopleDiscoveryHasMore=d.hasMore===true && page<10;
     root.innerHTML=users.length
-      ? users.map(user=>personCardHTML(user)).join('')
+      ? users.map(user=>personCardHTML(user,false,peopleDiscoveryMode)).join('')
       : '<div class="info-card discovery-empty"><b>No hay perfiles en esta selección.</b><p>'+
         esc(peopleDiscoveryEmptyMessage())+
         '</p><button type="button" class="secondary" data-people-mode-reset>Ver todos</button></div>';
@@ -8027,6 +8031,30 @@ all('[data-content-mode]').forEach(button => {
     $('#postSearchInput').value = '';
     await loadDiscoveryContent(button.dataset.contentMode);
   };
+});
+
+// Mode changes only affect suggestions, not explicit person search.
+document.addEventListener('click',async event=>{
+  const modeButton=event.target.closest('[data-people-mode]');
+  const reset=event.target.closest('[data-people-mode-reset]');
+  if(!modeButton&&!reset)return;
+  event.preventDefault();
+  const mode=reset?'for_you':modeButton.dataset.peopleMode;
+  if(!['for_you','active','new'].includes(mode))return;
+  peopleDiscoveryMode=mode;
+  peopleDiscoveryPage=0;
+  peopleDiscoveryHasMore=false;
+  const search=$('#peopleSearchInput');
+  if(search)search.value='';
+  $('#clearPeopleSearch')?.classList.add('hidden');
+  if($('#peopleDiscoveryTitle'))$('#peopleDiscoveryTitle').textContent='Personas que podrías conocer';
+  await loadPeopleSuggestions(activeExploreInterest,{page:0});
+});
+
+$('#changePeopleSuggestions')?.addEventListener('click',async()=>{
+  if(!peopleDiscoveryHasMore)return;
+  if(String($('#peopleSearchInput')?.value||'').trim().length>=2)return;
+  await loadPeopleSuggestions(activeExploreInterest,{page:peopleDiscoveryPage+1});
 });
 
 $('#peopleSearchForm').addEventListener('submit', async event => {
