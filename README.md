@@ -2398,3 +2398,20 @@ Esta fase refuerza la fiabilidad de la base existente antes de introducir más f
 **Límites de esta auditoría:** las pruebas automáticas no acreditan que feed, Stories, Reels, chat, moderación o carga de vídeos funcionen en producción. Las pruebas de navegador, usuarios de prueba y móviles reales siguen pendientes y se registran en `AUDIT-V2.6.md`.
 
 No se cambian publicaciones, SQL, monetización, textos legales ni el consentimiento registrado.
+
+
+## V2.7.0 — Experiencia Social 3.0
+
+Mejoras de interacción mobile-first, sin alterar la API de publicaciones ni la base de datos:
+
+- **Comentarios fiables:** el diálogo de comentarios muestra una acción clara **Reintentar** al fallar la consulta. Las respuestas de peticiones antiguas no sustituyen los comentarios de otra publicación ni reabren ventanas cerradas.
+- **Conservación de borradores:** si una respuesta a un comentario llega después de cambiar de publicación, no borra el texto escrito para la conversación actual.
+- **Protección contra doble publicación:** los formularios de comentarios, posts y Stories bloquean envíos simultáneos mientras se está procesando la petición. Los botones recuperan su estado previo al terminar o fallar.
+- **Navegación robusta:** un destino de vista inválido no oculta la pantalla actual.
+- **Multimedia móvil:** los object URLs de las vistas previas de fotos/vídeos se liberan al eliminar o sustituir un archivo, reduciendo el riesgo de fugas de memoria.
+- **Feedback técnico útil:** al enviar una incidencia desde la app se incluye la versión real obtenida del servidor, no una versión fija desactualizada.
+- Estilos de reintento y espera accesibles, controles táctiles de 44 px y compatibilidad con las pantallas existentes.
+
+**Pruebas:** `npm run test:social`, `npm run test:smoke`, `npm run test:legal` y `npm run check:syntax`. GitHub Actions ejecuta las cuatro verificaciones. La validación visual real en móvil/Coolify sigue siendo necesaria tras el despliegue.
+
+**No se modifican** `src/routes/posts.js`, SQL, permisos, consentimientos ni monetización.
