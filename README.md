@@ -2311,3 +2311,15 @@ Mejoras recibidas de pruebas reales en móvil:
 - Las aceptaciones legacy conservan su identidad histórica; no hay reconsentimiento automático.
 - No modifica textos legales ni versiones (1.0); no bloquea acceso ni cambia posts.js.
 - Sin monetización ni migraciones nuevas.
+
+
+## V2.1.0 — Legal Consent Timeline & Transparency
+
+- **Perfil → Más → Cuenta y seguridad → Términos y privacidad** incorpora un historial desplegable completo (no solo la última versión de cada documento).
+- Muestra por registro: documento, versión, estado actual/histórico/legacy, tipo de acción, fecha y origen conocido.
+- Privacidad se presenta como **lectura reconocida**; Términos y Normas como **aceptación registrada**.
+- Los enlaces de las tarjetas se identifican como **Ver texto actual**: nunca presentan la versión vigente como copia archivada de una aceptación histórica.
+- Los registros `legacy` no se convierten en aceptaciones de documentos posteriores y no se obliga a confirmar de nuevo.
+- Se conserva la confirmación individual explícita de V2.0, sin escribir al consultar el historial.
+- Sin cambios en el esquema, textos legales, API o `src/routes/posts.js`, ni monetización.
+- Pruebas automatizadas: `npm run test:legal`.
