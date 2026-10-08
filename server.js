@@ -1257,7 +1257,7 @@ app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
 
-const server=app.listen(PORT, () => console.log(`RedLibertad V1.99.0 running on http://localhost:${PORT}`));
+const server=app.listen(PORT, () => console.log(`RedLibertad V${APP_VERSION} running on http://localhost:${PORT}`));
 server.keepAliveTimeout=5000;
 server.headersTimeout=65000;
 server.requestTimeout=120000;
