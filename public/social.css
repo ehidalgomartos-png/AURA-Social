@@ -6425,3 +6425,40 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .legal-timeline-filters{grid-template-columns:minmax(0,1fr)}
   .legal-timeline-search,.legal-timeline-clear{grid-column:1}
 }
+
+/* V2.5 — Personal legal status overview (informational only) */
+.legal-overview{
+  display:grid;
+  gap:12px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--paper);
+}
+.legal-overview-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.legal-overview-top strong{font-size:14px;color:var(--navy)}
+.legal-overview-top span{font-size:12px;color:var(--muted);line-height:1.45}
+.legal-overview-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.legal-overview-stats span{
+  min-width:0;
+  padding:10px 8px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.7);
+  border-radius:10px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+}
+.legal-overview-stats b{display:block;font-size:20px;color:var(--navy);font-weight:800}
+.legal-overview p{font-size:12px;line-height:1.5;color:var(--muted);margin:0}
+.legal-overview-pending{min-height:44px;justify-self:start}
+@media(max-width:620px){
+  .legal-overview{padding:12px}
+  .legal-overview-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .legal-overview-stats span{padding:8px 6px;font-size:10px}
+  .legal-overview-stats b{font-size:18px}
+  .legal-overview-pending{width:100%}
+}
+@media(max-width:350px){
+  .legal-overview-stats{grid-template-columns:minmax(0,1fr)}
+}
