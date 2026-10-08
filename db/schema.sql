@@ -1302,3 +1302,26 @@ CREATE TABLE IF NOT EXISTS signup_attributions (
 );
 CREATE INDEX IF NOT EXISTS idx_signup_attributions_source_created
   ON signup_attributions(source_type,created_at DESC);
+
+
+-- RedLibertad V1.98: legal consent versioning & audit trail
+CREATE TABLE IF NOT EXISTS legal_acceptances (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  document_key VARCHAR(40) NOT NULL CHECK(document_key IN ('terms','community_guidelines','privacy')),
+  document_version VARCHAR(20) NOT NULL,
+  action VARCHAR(20) NOT NULL CHECK(action IN ('accepted','acknowledged')),
+  source VARCHAR(40) NOT NULL DEFAULT 'registration',
+  accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id,document_key,document_version,action)
+);
+CREATE INDEX IF NOT EXISTS idx_legal_acceptances_user_date
+  ON legal_acceptances(user_id,accepted_at DESC,id DESC);
+
+INSERT INTO legal_acceptances (
+  user_id,document_key,document_version,action,source,accepted_at
+)
+SELECT id,'terms','legacy','accepted','legacy-terms-column',terms_accepted_at
+  FROM users
+ WHERE terms_accepted_at IS NOT NULL
+ON CONFLICT (user_id,document_key,document_version,action) DO NOTHING;
