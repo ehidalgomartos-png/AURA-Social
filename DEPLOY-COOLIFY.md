@@ -1,3 +1,19 @@
+# Despliegue actual RedLibertad V3.0 — Growth Ready
+
+> Este documento conserva instrucciones históricas de V1.70; para la fase actual utiliza primero [RELEASE-GATE-V3.0.md](RELEASE-GATE-V3.0.md). No crees una nueva aplicación ni cambies de repositorio si el despliegue RedLibertad de Coolify ya funciona.
+
+**Repositorio real:** `ehidalgomartos-png/AURA-Social` · rama `main` · dominio `https://redlibertad.com`.
+
+**Validación V3.0, después de merge y deploy autorizados:**
+
+```bash
+npm run gate:config
+npm run gate:public -- https://redlibertad.com
+```
+
+La primera orden se ejecuta en la instancia donde estén cargadas las variables seguras; la segunda desde un equipo con acceso público. Son pruebas de solo lectura; no sustituyen copias/restauración de PostgreSQL y multimedia, comprobación de Coolify ni pruebas sociales desde móvil. No declarar producción validada por superar GitHub Actions.
+
+---
 # Despliegue RedLibertad V1.70 en Coolify
 
 ## Estrategia recomendada
