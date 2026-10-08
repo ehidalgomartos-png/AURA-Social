@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "2.18.0",
+  "version": "2.19.0",
   "private": true,
-  "description": "RedLibertad V2.18 — guías públicas, indexación y captación medible respetando la privacidad.",
+  "description": "RedLibertad V2.19 — centro de crecimiento, cohortes D1/D7 y atribución de guías.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -24,7 +24,8 @@
     "test:ops-alerts": "node --test tests/operational-alerts-v215.test.js",
     "test:delivery": "node --test tests/alert-delivery-v216.test.js",
     "test:release-verification": "node --test tests/release-verification-v217.test.js",
-    "test:seo-acquisition": "node --test tests/seo-acquisition-v218.test.js"
+    "test:seo-acquisition": "node --test tests/seo-acquisition-v218.test.js",
+    "test:growth-center": "node --test tests/growth-center-v219.test.js"
   },
   "engines": {
     "node": ">=20"
