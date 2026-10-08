@@ -689,3 +689,20 @@ Lanzar a más usuarios solo cuando health/readiness sean correctos, los smoke te
 - Descargar HTML y JSON y comprobar que contienen los registros completos, independientemente del filtro visual.
 - Ejecutar `npm run check:syntax` y `npm run test:legal`.
 - Confirmar que `src/routes/posts.js`, SQL y sistema de monetización siguen intactos.
+
+
+## 54. Legal Status Overview — V2.5.0
+
+- Comprobar `/api/health` con versión 2.5.0 y flags `legal-status-overview-v2.5` y `pending-legal-documents-v2.5`.
+- Entrar en Perfil → Más → Cuenta y seguridad → Términos y privacidad.
+- Con tres versiones vigentes registradas: comprobar 3/3 y ausencia del botón de pendientes.
+- Con una cuenta `legacy`: confirmar que se contabiliza como versión anterior y NO como versión actual.
+- Con un documento sin aceptación/lectura: confirmar el contador `sin registro` y la existencia del formulario correspondiente.
+- Comprobar que un registro `privacy/accepted` no cuenta como `privacy/acknowledged` ni se presenta como lectura reconocida.
+- Pulsar `Ver documentos pendientes`: debe desplazarse al formulario, sin marcar casilla ni registrar nada.
+- Confirmar explícitamente un documento desde su casilla y botón originales; comprobar que el resumen se refresca.
+- Si falta la versión vigente de un documento, comprobar mensaje `sin versión disponible` y que no se invita a confirmarlo.
+- Revisar móvil estrecho, escritorio, enfoque de teclado y contraste.
+- Verificar que siguen funcionando historial, búsqueda/filtros, descarga HTML y descarga JSON.
+- Ejecutar `npm run check:syntax` y `npm run test:legal`.
+- Confirmar ausencia de cambios en publicaciones, SQL y monetización.
