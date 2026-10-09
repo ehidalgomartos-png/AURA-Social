@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.21">
+  <link rel="stylesheet" href="/admin.css?v=3.2.22">
 </head>
 <body>
 <header>
@@ -92,7 +92,7 @@
   </section>
 
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.21</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.22</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <div class="editorial-queue-tools-v3218" role="group" aria-label="Filtros rápidos de noticias cargadas">
       <label for="editorialQueueSearchV3218">Buscar noticia
         <input id="editorialQueueSearchV3218" type="search" maxlength="140" placeholder="Titular, medio o palabras" autocomplete="off">
@@ -144,6 +144,28 @@
         </label>
         <p class="panel-copy">La coincidencia de dominio no demuestra la exactitud ni los derechos. Al vincularla volverá a Pendientes y necesitará nueva revisión humana, comprobación de derechos y control de calidad. No se publicará automáticamente.</p>
         <button type="button" id="editorialRelinkConfirmV3221" class="soft" disabled>Vincular fuente y volver a revisar</button>
+      </section>
+      <section id="editorialImagePanelV3222" class="editorial-image-panel-v3222" aria-labelledby="editorialImageTitleV3222" hidden>
+        <h4 id="editorialImageTitleV3222">Fotografía de la noticia RSS</h4>
+        <p id="editorialImageStatusV3222" class="panel-copy" role="status" aria-live="polite"></p>
+        <button type="button" class="soft" id="editorialImagePreviewButtonV3222">Previsualizar foto del RSS</button>
+        <figure id="editorialImageFigureV3222" hidden>
+          <img id="editorialImagePreviewV3222" alt="Vista previa de la imagen RSS, no publicada" loading="lazy" decoding="async">
+          <figcaption>Vista previa privada. La foto no se utilizará sin autorización específica.</figcaption>
+        </figure>
+        <p id="editorialImageRightsV3222" class="panel-copy"></p>
+        <label for="editorialImageAltV3222">Descripción accesible de la fotografía
+          <input id="editorialImageAltV3222" maxlength="220" minlength="12" placeholder="Descripción breve, fiel y neutral de la imagen">
+        </label>
+        <label for="editorialImageCreditV3222">Autor o crédito fotográfico
+          <input id="editorialImageCreditV3222" maxlength="200" minlength="3" placeholder="Autor, agencia o titular de los derechos">
+        </label>
+        <label for="editorialImageRightsReferenceV3222">Justificante específico de permiso para la foto
+          <textarea id="editorialImageRightsReferenceV3222" rows="2" maxlength="1000" minlength="12" placeholder="Licencia, URL o referencia documental aplicable a ESTA fotografía"></textarea>
+        </label>
+        <label class="editorial-check"><input id="editorialImageConfirmRightsV3222" type="checkbox"> Confirmo que he comprobado el derecho a reutilizar esta fotografía concreta, no solo el texto o la fuente RSS.</label>
+        <button type="button" class="soft" id="editorialImageUseV3222" disabled>Guardar foto autorizada en el VPS y volver a revisión</button>
+        <p class="panel-copy">La foto solo se descargará a nuestro VPS al confirmarla. Después, la noticia volverá a Pendientes y requerirá nueva aprobación y control de calidad. No se publicará automáticamente.</p>
       </section>
       <p><a id="editorialReviewLink" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden>Leer noticia en la fuente ↗</a></p>
       <section id="editorialIntelligence" class="editorial-advice" hidden aria-label="Sugerencias de clasificación y noticias relacionadas"></section>
@@ -599,6 +621,6 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.21"></script>
+  <script src="/admin.js?v=3.2.22"></script>
 </body>
 </html>
