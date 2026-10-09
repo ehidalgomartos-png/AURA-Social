@@ -21,7 +21,8 @@ test('nombres, titulares y textos públicos no se insertan como HTML sin escapar
   assert.equal(html,'&lt;img src=x onerror=alert(1)&gt;');
   const js=source('public/editorial-social-v324.js');
   assert.match(js,/message\.textContent=String\(entry\.body/);
-  assert.match(js,/person\.textContent=String\(entry\.display_name/);
+  assert.match(js,/person\.textContent=displayName/);
+  assert.match(js,/const displayName=String\(entry\.display_name/);
   assert.doesNotMatch(js,/innerHTML\s*=/);
   const home=source('public/editorial-home-v324.js');
   assert.match(home,/heading\.textContent=String\(item\.title/);
