@@ -128,6 +128,26 @@ test('concurrent checks reuse one in-flight run',async()=>{
   assert.equal(a,b);
   assert.equal(h.calls.length,7);
 });
+test('startup accepts the active four-segment maintenance version without weakening invalid-version checks',async()=>{
+  const {version}=require('../package.json');
+  const fetchFn=async(url)=>{
+    if(url.endsWith('/api/health'))return response(200,{ok:true,version});
+    if(url.endsWith('/api/ready'))return response(200,{ok:true,version,database:'ready'});
+    return response();
+  };
+  const verifier=createReleaseVerifier({port:3000,version,fetchFn});
+  const report=await verifier.snapshot();
+  assert.equal(report.expectedVersion,version);
+  assert.equal(report.level,'ok');
+  assert.equal(report.passed,7);
+  for(const accepted of ['3.2.17','3.2.17.1','12.34.56.78']){
+    assert.doesNotThrow(()=>createReleaseVerifier({port:3000,version:accepted,fetchFn}));
+  }
+  for(const bad of ['', 'latest', '3.2', '3.2.17.1.1', '3.2.17-beta',
+    '3.2.17.1/extra', '3.2.17.1-rc1', ' 3.2.17.1']){
+    assert.throws(()=>createReleaseVerifier({port:3000,version:bad,fetchFn}),TypeError);
+  }
+});
 test('port is validated, and not taken from incoming request',()=>{
   for(const bad of [0,-2,65536,'abc','3000/path','1.5'])assert.throws(()=>validatePort(bad));
   assert.equal(validatePort(3000),3000);
