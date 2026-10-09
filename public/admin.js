@@ -1716,6 +1716,78 @@ $('#editorialSources')?.addEventListener('click',async ev=>{
 
 
 
+// V3.2.3 public editorial release: explicit admin actions only.
+let editorialPublishingBusy=false;
+async function loadEditorialPublicV323(){
+  const status=$('#editorialPublicStatus'),root=$('#editorialPublicItems');
+  if(!status||!root)return;
+  try{
+    const {r,d}=await api('/api/admin/editorial/publication-queue');
+    if(!r.ok)throw Error('publication_queue_unavailable');
+    const items=Array.isArray(d.items)?d.items:[];
+    status.textContent=items.length+' noticia(s) aprobada(s) · Publicación solo manual';
+    root.innerHTML=items.map(item=>{
+      const live=item.publication_id && !item.unpublished_at;
+      const linked=item.publication_id
+        ?'<a href="/noticias/p/'+encodeURIComponent(item.publication_id)+'" target="_blank" rel="noopener noreferrer">Ver publicación ↗</a>':'';
+      const preview='<details class="editorial-pub-preview"><summary>Vista previa y atribución</summary>'+
+        '<h3>'+esc(item.editorial_title||'Sin título')+'</h3><p>'+esc(item.editorial_summary||'Sin resumen')+'</p>'+
+        '<small>Perfil: '+esc(item.profile_name||'Sin perfil')+' · Categoría: '+esc(item.category)+
+        ' · Fuente: '+esc(item.source_name||'No disponible')+'</small></details>';
+      const ready=!!item.editorial_title && !!item.editorial_summary && item.source_status==='approved' &&
+        item.profile_status==='ready';
+      return '<article class="report" data-editorial-pub="'+esc(item.id)+'"><div>'+
+        '<b>'+esc(item.editorial_title||'Noticia pendiente de completar')+'</b>'+
+        '<p>'+esc(item.profile_name||'Sin perfil')+' · '+esc(item.source_name||'Sin fuente')+' · '+
+        (live?'Publicada':ready?'Aprobada; lista para publicar':'Necesita perfil y fuente aprobados')+'</p>'+preview+
+        '<div class="actions">'+
+        (live?'<button type="button" class="soft" data-editorial-unpublish="'+esc(item.id)+'">Retirar publicación</button>'
+          :'<button type="button" class="alt" data-editorial-publish="'+esc(item.id)+'" '+(ready?'':'disabled')+'>Publicar manualmente</button>')+
+        (live?linked:'')+'</div></div></article>';
+    }).join('')||'<div class="empty-admin">No hay noticias aprobadas para publicar.</div>';
+    window.editorialPublishingRowsV323=items;
+  }catch(_){
+    status.textContent='No se pudo cargar la cola de publicación.';
+    root.textContent='Actualiza o revisa la conexión.';
+  }
+}
+$('#editorialPublicReload')?.addEventListener('click',loadEditorialPublicV323);
+$('#editorialPublicItems')?.addEventListener('click',async event=>{
+  const button=event.target.closest('button[data-editorial-publish],button[data-editorial-unpublish]');
+  if(!button||editorialPublishingBusy)return;
+  const publish=!!button.dataset.editorialPublish;
+  const id=button.dataset.editorialPublish||button.dataset.editorialUnpublish;
+  const item=(window.editorialPublishingRowsV323||[]).find(row=>String(row.id)===String(id));
+  if(!item||!(/^[1-9][0-9]{0,14}$/.test(String(id))))return;
+  const question=publish
+    ?'Vas a publicar esta noticia en /noticias, accesible a todo el mundo. ¿Has revisado personalmente el texto, la fuente, el contexto y los derechos de uso?'
+    :'¿Retirar esta noticia de la sección pública de RedLibertad?';
+  if(!window.confirm(question))return;
+  editorialPublishingBusy=true;
+  button.disabled=true;
+  try{
+    const endpoint=publish?'publish':'unpublish';
+    const {r,d}=await api('/api/admin/editorial/'+endpoint+'/'+encodeURIComponent(id),{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(publish?{revision:Number(item.revision),confirm:true}:{confirm:true})
+    });
+    if(!r.ok){
+      const messages={
+        editorial_daily_limit:'Límite piloto: máximo seis noticias visibles nuevas al día.',
+        editorial_review_stale:'La noticia ha cambiado. Actualiza antes de publicar.',
+        editorial_review_required:'La noticia todavía no está aprobada.',
+        editorial_source_or_profile_not_ready:'Fuente o perfil editorial no preparado.',
+        editorial_profile_mismatch:'La categoría y el perfil asignados no coinciden.',
+        editorial_already_published:'Esta noticia ya está publicada.'
+      };
+      throw Error(messages[d.error]||d.error||'Error al publicar');
+    }
+    setAdminNotice(publish?'Noticia publicada manualmente.':'Noticia retirada de la sección pública.');
+    await Promise.all([loadEditorialPublicV323(),loadEditorialInboxV321()]);
+  }catch(e){setAdminNotice('Publicación editorial: '+e.message,true);}
+  finally{editorialPublishingBusy=false;button.disabled=false;}
+});
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -1726,5 +1798,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
