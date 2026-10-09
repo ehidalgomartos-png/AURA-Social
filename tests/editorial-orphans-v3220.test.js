@@ -8,7 +8,7 @@ test('borrar fuente guarda nombre e ID anteriores, en transacción y sin tocar t
   const snapshot=service.indexOf('UPDATE editorial_candidates SET source_name_snapshot=');
   const deleting=service.indexOf('DELETE FROM editorial_sources WHERE id=$1 RETURNING id');
   assert.ok(snapshot>0&&deleting>snapshot);
-  assert.ok(service.includes('removed_source_id=COALESCE(removed_source_id,$1::bigint)'));
+  assert.ok(service.includes('removed_source_id=$1::bigint'));
   assert.ok(service.includes('[id,snapshot.name]'));
   assert.ok(service.includes("await client.query('BEGIN')"));
   assert.ok(service.includes("await client.query('COMMIT')"));
