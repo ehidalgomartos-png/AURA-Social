@@ -497,3 +497,23 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialInbox .editorial-field-feedback-v32171:empty{display:none}
 #editorialInbox #editorialOriginalityWorkflowV32171{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
 #editorialInbox .editorial-form [aria-invalid="true"]{border:2px solid #ad4536}
+
+/* V3.2.18 — Editorial inbox triage, thumb-friendly controls. */
+#editorialInbox .editorial-queue-tools-v3218{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;gap:12px;
+  padding:14px;margin:12px 0;border-radius:14px;border:1px solid var(--line);background:var(--paper)
+}
+#editorialInbox .editorial-queue-tools-v3218 label{display:grid;gap:6px;font-size:12px;font-weight:700;color:var(--ink);min-width:0}
+#editorialInbox .editorial-queue-tools-v3218 input,
+#editorialInbox .editorial-queue-tools-v3218 select{
+  min-height:44px;max-width:100%;width:100%;box-sizing:border-box;min-width:0;border-radius:10px;
+  border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:10px;font-size:14px
+}
+#editorialInbox #editorialQueueResetV3218{min-height:44px;grid-column:1/-1;justify-self:start}
+#editorialInbox #editorialQueueCountV3218{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:900px){#editorialInbox .editorial-queue-tools-v3218{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){
+  #editorialInbox .editorial-queue-tools-v3218{padding:12px;gap:10px}
+  #editorialInbox .editorial-queue-tools-v3218 label:first-child{grid-column:1/-1}
+  #editorialInbox #editorialQueueResetV3218{width:100%}
+}
