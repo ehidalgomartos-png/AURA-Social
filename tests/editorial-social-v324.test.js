@@ -84,10 +84,11 @@ test('noticias siguen diferenciadas de perfiles humanos y accesibles desde Inici
   const s=source('src/routes/editorial-publication-v323.js');
   assert.match(s,/data-article-id/);
   assert.match(s,/editorial-social-v324\.js/);
-  assert.match(s,/Contenido editorial automatizado/);
+  assert.match(s,/Perfil editorial/);
+  assert.match(s,/Revisado por el equipo/);
   assert.match(source('public/app.html'),/id="editorialHomeBlock"/);
   assert.match(source('public/app.html'),/editorial-home-v324\.js/);
   assert.match(source('src/routes/editorial-social-v324.js'),/router\.get\('\/discover'/);
   assert.match(source('src/routes/editorial-social-v324.js'),/LIMIT 3/);
-  assert.match(source('server.js'),/const APP_VERSION='3\.2\.10'/);
+  assert.match(source('server.js'),/const APP_VERSION='3\.2\.11'/);
 });
