@@ -1,0 +1,96 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const read=name=>fs.readFileSync(path.join(root,name),'utf8');
+const {page,esc}=require('../src/routes/editorial-publication-v323');
+
+test('noticias conservan el sitemap indexado y ahora declaran su sitemap en robots.txt',()=>{
+  const source=read('server.js');
+  const publicNews=read('src/routes/editorial-publication-v323.js');
+  assert.match(source,/app\.get\('\/sitemap-index\.xml'/);
+  assert.match(source,/origin\+'\/noticias\/sitemap\.xml'/);
+  assert.match(source,/Sitemap: \$\{origin\}\/noticias\/sitemap\.xml/);
+  assert.match(source,/Allow: \/noticias/);
+  assert.match(publicNews,/publicRouter\.get\('\/sitemap\.xml'/);
+  assert.match(publicNews,/FROM editorial_publications pub JOIN editorial_profiles ep/);
+  assert.match(publicNews,/WHERE pub\.unpublished_at IS NULL AND ep\.status='ready'/);
+  assert.match(publicNews,/LIMIT 49000/);
+  assert.match(publicNews,/lastmod/);
+  assert.match(publicNews,/encodeURIComponent\(slug\)/);
+  assert.doesNotMatch(publicNews,/publicRouter\.get\('\/sitemap\.xml'[\s\S]*?publicRouter\.get\('\/perfil\/:slug'[\s\S]*?SELECT[\s\S]*?FROM users/i);
+});
+
+test('la barra de navegación pública cambia según la sesión pero mantiene iconos y caché anónima',()=>{
+  const html=page({title:'Hola',description:'Noticia revisada',pathname:'/noticias',body:'<p>Texto propio</p>'});
+  const js=read('public/editorial-session-v3212.js');
+  assert.match(html,/data-ed-auth-link/);
+  assert.match(html,/data-ed-logged-label="Mi inicio"/);
+  assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.12/);
+  assert.match(js,/\/api\/auth\/me/);
+  assert.match(js,/credentials:'same-origin',cache:'no-store'/);
+  assert.match(js,/const label=link\.querySelector\('small'\)\|\|link/);
+  assert.match(js,/label\.textContent=signedIn/);
+  assert.match(js,/if\(event\.persisted\)syncSession\(\)/);
+  assert.ok(html.includes('/assets/logo-mark.svg'));
+  assert.ok(!html.includes('userId'));
+  assert.ok(!js.includes('localStorage')&&!js.includes('document.cookie'));
+});
+test('explorar desde Inicio son tarjetas editoriales y solo llevan a noticias existentes',()=>{
+  const api=read('src/routes/editorial-social-v324.js');
+  const client=read('public/editorial-home-v324.js');
+  const social=read('public/social.css');
+  assert.match(api,/router\.get\('\/discover'/);
+  assert.match(api,/p\.summary,p\.category/);
+  assert.match(api,/AS like_count/);
+  assert.match(api,/AS comment_count/);
+  assert.match(api,/p\.unpublished_at IS NULL AND ep\.status='ready'/);
+  assert.match(api,/LIMIT 3/);
+  assert.match(client,/editorial-home-card/);
+  assert.match(client,/editorial-home-avatar/);
+  assert.match(client,/heading\.textContent=String\(item\.title/);
+  assert.match(client,/item\.summary/);
+  assert.match(client,/item\.like_count/);
+  assert.match(client,/item\.comment_count/);
+  assert.match(client,/\/noticias\/p\//);
+  assert.doesNotMatch(client,/innerHTML\s*=|INSERT INTO|\/like'|\/comments'/);
+  assert.match(social,/\.editorial-home-engagement/);
+  assert.match(social,/\.editorial-home-profile/);
+  assert.match(social,/@media\(max-width:790px\)/);
+  const app=read('public/app.html');
+  assert.match(app,/id="editorialHomeBlock"/);
+  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.12/);
+});
+test('comentarios sociales siguen con moderación, identidad real y mejora de legibilidad móvil',()=>{
+  const client=read('public/editorial-social-v324.js');
+  const css=read('public/editorial-v323.css');
+  assert.match(client,/ed-comment-avatar/);
+  assert.match(client,/message\.textContent=String\(entry\.body/);
+  assert.match(client,/reportComment/);
+  assert.match(client,/removeComment/);
+  assert.match(css,/\.ed-comment-author b/);
+  assert.match(css,/\.ed-social textarea\{font-size:16px\}/);
+  assert.match(css,/@media\(max-width:740px\)/);
+});
+test('ninguna publicación RSS se ejecuta automáticamente y la publicación manual mantiene calidad obligatoria',()=>{
+  const route=read('src/routes/editorial-publication-v323.js');
+  const rss=read('src/routes/admin-editorial-inbox-v321.js');
+  assert.match(route,/admin\.post\('\/publish\/:candidateId'/);
+  assert.match(route,/editorial_quality_clearance_required/);
+  assert.match(route,/editorial_daily_limit/);
+  assert.match(route,/WHERE pub\.unpublished_at IS NULL/);
+  assert.match(rss,/requireAdmin/);
+  assert.match(read('src/services/editorial-v320.js'),/CHECK\(NOT auto_publish_enabled\)/);
+  assert.doesNotMatch(read('public/editorial-home-v324.js'),/\.post\('\/publish|method:'POST'|INSERT INTO/);
+});
+test('versión y metadatos públicos siguen consistentes',()=>{
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.12'/);
+  assert.match(read('package.json'),/"version": "3\.2\.12"/);
+  assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.12'/);
+  const doc=page({title:'<script>bad</script>',description:'" onmouseover="bad',pathname:'/noticias',body:'<p>Visible</p>'});
+  assert.ok(doc.includes(esc('<script>bad</script>')));
+  assert.ok(!doc.includes('<script>bad</script>'));
+  assert.match(doc,/rel="canonical"/);
+});
