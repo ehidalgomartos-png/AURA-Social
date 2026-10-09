@@ -42,6 +42,8 @@ jobs:
         run: npm run test:editorial-social
       - name: V3.2.5 editorial analytics and human quality gate tests
         run: npm run test:editorial-quality
+      - name: V3.2.6 editorial manual planning, filters and selection tests
+        run: npm run test:editorial-planning
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
