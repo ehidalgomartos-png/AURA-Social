@@ -41,7 +41,9 @@ function createReleaseVerifier({
   cacheMs=CACHE_MS
 }={}){
   const localPort=validatePort(port);
-  if(!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(String(version||'')))throw new TypeError('Expected release version is required');
+  // Accept three-segment releases and a numeric hotfix segment (e.g. 3.2.17.1).
+  // Still reject arbitrary labels, URLs, prerelease suffixes or empty versions.
+  if(!/^[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/.test(String(version||'')))throw new TypeError('Expected release version is required');
   if(typeof fetchFn!=='function')throw new TypeError('Fetch required');
   let cached=null,expiresAt=0,inFlight=null;
 
