@@ -60,6 +60,8 @@ jobs:
         run: npm run test:editorial-workflow
       - name: V3.2.17 editorial provenance, original text and source checks
         run: npm run test:editorial-provenance
+      - name: V3.2.17.1 original editorial draft and approval validation regression
+        run: npm run test:editorial-originality-hotfix
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
