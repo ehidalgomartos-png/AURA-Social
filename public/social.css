@@ -6949,15 +6949,30 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 
 
 /* V3.2.4 — genuine editorial discovery, not simulated member posts */
-.editorial-home-block{margin:12px 0 20px;padding:15px;border:1px solid rgba(13,34,56,.12);border-radius:16px;background:#fcfefa;overflow:hidden}
-.editorial-home-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
-.editorial-home-head h2{font-size:20px;margin:3px 0;color:#0d2238}
-.editorial-home-head small{font-size:12px;color:#596a75}
+/* V3.2.12 — editorial discovery now uses social-native post cards and genuine engagement */
+.editorial-home-block{margin:12px 0 22px;padding:16px;border:1px solid var(--line);border-radius:20px;background:var(--paper);overflow:hidden}
+.editorial-home-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.editorial-home-head h2{font-size:20px;margin:3px 0;color:var(--navy)}
+.editorial-home-head small{font-size:12px;color:var(--muted)}
 .editorial-home-head a{font-size:13px;font-weight:800;color:#126b80;text-decoration:none;white-space:nowrap}
-.editorial-home-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
-.editorial-home-card{display:flex;flex-direction:column;min-width:0;gap:7px;border-radius:12px;padding:13px;background:#edf6f4;text-decoration:none;color:#0d2238}
-.editorial-home-card b{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
-.editorial-home-card small{font-size:11px;color:#54656b;line-height:1.35}
-.editorial-home-label{color:#168e87;font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.045em}
-.editorial-home-card:focus-visible{outline:3px solid #ef7a5d;outline-offset:3px}
-@media(max-width:790px){.editorial-home-items{grid-template-columns:1fr}.editorial-home-head{flex-wrap:wrap}.editorial-home-head a{white-space:normal}}
+.editorial-home-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:11px}
+.editorial-home-card{display:flex;flex-direction:column;min-width:0;gap:10px;border:1px solid var(--line);border-radius:18px;padding:14px;background:var(--paper);box-shadow:0 7px 24px rgba(13,34,56,.04)}
+.editorial-home-profile{display:flex;align-items:center;gap:9px;min-width:0}
+.editorial-home-avatar{width:38px;height:38px;display:grid;place-items:center;flex:0 0 38px;background:var(--navy);border:2px solid var(--teal);border-radius:50%}
+.editorial-home-avatar img{width:25px;height:25px;object-fit:contain}
+.editorial-home-profile-copy{display:grid;gap:1px;min-width:0}
+.editorial-home-profile-copy b{color:var(--navy);font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.editorial-home-profile-copy small{font-size:10px;color:var(--muted);line-height:1.3}
+.editorial-home-badge{font-size:9px;color:#0a7168;font-weight:850;background:#e5f7f4;padding:4px 6px;border-radius:7px;margin-left:auto;flex-shrink:0}
+.editorial-home-headline{color:var(--navy);text-decoration:none}
+.editorial-home-title{font-size:17px;line-height:1.33;letter-spacing:-.02em;margin:0;overflow-wrap:anywhere}
+.editorial-home-headline:hover{text-decoration:underline}
+.editorial-home-summary{font-size:12px;line-height:1.55;color:var(--ink);margin:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+.editorial-home-source{color:var(--muted);font-size:10px}
+.editorial-home-engagement{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin-top:auto;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.editorial-home-open{width:100%;padding-top:3px;color:#126b80;font-size:12px;text-decoration:none;font-weight:850}
+.editorial-home-open:hover{text-decoration:underline}
+.editorial-home-card a:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
+@media(max-width:990px){.editorial-home-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:790px){.editorial-home-items{grid-template-columns:1fr}.editorial-home-head{flex-wrap:wrap}.editorial-home-head a{white-space:normal}.editorial-home-block{padding:12px}.editorial-home-title{font-size:17px}}
+@media(prefers-reduced-motion:reduce){.editorial-home-block *{scroll-behavior:auto}}

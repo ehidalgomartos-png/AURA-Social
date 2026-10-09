@@ -175,3 +175,21 @@ a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid va
   html{scroll-behavior:auto}
   .ed-social-actions button{transition:none}
 }
+
+/* V3.2.12 — compact real-member discussion, with tap-friendly moderation controls */
+.ed-discussion-wrap{scroll-margin-top:80px}
+.ed-comment{gap:6px;padding:12px 0}
+.ed-comment-head{gap:9px}
+.ed-comment-avatar{width:32px;height:32px;font-size:13px}
+.ed-comment-author b{font-size:13px;color:var(--navy)}
+.ed-comment-author small{font-size:11px}
+.ed-comment p{margin-left:41px;font-size:13px;line-height:1.55}
+.ed-comment-actions{margin-left:41px}
+.ed-comment-actions button{min-height:36px;font-size:12px}
+.ed-discussion-heading{margin:3px 0 12px}
+.ed-social textarea{font-size:16px}
+@media(max-width:740px){
+  .ed-social form button{width:100%;justify-self:stretch}
+  .ed-comment{padding:11px 0}
+  .ed-comment p{font-size:13px}
+}

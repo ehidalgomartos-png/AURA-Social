@@ -153,10 +153,10 @@ function page({title,description,pathname,body,noindex=false}){
     '<link rel="canonical" href="'+esc(canonical)+'">'+(noindex?'<meta name="robots" content="noindex,follow">':'')+
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.11"></head><body>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.12"><script src="/editorial-session-v3212.js?v=3.2.12" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
-    '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" href="/app">Entrar</a></nav></header>'+
+    '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi inicio" href="/app">Entrar</a></nav></header>'+
     '<div class="ed-layout"><aside class="ed-side" aria-label="Explorar RedLibertad">'+
     '<p class="ed-side-title">TU COMUNIDAD</p><nav aria-label="Secciones de RedLibertad">'+
     '<a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-5v-7h-4v7H5a2 2 0 0 1-2-2z"/></svg></span> Inicio</a>'+
@@ -169,7 +169,7 @@ function page({title,description,pathname,body,noindex=false}){
     '<nav class="ed-mobile-nav" aria-label="Navegación móvil"><a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-5v-7h-4v7H5a2 2 0 0 1-2-2z"/></svg></span><small>Inicio</small></a>'+
     '<a href="/noticias"'+(pathname.startsWith('/noticias')?' aria-current="page"':'')+'><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h5M7 16h10"/></svg></span><small>Noticias</small></a>'+
     '<a href="/comunidades"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span><small>Comunidades</small></a>'+
-    '<a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><small>Entrar</small></a></nav>'+
+    '<a href="/app" data-ed-auth-link data-ed-logged-label="Mi inicio"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><small>Entrar</small></a></nav>'+
     '</body></html>';
 }
 function linkOut(url,label){return '<a href="'+esc(url)+'" rel="noopener noreferrer external" target="_blank">'+esc(label)+'</a>';}
@@ -195,14 +195,23 @@ publicRouter.get('/',async(_req,res)=>{
       '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section><section class="ed-stack">'+cards+'</section>',noindex:items.rows.length===0}));
   }catch(e){console.error('Editorial listing failed:',e);res.status(503).send('No disponible');}
 });
+// A dedicated sitemap query avoids the 50-item cap on the public news feed.
+// A sitemap XML file can contain at most 50,000 URLs; index + profile URLs
+// count toward that maximum, so cap published article entries at 49,000.
 publicRouter.get('/sitemap.xml',async(_req,res)=>{
   try{
-    const items=await liveItems();
-    const uniqueProfiles=new Set(items.rows.map(r=>r.profile_slug));
+    const r=await db.query(
+      "SELECT pub.id,pub.published_at,ep.slug AS profile_slug "+
+      "FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id "+
+      "WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+
+      "ORDER BY pub.published_at DESC,pub.id DESC LIMIT 49000"
+    );
+    const items=r.rows;
+    const profiles=[...new Set(items.map(row=>row.profile_slug))];
     const urls=[
       '<url><loc>'+esc(origin()+'/noticias')+'</loc><changefreq>daily</changefreq></url>',
-      ...[...uniqueProfiles].map(slug=>'<url><loc>'+esc(origin()+'/noticias/perfil/'+encodeURIComponent(slug))+'</loc><changefreq>weekly</changefreq></url>'),
-      ...items.rows.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
+      ...profiles.map(slug=>'<url><loc>'+esc(origin()+'/noticias/perfil/'+encodeURIComponent(slug))+'</loc><changefreq>weekly</changefreq></url>'),
+      ...items.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
     ];
     res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(e){console.error('Editorial sitemap failed:',e);res.status(503).type('text/plain').send('Unavailable');}

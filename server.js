@@ -71,7 +71,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.11';
+const APP_VERSION='3.2.12';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -1236,7 +1236,8 @@ app.get('/robots.txt',(req,res)=>{
     `Sitemap: ${origin}/sitemap-events.xml`,
     `Sitemap: ${origin}/sitemap-reels.xml`,
     `Sitemap: ${origin}/sitemap-topics.xml`,
-    `Sitemap: ${origin}/sitemap-guias.xml`
+    `Sitemap: ${origin}/sitemap-guias.xml`,
+    `Sitemap: ${origin}/noticias/sitemap.xml`
   ].join('\n'));
 });
 
