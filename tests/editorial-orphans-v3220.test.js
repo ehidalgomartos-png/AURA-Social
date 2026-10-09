@@ -73,10 +73,10 @@ test('noticias históricas quedan identificadas sin inventar origen desconocido'
 });
 test('versión completa, assets correctos y flujo de publicación separado',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
- assert.ok(html.includes('/admin.js?v=3.2.22'));
- assert.ok(html.includes('/admin.css?v=3.2.22'));
- assert.ok(read('server.js').includes("APP_VERSION='3.2.22'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.22');
+ assert.ok(html.includes('/admin.js?v=3.2.23'));
+ assert.ok(html.includes('/admin.css?v=3.2.23'));
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.23'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.23');
  assert.ok(js.includes('data-editorial-publish'));
  assert.ok(js.includes('data-editorial-unpublish'));
  assert.doesNotMatch(read('src/services/editorial-source-removal-v3219.js'),/INSERT INTO posts|INSERT INTO users/);
