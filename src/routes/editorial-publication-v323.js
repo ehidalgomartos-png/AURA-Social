@@ -116,6 +116,14 @@ admin.post('/unpublish/:candidateId',errorHandler(async(req,res)=>{
     const r=await client.query('SELECT id,unpublished_at FROM editorial_publications WHERE candidate_id=$1 FOR UPDATE',[id]);
     if(!r.rowCount||r.rows[0].unpublished_at)throw fail(409,'editorial_not_published');
     await client.query('UPDATE editorial_publications SET unpublished_at=now(),unpublished_by=$2 WHERE id=$1',[r.rows[0].id,req.user.id]);
+    // Keep public community links from pointing to an article that is no longer live.
+    const sharesTable=await client.query("SELECT to_regclass('public.editorial_community_shares') AS rel");
+    if(sharesTable.rows[0]?.rel){
+      await client.query(
+        "UPDATE community_posts SET moderation_status='removed',updated_at=now() WHERE id IN (SELECT community_post_id FROM editorial_community_shares WHERE publication_id=$1) AND moderation_status='published'",
+        [r.rows[0].id]
+      );
+    }
     await client.query("INSERT INTO editorial_audit(admin_id,action,entity_type,entity_id,details) VALUES($1,'unpublish','candidate',$2,$3::jsonb)",
       [req.user.id,id,JSON.stringify({publicationId:r.rows[0].id})]);
     return r.rows[0];
@@ -200,8 +208,16 @@ publicRouter.get('/p/:id',async(req,res)=>{
       '<h1>'+esc(p.title)+'</h1><p class="ed-byline">Por <a href="/noticias/perfil/'+encodeURIComponent(p.profile_slug)+'">'+esc(p.profile_name)+'</a> · '+esc(p.category)+'</p>'+
       '<p class="ed-summary">'+esc(p.summary)+'</p><div class="ed-attribution"><b>Fuente original: '+esc(p.source_name)+'</b><p>'+linkOut(p.source_url,'Leer noticia original ↗')+'</p>'+
       '<small>Este resumen es una elaboración editorial propia. Para consultar todos los detalles, visita el medio de origen.</small></div>'+community+
+      '<section class="ed-social" id="editorialSocial" data-article-id="'+esc(id)+'" data-community-id="'+(p.community_name&&p.community_id?esc(p.community_id):'')+'">'+
+        '<div class="ed-social-actions"><button type="button" id="edLike">♡ Me gusta</button><span id="edLikeCount">0 Me gusta</span><button type="button" id="edShare">↗ Compartir enlace</button>'+
+        (p.community_name&&p.community_id?'<button type="button" id="edCommunityShare">Compartir en comunidad</button>':'')+'</div>'+
+        '<div id="edFeedback" class="ed-feedback" role="status" aria-live="polite"></div>'+
+        '<h2>Conversación</h2><p id="edCommentCount" class="ed-byline">Comentarios de usuarios reales</p>'+
+        '<form id="edCommentForm"><label for="edCommentText">Añade tu opinión (pública)</label>'+
+        '<textarea id="edCommentText" maxlength="600" minlength="2" required rows="3" placeholder="Comparte una opinión respetuosa…"></textarea>'+
+        '<button type="submit">Comentar</button></form><div id="edComments" class="ed-discussion">Cargando comentarios…</div></section>'+
       '<p><a href="/noticias">← Ver más noticias</a></p></article>';
-    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body}));
+    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body}) .replace('</body></html>','<script src="/editorial-social-v324.js" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
 module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};
