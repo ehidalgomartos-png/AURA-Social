@@ -3,10 +3,12 @@
 // Public editorial editions are separate from personal social posts.
 // Publishing is human-triggered and only approved, attributed, original copy is surfaced.
 const express=require('express');
+const {z}=require('zod');
 const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {ensureReviewSchema,isOriginalEditorial}=require('../routes/admin-editorial-review-v322');
 const {ensureQualitySchema,qualityReady}=require('../services/editorial-quality-v325');
+const {sourceMatchV3221,eligibleSourcesV3221}=require('../services/editorial-source-relink-v3221');
 const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181');
 
 const admin=express.Router();
@@ -79,6 +81,96 @@ admin.get('/publication-queue',errorHandler(async(_req,res)=>{
 
 // Reconcile only at a human administrator's explicit request. Never
 // silently reclassify already approved content or circumvent quality review.
+// V3.2.21 — admin-only relink of a candidate with a deleted RSS source.
+// A strict HTTPS hostname match + category and profile readiness are required;
+// the selected source NEVER re-approves or publishes the article.
+const sourceRelinkInputV3221=z.object({
+  sourceId:z.number().int().positive().safe(),
+  revision:z.number().int().min(0).safe(),
+  confirm:z.literal(true),
+  reason:z.string().trim().min(12).max(500)
+}).strict();
+const availableRelinkSourcesV3221=async client=>{
+  const r=await client.query(
+    "SELECT s.id,s.name,s.feed_url,s.category,s.profile_id,s.status,p.status AS profile_status,"+
+    "p.category AS profile_category,p.name AS profile_name FROM editorial_sources s "+
+    "LEFT JOIN editorial_profiles p ON p.id=s.profile_id WHERE s.status='approved' "+
+    "ORDER BY s.name ASC,s.id ASC LIMIT 250"
+  );
+  return r.rows;
+};
+admin.get('/source-relink/:candidateId/options',errorHandler(async(req,res)=>{
+  const id=safeId(req.params.candidateId);
+  if(!id)throw fail(400,'editorial_candidate_invalid');
+  const [candidate,sources,live]=await Promise.all([
+    db.query('SELECT id,source_id,category,canonical_url,source_name_snapshot,revision,status FROM editorial_candidates WHERE id=$1',[id]),
+    availableRelinkSourcesV3221(db),
+    db.query('SELECT 1 FROM editorial_publications WHERE candidate_id=$1 AND unpublished_at IS NULL LIMIT 1',[id])
+  ]);
+  if(!candidate.rowCount)throw fail(404,'editorial_candidate_not_found');
+  const row=candidate.rows[0],blocked=live.rowCount>0;
+  res.set('Cache-Control','no-store');
+  res.json({
+    ok:true,candidateId:String(row.id),revision:row.revision,
+    removedSource:row.source_id==null,livePublication:blocked,
+    sourceNameSnapshot:row.source_name_snapshot||null,
+    options:row.source_id==null&&!blocked?eligibleSourcesV3221(row,sources):[],
+    rule:'A source with matching HTTPS article/feed hostname and category is required. Matching is not a fact, copyright or editorial verification.'
+  });
+}));
+admin.post('/source-relink/:candidateId',errorHandler(async(req,res)=>{
+  const id=safeId(req.params.candidateId);
+  if(!id)throw fail(400,'editorial_candidate_invalid');
+  const parsed=sourceRelinkInputV3221.safeParse(req.body);
+  if(!parsed.success)throw fail(400,'editorial_source_relink_invalid_data');
+  const d=parsed.data;
+  const result=await inTransaction(async client=>{
+    const r=await client.query(
+      'SELECT id,source_id,category,canonical_url,source_name_snapshot,revision,status FROM editorial_candidates WHERE id=$1 FOR UPDATE',[id]
+    );
+    if(!r.rowCount)throw fail(404,'editorial_candidate_not_found');
+    const candidate=r.rows[0];
+    if(Number(candidate.revision)!==d.revision)throw fail(409,'editorial_review_stale');
+    if(candidate.source_id!=null)throw fail(409,'editorial_source_already_linked');
+    const publications=await client.query(
+      'SELECT id,unpublished_at FROM editorial_publications WHERE candidate_id=$1 FOR UPDATE',[id]
+    );
+    if(publications.rows.some(pub=>!pub.unpublished_at))
+      throw fail(409,'editorial_unpublish_before_reopen');
+    // Source/profile locks prevent simultaneous disabling, reclassification,
+    // or deletion of the target while the candidate is re-linked.
+    const source=await client.query(
+      "SELECT s.id,s.name,s.feed_url,s.category,s.profile_id,s.status,p.status AS profile_status,"+
+      "p.category AS profile_category,p.name AS profile_name FROM editorial_sources s "+
+      "JOIN editorial_profiles p ON p.id=s.profile_id WHERE s.id=$1 FOR SHARE OF s,p",
+      [d.sourceId]
+    );
+    if(!source.rowCount||!sourceMatchV3221(candidate,source.rows[0]))
+      throw fail(409,'editorial_source_relink_incompatible');
+    const target=source.rows[0];
+    const saved=await client.query(
+      "UPDATE editorial_candidates SET source_id=$2,profile_id=$3,status='pending',"+
+      "reviewed_at=NULL,reviewed_by=NULL,revision=revision+1,edited_at=now() "+
+      "WHERE id=$1 RETURNING id,source_id,profile_id,status,revision",
+      [id,target.id,target.profile_id]
+    );
+    await client.query(
+      "INSERT INTO editorial_audit(admin_id,action,entity_type,entity_id,details) "+
+      "VALUES($1,'relink_source','candidate',$2,$3::jsonb)",
+      [req.user.id,id,JSON.stringify({
+        previousRemovedSourceName:candidate.source_name_snapshot||null,
+        priorStatus:candidate.status,newSourceId:target.id,
+        newSourceName:target.name,previousRevision:candidate.revision,
+        newRevision:saved.rows[0].revision,reason:d.reason
+      })]
+    );
+    return saved.rows[0];
+  });
+  res.set('Cache-Control','no-store');
+  res.json({ok:true,candidate:result,published:false,requiresNewReview:true,
+    requiresNewQuality:true,requiresNewRightsVerification:true});
+}));
+
 admin.post('/reconcile/:candidateId',errorHandler(async(req,res)=>{
   const id=safeId(req.params.candidateId);
   if(!id||!confirmation(req.body||{}))throw fail(400,'editorial_reconcile_confirmation_required');
