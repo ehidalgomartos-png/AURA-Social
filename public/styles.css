@@ -355,3 +355,8 @@ body{
     line-height:1.45;
   }
 }
+
+/* V3.2.22 — licensed local editorial thumbnails on the social home */
+.editorial-home-photo{margin:10px 0;overflow:hidden;border-radius:12px;background:#e9eff3}
+.editorial-home-photo img{width:100%;height:auto;max-height:240px;aspect-ratio:16/9;object-fit:cover;display:block}
+.editorial-home-photo figcaption{font-size:12px;padding:7px 10px;color:#31495a}
