@@ -50,10 +50,11 @@ router.post('/sources/:id/fetch',async(req,res)=>{
     const lock=await client.query('SELECT pg_try_advisory_lock(321,$1::integer) AS acquired',[id]);
     locked=lock.rows[0]?.acquired===true;
     if(!locked)return res.status(409).json({error:'editorial_fetch_already_running'});
-    const src=await client.query("SELECT id,feed_url,category,profile_id,status,last_checked_at FROM editorial_sources WHERE id=$1",[id]);
+    const src=await client.query("SELECT id,feed_url,source_kind,category,profile_id,status,last_checked_at FROM editorial_sources WHERE id=$1",[id]);
     if(!src.rowCount)return res.status(404).json({error:'editorial_source_not_found'});
     const source=src.rows[0];
     if(source.status!=='approved')return res.status(403).json({error:'editorial_source_not_approved'});
+    if(source.source_kind==='web')return res.status(409).json({error:'editorial_source_is_website_not_rss'});
     if(source.last_checked_at&&Date.now()-new Date(source.last_checked_at).getTime()<5*60*1000){
       return res.status(429).json({error:'editorial_fetch_cooldown'});
     }
@@ -63,8 +64,8 @@ router.post('/sources/:id/fetch',async(req,res)=>{
     await client.query('BEGIN');
     try{
       // A source edited while the network request ran cannot import stale or unapproved data.
-      const current=await client.query("SELECT feed_url,status,category,profile_id FROM editorial_sources WHERE id=$1 FOR UPDATE",[id]);
-      if(!current.rowCount||current.rows[0].status!=='approved'||
+      const current=await client.query("SELECT feed_url,source_kind,status,category,profile_id FROM editorial_sources WHERE id=$1 FOR UPDATE",[id]);
+      if(!current.rowCount||current.rows[0].source_kind==='web'||current.rows[0].status!=='approved'||
          current.rows[0].feed_url!==source.feed_url||
          current.rows[0].category!==source.category||
          String(current.rows[0].profile_id||'')!==String(source.profile_id||'')){
