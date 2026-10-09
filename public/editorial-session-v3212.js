@@ -11,7 +11,8 @@
       signedIn=response.ok;
     }catch(_){signedIn=false;}
     for(const link of links){
-      link.textContent=signedIn?(link.dataset.edLoggedLabel||'Mi inicio'):'Entrar';
+      const label=link.querySelector('small')||link;
+      label.textContent=signedIn?(link.dataset.edLoggedLabel||'Mi inicio'):'Entrar';
       link.href='/app';
       link.setAttribute('aria-label',signedIn?'Ir al inicio de RedLibertad':'Entrar en RedLibertad');
     }
