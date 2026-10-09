@@ -377,3 +377,13 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialReviewEditor .actions{display:flex;flex-wrap:wrap;gap:8px}
 #editorialReviewEditor button{min-height:44px}
 @media(max-width:600px){#editorialReviewEditor{padding:12px}#editorialReviewEditor .actions button{width:100%}#editorialInbox .panel-tools{width:100%}}
+
+
+/* V3.2.3 manual editorial publication queue */
+#editorialPublication .report{overflow-wrap:anywhere;padding:14px;margin-bottom:9px}
+#editorialPublication .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+#editorialPublication button{min-height:44px}
+#editorialPublication .editorial-pub-preview{border-left:3px solid var(--teal);padding:10px 13px;margin:10px 0;background:#f1f7f5}
+#editorialPublication summary{cursor:pointer;font-weight:700}
+#editorialPublication .editorial-pub-preview p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:620px){#editorialPublication .actions button{width:100%}#editorialPublication .panel-tools{width:100%}}

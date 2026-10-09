@@ -108,6 +108,14 @@ async function mutateCandidate(req,res,kind){
       return res.json({ok:true,candidate:saved.rows[0],published:false});
     }
     if(d.decision==='reopen'){
+      // Do not reopen an approved candidate while its public editorial snapshot is live.
+      const table=await client.query("SELECT to_regclass('public.editorial_publications') AS table_name");
+      if(table.rows[0]?.table_name){
+        const live=await client.query(
+          'SELECT 1 FROM editorial_publications WHERE candidate_id=$1 AND unpublished_at IS NULL LIMIT 1',[id]
+        );
+        if(live.rowCount)throw reviewError(409,'editorial_unpublish_before_reopen');
+      }
       if(row.status==='pending')throw reviewError(409,'editorial_already_pending');
       const reopened=await client.query(
         "UPDATE editorial_candidates SET status='pending',reviewed_at=NULL,reviewed_by=NULL,revision=revision+1,editor_note=$2 WHERE id=$1 RETURNING id,status,revision",
@@ -146,4 +154,4 @@ async function mutateCandidate(req,res,kind){
 router.patch('/review/:id/draft',guarded((req,res)=>mutateCandidate(req,res,'draft')));
 router.post('/review/:id/decision',guarded((req,res)=>mutateCandidate(req,res,'decision')));
 
-module.exports={router,isOriginalEditorial,draftSchema,decisionSchema};
+module.exports={router,isOriginalEditorial,draftSchema,decisionSchema,ensureReviewSchema};

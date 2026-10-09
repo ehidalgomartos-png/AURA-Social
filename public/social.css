@@ -6938,3 +6938,11 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .growth-community-starter .tiny-action{min-height:44px}
 }
 @media(prefers-reduced-motion:reduce){.growth-community-card{transition:none!important}}
+
+
+/* V3.2.3 news shortcut in Explore */
+.editorial-discovery-entry{margin:6px 0 15px}
+.editorial-discovery-entry a{display:block;background:linear-gradient(125deg,#0d2238,#145b65);color:#fff!important;text-decoration:none;padding:14px 16px;border-radius:14px;font-weight:800;min-height:48px}
+.editorial-discovery-entry span{font-size:12px;font-weight:500;color:#bbf4ef}
+.editorial-discovery-entry a:focus-visible{outline:3px solid #ef7a5d;outline-offset:3px}
+@media(max-width:600px){.editorial-discovery-entry a span{display:block;line-height:1.4;margin-top:4px}}

@@ -1,0 +1,35 @@
+/* RedLibertad V3.2.3 — editorial surfaces: mobile first, independent from personal social feed. */
+:root{--navy:#0d2238;--teal:#168e87;--muted:#596a75;--line:rgba(13,34,56,.13);--paper:#fffdfa;--bg:#f6f3ee}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--navy);font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:#126b80;text-underline-offset:3px}
+a:hover{color:#0d495d}
+a:focus-visible{outline:3px solid #ef7a5d;outline-offset:3px}
+.ed-head{display:flex;gap:16px;align-items:center;justify-content:space-between;min-height:70px;padding:12px max(18px,calc((100% - 1000px)/2));background:var(--navy);color:white}
+.ed-head a{color:white;text-decoration:none}
+.ed-head nav{display:flex;gap:15px;flex-wrap:wrap;font-size:13px}
+.ed-brand{font-size:19px;font-weight:900;letter-spacing:-.04em}
+.ed-main{max-width:1000px;margin:0 auto;padding:24px 18px 65px}
+.ed-hero{border-radius:21px;padding:26px 21px;margin:12px 0 22px;background:linear-gradient(125deg,#102e46,#155e65);color:white}
+.ed-hero h1{font-size:clamp(29px,5vw,46px);line-height:1.13;letter-spacing:-.035em;margin:12px 0}
+.ed-hero p{max-width:660px;margin:0;color:rgba(255,255,255,.84)}
+.ed-label{text-transform:uppercase;font-weight:800;font-size:11px;letter-spacing:.12em;color:#2cbdb5}
+.ed-hero .ed-label{color:#80eee4}
+.ed-stack{display:grid;gap:14px}
+.ed-card,.ed-article,.ed-empty{background:var(--paper);padding:22px;border-radius:17px;border:1px solid var(--line)}
+.ed-card h2{font-size:clamp(19px,3.5vw,25px);line-height:1.3;margin:10px 0}
+.ed-card h2 a{color:var(--navy);text-decoration:none}
+.ed-card p{margin:8px 0}
+.ed-meta{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:12px}
+.ed-source,.ed-byline{font-size:13px;color:var(--muted)}
+.ed-article{max-width:780px;margin:12px auto}
+.ed-article h1{font-size:clamp(30px,5vw,46px);line-height:1.18;overflow-wrap:anywhere;letter-spacing:-.035em}
+.ed-summary{font-size:clamp(17px,2vw,21px);white-space:pre-wrap;overflow-wrap:anywhere}
+.ed-attribution{padding:17px;background:#edf5f3;border-radius:14px;margin:22px 0}
+.ed-attribution p{margin:6px 0}
+.ed-attribution small{color:var(--muted)}
+.ed-community{padding:13px 0;border-bottom:1px solid var(--line)}
+.ed-empty{color:var(--muted)}
+.ed-footer{background:#e8efeb;padding:24px 18px;text-align:center;font-size:12px;color:var(--muted)}
+@media(min-width:730px){.ed-main{padding:36px 26px 80px}.ed-hero{padding:35px 40px}.ed-card{padding:26px 30px}.ed-article{padding:35px 42px}}
