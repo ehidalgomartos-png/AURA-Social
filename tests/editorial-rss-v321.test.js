@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {EventEmitter}=require('node:events');
+const net=require('node:net');
 const rss=require('../src/services/editorial-rss-v321');
 const base=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(base,p),'utf8');
@@ -69,6 +70,43 @@ test('fallo IPv4 recuperable permite reintento IPv6 fijado por DNS y con TLS ver
     {address:'8.8.8.8',family:4,hostname:'example.org'},
     {address:'2606:4700:4700::1111',family:6,hostname:'example.org'}
   ]);
+});
+test('lookup fijado cumple el contrato Node all:true y all:false con IPv4 e IPv6',()=>{
+  for(const pin of [
+    {address:'199.232.194.133',family:4},
+    {address:'2606:4700:4700::1111',family:6}
+  ]){
+    const lookup=rss.pinnedAddressLookup(pin);
+    lookup('feeds.elpais.com',{all:true},(error,addresses)=>{
+      assert.equal(error,null);
+      assert.deepEqual(addresses,[pin]);
+    });
+    lookup('feeds.elpais.com',{all:false},(error,address,family)=>{
+      assert.equal(error,null);
+      assert.equal(address,pin.address);
+      assert.equal(family,pin.family);
+    });
+  }
+});
+test('socket Node.js autoSelectFamily:true usa dirección fijada sin ERR_INVALID_IP_ADDRESS',async()=>{
+  // 127.0.0.1 solo para demostrar el contrato lookup del socket local.
+  // En producción la resolución previa rechaza loopback y rangos privados.
+  const server=net.createServer(socket=>socket.end('ok'));
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  try{
+    const port=server.address().port;
+    await new Promise((resolve,reject)=>{
+      const socket=net.connect({
+        host:'feeds.elpais.com',port,autoSelectFamily:true,
+        lookup:rss.pinnedAddressLookup({address:'127.0.0.1',family:4})
+      });
+      socket.setTimeout(2500,()=>socket.destroy(new Error('socket_timeout')));
+      socket.once('connect',()=>{socket.destroy();resolve();});
+      socket.once('error',reject);
+    });
+  }finally{
+    await new Promise(resolve=>server.close(resolve));
+  }
 });
 test('fallo TLS se diferencia de transporte, sin desactivar verificación',async()=>{
   function request(_opts,_handler){
@@ -157,7 +195,7 @@ test('rutas editoriales requieren admin, cooldown y no publican posts',()=>{
   for(const s of [route,read('src/services/editorial-rss-v321.js')]){
     assert.doesNotMatch(s,/INSERT INTO posts\b|INSERT INTO users\b|INSERT INTO community_posts\b/);
   }
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.8'/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.9'/);
   assert.match(read('public/admin.html'),/id="editorialInbox"/);
   assert.match(read('public/admin.js'),/loadEditorialInboxV321/);
 });
