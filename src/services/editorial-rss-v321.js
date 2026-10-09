@@ -29,7 +29,7 @@ function publicIPv4(address){
   if(a===100&&b>=64&&b<=127)return false;
   if(a===169&&b===254)return false;
   if(a===172&&b>=16&&b<=31)return false;
-  if(a===192&&(b===168||b===0&&[0,2].includes(c)||b===88&&c===99))return false;
+  if(a===192&&(b===168||b===0||b===88&&c===99))return false;
   if(a===198&&(b===18||b===19||b===51&&c===100))return false;
   if(a===203&&b===0&&c===113)return false;
   return true;
@@ -42,7 +42,17 @@ function feedError(code){
 }
 async function resolvePublicIPv4(host,lookup=dns.lookup){
   // Deliberately IPv4-only in V3.2.1; never connect to an unresolved or internal address.
-  const addresses=await lookup(host,{family:4,all:true});
+  let timer;
+  let addresses;
+  try{
+    addresses=await Promise.race([
+      Promise.resolve().then(()=>lookup(host,{family:4,all:true})),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(feedError('feed_timeout')),TIMEOUT_MS);timer.unref?.();})
+    ]);
+  }catch(error){
+    if(error.code==='feed_timeout')throw error;
+    throw feedError('feed_network_error');
+  }finally{clearTimeout(timer);}
   if(!Array.isArray(addresses)||!addresses.length||
      addresses.some(item=>!publicIPv4(item.address)))throw feedError('feed_network_blocked');
   return addresses[0].address;
@@ -54,9 +64,11 @@ function fetchXml(feedUrl,{lookup=dns.lookup,request=https.request}={}){
   const url=new URL(urlText);
   return resolvePublicIPv4(url.hostname,lookup).then(ip=>new Promise((resolve,reject)=>{
     let settled=false;
+    let overallTimer;
     const done=(error,value)=>{
       if(settled)return;
       settled=true;
+      clearTimeout(overallTimer);
       if(error)reject(error);else resolve(value);
     };
     const req=request({
@@ -87,6 +99,8 @@ function fetchXml(feedUrl,{lookup=dns.lookup,request=https.request}={}){
       res.on('error',()=>done(feedError('feed_network_error')));
       res.on('aborted',()=>done(feedError('feed_network_error')));
     });
+    overallTimer=setTimeout(()=>req.destroy(feedError('feed_timeout')),TIMEOUT_MS);
+    overallTimer.unref?.();
     req.setTimeout(TIMEOUT_MS,()=>req.destroy(feedError('feed_timeout')));
     req.on('error',error=>done(
       ['feed_timeout','feed_too_large','feed_redirect_blocked'].includes(error.code)?error:feedError('feed_network_error')
@@ -119,7 +133,7 @@ function normalizedTitle(title){
     .toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
 }
 function canonicalArticleUrl(raw){
-  const value=String(raw||'').trim();
+  const value=decodeBasicEntities(String(raw||'')).trim();
   if(value.length>2048)return null;
   try{
     const u=new URL(value);
