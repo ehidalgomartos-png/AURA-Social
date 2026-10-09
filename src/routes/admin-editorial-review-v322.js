@@ -7,6 +7,7 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {ensureEditorialSchema}=require('../services/editorial-v320');
 const {canonicalArticleUrl,normalizedTitle}=require('../services/editorial-rss-v321');
+const {CATEGORIES,enrich}=require('../services/editorial-intelligence-v3215');
 
 const router=express.Router();
 
@@ -78,7 +79,75 @@ router.get('/review',guarded(async(req,res)=>{
     "SELECT c.id,c.source_id,c.profile_id,c.category,c.source_title,c.source_excerpt,c.canonical_url,c.published_at,c.status,c.fetched_at,c.editorial_title,c.editorial_summary,c.editor_note,c.revision,c.edited_at,c.reviewed_at,c.reviewed_by,s.name AS source_name,s.status AS source_status,s.rights_mode,u.username AS reviewer_username FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id LEFT JOIN users u ON u.id=c.reviewed_by WHERE c.status=$1 ORDER BY (c.id=$2::bigint) DESC,c.fetched_at DESC,c.id DESC LIMIT 100",
     [status,focus]
   );
+  // Recommendations are generated on demand from existing RSS metadata.
+  // No writes, external AI requests, or permission changes occur in GET.
+  if(status==='pending'){
+    const [context,profiles]=await Promise.all([
+      db.query(
+        "SELECT c.id,c.source_id,c.category,c.source_title,c.source_excerpt,c.published_at,c.fetched_at,c.status,s.name AS source_name "+
+        "FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id "+
+        "WHERE c.fetched_at>=now()-interval '45 days' ORDER BY c.fetched_at DESC,c.id DESC LIMIT 450"
+      ),
+      db.query("SELECT category,id,name FROM editorial_profiles WHERE status='ready' ORDER BY category,id")
+    ]);
+    const focusRows=r.rows.filter(row=>String(row.id)===focus);
+    const enriched=enrich(r.rows,context.rows);
+    return res.json({
+      items:focusRows.length?[...focusRows.map(row=>enriched.find(x=>String(x.id)===String(row.id))),...enriched.filter(row=>String(row.id)!==focus)]:enriched,
+      categoryProfiles:profiles.rows,
+      status,publishingEnabled:false,reviewRequired:true,
+      advisoryOnly:true,adviceNotice:'Las recomendaciones se basan exclusivamente en metadatos RSS. Comprueba la información original antes de decidir.'
+    });
+  }
   res.json({items:r.rows,status,publishingEnabled:false,reviewRequired:true});
+}));
+
+// A category correction is deliberate and admin-only. A matching *ready*
+// editorial profile is required so an article can never be released with a
+// mislabeled profile. Revisions and audit are preserved for human review.
+const categorySchema=z.object({
+  category:z.enum(CATEGORIES),
+  revision:z.number().int().min(0).safe()
+}).strict();
+router.patch('/review/:id/category',guarded(async(req,res)=>{
+  const id=checkedId(req.params.id);
+  if(!id)throw reviewError(400,'editorial_id_invalid');
+  const parsed=categorySchema.safeParse(req.body);
+  if(!parsed.success)throw reviewError(400,'editorial_category_invalid');
+  const {category,revision}=parsed.data;
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const result=await client.query(
+      "SELECT id,category,profile_id,revision,status FROM editorial_candidates WHERE id=$1 FOR UPDATE",[id]
+    );
+    if(!result.rowCount)throw reviewError(404,'editorial_candidate_not_found');
+    const row=result.rows[0];
+    if(row.status!=='pending')throw reviewError(409,'editorial_review_locked');
+    if(Number(row.revision)!==revision)throw reviewError(409,'editorial_review_stale');
+    if(row.category===category){
+      await client.query('COMMIT');
+      return res.json({ok:true,unchanged:true,candidate:{id,status:row.status,revision:row.revision,category},published:false});
+    }
+    const profile=await client.query(
+      "SELECT id FROM editorial_profiles WHERE category=$1 AND status='ready' ORDER BY id LIMIT 1",[category]
+    );
+    if(!profile.rowCount)throw reviewError(409,'editorial_category_profile_missing');
+    const saved=await client.query(
+      "UPDATE editorial_candidates SET category=$2,profile_id=$3,revision=revision+1,edited_at=now() WHERE id=$1 RETURNING id,category,profile_id,revision,status",
+      [id,category,profile.rows[0].id]
+    );
+    await client.query(
+      "INSERT INTO editorial_audit(admin_id,action,entity_type,entity_id,details) VALUES($1,'recategorize','candidate',$2,$3::jsonb)",
+      [req.user.id,id,JSON.stringify({previousCategory:row.category,newCategory:category,previousProfileId:row.profile_id,profileId:profile.rows[0].id,revision:saved.rows[0].revision})]
+    );
+    await client.query('COMMIT');
+    return res.json({ok:true,candidate:saved.rows[0],published:false});
+  }catch(error){
+    try{await client.query('ROLLBACK');}catch(e){console.error('Category rollback error',e);}
+    if(error.code==='23505')throw reviewError(409,'editorial_category_duplicate');
+    throw error;
+  }finally{client.release();}
 }));
 
 async function mutateCandidate(req,res,kind){

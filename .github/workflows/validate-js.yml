@@ -54,6 +54,8 @@ jobs:
         run: npm run test:editorial-drafts-nav
       - name: V3.2.14 editorial mobile navigation and Communities safe-return tests
         run: npm run test:editorial-nav-hotfix
+      - name: Editorial intelligence regression
+        run: npm run test:editorial-intelligence
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

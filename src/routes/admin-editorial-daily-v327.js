@@ -6,6 +6,7 @@ const {ensurePlanningSchema}=require('../services/editorial-planning-v326');
 const {ensureSocialSchema}=require('./editorial-social-v324');
 const {ensureQualitySchema}=require('../services/editorial-quality-v325');
 const {madridDay,validDay,triage,sourceAlerts}=require('../services/editorial-daily-v327');
+const {enrich}=require('../services/editorial-intelligence-v3215');
 
 const router=express.Router();
 router.use(requireAdmin);
@@ -43,8 +44,8 @@ router.get('/daily/overview',async(req,res)=>{
         [day]
       ),
       db.query(
-        "SELECT c.id,c.revision,c.source_title,c.category,c.fetched_at,s.name AS source_name FROM editorial_candidates c "+
-        "LEFT JOIN editorial_sources s ON s.id=c.source_id WHERE c.status='pending' ORDER BY c.fetched_at DESC,c.id DESC LIMIT 35"
+        "SELECT c.id,c.revision,c.source_id,c.source_title,c.source_excerpt,c.category,c.fetched_at,c.published_at,s.name AS source_name,c.editorial_title,c.editorial_summary FROM editorial_candidates c "+
+        "LEFT JOIN editorial_sources s ON s.id=c.source_id WHERE c.status='pending' ORDER BY c.fetched_at DESC,c.id DESC LIMIT 120"
       ),
       db.query(
         "SELECT p.id,p.candidate_id,p.title,p.category,p.published_at,p.source_name,ep.name AS profile_name "+
@@ -67,6 +68,7 @@ router.get('/daily/overview',async(req,res)=>{
       )
     ]);
     const groups=triage(candidates.rows,{day});
+    const pendingAdvised=enrich(pending.rows,[...pending.rows,...candidates.rows]);
     const alerts=sourceAlerts(sources.rows);
     res.set('Cache-Control','no-store').json({
       day,timezone:'Europe/Madrid',manualOnly:true,autoPublishing:false,
@@ -78,11 +80,11 @@ router.get('/daily/overview',async(req,res)=>{
         blockedShown:groups.needsQuality.length,
         sourceAlerts:alerts.length
       },
-      sampled:{approvedLimit:300,pendingLimit:35,publishedLimit:35},
+      sampled:{approvedLimit:300,pendingLimit:120,publishedLimit:35},
       groups:{
         planned:groups.planned.slice(0,35),ready:groups.ready.slice(0,35),
         needsQuality:groups.needsQuality.slice(0,35),
-        pending:pending.rows,published:published.rows,
+        pending:pendingAdvised.slice(0,35),published:published.rows,
         sourceAlerts:alerts.slice(0,35)
       },
       notice:'La priorización es orientativa. Revisión, calidad y publicación siguen requiriendo acciones humanas independientes.'
