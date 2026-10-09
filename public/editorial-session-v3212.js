@@ -23,7 +23,11 @@
       if(link.dataset.edRoute==='communities'){
         // In-session communities are part of the social app. Anonymous visitors
         // stay in the crawlable public directory and can return to the article.
-        if(signedIn)link.href='/app?view=communities';
+        if(signedIn){
+          const back=String(link.dataset.edNewsReturn||'');
+          const valid=/^\/noticias(?:\/p\/[1-9][0-9]{0,14}|\/perfil\/[a-z0-9-]{1,60})?$/.test(back);
+          link.href='/app?view=communities'+(valid?'&volver='+encodeURIComponent(back):'');
+        }
       }else if(link.dataset.edRoute==='explore'){
         link.href=signedIn?'/app?view=explore':'/descubrir';
       }
