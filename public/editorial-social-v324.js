@@ -26,9 +26,13 @@
     for(const entry of rows){
       const block=document.createElement('article');block.className='ed-comment';
       const header=document.createElement('div');header.className='ed-comment-head';
-      const person=document.createElement('b');person.textContent=String(entry.display_name||entry.username||'Miembro');
+      const avatar=document.createElement('span');avatar.className='ed-comment-avatar';
+      const displayName=String(entry.display_name||entry.username||'Miembro');
+      avatar.textContent=displayName.trim().charAt(0)||'M';avatar.setAttribute('aria-hidden','true');
+      const author=document.createElement('div');author.className='ed-comment-author';
+      const person=document.createElement('b');person.textContent=displayName;
       const timestamp=document.createElement('small');timestamp.textContent=toDate(entry.created_at);
-      header.append(person,timestamp);
+      author.append(person,timestamp);header.append(avatar,author);
       const message=document.createElement('p');message.textContent=String(entry.body||'');
       const actions=document.createElement('div');actions.className='ed-comment-actions';
       if(loggedIn){
@@ -51,10 +55,12 @@
       if(!result.ok)throw Error('No se pueden mostrar las interacciones de esta noticia');
       $('#edLikeCount').textContent=Number(result.data.likes||0)+' Me gusta';
       $('#edCommentCount').textContent=Number(result.data.commentCount||0)+' comentarios · Opiniones de usuarios reales';
-      $('#edLike').textContent=liked?'♥ Te gusta':'♡ Me gusta';
+      $('#edLikeLabel').textContent=liked?'Te gusta':'Me gusta';
       $('#edLike').setAttribute('aria-pressed',String(liked));
+      $('#edLike').classList.toggle('is-liked',liked);
+      $('#edCommentForm').hidden=!loggedIn;
+      $('#edLoginCta').hidden=loggedIn;
       drawComments(Array.isArray(result.data.comments)?result.data.comments:[]);
-      if(!loggedIn){$('#edCommentForm').classList.add('ed-login-needed');feedback('Inicia sesión para comentar, reaccionar o compartir en una comunidad.');}
     }catch(_){feedback('No se pudo actualizar la conversación.',true);}
   }
   async function act(url,method,body){
@@ -72,6 +78,15 @@
     }
     return result.data;
   }
+  $('#edJumpComments')?.addEventListener('click',()=>{
+    const area=$('#edDiscussion');
+    area?.scrollIntoView({behavior:'smooth',block:'start'});
+    if(loggedIn){
+      $('#edCommentText')?.focus({preventScroll:true});
+    }else{
+      $('#edLoginCta')?.focus({preventScroll:true});
+    }
+  });
   $('#edLike').addEventListener('click',async()=>{
     if(busy)return;
     busy=true;
