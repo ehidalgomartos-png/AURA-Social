@@ -105,6 +105,19 @@ async function resolvePublicIPv4(host,lookup=dns.lookup){
   }
   return addresses[0].address;
 }
+// Node.js may call custom lookup() with {all:true} when it uses automatic
+// address-family selection. In that case the callback MUST receive an array,
+// not (address,family), otherwise Node raises ERR_INVALID_IP_ADDRESS.
+// Both paths remain pinned to the single DNS-validated public address.
+function pinnedAddressLookup(ip){
+  return (_host,options,callback)=>{
+    if(options&&options.all===true){
+      return callback(null,[{address:ip.address,family:ip.family}]);
+    }
+    callback(null,ip.address,ip.family);
+  };
+}
+
 function fetchOne(url,ip,request,timeoutMs){
   return new Promise((resolve,reject)=>{
     let settled=false,timer;
@@ -121,11 +134,11 @@ function fetchOne(url,ip,request,timeoutMs){
         method:'GET',agent:false,maxHeaderSize:12000,
         // TLS/SNI and certificate validation use the actual URL hostname.
         // Only the TCP destination is pinned to a validated public address.
-        lookup:(_name,_opts,callback)=>callback(null,ip.address,ip.family),
+        lookup:pinnedAddressLookup(ip),
         headers:{
           Accept:'application/rss+xml, application/atom+xml, application/xml, text/xml',
           'Accept-Encoding':'identity',
-          'User-Agent':'RedLibertadEditorial/3.2.8 (manual RSS review)'
+          'User-Agent':'RedLibertadEditorial/3.2.9 (manual RSS review)'
         }
       },res=>{
         const status=Number(res.statusCode||0);
@@ -256,4 +269,4 @@ function parseFeed(xml,{category,profileId=null,sourceId=null,now=new Date()}={}
   return candidates;
 }
 
-module.exports={publicIPv4,publicIPv6,resolvePublicIPv4,resolvePublicAddresses,fetchXml,parseFeed,canonicalArticleUrl,normalizedTitle,MAX_ITEMS,MAX_XML_BYTES};
+module.exports={publicIPv4,publicIPv6,resolvePublicIPv4,resolvePublicAddresses,pinnedAddressLookup,fetchXml,parseFeed,canonicalArticleUrl,normalizedTitle,MAX_ITEMS,MAX_XML_BYTES};
