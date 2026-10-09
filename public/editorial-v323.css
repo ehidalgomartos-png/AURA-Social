@@ -35,7 +35,8 @@ a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid va
 .ed-side nav{display:grid;gap:4px}
 .ed-side nav a{display:flex;align-items:center;gap:12px;text-decoration:none;border-radius:12px;color:var(--ink);font-size:14px;font-weight:700;padding:11px 12px}
 .ed-side nav a:hover,.ed-side nav a.active{background:#e9f6f3;color:#0e6c72}
-.ed-side nav a span{font-size:22px;line-height:1.1;width:24px;text-align:center;font-weight:600}
+.ed-side nav a span{width:24px;height:24px;display:grid;place-items:center}
+.ed-side nav a svg{width:21px;height:21px;display:block}
 .ed-side-note{padding:16px 12px 3px;margin-top:18px;border-top:1px solid var(--line);font-size:12px}
 .ed-side-note b{color:var(--navy)}
 .ed-side-note p{color:var(--muted);margin:5px 0}
@@ -146,6 +147,8 @@ a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid va
   }
   .ed-mobile-nav a{display:grid;justify-items:center;gap:2px;text-decoration:none;color:#d1e2e6;font-size:22px;font-weight:800;line-height:1}
   .ed-mobile-nav a[aria-current=page]{color:#73e0d3}
+  .ed-mobile-nav svg{width:23px;height:23px;display:block}
+  .ed-mobile-nav a span{height:25px;display:grid;place-items:center}
   .ed-mobile-nav small{font-size:10px;line-height:1.2;font-weight:750}
   .ed-timeline{padding:1px 2px 11px}
   .ed-post-head{padding:15px 15px 11px}
