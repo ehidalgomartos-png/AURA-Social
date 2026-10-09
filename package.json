@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.13",
+  "version": "3.2.14",
   "private": true,
-  "description": "RedLibertad V3.2.13 — Borradores RSS orientativos y navegación directa en Mesa Editorial",
+  "description": "RedLibertad V3.2.14 — Noticias: navegación coherente y regreso desde Comunidades",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -48,7 +48,8 @@
     "test:editorial-daily": "node --test tests/editorial-daily-v327.test.js",
     "test:editorial-social-ui": "node --test tests/editorial-social-ui-v3211.test.js",
     "test:editorial-integration": "node --test tests/editorial-integration-v3212.test.js",
-    "test:editorial-drafts-nav": "node --test tests/editorial-drafts-nav-v3213.test.js"
+    "test:editorial-drafts-nav": "node --test tests/editorial-drafts-nav-v3213.test.js",
+    "test:editorial-nav-hotfix": "node --test tests/editorial-navigation-v32131.test.js"
   },
   "engines": {
     "node": ">=20"

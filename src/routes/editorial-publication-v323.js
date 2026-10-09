@@ -141,11 +141,12 @@ function origin(){
 function page({title,description,pathname,body,noindex=false}){
   const base=origin();
   const canonical=base+pathname;
+  const communityPublicUrl='/comunidades?volver='+encodeURIComponent(pathname);
   const nav=[
-    ['Inicio','/app'],['Noticias','/noticias'],['Comunidades','/comunidades']
+    ['Inicio','/app'],['Noticias','/noticias'],['Comunidades',communityPublicUrl]
   ];
   const desktop=nav.map(([label,href])=>
-    '<a href="'+href+'"'+(pathname.startsWith('/noticias')&&href==='/noticias'?' aria-current="page"':'')+'>'+label+'</a>'
+    '<a href="'+esc(href)+'"'+(label==='Comunidades'?' data-ed-route="communities" data-ed-news-return="'+esc(pathname)+'"':'')+(pathname.startsWith('/noticias')&&href==='/noticias'?' aria-current="page"':'')+'>'+label+'</a>'
   ).join('');
   return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<meta name="theme-color" content="#0d2238">'+
@@ -153,23 +154,23 @@ function page({title,description,pathname,body,noindex=false}){
     '<link rel="canonical" href="'+esc(canonical)+'">'+(noindex?'<meta name="robots" content="noindex,follow">':'')+
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.12"><script src="/editorial-session-v3212.js?v=3.2.12" defer></script></head><body>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.14"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
-    '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi inicio" href="/app">Entrar</a></nav></header>'+
+    '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi perfil" href="/app">Entrar</a></nav></header>'+
     '<div class="ed-layout"><aside class="ed-side" aria-label="Explorar RedLibertad">'+
     '<p class="ed-side-title">TU COMUNIDAD</p><nav aria-label="Secciones de RedLibertad">'+
     '<a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-5v-7h-4v7H5a2 2 0 0 1-2-2z"/></svg></span> Inicio</a>'+
     '<a href="/noticias"'+(pathname.startsWith('/noticias')?' class="active" aria-current="page"':'')+'><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h5M7 16h10"/></svg></span> Noticias</a>'+
-    '<a href="/comunidades"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span> Comunidades</a>'+
-    '<a href="/descubrir"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span> Descubrir</a></nav>'+
+    '<a data-ed-route="communities" data-ed-news-return="'+esc(pathname)+'" href="'+esc(communityPublicUrl)+'"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span> Comunidades</a>'+
+    '<a href="/descubrir" data-ed-route="explore"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span> Descubrir</a></nav>'+
     '<div class="ed-side-note"><b>RedLibertad Noticias</b><p>Actualidad seleccionada a partir de fuentes identificadas y revisada antes de publicar.</p></div></aside>'+
     '<main id="ed-main" class="ed-main">'+body+'</main></div>'+
     '<footer class="ed-footer">RedLibertad · Contenido editorial identificado y revisado · <a href="/legal/">Aviso legal</a> · <a href="/privacy/">Privacidad</a></footer>'+
     '<nav class="ed-mobile-nav" aria-label="Navegación móvil"><a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-5v-7h-4v7H5a2 2 0 0 1-2-2z"/></svg></span><small>Inicio</small></a>'+
     '<a href="/noticias"'+(pathname.startsWith('/noticias')?' aria-current="page"':'')+'><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h5M7 16h10"/></svg></span><small>Noticias</small></a>'+
-    '<a href="/comunidades"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span><small>Comunidades</small></a>'+
-    '<a href="/app" data-ed-auth-link data-ed-logged-label="Mi inicio"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><small>Entrar</small></a></nav>'+
+    '<a data-ed-route="communities" data-ed-news-return="'+esc(pathname)+'" href="'+esc(communityPublicUrl)+'"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span><small>Comunidades</small></a>'+
+    '<a href="/descubrir" data-ed-route="explore"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><small>Explorar</small></a></nav>'+
     '</body></html>';
 }
 function linkOut(url,label){return '<a href="'+esc(url)+'" rel="noopener noreferrer external" target="_blank">'+esc(label)+'</a>';}
