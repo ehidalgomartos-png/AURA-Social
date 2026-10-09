@@ -81,11 +81,13 @@
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
     <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.2</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <p id="editorialInboxStatus" class="status" role="status" aria-live="polite">Cargando borradores…</p>
+    <p class="panel-copy">Prioridad sugerida, categoría y noticias parecidas se calculan exclusivamente desde los metadatos RSS. No sustituyen la revisión humana.</p>
     <div id="editorialInboxItems" class="report-list" aria-live="polite"></div>
     <section id="editorialReviewEditor" class="editorial-review-editor hidden" aria-label="Editor de noticia">
       <h3 id="editorialReviewEditorTitle">Editar noticia</h3>
       <p id="editorialReviewSource" class="panel-copy"></p>
       <p><a id="editorialReviewLink" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden>Leer noticia en la fuente ↗</a></p>
+      <section id="editorialIntelligence" class="editorial-advice" hidden aria-label="Sugerencias de clasificación y noticias relacionadas"></section>
       <form id="editorialReviewForm" class="editorial-form">
         <div class="editorial-draft-suggestion"><button type="button" id="editorialSuggestDraft" class="soft">Preparar titular y resumen automáticamente</button><p class="panel-copy">Propuesta gratuita basada en metadatos RSS. Es orientativa: no resume ni verifica el artículo completo. Revisa y reescribe antes de aprobar.</p><p id="editorialSuggestionStatus" class="status" role="status" aria-live="polite"></p></div>
         <label>Titular editorial propio <input type="text" name="title" required minlength="12" maxlength="220" autocomplete="off"></label>
