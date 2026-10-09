@@ -19,7 +19,7 @@ test('noticia móvil muestra cuatro destinos distintos y barra superior apunta a
  assert.match(html,/data-ed-logged-label="Mi perfil"/);
  assert.match(html,/data-ed-route="communities" data-ed-news-return="\/noticias\/p\/19"/);
  assert.match(html,/href="\/comunidades\?volver=%2Fnoticias%2Fp%2F19"/);
- assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.14/);
+ assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.15/);
  assert.match(html,/rel="canonical"/);
 });
 
@@ -69,7 +69,7 @@ test('la app acepta comunidades en la navegación profunda y conserva un enlace 
  assert.match(js,/editorialCommunityReturn/);
  assert.match(js,/editorialReturn\.hidden=view!=='communities'\|\|!safe/);
  assert.match(html,/id="editorialCommunityReturn"/);
- assert.match(html,/social\.js\?v=3\.2\.14/);
+ assert.match(html,/social\.js\?v=3\.2\.15/);
  assert.match(css,/\.editorial-community-return\[hidden\]\{display:none!important\}/);
 });
 test('el regreso del directorio público acepta solo URLs internas de Noticias',()=>{
@@ -91,8 +91,8 @@ test('el regreso del directorio público acepta solo URLs internas de Noticias',
  assert.match(src,/keepEditorialBack\(next\)/);
 });
 test('la corrección es solo navegación; no cambia RSS, publicación humana ni autenticación',()=>{
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.14'/);
- assert.match(read('package.json'),/"version": "3\.2\.14"/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.15'/);
+ assert.match(read('package.json'),/"version": "3\.2\.15"/);
  const publishing=read('src/routes/editorial-publication-v323.js');
  assert.match(publishing,/editorial_quality_clearance_required/);
  assert.match(publishing,/admin\.post\('\/publish\/:candidateId'/);
