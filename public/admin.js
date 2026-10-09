@@ -1619,7 +1619,9 @@ function openEditorialReview(item){
   $('#editorialSaveDraft').hidden=!pending;
   form.querySelector('[data-editorial-decision="approve"]').hidden=!pending;
   form.querySelector('[data-editorial-decision="reject"]').hidden=!pending;
-  form.querySelector('[data-editorial-decision="reopen"]').hidden=pending;
+  const reopenBtn=form.querySelector('[data-editorial-decision="reopen"]');
+  reopenBtn.hidden=pending;
+  reopenBtn.classList.toggle('hidden',pending);
   $('#editorialReviewEditor').classList.remove('hidden');
   $('#editorialReviewEditor').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1680,9 +1682,10 @@ async function submitEditorialReview(action){
       };
       throw Error(messages[d.error]||d.error||'No se pudo guardar');
     }
-    setAdminNotice(action==='save'?'Borrador guardado.':action==='reopen'?'Noticia reabierta.':action==='approve'?'Noticia aprobada internamente (sin publicar).':'Noticia rechazada.');
+    if(action==='reopen' && $('#editorialReviewFilter')) $('#editorialReviewFilter').value='pending';
+    setAdminNotice(action==='save'?'Borrador guardado.':action==='reopen'?'Noticia reabierta. Ahora está en Pendientes para editarla.':action==='approve'?'Noticia aprobada internamente (sin publicar).':'Noticia rechazada.');
     closeEditorialReview();
-    await Promise.all([loadEditorialInboxV321(),loadEditorialV320()]);
+    await Promise.all([loadEditorialInboxV321(),loadEditorialV320(),loadEditorialPublicV323(),loadEditorialQualityV325(),loadEditorialPlanningV326(),loadEditorialDailyV327()]);
   }catch(e){setAdminNotice('Revisión no guardada: '+e.message,true);}
   finally{controls.forEach(b=>b.disabled=false);}
 }
