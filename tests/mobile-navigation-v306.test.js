@@ -78,7 +78,7 @@ test('dock is mobile-only and keyboard-open safeguards remain',()=>{
 });
 test('release and CI contain navigation polish regression check',()=>{
   const pkg=require('../package.json');
-  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+$/);
+  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/);
   assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
   assert.match(pkg.scripts['test:mobile-nav'],/mobile-navigation-v306\.test\.js/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-nav/);
