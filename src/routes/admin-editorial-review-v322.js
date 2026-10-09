@@ -9,6 +9,7 @@ const {ensureEditorialSchema}=require('../services/editorial-v320');
 const {canonicalArticleUrl,normalizedTitle}=require('../services/editorial-rss-v321');
 const {CATEGORIES,enrich}=require('../services/editorial-intelligence-v3216');
 const {editorialProvenanceV3217}=require('../../public/editorial-provenance-v3217');
+const {editorialOriginalityV32171}=require('../../public/editorial-originality-v32171');
 
 const router=express.Router();
 
@@ -68,7 +69,7 @@ router.use(async(_req,res,next)=>{
 });
 
 const guarded=fn=>(req,res)=>Promise.resolve().then(()=>fn(req,res)).catch(e=>{
-  if(e.status)return res.status(e.status).json({error:e.code});
+  if(e.status)return res.status(e.status).json({error:e.code,...(e.fields?{fields:e.fields}:{})});
   console.error('Editorial V3.2.2 review failed:',e);
   return res.status(500).json({error:'editorial_review_failed'});
 });
@@ -200,7 +201,11 @@ async function mutateCandidate(req,res,kind){
     if(row.status!=='pending')throw reviewError(409,'editorial_review_locked');
     if(d.decision==='approve'){
       if(row.source_status!=='approved'||!canonicalArticleUrl(row.canonical_url))throw reviewError(409,'editorial_source_not_approved');
-      if(!isOriginalEditorial(row))throw reviewError(422,'editorial_original_draft_required');
+      if(!isOriginalEditorial(row)){
+        const failure=reviewError(422,'editorial_original_draft_required');
+        failure.fields=editorialOriginalityV32171(row).fields;
+        throw failure;
+      }
       if(!d.factsChecked||!d.rightsChecked||!d.sourceRead)throw reviewError(422,'editorial_review_confirmation_required');
       if(d.note.length<8)throw reviewError(422,'editorial_approval_note_required');
     }
