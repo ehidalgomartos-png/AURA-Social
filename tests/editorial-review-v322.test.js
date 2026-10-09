@@ -56,6 +56,6 @@ test('panel móvil ofrece edición original, trazabilidad, tres verificaciones y
   assert.ok(js.includes("action==='approve'"));
   assert.ok(js.includes("no se publicará")||js.includes("NO se publicará"));
   assert.ok(css.includes('#editorialReviewEditor'));
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.5'/);
-  assert.match(read('package.json'),/"version": "3\.2\.5"/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.6'/);
+  assert.match(read('package.json'),/"version": "3\.2\.6"/);
 });
