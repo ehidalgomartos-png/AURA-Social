@@ -2076,6 +2076,105 @@ $('#editorialPlanningQueue')?.addEventListener('click',async event=>{
   finally{btn.disabled=false;}
 });
 
+// V3.2.7 — Daily editorial desk. Read-only overview and navigation to existing workflows.
+const editorialDailyTargetsV327={review:'editorialInbox',quality:'editorialQuality',planning:'editorialPlanning',
+  publish:'editorialPublication',source:'editorialCenter'};
+function editorialMadridTodayV327(){
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+}
+function editorialDailyEscV327(x){return esc(String(x??''));}
+function editorialDailyRowV327(row,kind){
+  const title=editorialDailyEscV327(row.editorial_title||row.source_title||row.title||row.name||'Sin título');
+  const source=editorialDailyEscV327(row.source_name||row.name||'Fuente no disponible');
+  const category=editorialDailyEscV327(row.category||'');
+  const publicationId=row.id;
+  const direct=kind==='published'?'<a href="/noticias/p/'+encodeURIComponent(publicationId)+'" target="_blank" rel="noopener noreferrer">Ver noticia publicada ↗</a>':'';
+  let action='review';
+  if(kind==='ready')action='publish';
+  if(kind==='planned')action=row.publication_prechecks_met?'publish':'quality';
+  if(kind==='needsQuality')action='quality';
+  if(kind==='sourceAlerts')action='source';
+  if(kind==='published')action='publish';
+  const short={
+    review:'Revisar noticia',quality:'Ver controles de calidad',
+    publish:'Ir a publicación manual',source:'Revisar fuente'
+  };
+  const flags=[];
+  if(row.overdue)flags.push('Fecha prevista vencida');
+  if(row.plan_stale)flags.push('La noticia cambió tras planificarla');
+  if(kind==='planned'&&!row.publication_prechecks_met)flags.push('Faltan requisitos para publicar');
+  if(kind==='ready')flags.push('Condiciones preliminares de publicación cumplidas');
+  if(kind==='sourceAlerts')flags.push('Más de 48 h sin consulta registrada');
+  const small=kind==='published'?
+    '<small>Publicado: '+editorialDailyEscV327(timeLabel(row.published_at))+' · '+source+'</small>':
+    '<small>'+source+(category?' · '+category:'')+'</small>';
+  const plan=row.planned_for?
+    '<small>Objetivo: '+editorialDailyEscV327(new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',dateStyle:'medium',timeStyle:'short'}).format(new Date(row.planned_for)))+'</small>':'';
+  return '<article class="editorial-daily-item"><b>'+title+'</b>'+small+plan+
+    (flags.length?'<p class="editorial-daily-flags">'+flags.map(editorialDailyEscV327).join(' · ')+'</p>':'')+
+    '<div class="actions">'+direct+'<button type="button" class="soft" data-editorial-daily-target="'+action+'">'+
+    editorialDailyEscV327(short[action])+'</button></div></article>';
+}
+async function loadEditorialDailyV327(){
+  const input=$('#editorialDailyDay'),state=$('#editorialDailyStatus'),metrics=$('#editorialDailyMetrics'),
+    sections=$('#editorialDailySections');
+  if(!input||!state||!metrics||!sections)return;
+  if(!input.value)input.value=editorialMadridTodayV327();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(input.value)){
+    state.textContent='Selecciona una fecha válida.';return;
+  }
+  try{
+    const {r,d}=await api('/api/admin/editorial/daily/overview?day='+encodeURIComponent(input.value));
+    if(!r.ok)throw Error(d.error||'No se pudo cargar la jornada');
+    const m=d.totals||{},groups=d.groups||{};
+    const totals=[
+      ['Por revisar',m.pending],['Previstas o vencidas',m.due],
+      ['Publicadas en la jornada',m.published],['Aptas mostradas',m.readyShown],
+      ['Para comprobar',m.blockedShown],['Fuentes por consultar',m.sourceAlerts]
+    ];
+    metrics.innerHTML=totals.map(([label,num])=>'<div class="metric"><b>'+Number(num||0)+'</b><span>'+editorialDailyEscV327(label)+'</span></div>').join('');
+    const sets=[
+      ['planned','Noticias previstas o vencidas','Planificadas para esta jornada o pendientes de una fecha anterior.'],
+      ['ready','Listas para publicación manual','Comprobaciones preliminares correctas; aún hay que confirmar cada publicación.'],
+      ['pending','Pendientes de revisión','Nuevas noticias RSS sin decisión editorial.'],
+      ['needsQuality','Necesitan completar controles','Aprobadas editorialmente, pero aún no aptas para publicar.'],
+      ['published','Publicadas en esta jornada','Publicaciones visibles, con su enlace correspondiente.'],
+      ['sourceAlerts','Fuentes RSS a revisar','Fuentes aprobadas sin consulta registrada en más de 48 horas.']
+    ];
+    sections.innerHTML=sets.map(([key,title,explain])=>{
+      const values=Array.isArray(groups[key])?groups[key]:[];
+      return '<section class="editorial-daily-group" aria-labelledby="ed-daily-'+key+'"><h3 id="ed-daily-'+key+'">'+
+        editorialDailyEscV327(title)+' <small>('+values.length+' mostradas)</small></h3>'+
+        '<p class="panel-copy">'+editorialDailyEscV327(explain)+'</p>'+
+        '<div class="editorial-daily-list">'+
+        (values.length?values.map(row=>editorialDailyRowV327(row,key)).join(''):'<p>Sin elementos en esta sección.</p>')+
+        '</div></section>';
+    }).join('');
+    state.textContent='Jornada '+input.value+' · Europe/Madrid · Actualización manual. Las listas pueden mostrar solo los registros más recientes.';
+  }catch(e){
+    state.textContent='No se pudo cargar la jornada ('+String(e.message||'error')+').';
+    metrics.replaceChildren();sections.replaceChildren();
+  }
+}
+$('#editorialDailyReload')?.addEventListener('click',loadEditorialDailyV327);
+$('#editorialDailyToday')?.addEventListener('click',()=>{
+  $('#editorialDailyDay').value=editorialMadridTodayV327();loadEditorialDailyV327();
+});
+$('#editorialDailyDayForm')?.addEventListener('submit',event=>{
+  event.preventDefault();loadEditorialDailyV327();
+});
+$('#editorialDailySections')?.addEventListener('click',event=>{
+  const control=event.target.closest('button[data-editorial-daily-target]');
+  if(!control)return;
+  const id=editorialDailyTargetsV327[control.dataset.editorialDailyTarget];
+  if(!id)return;
+  const target=document.getElementById(id);
+  if(!target)return;
+  target.scrollIntoView({behavior:'smooth',block:'start'});
+  const heading=target.querySelector('h2');
+  if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
+});
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -2086,5 +2185,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(),loadEditorialQualityV325(),loadEditorialPlanningV326(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(),loadEditorialQualityV325(),loadEditorialPlanningV326(),loadEditorialDailyV327(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
