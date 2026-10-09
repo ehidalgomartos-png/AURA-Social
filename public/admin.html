@@ -61,9 +61,30 @@
   </section>
 
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.1</span><h2 id="editorialInboxTitle">Noticias por revisar</h2><p class="panel-copy">Las noticias detectadas por RSS son borradores internos. No se publican en perfiles ni comunidades. Consulta fuentes aprobadas con el botón «Consultar RSS» en el Centro Editorial.</p></div><button type="button" id="editorialInboxReload">Actualizar bandeja</button></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.2</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <p id="editorialInboxStatus" class="status" role="status" aria-live="polite">Cargando borradores…</p>
     <div id="editorialInboxItems" class="report-list" aria-live="polite"></div>
+    <section id="editorialReviewEditor" class="editorial-review-editor hidden" aria-label="Editor de noticia">
+      <h3 id="editorialReviewEditorTitle">Editar noticia</h3>
+      <p id="editorialReviewSource" class="panel-copy"></p>
+      <p><a id="editorialReviewLink" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden>Leer noticia en la fuente ↗</a></p>
+      <form id="editorialReviewForm" class="editorial-form">
+        <label>Titular editorial propio <input type="text" name="title" required minlength="12" maxlength="220" autocomplete="off"></label>
+        <label>Resumen original (mínimo 70 caracteres) <textarea name="summary" required minlength="70" maxlength="1100" rows="5"></textarea></label>
+        <label>Nota de revisión / motivo <textarea name="note" maxlength="500" rows="3" placeholder="Justifica la decisión y registra las verificaciones"></textarea></label>
+        <label class="editorial-check"><input type="checkbox" name="sourceRead"> He consultado la fuente original.</label>
+        <label class="editorial-check"><input type="checkbox" name="factsChecked"> He verificado la exactitud y el contexto de la información.</label>
+        <label class="editorial-check"><input type="checkbox" name="rightsChecked"> He comprobado la atribución y las condiciones de reutilización.</label>
+        <p class="panel-copy">Aprobar guarda una decisión editorial interna. No genera ninguna publicación.</p>
+        <div class="actions" id="editorialReviewActions">
+          <button type="submit" class="soft" id="editorialSaveDraft">Guardar borrador</button>
+          <button type="button" class="alt" data-editorial-decision="approve">Aprobar internamente</button>
+          <button type="button" class="soft" data-editorial-decision="reject">Rechazar</button>
+          <button type="button" class="soft hidden" data-editorial-decision="reopen">Reabrir para edición</button>
+          <button type="button" class="soft" id="editorialCancelEditor">Cerrar</button>
+        </div>
+      </form>
+    </section>
   </section>
 
   <section class="panel release-verification-v217" aria-labelledby="releaseVerificationTitle">
