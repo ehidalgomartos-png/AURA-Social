@@ -157,7 +157,7 @@ test('rutas editoriales requieren admin, cooldown y no publican posts',()=>{
   for(const s of [route,read('src/services/editorial-rss-v321.js')]){
     assert.doesNotMatch(s,/INSERT INTO posts\b|INSERT INTO users\b|INSERT INTO community_posts\b/);
   }
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.7\.1'/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.8'/);
   assert.match(read('public/admin.html'),/id="editorialInbox"/);
   assert.match(read('public/admin.js'),/loadEditorialInboxV321/);
 });
