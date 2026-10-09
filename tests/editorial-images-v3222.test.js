@@ -110,7 +110,7 @@ test('GET de previsualización es privado y POST exige documento de derechos fot
   "confirmedPhotoRights:z.literal(true)",
   "photoRightsReference:z.string().trim().min(12).max(1000)",
   "rights_mode!=='licensed'",
-  "source.status==='approved'",
+  "source.rows[0].status!=='approved'",
   'fetchImageV3222',
   'saveEditorialImageV3222',
   "'Cache-Control','private, no-store'",
