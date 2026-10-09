@@ -68,7 +68,7 @@ test('deletion executes one locked transaction, audited, without deleting candid
  assert.ok(sql[1].includes('FROM editorial_sources WHERE id=$1 FOR UPDATE'));
  assert.ok(sql[2].includes('LEFT JOIN editorial_publications'));
  assert.ok(sql[3].startsWith('UPDATE editorial_candidates SET source_name_snapshot='));
- assert.ok(sql[3].includes('removed_source_id=COALESCE'));
+ assert.ok(sql[3].includes('removed_source_id=$1::bigint'));
  assert.deepEqual(f.calls[3].params,['7',source.name]);
  assert.ok(sql[4].startsWith('DELETE FROM editorial_sources WHERE id=$1 RETURNING id'));
  assert.ok(sql[5].includes('INSERT INTO editorial_audit'));
