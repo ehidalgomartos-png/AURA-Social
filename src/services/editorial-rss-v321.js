@@ -125,7 +125,7 @@ function fetchOne(url,ip,request,timeoutMs){
         headers:{
           Accept:'application/rss+xml, application/atom+xml, application/xml, text/xml',
           'Accept-Encoding':'identity',
-          'User-Agent':'RedLibertadEditorial/3.2.7.1 (manual RSS review)'
+          'User-Agent':'RedLibertadEditorial/3.2.8 (manual RSS review)'
         }
       },res=>{
         const status=Number(res.statusCode||0);
