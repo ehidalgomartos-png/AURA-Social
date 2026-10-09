@@ -38,6 +38,13 @@ function safeWrap(fn){return(req,res)=>Promise.resolve().then(()=>fn(req,res)).c
 const commentSchema=z.object({body:z.string().trim().min(2).max(600)}).strict();
 const reportSchema=z.object({reason:z.enum(['abuse','spam','misinformation','other'])}).strict();
 
+router.get('/discover',safeWrap(async(_req,res)=>{
+  const result=await db.query(
+    "SELECT p.id,p.title,p.category,p.published_at,ep.name AS profile_name,p.source_name FROM editorial_publications p JOIN editorial_profiles ep ON ep.id=p.profile_id WHERE p.unpublished_at IS NULL AND ep.status='ready' ORDER BY p.published_at DESC,p.id DESC LIMIT 3"
+  );
+  res.set('Cache-Control','no-store').json({items:result.rows,editorial:true});
+}));
+
 router.get('/:id/overview',safeWrap(async(req,res)=>{
   const id=safeId(req.params.id);if(!id)return error(res,'invalid_editorial_id');
   if(!await livePublication(id))return error(res,'editorial_not_found',404);
