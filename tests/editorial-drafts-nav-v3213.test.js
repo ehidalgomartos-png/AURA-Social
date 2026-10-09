@@ -53,7 +53,7 @@ test('Mesa editorial lleva el ID de cada noticia, activa su filtro y abre el edi
  assert.match(js,/closeEditorialReview\(\)/);
  assert.match(review,/req\.query\.focus/);
  assert.match(review,/ORDER BY \(c\.id=\$2::bigint\) DESC/);
- assert.match(review,/\[status,focus\]/);
+ assert.match(review,/\[status,focus,orphaned\]/);
  assert.match(review,/router\.use\(requireAdmin\)/);
 });
 test('Mesa editorial lleva el ID exacto a controles de calidad y abre el detalle',()=>{
