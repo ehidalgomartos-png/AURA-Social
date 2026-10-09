@@ -1665,6 +1665,7 @@ function closeEditorialReview(){
 }
 let editorialReviewVisibleV3218=[];
 let editorialReviewActiveStatusV3218='pending';
+let editorialReviewActiveOrphanV3220='all';
 // Read-only filtering over the at-most-100 results currently received from the server.
 function editorialQueueFiltersV3218(){
   return {
@@ -1717,7 +1718,9 @@ function renderEditorialQueueV3218(){
     :{items:editorialReviewItems,shown:editorialReviewItems.length,loaded:editorialReviewItems.length,limited:editorialReviewItems.length>=100};
   editorialReviewVisibleV3218=result.items;
   const state=({pending:'pendientes',approved:'aprobadas internamente',rejected:'rechazadas'}[editorialReviewActiveStatusV3218]||'');
-  status.textContent=result.loaded+' noticias '+state+' cargadas · Revisión y publicación siempre manuales.';
+  const orphanOnly=editorialReviewActiveOrphanV3220==='only';
+  status.textContent=result.loaded+' noticias '+state+(orphanOnly?' sin fuente RSS vinculada':'')+
+    ' cargadas · Revisión y publicación siempre manuales.';
   const counter=$('#editorialQueueCountV3218');
   if(counter)counter.textContent='Mostrando '+result.shown+' de '+result.loaded+
     ' noticias cargadas'+(result.limited?' (máximo 100 por estado en esta vista)':'')+
@@ -1726,6 +1729,10 @@ function renderEditorialQueueV3218(){
     const url=editorialSafeHref(item.canonical_url);
     const link=url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer nofollow">Fuente original ↗</a>':'Enlace no disponible';
     const summary=String(item.editorial_summary||item.source_excerpt||'Sin extracto.');
+    const originMissing=item.source_id==null;
+    const label=originMissing
+      ?(item.removed_source_id!=null?'Fuente RSS eliminada':'Sin fuente RSS vinculada')
+      :'';
     const advisory=item.status==='pending'&&item.advice?item.advice:null;
     const tip=advisory?'<div class="editorial-advice-summary"><span>Prioridad orientativa: '+esc(advisory.priority_label||'media')+' ('+Number(advisory.priority_score||0)+'/100)</span>'+
       (advisory.category_suggestion?.changeSuggested?'<span>Revisar categoría: '+esc(editorialCategoryLabelsV3215[advisory.category_suggestion.category]||advisory.category_suggestion.category)+'</span>':'')+
@@ -1733,7 +1740,10 @@ function renderEditorialQueueV3218(){
       (item.provenance?.warningCount?'<span>Revisar datos y originalidad: '+Number(item.provenance.warningCount)+'</span>':'')+
       '</div>':'';
     return '<article class="report"><b>'+esc(item.editorial_title||item.source_title)+'</b>'+
-      '<p>'+esc(summary)+'</p>'+tip+'<small>'+esc(item.source_name||'Fuente eliminada')+' · '+esc(editorialCategoryLabelsV3215[item.category]||item.category)+' · '+esc(timeLabel(item.reviewed_at||item.fetched_at))+'</small>'+
+      '<p>'+esc(summary)+'</p>'+tip+
+      (originMissing?'<p class="editorial-orphan-warning-v3220"><strong>'+esc(label)+
+        '</strong> · Noticia conservada. Sin fuente autorizada activa no puede aprobarse ni publicarse.</p>':'')+
+      '<small>'+esc(item.source_name||'Medio histórico no identificado')+' · '+esc(editorialCategoryLabelsV3215[item.category]||item.category)+' · '+esc(timeLabel(item.reviewed_at||item.fetched_at))+'</small>'+
       '<p>'+link+'</p><div class="actions"><button type="button" class="soft" data-editorial-review-id="'+esc(item.id)+'">'+(item.status==='pending'?'Revisar y editar':'Ver revisión')+'</button></div></article>';
   }).join('')||(result.loaded
     ?'<p>No hay noticias que coincidan con estos filtros. Prueba con otra búsqueda o limpia los filtros.</p>'
@@ -1748,12 +1758,15 @@ async function loadEditorialInboxV321(focusId=''){
   const root=$('#editorialInboxItems'),status=$('#editorialInboxStatus');
   if(!root||!status)return;
   const filter=$('#editorialReviewFilter')?.value||'pending';
+  const orphaned=$('#editorialOrphanFilterV3220')?.value==='only'?'only':'all';
   try{
-    const {r,d}=await api('/api/admin/editorial/review?status='+encodeURIComponent(filter)+(focusId?'&focus='+encodeURIComponent(focusId):''));
+    const {r,d}=await api('/api/admin/editorial/review?status='+encodeURIComponent(filter)+
+      '&orphaned='+encodeURIComponent(orphaned)+(focusId?'&focus='+encodeURIComponent(focusId):''));
     if(!r.ok)throw Error('review_unavailable');
     editorialReviewItems=Array.isArray(d.items)?d.items:[];
     editorialCategoryProfilesV3215=Array.isArray(d.categoryProfiles)?d.categoryProfiles:[];
     editorialReviewActiveStatusV3218=filter;
+    editorialReviewActiveOrphanV3220=orphaned;
     // Direct links from Mesa editorial must always reveal the requested item.
     if(focusId&&!editorialReviewCurrent)resetEditorialQueueV3218({render:false});
     updateEditorialQueueSourcesV3218();
@@ -1979,8 +1992,11 @@ function openEditorialReview(item){
   renderEditorialAdviceV3215(item);
   renderEditorialProvenanceV3217(item);
   renderEditorialOriginalityV32171(item);
-  $('#editorialReviewSource').textContent='Original: '+item.source_title+' · Fuente: '+(item.source_name||'No disponible')+
-    ' · Estado de fuente: '+(item.source_status||'no disponible')+'. Consulta la noticia completa antes de decidir.';
+  $('#editorialReviewSource').textContent='Original: '+item.source_title+' · Fuente: '+(item.source_name||'Medio histórico no identificado')+
+    ' · Estado de fuente: '+(item.source_status||(item.removed_source_id!=null?'eliminada':'sin vínculo activo'))+
+    '. '+(item.source_id==null
+      ?'Esta noticia se conserva como historial. Sin fuente RSS aprobada y activa no puede aprobarse ni publicarse.'
+      :'Consulta la noticia completa antes de decidir.');
   const link=$('#editorialReviewLink'),url=editorialSafeHref(item.canonical_url);
   link.hidden=!url;
   if(url)link.href=url;else link.removeAttribute('href');
@@ -2011,6 +2027,16 @@ $('#editorialReviewFilter')?.addEventListener('change',()=>{
     $('#editorialReviewFilter').value=editorialReviewActiveStatusV3218;return;
   }
   closeEditorialReview();loadEditorialInboxV321();
+});
+$('#editorialOrphanFilterV3220')?.addEventListener('change',()=>{
+  if(editorialReviewHasChangesV3216()&&
+    !window.confirm('Hay cambios sin guardar. ¿Descartarlos y cambiar el filtro de fuentes?')){
+    $('#editorialOrphanFilterV3220').value=editorialReviewActiveOrphanV3220;
+    return;
+  }
+  closeEditorialReview();
+  resetEditorialQueueV3218({render:false});
+  loadEditorialInboxV321();
 });
 $('#editorialCancelEditor')?.addEventListener('click',closeEditorialReview);
 async function submitEditorialReview(action){
@@ -2137,8 +2163,11 @@ async function loadEditorialPublicV323(){
       const aligned=alignment.ok===true;
       const ready=!!item.editorial_title && !!item.editorial_summary && item.source_status==='approved' &&
         item.profile_status==='ready' && aligned && qualityOk;
+      const orphanPublished=item.source_id==null&&!live;
       const mismatch=!aligned&&!live
-        ?'<div class="editorial-assignment-alert-v32181" role="alert"><strong>Asignación editorial pendiente de corregir</strong><ul>'+
+        ?'<div class="editorial-assignment-alert-v32181" role="alert"><strong>'+
+          (orphanPublished?'Noticia sin fuente RSS activa: publicación bloqueada':'Asignación editorial pendiente de corregir')+
+          '</strong><ul>'+
           (alignment.issues||[]).map(issue=>'<li>'+esc(issue.message||'Comprueba la asignación editorial.')+'</li>').join('')+
           '</ul><p>Fuente RSS: '+esc(item.source_name||'Sin fuente')+
           ' · Categoría fuente: '+esc(editorialCategoryLabelsV3215[item.source_category]||item.source_category||'No definida')+
@@ -2152,7 +2181,7 @@ async function loadEditorialPublicV323(){
       return '<article class="report" data-editorial-pub="'+esc(item.id)+'"><div>'+
         '<b>'+esc(item.editorial_title||'Noticia pendiente de completar')+'</b>'+
         '<p>'+esc(item.profile_name||'Sin perfil')+' · '+esc(item.source_name||'Sin fuente')+' · '+
-        (live?'Publicada':!aligned?'Asignación editorial incompatible':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+mismatch+preview+
+        (live?'Publicada':orphanPublished?'Fuente RSS eliminada o sin vincular':!aligned?'Asignación editorial incompatible':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+mismatch+preview+
         '<div class="actions">'+
         (live?'<button type="button" class="soft" data-editorial-unpublish="'+esc(item.id)+'">Retirar publicación</button>'
           :'<button type="button" class="alt" data-editorial-publish="'+esc(item.id)+'" '+(ready?'':'disabled')+'>Publicar manualmente</button>')+

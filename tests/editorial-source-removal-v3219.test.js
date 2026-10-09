@@ -67,9 +67,12 @@ test('deletion executes one locked transaction, audited, without deleting candid
  assert.equal(sql[0],'BEGIN');
  assert.ok(sql[1].includes('FROM editorial_sources WHERE id=$1 FOR UPDATE'));
  assert.ok(sql[2].includes('LEFT JOIN editorial_publications'));
- assert.ok(sql[3].startsWith('DELETE FROM editorial_sources WHERE id=$1 RETURNING id'));
- assert.ok(sql[4].includes('INSERT INTO editorial_audit'));
- assert.equal(sql[5],'COMMIT');
+ assert.ok(sql[3].startsWith('UPDATE editorial_candidates SET source_name_snapshot='));
+ assert.ok(sql[3].includes('removed_source_id=COALESCE'));
+ assert.deepEqual(f.calls[3].params,['7',source.name]);
+ assert.ok(sql[4].startsWith('DELETE FROM editorial_sources WHERE id=$1 RETURNING id'));
+ assert.ok(sql[5].includes('INSERT INTO editorial_audit'));
+ assert.equal(sql[6],'COMMIT');
  assert.ok(!sql.some(q=>/DELETE FROM editorial_(?:candidates|publications)/.test(q)));
 });
 test('stale counts reject deletion and roll back safely',async()=>{
@@ -121,7 +124,7 @@ test('el panel muestra las consecuencias y requiere confirmación escrita, tambi
  assert.ok(js.includes('loadEditorialV320()'));
  assert.ok(css.includes('editorial-source-removal-v3219'));
  assert.ok(css.includes('@media(max-width:620px)'));
- assert.ok(html.includes('/admin.js?v=3.2.19'));
- assert.ok(read('server.js').includes("APP_VERSION='3.2.19'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.19');
+ assert.ok(html.includes('/admin.js?v=3.2.20'));
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.20'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.20');
 });

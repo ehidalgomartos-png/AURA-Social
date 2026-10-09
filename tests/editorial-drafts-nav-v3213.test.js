@@ -53,7 +53,7 @@ test('Mesa editorial lleva el ID de cada noticia, activa su filtro y abre el edi
  assert.match(js,/closeEditorialReview\(\)/);
  assert.match(review,/req\.query\.focus/);
  assert.match(review,/ORDER BY \(c\.id=\$2::bigint\) DESC/);
- assert.match(review,/\[status,focus\]/);
+ assert.match(review,/\[status,focus,orphaned\]/);
  assert.match(review,/router\.use\(requireAdmin\)/);
 });
 test('Mesa editorial lleva el ID exacto a controles de calidad y abre el detalle',()=>{
@@ -79,7 +79,7 @@ test('seguridad editorial: nadie aprueba ni publica de modo automático',()=>{
  assert.match(read('src/services/editorial-v320.js'),/CHECK\(NOT auto_publish_enabled\)/);
 });
 test('cambios de versión',()=>{
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.19'/);
- assert.match(read('package.json'),/"version": "3\.2\.19"/);
- assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.19'/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.20'/);
+ assert.match(read('package.json'),/"version": "3\.2\.20"/);
+ assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.20'/);
 });

@@ -556,3 +556,16 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   #editorialCenter .editorial-source-removal-v3219{padding:13px}
   #editorialCenter .editorial-source-removal-v3219 .actions button{flex:1 1 100%;width:100%}
 }
+
+/* V3.2.20 — No-active-RSS source warnings and filter, mobile-first. */
+#editorialInbox .editorial-orphan-warning-v3220{
+  border-left:3px solid #c07345;background:#fff1e8;padding:10px 12px;
+  border-radius:8px;font-size:13px;line-height:1.5;color:#683623;
+  overflow-wrap:anywhere;margin:12px 0
+}
+#editorialInbox .editorial-orphan-warning-v3220 strong{font-weight:800}
+#editorialInbox .panel-tools #editorialOrphanFilterV3220{min-height:44px;max-width:100%}
+@media(max-width:620px){
+  #editorialInbox .panel-tools #editorialOrphanFilterV3220{width:100%}
+  #editorialInbox .editorial-orphan-warning-v3220{font-size:12px}
+}
