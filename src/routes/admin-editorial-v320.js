@@ -109,7 +109,7 @@ async function writeAndAudit(adminId,action,entityType,work){
 router.get('/overview',wrap(async(req,res)=>{
   const [profiles,sources,communities,settings,audit]=await Promise.all([
     db.query('SELECT id,slug,name,bio,category,community_id,avatar_url,cover_url,status,created_at,updated_at FROM editorial_profiles ORDER BY id DESC LIMIT 200'),
-    db.query('SELECT id,name,feed_url,category,profile_id,status,rights_mode,rights_reference,last_checked_at,created_at,updated_at FROM editorial_sources ORDER BY id DESC LIMIT 200'),
+    db.query('SELECT id,name,feed_url,source_kind,category,profile_id,status,rights_mode,rights_reference,last_checked_at,created_at,updated_at FROM editorial_sources ORDER BY id DESC LIMIT 200'),
     db.query("SELECT DISTINCT c.id,c.name FROM communities c LEFT JOIN community_members m ON m.community_id=c.id AND m.user_id=$1 WHERE c.privacy='public' AND (c.owner_id=$1 OR m.role IN ('owner','admin')) ORDER BY c.name LIMIT 100",[req.user.id]),
     db.query('SELECT review_required,ingestion_enabled,auto_publish_enabled FROM editorial_settings WHERE singleton=TRUE'),
     db.query('SELECT id,action,entity_type,entity_id,created_at FROM editorial_audit ORDER BY created_at DESC,id DESC LIMIT 30')
