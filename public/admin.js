@@ -1529,7 +1529,10 @@ for(const [formId,type] of [['editorialProfileForm','profiles'],['editorialSourc
     const btn=form.querySelector('button[type="submit"]');btn.disabled=true;
     try{
       const {r,d}=await api(url,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-      if(!r.ok)throw Error(d.error||'No se pudo guardar');
+      if(!r.ok)throw Error({
+        editorial_source_profile_required:'Para aprobar una fuente RSS debes asociarla a un perfil editorial preparado.',
+        editorial_source_profile_category_mismatch:'La categoría de la fuente RSS y la del perfil deben coincidir y el perfil debe estar preparado.'
+      }[d.error]||d.error||'No se pudo guardar');
       form.reset();delete form.dataset.editId;
       setAdminNotice('Configuración editorial guardada.');
       await loadEditorialV320();
