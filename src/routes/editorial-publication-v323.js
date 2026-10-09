@@ -41,7 +41,7 @@ async function assertApprovedForPublication(client,id,revision){
   if(row.revision!==revision)throw fail(409,'editorial_review_stale');
   if(row.status!=='approved'||!row.reviewed_at||!row.reviewed_by)throw fail(409,'editorial_review_required');
   if(row.source_status!=='approved'||row.profile_status!=='ready')throw fail(409,'editorial_source_or_profile_not_ready');
-  if(row.profile_category!==row.category||row.profile_category!==row.category || String(row.source_profile_id)!==String(row.profile_id)){
+  if(row.profile_category!==row.category || String(row.source_profile_id)!==String(row.profile_id)){
     throw fail(409,'editorial_profile_mismatch');
   }
   if(!isOriginalEditorial(row))throw fail(422,'editorial_original_draft_required');
@@ -49,7 +49,8 @@ async function assertApprovedForPublication(client,id,revision){
   // Require HTTPS source article URL for external linking.
   let url;
   try{url=new URL(row.canonical_url);}catch(_){throw fail(422,'editorial_source_link_invalid');}
-  if(url.protocol!=='https:'||url.username||url.password||!url.hostname.includes('.'))throw fail(422,'editorial_source_link_invalid');
+  if(url.protocol!=='https:'||url.username||url.password||url.port||!url.hostname.includes('.')||\
+      /\.(?:local|internal|localhost|test|invalid|example|onion)$/i.test(url.hostname))throw fail(422,'editorial_source_link_invalid');
   return row;
 }
 async function inTransaction(work){
@@ -80,9 +81,11 @@ admin.post('/publish/:candidateId',errorHandler(async(req,res)=>{
     const row=await assertApprovedForPublication(client,id,req.body.revision);
     const previous=await client.query('SELECT id,unpublished_at FROM editorial_publications WHERE candidate_id=$1 FOR UPDATE',[id]);
     if(previous.rowCount && !previous.rows[0].unpublished_at)throw fail(409,'editorial_already_published');
+    // Serialize the global daily cap across concurrent admins and instances.
+    await client.query('SELECT pg_advisory_xact_lock(323,1)');
     // Max 6 manually released articles per Madrid calendar day in the pilot.
     const daily=await client.query(
-      "SELECT count(*)::int AS n FROM editorial_publications WHERE (published_at AT TIME ZONE 'Europe/Madrid')::date=(now() AT TIME ZONE 'Europe/Madrid')::date AND unpublished_at IS NULL"
+      "SELECT count(*)::int AS n FROM editorial_publications WHERE (published_at AT TIME ZONE 'Europe/Madrid')::date=(now() AT TIME ZONE 'Europe/Madrid')::date "
     );
     if(Number(daily.rows[0]?.n||0)>=6)throw fail(429,'editorial_daily_limit');
     let publication;
@@ -148,7 +151,7 @@ function card(row){
 }
 async function liveItems(extra='',params=[]){
   return db.query(
-    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
+    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
     params
   );
 }
@@ -160,6 +163,18 @@ publicRouter.get('/',async(_req,res)=>{
     res.type('html').send(page({title:'Noticias y actualidad',description:'Noticias originales revisadas por el equipo editorial de RedLibertad, con enlaces a las fuentes originales.',pathname:'/noticias',body:
       '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section><section class="ed-stack">'+cards+'</section>',noindex:items.rows.length===0}));
   }catch(e){console.error('Editorial listing failed:',e);res.status(503).send('No disponible');}
+});
+publicRouter.get('/sitemap.xml',async(_req,res)=>{
+  try{
+    const items=await liveItems();
+    const uniqueProfiles=new Set(items.rows.map(r=>r.profile_slug));
+    const urls=[
+      '<url><loc>'+esc(origin()+'/noticias')+'</loc><changefreq>daily</changefreq></url>',
+      ...[...uniqueProfiles].map(slug=>'<url><loc>'+esc(origin()+'/noticias/perfil/'+encodeURIComponent(slug))+'</loc><changefreq>weekly</changefreq></url>'),
+      ...items.rows.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
+    ];
+    res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
+  }catch(e){console.error('Editorial sitemap failed:',e);res.status(503).type('text/plain').send('Unavailable');}
 });
 publicRouter.get('/perfil/:slug',async(req,res)=>{
   const slug=String(req.params.slug||'');
@@ -189,4 +204,4 @@ publicRouter.get('/p/:id',async(req,res)=>{
     res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body}));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
-module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page};
+module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};
