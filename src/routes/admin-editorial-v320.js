@@ -43,6 +43,7 @@ const sourceInput=z.object({
 
 const wrap=handler=>(req,res)=>Promise.resolve().then(()=>handler(req,res)).catch(error=>{
   if(error.status===404)return res.status(404).json({error:'editorial_not_found'});
+  if(error.status===409&&['editorial_source_profile_required','editorial_source_profile_category_mismatch'].includes(error.code))return res.status(409).json({error:error.code});
   if(error.status===403)return res.status(403).json({error:'editorial_community_not_managed'});
   if(error.code==='23505')return res.status(409).json({error:'editorial_already_exists'});
   if(error.code==='23503'||error.code==='23514')return res.status(400).json({error:'editorial_reference_invalid'});
@@ -68,6 +69,22 @@ async function checkProfile(client,id){
   if(id===null)return;
   const r=await client.query('SELECT 1 FROM editorial_profiles WHERE id=$1',[id]);
   if(!r.rowCount)throw httpError(404);
+}
+// V3.2.18.1 — an approved RSS source must point at a ready profile
+// in the SAME category. Draft/paused sources remain editable for setup.
+async function checkApprovedSourceAssignmentV32181(client,data){
+  if(data.status!=='approved')return;
+  if(data.profileId===null){
+    const e=new Error('editorial_source_profile_required');
+    e.status=409;e.code='editorial_source_profile_required';throw e;
+  }
+  const p=await client.query(
+    'SELECT status,category FROM editorial_profiles WHERE id=$1',[data.profileId]
+  );
+  if(!p.rowCount||p.rows[0].status!=='ready'||p.rows[0].category!==data.category){
+    const e=new Error('editorial_source_profile_category_mismatch');
+    e.status=409;e.code='editorial_source_profile_category_mismatch';throw e;
+  }
 }
 async function writeAndAudit(adminId,action,entityType,work){
   const client=await db.pool.connect();
@@ -149,6 +166,7 @@ router.post('/sources',wrap(async(req,res)=>{
   const url=validateFeedUrl(d.feedUrl);
   const row=await writeAndAudit(req.user.id,'create','source',async client=>{
     await checkProfile(client,d.profileId);
+    await checkApprovedSourceAssignmentV32181(client,d);
     const r=await client.query(
       'INSERT INTO editorial_sources(name,feed_url,category,profile_id,status,rights_mode,rights_reference) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *',
       [d.name,url,d.category,d.profileId,d.status,d.rightsMode,d.rightsReference]
@@ -167,6 +185,7 @@ router.put('/sources/:id',wrap(async(req,res)=>{
   const url=validateFeedUrl(d.feedUrl);
   const row=await writeAndAudit(req.user.id,'update','source',async client=>{
     await checkProfile(client,d.profileId);
+    await checkApprovedSourceAssignmentV32181(client,d);
     const r=await client.query(
       'UPDATE editorial_sources SET name=$2,feed_url=$3,category=$4,profile_id=$5,status=$6,rights_mode=$7,rights_reference=$8,updated_at=now() WHERE id=$1 RETURNING *',
       [id,d.name,url,d.category,d.profileId,d.status,d.rightsMode,d.rightsReference]
