@@ -181,10 +181,10 @@ test('new community starter uses readable responsive cards and accessible touch 
   assert.match(css,/\.growth-community-card:focus-visible/);
   assert.match(css,/\.growth-community-starter \.tiny-action\{min-height:44px\}/);
 });
-test('release version, compatibility and Actions all include V3.1.0',()=>{
+test('V3.1 compatibility suite stays active on V3.2.0',()=>{
   const pkg=require('../package.json');
-  assert.equal(pkg.version,'3.1.0');
-  assert.match(read('server.js'),/const APP_VERSION='3\.1\.0'/);
+  assert.equal(pkg.version,'3.2.0');
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.0'/);
   assert.match(pkg.scripts['test:community-kickstart'],/community-kickstart-v310/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:community-kickstart/);
 });
