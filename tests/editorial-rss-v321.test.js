@@ -18,6 +18,70 @@ test('DNS no acepta destinos mixtos aunque contengan una IP pública',async()=>{
   await assert.rejects(rss.resolvePublicIPv4('example.net',async()=>[{address:'8.8.8.8'},{address:'127.0.0.1'}]),{code:'feed_network_blocked'});
   assert.equal(await rss.resolvePublicIPv4('example.net',async()=>[{address:'8.8.8.8'}]),'8.8.8.8');
 });
+test('IPv6 solo global unicast pública y bloqueo DNS mixto',async()=>{
+  for(const address of ['2606:4700:4700::1111','2a00:1450:4001::200e'])assert.equal(rss.publicIPv6(address),true,address);
+  for(const address of ['::1','fe80::1','fc00::1','2001:db8::1','2002::1','::ffff:127.0.0.1'])assert.equal(rss.publicIPv6(address),false,address);
+  await assert.rejects(rss.resolvePublicAddresses('example.org',async()=>[
+    {family:4,address:'8.8.8.8'},{family:6,address:'::1'}
+  ]),{code:'feed_network_blocked'});
+  const addresses=await rss.resolvePublicAddresses('example.org',async()=>[
+    {family:4,address:'8.8.8.8'},{family:6,address:'2606:4700:4700::1111'}
+  ]);
+  assert.deepEqual(addresses,[{family:4,address:'8.8.8.8'},{family:6,address:'2606:4700:4700::1111'}]);
+});
+test('errores DNS se distinguen sin mostrar detalles internos',async()=>{
+  const cause=Object.assign(new Error('DNS lookup failed'),{code:'ENOTFOUND'});
+  await assert.rejects(rss.fetchXml('https://example.org/rss',{
+    lookup:async()=>{throw cause;}
+  }),{code:'feed_dns_error'});
+});
+test('fallo IPv4 recuperable permite reintento IPv6 fijado por DNS y con TLS verificado',async()=>{
+  const ips=[];
+  let calls=0;
+  function request(opts,handler){
+    const req=new EventEmitter();
+    req.setTimeout=()=>{};
+    req.end=()=>{
+      ++calls;
+      opts.lookup(opts.hostname,{},(_error,address,family)=>ips.push({address,family,hostname:opts.hostname}));
+      if(calls===1){
+        const error=Object.assign(new Error('connection refused'),{code:'ECONNREFUSED'});
+        process.nextTick(()=>req.emit('error',error));return;
+      }
+      const res=new EventEmitter();
+      res.statusCode=200;res.headers={'content-type':'application/rss+xml'};
+      res.destroy=()=>{};
+      handler(res);
+      res.emit('data',Buffer.from('<rss><channel/></rss>'));
+      res.emit('end');
+    };
+    return req;
+  }
+  const xml=await rss.fetchXml('https://example.org/rss',{
+    lookup:async()=>[
+      {family:4,address:'8.8.8.8'},
+      {family:6,address:'2606:4700:4700::1111'}],
+    request
+  });
+  assert.match(xml,/<rss>/);
+  assert.equal(calls,2);
+  assert.deepEqual(ips,[
+    {address:'8.8.8.8',family:4,hostname:'example.org'},
+    {address:'2606:4700:4700::1111',family:6,hostname:'example.org'}
+  ]);
+});
+test('fallo TLS se diferencia de transporte, sin desactivar verificación',async()=>{
+  function request(_opts,_handler){
+    const req=new EventEmitter();
+    req.setTimeout=()=>{};
+    req.end=()=>process.nextTick(()=>req.emit('error',Object.assign(new Error('untrusted certificate'),{code:'UNABLE_TO_VERIFY_LEAF_SIGNATURE'})));
+    return req;
+  }
+  await assert.rejects(rss.fetchXml('https://example.org/rss',{
+    lookup:async()=>[{address:'8.8.8.8',family:4}],request
+  }),{code:'feed_tls_error'});
+});
+
 test('canonización retira seguimiento y bloquea protocolos peligrosos',()=>{
   assert.equal(rss.canonicalArticleUrl('https://example.org/noticia/?utm_source=feed&x=1#comments'),'https://example.org/noticia?x=1');
   assert.equal(rss.canonicalArticleUrl('https://example.org/a?x=1&amp;y=2'),'https://example.org/a?x=1&y=2');
@@ -93,7 +157,7 @@ test('rutas editoriales requieren admin, cooldown y no publican posts',()=>{
   for(const s of [route,read('src/services/editorial-rss-v321.js')]){
     assert.doesNotMatch(s,/INSERT INTO posts\b|INSERT INTO users\b|INSERT INTO community_posts\b/);
   }
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.7'/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.8'/);
   assert.match(read('public/admin.html'),/id="editorialInbox"/);
   assert.match(read('public/admin.js'),/loadEditorialInboxV321/);
 });

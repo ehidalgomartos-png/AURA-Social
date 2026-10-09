@@ -86,10 +86,12 @@ router.post('/sources/:id/fetch',async(req,res)=>{
     res.json({ok:true,found:candidates.length,added:inserted,duplicates:candidates.length-inserted,mode:'manual',published:0});
   }catch(e){
     const known=new Set(['feed_network_blocked','feed_url_rejected','feed_redirect_blocked','feed_http_error',
-      'feed_not_xml','feed_too_large','feed_timeout','feed_network_error','feed_xml_rejected','feed_parse_failed',
+      'feed_not_xml','feed_too_large','feed_timeout','feed_network_error','feed_dns_error','feed_tls_error','feed_connect_error','feed_response_error','feed_xml_rejected','feed_parse_failed',
       'editorial_source_changed']);
     if(known.has(e.code)){
       const code=e.code;
+      // Public response carries only a classified error code, never DNS IPs or TLS internals.
+      console.warn('Editorial RSS connection rejected:',code);
       return res.status(code==='editorial_source_changed'?409:422).json({error:code});
     }
     console.error('Editorial RSS fetch failed:',e);
