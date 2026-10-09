@@ -2370,6 +2370,10 @@ async function loadEditorialPublicV323(){
         ?'<a href="/noticias/p/'+encodeURIComponent(item.publication_id)+'" target="_blank" rel="noopener noreferrer">Ver publicación ↗</a>':'';
       const preview='<details class="editorial-pub-preview"><summary>Vista previa y atribución</summary>'+
         '<h3>'+esc(item.editorial_title||'Sin título')+'</h3><p>'+esc(item.editorial_summary||'Sin resumen')+'</p>'+
+        (imageLocalV3222(item.editorial_image_url)
+          ?'<figure class="editorial-pub-photo-v3222"><img loading="lazy" src="'+esc(item.editorial_image_url)+
+          '" alt="'+esc(item.editorial_image_alt||'Fotografía editorial')+'"><figcaption>Imagen: '+
+          esc(item.editorial_image_credit||'Crédito documentado')+'</figcaption></figure>':'')+
         '<small>Perfil: '+esc(item.profile_name||'Sin perfil')+' · Categoría: '+esc(item.category)+
         ' · Fuente: '+esc(item.source_name||'No disponible')+'</small></details>';
       const qualityOk=item.quality_decision==='clear' && Number(item.quality_revision)===Number(item.revision);
