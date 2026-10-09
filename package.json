@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.15",
+  "version": "3.2.16",
   "private": true,
-  "description": "RedLibertad V3.2.15 — Inteligencia editorial: categorías, similitudes entre fuentes y prioridad diaria",
+  "description": "RedLibertad V3.2.16 — Revisión editorial ágil y diversidad temática",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -50,7 +50,8 @@
     "test:editorial-integration": "node --test tests/editorial-integration-v3212.test.js",
     "test:editorial-drafts-nav": "node --test tests/editorial-drafts-nav-v3213.test.js",
     "test:editorial-nav-hotfix": "node --test tests/editorial-navigation-v32131.test.js",
-    "test:editorial-intelligence": "node --test tests/editorial-intelligence-v3215.test.js"
+    "test:editorial-intelligence": "node --test tests/editorial-intelligence-v3215.test.js",
+    "test:editorial-workflow": "node --test tests/editorial-workflow-v3216.test.js"
   },
   "engines": {
     "node": ">=20"
