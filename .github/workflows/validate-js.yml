@@ -68,6 +68,8 @@ jobs:
         run: npm run test:editorial-alignment
       - name: V3.2.19 protected RSS source deletion and preservation regression tests
         run: npm run test:editorial-source-removal
+      - name: V3.2.20 RSS attribution snapshots and missing-source review filter tests
+        run: npm run test:editorial-orphans
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
