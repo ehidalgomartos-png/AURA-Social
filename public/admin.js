@@ -2045,12 +2045,26 @@ async function loadEditorialPublicV323(){
         '<small>Perfil: '+esc(item.profile_name||'Sin perfil')+' · Categoría: '+esc(item.category)+
         ' · Fuente: '+esc(item.source_name||'No disponible')+'</small></details>';
       const qualityOk=item.quality_decision==='clear' && Number(item.quality_revision)===Number(item.revision);
+      const alignment=item.alignment||{ok:false,issues:[{message:'No se pudo comprobar la asignación editorial.'}],canReconcile:false};
+      const aligned=alignment.ok===true;
       const ready=!!item.editorial_title && !!item.editorial_summary && item.source_status==='approved' &&
-        item.profile_status==='ready' && qualityOk;
+        item.profile_status==='ready' && aligned && qualityOk;
+      const mismatch=!aligned&&!live
+        ?'<div class="editorial-assignment-alert-v32181" role="alert"><strong>Asignación editorial pendiente de corregir</strong><ul>'+
+          (alignment.issues||[]).map(issue=>'<li>'+esc(issue.message||'Comprueba la asignación editorial.')+'</li>').join('')+
+          '</ul><p>Fuente RSS: '+esc(item.source_name||'Sin fuente')+
+          ' · Categoría fuente: '+esc(editorialCategoryLabelsV3215[item.source_category]||item.source_category||'No definida')+
+          ' · Perfil de la fuente: '+esc(item.source_profile_name||'Sin asignar')+
+          ' · Categoría de la noticia: '+esc(editorialCategoryLabelsV3215[item.category]||item.category)+
+          '</p><p><a href="#editorialCenter">Revisar fuentes y perfiles editoriales</a></p>'+
+          (alignment.canReconcile?'<button type="button" class="soft" data-editorial-reconcile="'+esc(item.id)+'">Reasignar y devolver a revisión</button>':
+            '<p>Antes de continuar, configura una fuente RSS aprobada con un perfil preparado de su misma categoría y pulsa Actualizar.</p>')+
+          '</div>':'';
+
       return '<article class="report" data-editorial-pub="'+esc(item.id)+'"><div>'+
         '<b>'+esc(item.editorial_title||'Noticia pendiente de completar')+'</b>'+
         '<p>'+esc(item.profile_name||'Sin perfil')+' · '+esc(item.source_name||'Sin fuente')+' · '+
-        (live?'Publicada':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+preview+
+        (live?'Publicada':!aligned?'Asignación editorial incompatible':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+mismatch+preview+
         '<div class="actions">'+
         (live?'<button type="button" class="soft" data-editorial-unpublish="'+esc(item.id)+'">Retirar publicación</button>'
           :'<button type="button" class="alt" data-editorial-publish="'+esc(item.id)+'" '+(ready?'':'disabled')+'>Publicar manualmente</button>')+
@@ -2062,6 +2076,43 @@ async function loadEditorialPublicV323(){
     root.textContent='Actualiza o revisa la conexión.';
   }
 }
+// Reconciliation is deliberately separate from publication and requires a
+// second human review plus a fresh quality clearance at the new revision.
+$('#editorialPublicItems')?.addEventListener('click',async event=>{
+  const button=event.target.closest('button[data-editorial-reconcile]');
+  if(!button||editorialPublishingBusy)return;
+  const id=button.dataset.editorialReconcile;
+  const item=(window.editorialPublishingRowsV323||[]).find(row=>String(row.id)===String(id));
+  if(!item||!item.alignment?.canReconcile||!(/^[1-9][0-9]{0,14}$/.test(String(id))))return;
+  const question='¿Reasignar esta noticia a la categoría «'+
+    (editorialCategoryLabelsV3215[item.source_category]||item.source_category)+
+    '» y al perfil «'+(item.source_profile_name||'No asignado')+'» de su fuente RSS? '+
+    'Se conservarán los textos, pero la noticia volverá a Pendientes y necesitará aprobación humana y control de calidad nuevos. NO se publicará.';
+  if(!window.confirm(question))return;
+  editorialPublishingBusy=true;button.disabled=true;
+  try{
+    const {r,d}=await api('/api/admin/editorial/reconcile/'+encodeURIComponent(id),{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({revision:Number(item.revision),confirm:true})
+    });
+    if(!r.ok)throw Error({
+      editorial_review_stale:'La noticia cambió. Actualiza antes de continuar.',
+      editorial_review_required:'Solo puede corregirse una noticia aprobada que no esté publicada.',
+      editorial_unpublish_before_reopen:'Retira primero la publicación pública.',
+      editorial_source_assignment_invalid:'La fuente RSS no tiene un perfil preparado y coherente con su categoría. Corrige primero la fuente.',
+      editorial_assignment_already_valid:'La asignación ya es correcta. Actualiza la lista.'
+    }[d.error]||d.error||'No se pudo corregir la asignación.');
+    setAdminNotice('Asignación corregida. Noticia devuelta a Pendientes: vuelve a revisar y aprobar el texto y completar un nuevo control de calidad. No se ha publicado.');
+    if($('#editorialReviewFilter'))$('#editorialReviewFilter').value='pending';
+    closeEditorialReview();
+    await Promise.all([loadEditorialPublicV323(),loadEditorialInboxV321(String(id)),
+      loadEditorialQualityV325(),loadEditorialV320(),loadEditorialDailyV327()]);
+    const refreshed=editorialReviewItems.find(row=>String(row.id)===String(id));
+    if(refreshed)openEditorialReview(refreshed);
+    else $('#editorialInbox')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){setAdminNotice('Asignación editorial: '+e.message,true);}
+  finally{editorialPublishingBusy=false;button.disabled=false;}
+});
 $('#editorialPublicReload')?.addEventListener('click',loadEditorialPublicV323);
 $('#editorialPublicItems')?.addEventListener('click',async event=>{
   const button=event.target.closest('button[data-editorial-publish],button[data-editorial-unpublish]');
