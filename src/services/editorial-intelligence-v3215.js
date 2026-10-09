@@ -92,15 +92,27 @@ function advise(item,pool=[],now=new Date()){
   };
 }
 function enrich(items,pool,now=new Date()){
-  const totalByCategory={};
-  return items.map(row=>({...row,advice:advise(row,pool,now)}))
-    .sort((a,b)=>b.advice.priority_score-a.advice.priority_score||String(b.fetched_at).localeCompare(String(a.fetched_at)))
-    .map(row=>{
-      // Avoid filling the first positions with an entire batch from one RSS category.
-      const category=row.advice.category_suggestion.category;
-      const seen=totalByCategory[category]||0;
-      totalByCategory[category]=seen+1;
-      return {...row,advice:{...row.advice,diversity_note:seen>=3?'varias noticias de esta categoría':'categoría variada'}};
-    });
+  const remaining=items.map(row=>({...row,advice:advise(row,pool,now)}));
+  const ranked=[],selectedCategories={},selectedSources={};
+  while(remaining.length){
+    let bestIndex=0,best=-Infinity;
+    for(let i=0;i<remaining.length;i++){
+      const row=remaining[i];
+      const cat=row.advice.category_suggestion.category;
+      // The first few positions should not be occupied solely by one RSS feed.
+      const adjusted=row.advice.priority_score-
+        Math.min(26,(selectedCategories[cat]||0)*7)-
+        Math.min(21,(selectedSources[String(row.source_id)]||0)*9);
+      if(adjusted>best){best=adjusted;bestIndex=i;}
+    }
+    const [row]=remaining.splice(bestIndex,1);
+    const cat=row.advice.category_suggestion.category;
+    const source=String(row.source_id);
+    const seen=selectedCategories[cat]||0;
+    selectedCategories[cat]=seen+1;
+    selectedSources[source]=(selectedSources[source]||0)+1;
+    ranked.push({...row,advice:{...row.advice,diversity_note:seen>=3?'varias noticias de esta categoría':'selección temática variada'}});
+  }
+  return ranked;
 }
 module.exports={CATEGORIES,categoryAdvice,possibleDuplicates,advise,enrich,tokens};
