@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.8",
+  "version": "3.2.9",
   "private": true,
-  "description": "RedLibertad V3.2.8 — RSS Connectivity Diagnostic Hotfix",
+  "description": "RedLibertad V3.2.9 — RSS DNS Lookup Compatibility Hotfix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
