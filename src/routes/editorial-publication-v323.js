@@ -20,6 +20,10 @@ function ensurePublicationSchema(){
       await ensureReviewSchema();
       await db.query("CREATE TABLE IF NOT EXISTS editorial_publications (id BIGSERIAL PRIMARY KEY,candidate_id BIGINT NOT NULL UNIQUE REFERENCES editorial_candidates(id) ON DELETE RESTRICT,profile_id BIGINT NOT NULL REFERENCES editorial_profiles(id) ON DELETE RESTRICT,title VARCHAR(220) NOT NULL,summary VARCHAR(1100) NOT NULL,source_url TEXT NOT NULL,source_name VARCHAR(100) NOT NULL,category VARCHAR(30) NOT NULL,published_by BIGINT REFERENCES users(id) ON DELETE SET NULL,published_at TIMESTAMPTZ NOT NULL DEFAULT now(),unpublished_at TIMESTAMPTZ,unpublished_by BIGINT REFERENCES users(id) ON DELETE SET NULL)");
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_public_live ON editorial_publications(published_at DESC,id DESC) WHERE unpublished_at IS NULL');
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_url TEXT");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_alt VARCHAR(220)");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_credit VARCHAR(200)");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_rights_reference VARCHAR(1000)");
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_public_profile ON editorial_publications(profile_id,published_at DESC) WHERE unpublished_at IS NULL');
     })().catch(e=>{schemaReady=null;throw e;});
   }
@@ -74,7 +78,7 @@ admin.use(async(_req,res,next)=>{try{await ensurePublicationSchema();await ensur
 
 admin.get('/publication-queue',errorHandler(async(_req,res)=>{
   const data=await db.query(
-    "SELECT c.id,c.revision,c.status,c.category,c.source_id,c.removed_source_id,c.profile_id,c.editorial_title,c.editorial_summary,c.canonical_url,c.reviewed_at,COALESCE(es.name,c.source_name_snapshot) AS source_name,es.category AS source_category,es.profile_id AS source_profile_id,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,ep.category AS profile_category,sp.name AS source_profile_name,sp.status AS source_profile_status,sp.category AS source_profile_category,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=es.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
+    "SELECT c.id,c.revision,c.status,c.category,c.source_id,c.removed_source_id,c.profile_id,c.editorial_title,c.editorial_summary,c.source_image_url,c.editorial_image_url,c.editorial_image_alt,c.editorial_image_credit,c.canonical_url,c.reviewed_at,COALESCE(es.name,c.source_name_snapshot) AS source_name,es.category AS source_category,es.profile_id AS source_profile_id,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,ep.category AS profile_category,sp.name AS source_profile_name,sp.status AS source_profile_status,sp.category AS source_profile_category,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=es.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
   );
   res.json({items:data.rows.map(row=>({...row,alignment:editorialAlignmentV32181(row)})),manualOnly:true,autoPublishing:false});
 }));
@@ -317,7 +321,7 @@ function card(row){
 }
 async function liveItems(extra='',params=[]){
   return db.query(
-    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
+    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,pub.image_url,pub.image_alt,pub.image_credit,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
     params
   );
 }
