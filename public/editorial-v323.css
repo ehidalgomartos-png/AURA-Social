@@ -33,3 +33,24 @@ a:focus-visible{outline:3px solid #ef7a5d;outline-offset:3px}
 .ed-empty{color:var(--muted)}
 .ed-footer{background:#e8efeb;padding:24px 18px;text-align:center;font-size:12px;color:var(--muted)}
 @media(min-width:730px){.ed-main{padding:36px 26px 80px}.ed-hero{padding:35px 40px}.ed-card{padding:26px 30px}.ed-article{padding:35px 42px}}
+
+
+/* V3.2.4 — genuine reader participation on public editorial pages */
+.ed-social{margin:26px 0 12px;padding:20px 0;border-top:1px solid var(--line)}
+.ed-social h2{font-size:23px;margin:25px 0 4px}
+.ed-social-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.ed-social button{min-height:44px;border:1px solid var(--line);background:#f1f7f6;color:var(--navy);border-radius:10px;padding:10px 14px;font:700 14px/1.35 inherit;cursor:pointer}
+.ed-social button[aria-pressed=true]{background:#d9f2ed;border-color:#168e87}
+.ed-social button:disabled{opacity:.5;cursor:not-allowed}
+.ed-feedback{font-size:13px;color:#27655e;min-height:22px;margin-top:12px}
+.ed-feedback.error{color:#a42828}
+.ed-social form{margin:15px 0 22px;display:grid;gap:8px}
+.ed-social label{font-weight:700;font-size:14px}
+.ed-social textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;color:var(--navy);background:white;resize:vertical;min-height:88px}
+.ed-social form button{justify-self:start;min-width:140px;background:var(--navy);color:white}
+.ed-comment{border-top:1px solid var(--line);padding:13px 0}
+.ed-comment p{margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ed-comment-head{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.ed-comment-head small{color:var(--muted)}
+.ed-comment-actions button{padding:5px 10px;min-height:34px;font-size:12px}
+@media(max-width:540px){.ed-social-actions{display:grid;grid-template-columns:1fr 1fr}.ed-social-actions button{width:100%}.ed-social-actions span{font-size:12px}.ed-social form button{width:100%}}
