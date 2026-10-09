@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "private": true,
-  "description": "RedLibertad V3.2.1 — RSS manual e inbox editorial sin publicación.",
+  "description": "RedLibertad V3.2.2 — Revisión humana y aprobación de noticias, sin publicar.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -39,7 +39,8 @@
     "test:own-profile": "node --test tests/own-profile-full-posts-v305.test.js",
     "test:mobile-nav": "node --test tests/mobile-navigation-v306.test.js",
     "test:community-kickstart": "node --test tests/community-kickstart-v310.test.js",
-    "test:editorial-rss": "node --test tests/editorial-rss-v321.test.js"
+    "test:editorial-rss": "node --test tests/editorial-rss-v321.test.js",
+    "test:editorial-review": "node --test tests/editorial-review-v322.test.js"
   },
   "engines": {
     "node": ">=20"
