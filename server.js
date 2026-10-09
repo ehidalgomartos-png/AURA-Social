@@ -32,6 +32,7 @@ const adminEditorialInboxV321Routes = require('./src/routes/admin-editorial-inbo
 const {router:adminEditorialReviewV322Routes} = require('./src/routes/admin-editorial-review-v322');
 const {admin:editorialPublishV323Admin,publicRouter:editorialPublishV323Public}=require('./src/routes/editorial-publication-v323');
 const {router:editorialQualityV325Admin}=require('./src/routes/admin-editorial-quality-v325');
+const {router:editorialPlanningV326Admin}=require('./src/routes/admin-editorial-planning-v326');
 const {router:editorialSocialV324,admin:editorialSocialV324Admin}=require('./src/routes/editorial-social-v324');
 const adminSecurityRoutes = require('./src/routes/admin-security-v211');
 const adminVerificationV1891Routes = require('./src/routes/admin-verification-v1891');
@@ -69,7 +70,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.5';
+const APP_VERSION='3.2.6';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -221,6 +222,7 @@ app.use('/api/admin', createOperationalAlertAdminRoutes({db,service:operationalA
 app.use('/api/admin', createAlertDeliveryAdminRoutes({db,delivery:alertDelivery}));
 app.use('/api/admin', createReleaseVerificationRoutes(releaseVerifier));
 app.use('/api/admin', adminSecurityRoutes);
+app.use('/api/admin/editorial', editorialPlanningV326Admin);
 app.use('/api/admin/editorial', editorialQualityV325Admin);
 app.use('/api/admin/editorial', editorialSocialV324Admin);
 app.use('/api/admin/editorial', editorialPublishV323Admin);

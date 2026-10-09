@@ -114,6 +114,27 @@
     <p class="panel-copy">Las métricas cuentan acciones registradas, no personas únicas ni visitas. No hay publicación automática.</p>
   </section>
 
+  <section class="panel" id="editorialPlanning" aria-labelledby="editorialPlanningTitle">
+    <div class="panel-head">
+      <div><span class="eyebrow">EDITORIAL · V3.2.6</span><h2 id="editorialPlanningTitle">Selección y calendario manual</h2>
+        <p class="panel-copy">Ordena noticias aprobadas por señales explicables: actualidad, revisión de calidad, prioridad y diversidad de fuentes. Planificar una fecha no publica nada.</p></div>
+      <button type="button" id="editorialPlanningReload">Actualizar</button>
+    </div>
+    <form id="editorialPlanningFilters" class="editorial-planning-filters">
+      <label>Buscar noticia <input type="search" name="search" maxlength="100" placeholder="Titular, categoría o medio"></label>
+      <label>Categoría <select name="category"><option value="">Todas</option><option value="actualidad">Actualidad</option><option value="tecnologia">Tecnología</option><option value="cultura">Cultura</option><option value="deportes">Deportes</option><option value="sociedad">Sociedad</option><option value="entretenimiento">Entretenimiento</option></select></label>
+      <label>Fuente <select name="sourceId" id="editorialPlanningSource"><option value="">Todas las fuentes</option></select></label>
+      <label>Calidad <select name="quality"><option value="all">Todas</option><option value="clear">Aptas</option><option value="pending">Pendientes / retenidas</option></select></label>
+      <button type="submit" class="alt">Aplicar filtros</button>
+    </form>
+    <p class="status" id="editorialPlanningStatus" role="status" aria-live="polite">Cargando selección…</p>
+    <h3>Calendario (hora de Madrid)</h3>
+    <div id="editorialPlanningCalendar" class="editorial-planning-calendar" aria-live="polite"></div>
+    <h3>Noticias para seleccionar</h3>
+    <div id="editorialPlanningQueue" class="editorial-planning-queue" aria-live="polite"></div>
+    <p class="panel-copy">La prioridad es una ayuda editorial, no una puntuación de veracidad. Fechas orientativas en hora local de tu dispositivo; los límites diarios se calculan en Europe/Madrid. Publicación exclusivamente manual desde Publicaciones editoriales.</p>
+  </section>
+
   <section class="panel" id="editorialSocialModeration" aria-labelledby="editorialSocialModerationTitle">
     <div class="panel-head">
       <div><span class="eyebrow">EDITORIAL · V3.2.4</span><h2 id="editorialSocialModerationTitle">Moderación de comentarios de noticias</h2>

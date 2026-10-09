@@ -94,12 +94,12 @@ router.get('/overview',wrap(async(req,res)=>{
     db.query('SELECT id,action,entity_type,entity_id,created_at FROM editorial_audit ORDER BY created_at DESC,id DESC LIMIT 30')
   ]);
   res.json({
-    version:'3.2.5',
+    version:'3.2.6',
     profiles:profiles.rows,sources:sources.rows,communities:communities.rows,
     settings:settings.rows[0]||{review_required:true,ingestion_enabled:false,auto_publish_enabled:false},
     audit:audit.rows,
     categories:CATEGORIES,
-    capabilities:{feedFetch:true,drafts:true,publishing:true,autoPublishing:false,realAccounts:false,memberInteraction:true,humanQualityGate:true,analytics:true,mode:'manual-only'}
+    capabilities:{feedFetch:true,drafts:true,publishing:true,autoPublishing:false,realAccounts:false,memberInteraction:true,humanQualityGate:true,analytics:true,manualPlanning:true,explainableSelection:true,mode:'manual-only'}
   });
 }));
 
