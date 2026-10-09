@@ -56,6 +56,17 @@ test('panel móvil ofrece edición original, trazabilidad, tres verificaciones y
   assert.ok(js.includes("action==='approve'"));
   assert.ok(js.includes("no se publicará")||js.includes("NO se publicará"));
   assert.ok(css.includes('#editorialReviewEditor'));
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.9'/);
-  assert.match(read('package.json'),/"version": "3\.2\.9"/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.10'/);
+  assert.match(read('package.json'),/"version": "3\.2\.10"/);
+});
+
+test('V3.2.10 botón Reabrir se muestra al estar aprobado y oculta con pendientes',()=>{
+  const html=read('public/admin.html'),js=read('public/admin.js'),css=read('public/admin.css');
+  assert.match(html,/<button type="button" class="soft" hidden data-editorial-decision="reopen">Reabrir para edición<\/button>/);
+  assert.doesNotMatch(html,/class="soft hidden" data-editorial-decision="reopen"/);
+  assert.match(js,/reopenBtn\.hidden=pending/);
+  assert.match(js,/reopenBtn\.classList\.toggle\('hidden',pending\)/);
+  assert.match(css,/#editorialReviewActions button\[hidden\]\{display:none!important\}/);
+  assert.match(js,/if\(action==='reopen' && \$\('#editorialReviewFilter'\)\) \$\('#editorialReviewFilter'\)\.value='pending'/);
+  assert.match(js,/loadEditorialPublicV323\(\),loadEditorialQualityV325\(\),loadEditorialPlanningV326\(\),loadEditorialDailyV327\(\)/);
 });
