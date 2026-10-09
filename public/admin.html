@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.22">
+  <link rel="stylesheet" href="/admin.css?v=3.2.23">
 </head>
 <body>
 <header>
@@ -45,6 +45,53 @@
     <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2</span><h2 id="editorialTitle">Centro Editorial</h2><p class="panel-copy">Configura perfiles y fuentes. Consulta RSS manual con revisión de noticias; publicación automática desactivada.</p></div><button type="button" id="editorialReload">Actualizar</button></div>
     <p id="editorialMessage" class="status" role="status" aria-live="polite">Cargando configuración…</p>
     <div id="editorialStats" class="beta-metrics"></div>
+    <section class="editorial-web-import-v3223" aria-labelledby="editorialWebImportTitleV3223">
+      <div class="editorial-web-import-head-v3223">
+        <h3 id="editorialWebImportTitleV3223">Crear noticia desde una página web</h3>
+        <p class="panel-copy">Pega una noticia HTTPS. Recuperaremos los metadatos disponibles (titular, descripción, medio y posible foto) para preparar un borrador. No copiamos el artículo completo ni publicamos automáticamente.</p>
+      </div>
+      <form id="editorialWebImportFormV3223" class="editorial-form" autocomplete="off">
+        <label for="editorialWebUrlV3223">URL de la noticia
+          <input id="editorialWebUrlV3223" name="url" type="url" maxlength="2048" required placeholder="https://www.medio.es/noticia..." inputmode="url">
+        </label>
+        <button type="button" class="alt" id="editorialWebPreviewButtonV3223">Analizar enlace</button>
+        <p id="editorialWebImportStatusV3223" class="status" role="status" aria-live="polite">Introduce el enlace de una noticia para comenzar.</p>
+        <section id="editorialWebDraftV3223" hidden aria-label="Datos extraídos y borrador editorial">
+          <div id="editorialWebPhotoNoticeV3223" class="editorial-web-photo-note-v3223" role="status"></div>
+          <label for="editorialWebOriginalTitleV3223">Titular original de referencia
+            <input id="editorialWebOriginalTitleV3223" type="text" maxlength="240" placeholder="Titular encontrado o introducido manualmente">
+          </label>
+          <label for="editorialWebOriginalExcerptV3223">Descripción del medio (solo referencia)
+            <textarea id="editorialWebOriginalExcerptV3223" rows="3" maxlength="400" placeholder="Descripción breve disponible en la página; no se publicará como texto de RedLibertad"></textarea>
+          </label>
+          <label for="editorialWebCategoryV3223">Categoría
+            <select id="editorialWebCategoryV3223">
+              <option value="actualidad">Actualidad</option><option value="tecnologia">Tecnología</option>
+              <option value="cultura">Cultura</option><option value="deportes">Deportes</option>
+              <option value="sociedad">Sociedad</option><option value="entretenimiento">Entretenimiento</option>
+            </select>
+          </label>
+          <label for="editorialWebProfileV3223">Perfil editorial preparado de la categoría
+            <select id="editorialWebProfileV3223" required><option value="">Selecciona un perfil</option></select>
+          </label>
+          <label for="editorialWebTitleV3223">Titular editorial propio
+            <input id="editorialWebTitleV3223" minlength="12" maxlength="220" required placeholder="Escribe un titular original">
+          </label>
+          <label for="editorialWebSummaryV3223">Resumen editorial original (mínimo 70 caracteres)
+            <textarea id="editorialWebSummaryV3223" minlength="70" maxlength="1100" rows="5" required placeholder="Redacta un resumen propio a partir de los hechos que hayas comprobado"></textarea>
+          </label>
+          <label for="editorialWebNoteV3223">Nota interna de revisión
+            <textarea id="editorialWebNoteV3223" minlength="12" maxlength="500" rows="2" required></textarea>
+          </label>
+          <label class="editorial-check"><input type="checkbox" id="editorialWebManualV3223"> Introducir datos manualmente porque la web no proporciona metadatos accesibles.</label>
+          <label class="editorial-check"><input type="checkbox" id="editorialWebConfirmSourceV3223"> He comprobado personalmente el artículo enlazado y autorizo incluirlo como fuente web de referencia.</label>
+          <label class="editorial-check"><input type="checkbox" id="editorialWebConfirmOriginalV3223"> Confirmo que el titular y el resumen editorial son un borrador propio que revisaré y contrastaré antes de aprobar.</label>
+          <label class="editorial-check"><input type="checkbox" id="editorialWebConfirmPhotoV3223"> Entiendo que una foto encontrada en la web NO está autorizada para publicarse por defecto.</label>
+          <button type="submit" id="editorialWebSaveV3223">Guardar en noticias (Pendientes)</button>
+          <p class="panel-copy">La noticia quedará en Revisión de noticias. La fotografía, si existe, solo será una sugerencia privada: necesitará licencia específica, nueva revisión y control de calidad antes de publicarse.</p>
+        </section>
+      </form>
+    </section>
     <div class="grid">
       <div>
         <h3>Perfil editorial</h3>
@@ -92,7 +139,7 @@
   </section>
 
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.22</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.23</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <div class="editorial-queue-tools-v3218" role="group" aria-label="Filtros rápidos de noticias cargadas">
       <label for="editorialQueueSearchV3218">Buscar noticia
         <input id="editorialQueueSearchV3218" type="search" maxlength="140" placeholder="Titular, medio o palabras" autocomplete="off">
@@ -621,6 +668,6 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.22"></script>
+  <script src="/admin.js?v=3.2.23"></script>
 </body>
 </html>

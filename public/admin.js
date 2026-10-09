@@ -1504,11 +1504,156 @@ async function loadEditorialV320(){
     cm.innerHTML='<option value="">Sin comunidad</option>'+(d.communities||[]).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
     pr.innerHTML='<option value="">Sin perfil</option>'+(d.profiles||[]).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
     $('#editorialProfiles').innerHTML=d.profiles.map(p=>'<div class="report"><b>'+esc(p.name)+'</b><p>'+esc(p.category)+' · '+esc(p.status)+' · @'+esc(p.slug)+'</p><button type="button" class="soft" data-editorial-profile="'+esc(p.id)+'">Editar</button></div>').join('')||'<p>No hay perfiles todavía.</p>';
-    $('#editorialSources').innerHTML=d.sources.map(s=>'<div class="report"><b>'+esc(s.name)+'</b><p>'+esc(s.category)+' · '+esc(s.status)+' · '+esc(s.rights_mode)+'</p><small>Última consulta: '+esc(timeLabel(s.last_checked_at))+'</small><div class="actions"><button type="button" class="soft" data-editorial-source="'+esc(s.id)+'">Editar</button>'+(s.status==='approved'?'<button type="button" class="alt" data-editorial-fetch="'+esc(s.id)+'">Consultar RSS</button>':'')+'<button type="button" class="soft editorial-source-delete-button-v3219" data-editorial-source-delete="'+esc(s.id)+'">Eliminar</button></div></div>').join('')||'<p>No hay fuentes todavía.</p>';
+    $('#editorialSources').innerHTML=d.sources.map(s=>'<div class="report"><b>'+esc(s.name)+'</b><p>'+esc(s.category)+' · '+esc(s.status)+' · '+(s.source_kind==='web'?'Fuente web manual':'RSS')+' · '+esc(s.rights_mode)+'</p><small>'+(s.source_kind==='web'?'Artículo importado manualmente':'Última consulta: '+esc(timeLabel(s.last_checked_at)))+'</small><div class="actions"><button type="button" class="soft" data-editorial-source="'+esc(s.id)+'">Editar</button>'+(s.status==='approved'&&s.source_kind!=='web'?'<button type="button" class="alt" data-editorial-fetch="'+esc(s.id)+'">Consultar RSS</button>':'')+'<button type="button" class="soft editorial-source-delete-button-v3219" data-editorial-source-delete="'+esc(s.id)+'">Eliminar</button></div></div>').join('')||'<p>No hay fuentes todavía.</p>';
     $('#editorialAudit').innerHTML=(d.audit||[]).map(a=>'<div class="report">'+esc(timeLabel(a.created_at))+' · '+esc(a.action)+' · '+esc(a.entity_type)+'</div>').join('')||'<p>Sin cambios registrados.</p>';
     window.editorialV320State=d;
+    webImportProfilesV3223();
   }catch(_){message.textContent='No se pudo cargar la configuración editorial.';}
 }
+// V3.2.23 — Manual article-from-URL import, not RSS ingestion.
+let editorialWebBusyV3223=false;
+let editorialWebPreviewV3223=null;
+function webImportStatusV3223(message,error=false){
+  const node=$('#editorialWebImportStatusV3223');
+  if(node){node.textContent=message;node.classList.toggle('error',error);}
+}
+function webImportProfilesV3223(){
+  const category=$('#editorialWebCategoryV3223')?.value||'actualidad';
+  const node=$('#editorialWebProfileV3223');
+  if(!node)return;
+  const selected=node.value;
+  const profiles=(window.editorialV320State?.profiles||[]).filter(p=>
+    p.status==='ready'&&p.category===category);
+  node.replaceChildren();
+  const empty=document.createElement('option');
+  empty.value='';empty.textContent=profiles.length?'Selecciona un perfil preparado':
+    'No hay perfiles preparados para esta categoría';
+  node.append(empty);
+  for(const profile of profiles){
+    const option=document.createElement('option');
+    option.value=String(profile.id);option.textContent=profile.name;node.append(option);
+  }
+  if(profiles.some(p=>String(p.id)===selected))node.value=selected;
+}
+$('#editorialWebCategoryV3223')?.addEventListener('change',webImportProfilesV3223);
+$('#editorialWebManualV3223')?.addEventListener('change',()=>{
+  if($('#editorialWebManualV3223').checked)webImportStatusV3223(
+    'Modo manual: redacta los datos originales de referencia y el borrador. Se guardará sin fotografía hasta verificar sus derechos.');
+  else if(!editorialWebPreviewV3223)webImportStatusV3223('Pulsa Analizar enlace para obtener los metadatos antes de guardar.');
+});
+$('#editorialWebPreviewButtonV3223')?.addEventListener('click',async()=>{
+  const url=$('#editorialWebUrlV3223')?.value.trim();
+  if(!/^https:\/\//i.test(url||'')){webImportStatusV3223('Introduce un enlace HTTPS válido de un artículo.',true);return;}
+  if(editorialWebBusyV3223)return;
+  editorialWebBusyV3223=true;editorialWebPreviewV3223=null;
+  const button=$('#editorialWebPreviewButtonV3223');button.disabled=true;
+  webImportStatusV3223('Analizando título, descripción y posible fotografía…');
+  try{
+    const {r,d}=await api('/api/admin/editorial/web-import/preview',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})
+    });
+    if(!r.ok)throw Error({
+      editorial_web_duplicate:'Esta noticia ya está importada. Búscala en Revisión de noticias.',
+      editorial_web_url_invalid:'No es una URL HTTPS de un artículo público válida.',
+      editorial_web_title_unavailable:'La página no expone un titular reconocible.',
+      editorial_web_http_error:'El medio no permite extraer los metadatos de esta página.',
+      editorial_web_not_html:'La dirección no corresponde a una página HTML.',
+      editorial_web_timeout:'El medio tardó demasiado en responder.',
+      editorial_web_rate_limited:'Has alcanzado el límite de análisis. Inténtalo más tarde.'
+    }[d?.error]||d?.error||'La web no permite analizar el artículo.');
+    const meta=d.extracted||{},draft=d.draft||{};
+    editorialWebPreviewV3223={url:meta.canonical_url,metadata:meta};
+    $('#editorialWebUrlV3223').value=meta.canonical_url||url;
+    $('#editorialWebOriginalTitleV3223').value=meta.source_title||'';
+    $('#editorialWebOriginalExcerptV3223').value=meta.source_excerpt||'';
+    $('#editorialWebTitleV3223').value=('RedLibertad analiza: '+String(draft.title_suggestion||meta.source_title||'')).slice(0,220);
+    $('#editorialWebSummaryV3223').value=(
+      'La noticia publicada por '+(meta.source_name||'el medio')+' aborda '+(meta.source_title||'el tema')+
+      '. '+(meta.source_excerpt||'')+
+      ' Este texto es una propuesta provisional: comprueba la información original, reescribe el resumen y contrasta los hechos antes de aprobar.'
+    ).slice(0,1100);
+    $('#editorialWebNoteV3223').value='Importación web manual: comprobar hechos, originalidad, fuente y derechos antes de aprobar.';
+    $('#editorialWebManualV3223').checked=false;
+    const photo=$('#editorialWebPhotoNoticeV3223');
+    photo.textContent=meta.source_image_url
+      ?'Fotografía detectada en los metadatos. Quedará como sugerencia privada hasta que autorices específicamente su reutilización desde la revisión de la noticia.'
+      :'La página no proporciona una fotografía válida. Se puede publicar sin imagen.';
+    $('#editorialWebDraftV3223').hidden=false;
+    webImportProfilesV3223();
+    webImportStatusV3223('Metadatos recuperados. Revisa y redacta un texto original antes de guardar. No se publicará automáticamente.');
+    $('#editorialWebDraftV3223').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    $('#editorialWebDraftV3223').hidden=false;
+    const manual=$('#editorialWebManualV3223');manual.checked=true;
+    $('#editorialWebPhotoNoticeV3223').textContent=
+      'La web no ha podido analizarse. Puedes introducir los metadatos manualmente, sin foto; asegúrate de haber leído la noticia original.';
+    webImportProfilesV3223();
+    webImportStatusV3223(e.message+' Puedes utilizar la introducción manual siempre que hayas revisado la fuente original.',true);
+  }finally{editorialWebBusyV3223=false;button.disabled=false;}
+});
+$('#editorialWebImportFormV3223')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(editorialWebBusyV3223)return;
+  const form=$('#editorialWebImportFormV3223'),url=$('#editorialWebUrlV3223')?.value.trim()||'';
+  const manual=$('#editorialWebManualV3223').checked;
+  if(!/^https:\/\//i.test(url)){webImportStatusV3223('La URL debe utilizar HTTPS.',true);return;}
+  const needs=['editorialWebConfirmSourceV3223','editorialWebConfirmOriginalV3223',
+    'editorialWebConfirmPhotoV3223'];
+  if(!needs.every(id=>$('#'+id)?.checked)){
+    webImportStatusV3223('Confirma que has revisado la fuente, el texto y los derechos fotográficos.',true);return;
+  }
+  const category=$('#editorialWebCategoryV3223').value;
+  const id=Number($('#editorialWebProfileV3223').value);
+  const matched=(window.editorialV320State?.profiles||[]).some(p=>
+    Number(p.id)===id&&p.category===category&&p.status==='ready');
+  if(!matched){webImportStatusV3223('Selecciona un perfil editorial preparado de la misma categoría.',true);return;}
+  if(!manual&&editorialWebPreviewV3223?.url!==url){
+    webImportStatusV3223('El enlace ha cambiado. Vuelve a pulsar Analizar enlace.',true);return;
+  }
+  if(!window.confirm('¿Guardar esta noticia como BORRADOR pendiente de revisión? Su titular y resumen deberán contrastarse; la foto no se publicará y la publicación seguirá siendo manual.'))return;
+  const data={
+    url,category,profileId:id,
+    title:$('#editorialWebTitleV3223').value.trim(),
+    summary:$('#editorialWebSummaryV3223').value.trim(),
+    note:$('#editorialWebNoteV3223').value.trim(),
+    manualFallback:manual,
+    manualSourceTitle:$('#editorialWebOriginalTitleV3223').value.trim(),
+    manualSourceExcerpt:$('#editorialWebOriginalExcerptV3223').value.trim(),
+    confirmedSource:true,confirmedOriginality:true,confirmedPhotoIsNotLicensed:true
+  };
+  editorialWebBusyV3223=true;
+  const button=$('#editorialWebSaveV3223');button.disabled=true;
+  webImportStatusV3223('Guardando borrador, comprobando duplicados y registrando la fuente…');
+  try{
+    const {r,d}=await api('/api/admin/editorial/web-import/save',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)
+    });
+    if(!r.ok)throw Error({
+      editorial_web_duplicate:'Esta noticia ya está en RedLibertad y no se ha duplicado.',
+      editorial_web_rewrite_title_required:'El titular editorial debe ser diferente del titular original.',
+      editorial_web_rewrite_summary_required:'El resumen debe ser original, no una copia exacta.',
+      editorial_web_draft_invalid:'Comprueba longitud de título, resumen y motivo de revisión.',
+      editorial_web_profile_invalid:'El perfil editorial debe estar preparado y ser de esa categoría.',
+      editorial_web_http_error:'El medio bloquea el acceso. Activa «Introducir datos manualmente» y verifica los datos.',
+      editorial_web_title_unavailable:'El medio ya no expone un titular. Puedes pasar al modo manual.'
+    }[d?.error]||d?.error||'No se pudo guardar la noticia.');
+    webImportStatusV3223('Noticia guardada como Pendiente. Abriendo la revisión…');
+    setAdminNotice('Noticia guardada como borrador editorial. No está publicada y su fotografía no está autorizada.');
+    form.reset();editorialWebPreviewV3223=null;
+    $('#editorialWebDraftV3223').hidden=true;
+    $('#editorialReviewFilter').value='pending';
+    $('#editorialOrphanFilterV3220').value='all';
+    closeEditorialReview();
+    resetEditorialQueueV3218({render:false});
+    const key=String(d.candidate.id);
+    await Promise.all([loadEditorialV320(),loadEditorialInboxV321(key),
+      loadEditorialPublicV323(),loadEditorialQualityV325()]);
+    const candidate=editorialReviewItems.find(x=>String(x.id)===key);
+    if(candidate)openEditorialReview(candidate);
+    else $('#editorialInbox')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){webImportStatusV3223(e.message,true);}
+  finally{editorialWebBusyV3223=false;button.disabled=false;}
+});
 function editorialPayload(form){
   const data=Object.fromEntries(new FormData(form).entries());
   if(form.id==='editorialProfileForm'){
