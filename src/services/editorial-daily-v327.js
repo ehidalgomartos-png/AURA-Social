@@ -33,6 +33,8 @@ function triage(rows,{day}={}){
     const entry={...row,quality_current:qualityCurrent(row),publication_prechecks_met:editorialReady(row),
       planned_for_day:due,overdue,plan_stale:stalePlan};
     if(due||overdue){planned.push(entry);continue;}
+    // Do not suggest early release of an item booked for a future day.
+    if(row.planned_day&&row.planned_day>day){others.push(entry);continue;}
     if(editorialReady(row)){ready.push(entry);continue;}
     if(!qualityCurrent(row)||row.source_status!=='approved'||row.profile_status!=='ready'){
       needsQuality.push(entry);continue;
