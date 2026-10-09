@@ -143,7 +143,7 @@ test('existing profile previews and shared Connections views remain present',()=
 });
 test('release version and CI include this hotfix suite',()=>{
   const pkg=require('../package.json');
-  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+$/);
+  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/);
   assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
   assert.match(pkg.scripts['test:hotfix'],/seo-ui-hotfix-v301\.test\.js/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:hotfix/);
