@@ -14,6 +14,7 @@ test('solo acepta URLs HTTPS de artículos, sin host privado ni archivos',()=>{
  }
  assert.equal(moduleV.articleUrlV3223('https://medio.es/noticia/?utm_source=rss&b=2&a=1'),
    'https://medio.es/noticia?a=1&b=2');
+ assert.equal(moduleV.articleUrlV3223('https://medio.es/noticia#comentarios'),'https://medio.es/noticia');
 });
 test('extrae OpenGraph aunque cambie orden de atributos y escapa HTML',()=>{
  const html='<html><head><title>Título secundario</title>'+
