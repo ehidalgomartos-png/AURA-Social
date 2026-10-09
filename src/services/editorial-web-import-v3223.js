@@ -9,7 +9,9 @@ const {validatedImageUrl}=require('./editorial-image-v3222');
 const MAX_PAGE_BYTES=700*1024;
 function articleUrlV3223(raw){
   if(typeof raw!=='string'||raw.length>2048)return null;
-  const validated=validateFeedUrl(raw.trim());
+  let parsed;
+  try{parsed=new URL(raw.trim());parsed.hash='';}catch(_){return null;}
+  const validated=validateFeedUrl(parsed.href);
   if(!validated)return null;
   const u=new URL(validated);
   if(!u.pathname||u.pathname==='/'&&!u.search)return null;
