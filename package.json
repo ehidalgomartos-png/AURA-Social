@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.9",
+  "version": "3.2.10",
   "private": true,
-  "description": "RedLibertad V3.2.9 — RSS DNS Lookup Compatibility Hotfix",
+  "description": "RedLibertad V3.2.10 — Editorial Reopen Button Hotfix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -376,6 +376,7 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialReviewEditor .editorial-check input{width:19px;height:19px;flex-shrink:0}
 #editorialReviewEditor .actions{display:flex;flex-wrap:wrap;gap:8px}
 #editorialReviewEditor button{min-height:44px}
+#editorialReviewActions button[hidden]{display:none!important}
 @media(max-width:600px){#editorialReviewEditor{padding:12px}#editorialReviewEditor .actions button{width:100%}#editorialInbox .panel-tools{width:100%}}
 
 
