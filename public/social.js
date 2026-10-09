@@ -9729,7 +9729,7 @@ async function handleInitialDeepLink() {
     return;
   }
 
-  if(view && ['feed','explore','reels','messages','notifications','profile'].includes(view)){
+  if(view && ['feed','explore','communities','reels','messages','notifications','profile'].includes(view)){
     showView(view);
     if(view==='messages' && conversation){
       await loadConversations(conversation);
