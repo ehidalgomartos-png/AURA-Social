@@ -43,7 +43,7 @@ router.get('/:id/overview',safeWrap(async(req,res)=>{
   if(!await livePublication(id))return error(res,'editorial_not_found',404);
   const [totals,comments]=await Promise.all([
     db.query("SELECT (SELECT count(*)::int FROM editorial_likes WHERE publication_id=$1) AS likes,(SELECT count(*)::int FROM editorial_comments c JOIN users u ON u.id=c.user_id WHERE c.publication_id=$1 AND c.status='published' AND u.status='active') AS comments",[id]),
-    db.query("SELECT c.id,c.body,c.created_at,u.username,u.display_name FROM editorial_comments c JOIN users u ON u.id=c.user_id WHERE c.publication_id=$1 AND c.status='published' AND u.status='active' ORDER BY c.created_at DESC,c.id DESC LIMIT 40",[id])
+    db.query("SELECT c.id,c.user_id,c.body,c.created_at,u.username,u.display_name FROM editorial_comments c JOIN users u ON u.id=c.user_id WHERE c.publication_id=$1 AND c.status='published' AND u.status='active' ORDER BY c.created_at DESC,c.id DESC LIMIT 40",[id])
   ]);
   res.set('Cache-Control','no-store').json({likes:totals.rows[0].likes,commentCount:totals.rows[0].comments,comments:comments.rows});
 }));
@@ -53,7 +53,7 @@ router.get('/:id/mine',safeWrap(async(req,res)=>{
   const id=safeId(req.params.id);if(!id)return error(res,'invalid_editorial_id');
   if(!await livePublication(id))return error(res,'editorial_not_found',404);
   const r=await db.query('SELECT EXISTS(SELECT 1 FROM editorial_likes WHERE publication_id=$1 AND user_id=$2) AS liked',[id,req.user.id]);
-  res.set('Cache-Control','no-store').json({liked:r.rows[0].liked});
+  res.set('Cache-Control','no-store').json({liked:r.rows[0].liked,userId:req.user.id});
 }));
 router.put('/:id/like',safeWrap(async(req,res)=>{
   const id=safeId(req.params.id);if(!id)return error(res,'invalid_editorial_id');
@@ -79,6 +79,7 @@ router.post('/:id/comments',safeWrap(async(req,res)=>{
   try{
     await client.query('BEGIN');
     if(!await livePublication(id,true,client)){await client.query('ROLLBACK');return error(res,'editorial_not_found',404);}
+    await client.query('SELECT pg_advisory_xact_lock(324,hashtext($1::text))',[req.user.id]);
     // Prevent bursts per user; modest daily cap before any paid moderation tooling.
     const recent=await client.query(
       "SELECT count(*)::int AS day_count,max(created_at) AS last_at FROM editorial_comments WHERE user_id=$1 AND created_at>now()-interval '24 hours'",[req.user.id]
