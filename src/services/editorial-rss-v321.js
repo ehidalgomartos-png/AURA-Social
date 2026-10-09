@@ -79,10 +79,16 @@ async function resolvePublicAddresses(host,lookup=dns.lookup){
   finally{clearTimeout(timer);}
   // Reject mixed public/private DNS answers, not just the selected address.
   if(!Array.isArray(addresses)||addresses.length===0)throw feedError('feed_dns_error');
-  if(addresses.some(item=>!publicAddress(item)))throw feedError('feed_network_blocked');
+  // Always derive the family from the literal address and reject mismatches.
+  const resolved=addresses.map(item=>{
+    const inferred=net.isIP(item?.address||'');
+    if(!inferred||item.family&&item.family!==inferred)return null;
+    return {address:item.address,family:inferred};
+  });
+  if(resolved.some(item=>!publicAddress(item)))throw feedError('feed_network_blocked');
   // One address per network family first; a second IPv4 fallback for CDNs.
-  const ipv4=addresses.filter(a=>a.family===4);
-  const ipv6=addresses.filter(a=>a.family===6);
+  const ipv4=resolved.filter(a=>a.family===4);
+  const ipv6=resolved.filter(a=>a.family===6);
   return [ipv4[0],ipv6[0],ipv4[1],ipv6[1]].filter(Boolean);
 }
 async function resolvePublicIPv4(host,lookup=dns.lookup){
