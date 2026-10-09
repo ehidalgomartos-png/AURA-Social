@@ -98,6 +98,22 @@
     <div id="editorialPublicItems" class="report-list" aria-live="polite"></div>
   </section>
 
+  <section class="panel" id="editorialQuality" aria-labelledby="editorialQualityTitle">
+    <div class="panel-head">
+      <div><span class="eyebrow">EDITORIAL · V3.2.5</span><h2 id="editorialQualityTitle">Calidad y estadísticas</h2>
+        <p class="panel-copy">Datos agregados de 30 días. La calidad se comprueba manualmente: no es una predicción de veracidad. Las noticias no aprobadas en esta revisión no pueden publicarse.</p></div>
+      <button type="button" id="editorialQualityReload">Actualizar</button>
+    </div>
+    <p id="editorialQualityStatus" class="status" role="status" aria-live="polite">Cargando métricas…</p>
+    <div id="editorialQualityMetrics" class="beta-metrics" aria-label="Métricas editoriales"></div>
+    <h3>Rendimiento de las fuentes</h3>
+    <div id="editorialQualitySources" class="editorial-quality-sources" aria-live="polite"></div>
+    <h3>Comprobación humana previa a la publicación</h3>
+    <p class="panel-copy">Si una noticia necesita revisión adicional, márcala «Retener». Para marcarla «Apta», comprueba manualmente la fuente original, el contexto y los derechos de uso y registra el motivo. Retira antes de retener una noticia que ya esté publicada.</p>
+    <div id="editorialQualityQueue" class="editorial-quality-queue" aria-live="polite"></div>
+    <p class="panel-copy">Las métricas cuentan acciones registradas, no personas únicas ni visitas. No hay publicación automática.</p>
+  </section>
+
   <section class="panel" id="editorialSocialModeration" aria-labelledby="editorialSocialModerationTitle">
     <div class="panel-head">
       <div><span class="eyebrow">EDITORIAL · V3.2.4</span><h2 id="editorialSocialModerationTitle">Moderación de comentarios de noticias</h2>

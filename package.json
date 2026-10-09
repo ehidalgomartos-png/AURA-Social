@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.4",
+  "version": "3.2.5",
   "private": true,
-  "description": "RedLibertad V3.2.4 — Interacción social real en noticias editoriales y comunidades.",
+  "description": "RedLibertad V3.2.5 — Panel de métricas y puerta de calidad editorial humana.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -42,7 +42,8 @@
     "test:editorial-rss": "node --test tests/editorial-rss-v321.test.js",
     "test:editorial-review": "node --test tests/editorial-review-v322.test.js",
     "test:editorial-publishing": "node --test tests/editorial-publishing-v323.test.js",
-    "test:editorial-social": "node --test tests/editorial-social-v324.test.js"
+    "test:editorial-social": "node --test tests/editorial-social-v324.test.js",
+    "test:editorial-quality": "node --test tests/editorial-quality-v325.test.js"
   },
   "engines": {
     "node": ">=20"
