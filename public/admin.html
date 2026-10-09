@@ -24,7 +24,7 @@
   </section>
 
   <section class="panel" id="editorialCenter" aria-labelledby="editorialTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2</span><h2 id="editorialTitle">Centro Editorial</h2><p class="panel-copy">Configura perfiles temáticos y fuentes autorizadas. Sin consulta de RSS ni publicación automática en esta versión.</p></div><button type="button" id="editorialReload">Actualizar</button></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2</span><h2 id="editorialTitle">Centro Editorial</h2><p class="panel-copy">Configura perfiles y fuentes. Consulta RSS manual con revisión de noticias; publicación automática desactivada.</p></div><button type="button" id="editorialReload">Actualizar</button></div>
     <p id="editorialMessage" class="status" role="status" aria-live="polite">Cargando configuración…</p>
     <div id="editorialStats" class="beta-metrics"></div>
     <div class="grid">
@@ -50,7 +50,7 @@
           <label>Perfil vinculado <select id="editorialSourceProfile" name="profileId"><option value="">Sin perfil</option></select></label>
           <label>Uso autorizado <select name="rightsMode"><option value="link_only">Enlace y comentario original</option><option value="licensed">Licencia documentada</option></select></label>
           <label>Referencia de la licencia/condiciones <textarea name="rightsReference" maxlength="1000" placeholder="URL a las condiciones o identificación del permiso"></textarea></label>
-          <label>Estado <select name="status"><option value="draft">Borrador</option><option value="approved">Fuente aprobada (sin consultar)</option><option value="paused">Pausada</option></select></label>
+          <label>Estado <select name="status"><option value="draft">Borrador</option><option value="approved">Fuente aprobada (consulta manual)</option><option value="paused">Pausada</option></select></label>
           <label><input type="checkbox" name="rightsConfirmed"> He revisado las condiciones de reutilización de esta fuente</label>
           <button type="submit">Guardar fuente</button>
         </form>
@@ -58,6 +58,12 @@
       </div>
     </div>
     <h3>Últimos cambios editoriales</h3><div id="editorialAudit" class="report-list"></div>
+  </section>
+
+  <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.1</span><h2 id="editorialInboxTitle">Noticias por revisar</h2><p class="panel-copy">Las noticias detectadas por RSS son borradores internos. No se publican en perfiles ni comunidades. Consulta fuentes aprobadas con el botón «Consultar RSS» en el Centro Editorial.</p></div><button type="button" id="editorialInboxReload">Actualizar bandeja</button></div>
+    <p id="editorialInboxStatus" class="status" role="status" aria-live="polite">Cargando borradores…</p>
+    <div id="editorialInboxItems" class="report-list" aria-live="polite"></div>
   </section>
 
   <section class="panel release-verification-v217" aria-labelledby="releaseVerificationTitle">
