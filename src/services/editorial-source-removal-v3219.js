@@ -57,10 +57,10 @@ async function deleteSourceV3219(pool,adminId,id,body){
       throw sourceRemovalError(409,'editorial_source_removal_confirmation_stale');
     }
     // V3.2.20: snapshot the original medium name and deleted-source ID
-    // before ON DELETE SET NULL drops the FK. Never rewrite title/summary.
+    // before ON DELETE SET NULL drops the FK. Keep the MOST RECENT\n    // source after a later manual re-link and deletion; never rewrite title/summary.
     await client.query(
-      "UPDATE editorial_candidates SET source_name_snapshot=COALESCE(source_name_snapshot,$2), "+
-      "removed_source_id=COALESCE(removed_source_id,$1::bigint) WHERE source_id=$1",
+      "UPDATE editorial_candidates SET source_name_snapshot=$2, "+
+      "removed_source_id=$1::bigint WHERE source_id=$1",
       [id,snapshot.name]
     );
     // Database enforces ON DELETE SET NULL on candidate.source_id,
