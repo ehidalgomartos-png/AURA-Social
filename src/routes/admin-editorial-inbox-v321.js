@@ -14,6 +14,7 @@ async function ensureInbox(){
       await db.query("CREATE TABLE IF NOT EXISTS editorial_candidates (id BIGSERIAL PRIMARY KEY, source_id BIGINT REFERENCES editorial_sources(id) ON DELETE SET NULL, profile_id BIGINT REFERENCES editorial_profiles(id) ON DELETE SET NULL, category VARCHAR(30) NOT NULL CHECK(category IN ('actualidad','tecnologia','cultura','deportes','sociedad','entretenimiento')), source_title VARCHAR(240) NOT NULL, source_excerpt VARCHAR(400) NOT NULL DEFAULT '', canonical_url TEXT NOT NULL UNIQUE, title_fingerprint CHAR(64) NOT NULL, published_at TIMESTAMPTZ, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')), fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(), reviewed_at TIMESTAMPTZ, reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL, CHECK(status='pending' OR reviewed_at IS NOT NULL))");
       await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_editorial_candidate_title ON editorial_candidates(category,title_fingerprint)');
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_candidate_inbox ON editorial_candidates(status,fetched_at DESC,id DESC)');
+      await db.query("ALTER TABLE editorial_candidates ADD COLUMN IF NOT EXISTS source_image_url TEXT");
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_candidate_source ON editorial_candidates(source_id,fetched_at DESC)');
     })().catch(e=>{schemaReady=null;throw e;});
   }
@@ -71,8 +72,8 @@ router.post('/sources/:id/fetch',async(req,res)=>{
       }
       for(const entry of candidates){
         const r=await client.query(
-          "INSERT INTO editorial_candidates (source_id,profile_id,category,source_title,source_excerpt,canonical_url,title_fingerprint,published_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING RETURNING id",
-          [entry.source_id,entry.profile_id,entry.category,entry.source_title,entry.source_excerpt,entry.canonical_url,entry.title_fingerprint,entry.published_at]
+          "INSERT INTO editorial_candidates (source_id,profile_id,category,source_title,source_excerpt,canonical_url,title_fingerprint,published_at,source_image_url) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id",
+          [entry.source_id,entry.profile_id,entry.category,entry.source_title,entry.source_excerpt,entry.canonical_url,entry.title_fingerprint,entry.published_at,entry.source_image_url]
         );
         inserted+=r.rowCount;
       }
