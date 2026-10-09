@@ -517,3 +517,17 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   #editorialInbox .editorial-queue-tools-v3218 label:first-child{grid-column:1/-1}
   #editorialInbox #editorialQueueResetV3218{width:100%}
 }
+
+/* V3.2.18.1 — stop publication with understandable editorial assignment hints. */
+#editorialPublication .editorial-assignment-alert-v32181{
+  border:1px solid #d9a493;background:#fff2eb;border-left:4px solid #bd6445;
+  border-radius:12px;padding:13px 15px;margin:12px 0;color:#51291e;overflow-wrap:anywhere
+}
+#editorialPublication .editorial-assignment-alert-v32181 strong{display:block;margin-bottom:6px}
+#editorialPublication .editorial-assignment-alert-v32181 ul{padding-left:20px;display:grid;gap:5px;margin:8px 0}
+#editorialPublication .editorial-assignment-alert-v32181 p{font-size:13px;line-height:1.6;margin:8px 0}
+#editorialPublication .editorial-assignment-alert-v32181 button{min-height:44px;max-width:100%;white-space:normal;text-align:center}
+@media(max-width:620px){
+  #editorialPublication .editorial-assignment-alert-v32181{padding:12px}
+  #editorialPublication .editorial-assignment-alert-v32181 button{width:100%}
+}

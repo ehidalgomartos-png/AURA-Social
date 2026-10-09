@@ -7,6 +7,7 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {ensureReviewSchema,isOriginalEditorial}=require('../routes/admin-editorial-review-v322');
 const {ensureQualitySchema,qualityReady}=require('../services/editorial-quality-v325');
+const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181');
 
 const admin=express.Router();
 const publicRouter=express.Router();
@@ -35,14 +36,14 @@ const confirmation=({revision,confirm})=>Number.isSafeInteger(revision)&&revisio
 const publicationPath=id=>'/noticias/p/'+encodeURIComponent(id);
 async function assertApprovedForPublication(client,id,revision){
   const r=await client.query(
-    "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.profile_id AS source_profile_id,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
+    "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.profile_id AS source_profile_id,s.category AS source_category,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,sp.status AS source_profile_status,sp.category AS source_profile_category,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
   );
   if(!r.rowCount)throw fail(404,'editorial_candidate_not_found');
   const row=r.rows[0];
   if(row.revision!==revision)throw fail(409,'editorial_review_stale');
   if(row.status!=='approved'||!row.reviewed_at||!row.reviewed_by)throw fail(409,'editorial_review_required');
   if(row.source_status!=='approved'||row.profile_status!=='ready')throw fail(409,'editorial_source_or_profile_not_ready');
-  if(row.profile_category!==row.category || String(row.source_profile_id)!==String(row.profile_id)){
+  if(!editorialAlignmentV32181(row).ok){
     throw fail(409,'editorial_profile_mismatch');
   }
   if(!isOriginalEditorial(row))throw fail(422,'editorial_original_draft_required');
@@ -71,9 +72,50 @@ admin.use(async(_req,res,next)=>{try{await ensurePublicationSchema();await ensur
 
 admin.get('/publication-queue',errorHandler(async(_req,res)=>{
   const data=await db.query(
-    "SELECT c.id,c.revision,c.category,c.editorial_title,c.editorial_summary,c.canonical_url,c.reviewed_at,es.name AS source_name,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
+    "SELECT c.id,c.revision,c.status,c.category,c.profile_id,c.editorial_title,c.editorial_summary,c.canonical_url,c.reviewed_at,es.name AS source_name,es.category AS source_category,es.profile_id AS source_profile_id,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,ep.category AS profile_category,sp.name AS source_profile_name,sp.status AS source_profile_status,sp.category AS source_profile_category,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=es.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
   );
-  res.json({items:data.rows,manualOnly:true,autoPublishing:false});
+  res.json({items:data.rows.map(row=>({...row,alignment:editorialAlignmentV32181(row)})),manualOnly:true,autoPublishing:false});
+}));
+
+// Reconcile only at a human administrator's explicit request. Never
+// silently reclassify already approved content or circumvent quality review.
+admin.post('/reconcile/:candidateId',errorHandler(async(req,res)=>{
+  const id=safeId(req.params.candidateId);
+  if(!id||!confirmation(req.body||{}))throw fail(400,'editorial_reconcile_confirmation_required');
+  const result=await inTransaction(async client=>{
+    const r=await client.query(
+      "SELECT c.id,c.source_id,c.profile_id,c.category,c.status,c.revision,s.status AS source_status,s.category AS source_category,s.profile_id AS source_profile_id,sp.status AS source_profile_status,sp.category AS source_profile_category,p.status AS profile_status,p.category AS profile_category FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_profiles p ON p.id=c.profile_id WHERE c.id=$1 FOR UPDATE OF c",[id]
+    );
+    if(!r.rowCount)throw fail(404,'editorial_candidate_not_found');
+    const row=r.rows[0];
+    if(row.revision!==req.body.revision)throw fail(409,'editorial_review_stale');
+    if(row.status!=='approved')throw fail(409,'editorial_review_required');
+    // Protect anything that has a public snapshot, including republished records.
+    const existing=await client.query(
+      'SELECT id,unpublished_at FROM editorial_publications WHERE candidate_id=$1 FOR UPDATE',[id]
+    );
+    if(existing.rows.some(pub=>!pub.unpublished_at))throw fail(409,'editorial_unpublish_before_reopen');
+    const alignment=editorialAlignmentV32181({
+      ...row,publication_id:existing.rows[0]?.id,
+      unpublished_at:existing.rows[0]?.unpublished_at
+    });
+    if(alignment.ok)throw fail(409,'editorial_assignment_already_valid');
+    if(!alignment.canReconcile)throw fail(409,'editorial_source_assignment_invalid');
+    const updated=await client.query(
+      "UPDATE editorial_candidates SET profile_id=$2,category=$3,status='pending',reviewed_at=NULL,reviewed_by=NULL,revision=revision+1,edited_at=now() WHERE id=$1 RETURNING id,revision,category,profile_id,status",
+      [id,row.source_profile_id,row.source_category]
+    );
+    await client.query(
+      "INSERT INTO editorial_audit(admin_id,action,entity_type,entity_id,details) VALUES($1,'reconcile_assignment','candidate',$2,$3::jsonb)",
+      [req.user.id,id,JSON.stringify({
+        oldProfileId:row.profile_id,newProfileId:row.source_profile_id,
+        oldCategory:row.category,newCategory:row.source_category,
+        oldRevision:row.revision,newRevision:updated.rows[0].revision
+      })]
+    );
+    return updated.rows[0];
+  });
+  res.json({ok:true,candidate:result,published:false,requiresNewReview:true,requiresNewQuality:true});
 }));
 
 admin.post('/publish/:candidateId',errorHandler(async(req,res)=>{

@@ -14,6 +14,7 @@ function approvedRow(overrides={}){
   editorial_summary:'Nuestro equipo editorial ha revisado esta información y describe qué se conoce y qué detalles siguen pendientes de confirmación.',
   source_title:'Nuevo hallazgo anunciado en revista',source_excerpt:'Breve texto facilitado por la fuente',
   source_status:'approved',profile_status:'ready',category:'tecnologia',profile_category:'tecnologia',
+  source_category:'tecnologia',source_profile_category:'tecnologia',source_profile_status:'ready',
   source_profile_id:9,profile_id:9,canonical_url:'https://example.org/articulo',quality_decision:'clear',quality_candidate_revision:3,...overrides
  };
 }
@@ -50,6 +51,9 @@ test('publicación exige revisión humana, fuente y perfil preparados',async()=>
    [{source_status:'paused'},'editorial_source_or_profile_not_ready'],
    [{profile_status:'draft'},'editorial_source_or_profile_not_ready'],
    [{profile_category:'cultura'},'editorial_profile_mismatch'],
+   [{source_category:'cultura'},'editorial_profile_mismatch'],
+   [{source_profile_category:'cultura'},'editorial_profile_mismatch'],
+   [{source_profile_status:'paused'},'editorial_profile_mismatch'],
    [{source_profile_id:10},'editorial_profile_mismatch'],
    [{editorial_title:'Nuevo hallazgo anunciado en revista'},'editorial_original_draft_required'],
    [{canonical_url:'http://example.org/noticia'},'editorial_source_link_invalid'],
@@ -87,7 +91,7 @@ test('fuentes, perfiles, enlaces públicos y sitemap presentes',()=>{
  assert.match(read('public/index.html'),/href="\/noticias"/);
  assert.match(read('public/app.html'),/editorial-discovery-entry/);
  assert.match(read('server.js'),/app\.use\('\/noticias', editorialPublishV323Public\)/);
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.18'/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.18\.1'/);
 });
 test('Centro Editorial exige confirmación y permite retirar publicaciones',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
