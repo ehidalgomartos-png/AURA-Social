@@ -21,7 +21,8 @@ test('nombres, titulares y textos públicos no se insertan como HTML sin escapar
   assert.equal(html,'&lt;img src=x onerror=alert(1)&gt;');
   const js=source('public/editorial-social-v324.js');
   assert.match(js,/message\.textContent=String\(entry\.body/);
-  assert.match(js,/person\.textContent=String\(entry\.display_name/);
+  assert.match(js,/person\.textContent=displayName/);
+  assert.match(js,/const displayName=String\(entry\.display_name/);
   assert.doesNotMatch(js,/innerHTML\s*=/);
   const home=source('public/editorial-home-v324.js');
   assert.match(home,/heading\.textContent=String\(item\.title/);
@@ -84,10 +85,11 @@ test('noticias siguen diferenciadas de perfiles humanos y accesibles desde Inici
   const s=source('src/routes/editorial-publication-v323.js');
   assert.match(s,/data-article-id/);
   assert.match(s,/editorial-social-v324\.js/);
-  assert.match(s,/Contenido editorial automatizado/);
+  assert.match(s,/Perfil editorial/);
+  assert.match(s,/Revisado por el equipo/);
   assert.match(source('public/app.html'),/id="editorialHomeBlock"/);
   assert.match(source('public/app.html'),/editorial-home-v324\.js/);
   assert.match(source('src/routes/editorial-social-v324.js'),/router\.get\('\/discover'/);
   assert.match(source('src/routes/editorial-social-v324.js'),/LIMIT 3/);
-  assert.match(source('server.js'),/const APP_VERSION='3\.2\.10'/);
+  assert.match(source('server.js'),/const APP_VERSION='3\.2\.11'/);
 });

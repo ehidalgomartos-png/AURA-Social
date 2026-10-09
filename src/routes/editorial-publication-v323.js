@@ -141,14 +141,35 @@ function origin(){
 function page({title,description,pathname,body,noindex=false}){
   const base=origin();
   const canonical=base+pathname;
+  const nav=[
+    ['Inicio','/app'],['Noticias','/noticias'],['Comunidades','/comunidades']
+  ];
+  const desktop=nav.map(([label,href])=>
+    '<a href="'+href+'"'+(pathname.startsWith('/noticias')&&href==='/noticias'?' aria-current="page"':'')+'>'+label+'</a>'
+  ).join('');
   return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<meta name="theme-color" content="#0d2238">'+
     '<title>'+esc(title)+' · RedLibertad</title><meta name="description" content="'+esc(description.slice(0,155))+'">'+
     '<link rel="canonical" href="'+esc(canonical)+'">'+(noindex?'<meta name="robots" content="noindex,follow">':'')+
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
-    '<link rel="stylesheet" href="/editorial-v323.css"></head><body>'+
-    '<header class="ed-head"><a href="/" class="ed-brand">RedLibertad</a><nav aria-label="Explorar"><a href="/noticias">Noticias</a><a href="/comunidades">Comunidades</a><a href="/app">Entrar</a></nav></header>'+
-    '<main class="ed-main">'+body+'</main><footer class="ed-footer">RedLibertad · Contenido editorial automatizado con revisión humana · <a href="/legal/">Aviso legal</a> · <a href="/privacy/">Privacidad</a></footer>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.11"></head><body>'+
+    '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
+    '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
+    '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" href="/app">Entrar</a></nav></header>'+
+    '<div class="ed-layout"><aside class="ed-side" aria-label="Explorar RedLibertad">'+
+    '<p class="ed-side-title">TU COMUNIDAD</p><nav aria-label="Secciones de RedLibertad">'+
+    '<a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-5v-7h-4v7H5a2 2 0 0 1-2-2z"/></svg></span> Inicio</a>'+
+    '<a href="/noticias"'+(pathname.startsWith('/noticias')?' class="active" aria-current="page"':'')+'><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h5M7 16h10"/></svg></span> Noticias</a>'+
+    '<a href="/comunidades"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span> Comunidades</a>'+
+    '<a href="/descubrir"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span> Descubrir</a></nav>'+
+    '<div class="ed-side-note"><b>RedLibertad Noticias</b><p>Actualidad seleccionada a partir de fuentes identificadas y revisada antes de publicar.</p></div></aside>'+
+    '<main id="ed-main" class="ed-main">'+body+'</main></div>'+
+    '<footer class="ed-footer">RedLibertad · Contenido editorial identificado y revisado · <a href="/legal/">Aviso legal</a> · <a href="/privacy/">Privacidad</a></footer>'+
+    '<nav class="ed-mobile-nav" aria-label="Navegación móvil"><a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-5v-7h-4v7H5a2 2 0 0 1-2-2z"/></svg></span><small>Inicio</small></a>'+
+    '<a href="/noticias"'+(pathname.startsWith('/noticias')?' aria-current="page"':'')+'><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h5M7 16h10"/></svg></span><small>Noticias</small></a>'+
+    '<a href="/comunidades"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span><small>Comunidades</small></a>'+
+    '<a href="/app"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span><small>Entrar</small></a></nav>'+
     '</body></html>';
 }
 function linkOut(url,label){return '<a href="'+esc(url)+'" rel="noopener noreferrer external" target="_blank">'+esc(label)+'</a>';}
@@ -206,20 +227,40 @@ publicRouter.get('/p/:id',async(req,res)=>{
     if(!r.rowCount)return res.status(404).send('No encontrado');
     const p=r.rows[0];
     const community=p.community_name&&p.community_id?'<p class="ed-community">Participa en la <a href="/comunidad/'+encodeURIComponent(p.community_id)+'">'+esc(p.community_name)+'</a>.</p>':'';
-    const body='<article class="ed-article"><span class="ed-label">Contenido editorial automatizado · Revisado por una persona</span>'+
-      '<h1>'+esc(p.title)+'</h1><p class="ed-byline">Por <a href="/noticias/perfil/'+encodeURIComponent(p.profile_slug)+'">'+esc(p.profile_name)+'</a> · '+esc(p.category)+'</p>'+
-      '<p class="ed-summary">'+esc(p.summary)+'</p><div class="ed-attribution"><b>Fuente original: '+esc(p.source_name)+'</b><p>'+linkOut(p.source_url,'Leer noticia original ↗')+'</p>'+
-      '<small>Este resumen es una elaboración editorial propia. Para consultar todos los detalles, visita el medio de origen.</small></div>'+community+
+    const publishedDate=new Date(p.published_at);
+    const readableDate=publishedDate.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Madrid'});
+    const publishedIso=publishedDate.toISOString();
+    const iconLike='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6z"/></svg>';
+    const iconComment='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4.5-1.2L3 20l1.2-4.5A9 9 0 0 1 3 11.5a8.5 8.5 0 0 1 17.5 0z"/></svg>';
+    const iconShare='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7 11 9-5M7 13l9 5"/></svg>';
+    const body='<div class="ed-timeline"><a href="/noticias" class="ed-timeline-back">← Todas las noticias</a><span>Actualidad para conversar</span></div>'+
+      '<article class="ed-article ed-post">'+
+      '<div class="ed-post-head"><a class="ed-profile-avatar" href="/noticias/perfil/'+encodeURIComponent(p.profile_slug)+'" aria-label="Perfil editorial '+esc(p.profile_name)+'"><img src="/assets/logo-mark.svg" alt="" width="28" height="28"></a>'+
+      '<div class="ed-post-identity"><a href="/noticias/perfil/'+encodeURIComponent(p.profile_slug)+'" class="ed-profile-name">'+esc(p.profile_name)+'</a>'+
+      '<div class="ed-profile-meta"><span>Perfil editorial</span><span aria-hidden="true">·</span><time datetime="'+esc(publishedIso)+'" title="Fecha de publicación en RedLibertad">'+esc(readableDate)+'</time></div></div>'+
+      '<span class="ed-post-badge">Noticias</span></div>'+
+      '<div class="ed-post-content"><div class="ed-tags"><span class="ed-topic">'+esc(p.category)+'</span><span class="ed-reviewed">✓ Revisado por el equipo</span></div>'+
+      '<h1>'+esc(p.title)+'</h1><p class="ed-summary">'+esc(p.summary)+'</p>'+
+      '<div class="ed-attribution"><span class="ed-source-icon" aria-hidden="true">↗</span><div class="ed-attribution-body">'+
+      '<b>Fuente: '+esc(p.source_name)+'</b><p>'+linkOut(p.source_url,'Leer información original ↗')+'</p>'+
+      '<small>Resumen propio elaborado a partir de una fuente identificada. Consulta el medio para conocer la fecha y el contexto originales.</small>'+
+      '</div></div>'+community+'</div>'+
       '<section class="ed-social" id="editorialSocial" data-article-id="'+esc(id)+'" data-community-id="'+(p.community_name&&p.community_id?esc(p.community_id):'')+'">'+
-        '<div class="ed-social-actions"><button type="button" id="edLike">♡ Me gusta</button><span id="edLikeCount">0 Me gusta</span><button type="button" id="edShare">↗ Compartir enlace</button>'+
-        (p.community_name&&p.community_id?'<button type="button" id="edCommunityShare">Compartir en comunidad</button>':'')+'</div>'+
+        '<div class="ed-engagement"><span id="edLikeCount" aria-live="polite">0 Me gusta</span><span id="edCommentCount" aria-live="polite">0 comentarios</span></div>'+
+        '<div class="ed-social-actions" role="group" aria-label="Interacciones con la noticia">'+
+        '<button type="button" id="edLike" aria-pressed="false">'+iconLike+'<span id="edLikeLabel">Me gusta</span></button>'+
+        '<button type="button" id="edJumpComments">'+iconComment+'<span>Comentar</span></button>'+
+        '<button type="button" id="edShare">'+iconShare+'<span>Compartir</span></button></div>'+
+        (p.community_name&&p.community_id?'<div class="ed-community-action"><button type="button" id="edCommunityShare">Compartir en comunidad</button></div>':'')+
         '<div id="edFeedback" class="ed-feedback" role="status" aria-live="polite"></div>'+
-        '<h2>Conversación</h2><p id="edCommentCount" class="ed-byline">Comentarios de usuarios reales</p>'+
-        '<form id="edCommentForm"><label for="edCommentText">Añade tu opinión (pública)</label>'+
+        '<div class="ed-discussion-wrap" id="edDiscussion"><div class="ed-discussion-heading"><div><h2>Conversación</h2><p>Opiniones de personas reales de RedLibertad</p></div></div>'+
+        '<form id="edCommentForm"><label for="edCommentText">¿Qué opinas sobre esta noticia?</label>'+
         '<textarea id="edCommentText" maxlength="600" minlength="2" required rows="3" placeholder="Comparte una opinión respetuosa…"></textarea>'+
-        '<button type="submit">Comentar</button></form><div id="edComments" class="ed-discussion">Cargando comentarios…</div></section>'+
-      '<p><a href="/noticias">← Ver más noticias</a></p></article>';
-    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body}) .replace('</body></html>','<script src="/editorial-social-v324.js" defer></script></body></html>'));
+        '<button type="submit">Publicar comentario</button></form>'+
+        '<a id="edLoginCta" class="ed-login-cta" href="/app" hidden>Entra en RedLibertad para participar en la conversación →</a>'+
+        '<div id="edComments" class="ed-discussion" aria-live="polite">Cargando comentarios…</div></div></section>'+
+      '</article><p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
+    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.11" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
 module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};
