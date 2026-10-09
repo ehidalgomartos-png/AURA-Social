@@ -2003,7 +2003,7 @@ $('#editorialReviewActions')?.addEventListener('click',event=>{
   const button=event.target.closest('button[data-editorial-decision]');
   if(button)submitEditorialReview(button.dataset.editorialDecision);
 });
-$('#editorialInboxReload')?.addEventListener('click',loadEditorialInboxV321);
+$('#editorialInboxReload')?.addEventListener('click',()=>loadEditorialInboxV321());
 $('#editorialSources')?.addEventListener('click',async ev=>{
   const button=ev.target.closest('button[data-editorial-fetch]');
   if(!button)return;
