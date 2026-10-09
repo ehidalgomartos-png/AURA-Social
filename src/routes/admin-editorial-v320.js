@@ -6,6 +6,7 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {CATEGORIES,PROFILE_STATUSES,SOURCE_STATUSES,validateFeedUrl,validateLocalImage,ensureEditorialSchema}=require('../services/editorial-v320');
 
+const {sourceCoverage}=require('../services/editorial-intelligence-v3216');
 const router=express.Router();
 router.use(requireAdmin);
 router.use(async(_req,res,next)=>{
@@ -94,10 +95,11 @@ router.get('/overview',wrap(async(req,res)=>{
     db.query('SELECT id,action,entity_type,entity_id,created_at FROM editorial_audit ORDER BY created_at DESC,id DESC LIMIT 30')
   ]);
   res.json({
-    version:'3.2.15',
+    version:'3.2.16',
     profiles:profiles.rows,sources:sources.rows,communities:communities.rows,
     settings:settings.rows[0]||{review_required:true,ingestion_enabled:false,auto_publish_enabled:false},
     audit:audit.rows,
+    sourceCoverage:sourceCoverage(sources.rows),
     categories:CATEGORIES,
     capabilities:{feedFetch:true,drafts:true,publishing:true,autoPublishing:false,realAccounts:false,memberInteraction:true,humanQualityGate:true,analytics:true,manualPlanning:true,explainableSelection:true,dailyDesk:true,mode:'manual-only'}
   });
