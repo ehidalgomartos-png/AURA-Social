@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.20">
+  <link rel="stylesheet" href="/admin.css?v=3.2.21">
 </head>
 <body>
 <header>
@@ -92,7 +92,7 @@
   </section>
 
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.20</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.21</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <div class="editorial-queue-tools-v3218" role="group" aria-label="Filtros rápidos de noticias cargadas">
       <label for="editorialQueueSearchV3218">Buscar noticia
         <input id="editorialQueueSearchV3218" type="search" maxlength="140" placeholder="Titular, medio o palabras" autocomplete="off">
@@ -131,6 +131,20 @@
       <h3 id="editorialReviewEditorTitle">Editar noticia</h3>
       <nav class="editorial-review-nav-v3216" aria-label="Recorrer noticias pendientes"><button type="button" class="soft" id="editorialReviewPreviousV3216">← Anterior</button><span id="editorialReviewProgressV3216" role="status" aria-live="polite"></span><button type="button" class="soft" id="editorialReviewNextV3216">Siguiente →</button></nav>
       <p id="editorialReviewSource" class="panel-copy"></p>
+      <section id="editorialRelinkPanelV3221" class="editorial-relink-panel-v3221" hidden aria-labelledby="editorialRelinkTitleV3221">
+        <h4 id="editorialRelinkTitleV3221">Recuperar noticia sin fuente RSS</h4>
+        <p id="editorialRelinkStatusV3221" class="panel-copy" role="status" aria-live="polite"></p>
+        <label for="editorialRelinkSourceV3221">Fuente autorizada del mismo dominio y categoría
+          <select id="editorialRelinkSourceV3221" aria-label="Elegir nueva fuente RSS autorizada">
+            <option value="">Selecciona una fuente compatible</option>
+          </select>
+        </label>
+        <label for="editorialRelinkReasonV3221">Motivo de la vinculación (mínimo 12 caracteres)
+          <textarea id="editorialRelinkReasonV3221" rows="2" minlength="12" maxlength="500" placeholder="He comprobado la noticia original y la identidad de la fuente."></textarea>
+        </label>
+        <p class="panel-copy">La coincidencia de dominio no demuestra la exactitud ni los derechos. Al vincularla volverá a Pendientes y necesitará nueva revisión humana, comprobación de derechos y control de calidad. No se publicará automáticamente.</p>
+        <button type="button" id="editorialRelinkConfirmV3221" class="soft" disabled>Vincular fuente y volver a revisar</button>
+      </section>
       <p><a id="editorialReviewLink" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden>Leer noticia en la fuente ↗</a></p>
       <section id="editorialIntelligence" class="editorial-advice" hidden aria-label="Sugerencias de clasificación y noticias relacionadas"></section>
       <section id="editorialProvenanceV3217" class="editorial-provenance-v3217" aria-label="Control orientativo de originalidad y trazabilidad" aria-live="polite" hidden></section>
@@ -585,6 +599,6 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.20"></script>
+  <script src="/admin.js?v=3.2.21"></script>
 </body>
 </html>
