@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.19",
+  "version": "3.2.20",
   "private": true,
-  "description": "RedLibertad V3.2.19 — Eliminación segura de fuentes RSS autorizadas",
+  "description": "RedLibertad V3.2.20 — Trazabilidad y bandeja de noticias sin RSS",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -56,7 +56,8 @@
     "test:editorial-originality-hotfix": "node --test tests/editorial-originality-hotfix-v32171.test.js",
     "test:editorial-queue": "node --test tests/editorial-queue-v3218.test.js",
     "test:editorial-alignment": "node --test tests/editorial-alignment-v32181.test.js",
-    "test:editorial-source-removal": "node --test tests/editorial-source-removal-v3219.test.js"
+    "test:editorial-source-removal": "node --test tests/editorial-source-removal-v3219.test.js",
+    "test:editorial-orphans": "node --test tests/editorial-orphans-v3220.test.js"
   },
   "engines": {
     "node": ">=20"
