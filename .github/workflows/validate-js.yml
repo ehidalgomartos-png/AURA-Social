@@ -56,6 +56,8 @@ jobs:
         run: npm run test:editorial-nav-hotfix
       - name: Editorial intelligence regression
         run: npm run test:editorial-intelligence
+      - name: V3.2.16 topic diversity, RSS draft and mobile editorial workflow tests
+        run: npm run test:editorial-workflow
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
