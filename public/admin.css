@@ -463,3 +463,15 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialInbox #editorialSuggestionStatus:empty{display:none}
 #editorialInbox #editorialSuggestionStatus:not(:empty){font-size:12px;color:#775125}
 #editorialQualityQueue details[open][data-editorial-quality-id]{outline-offset:3px}
+
+
+/* V3.2.15 — Metadata-based advisory only: priority, category, related stories */
+#editorialInbox .editorial-advice-summary{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+#editorialInbox .editorial-advice-summary span{display:inline-flex;align-items:center;max-width:100%;padding:5px 8px;border-radius:9px;background:rgba(43,183,169,.11);color:#14586b;font-size:11px;font-weight:800;overflow-wrap:anywhere}
+#editorialInbox .editorial-advice{background:var(--paper);padding:15px;border-radius:13px;border:1px solid var(--line);margin:12px 0}
+#editorialInbox .editorial-advice h4{font-size:15px;margin:0 0 8px}
+#editorialInbox .editorial-advice p{margin:8px 0;color:var(--ink);font-size:13px;line-height:1.6}
+#editorialInbox .editorial-advice ul{padding-left:22px;display:grid;gap:7px;margin:8px 0;font-size:12px}
+#editorialInbox .editorial-advice button{min-height:44px;margin:5px 0 8px}
+#editorialInbox .editorial-advice[hidden]{display:none!important}
+@media(max-width:620px){#editorialInbox .editorial-advice button{width:100%}}
