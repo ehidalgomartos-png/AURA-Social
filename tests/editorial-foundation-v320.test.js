@@ -42,7 +42,7 @@ test('servicio editorial aislado: no crea cuentas ni publicaciones',()=>{
   }
 });
 test('versión y panel conectados sin alterar los endpoints existentes',()=>{
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.22'/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.23'/);
   assert.match(read('server.js'),/app\.use\('\/api\/admin\/editorial', adminEditorialV320Routes\)/);
   assert.match(read('public/admin.html'),/id="editorialCenter"/);
   assert.match(read('public/admin.js'),/loadEditorialV320\(\)/);
