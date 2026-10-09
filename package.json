@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.13.1",
+  "version": "3.2.14",
   "private": true,
-  "description": "RedLibertad V3.2.13.1 — Noticias: navegación coherente y regreso desde Comunidades",
+  "description": "RedLibertad V3.2.14 — Noticias: navegación coherente y regreso desde Comunidades",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
