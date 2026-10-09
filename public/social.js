@@ -9731,6 +9731,15 @@ async function handleInitialDeepLink() {
 
   if(view && ['feed','explore','communities','reels','messages','notifications','profile'].includes(view)){
     showView(view);
+    // A news visitor entering their authenticated communities retains a safe
+    // one-click return to the original article, never to an external domain.
+    const editorialBack=String(params.get('volver')||'');
+    const editorialReturn=document.getElementById('editorialCommunityReturn');
+    if(editorialReturn){
+      const safe=/^\/noticias(?:\/p\/[1-9][0-9]{0,14}|\/perfil\/[a-z0-9-]{1,60})?$/.test(editorialBack);
+      editorialReturn.hidden=view!=='communities'||!safe;
+      if(safe)editorialReturn.href=editorialBack;
+    }
     if(view==='messages' && conversation){
       await loadConversations(conversation);
     }
