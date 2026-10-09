@@ -193,3 +193,15 @@ a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid va
   .ed-comment{padding:11px 0}
   .ed-comment p{font-size:13px}
 }
+
+/* V3.2.22 — image is always a licensed local editorial snapshot */
+.ed-photo{margin:14px 0 17px;width:100%;border-radius:13px;overflow:hidden;background:#e9edf1}
+.ed-photo img{width:100%;height:auto;max-height:450px;object-fit:cover;display:block;aspect-ratio:16/9}
+.ed-photo figcaption{font-size:12px;padding:7px 10px;color:#31495a;line-height:1.4}
+.ed-card-photo img{max-height:280px}
+.ed-article-photo img{max-height:520px}
+@media(max-width:620px){
+  .ed-photo{border-radius:11px}
+  .ed-card-photo img{max-height:240px}
+  .ed-article-photo img{max-height:350px}
+}

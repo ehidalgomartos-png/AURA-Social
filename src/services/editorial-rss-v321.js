@@ -258,7 +258,11 @@ function parseFeed(xml,{category,profileId=null,sourceId=null,now=new Date()}={}
     const epoch=rawDate?Date.parse(rawDate):NaN;
     if(Number.isFinite(epoch)&&(epoch<cutoff||epoch>now.getTime()+24*3600*1000))continue;
     seen.add(key);
+    // Read URL metadata only. NEVER fetch, hotlink or publish source images here.
+    const {extractRssImageV3222}=require('./editorial-image-v3222');
+    const rssImageUrl=extractRssImageV3222(entry,type);
     candidates.push({
+      source_image_url:rssImageUrl||null,
       source_id:sourceId,profile_id:profileId,category,
       source_title:title,source_excerpt:plainText(entry.description||entry.summary||entry.content,400),
       canonical_url:link,title_fingerprint:crypto.createHash('sha256').update(category+'|'+key).digest('hex'),

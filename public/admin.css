@@ -592,3 +592,34 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   #editorialInbox .editorial-relink-panel-v3221{padding:12px}
   #editorialInbox #editorialRelinkConfirmV3221{width:100%;justify-self:stretch}
 }
+
+/* V3.2.22 — photo licensing: an explicit human decision, never a hotlink */
+#editorialInbox .editorial-image-panel-v3222{
+  padding:15px;border-radius:14px;border:1px solid var(--line,#bdc6d0);
+  border-left:4px solid #518c8f;background:var(--paper,#f6f8fc);
+  display:grid;gap:11px;margin:12px 0 18px;overflow-wrap:anywhere
+}
+#editorialInbox .editorial-image-panel-v3222[hidden],
+#editorialInbox .editorial-image-panel-v3222 figure[hidden]{display:none!important}
+#editorialInbox .editorial-image-panel-v3222 h4{margin:0;font-size:16px}
+#editorialInbox .editorial-image-panel-v3222 label{display:grid;gap:7px;font-size:13px;font-weight:700}
+#editorialInbox .editorial-image-panel-v3222 .editorial-check{display:flex;align-items:start;gap:9px;line-height:1.5}
+#editorialInbox .editorial-image-panel-v3222 input:not([type=checkbox]),
+#editorialInbox .editorial-image-panel-v3222 textarea{
+  min-height:44px;min-width:0;width:100%;border-radius:10px;padding:10px;border:1px solid #a2b2c2;
+  background:#fff;color:#17202a;font:inherit;font-size:14px
+}
+#editorialInbox .editorial-image-panel-v3222 button{min-height:44px;white-space:normal;max-width:100%}
+#editorialInbox .editorial-image-panel-v3222 figure{margin:0;border-radius:11px;overflow:hidden}
+#editorialInbox .editorial-image-panel-v3222 img{
+  display:block;max-width:100%;width:100%;max-height:320px;object-fit:contain;background:#17202a
+}
+#editorialInbox .editorial-image-panel-v3222 figcaption{font-size:12px;margin:6px 0}
+@media(max-width:620px){
+  #editorialInbox .editorial-image-panel-v3222{padding:12px}
+  #editorialInbox .editorial-image-panel-v3222 button{width:100%}
+}
+
+#editorialPublication .editorial-pub-photo-v3222{margin:12px 0;border-radius:11px;overflow:hidden;background:#edf1f6}
+#editorialPublication .editorial-pub-photo-v3222 img{display:block;max-height:310px;width:100%;object-fit:contain}
+#editorialPublication .editorial-pub-photo-v3222 figcaption{padding:7px 10px;font-size:12px}

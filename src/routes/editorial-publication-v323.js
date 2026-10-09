@@ -10,6 +10,7 @@ const {ensureReviewSchema,isOriginalEditorial}=require('../routes/admin-editoria
 const {ensureQualitySchema,qualityReady}=require('../services/editorial-quality-v325');
 const {sourceMatchV3221,eligibleSourcesV3221}=require('../services/editorial-source-relink-v3221');
 const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181');
+const {safeLocalImageV3222}=require('../services/editorial-image-v3222');
 
 const admin=express.Router();
 const publicRouter=express.Router();
@@ -20,6 +21,10 @@ function ensurePublicationSchema(){
       await ensureReviewSchema();
       await db.query("CREATE TABLE IF NOT EXISTS editorial_publications (id BIGSERIAL PRIMARY KEY,candidate_id BIGINT NOT NULL UNIQUE REFERENCES editorial_candidates(id) ON DELETE RESTRICT,profile_id BIGINT NOT NULL REFERENCES editorial_profiles(id) ON DELETE RESTRICT,title VARCHAR(220) NOT NULL,summary VARCHAR(1100) NOT NULL,source_url TEXT NOT NULL,source_name VARCHAR(100) NOT NULL,category VARCHAR(30) NOT NULL,published_by BIGINT REFERENCES users(id) ON DELETE SET NULL,published_at TIMESTAMPTZ NOT NULL DEFAULT now(),unpublished_at TIMESTAMPTZ,unpublished_by BIGINT REFERENCES users(id) ON DELETE SET NULL)");
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_public_live ON editorial_publications(published_at DESC,id DESC) WHERE unpublished_at IS NULL');
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_url TEXT");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_alt VARCHAR(220)");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_credit VARCHAR(200)");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_rights_reference VARCHAR(1000)");
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_public_profile ON editorial_publications(profile_id,published_at DESC) WHERE unpublished_at IS NULL');
     })().catch(e=>{schemaReady=null;throw e;});
   }
@@ -38,7 +43,7 @@ const confirmation=({revision,confirm})=>Number.isSafeInteger(revision)&&revisio
 const publicationPath=id=>'/noticias/p/'+encodeURIComponent(id);
 async function assertApprovedForPublication(client,id,revision){
   const r=await client.query(
-    "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.profile_id AS source_profile_id,s.category AS source_category,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,sp.status AS source_profile_status,sp.category AS source_profile_category,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
+    "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.rights_reference,s.profile_id AS source_profile_id,s.category AS source_category,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,sp.status AS source_profile_status,sp.category AS source_profile_category,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
   );
   if(!r.rowCount)throw fail(404,'editorial_candidate_not_found');
   const row=r.rows[0];
@@ -50,7 +55,14 @@ async function assertApprovedForPublication(client,id,revision){
   }
   if(!isOriginalEditorial(row))throw fail(422,'editorial_original_draft_required');
   if(!qualityReady(row))throw fail(409,'editorial_quality_clearance_required');
-  // We do not import the RSS image, embed its HTML or reproduce its synopsis.
+  // Publication can only embed a local file explicitly licensed and selected by an admin.
+  if(row.editorial_image_url&&
+     (!safeLocalImageV3222(row.editorial_image_url)||!row.editorial_image_alt||
+      !row.editorial_image_credit||!row.editorial_image_rights_reference||
+      row.rights_mode!=='licensed'||String(row.rights_reference||'').trim().length<10)){
+    throw fail(409,'editorial_image_license_required');
+  }
+  // Never embed source HTML or reproduce its original synopsis.
   // Require HTTPS source article URL for external linking.
   let url;
   try{url=new URL(row.canonical_url);}catch(_){throw fail(422,'editorial_source_link_invalid');}
@@ -74,7 +86,7 @@ admin.use(async(_req,res,next)=>{try{await ensurePublicationSchema();await ensur
 
 admin.get('/publication-queue',errorHandler(async(_req,res)=>{
   const data=await db.query(
-    "SELECT c.id,c.revision,c.status,c.category,c.source_id,c.removed_source_id,c.profile_id,c.editorial_title,c.editorial_summary,c.canonical_url,c.reviewed_at,COALESCE(es.name,c.source_name_snapshot) AS source_name,es.category AS source_category,es.profile_id AS source_profile_id,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,ep.category AS profile_category,sp.name AS source_profile_name,sp.status AS source_profile_status,sp.category AS source_profile_category,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=es.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
+    "SELECT c.id,c.revision,c.status,c.category,c.source_id,c.removed_source_id,c.profile_id,c.editorial_title,c.editorial_summary,c.source_image_url,c.editorial_image_url,c.editorial_image_alt,c.editorial_image_credit,c.canonical_url,c.reviewed_at,COALESCE(es.name,c.source_name_snapshot) AS source_name,es.category AS source_category,es.profile_id AS source_profile_id,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,ep.category AS profile_category,sp.name AS source_profile_name,sp.status AS source_profile_status,sp.category AS source_profile_category,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=es.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
   );
   res.json({items:data.rows.map(row=>({...row,alignment:editorialAlignmentV32181(row)})),manualOnly:true,autoPublishing:false});
 }));
@@ -227,13 +239,13 @@ admin.post('/publish/:candidateId',errorHandler(async(req,res)=>{
     let publication;
     if(previous.rowCount){
       const updated=await client.query(
-        "UPDATE editorial_publications SET profile_id=$2,title=$3,summary=$4,source_url=$5,source_name=$6,category=$7,published_at=now(),unpublished_at=NULL,published_by=$8,unpublished_by=NULL WHERE candidate_id=$1 RETURNING id,published_at",
-        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id]
+        "UPDATE editorial_publications SET profile_id=$2,title=$3,summary=$4,source_url=$5,source_name=$6,category=$7,published_at=now(),unpublished_at=NULL,published_by=$8,unpublished_by=NULL,image_url=$9,image_alt=$10,image_credit=$11,image_rights_reference=$12 WHERE candidate_id=$1 RETURNING id,published_at",
+        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference]
       );publication=updated.rows[0];
     }else{
       const inserted=await client.query(
-        'INSERT INTO editorial_publications(candidate_id,profile_id,title,summary,source_url,source_name,category,published_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,published_at',
-        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id]
+        'INSERT INTO editorial_publications(candidate_id,profile_id,title,summary,source_url,source_name,category,published_by,image_url,image_alt,image_credit,image_rights_reference) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,published_at',
+        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference]
       );publication=inserted.rows[0];
     }
     await client.query(
@@ -272,7 +284,7 @@ function origin(){
   try{const u=new URL(process.env.APP_ORIGIN||'https://redlibertad.com');return u.protocol==='https:'?u.origin:'https://redlibertad.com';}
   catch(_){return 'https://redlibertad.com';}
 }
-function page({title,description,pathname,body,noindex=false}){
+function page({title,description,pathname,body,noindex=false,imageUrl=null}){
   const base=origin();
   const canonical=base+pathname;
   const communityPublicUrl='/comunidades?volver='+encodeURIComponent(pathname);
@@ -288,7 +300,8 @@ function page({title,description,pathname,body,noindex=false}){
     '<link rel="canonical" href="'+esc(canonical)+'">'+(noindex?'<meta name="robots" content="noindex,follow">':'')+
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.14"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
+    (safeLocalImageV3222(imageUrl)?'<meta property="og:image" content="'+esc(base+imageUrl)+'"><meta name="twitter:card" content="summary_large_image">':'')+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.22"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
     '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi perfil" href="/app">Entrar</a></nav></header>'+
@@ -311,13 +324,16 @@ function linkOut(url,label){return '<a href="'+esc(url)+'" rel="noopener norefer
 function card(row){
   const profilePath='/noticias/perfil/'+encodeURIComponent(row.profile_slug);
   const date=new Date(row.published_at).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'});
+  const photo=safeLocalImageV3222(row.image_url)
+    ?'<figure class="ed-photo ed-card-photo"><a href="'+publicationPath(row.id)+'"><img loading="lazy" decoding="async" src="'+esc(row.image_url)+'" alt="'+esc(row.image_alt||row.title)+'"></a><figcaption>Imagen: '+esc(row.image_credit||'Crédito identificado')+'</figcaption></figure>'
+    :'';
   return '<article class="ed-card"><div class="ed-meta"><span>'+esc(row.category)+'</span><span>'+esc(date)+'</span><span>Editorial revisado</span></div>'+
-    '<h2><a href="'+publicationPath(row.id)+'">'+esc(row.title)+'</a></h2><p>'+esc(row.summary)+'</p>'+
+    '<h2><a href="'+publicationPath(row.id)+'">'+esc(row.title)+'</a></h2>'+photo+'<p>'+esc(row.summary)+'</p>'+
     '<p class="ed-source">Por <a href="'+profilePath+'">'+esc(row.profile_name)+'</a> · Fuente: '+esc(row.source_name)+'</p></article>';
 }
 async function liveItems(extra='',params=[]){
   return db.query(
-    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
+    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,pub.image_url,pub.image_alt,pub.image_credit,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
     params
   );
 }
@@ -384,7 +400,9 @@ publicRouter.get('/p/:id',async(req,res)=>{
       '<div class="ed-profile-meta"><span>Perfil editorial</span><span aria-hidden="true">·</span><time datetime="'+esc(publishedIso)+'" title="Fecha de publicación en RedLibertad">'+esc(readableDate)+'</time></div></div>'+
       '<span class="ed-post-badge">Noticias</span></div>'+
       '<div class="ed-post-content"><div class="ed-tags"><span class="ed-topic">'+esc(p.category)+'</span><span class="ed-reviewed">✓ Revisado por el equipo</span></div>'+
-      '<h1>'+esc(p.title)+'</h1><p class="ed-summary">'+esc(p.summary)+'</p>'+
+      '<h1>'+esc(p.title)+'</h1>'+
+      (safeLocalImageV3222(p.image_url)?'<figure class="ed-photo ed-article-photo"><img src="'+esc(p.image_url)+'" alt="'+esc(p.image_alt||p.title)+'" loading="eager" decoding="async"><figcaption>Imagen: '+esc(p.image_credit||'Crédito identificado')+'</figcaption></figure>':'')+
+      '<p class="ed-summary">'+esc(p.summary)+'</p>'+
       '<div class="ed-attribution"><span class="ed-source-icon" aria-hidden="true">↗</span><div class="ed-attribution-body">'+
       '<b>Fuente: '+esc(p.source_name)+'</b><p>'+linkOut(p.source_url,'Leer información original ↗')+'</p>'+
       '<small>Resumen propio elaborado a partir de una fuente identificada. Consulta el medio para conocer la fecha y el contexto originales.</small>'+
@@ -404,7 +422,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
         '<a id="edLoginCta" class="ed-login-cta" href="/app" hidden>Entra en RedLibertad para participar en la conversación →</a>'+
         '<div id="edComments" class="ed-discussion" aria-live="polite">Cargando comentarios…</div></div></section>'+
       '</article><p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
-    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.11" defer></script></body></html>'));
+    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.11" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
 module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};

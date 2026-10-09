@@ -46,7 +46,19 @@
     const go=document.createElement('a');go.href=url;go.className='editorial-home-open';
     go.textContent='Ver noticia y conversar →';
     footer.append(likes,comments,go);
-    card.append(header,headline,summary,source,footer);
+    const photo=/^\/uploads\/editorial\/[0-9a-f-]{36}\.(?:jpg|png|webp)$/.test(String(item.image_url||''))
+      ?make('figure','editorial-home-photo'):null;
+    if(photo){
+      const pic=make('img','');
+      pic.src=item.image_url;
+      pic.alt=String(item.image_alt||item.title||'Fotografía de noticia revisada');
+      pic.loading='lazy';pic.decoding='async';
+      const credit=make('figcaption','',String(item.image_credit||'Crédito fotográfico'));
+      photo.append(pic,credit);
+    }
+    card.append(header,headline);
+    if(photo)card.append(photo);
+    card.append(summary,source,footer);
     list.append(card);
    }
    root.classList.toggle('hidden',list.children.length===0);

@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.21",
+  "version": "3.2.22",
   "private": true,
-  "description": "RedLibertad V3.2.21 — Re-vinculación segura de noticias y fuentes RSS",
+  "description": "RedLibertad V3.2.22 — Fotografías RSS con autorización y almacenamiento local",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -58,7 +58,8 @@
     "test:editorial-alignment": "node --test tests/editorial-alignment-v32181.test.js",
     "test:editorial-source-removal": "node --test tests/editorial-source-removal-v3219.test.js",
     "test:editorial-orphans": "node --test tests/editorial-orphans-v3220.test.js",
-    "test:editorial-relink": "node --test tests/editorial-relink-v3221.test.js"
+    "test:editorial-relink": "node --test tests/editorial-relink-v3221.test.js",
+    "test:editorial-images": "node --test tests/editorial-images-v3222.test.js"
   },
   "engines": {
     "node": ">=20"

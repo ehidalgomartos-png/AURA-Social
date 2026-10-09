@@ -72,6 +72,8 @@ jobs:
         run: npm run test:editorial-orphans
       - name: V3.2.21 RSS source reconnection and human-review safety tests
         run: npm run test:editorial-relink
+      - name: V3.2.22 RSS image security, license and manual publishing regression tests
+        run: npm run test:editorial-images
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
