@@ -7,7 +7,7 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {ensureEditorialSchema}=require('../services/editorial-v320');
 const {canonicalArticleUrl,normalizedTitle}=require('../services/editorial-rss-v321');
-const {CATEGORIES,enrich}=require('../services/editorial-intelligence-v3215');
+const {CATEGORIES,enrich}=require('../services/editorial-intelligence-v3216');
 
 const router=express.Router();
 

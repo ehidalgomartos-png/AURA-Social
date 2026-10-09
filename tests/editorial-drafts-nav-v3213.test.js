@@ -32,7 +32,7 @@ test('propuesta gestionada con longitudes y campos incompletos',()=>{
 test('el editor prepara sugerencia al abrir una noticia pendiente y no sobrescribe una edición humana',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
  assert.match(html,/id="editorialSuggestDraft"/);
- assert.match(html,/editorial-draft-v3213\.js\?v=3\.2\.13/);
+ assert.match(html,/editorial-draft-v3216\.js\?v=3\.2\.16/);
  assert.match(html,/id="editorialSuggestionStatus"/);
  assert.match(js,/function fillEditorialDraftV3213\(item,force=false\)/);
  assert.match(js,/if\(item\.status==='pending'\)fillEditorialDraftV3213\(item,false\)/);
@@ -40,7 +40,7 @@ test('el editor prepara sugerencia al abrir una noticia pendiente y no sobrescri
  assert.match(js,/force\|\|!summary\.value\.trim\(\)/);
  assert.match(js,/window\.confirm\('¿Sustituir/);
  assert.ok(js.includes("$('#editorialSuggestDraft')"));
- assert.match(js,/no se ha guardado todavía/);
+ assert.match(js,/verifica y reescribe antes de guardar o aprobar/);
  assert.match(html,/no resume ni verifica el artículo completo/);
  assert.doesNotMatch(js,/autoPublish\s*:\s*true|auto_publish_enabled\s*=\s*true/);
 });
@@ -79,7 +79,7 @@ test('seguridad editorial: nadie aprueba ni publica de modo automático',()=>{
  assert.match(read('src/services/editorial-v320.js'),/CHECK\(NOT auto_publish_enabled\)/);
 });
 test('cambios de versión',()=>{
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.15'/);
- assert.match(read('package.json'),/"version": "3\.2\.15"/);
- assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.15'/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.16'/);
+ assert.match(read('package.json'),/"version": "3\.2\.16"/);
+ assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.16'/);
 });

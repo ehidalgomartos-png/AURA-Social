@@ -6,7 +6,7 @@ const {ensurePlanningSchema}=require('../services/editorial-planning-v326');
 const {ensureSocialSchema}=require('./editorial-social-v324');
 const {ensureQualitySchema}=require('../services/editorial-quality-v325');
 const {madridDay,validDay,triage,sourceAlerts}=require('../services/editorial-daily-v327');
-const {enrich}=require('../services/editorial-intelligence-v3215');
+const {enrich}=require('../services/editorial-intelligence-v3216');
 
 const router=express.Router();
 router.use(requireAdmin);

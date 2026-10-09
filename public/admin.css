@@ -475,3 +475,9 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialInbox .editorial-advice button{min-height:44px;margin:5px 0 8px}
 #editorialInbox .editorial-advice[hidden]{display:none!important}
 @media(max-width:620px){#editorialInbox .editorial-advice button{width:100%}}
+
+/* V3.2.16 — fast, touch-friendly editorial review on narrow screens */
+#editorialInbox .editorial-review-nav-v3216{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;flex-wrap:wrap}
+#editorialInbox .editorial-review-nav-v3216 button{min-height:44px;min-width:104px}
+#editorialInbox .editorial-review-nav-v3216 span{font-size:13px;font-weight:700;color:var(--ink)}
+@media(max-width:620px){#editorialInbox .editorial-review-nav-v3216{display:grid;grid-template-columns:1fr 1fr}#editorialInbox .editorial-review-nav-v3216 span{grid-column:1/-1;grid-row:1;text-align:center}#editorialInbox .editorial-review-nav-v3216 button{width:100%}}
