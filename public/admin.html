@@ -23,6 +23,24 @@
     <div id="metrics" class="metrics"></div>
   </section>
 
+  <section class="panel" id="editorialDaily" aria-labelledby="editorialDailyTitle">
+    <div class="panel-head">
+      <div><span class="eyebrow">EDITORIAL · V3.2.7</span><h2 id="editorialDailyTitle">Mesa editorial diaria</h2>
+        <p class="panel-copy">Un vistazo a las noticias previstas, por revisar, listas para publicar y publicadas. Todas las decisiones y publicaciones siguen siendo manuales.</p></div>
+      <button type="button" id="editorialDailyReload">Actualizar jornada</button>
+    </div>
+    <form id="editorialDailyDayForm" class="editorial-daily-date">
+      <label for="editorialDailyDay">Jornada (Europe/Madrid)</label>
+      <input type="date" id="editorialDailyDay" name="day" required>
+      <button type="submit" class="alt">Ver jornada</button>
+      <button type="button" id="editorialDailyToday" class="soft">Hoy</button>
+    </form>
+    <p id="editorialDailyStatus" class="status" role="status" aria-live="polite">Cargando jornada editorial…</p>
+    <div id="editorialDailyMetrics" class="beta-metrics" aria-label="Estado de la jornada"></div>
+    <div class="editorial-daily-sections" id="editorialDailySections" aria-live="polite"></div>
+    <p class="panel-copy">Enlaces de trabajo: <a href="#editorialCenter">Fuentes RSS</a> · <a href="#editorialInbox">Revisiones</a> · <a href="#editorialQuality">Calidad</a> · <a href="#editorialPlanning">Planificación</a> · <a href="#editorialPublication">Publicación manual</a>. Ninguna de estas listas ejecuta publicaciones automáticamente.</p>
+  </section>
+
   <section class="panel" id="editorialCenter" aria-labelledby="editorialTitle">
     <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2</span><h2 id="editorialTitle">Centro Editorial</h2><p class="panel-copy">Configura perfiles y fuentes. Consulta RSS manual con revisión de noticias; publicación automática desactivada.</p></div><button type="button" id="editorialReload">Actualizar</button></div>
     <p id="editorialMessage" class="status" role="status" aria-live="polite">Cargando configuración…</p>
