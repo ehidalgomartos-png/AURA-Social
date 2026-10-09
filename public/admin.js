@@ -1832,6 +1832,109 @@ $('#editorialModerationReports')?.addEventListener('click',async event=>{
   finally{btn.disabled=false;}
 });
 
+// V3.2.5 — aggregated quality signals and human-assessed publishing clearance.
+let editorialQualityItemsV325=[];
+async function loadEditorialQualityV325(){
+  const status=$('#editorialQualityStatus'),metrics=$('#editorialQualityMetrics');
+  const sources=$('#editorialQualitySources'),queue=$('#editorialQualityQueue');
+  if(!status||!metrics||!sources||!queue)return;
+  try{
+    const {r,d}=await api('/api/admin/editorial/quality/overview');
+    if(!r.ok)throw Error(d.error||'quality_overview_unavailable');
+    const m=d.summary||{},period=Number(d.periodDays||30);
+    const pairs=[
+      ['Fuentes',m.sources],['Detectadas ('+period+' días)',m.candidates_30d],
+      ['Aprobadas',m.approved_30d],['Rechazadas',m.rejected_30d],
+      ['Publicadas',m.published_30d],['Noticias visibles',m.live_publications],
+      ['Me gusta reales',m.likes_30d],['Comentarios visibles',m.comments_30d],
+      ['Denuncias recibidas',m.reports_30d],['Retenidas',m.quality_holds]
+    ];
+    metrics.innerHTML=pairs.map(([label,value])=>
+      '<div class="metric"><b>'+esc(Number(value||0))+'</b><span>'+esc(label)+'</span></div>'
+    ).join('');
+    const sourceRows=Array.isArray(d.sources)?d.sources:[];
+    sources.innerHTML=sourceRows.map(item=>
+      '<article class="report"><b>'+esc(item.name)+' · '+esc(item.status)+'</b>'+
+      '<small>'+esc(item.category)+' · Última consulta: '+esc(timeLabel(item.last_checked_at))+'</small>'+
+      '<p>'+Number(item.candidates_30d||0)+' encontradas · '+Number(item.approved_30d||0)+' aprobadas · '+
+      Number(item.rejected_30d||0)+' rechazadas · '+Number(item.publications_30d||0)+' publicadas</p>'+
+      '<small>'+Number(item.fetches_30d||0)+' consultas RSS y '+Number(item.duplicates_30d||0)+' duplicadas descartadas (30 días)</small></article>'
+    ).join('')||'<p>No hay fuentes configuradas.</p>';
+    editorialQualityItemsV325=Array.isArray(d.queue)?d.queue:[];
+    const labels={noticia_antigua:'Publicación de origen de más de 7 días',fuente_no_aprobada:'Fuente no aprobada',
+      perfil_no_preparado:'Perfil no preparado',texto_editorial_incompleto:'Texto sin terminar',enlace_no_https:'Revisar enlace HTTPS'};
+    queue.innerHTML=editorialQualityItemsV325.map(item=>{
+      const live=!!(item.publication_id&&!item.unpublished_at);
+      const quality=item.quality_ready?'Apta':item.quality_decision==='hold'?'Retenida':'Sin comprobación vigente';
+      const alerts=Array.isArray(item.signals)?item.signals:[];
+      const cues=alerts.length?'<p class="editorial-quality-alerts">Señales para revisar: '+alerts.map(flag=>esc(labels[flag]||flag)).join(' · ')+'</p>':'';
+      const disabled=live?'disabled':'';
+      return '<article class="report"><details class="editorial-quality-detail"><summary><b>'+esc(item.editorial_title||item.source_title)+
+        '</b> · <span>'+esc(quality)+(live?' · Publicada':'')+'</span></summary>'+
+        '<p>'+esc(item.editorial_summary||'Sin resumen editorial')+'</p>'+
+        '<small>Fuente: '+esc(item.source_name||'No disponible')+' · Perfil: '+esc(item.profile_name||'No disponible')+
+        ' · Revisión #'+Number(item.revision||0)+'</small>'+cues+
+        '<form data-editorial-quality="'+esc(item.id)+'" class="editorial-quality-form">'+
+          '<label>Motivo de evaluación <select name="reason" required>'+
+            '<option value="accuracy">Exactitud de los hechos</option>'+
+            '<option value="source">Fuente y procedencia</option>'+
+            '<option value="rights">Derechos de reutilización</option>'+
+            '<option value="context">Contexto y vigencia</option>'+
+            '<option value="other">Otras comprobaciones</option></select></label>'+
+          '<label>Justificación (mínimo 12 caracteres) <textarea name="note" required minlength="12" maxlength="500" rows="3">'+esc(item.quality_note||'')+'</textarea></label>'+
+          '<label><input type="checkbox" name="sourceChecked"> Fuente original consultada</label>'+
+          '<label><input type="checkbox" name="contextChecked"> Contexto y hechos comprobados</label>'+
+          '<label><input type="checkbox" name="rightsChecked"> Derechos y atribución comprobados</label>'+
+          '<div class="actions"><button type="submit" class="alt" data-quality-decision="clear">Marcar apta</button>'+
+          '<button type="submit" class="soft" data-quality-decision="hold" '+disabled+'>Retener noticia</button></div>'+
+        '</form>'+ (live?'<small>Para retener una noticia publicada, retírala primero desde Publicaciones editoriales.</small>':'')+
+        '</details></article>';
+    }).join('')||'<p>No hay noticias aprobadas pendientes de control de calidad.</p>';
+    status.textContent='Actualizado · '+editorialQualityItemsV325.length+' noticias aprobadas · Período de '+period+' días';
+  }catch(e){
+    status.textContent='No se pudieron cargar las métricas y comprobaciones.';
+    metrics.replaceChildren();sources.replaceChildren();queue.replaceChildren();
+  }
+}
+$('#editorialQualityReload')?.addEventListener('click',loadEditorialQualityV325);
+$('#editorialQualityQueue')?.addEventListener('submit',async event=>{
+  const form=event.target.closest('form[data-editorial-quality]');
+  if(!form)return;
+  event.preventDefault();
+  const id=String(form.dataset.editorialQuality||'');
+  const decision=event.submitter?.dataset.qualityDecision;
+  const item=editorialQualityItemsV325.find(row=>String(row.id)===id);
+  if(!item||!['clear','hold'].includes(decision))return;
+  const elements=form.elements;
+  const data={
+    revision:Number(item.revision),decision,
+    reason:elements.namedItem('reason').value,
+    note:String(elements.namedItem('note').value||'').trim(),
+    sourceChecked:elements.namedItem('sourceChecked').checked,
+    contextChecked:elements.namedItem('contextChecked').checked,
+    rightsChecked:elements.namedItem('rightsChecked').checked
+  };
+  if(data.note.length<12)return setAdminNotice('Escribe una justificación de al menos 12 caracteres.',true);
+  if(decision==='clear'&&(!data.sourceChecked||!data.contextChecked||!data.rightsChecked))
+    return setAdminNotice('Confirma las tres comprobaciones antes de marcar la noticia como apta.',true);
+  if(!window.confirm(decision==='clear'?'¿Confirmas que has comprobado manualmente fuente, contexto y derechos?':'¿Retener esta noticia para revisión adicional?'))return;
+  const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+  try{
+    const {r,d}=await api('/api/admin/editorial/quality/'+encodeURIComponent(id),{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)
+    });
+    if(!r.ok){
+      const messages={editorial_quality_stale:'La revisión cambió. Actualiza y comprueba de nuevo.',
+        editorial_quality_unpublish_first:'Retira primero la noticia publicada.',
+        editorial_quality_source_not_ready:'Prepara el perfil y aprueba la fuente antes de marcar apta.'};
+      throw Error(messages[d.error]||d.error||'No se pudo guardar la evaluación');
+    }
+    setAdminNotice(decision==='clear'?'Comprobación registrada: noticia apta para publicación manual.':'Noticia retenida para nueva revisión.');
+    await Promise.all([loadEditorialQualityV325(),loadEditorialPublicV323()]);
+  }catch(e){setAdminNotice('Calidad editorial: '+e.message,true);}
+  finally{buttons.forEach(b=>b.disabled=false);}
+});
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -1842,5 +1945,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(),loadEditorialQualityV325(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
