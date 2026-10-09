@@ -6,6 +6,7 @@ const express=require('express');
 const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {ensureReviewSchema,isOriginalEditorial}=require('../routes/admin-editorial-review-v322');
+const {ensureQualitySchema,qualityReady}=require('../services/editorial-quality-v325');
 
 const admin=express.Router();
 const publicRouter=express.Router();
@@ -34,7 +35,7 @@ const confirmation=({revision,confirm})=>Number.isSafeInteger(revision)&&revisio
 const publicationPath=id=>'/noticias/p/'+encodeURIComponent(id);
 async function assertApprovedForPublication(client,id,revision){
   const r=await client.query(
-    "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.profile_id AS source_profile_id,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id WHERE c.id=$1 FOR UPDATE OF c",[id]
+    "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.profile_id AS source_profile_id,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
   );
   if(!r.rowCount)throw fail(404,'editorial_candidate_not_found');
   const row=r.rows[0];
@@ -45,6 +46,7 @@ async function assertApprovedForPublication(client,id,revision){
     throw fail(409,'editorial_profile_mismatch');
   }
   if(!isOriginalEditorial(row))throw fail(422,'editorial_original_draft_required');
+  if(!qualityReady(row))throw fail(409,'editorial_quality_clearance_required');
   // We do not import the RSS image, embed its HTML or reproduce its synopsis.
   // Require HTTPS source article URL for external linking.
   let url;
@@ -65,11 +67,11 @@ async function inTransaction(work){
 }
 
 admin.use(requireAdmin);
-admin.use(async(_req,res,next)=>{try{await ensurePublicationSchema();next();}catch(e){console.error('Editorial publish schema failed:',e);res.status(500).json({error:'editorial_publication_unavailable'});}});
+admin.use(async(_req,res,next)=>{try{await ensurePublicationSchema();await ensureQualitySchema(db);next();}catch(e){console.error('Editorial publish schema failed:',e);res.status(500).json({error:'editorial_publication_unavailable'});}});
 
 admin.get('/publication-queue',errorHandler(async(_req,res)=>{
   const data=await db.query(
-    "SELECT c.id,c.revision,c.category,c.editorial_title,c.editorial_summary,c.canonical_url,c.reviewed_at,es.name AS source_name,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,p.id AS publication_id,p.unpublished_at,p.published_at FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
+    "SELECT c.id,c.revision,c.category,c.editorial_title,c.editorial_summary,c.canonical_url,c.reviewed_at,es.name AS source_name,es.status AS source_status,ep.name AS profile_name,ep.slug AS profile_slug,ep.status AS profile_status,p.id AS publication_id,p.unpublished_at,p.published_at,qa.decision AS quality_decision,qa.candidate_revision AS quality_revision FROM editorial_candidates c LEFT JOIN editorial_sources es ON es.id=c.source_id LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id LEFT JOIN editorial_publications p ON p.candidate_id=c.id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
   );
   res.json({items:data.rows,manualOnly:true,autoPublishing:false});
 }));
