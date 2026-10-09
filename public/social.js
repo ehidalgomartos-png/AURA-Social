@@ -1553,6 +1553,60 @@ function growthStepHTML(step) {
   </button>`;
 }
 
+// V3.1.0 — organic community kickstart; only public discovery metadata already
+// authorized by /api/communities/discover, never restricted posts or members.
+let growthCommunityRequestSequence=0;
+function growthCommunityCardHTML(item){
+  const id=String(item?.id||'');
+  if(!/^[1-9][0-9]{0,17}$/.test(id))return '';
+  const name=String(item.name||'Comunidad').slice(0,80);
+  const description=String(item.description||'Conoce esta comunidad y decide si quieres participar.').slice(0,145);
+  const reason=String(item.reason||'Comunidad que puedes explorar').slice(0,90);
+  const restricted=item.privacy==='private';
+  const members=Math.max(0,Math.min(999999,Number(item.member_count)||0));
+  return '<button type="button" class="growth-community-card" data-growth-community-open="'+esc(id)+'" aria-label="Ver comunidad '+esc(name)+'">'+
+    '<span class="growth-community-card-heading"><b>'+esc(name)+'</b><small>'+(restricted?'Privada · requiere aprobación':'Pública')+'</small></span>'+
+    '<span class="growth-community-description">'+esc(description)+'</span>'+
+    '<span class="growth-community-card-footer"><span>'+esc(reason)+' · '+members+' '+(members===1?'miembro':'miembros')+'</span><strong>Ver comunidad →</strong></span>'+
+    '</button>';
+}
+async function loadStarterCommunities(needsCommunity){
+  const section=$('#growthStarterCommunities'),list=$('#growthStarterCommunityList');
+  if(!section||!list)return;
+  const seq=++growthCommunityRequestSequence;
+  if(!needsCommunity){
+    section.classList.add('hidden');
+    list.replaceChildren();
+    return;
+  }
+  section.classList.remove('hidden');
+  list.innerHTML='<p class="growth-community-status">Buscando comunidades que puedan interesarte…</p>';
+  try{
+    const {r,d}=await api('/api/communities/discover?mode=recommended');
+    if(seq!==growthCommunityRequestSequence)return;
+    if(!r.ok)throw Error('discovery_unavailable');
+    const eligible=(Array.isArray(d.communities)?d.communities:[])
+      .filter(item=>/^[1-9][0-9]{0,17}$/.test(String(item?.id||'')))
+      .slice(0,3);
+    list.innerHTML=eligible.length
+      ? eligible.map(growthCommunityCardHTML).join('')
+      : '<p class="growth-community-status">Todavía no hay recomendaciones disponibles. Puedes explorar o crear una comunidad.</p>';
+  }catch(_){
+    if(seq===growthCommunityRequestSequence){
+      list.innerHTML='<p class="growth-community-status">No se pudieron cargar ahora. Puedes seguir explorando comunidades.</p>';
+    }
+  }
+}
+$('#growthStarterCommunityList')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-growth-community-open]');
+  if(!button || !event.currentTarget.contains(button))return;
+  const id=String(button.dataset.growthCommunityOpen||'');
+  if(!/^[1-9][0-9]{0,17}$/.test(id))return;
+  event.preventDefault();
+  showView('communities');
+  await openCommunityDetail(id);
+});
+
 let growthInviteCode = '';
 let growthInviteToken = '';
 
@@ -1598,6 +1652,7 @@ async function loadGrowthPanel() {
   $('#growthReferralTotal').textContent = Number(d.referrals?.total || 0);
   $('#growthReferralActivated').textContent = Number(d.referrals?.activated || 0);
   $('#growthSteps').innerHTML=steps.map(growthStepHTML).join('');
+  void loadStarterCommunities(steps.some(step=>step?.id==='community' && step.done!==true));
   const starterRoot=$('#growthStarterPeople');
   if(starterRoot){
     const starters=Array.isArray(d.starterProfiles)?d.starterProfiles:[];
