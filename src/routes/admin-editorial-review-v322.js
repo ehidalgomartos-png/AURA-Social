@@ -73,9 +73,10 @@ const guarded=fn=>(req,res)=>Promise.resolve().then(()=>fn(req,res)).catch(e=>{
 
 router.get('/review',guarded(async(req,res)=>{
   const status=['pending','approved','rejected'].includes(req.query.status)?req.query.status:'pending';
+  const focus=/^[1-9][0-9]{0,14}$/.test(String(req.query.focus||''))?String(req.query.focus):'0';
   const r=await db.query(
-    "SELECT c.id,c.source_id,c.profile_id,c.category,c.source_title,c.source_excerpt,c.canonical_url,c.published_at,c.status,c.fetched_at,c.editorial_title,c.editorial_summary,c.editor_note,c.revision,c.edited_at,c.reviewed_at,c.reviewed_by,s.name AS source_name,s.status AS source_status,s.rights_mode,u.username AS reviewer_username FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id LEFT JOIN users u ON u.id=c.reviewed_by WHERE c.status=$1 ORDER BY c.fetched_at DESC,c.id DESC LIMIT 100",
-    [status]
+    "SELECT c.id,c.source_id,c.profile_id,c.category,c.source_title,c.source_excerpt,c.canonical_url,c.published_at,c.status,c.fetched_at,c.editorial_title,c.editorial_summary,c.editor_note,c.revision,c.edited_at,c.reviewed_at,c.reviewed_by,s.name AS source_name,s.status AS source_status,s.rights_mode,u.username AS reviewer_username FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id LEFT JOIN users u ON u.id=c.reviewed_by WHERE c.status=$1 ORDER BY (c.id=$2::bigint) DESC,c.fetched_at DESC,c.id DESC LIMIT 100",
+    [status,focus]
   );
   res.json({items:r.rows,status,publishingEnabled:false,reviewRequired:true});
 }));
