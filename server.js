@@ -216,7 +216,7 @@ app.use('/api/admin', createOperationalAlertAdminRoutes({db,service:operationalA
 app.use('/api/admin', createAlertDeliveryAdminRoutes({db,delivery:alertDelivery}));
 app.use('/api/admin', createReleaseVerificationRoutes(releaseVerifier));
 app.use('/api/admin', adminSecurityRoutes);
-app.use('/api/admin', adminEditorialV320Routes);
+app.use('/api/admin/editorial', adminEditorialV320Routes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
