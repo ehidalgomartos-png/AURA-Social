@@ -1734,12 +1734,13 @@ async function loadEditorialPublicV323(){
         '<h3>'+esc(item.editorial_title||'Sin título')+'</h3><p>'+esc(item.editorial_summary||'Sin resumen')+'</p>'+
         '<small>Perfil: '+esc(item.profile_name||'Sin perfil')+' · Categoría: '+esc(item.category)+
         ' · Fuente: '+esc(item.source_name||'No disponible')+'</small></details>';
+      const qualityOk=item.quality_decision==='clear' && Number(item.quality_revision)===Number(item.revision);
       const ready=!!item.editorial_title && !!item.editorial_summary && item.source_status==='approved' &&
-        item.profile_status==='ready';
+        item.profile_status==='ready' && qualityOk;
       return '<article class="report" data-editorial-pub="'+esc(item.id)+'"><div>'+
         '<b>'+esc(item.editorial_title||'Noticia pendiente de completar')+'</b>'+
         '<p>'+esc(item.profile_name||'Sin perfil')+' · '+esc(item.source_name||'Sin fuente')+' · '+
-        (live?'Publicada':ready?'Aprobada; lista para publicar':'Necesita perfil y fuente aprobados')+'</p>'+preview+
+        (live?'Publicada':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+preview+
         '<div class="actions">'+
         (live?'<button type="button" class="soft" data-editorial-unpublish="'+esc(item.id)+'">Retirar publicación</button>'
           :'<button type="button" class="alt" data-editorial-publish="'+esc(item.id)+'" '+(ready?'':'disabled')+'>Publicar manualmente</button>')+
@@ -1778,7 +1779,8 @@ $('#editorialPublicItems')?.addEventListener('click',async event=>{
         editorial_review_required:'La noticia todavía no está aprobada.',
         editorial_source_or_profile_not_ready:'Fuente o perfil editorial no preparado.',
         editorial_profile_mismatch:'La categoría y el perfil asignados no coinciden.',
-        editorial_already_published:'Esta noticia ya está publicada.'
+        editorial_already_published:'Esta noticia ya está publicada.',
+        editorial_quality_clearance_required:'Revisa la calidad y márcala apta antes de publicar.'
       };
       throw Error(messages[d.error]||d.error||'Error al publicar');
     }
