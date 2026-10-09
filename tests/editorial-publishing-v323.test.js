@@ -14,7 +14,7 @@ function approvedRow(overrides={}){
   editorial_summary:'Nuestro equipo editorial ha revisado esta información y describe qué se conoce y qué detalles siguen pendientes de confirmación.',
   source_title:'Nuevo hallazgo anunciado en revista',source_excerpt:'Breve texto facilitado por la fuente',
   source_status:'approved',profile_status:'ready',category:'tecnologia',profile_category:'tecnologia',
-  source_profile_id:9,profile_id:9,canonical_url:'https://example.org/articulo',...overrides
+  source_profile_id:9,profile_id:9,canonical_url:'https://example.org/articulo',quality_decision:'clear',quality_candidate_revision:3,...overrides
  };
 }
 function clientFor(row){
@@ -84,7 +84,7 @@ test('fuentes, perfiles, enlaces públicos y sitemap presentes',()=>{
  assert.match(read('public/index.html'),/href="\/noticias"/);
  assert.match(read('public/app.html'),/editorial-discovery-entry/);
  assert.match(read('server.js'),/app\.use\('\/noticias', editorialPublishV323Public\)/);
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.4'/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.5'/);
 });
 test('Centro Editorial exige confirmación y permite retirar publicaciones',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
