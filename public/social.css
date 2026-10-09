@@ -6899,3 +6899,42 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(prefers-reduced-motion:reduce){
   .bottom-nav-icon{transition:none!important}
 }
+
+
+/* V3.1.0 — first-community recommendation is informative and opt-in. */
+.growth-community-starter{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.growth-community-starter .growth-starter-head p{margin:5px 0 0;font-size:11px;color:var(--muted);line-height:1.45}
+.growth-community-starter-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.growth-community-card{
+  display:grid;
+  text-align:left;
+  align-content:start;
+  gap:9px;
+  width:100%;
+  min-width:0;
+  min-height:145px;
+  padding:14px;
+  border:1px solid rgba(13,34,56,.13);
+  border-radius:16px;
+  background:var(--paper);
+  color:var(--ink);
+  box-shadow:0 5px 20px rgba(13,34,56,.04);
+  cursor:pointer;
+}
+.growth-community-card-heading{display:grid;gap:4px}
+.growth-community-card-heading b{font-size:14px;color:var(--navy);line-height:1.3;overflow-wrap:anywhere}
+.growth-community-card-heading small{font-size:10px;font-weight:700;color:#317c75}
+.growth-community-description{font-size:12px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+.growth-community-card-footer{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:auto}
+.growth-community-card-footer span{font-size:10px;color:var(--muted);line-height:1.3}
+.growth-community-card-footer strong{font-size:11px;color:#087b73;white-space:nowrap}
+.growth-community-card:hover{border-color:#2bb7a9;box-shadow:0 9px 24px rgba(43,183,169,.10)}
+.growth-community-card:focus-visible{outline:3px solid #148b80;outline-offset:2px}
+.growth-community-status{grid-column:1/-1;padding:12px;border-radius:12px;background:rgba(13,34,56,.04);color:var(--muted);font-size:12px;margin:0}
+@media(max-width:760px){
+  .growth-community-starter .growth-starter-head{align-items:center}
+  .growth-community-starter-list{grid-template-columns:1fr}
+  .growth-community-card{min-height:126px;padding:12px}
+  .growth-community-starter .tiny-action{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){.growth-community-card{transition:none!important}}

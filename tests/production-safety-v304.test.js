@@ -144,7 +144,7 @@ test('network failures are sanitized; the report does not contain secrets',async
 });
 test('V3.0.4 commands and CI run the safety audit suite',()=>{
  const pkg=require('../package.json');
- assert.match(pkg.version,/^3\.0\.[0-9]+$/);
+ assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+$/);
  assert.match(pkg.scripts['gate:seo'],/seo-sitemap-audit-v304/);
  assert.match(pkg.scripts['gate:storage'],/storage-audit-v304/);
  assert.match(pkg.scripts['test:production-safety'],/production-safety-v304/);

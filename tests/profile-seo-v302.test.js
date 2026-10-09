@@ -128,7 +128,7 @@ test('private-user exclusion, sensitive post filters and noindex behavior remain
 });
 test('release version and CI include profile SEO tests',()=>{
   const pkg=require('../package.json');
-  assert.match(pkg.version,/^3\.0\.[0-9]+$/);
+  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+$/);
   assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
   assert.match(pkg.scripts['test:profile-seo'],/profile-seo-v302/);
   assert.match(read('.github/workflows/validate-js.yml'),/test:profile-seo/);

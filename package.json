@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.0.6",
+  "version": "3.1.0",
   "private": true,
-  "description": "RedLibertad V3.0.6 — barra de navegación móvil con iconos renovados y fondo opaco.",
+  "description": "RedLibertad V3.1.0 — crecimiento orgánico y primeras comunidades.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -37,7 +37,8 @@
     "test:profile-seo": "node --test tests/profile-seo-v302.test.js",
     "test:profile-experience": "node --test tests/profile-experience-v303.test.js",
     "test:own-profile": "node --test tests/own-profile-full-posts-v305.test.js",
-    "test:mobile-nav": "node --test tests/mobile-navigation-v306.test.js"
+    "test:mobile-nav": "node --test tests/mobile-navigation-v306.test.js",
+    "test:community-kickstart": "node --test tests/community-kickstart-v310.test.js"
   },
   "engines": {
     "node": ">=20"
