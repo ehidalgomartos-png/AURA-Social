@@ -34,6 +34,8 @@ jobs:
         run: npm run test:community-kickstart
       - name: V3.2.1 secure RSS and editorial review inbox tests
         run: npm run test:editorial-rss
+      - name: V3.2.2 human editorial approval and safety tests
+        run: npm run test:editorial-review
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

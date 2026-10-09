@@ -359,3 +359,21 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialCenter .grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 0}
 #editorialCenter .report{margin-bottom:8px}
 @media(max-width:800px){#editorialCenter .grid{grid-template-columns:minmax(0,1fr)}}
+
+
+/* V3.2.2 Human editorial review — touch-first forms without changing existing social UI */
+#editorialInbox .panel-head{align-items:start;flex-wrap:wrap}
+#editorialInbox .panel-tools{flex-wrap:wrap}
+#editorialInbox .panel-tools select{min-width:135px}
+#editorialInboxItems .report{overflow-wrap:anywhere}
+#editorialInboxItems .report a{display:inline-block;max-width:100%;overflow-wrap:anywhere}
+#editorialReviewEditor{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:15px;background:var(--paper)}
+#editorialReviewEditor.hidden{display:none}
+#editorialReviewEditor .editorial-form{display:grid;gap:12px}
+#editorialReviewEditor .editorial-form label:not(.editorial-check){display:grid;gap:6px;font-weight:700}
+#editorialReviewEditor .editorial-form textarea,#editorialReviewEditor .editorial-form input[type=text]{width:100%;min-width:0;border:1px solid var(--line);padding:11px;border-radius:10px;color:#17202a;background:white}
+#editorialReviewEditor .editorial-check{display:flex;align-items:flex-start;gap:9px;font-weight:500}
+#editorialReviewEditor .editorial-check input{width:19px;height:19px;flex-shrink:0}
+#editorialReviewEditor .actions{display:flex;flex-wrap:wrap;gap:8px}
+#editorialReviewEditor button{min-height:44px}
+@media(max-width:600px){#editorialReviewEditor{padding:12px}#editorialReviewEditor .actions button{width:100%}#editorialInbox .panel-tools{width:100%}}
