@@ -28,7 +28,7 @@ test('la barra de navegación pública cambia según la sesión pero mantiene ic
   const js=read('public/editorial-session-v3212.js');
   assert.match(html,/data-ed-auth-link/);
   assert.match(html,/data-ed-logged-label="Mi perfil"/);
-  assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.15/);
+  assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.14/);
   assert.match(js,/\/api\/auth\/me/);
   assert.match(js,/credentials:'same-origin',cache:'no-store'/);
   assert.match(js,/const label=link\.querySelector\('small'\)\|\|link/);
