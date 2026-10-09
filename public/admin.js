@@ -1625,6 +1625,7 @@ function fillEditorialDraftV3213(item,force=false){
   if(force||!summary.value.trim())summary.value=draft.summary;
   if(!note.value.trim())note.value=draft.note;
   renderEditorialProvenanceV3217(item);
+  renderEditorialOriginalityV32171(item);
   $('#editorialSuggestionStatus').textContent='Borrador provisional basado en el título y extracto RSS. No incluye hechos comprobados fuera de esos metadatos: verifica y reescribe antes de guardar o aprobar.';
   return true;
 }
@@ -1634,6 +1635,57 @@ $('#editorialSuggestDraft')?.addEventListener('click',()=>{
   }
 });
 
+// V3.2.17.1 — Inline checks mirror server originality requirements.
+// Approval is only available for an already-saved revision, never for an
+// unsaved form field or an auto-generated, unverified draft.
+function editorialDraftDirtyV32171(item,form=$('#editorialReviewForm')){
+  if(!item||!form)return false;
+  return ['title','summary'].some(name=>
+    String(form.elements.namedItem(name)?.value||'').trim()!==
+    String(item['editorial_'+name]||'').trim()
+  );
+}
+function renderEditorialOriginalityV32171(item){
+  const form=$('#editorialReviewForm');
+  const workflow=$('#editorialOriginalityWorkflowV32171');
+  const checker=window.editorialOriginalityV32171;
+  if(!form||typeof checker!=='function')return null;
+  if(!item||item.status!=='pending'){
+    for(const name of ['title','summary']){
+      const field=form.elements.namedItem(name);
+      field.removeAttribute('aria-invalid');
+      const info=$('#editorialOriginality'+(name==='title'?'Title':'Summary')+'V32171');
+      if(info)info.textContent='';
+    }
+    if(workflow)workflow.textContent='';
+    return null;
+  }
+  const result=checker(item,{
+    title:form.elements.namedItem('title').value,
+    summary:form.elements.namedItem('summary').value
+  });
+  for(const name of ['title','summary']){
+    const field=form.elements.namedItem(name);
+    const info=$('#editorialOriginality'+(name==='title'?'Title':'Summary')+'V32171');
+    const message=result.fields[name]||'';
+    if(info)info.textContent=message;
+    if(message)field.setAttribute('aria-invalid','true');
+    else field.removeAttribute('aria-invalid');
+  }
+  if(workflow){
+    workflow.textContent=!result.ok
+      ?'Revisa los campos señalados. Puedes guardar un borrador provisional, pero para aprobar debes corregirlos primero.'
+      :editorialDraftDirtyV32171(item,form)
+        ?'Hay un titular o resumen sin guardar. Pulsa «Guardar borrador» antes de aprobar internamente.'
+        :'Titular y resumen guardados. Comprueba fuente, hechos, contexto y derechos antes de aprobar.';
+  }
+  return result;
+}
+$('#editorialReviewForm')?.addEventListener('input',event=>{
+  if(event.target?.matches?.('[name="title"],[name="summary"]')){
+    renderEditorialOriginalityV32171(editorialReviewCurrent);
+  }
+});
 function renderEditorialProvenanceV3217(item){
   const target=$('#editorialProvenanceV3217');
   if(!target)return;
@@ -1772,6 +1824,7 @@ function openEditorialReview(item){
   $('#editorialReviewEditorTitle').textContent='Revisión #'+item.id+' · '+(item.status==='pending'?'Pendiente':item.status==='approved'?'Aprobada':'Rechazada');
   renderEditorialAdviceV3215(item);
   renderEditorialProvenanceV3217(item);
+  renderEditorialOriginalityV32171(item);
   $('#editorialReviewSource').textContent='Original: '+item.source_title+' · Fuente: '+(item.source_name||'No disponible')+
     ' · Estado de fuente: '+(item.source_status||'no disponible')+'. Consulta la noticia completa antes de decidir.';
   const link=$('#editorialReviewLink'),url=editorialSafeHref(item.canonical_url);
@@ -1808,6 +1861,18 @@ async function submitEditorialReview(action){
     setAdminNotice('Escribe un motivo de revisión (mínimo 8 caracteres).',true);return;
   }
   if(action==='approve'){
+    const check=renderEditorialOriginalityV32171(item);
+    if(!check?.ok){
+      setAdminNotice('Revisa el titular y el resumen: los avisos debajo de cada campo indican qué debes corregir.',true);
+      const field=check?.fields.title?'title':'summary';
+      form.elements.namedItem(field).focus();
+      return;
+    }
+    if(editorialDraftDirtyV32171(item,form)){
+      setAdminNotice('Los cambios del titular o del resumen no están guardados. Pulsa «Guardar borrador» y vuelve a aprobar después.',true);
+      $('#editorialSaveDraft')?.focus();
+      return;
+    }
     if(!item.editorial_title||!item.editorial_summary){
       setAdminNotice('Guarda primero un titular y resumen originales.',true);return;
     }
@@ -1840,7 +1905,7 @@ async function submitEditorialReview(action){
     if(!r.ok){
       const messages={
         editorial_review_stale:'La noticia ha cambiado. Actualiza y vuelve a revisarla.',
-        editorial_original_draft_required:'Guarda un titular y resumen originales que no copien los del RSS.',
+        editorial_original_draft_required:(d.fields&&Object.values(d.fields).length?Object.values(d.fields).join(' '):'Revisa y guarda un titular y resumen distintos de los textos del RSS.'),
         editorial_source_not_approved:'La fuente no está aprobada o el enlace no es válido.',
         editorial_review_locked:'La noticia ya está revisada. Reábrela para editarla.'
       };
@@ -1849,7 +1914,11 @@ async function submitEditorialReview(action){
     if(action==='reopen' && $('#editorialReviewFilter')) $('#editorialReviewFilter').value='pending';
     setAdminNotice(action==='save'?'Borrador guardado.':action==='reopen'?'Noticia reabierta. Ahora está en Pendientes para editarla.':action==='approve'?'Noticia aprobada internamente (sin publicar).':'Noticia rechazada.');
     closeEditorialReview();
-    await Promise.all([loadEditorialInboxV321(),loadEditorialV320(),loadEditorialPublicV323(),loadEditorialQualityV325(),loadEditorialPlanningV326(),loadEditorialDailyV327()]);
+    await Promise.all([loadEditorialInboxV321(action==='save'?String(item.id):''),loadEditorialV320(),loadEditorialPublicV323(),loadEditorialQualityV325(),loadEditorialPlanningV326(),loadEditorialDailyV327()]);
+    if(action==='save'){
+      const refreshed=editorialReviewItems.find(row=>String(row.id)===String(item.id));
+      if(refreshed)openEditorialReview(refreshed);
+    }
   }catch(e){setAdminNotice('Revisión no guardada: '+e.message,true);}
   finally{controls.forEach(b=>b.disabled=false);}
 }
