@@ -64,6 +64,6 @@ test('rutas y controles humanos permanecen intactos',()=>{
  assert.ok(html.includes('/editorial-draft-v3216.js?v=3.2.16'));
  assert.ok(get('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
  assert.ok(route.includes("router.use(requireAdmin)"));
- assert.ok(get('server.js').includes("APP_VERSION='3.2.18.1'"));
- assert.equal(JSON.parse(get('package.json')).version,'3.2.18.1');
+ assert.ok(get('server.js').includes("APP_VERSION='3.2.19'"));
+ assert.equal(JSON.parse(get('package.json')).version,'3.2.19');
 });

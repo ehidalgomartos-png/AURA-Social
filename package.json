@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.18.1",
+  "version": "3.2.19",
   "private": true,
-  "description": "RedLibertad V3.2.18.1 — Hotfix asignación editorial y publicación manual",
+  "description": "RedLibertad V3.2.19 — Eliminación segura de fuentes RSS autorizadas",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -55,7 +55,8 @@
     "test:editorial-provenance": "node --test tests/editorial-provenance-v3217.test.js",
     "test:editorial-originality-hotfix": "node --test tests/editorial-originality-hotfix-v32171.test.js",
     "test:editorial-queue": "node --test tests/editorial-queue-v3218.test.js",
-    "test:editorial-alignment": "node --test tests/editorial-alignment-v32181.test.js"
+    "test:editorial-alignment": "node --test tests/editorial-alignment-v32181.test.js",
+    "test:editorial-source-removal": "node --test tests/editorial-source-removal-v3219.test.js"
   },
   "engines": {
     "node": ">=20"

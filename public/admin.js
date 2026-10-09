@@ -1504,7 +1504,7 @@ async function loadEditorialV320(){
     cm.innerHTML='<option value="">Sin comunidad</option>'+(d.communities||[]).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
     pr.innerHTML='<option value="">Sin perfil</option>'+(d.profiles||[]).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
     $('#editorialProfiles').innerHTML=d.profiles.map(p=>'<div class="report"><b>'+esc(p.name)+'</b><p>'+esc(p.category)+' · '+esc(p.status)+' · @'+esc(p.slug)+'</p><button type="button" class="soft" data-editorial-profile="'+esc(p.id)+'">Editar</button></div>').join('')||'<p>No hay perfiles todavía.</p>';
-    $('#editorialSources').innerHTML=d.sources.map(s=>'<div class="report"><b>'+esc(s.name)+'</b><p>'+esc(s.category)+' · '+esc(s.status)+' · '+esc(s.rights_mode)+'</p><small>Última consulta: '+esc(timeLabel(s.last_checked_at))+'</small><div class="actions"><button type="button" class="soft" data-editorial-source="'+esc(s.id)+'">Editar</button>'+(s.status==='approved'?'<button type="button" class="alt" data-editorial-fetch="'+esc(s.id)+'">Consultar RSS</button>':'')+'</div></div>').join('')||'<p>No hay fuentes todavía.</p>';
+    $('#editorialSources').innerHTML=d.sources.map(s=>'<div class="report"><b>'+esc(s.name)+'</b><p>'+esc(s.category)+' · '+esc(s.status)+' · '+esc(s.rights_mode)+'</p><small>Última consulta: '+esc(timeLabel(s.last_checked_at))+'</small><div class="actions"><button type="button" class="soft" data-editorial-source="'+esc(s.id)+'">Editar</button>'+(s.status==='approved'?'<button type="button" class="alt" data-editorial-fetch="'+esc(s.id)+'">Consultar RSS</button>':'')+'<button type="button" class="soft editorial-source-delete-button-v3219" data-editorial-source-delete="'+esc(s.id)+'">Eliminar</button></div></div>').join('')||'<p>No hay fuentes todavía.</p>';
     $('#editorialAudit').innerHTML=(d.audit||[]).map(a=>'<div class="report">'+esc(timeLabel(a.created_at))+' · '+esc(a.action)+' · '+esc(a.entity_type)+'</div>').join('')||'<p>Sin cambios registrados.</p>';
     window.editorialV320State=d;
   }catch(_){message.textContent='No se pudo cargar la configuración editorial.';}
@@ -1560,6 +1560,91 @@ for(const [root,type,formId] of [['editorialProfiles','profiles','editorialProfi
     form.dataset.editId=String(id);form.scrollIntoView({behavior:'smooth',block:'center'});
   });
 }
+// V3.2.19 — Explicit two-step removal of editorial RSS sources.
+// The UI never automatically deletes related candidates or publications.
+let editorialSourceRemovalStateV3219=null;
+let editorialSourceRemovalBusyV3219=false;
+function clearEditorialSourceRemovalV3219(){
+  editorialSourceRemovalStateV3219=null;
+  const box=$('#editorialSourceRemovalV3219');
+  if(box)box.hidden=true;
+  const field=$('#editorialSourceRemovalNameV3219');
+  if(field)field.value='';
+  const confirm=$('#editorialSourceRemovalConfirmV3219');
+  if(confirm)confirm.disabled=true;
+}
+function updateEditorialSourceRemovalV3219(){
+  const state=editorialSourceRemovalStateV3219;
+  const field=$('#editorialSourceRemovalNameV3219');
+  const button=$('#editorialSourceRemovalConfirmV3219');
+  if(button)button.disabled=editorialSourceRemovalBusyV3219||!state||!field||
+    field.value!==state.name;
+}
+$('#editorialSourceRemovalNameV3219')?.addEventListener('input',updateEditorialSourceRemovalV3219);
+$('#editorialSourceRemovalCancelV3219')?.addEventListener('click',clearEditorialSourceRemovalV3219);
+$('#editorialSources')?.addEventListener('click',async event=>{
+  const button=event.target.closest('button[data-editorial-source-delete]');
+  if(!button||editorialSourceRemovalBusyV3219)return;
+  const id=String(button.dataset.editorialSourceDelete||'');
+  if(!/^[1-9][0-9]{0,14}$/.test(id))return;
+  editorialSourceRemovalBusyV3219=true;
+  button.disabled=true;
+  try{
+    const {r,d}=await api('/api/admin/editorial/sources/'+encodeURIComponent(id)+'/deletion-preview');
+    if(!r.ok)throw Error(d.error||'No se pudo comprobar la fuente RSS.');
+    const source=d.source;
+    if(!source||String(source.id)!==id)throw Error('La vista previa no coincide con la fuente seleccionada.');
+    editorialSourceRemovalStateV3219=source;
+    const count=source.impact||{};
+    $('#editorialSourceRemovalDetailsV3219').textContent=
+      'Fuente: '+source.name+' · Estado: '+source.status+'. '+
+      'Noticias asociadas: '+Number(count.candidates||0)+' (pendientes: '+Number(count.pending||0)+
+      ', aprobadas: '+Number(count.approved||0)+'). '+
+      'Publicaciones existentes: '+Number(count.publications||0)+
+      ', visibles actualmente: '+Number(count.live_publications||0)+'. '+
+      'Estas noticias NO serán borradas al eliminar la fuente.';
+    const field=$('#editorialSourceRemovalNameV3219');
+    if(field)field.value='';
+    $('#editorialSourceRemovalV3219').hidden=false;
+    updateEditorialSourceRemovalV3219();
+    $('#editorialSourceRemovalV3219').scrollIntoView({behavior:'smooth',block:'center'});
+    field?.focus({preventScroll:true});
+  }catch(error){setAdminNotice('No se pudo preparar la eliminación: '+error.message,true);}
+  finally{editorialSourceRemovalBusyV3219=false;button.disabled=false;}
+});
+$('#editorialSourceRemovalConfirmV3219')?.addEventListener('click',async()=>{
+  const source=editorialSourceRemovalStateV3219,field=$('#editorialSourceRemovalNameV3219');
+  if(!source||editorialSourceRemovalBusyV3219||field?.value!==source.name)return;
+  const count=source.impact||{};
+  if(!window.confirm('¿ELIMINAR DEFINITIVAMENTE la fuente RSS «'+source.name+'»? '+
+    'Se conservarán sus '+Number(count.candidates||0)+' noticias importadas y '+
+    Number(count.publications||0)+' publicaciones históricas (incluidas '+
+    Number(count.live_publications||0)+' visibles). La fuente dejará de consultarse.'))return;
+  const button=$('#editorialSourceRemovalConfirmV3219');
+  editorialSourceRemovalBusyV3219=true;button.disabled=true;
+  try{
+    const {r,d}=await api('/api/admin/editorial/sources/'+encodeURIComponent(source.id),{
+      method:'DELETE',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({confirm:true,name:source.name,
+        expectedCandidates:Number(count.candidates||0),
+        expectedPublications:Number(count.publications||0),
+        expectedLivePublications:Number(count.live_publications||0)})
+    });
+    if(!r.ok)throw Error({
+      editorial_source_removal_confirmation_stale:'La fuente o el número de noticias ha cambiado. Abre otra vez Eliminar y comprueba los datos.',
+      editorial_not_found:'La fuente ya no existe. Actualiza la lista.'
+    }[d.error]||d.error||'No se pudo eliminar la fuente.');
+    const sourceForm=$('#editorialSourceForm');
+    if(sourceForm&&sourceForm.dataset.editId===String(source.id)){
+      sourceForm.reset();delete sourceForm.dataset.editId;
+    }
+    clearEditorialSourceRemovalV3219();
+    setAdminNotice('Fuente RSS eliminada. Las noticias y publicaciones existentes se han conservado; las públicas siguen visibles hasta retirarlas manualmente.');
+    await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),
+      loadEditorialQualityV325(),loadEditorialDailyV327()]);
+  }catch(error){setAdminNotice('No se eliminó la fuente RSS: '+error.message,true);}
+  finally{editorialSourceRemovalBusyV3219=false;updateEditorialSourceRemovalV3219();}
+});
 $('#editorialReload')?.addEventListener('click',loadEditorialV320);
 let editorialReviewItems=[];
 let editorialReviewCurrent=null;

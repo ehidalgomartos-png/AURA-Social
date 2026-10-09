@@ -66,6 +66,8 @@ jobs:
         run: npm run test:editorial-queue
       - name: V3.2.18.1 editorial publication alignment and safe repair tests
         run: npm run test:editorial-alignment
+      - name: V3.2.19 protected RSS source deletion and preservation regression tests
+        run: npm run test:editorial-source-removal
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

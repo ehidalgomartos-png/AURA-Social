@@ -7,6 +7,9 @@ const {requireAdmin}=require('../middleware/auth');
 const {CATEGORIES,PROFILE_STATUSES,SOURCE_STATUSES,validateFeedUrl,validateLocalImage,ensureEditorialSchema}=require('../services/editorial-v320');
 
 const {sourceCoverage}=require('../services/editorial-intelligence-v3216');
+const {ensurePublicationSchema}=require('./editorial-publication-v323');
+const {safeSourceIdV3219,lookupSourceRemovalV3219,deleteSourceV3219}=
+  require('../services/editorial-source-removal-v3219');
 const router=express.Router();
 router.use(requireAdmin);
 router.use(async(_req,res,next)=>{
@@ -43,7 +46,7 @@ const sourceInput=z.object({
 
 const wrap=handler=>(req,res)=>Promise.resolve().then(()=>handler(req,res)).catch(error=>{
   if(error.status===404)return res.status(404).json({error:'editorial_not_found'});
-  if(error.status===409&&['editorial_source_profile_required','editorial_source_profile_category_mismatch'].includes(error.code))return res.status(409).json({error:error.code});
+  if(error.status===409&&['editorial_source_profile_required','editorial_source_profile_category_mismatch','editorial_source_removal_confirmation_stale','editorial_source_removal_stale'].includes(error.code))return res.status(409).json({error:error.code});
   if(error.status===403)return res.status(403).json({error:'editorial_community_not_managed'});
   if(error.code==='23505')return res.status(409).json({error:'editorial_already_exists'});
   if(error.code==='23503'||error.code==='23514')return res.status(400).json({error:'editorial_reference_invalid'});
@@ -112,7 +115,7 @@ router.get('/overview',wrap(async(req,res)=>{
     db.query('SELECT id,action,entity_type,entity_id,created_at FROM editorial_audit ORDER BY created_at DESC,id DESC LIMIT 30')
   ]);
   res.json({
-    version:'3.2.18.1',
+    version:'3.2.19',
     profiles:profiles.rows,sources:sources.rows,communities:communities.rows,
     settings:settings.rows[0]||{review_required:true,ingestion_enabled:false,auto_publish_enabled:false},
     audit:audit.rows,
@@ -194,6 +197,37 @@ router.put('/sources/:id',wrap(async(req,res)=>{
     return r.rows[0];
   });
   res.json({ok:true,source:row});
+}));
+
+// V3.2.19 — two-phase deletion even for previously approved RSS feeds.
+// GET previews impact; DELETE requires explicit name and matching counts.
+const removalInputV3219=z.object({
+  confirm:z.literal(true),
+  name:z.string().min(1).max(100),
+  expectedCandidates:z.number().int().nonnegative().safe(),
+  expectedPublications:z.number().int().nonnegative().safe(),
+  expectedLivePublications:z.number().int().nonnegative().safe()
+}).strict();
+router.get('/sources/:id/deletion-preview',wrap(async(req,res)=>{
+  const id=safeSourceIdV3219(req.params.id);
+  if(!id)return res.status(400).json({error:'invalid_editorial_id'});
+  await ensurePublicationSchema();
+  const client=await db.pool.connect();
+  try{
+    const snapshot=await lookupSourceRemovalV3219(client,id);
+    res.set('Cache-Control','no-store');
+    res.json({ok:true,source:snapshot});
+  }finally{client.release();}
+}));
+router.delete('/sources/:id',wrap(async(req,res)=>{
+  const id=safeSourceIdV3219(req.params.id);
+  if(!id)return res.status(400).json({error:'invalid_editorial_id'});
+  const input=removalInputV3219.safeParse(req.body);
+  if(!input.success)return res.status(400).json({error:'editorial_source_removal_confirmation_required'});
+  await ensurePublicationSchema();
+  const result=await deleteSourceV3219(db.pool,req.user.id,id,input.data);
+  res.set('Cache-Control','no-store');
+  res.json(result);
 }));
 
 module.exports=router;
