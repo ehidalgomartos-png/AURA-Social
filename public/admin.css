@@ -408,3 +408,25 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialQuality .editorial-quality-form button{min-height:44px}
 #editorialQuality .editorial-quality-alerts{color:#8e401a;font-size:12px}
 @media(max-width:760px){#editorialQuality .editorial-quality-sources{grid-template-columns:1fr}#editorialQuality .editorial-quality-form .actions button{width:100%}}
+
+
+/* V3.2.6 — selection filters and manual editorial calendar, mobile first */
+#editorialPlanning{overflow:hidden}
+#editorialPlanning .editorial-planning-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+#editorialPlanning .editorial-planning-filters label,#editorialPlanning .editorial-planning-form label{display:grid;gap:5px;font-size:13px;font-weight:600}
+#editorialPlanning input:not([type=checkbox]),#editorialPlanning select,#editorialPlanning textarea{min-width:0;width:100%;border:1px solid var(--line);border-radius:10px;background:white;color:#17202a;font:inherit;padding:10px}
+#editorialPlanning .editorial-planning-filters>button{align-self:end;min-height:44px}
+#editorialPlanning .editorial-planning-calendar{display:flex;align-items:stretch;gap:9px;overflow-x:auto;padding:9px 0;margin-bottom:15px}
+#editorialPlanning .editorial-planning-day{flex:0 0 auto;padding:10px 14px;background:#eef6f5;border:1px solid var(--line);border-radius:10px;display:grid;gap:4px;font-size:12px}
+#editorialPlanning .editorial-planning-day span{color:var(--muted)}
+#editorialPlanning .editorial-planning-queue{display:grid;gap:10px;margin-top:12px}
+#editorialPlanning .editorial-planning-queue .report{margin:0;overflow-wrap:anywhere}
+#editorialPlanning .editorial-planning-detail summary{cursor:pointer}
+#editorialPlanning .editorial-rank{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;margin-left:8px;border:1px solid var(--line);border-radius:10px;color:#126b80}
+#editorialPlanning .editorial-planning-detail small{display:block;color:var(--muted)}
+#editorialPlanning .editorial-planning-reasons{color:#126b80;font-size:12px}
+#editorialPlanning .editorial-planning-warning{color:#98450a;font-weight:700;font-size:12px}
+#editorialPlanning .editorial-planning-form{display:grid;gap:11px;margin:14px 0 4px}
+#editorialPlanning .editorial-planning-form .actions{display:flex;flex-wrap:wrap;gap:9px}
+#editorialPlanning .editorial-planning-form button{min-height:44px}
+@media(max-width:700px){#editorialPlanning .editorial-planning-filters{grid-template-columns:1fr}#editorialPlanning .editorial-planning-form .actions button{width:100%}}
