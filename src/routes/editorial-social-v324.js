@@ -40,7 +40,7 @@ const reportSchema=z.object({reason:z.enum(['abuse','spam','misinformation','oth
 
 router.get('/discover',safeWrap(async(_req,res)=>{
   const result=await db.query(
-    "SELECT p.id,p.title,p.summary,p.category,p.published_at,ep.name AS profile_name,p.source_name,(SELECT count(*)::int FROM editorial_likes l WHERE l.publication_id=p.id) AS like_count,(SELECT count(*)::int FROM editorial_comments c JOIN users u ON u.id=c.user_id WHERE c.publication_id=p.id AND c.status='published' AND u.status='active') AS comment_count FROM editorial_publications p JOIN editorial_profiles ep ON ep.id=p.profile_id WHERE p.unpublished_at IS NULL AND ep.status='ready' ORDER BY p.published_at DESC,p.id DESC LIMIT 3"
+    "SELECT p.id,p.title,p.summary,p.category,p.published_at,ep.name AS profile_name,p.source_name,p.image_url,p.image_alt,p.image_credit,(SELECT count(*)::int FROM editorial_likes l WHERE l.publication_id=p.id) AS like_count,(SELECT count(*)::int FROM editorial_comments c JOIN users u ON u.id=c.user_id WHERE c.publication_id=p.id AND c.status='published' AND u.status='active') AS comment_count FROM editorial_publications p JOIN editorial_profiles ep ON ep.id=p.profile_id WHERE p.unpublished_at IS NULL AND ep.status='ready' ORDER BY p.published_at DESC,p.id DESC LIMIT 3"
   );
   res.set('Cache-Control','no-store').json({items:result.rows,editorial:true});
 }));
