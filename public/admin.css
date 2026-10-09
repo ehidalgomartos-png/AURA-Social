@@ -569,3 +569,26 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   #editorialInbox .panel-tools #editorialOrphanFilterV3220{width:100%}
   #editorialInbox .editorial-orphan-warning-v3220{font-size:12px}
 }
+
+/* V3.2.21 — RSS source recovery in the existing mobile editorial review. */
+#editorialInbox .editorial-relink-panel-v3221{
+  background:var(--paper);border:1px solid var(--line);border-left:4px solid #2c857e;
+  border-radius:12px;padding:15px;margin:12px 0 18px;display:grid;gap:10px;
+  overflow-wrap:anywhere
+}
+#editorialInbox .editorial-relink-panel-v3221[hidden]{display:none!important}
+#editorialInbox .editorial-relink-panel-v3221 h4{margin:0;font-size:16px;color:var(--navy)}
+#editorialInbox .editorial-relink-panel-v3221 label{
+  display:grid;gap:6px;font-size:13px;font-weight:700;color:var(--navy)
+}
+#editorialInbox .editorial-relink-panel-v3221 select,
+#editorialInbox .editorial-relink-panel-v3221 textarea{
+  min-height:44px;width:100%;min-width:0;border:1px solid var(--line);
+  border-radius:10px;color:#17202a;background:white;padding:10px;
+  font:inherit;font-size:14px
+}
+#editorialInbox #editorialRelinkConfirmV3221{min-height:44px;justify-self:start;white-space:normal}
+@media(max-width:620px){
+  #editorialInbox .editorial-relink-panel-v3221{padding:12px}
+  #editorialInbox #editorialRelinkConfirmV3221{width:100%;justify-self:stretch}
+}
