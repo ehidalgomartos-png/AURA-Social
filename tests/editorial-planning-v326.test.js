@@ -54,7 +54,7 @@ test('filtros por tema, medio, texto y calidad no cambian los candidatos',()=>{
  assert.deepEqual(shortlist(original,{sourceId:'12'},now).map(x=>x.id),[2]);
  assert.deepEqual(shortlist(original,{search:'ORDENADORES'},now).map(x=>x.id),[2]);
  assert.deepEqual(shortlist(original,{quality:'pending'},now).map(x=>x.id),[2]);
- assert.deepEqual(shortlist(original,{quality:'clear'},now).map(x=>x.id),[1,3]);
+ assert.deepEqual(shortlist(original,{quality:'clear'},now).map(x=>x.id),[3,1]); // prioridad alta antes de normal
  assert.equal(JSON.stringify(original),copy);
 });
 test('filtros de servidor restringidos a categorías, identificadores y longitud',()=>{
