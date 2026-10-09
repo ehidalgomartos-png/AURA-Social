@@ -28,7 +28,7 @@ test('la barra de navegación pública cambia según la sesión pero mantiene ic
   const js=read('public/editorial-session-v3212.js');
   assert.match(html,/data-ed-auth-link/);
   assert.match(html,/data-ed-logged-label="Mi inicio"/);
-  assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.13/);
+  assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.12/);
   assert.match(js,/\/api\/auth\/me/);
   assert.match(js,/credentials:'same-origin',cache:'no-store'/);
   assert.match(js,/const label=link\.querySelector\('small'\)\|\|link/);
@@ -61,7 +61,7 @@ test('explorar desde Inicio son tarjetas editoriales y solo llevan a noticias ex
   assert.match(social,/@media\(max-width:790px\)/);
   const app=read('public/app.html');
   assert.match(app,/id="editorialHomeBlock"/);
-  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.13/);
+  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.12/);
 });
 test('comentarios sociales siguen con moderación, identidad real y mejora de legibilidad móvil',()=>{
   const client=read('public/editorial-social-v324.js');
