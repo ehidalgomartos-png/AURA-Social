@@ -91,7 +91,10 @@ test('lookup fijado cumple el contrato Node all:true y all:false con IPv4 e IPv6
 test('socket Node.js autoSelectFamily:true usa dirección fijada sin ERR_INVALID_IP_ADDRESS',async()=>{
   // 127.0.0.1 solo para demostrar el contrato lookup del socket local.
   // En producción la resolución previa rechaza loopback y rangos privados.
-  const server=net.createServer(socket=>socket.end('ok'));
+  const server=net.createServer(socket=>{
+    socket.on('error',()=>{}); // El par puede cerrar antes de que el servidor termine de escribir.
+    socket.end();
+  });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   try{
     const port=server.address().port;
@@ -101,8 +104,8 @@ test('socket Node.js autoSelectFamily:true usa dirección fijada sin ERR_INVALID
         lookup:rss.pinnedAddressLookup({address:'127.0.0.1',family:4})
       });
       socket.setTimeout(2500,()=>socket.destroy(new Error('socket_timeout')));
-      socket.once('connect',()=>{socket.destroy();resolve();});
-      socket.once('error',reject);
+      socket.once('connect',()=>{socket.end();resolve();});
+      socket.on('error',reject);
     });
   }finally{
     await new Promise(resolve=>server.close(resolve));
