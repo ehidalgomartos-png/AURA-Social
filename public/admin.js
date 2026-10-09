@@ -1788,6 +1788,48 @@ $('#editorialPublicItems')?.addEventListener('click',async event=>{
   finally{editorialPublishingBusy=false;button.disabled=false;}
 });
 
+// V3.2.4 — review reports about real users' comments on editorial articles.
+async function loadEditorialSocialModeration(){
+  const summary=$('#editorialModerationStatus'),root=$('#editorialModerationReports');
+  if(!summary||!root)return;
+  try{
+    const {r,d}=await api('/api/admin/editorial/comment-reports');
+    if(!r.ok)throw Error('editorial_reports_unavailable');
+    const reports=Array.isArray(d.reports)?d.reports:[];
+    summary.textContent=reports.length+' denuncia(s) pendiente(s)';
+    root.innerHTML=reports.map(item=>
+      '<article class="report"><b>Denuncia #'+esc(item.id)+' · '+esc(item.reason)+'</b>'+
+      '<p>'+esc(item.comment_body||'Comentario no disponible')+'</p>'+
+      '<small>Usuario: '+esc(item.comment_author||'No disponible')+
+      ' · Fecha: '+esc(timeLabel(item.created_at))+' · Noticia #'+esc(item.publication_id)+'</small>'+
+      '<div class="actions"><button type="button" class="soft" data-ed-report-action="dismiss" data-ed-report-id="'+esc(item.id)+'">Descartar denuncia</button>'+
+      '<button type="button" data-ed-report-action="remove" data-ed-report-id="'+esc(item.id)+'">Retirar comentario</button></div></article>'
+    ).join('')||'<p>No hay denuncias editoriales pendientes.</p>';
+  }catch(_){
+    summary.textContent='No se pudieron consultar las denuncias.';
+    root.textContent='Actualiza para reintentar.';
+  }
+}
+$('#editorialModerationReload')?.addEventListener('click',loadEditorialSocialModeration);
+$('#editorialModerationReports')?.addEventListener('click',async event=>{
+  const btn=event.target.closest('button[data-ed-report-action]');
+  if(!btn)return;
+  const id=String(btn.dataset.edReportId||'');
+  const action=btn.dataset.edReportAction;
+  if(!/^[1-9][0-9]{0,14}$/.test(id)||!['remove','dismiss'].includes(action))return;
+  if(!window.confirm(action==='remove'?'¿Retirar este comentario y resolver sus denuncias?':'¿Descartar las denuncias sobre este comentario?'))return;
+  btn.disabled=true;
+  try{
+    const {r,d}=await api('/api/admin/editorial/comment-reports/'+encodeURIComponent(id)+'/resolve',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})
+    });
+    if(!r.ok)throw Error(d.error||'No se pudo resolver la denuncia');
+    setAdminNotice(action==='remove'?'Comentario retirado.':'Denuncia descartada.');
+    await loadEditorialSocialModeration();
+  }catch(e){setAdminNotice(e.message,true);}
+  finally{btn.disabled=false;}
+});
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -1798,5 +1840,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();

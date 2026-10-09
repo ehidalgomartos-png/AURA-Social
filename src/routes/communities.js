@@ -3,6 +3,7 @@ const { z } = require('zod');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { canViewerSee } = require('../services/contentPolicy');
+const {ensurePublicationSchema}=require('./editorial-publication-v323');
 
 const router = express.Router();
 
@@ -1112,6 +1113,66 @@ router.post('/:id/share-post',async(req,res)=>{
     await client.query('ROLLBACK');
     console.error('RedLibertad V1.62 community share failed:',error);
     res.status(500).json({error:'community_share_failed'});
+  }finally{client.release();}
+});
+
+// V3.2.4: only a real authenticated member may voluntarily share an editorial article.
+let editorialCommunitySharesReady;
+async function ensureEditorialCommunityShares(){
+  if(!editorialCommunitySharesReady){
+    editorialCommunitySharesReady=(async()=>{
+      await ensurePublicationSchema();
+      await db.query(
+        'CREATE TABLE IF NOT EXISTS editorial_community_shares (publication_id BIGINT NOT NULL REFERENCES editorial_publications(id) ON DELETE CASCADE, community_id BIGINT NOT NULL REFERENCES communities(id) ON DELETE CASCADE,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,community_post_id BIGINT NOT NULL UNIQUE REFERENCES community_posts(id) ON DELETE CASCADE,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),PRIMARY KEY(publication_id,community_id,user_id))'
+      );
+    })().catch(e=>{editorialCommunitySharesReady=null;throw e;});
+  }
+  return editorialCommunitySharesReady;
+}
+const editorialShareSchema=z.object({
+  publicationId:z.coerce.number().int().positive().safe(),
+  context:z.string().trim().max(280).optional().default('')
+}).strict();
+router.post('/:id/share-editorial',async(req,res)=>{
+  const parsed=editorialShareSchema.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_editorial_share'});
+  const state=await communityState(req.params.id,req.user.id);
+  if(!state||state.privacy!=='public')return res.status(404).json({error:'community_not_found'});
+  if(await blockedBetween(req.user.id,state.owner_id))return res.status(403).json({error:'community_unavailable'});
+  if(!state.is_member)return res.status(403).json({error:'community_membership_required'});
+  const restriction=await activeCommunityRestriction(state.id,req.user.id);
+  if(restriction)return res.status(403).json({error:'community_posting_restricted',restriction:restriction.action,expiresAt:restriction.expires_at});
+  const {publicationId,context}=parsed.data;
+  const client=await db.pool.connect();
+  try{
+    await ensureEditorialCommunityShares();
+    await client.query('BEGIN');
+    const pub=await client.query(
+      "SELECT ep.community_id,p.title,p.id FROM editorial_publications p JOIN editorial_profiles ep ON ep.id=p.profile_id WHERE p.id=$1 AND p.unpublished_at IS NULL AND ep.status='ready' FOR SHARE OF p",
+      [publicationId]
+    );
+    if(!pub.rowCount||String(pub.rows[0].community_id)!==String(state.id)){
+      await client.query('ROLLBACK');return res.status(404).json({error:'editorial_share_unavailable'});
+    }
+    const link=(process.env.APP_ORIGIN&&/^https:\/\/[^/?#]+$/i.test(process.env.APP_ORIGIN)
+      ?process.env.APP_ORIGIN:'https://redlibertad.com')+'/noticias/p/'+publicationId;
+    const body='📰 '+String(pub.rows[0].title).slice(0,220)+'\n'+(context?context+'\n':'')+link;
+    const created=await client.query(
+      "INSERT INTO community_posts(community_id,user_id,body,content_level) VALUES($1,$2,$3,'normal') RETURNING id",
+      [state.id,req.user.id,body]
+    );
+    await client.query(
+      "INSERT INTO editorial_community_shares(publication_id,community_id,user_id,community_post_id) VALUES($1,$2,$3,$4)",
+      [publicationId,state.id,req.user.id,created.rows[0].id]
+    );
+    await client.query('UPDATE communities SET updated_at=now() WHERE id=$1',[state.id]);
+    await client.query('COMMIT');
+    res.status(201).json({ok:true,communityId:state.id,postId:created.rows[0].id});
+  }catch(e){
+    await client.query('ROLLBACK');
+    if(e.code==='23505')return res.status(409).json({error:'editorial_already_shared'});
+    console.error('Editorial community share failed',e);
+    res.status(500).json({error:'editorial_share_failed'});
   }finally{client.release();}
 });
 
