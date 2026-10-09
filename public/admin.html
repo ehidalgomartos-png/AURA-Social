@@ -92,13 +92,14 @@
       <section id="editorialProvenanceV3217" class="editorial-provenance-v3217" aria-label="Control orientativo de originalidad y trazabilidad" aria-live="polite" hidden></section>
       <form id="editorialReviewForm" class="editorial-form">
         <div class="editorial-draft-suggestion"><button type="button" id="editorialSuggestDraft" class="soft">Preparar titular y resumen automáticamente</button><p class="panel-copy">Propuesta gratuita basada en metadatos RSS. Es orientativa: no resume ni verifica el artículo completo. Revisa y reescribe antes de aprobar.</p><p id="editorialSuggestionStatus" class="status" role="status" aria-live="polite"></p></div>
-        <label>Titular editorial propio <input type="text" name="title" required minlength="12" maxlength="220" autocomplete="off"></label>
-        <label>Resumen original (mínimo 70 caracteres) <textarea name="summary" required minlength="70" maxlength="1100" rows="5"></textarea></label>
+        <label>Titular editorial propio <input type="text" name="title" required minlength="12" maxlength="220" autocomplete="off" aria-describedby="editorialOriginalityTitleV32171"><span id="editorialOriginalityTitleV32171" class="editorial-field-feedback-v32171" aria-live="polite"></span></label>
+        <label>Resumen original (mínimo 70 caracteres) <textarea name="summary" required minlength="70" maxlength="1100" rows="5" aria-describedby="editorialOriginalitySummaryV32171"></textarea><span id="editorialOriginalitySummaryV32171" class="editorial-field-feedback-v32171" aria-live="polite"></span></label>
         <label>Nota de revisión / motivo <textarea name="note" maxlength="500" rows="3" placeholder="Justifica la decisión y registra las verificaciones"></textarea></label>
         <label class="editorial-check"><input type="checkbox" name="sourceRead"> He consultado la fuente original.</label>
         <label class="editorial-check"><input type="checkbox" name="factsChecked"> He verificado la exactitud y el contexto de la información.</label>
         <label class="editorial-check"><input type="checkbox" name="rightsChecked"> He comprobado la atribución y las condiciones de reutilización.</label>
-        <p class="panel-copy">Aprobar guarda una decisión editorial interna. No genera ninguna publicación.</p>
+        <p class="panel-copy">1. Redacta un titular y resumen propios. 2. Guarda el borrador. 3. Comprueba la fuente, los hechos y los derechos antes de aprobar internamente. La aprobación no publica la noticia.</p>
+        <p id="editorialOriginalityWorkflowV32171" class="status" role="status" aria-live="polite"></p>
         <div class="actions" id="editorialReviewActions">
           <button type="submit" class="soft" id="editorialSaveDraft">Guardar borrador</button>
           <button type="button" class="alt" data-editorial-decision="approve">Aprobar internamente</button>
@@ -538,6 +539,7 @@
 
 <script src="/editorial-draft-v3216.js?v=3.2.16"></script>
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
-  <script src="/admin.js?v=3.2.17"></script>
+<script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
+  <script src="/admin.js?v=3.2.17.1"></script>
 </body>
 </html>
