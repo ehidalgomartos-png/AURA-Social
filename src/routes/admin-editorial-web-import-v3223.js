@@ -43,6 +43,11 @@ function err(code,status=422){
 }
 function fail(res,e){
  if(e.code==='23505')return res.status(409).json({error:'editorial_web_duplicate'});
+ // The shared DNS/TLS guard can emit feed_* errors; keep network internals
+ // private and give administrators a recognizable safe fallback.
+ if(/^feed_/.test(String(e.code||''))){
+   return res.status(422).json({error:'editorial_web_source_unreachable'});
+ }
  if(e.status||/^editorial_web_/.test(e.code||''))
    return res.status(e.status||422).json({error:e.code||'editorial_web_invalid'});
  console.error('Manual web article import failed:',e);
