@@ -46,7 +46,7 @@ const sourceInput=z.object({
 
 const wrap=handler=>(req,res)=>Promise.resolve().then(()=>handler(req,res)).catch(error=>{
   if(error.status===404)return res.status(404).json({error:'editorial_not_found'});
-  if(error.status===409&&['editorial_source_profile_required','editorial_source_profile_category_mismatch','editorial_source_removal_confirmation_stale','editorial_source_removal_stale'].includes(error.code))return res.status(409).json({error:error.code});
+  if(error.status===409&&['editorial_web_source_url_fixed','editorial_source_profile_required','editorial_source_profile_category_mismatch','editorial_source_removal_confirmation_stale','editorial_source_removal_stale'].includes(error.code))return res.status(409).json({error:error.code});
   if(error.status===403)return res.status(403).json({error:'editorial_community_not_managed'});
   if(error.code==='23505')return res.status(409).json({error:'editorial_already_exists'});
   if(error.code==='23503'||error.code==='23514')return res.status(400).json({error:'editorial_reference_invalid'});
@@ -189,6 +189,10 @@ router.put('/sources/:id',wrap(async(req,res)=>{
   const row=await writeAndAudit(req.user.id,'update','source',async client=>{
     await checkProfile(client,d.profileId);
     await checkApprovedSourceAssignmentV32181(client,d);
+    const original=await client.query('SELECT source_kind,feed_url FROM editorial_sources WHERE id=$1 FOR UPDATE',[id]);
+    if(original.rowCount&&original.rows[0].source_kind==='web'&&original.rows[0].feed_url!==url){
+      const e=new Error('editorial_web_source_url_fixed');e.status=409;e.code='editorial_web_source_url_fixed';throw e;
+    }
     const r=await client.query(
       'UPDATE editorial_sources SET name=$2,feed_url=$3,category=$4,profile_id=$5,status=$6,rights_mode=$7,rights_reference=$8,updated_at=now() WHERE id=$1 RETURNING *',
       [id,d.name,url,d.category,d.profileId,d.status,d.rightsMode,d.rightsReference]
