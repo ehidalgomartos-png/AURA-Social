@@ -38,6 +38,8 @@ jobs:
         run: npm run test:editorial-review
       - name: V3.2.3 editorial public publishing and attribution tests
         run: npm run test:editorial-publishing
+      - name: V3.2.4 authentic editorial likes comments and community sharing
+        run: npm run test:editorial-social
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
