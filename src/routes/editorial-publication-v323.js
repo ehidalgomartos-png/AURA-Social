@@ -49,7 +49,7 @@ async function assertApprovedForPublication(client,id,revision){
   // Require HTTPS source article URL for external linking.
   let url;
   try{url=new URL(row.canonical_url);}catch(_){throw fail(422,'editorial_source_link_invalid');}
-  if(url.protocol!=='https:'||url.username||url.password||url.port||!url.hostname.includes('.')||\
+  if(url.protocol!=='https:'||url.username||url.password||url.port||!url.hostname.includes('.')||
       /\.(?:local|internal|localhost|test|invalid|example|onion)$/i.test(url.hostname))throw fail(422,'editorial_source_link_invalid');
   return row;
 }
