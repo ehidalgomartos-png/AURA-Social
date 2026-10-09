@@ -27,6 +27,7 @@ const profileRoutes = require('./src/routes/profiles');
 const postRoutes = require('./src/routes/posts');
 const moderationRoutes = require('./src/routes/moderation');
 const adminRoutes = require('./src/routes/admin');
+const adminEditorialV320Routes = require('./src/routes/admin-editorial-v320');
 const adminSecurityRoutes = require('./src/routes/admin-security-v211');
 const adminVerificationV1891Routes = require('./src/routes/admin-verification-v1891');
 const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
@@ -63,7 +64,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.1.0';
+const APP_VERSION='3.2.0';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -215,6 +216,7 @@ app.use('/api/admin', createOperationalAlertAdminRoutes({db,service:operationalA
 app.use('/api/admin', createAlertDeliveryAdminRoutes({db,delivery:alertDelivery}));
 app.use('/api/admin', createReleaseVerificationRoutes(releaseVerifier));
 app.use('/api/admin', adminSecurityRoutes);
+app.use('/api/admin', adminEditorialV320Routes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
