@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.19">
+  <link rel="stylesheet" href="/admin.css?v=3.2.20">
 </head>
 <body>
 <header>
@@ -92,7 +92,7 @@
   </section>
 
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.18</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.20</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <div class="editorial-queue-tools-v3218" role="group" aria-label="Filtros rápidos de noticias cargadas">
       <label for="editorialQueueSearchV3218">Buscar noticia
         <input id="editorialQueueSearchV3218" type="search" maxlength="140" placeholder="Titular, medio o palabras" autocomplete="off">
@@ -124,6 +124,7 @@
     </div>
     <p id="editorialQueueCountV3218" class="panel-copy" role="status" aria-live="polite"></p>
     <p id="editorialInboxStatus" class="status" role="status" aria-live="polite">Cargando borradores…</p>
+    <p class="panel-copy">Las noticias de una fuente RSS eliminada se conservan para consulta y trazabilidad, pero no pueden aprobarse ni publicarse mientras no tengan una fuente autorizada. Su descarte sigue siendo una decisión humana.</p>
     <p class="panel-copy">Prioridad sugerida, categoría y noticias parecidas se calculan exclusivamente desde los metadatos RSS. No sustituyen la revisión humana.</p>
     <div id="editorialInboxItems" class="report-list" aria-live="polite"></div>
     <section id="editorialReviewEditor" class="editorial-review-editor hidden" aria-label="Editor de noticia">
@@ -584,6 +585,6 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.19"></script>
+  <script src="/admin.js?v=3.2.20"></script>
 </body>
 </html>
