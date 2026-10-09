@@ -1572,12 +1572,12 @@ function closeEditorialReview(){
   $('#editorialReviewForm')?.reset();
   $('#editorialReviewEditor')?.classList.add('hidden');
 }
-async function loadEditorialInboxV321(){
+async function loadEditorialInboxV321(focusId=''){
   const root=$('#editorialInboxItems'),status=$('#editorialInboxStatus');
   if(!root||!status)return;
   const filter=$('#editorialReviewFilter')?.value||'pending';
   try{
-    const {r,d}=await api('/api/admin/editorial/review?status='+encodeURIComponent(filter));
+    const {r,d}=await api('/api/admin/editorial/review?status='+encodeURIComponent(filter)+(focusId?'&focus='+encodeURIComponent(focusId):''));
     if(!r.ok)throw Error('review_unavailable');
     editorialReviewItems=Array.isArray(d.items)?d.items:[];
     status.textContent=editorialReviewItems.length+' noticias '+({pending:'pendientes',approved:'aprobadas internamente',rejected:'rechazadas'}[filter]||'')+' · Ninguna se publica automáticamente';
@@ -1599,6 +1599,28 @@ async function loadEditorialInboxV321(){
     root.textContent='Vuelve a intentarlo.';
   }
 }
+function fillEditorialDraftV3213(item,force=false){
+  if(!item||item.status!=='pending')return false;
+  const form=$('#editorialReviewForm');
+  const suggest=window.editorialDraftV3213;
+  if(!form||typeof suggest!=='function')return false;
+  const title=form.elements.namedItem('title'),summary=form.elements.namedItem('summary'),
+    note=form.elements.namedItem('note');
+  if(force&&(title.value.trim()||summary.value.trim())&&
+     !window.confirm('¿Sustituir el titular y resumen del editor por una propuesta automática provisional? Los cambios sin guardar se perderán.'))return false;
+  const draft=suggest(item);
+  if(!draft.title||!draft.summary)return false;
+  if(force||!title.value.trim())title.value=draft.title;
+  if(force||!summary.value.trim())summary.value=draft.summary;
+  if(!note.value.trim())note.value=draft.note;
+  $('#editorialSuggestionStatus').textContent='Propuesta provisional generada desde el RSS. Reescribe y comprueba los hechos antes de aprobar; no se ha guardado todavía.';
+  return true;
+}
+$('#editorialSuggestDraft')?.addEventListener('click',()=>{
+  if(!fillEditorialDraftV3213(editorialReviewCurrent,true)){
+    setAdminNotice('No se pudo preparar una propuesta; comprueba que sea una noticia pendiente.',true);
+  }
+});
 function openEditorialReview(item){
   if(!item)return;
   editorialReviewCurrent=item;
@@ -1607,6 +1629,9 @@ function openEditorialReview(item){
   form.elements.namedItem('title').value=item.editorial_title||'';
   form.elements.namedItem('summary').value=item.editorial_summary||'';
   form.elements.namedItem('note').value=item.editor_note||'';
+  $('#editorialSuggestionStatus').textContent='';
+  $('#editorialSuggestDraft').hidden=item.status!=='pending';
+  if(item.status==='pending')fillEditorialDraftV3213(item,false);
   $('#editorialReviewEditorTitle').textContent='Revisión #'+item.id+' · '+(item.status==='pending'?'Pendiente':item.status==='approved'?'Aprobada':'Rechazada');
   $('#editorialReviewSource').textContent='Original: '+item.source_title+' · Fuente: '+(item.source_name||'No disponible')+
     ' · Estado de fuente: '+(item.source_status||'no disponible')+'. Consulta la noticia completa antes de decidir.';
@@ -1837,12 +1862,12 @@ $('#editorialModerationReports')?.addEventListener('click',async event=>{
 
 // V3.2.5 — aggregated quality signals and human-assessed publishing clearance.
 let editorialQualityItemsV325=[];
-async function loadEditorialQualityV325(){
+async function loadEditorialQualityV325(focusId=''){
   const status=$('#editorialQualityStatus'),metrics=$('#editorialQualityMetrics');
   const sources=$('#editorialQualitySources'),queue=$('#editorialQualityQueue');
   if(!status||!metrics||!sources||!queue)return;
   try{
-    const {r,d}=await api('/api/admin/editorial/quality/overview');
+    const {r,d}=await api('/api/admin/editorial/quality/overview'+(focusId?'?focus='+encodeURIComponent(focusId):''));
     if(!r.ok)throw Error(d.error||'quality_overview_unavailable');
     const m=d.summary||{},period=Number(d.periodDays||30);
     const pairs=[
@@ -1872,7 +1897,7 @@ async function loadEditorialQualityV325(){
       const alerts=Array.isArray(item.signals)?item.signals:[];
       const cues=alerts.length?'<p class="editorial-quality-alerts">Señales para revisar: '+alerts.map(flag=>esc(labels[flag]||flag)).join(' · ')+'</p>':'';
       const disabled=live?'disabled':'';
-      return '<article class="report"><details class="editorial-quality-detail"><summary><b>'+esc(item.editorial_title||item.source_title)+
+      return '<article class="report"><details class="editorial-quality-detail" data-editorial-quality-id="'+esc(item.id)+'"><summary><b>'+esc(item.editorial_title||item.source_title)+
         '</b> · <span>'+esc(quality)+(live?' · Publicada':'')+'</span></summary>'+
         '<p>'+esc(item.editorial_summary||'Sin resumen editorial')+'</p>'+
         '<small>Fuente: '+esc(item.source_name||'No disponible')+' · Perfil: '+esc(item.profile_name||'No disponible')+
@@ -2115,7 +2140,7 @@ function editorialDailyRowV327(row,kind){
     '<small>Objetivo: '+editorialDailyEscV327(new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',dateStyle:'medium',timeStyle:'short'}).format(new Date(row.planned_for)))+'</small>':'';
   return '<article class="editorial-daily-item"><b>'+title+'</b>'+small+plan+
     (flags.length?'<p class="editorial-daily-flags">'+flags.map(editorialDailyEscV327).join(' · ')+'</p>':'')+
-    '<div class="actions">'+direct+'<button type="button" class="soft" data-editorial-daily-target="'+action+'">'+
+    '<div class="actions">'+direct+'<button type="button" class="soft" data-editorial-daily-target="'+action+'" data-editorial-daily-id="'+editorialDailyEscV327(row.id)+'">'+
     editorialDailyEscV327(short[action])+'</button></div></article>';
 }
 async function loadEditorialDailyV327(){
@@ -2166,16 +2191,43 @@ $('#editorialDailyToday')?.addEventListener('click',()=>{
 $('#editorialDailyDayForm')?.addEventListener('submit',event=>{
   event.preventDefault();loadEditorialDailyV327();
 });
-$('#editorialDailySections')?.addEventListener('click',event=>{
+$('#editorialDailySections')?.addEventListener('click',async event=>{
   const control=event.target.closest('button[data-editorial-daily-target]');
   if(!control)return;
-  const id=editorialDailyTargetsV327[control.dataset.editorialDailyTarget];
-  if(!id)return;
-  const target=document.getElementById(id);
-  if(!target)return;
-  target.scrollIntoView({behavior:'smooth',block:'start'});
-  const heading=target.querySelector('h2');
-  if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
+  const action=control.dataset.editorialDailyTarget;
+  const sectionId=editorialDailyTargetsV327[action];
+  if(!sectionId)return;
+  const section=document.getElementById(sectionId);
+  if(!section)return;
+  const candidateId=String(control.dataset.editorialDailyId||'');
+  const validId=/^[1-9][0-9]{0,14}$/.test(candidateId);
+  control.disabled=true;
+  try{
+    if(validId&&action==='review'){
+      $('#editorialReviewFilter').value='pending';
+      closeEditorialReview();
+      await loadEditorialInboxV321(candidateId);
+      const item=editorialReviewItems.find(row=>String(row.id)===candidateId);
+      if(item){openEditorialReview(item);return;}
+      setAdminNotice('No se ha encontrado la noticia pendiente: puede haber cambiado de estado. Actualiza la jornada.',true);
+    }
+    if(validId&&action==='quality'){
+      await loadEditorialQualityV325(candidateId);
+      const detail=[...document.querySelectorAll('#editorialQualityQueue details[data-editorial-quality-id]')]
+        .find(node=>node.dataset.editorialQualityId===candidateId);
+      if(detail){
+        detail.open=true;
+        detail.scrollIntoView({behavior:'smooth',block:'center'});
+        const summary=detail.querySelector('summary');
+        summary?.setAttribute('tabindex','-1');summary?.focus({preventScroll:true});
+        return;
+      }
+      setAdminNotice('La noticia ya no está pendiente de calidad. Actualiza la jornada.',true);
+    }
+    section.scrollIntoView({behavior:'smooth',block:'start'});
+    const heading=section.querySelector('h2');
+    if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
+  }finally{control.disabled=false;}
 });
 
 $('#searchForm').addEventListener('submit', event => {
