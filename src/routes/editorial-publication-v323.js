@@ -231,13 +231,13 @@ admin.post('/publish/:candidateId',errorHandler(async(req,res)=>{
     let publication;
     if(previous.rowCount){
       const updated=await client.query(
-        "UPDATE editorial_publications SET profile_id=$2,title=$3,summary=$4,source_url=$5,source_name=$6,category=$7,published_at=now(),unpublished_at=NULL,published_by=$8,unpublished_by=NULL WHERE candidate_id=$1 RETURNING id,published_at",
-        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id]
+        "UPDATE editorial_publications SET profile_id=$2,title=$3,summary=$4,source_url=$5,source_name=$6,category=$7,published_at=now(),unpublished_at=NULL,published_by=$8,unpublished_by=NULL,image_url=$9,image_alt=$10,image_credit=$11,image_rights_reference=$12 WHERE candidate_id=$1 RETURNING id,published_at",
+        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference]
       );publication=updated.rows[0];
     }else{
       const inserted=await client.query(
-        'INSERT INTO editorial_publications(candidate_id,profile_id,title,summary,source_url,source_name,category,published_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,published_at',
-        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id]
+        'INSERT INTO editorial_publications(candidate_id,profile_id,title,summary,source_url,source_name,category,published_by,image_url,image_alt,image_credit,image_rights_reference) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,published_at',
+        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference]
       );publication=inserted.rows[0];
     }
     await client.query(
