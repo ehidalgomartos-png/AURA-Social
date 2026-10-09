@@ -52,7 +52,7 @@ jobs:
         run: npm run test:editorial-integration
       - name: V3.2.13 automatic draft suggestions and editorial deep-link tests
         run: npm run test:editorial-drafts-nav
-      - name: V3.2.13.1 editorial mobile navigation and Communities safe-return tests
+      - name: V3.2.14 editorial mobile navigation and Communities safe-return tests
         run: npm run test:editorial-nav-hotfix
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
