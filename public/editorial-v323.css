@@ -39,7 +39,7 @@ a:focus-visible{outline:3px solid #ef7a5d;outline-offset:3px}
 .ed-social{margin:26px 0 12px;padding:20px 0;border-top:1px solid var(--line)}
 .ed-social h2{font-size:23px;margin:25px 0 4px}
 .ed-social-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
-.ed-social button{min-height:44px;border:1px solid var(--line);background:#f1f7f6;color:var(--navy);border-radius:10px;padding:10px 14px;font:700 14px/1.35 inherit;cursor:pointer}
+.ed-social button{min-height:44px;border:1px solid var(--line);background:#f1f7f6;color:var(--navy);border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px;line-height:1.35;font-family:inherit;cursor:pointer}
 .ed-social button[aria-pressed=true]{background:#d9f2ed;border-color:#168e87}
 .ed-social button:disabled{opacity:.5;cursor:not-allowed}
 .ed-feedback{font-size:13px;color:#27655e;min-height:22px;margin-top:12px}
