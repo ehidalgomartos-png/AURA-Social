@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.10",
+  "version": "3.2.11",
   "private": true,
-  "description": "RedLibertad V3.2.10 — Editorial Reopen Button Hotfix",
+  "description": "RedLibertad V3.2.11 — Editorial Social UI responsive branding and interactions",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -45,7 +45,8 @@
     "test:editorial-social": "node --test tests/editorial-social-v324.test.js",
     "test:editorial-quality": "node --test tests/editorial-quality-v325.test.js",
     "test:editorial-planning": "node --test tests/editorial-planning-v326.test.js",
-    "test:editorial-daily": "node --test tests/editorial-daily-v327.test.js"
+    "test:editorial-daily": "node --test tests/editorial-daily-v327.test.js",
+    "test:editorial-social-ui": "node --test tests/editorial-social-ui-v3211.test.js"
   },
   "engines": {
     "node": ">=20"
