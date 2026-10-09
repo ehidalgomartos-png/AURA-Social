@@ -619,3 +619,7 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   #editorialInbox .editorial-image-panel-v3222{padding:12px}
   #editorialInbox .editorial-image-panel-v3222 button{width:100%}
 }
+
+#editorialPublication .editorial-pub-photo-v3222{margin:12px 0;border-radius:11px;overflow:hidden;background:#edf1f6}
+#editorialPublication .editorial-pub-photo-v3222 img{display:block;max-height:310px;width:100%;object-fit:contain}
+#editorialPublication .editorial-pub-photo-v3222 figcaption{padding:7px 10px;font-size:12px}
