@@ -1498,13 +1498,13 @@ async function loadEditorialV320(){
   try{
     const {r,d}=await api('/api/admin/editorial/overview');
     if(!r.ok)throw Error('editorial_unavailable');
-    message.textContent='Configuración disponible · RSS y publicación automática desactivados.';
+    message.textContent='Configuración disponible · Consulta RSS manual, publicación automática desactivada.';
     $('#editorialStats').textContent=d.profiles.length+' perfiles · '+d.sources.length+' fuentes · Revisión obligatoria';
     const cm=$('#editorialCommunity'),pr=$('#editorialSourceProfile');
     cm.innerHTML='<option value="">Sin comunidad</option>'+(d.communities||[]).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
     pr.innerHTML='<option value="">Sin perfil</option>'+(d.profiles||[]).map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
     $('#editorialProfiles').innerHTML=d.profiles.map(p=>'<div class="report"><b>'+esc(p.name)+'</b><p>'+esc(p.category)+' · '+esc(p.status)+' · @'+esc(p.slug)+'</p><button type="button" class="soft" data-editorial-profile="'+esc(p.id)+'">Editar</button></div>').join('')||'<p>No hay perfiles todavía.</p>';
-    $('#editorialSources').innerHTML=d.sources.map(s=>'<div class="report"><b>'+esc(s.name)+'</b><p>'+esc(s.category)+' · '+esc(s.status)+' · '+esc(s.rights_mode)+'</p><button type="button" class="soft" data-editorial-source="'+esc(s.id)+'">Editar</button></div>').join('')||'<p>No hay fuentes todavía.</p>';
+    $('#editorialSources').innerHTML=d.sources.map(s=>'<div class="report"><b>'+esc(s.name)+'</b><p>'+esc(s.category)+' · '+esc(s.status)+' · '+esc(s.rights_mode)+'</p><small>Última consulta: '+esc(timeLabel(s.last_checked_at))+'</small><div class="actions"><button type="button" class="soft" data-editorial-source="'+esc(s.id)+'">Editar</button>'+(s.status==='approved'?'<button type="button" class="alt" data-editorial-fetch="'+esc(s.id)+'">Consultar RSS</button>':'')+'</div></div>').join('')||'<p>No hay fuentes todavía.</p>';
     $('#editorialAudit').innerHTML=(d.audit||[]).map(a=>'<div class="report">'+esc(timeLabel(a.created_at))+' · '+esc(a.action)+' · '+esc(a.entity_type)+'</div>').join('')||'<p>Sin cambios registrados.</p>';
     window.editorialV320State=d;
   }catch(_){message.textContent='No se pudo cargar la configuración editorial.';}
@@ -1558,6 +1558,47 @@ for(const [root,type,formId] of [['editorialProfiles','profiles','editorialProfi
   });
 }
 $('#editorialReload')?.addEventListener('click',loadEditorialV320);
+async function loadEditorialInboxV321(){
+  const root=$('#editorialInboxItems'),status=$('#editorialInboxStatus');
+  if(!root||!status)return;
+  try{
+    const {r,d}=await api('/api/admin/editorial/candidates?status=pending');
+    if(!r.ok)throw Error('inbox_unavailable');
+    const entries=Array.isArray(d.candidates)?d.candidates:[];
+    status.textContent=entries.length+' noticias pendientes · Sin publicación';
+    root.innerHTML=entries.map(item=>{
+      const link=/^https?:\/\//i.test(item.canonical_url)?'<a href="'+esc(item.canonical_url)+'" target="_blank" rel="noopener noreferrer nofollow">Leer fuente original ↗</a>':'Enlace no disponible';
+      return '<article class="report"><b>'+esc(item.source_title)+'</b><p>'+esc(item.source_excerpt||'Sin extracto.')+'</p>'+
+        '<small>'+esc(item.source_name||'Fuente eliminada')+' · '+esc(item.category)+' · '+esc(timeLabel(item.published_at||item.fetched_at))+'</small>'+
+        '<p>'+link+'</p><small>Revisión y aprobación disponibles en una próxima fase. No se publicará automáticamente.</small></article>';
+    }).join('')||'<p>No hay noticias pendientes. Primero aprueba una fuente y pulsa «Consultar RSS».</p>';
+  }catch(_){
+    status.textContent='No se pudieron cargar las noticias.';
+    root.textContent='Vuelve a intentarlo.';
+  }
+}
+$('#editorialInboxReload')?.addEventListener('click',loadEditorialInboxV321);
+$('#editorialSources')?.addEventListener('click',async ev=>{
+  const button=ev.target.closest('button[data-editorial-fetch]');
+  if(!button)return;
+  const id=String(button.dataset.editorialFetch||'');
+  if(!/^[1-9]\d{0,8}$/.test(id))return;
+  button.disabled=true;
+  const before=button.textContent;
+  button.textContent='Consultando…';
+  try{
+    const {r,d}=await api('/api/admin/editorial/sources/'+encodeURIComponent(id)+'/fetch',{method:'POST'});
+    if(!r.ok){
+      const labels={editorial_source_not_approved:'Aprueba la fuente antes de consultarla.',editorial_fetch_cooldown:'Puedes consultar la misma fuente cada 5 minutos.',editorial_fetch_already_running:'Esta fuente ya se está consultando.',feed_redirect_blocked:'La fuente redirige: introduce la URL final HTTPS.',feed_network_blocked:'El destino de red no está permitido.',feed_not_xml:'La respuesta no es RSS o Atom.',feed_parse_failed:'El XML no es un feed RSS/Atom válido.',feed_xml_rejected:'XML no admitido por seguridad.',feed_too_large:'El feed supera el tamaño máximo.'};
+      throw Error(labels[d.error]||'No fue posible consultar la fuente ('+String(d.error||r.status)+').');
+    }
+    setAdminNotice('RSS consultado: '+Number(d.added||0)+' nuevas, '+Number(d.duplicates||0)+' duplicadas.');
+    await Promise.all([loadEditorialV320(),loadEditorialInboxV321()]);
+  }catch(e){setAdminNotice(e.message,true);}
+  finally{button.disabled=false;button.textContent=before;}
+});
+
+
 
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
@@ -1569,5 +1610,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([loadEditorialV320(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
