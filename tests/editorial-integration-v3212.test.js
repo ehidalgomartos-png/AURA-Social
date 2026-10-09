@@ -27,12 +27,13 @@ test('la barra de navegación pública cambia según la sesión pero mantiene ic
   const html=page({title:'Hola',description:'Noticia revisada',pathname:'/noticias',body:'<p>Texto propio</p>'});
   const js=read('public/editorial-session-v3212.js');
   assert.match(html,/data-ed-auth-link/);
-  assert.match(html,/data-ed-logged-label="Mi inicio"/);
+  assert.match(html,/data-ed-logged-label="Mi perfil"/);
   assert.match(html,/editorial-session-v3212\.js\?v=3\.2\.13\.1/);
   assert.match(js,/\/api\/auth\/me/);
   assert.match(js,/credentials:'same-origin',cache:'no-store'/);
   assert.match(js,/const label=link\.querySelector\('small'\)\|\|link/);
   assert.match(js,/label\.textContent=signedIn/);
+  assert.match(js,/\/app\?view=profile/);
   assert.match(js,/if\(event\.persisted\)syncSession\(\)/);
   assert.ok(html.includes('/assets/logo-mark.svg'));
   assert.ok(!html.includes('userId'));
