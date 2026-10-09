@@ -2163,8 +2163,11 @@ async function loadEditorialPublicV323(){
       const aligned=alignment.ok===true;
       const ready=!!item.editorial_title && !!item.editorial_summary && item.source_status==='approved' &&
         item.profile_status==='ready' && aligned && qualityOk;
+      const orphanPublished=item.source_id==null&&!live;
       const mismatch=!aligned&&!live
-        ?'<div class="editorial-assignment-alert-v32181" role="alert"><strong>Asignación editorial pendiente de corregir</strong><ul>'+
+        ?'<div class="editorial-assignment-alert-v32181" role="alert"><strong>'+
+          (orphanPublished?'Noticia sin fuente RSS activa: publicación bloqueada':'Asignación editorial pendiente de corregir')+
+          '</strong><ul>'+
           (alignment.issues||[]).map(issue=>'<li>'+esc(issue.message||'Comprueba la asignación editorial.')+'</li>').join('')+
           '</ul><p>Fuente RSS: '+esc(item.source_name||'Sin fuente')+
           ' · Categoría fuente: '+esc(editorialCategoryLabelsV3215[item.source_category]||item.source_category||'No definida')+
@@ -2178,7 +2181,7 @@ async function loadEditorialPublicV323(){
       return '<article class="report" data-editorial-pub="'+esc(item.id)+'"><div>'+
         '<b>'+esc(item.editorial_title||'Noticia pendiente de completar')+'</b>'+
         '<p>'+esc(item.profile_name||'Sin perfil')+' · '+esc(item.source_name||'Sin fuente')+' · '+
-        (live?'Publicada':!aligned?'Asignación editorial incompatible':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+mismatch+preview+
+        (live?'Publicada':orphanPublished?'Fuente RSS eliminada o sin vincular':!aligned?'Asignación editorial incompatible':ready?'Aprobada y apta; lista para publicar':!qualityOk?'Pendiente de control de calidad':'Necesita perfil y fuente aprobados')+'</p>'+mismatch+preview+
         '<div class="actions">'+
         (live?'<button type="button" class="soft" data-editorial-unpublish="'+esc(item.id)+'">Retirar publicación</button>'
           :'<button type="button" class="alt" data-editorial-publish="'+esc(item.id)+'" '+(ready?'':'disabled')+'>Publicar manualmente</button>')+
