@@ -1612,7 +1612,7 @@ async function loadEditorialInboxV321(focusId=''){
 function fillEditorialDraftV3213(item,force=false){
   if(!item||item.status!=='pending')return false;
   const form=$('#editorialReviewForm');
-  const suggest=window.editorialDraftV3213;
+  const suggest=window.editorialDraftV3216;
   if(!form||typeof suggest!=='function')return false;
   const title=form.elements.namedItem('title'),summary=form.elements.namedItem('summary'),
     note=form.elements.namedItem('note');
@@ -1623,7 +1623,7 @@ function fillEditorialDraftV3213(item,force=false){
   if(force||!title.value.trim())title.value=draft.title;
   if(force||!summary.value.trim())summary.value=draft.summary;
   if(!note.value.trim())note.value=draft.note;
-  $('#editorialSuggestionStatus').textContent='Propuesta provisional generada desde el RSS. Reescribe y comprueba los hechos antes de aprobar; no se ha guardado todavía.';
+  $('#editorialSuggestionStatus').textContent='Borrador provisional basado en el título y extracto RSS. No incluye hechos comprobados fuera de esos metadatos: verifica y reescribe antes de guardar o aprobar.';
   return true;
 }
 $('#editorialSuggestDraft')?.addEventListener('click',()=>{
@@ -1644,7 +1644,7 @@ function renderEditorialAdviceV3215(item){
   const duplicates=(data.possible_duplicates||[]).map(story=>
     '<li>'+esc(story.title)+' · '+esc(story.source_name||'Medio')+' ('+Number(story.similarity||0)+' % coincidencia de términos; '+esc(story.status||'')+')</li>'
   ).join('');
-  target.innerHTML='<h4>Asistente editorial · V3.2.15</h4>'+
+  target.innerHTML='<h4>Asistente editorial · V3.2.16</h4>'+
     '<p>Prioridad <b>'+esc(data.priority_label||'media')+' ('+Number(data.priority_score||0)+'/100)</b>. Es una recomendación, no una verificación.</p>'+
     '<p><b>Categoría actual:</b> '+esc(editorialCategoryLabelsV3215[item.category]||item.category)+
     ' · <b>Sugerencia:</b> '+esc(label)+' ('+esc(category.confidence||'baja')+'). '+esc(category.reason||'')+'</p>'+
@@ -1652,6 +1652,7 @@ function renderEditorialAdviceV3215(item){
     (category.changeSuggested&&!available?'<p>Necesitas crear y activar un perfil editorial de '+esc(label)+' antes de aplicarla.</p>':'')+
     (duplicates?'<p><b>Posibles noticias similares de otros medios:</b></p><ul>'+duplicates+'</ul>':
       '<p>No se han detectado titulares suficientemente similares en la muestra reciente.</p>')+
+    '<p class="panel-copy">'+esc(data.topic_note||'')+' '+esc(data.selection_note||'')+'</p>'+ 
     '<p class="panel-copy">Compara las fuentes originales; no descartes automáticamente noticias por la coincidencia de palabras.</p>';
   target.hidden=false;
 }
@@ -1686,9 +1687,35 @@ $('#editorialIntelligence')?.addEventListener('click',async event=>{
   }catch(e){setAdminNotice(e.message,true);}
   finally{button.disabled=false;}
 });
+function editorialReviewHasChangesV3216(){
+  const item=editorialReviewCurrent,form=$('#editorialReviewForm');
+  if(!item||!form)return false;
+  return [['title','editorial_title'],['summary','editorial_summary'],['note','editor_note']].some(([name,key])=>{
+    const current=String(form.elements.namedItem(name)?.value||'').trim();
+    // Automatically proposed text does not count as saved original text.
+    return current!==String(item[key]||'').trim();
+  });
+}
+function moveEditorialReviewV3216(step){
+  const current=editorialReviewCurrent;
+  if(!current)return;
+  const index=editorialReviewItems.findIndex(row=>String(row.id)===String(current.id));
+  const next=editorialReviewItems[index+step];
+  if(!next)return;
+  if(editorialReviewHasChangesV3216()&&!window.confirm('Hay cambios sin guardar en esta noticia. ¿Descartarlos y continuar?'))return;
+  openEditorialReview(next);
+}
+$('#editorialReviewPreviousV3216')?.addEventListener('click',()=>moveEditorialReviewV3216(-1));
+$('#editorialReviewNextV3216')?.addEventListener('click',()=>moveEditorialReviewV3216(1));
 function openEditorialReview(item){
   if(!item)return;
   editorialReviewCurrent=item;
+  const place=editorialReviewItems.findIndex(row=>String(row.id)===String(item.id));
+  const counter=$('#editorialReviewProgressV3216');
+  if(counter)counter.textContent=place<0?'Noticia seleccionada':'Noticia '+(place+1)+' de '+editorialReviewItems.length;
+  const prev=$('#editorialReviewPreviousV3216'),next=$('#editorialReviewNextV3216');
+  if(prev)prev.disabled=place<=0;
+  if(next)next.disabled=place<0||place>=editorialReviewItems.length-1;
   const form=$('#editorialReviewForm');
   form.reset();
   form.elements.namedItem('title').value=item.editorial_title||'';
