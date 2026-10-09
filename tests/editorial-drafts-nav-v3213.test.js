@@ -32,7 +32,7 @@ test('propuesta gestionada con longitudes y campos incompletos',()=>{
 test('el editor prepara sugerencia al abrir una noticia pendiente y no sobrescribe una edición humana',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
  assert.match(html,/id="editorialSuggestDraft"/);
- assert.match(html,/editorial-draft-v3216\\.js\\?v=3\\.2\\.16/);
+ assert.match(html,/editorial-draft-v3216\.js\?v=3\.2\.16/);
  assert.match(html,/id="editorialSuggestionStatus"/);
  assert.match(js,/function fillEditorialDraftV3213\(item,force=false\)/);
  assert.match(js,/if\(item\.status==='pending'\)fillEditorialDraftV3213\(item,false\)/);
