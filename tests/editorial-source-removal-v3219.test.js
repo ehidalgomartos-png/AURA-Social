@@ -102,7 +102,7 @@ test('una fuente aprobada es eliminable; vista previa y DELETE son solo para adm
  assert.ok(route.includes("router.delete('/sources/:id'"));
  assert.ok(route.includes('removalInputV3219.safeParse(req.body)'));
  assert.ok(route.includes('await ensurePublicationSchema()'));
- assert.ok(schema.includes('source_id BIGINT REFERENCES editorial_sources(id) ON DELETE SET NULL'));
+ assert.ok(inbox.includes('source_id BIGINT REFERENCES editorial_sources(id) ON DELETE SET NULL'));
  assert.ok(publication.includes('source_name VARCHAR(100) NOT NULL'));
  assert.ok(publication.includes('source_url TEXT NOT NULL'));
  assert.ok(inbox.includes("current.rows[0].status!=='approved'"));
