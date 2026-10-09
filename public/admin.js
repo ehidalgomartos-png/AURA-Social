@@ -1935,6 +1935,147 @@ $('#editorialQualityQueue')?.addEventListener('submit',async event=>{
   finally{buttons.forEach(b=>b.disabled=false);}
 });
 
+// V3.2.6 — priority and calendar are advisory. NEVER schedule or auto-publish.
+let editorialPlanningRowsV326=[];
+function editorialPlanningDateInput(iso){
+  if(!iso)return '';
+  const dt=new Date(iso);
+  if(!Number.isFinite(dt.getTime()))return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+'T'+pad(dt.getHours())+':'+pad(dt.getMinutes());
+}
+function editorialPlanningDateLabel(iso){
+  if(!iso)return 'Sin fecha';
+  try{return new Intl.DateTimeFormat('es-ES',{
+    timeZone:'Europe/Madrid',dateStyle:'medium',timeStyle:'short'
+  }).format(new Date(iso));}
+  catch(_){return 'Fecha sin formato';}
+}
+async function loadEditorialPlanningV326(){
+  const status=$('#editorialPlanningStatus'),list=$('#editorialPlanningQueue'),calendar=$('#editorialPlanningCalendar');
+  const form=$('#editorialPlanningFilters');
+  if(!status||!list||!calendar||!form)return;
+  const f=new FormData(form);
+  const qs=new URLSearchParams();
+  for(const name of ['category','sourceId','search','quality']){
+    const value=String(f.get(name)||'').trim();
+    if(value)qs.set(name,value);
+  }
+  try{
+    const {r,d}=await api('/api/admin/editorial/planning/overview?'+qs.toString());
+    if(!r.ok)throw Error(d.error||'No se pudo consultar el calendario');
+    const currentSource=String(form.elements.namedItem('sourceId').value||'');
+    const selector=$('#editorialPlanningSource');
+    selector.innerHTML='<option value="">Todas las fuentes</option>'+(d.sources||[]).map(x=>
+      '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>'
+    ).join('');
+    selector.value=currentSource;
+    editorialPlanningRowsV326=Array.isArray(d.items)?d.items:[];
+    const calendarRows=Array.isArray(d.calendar)?d.calendar:[];
+    calendar.innerHTML=calendarRows.map(row=>
+      '<div class="editorial-planning-day"><b>'+esc(String(row.day||'').slice(0,10))+'</b><span>'+
+      Number(row.count||0)+' / 6 objetivos</span></div>'
+    ).join('')||'<p>No hay fechas planificadas.</p>';
+    const reasons={
+      noticia_reciente:'Actualidad reciente',
+      menos_de_3_dias:'Fecha reciente',
+      calidad_validada:'Calidad comprobada',
+      calidad_pendiente:'Calidad sin aprobar',
+      fuente_no_preparada:'Fuente no aprobada',
+      perfil_no_preparado:'Perfil no preparado',
+      categoria_repetida:'Categoría muy repetida',
+      fuente_repetida:'Medio repetido',
+      noticia_antigua:'Fecha de origen antigua',
+      fecha_objetivo_manual:'Fecha editorial marcada',
+      fecha_objetivo_vencida:'Fecha editorial pasada'
+    };
+    list.innerHTML=editorialPlanningRowsV326.map(item=>{
+      const stale=item.plan_revision!==null&&item.plan_revision!==undefined&&Number(item.plan_revision)!==Number(item.revision);
+      const tags=(item.reasons||[]).map(x=>esc(reasons[x]||x)).join(' · ');
+      const planned=item.planned_for?'<small>Objetivo: '+esc(editorialPlanningDateLabel(item.planned_for))+'</small>':'<small>Sin fecha programada</small>';
+      const saved=!!item.planned_for||!!item.planning_note||item.plan_revision!==null&&item.plan_revision!==undefined;
+      return '<article class="report"><details class="editorial-planning-detail"><summary>'+
+        '<b>'+esc(item.editorial_title||item.source_title)+'</b> <span class="editorial-rank">Selección '+Number(item.score||0)+'</span></summary>'+
+        '<p>'+esc(item.editorial_summary||'Sin resumen editorial')+'</p>'+
+        '<small>'+esc(item.source_name||'Fuente no disponible')+' · '+esc(item.category)+' · Prioridad '+Number(item.priority||2)+'</small>'+
+        '<p class="editorial-planning-reasons">'+tags+'</p>'+planned+
+        (stale?'<p class="editorial-planning-warning">La noticia cambió desde la última planificación. Comprueba de nuevo el contenido.</p>':'')+
+        '<form class="editorial-planning-form" data-editorial-plan="'+esc(item.id)+'">'+
+          '<label>Prioridad <select name="priority">'+[1,2,3].map(p=>
+            '<option value="'+p+'" '+(Number(item.priority)===p?'selected':'')+'>'+
+            ({1:'Baja',2:'Normal',3:'Alta'}[p])+'</option>').join('')+'</select></label>'+
+          '<label>Fecha y hora objetivo (opcional, NO automática)<input name="plannedFor" type="datetime-local" value="'+esc(editorialPlanningDateInput(item.planned_for))+'"></label>'+
+          '<label>Nota editorial <textarea name="note" rows="2" maxlength="500" placeholder="Motivo de selección / enfoque">'+esc(item.planning_note||'')+'</textarea></label>'+
+          '<div class="actions"><button type="submit" class="alt">Guardar planificación</button>'+
+          (saved?'<button type="button" class="soft" data-editorial-unplan="'+esc(item.id)+'">Quitar del calendario</button>':'')+'</div>'+
+        '</form></details></article>';
+    }).join('')||'<p>No hay noticias aprobadas que cumplan estos filtros.</p>';
+    status.textContent=editorialPlanningRowsV326.length+' noticias en selección · Orden orientativo · Sin publicación automática';
+  }catch(e){
+    status.textContent='No se pudo cargar la selección editorial.';
+    list.textContent='Actualiza para reintentar.';
+    calendar.replaceChildren();
+  }
+}
+$('#editorialPlanningReload')?.addEventListener('click',loadEditorialPlanningV326);
+$('#editorialPlanningFilters')?.addEventListener('submit',event=>{
+  event.preventDefault();
+  loadEditorialPlanningV326();
+});
+for(const key of ['category','quality','sourceId']){
+  $('#editorialPlanningFilters')?.elements.namedItem(key)?.addEventListener('change',loadEditorialPlanningV326);
+}
+$('#editorialPlanningQueue')?.addEventListener('submit',async event=>{
+  const form=event.target.closest('form[data-editorial-plan]');
+  if(!form)return;
+  event.preventDefault();
+  const id=String(form.dataset.editorialPlan||'');
+  const item=editorialPlanningRowsV326.find(x=>String(x.id)===id);
+  if(!item)return;
+  const raw=String(form.elements.namedItem('plannedFor').value||'');
+  const localTime=raw?new Date(raw):null;
+  if(raw&&(!localTime||!Number.isFinite(localTime.getTime())))return setAdminNotice('Fecha de planificación incorrecta.',true);
+  const payload={
+    revision:Number(item.revision),
+    priority:Number(form.elements.namedItem('priority').value),
+    plannedFor:localTime?localTime.toISOString():null,
+    note:String(form.elements.namedItem('note').value||'').trim()
+  };
+  if(!window.confirm('Guardar este objetivo editorial. No se publicará automáticamente.'))return;
+  const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+  try{
+    const {r,d}=await api('/api/admin/editorial/planning/'+encodeURIComponent(id),{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    if(!r.ok){
+      const messages={editorial_planning_day_full:'Máximo de seis objetivos editoriales por día (hora de Madrid).',
+        editorial_planning_date_out_of_range:'La fecha debe estar dentro de los próximos 90 días.',
+        editorial_planning_stale:'La revisión cambió; actualiza y planifica otra vez.',
+        editorial_planning_already_published:'Esta noticia ya está publicada.',
+        editorial_planning_review_required:'La noticia no está aprobada.'};
+      throw Error(messages[d.error]||d.error||'No se pudo guardar la planificación');
+    }
+    setAdminNotice('Objetivo editorial guardado. La publicación sigue siendo manual.');
+    await loadEditorialPlanningV326();
+  }catch(e){setAdminNotice('Calendario: '+e.message,true);}
+  finally{buttons.forEach(b=>b.disabled=false);}
+});
+$('#editorialPlanningQueue')?.addEventListener('click',async event=>{
+  const btn=event.target.closest('button[data-editorial-unplan]');
+  if(!btn)return;
+  const id=String(btn.dataset.editorialUnplan||'');
+  if(!/^[1-9][0-9]{0,14}$/.test(id))return;
+  if(!window.confirm('¿Quitar esta noticia del calendario manual?'))return;
+  btn.disabled=true;
+  try{
+    const {r,d}=await api('/api/admin/editorial/planning/'+encodeURIComponent(id),{method:'DELETE'});
+    if(!r.ok)throw Error(d.error||'No se pudo quitar el objetivo');
+    setAdminNotice('Planificación eliminada. La noticia aprobada se conserva.');
+    await loadEditorialPlanningV326();
+  }catch(e){setAdminNotice('Calendario: '+e.message,true);}
+  finally{btn.disabled=false;}
+});
+
 $('#searchForm').addEventListener('submit', event => {
   event.preventDefault();
   users($('#search').value);
@@ -1945,5 +2086,5 @@ $('#reloadVerifications')?.addEventListener('click', verifications);
 $('#verificationFilter')?.addEventListener('change', verifications);
 
 (async () => {
-  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(),loadEditorialQualityV325(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
+  await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(),loadEditorialQualityV325(),loadEditorialPlanningV326(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
