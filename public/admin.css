@@ -491,3 +491,9 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 #editorialInbox .editorial-provenance-v3217 li{font-size:13px;line-height:1.5;overflow-wrap:anywhere;color:var(--ink)}
 #editorialInbox .editorial-provenance-v3217 small{display:block;margin-top:8px;line-height:1.5}
 @media(max-width:620px){#editorialInbox .editorial-provenance-v3217{padding:12px}#editorialInbox .editorial-provenance-v3217 li{font-size:12px}}
+
+/* V3.2.17.1 — inline review validation. Accessible without relying on color. */
+#editorialInbox .editorial-field-feedback-v32171{display:block;min-height:1px;font-size:12px;font-weight:700;line-height:1.5;color:#a7392d;margin:5px 0 0}
+#editorialInbox .editorial-field-feedback-v32171:empty{display:none}
+#editorialInbox #editorialOriginalityWorkflowV32171{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+#editorialInbox .editorial-form [aria-invalid="true"]{border:2px solid #ad4536}
