@@ -40,7 +40,7 @@ test('el editor prepara sugerencia al abrir una noticia pendiente y no sobrescri
  assert.match(js,/force\|\|!summary\.value\.trim\(\)/);
  assert.match(js,/window\.confirm\('¿Sustituir/);
  assert.ok(js.includes("$('#editorialSuggestDraft')"));
- assert.match(js,/no se ha guardado todavía/);
+ assert.match(js,/verifica y reescribe antes de guardar o aprobar/);
  assert.match(html,/no resume ni verifica el artículo completo/);
  assert.doesNotMatch(js,/autoPublish\s*:\s*true|auto_publish_enabled\s*=\s*true/);
 });
