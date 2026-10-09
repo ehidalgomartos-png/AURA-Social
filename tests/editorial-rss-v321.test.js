@@ -10,7 +10,7 @@ const read=p=>fs.readFileSync(path.join(base,p),'utf8');
 const now=new Date('2026-10-09T12:00:00Z');
 
 test('IP público: negar localhost, privado, metadata cloud y redes especiales',()=>{
-  const forbidden=['127.0.0.1','10.3.5.4','172.16.20.2','172.31.0.1','192.168.1.2','169.254.169.254','100.64.0.1','192.0.2.3','198.51.100.12','203.0.113.5','198.18.0.5','0.1.2.3','224.1.1.1','::1'];
+  const forbidden=['127.0.0.1','10.3.5.4','172.16.20.2','172.31.0.1','192.168.1.2','169.254.169.254','100.64.0.1','192.0.2.3','198.51.100.12','203.0.113.5','198.18.0.5','0.1.2.3','192.0.0.9','224.1.1.1','::1'];
   for(const ip of forbidden)assert.equal(rss.publicIPv4(ip),false,ip);
   assert.equal(rss.publicIPv4('8.8.8.8'),true);
 });
@@ -20,6 +20,7 @@ test('DNS no acepta destinos mixtos aunque contengan una IP pública',async()=>{
 });
 test('canonización retira seguimiento y bloquea protocolos peligrosos',()=>{
   assert.equal(rss.canonicalArticleUrl('https://example.org/noticia/?utm_source=feed&x=1#comments'),'https://example.org/noticia?x=1');
+  assert.equal(rss.canonicalArticleUrl('https://example.org/a?x=1&amp;y=2'),'https://example.org/a?x=1&y=2');
   for(const item of ['javascript:alert(1)','file:///etc/passwd','http://127.0.0.1/api','https://user:password@example.org/news'])assert.equal(rss.canonicalArticleUrl(item),null);
 });
 test('RSS extrae metadatos recientes sin imágenes ni HTML ejecutable',()=>{
