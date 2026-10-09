@@ -30,7 +30,10 @@ test('HTML de títulos, fuentes y resúmenes siempre se escapa',()=>{
  assert.ok(html.includes('&lt;script&gt;'));
  assert.ok(!html.includes('<script>'));
  assert.ok(html.includes('rel="canonical"')||html.includes('rel="stylesheet"'));
- assert.ok(html.includes('Contenido editorial automatizado'));
+ assert.ok(html.includes('Contenido editorial identificado y revisado'));
+ assert.ok(html.includes('/assets/logo-mark.svg'));
+ assert.ok(html.includes('class="ed-mobile-nav"'));
+ assert.ok(html.includes('href="/noticias"'));
 });
 test('IDs y confirmaciones explícitas',()=>{
  assert.equal(safeId('12'),'12');
@@ -84,7 +87,7 @@ test('fuentes, perfiles, enlaces públicos y sitemap presentes',()=>{
  assert.match(read('public/index.html'),/href="\/noticias"/);
  assert.match(read('public/app.html'),/editorial-discovery-entry/);
  assert.match(read('server.js'),/app\.use\('\/noticias', editorialPublishV323Public\)/);
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.10'/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.11'/);
 });
 test('Centro Editorial exige confirmación y permite retirar publicaciones',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
