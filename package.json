@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.17.1",
+  "version": "3.2.18",
   "private": true,
-  "description": "RedLibertad V3.2.17.1 — Hotfix validación de borrador original y revisión",
+  "description": "RedLibertad V3.2.18 — Mesa editorial móvil, búsqueda y filtros rápidos",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -53,7 +53,8 @@
     "test:editorial-intelligence": "node --test tests/editorial-intelligence-v3215.test.js",
     "test:editorial-workflow": "node --test tests/editorial-workflow-v3216.test.js",
     "test:editorial-provenance": "node --test tests/editorial-provenance-v3217.test.js",
-    "test:editorial-originality-hotfix": "node --test tests/editorial-originality-hotfix-v32171.test.js"
+    "test:editorial-originality-hotfix": "node --test tests/editorial-originality-hotfix-v32171.test.js",
+    "test:editorial-queue": "node --test tests/editorial-queue-v3218.test.js"
   },
   "engines": {
     "node": ">=20"
