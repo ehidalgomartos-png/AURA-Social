@@ -50,6 +50,8 @@ jobs:
         run: npm run test:editorial-social-ui
       - name: V3.2.12 editorial integration, session and news sitemap tests
         run: npm run test:editorial-integration
+      - name: V3.2.13 automatic draft suggestions and editorial deep-link tests
+        run: npm run test:editorial-drafts-nav
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

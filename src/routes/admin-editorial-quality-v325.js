@@ -19,7 +19,8 @@ const wrap=fn=>(req,res)=>Promise.resolve().then(()=>fn(req,res)).catch(error=>{
 });
 function httpError(status,code){const error=new Error(code);error.status=status;error.code=code;return error;}
 
-router.get('/quality/overview',wrap(async(_req,res)=>{
+router.get('/quality/overview',wrap(async(req,res)=>{
+  const focus=/^[1-9][0-9]{0,14}$/.test(String(req.query.focus||''))?String(req.query.focus):'0';
   const [summary,sources,queue]=await Promise.all([
     db.query(
       "SELECT "+
@@ -53,7 +54,8 @@ router.get('/quality/overview',wrap(async(_req,res)=>{
       "LEFT JOIN editorial_profiles ep ON ep.id=c.profile_id "+
       "LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id "+
       "LEFT JOIN editorial_publications p ON p.candidate_id=c.id "+
-      "WHERE c.status='approved' ORDER BY c.reviewed_at DESC,c.id DESC LIMIT 100"
+      "WHERE c.status='approved' ORDER BY (c.id=$1::bigint) DESC,c.reviewed_at DESC,c.id DESC LIMIT 100",
+      [focus]
     )
   ]);
   const rows=queue.rows.map(row=>({

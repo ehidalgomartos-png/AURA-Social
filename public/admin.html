@@ -87,6 +87,7 @@
       <p id="editorialReviewSource" class="panel-copy"></p>
       <p><a id="editorialReviewLink" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden>Leer noticia en la fuente ↗</a></p>
       <form id="editorialReviewForm" class="editorial-form">
+        <div class="editorial-draft-suggestion"><button type="button" id="editorialSuggestDraft" class="soft">Preparar titular y resumen automáticamente</button><p class="panel-copy">Propuesta gratuita basada en metadatos RSS. Es orientativa: no resume ni verifica el artículo completo. Revisa y reescribe antes de aprobar.</p><p id="editorialSuggestionStatus" class="status" role="status" aria-live="polite"></p></div>
         <label>Titular editorial propio <input type="text" name="title" required minlength="12" maxlength="220" autocomplete="off"></label>
         <label>Resumen original (mínimo 70 caracteres) <textarea name="summary" required minlength="70" maxlength="1100" rows="5"></textarea></label>
         <label>Nota de revisión / motivo <textarea name="note" maxlength="500" rows="3" placeholder="Justifica la decisión y registra las verificaciones"></textarea></label>
@@ -531,6 +532,7 @@
   </div>
 </div>
 
-<script src="/admin.js"></script>
+<script src="/editorial-draft-v3213.js?v=3.2.13"></script>
+  <script src="/admin.js?v=3.2.13"></script>
 </body>
 </html>
