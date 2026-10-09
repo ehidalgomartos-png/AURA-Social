@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.11",
+  "version": "3.2.12",
   "private": true,
-  "description": "RedLibertad V3.2.11 — Editorial Social UI responsive branding and interactions",
+  "description": "RedLibertad V3.2.12 — Noticias: sesión, descubrimiento social y SEO sitemap completo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -46,7 +46,8 @@
     "test:editorial-quality": "node --test tests/editorial-quality-v325.test.js",
     "test:editorial-planning": "node --test tests/editorial-planning-v326.test.js",
     "test:editorial-daily": "node --test tests/editorial-daily-v327.test.js",
-    "test:editorial-social-ui": "node --test tests/editorial-social-ui-v3211.test.js"
+    "test:editorial-social-ui": "node --test tests/editorial-social-ui-v3211.test.js",
+    "test:editorial-integration": "node --test tests/editorial-integration-v3212.test.js"
   },
   "engines": {
     "node": ">=20"
