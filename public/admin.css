@@ -349,3 +349,13 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   .seo-health-panel .panel-tools{align-items:stretch}
   .admin-link-button{width:100%}
 }
+
+
+/* V3.2 Editorial Foundation */
+#editorialCenter .editorial-form{display:grid;gap:10px;margin:14px 0 18px}
+#editorialCenter .editorial-form label{display:grid;gap:5px;font-size:13px;font-weight:600}
+#editorialCenter .editorial-form input:not([type=checkbox]),#editorialCenter .editorial-form select,#editorialCenter .editorial-form textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;background:white;color:#17202a;padding:10px}
+#editorialCenter .editorial-form label:has(input[type=checkbox]){display:flex;align-items:start;font-weight:500}
+#editorialCenter .grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 0}
+#editorialCenter .report{margin-bottom:8px}
+@media(max-width:800px){#editorialCenter .grid{grid-template-columns:minmax(0,1fr)}}
