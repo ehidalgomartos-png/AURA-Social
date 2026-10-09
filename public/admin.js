@@ -1593,6 +1593,7 @@ async function loadEditorialInboxV321(focusId=''){
       const tip=advisory?'<div class="editorial-advice-summary"><span>Prioridad orientativa: '+esc(advisory.priority_label||'media')+' ('+Number(advisory.priority_score||0)+'/100)</span>'+
         (advisory.category_suggestion?.changeSuggested?'<span>Revisar categoría: '+esc(editorialCategoryLabelsV3215[advisory.category_suggestion.category]||advisory.category_suggestion.category)+'</span>':'')+
         (advisory.possible_duplicates?.length?'<span>Posibles noticias relacionadas: '+advisory.possible_duplicates.length+'</span>':'')+
+        (item.provenance?.warningCount?'<span>Revisar datos y originalidad: '+Number(item.provenance.warningCount)+'</span>':'')+
         '</div>':'';
 
       return '<article class="report"><b>'+esc(item.editorial_title||item.source_title)+'</b>'+
@@ -1623,6 +1624,7 @@ function fillEditorialDraftV3213(item,force=false){
   if(force||!title.value.trim())title.value=draft.title;
   if(force||!summary.value.trim())summary.value=draft.summary;
   if(!note.value.trim())note.value=draft.note;
+  renderEditorialProvenanceV3217(item);
   $('#editorialSuggestionStatus').textContent='Borrador provisional basado en el título y extracto RSS. No incluye hechos comprobados fuera de esos metadatos: verifica y reescribe antes de guardar o aprobar.';
   return true;
 }
@@ -1632,6 +1634,49 @@ $('#editorialSuggestDraft')?.addEventListener('click',()=>{
   }
 });
 
+function renderEditorialProvenanceV3217(item){
+  const target=$('#editorialProvenanceV3217');
+  if(!target)return;
+  const run=window.editorialProvenanceV3217;
+  if(!item||item.status!=='pending'||typeof run!=='function'){
+    target.hidden=true;target.replaceChildren();return;
+  }
+  const form=$('#editorialReviewForm');
+  if(!form)return;
+  const result=run(item,{
+    title:form.elements.namedItem('title').value,
+    summary:form.elements.namedItem('summary').value
+  });
+  target.replaceChildren();
+  const heading=document.createElement('h4');
+  heading.textContent='Originalidad y trazabilidad · V3.2.17';
+  target.append(heading);
+  const status=document.createElement('p');
+  status.textContent=result.warningCount
+    ?result.warningCount+' aspectos requieren comprobación humana.'
+    :'Sin coincidencias extensas detectadas en los metadatos RSS. Aun así debes comprobar la noticia.';
+  target.append(status);
+  if(result.warnings.length){
+    const list=document.createElement('ul');
+    for(const warning of result.warnings){
+      const li=document.createElement('li');
+      const title=document.createElement('strong');
+      title.textContent=warning.label+': ';
+      li.append(title,document.createTextNode(warning.explanation));
+      list.append(li);
+    }
+    target.append(list);
+  }
+  const disclaimer=document.createElement('small');
+  disclaimer.textContent=result.notice;
+  target.append(disclaimer);
+  target.hidden=false;
+}
+$('#editorialReviewForm')?.addEventListener('input',event=>{
+  if(event.target?.matches?.('[name="title"],[name="summary"]')){
+    renderEditorialProvenanceV3217(editorialReviewCurrent);
+  }
+});
 function renderEditorialAdviceV3215(item){
   const target=$('#editorialIntelligence');
   if(!target)return;
@@ -1726,6 +1771,7 @@ function openEditorialReview(item){
   if(item.status==='pending')fillEditorialDraftV3213(item,false);
   $('#editorialReviewEditorTitle').textContent='Revisión #'+item.id+' · '+(item.status==='pending'?'Pendiente':item.status==='approved'?'Aprobada':'Rechazada');
   renderEditorialAdviceV3215(item);
+  renderEditorialProvenanceV3217(item);
   $('#editorialReviewSource').textContent='Original: '+item.source_title+' · Fuente: '+(item.source_name||'No disponible')+
     ' · Estado de fuente: '+(item.source_status||'no disponible')+'. Consulta la noticia completa antes de decidir.';
   const link=$('#editorialReviewLink'),url=editorialSafeHref(item.canonical_url);

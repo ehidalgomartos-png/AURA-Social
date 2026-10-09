@@ -8,6 +8,7 @@ const {requireAdmin}=require('../middleware/auth');
 const {ensureEditorialSchema}=require('../services/editorial-v320');
 const {canonicalArticleUrl,normalizedTitle}=require('../services/editorial-rss-v321');
 const {CATEGORIES,enrich}=require('../services/editorial-intelligence-v3216');
+const {editorialProvenanceV3217}=require('../../public/editorial-provenance-v3217');
 
 const router=express.Router();
 
@@ -91,7 +92,7 @@ router.get('/review',guarded(async(req,res)=>{
       db.query("SELECT category,id,name FROM editorial_profiles WHERE status='ready' ORDER BY category,id")
     ]);
     const focusRows=r.rows.filter(row=>String(row.id)===focus);
-    const enriched=enrich(r.rows,context.rows);
+    const enriched=enrich(r.rows,context.rows).map(row=>({...row,provenance:editorialProvenanceV3217(row)}));
     return res.json({
       items:focusRows.length?[...focusRows.map(row=>enriched.find(x=>String(x.id)===String(row.id))),...enriched.filter(row=>String(row.id)!==focus)]:enriched,
       categoryProfiles:profiles.rows,
