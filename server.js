@@ -30,6 +30,7 @@ const adminRoutes = require('./src/routes/admin');
 const adminEditorialV320Routes = require('./src/routes/admin-editorial-v320');
 const adminEditorialInboxV321Routes = require('./src/routes/admin-editorial-inbox-v321');
 const {router:adminEditorialReviewV322Routes} = require('./src/routes/admin-editorial-review-v322');
+const {admin:editorialPublishV323Admin,publicRouter:editorialPublishV323Public}=require('./src/routes/editorial-publication-v323');
 const adminSecurityRoutes = require('./src/routes/admin-security-v211');
 const adminVerificationV1891Routes = require('./src/routes/admin-verification-v1891');
 const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
@@ -66,7 +67,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.2';
+const APP_VERSION='3.2.3';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -218,6 +219,7 @@ app.use('/api/admin', createOperationalAlertAdminRoutes({db,service:operationalA
 app.use('/api/admin', createAlertDeliveryAdminRoutes({db,delivery:alertDelivery}));
 app.use('/api/admin', createReleaseVerificationRoutes(releaseVerifier));
 app.use('/api/admin', adminSecurityRoutes);
+app.use('/api/admin/editorial', editorialPublishV323Admin);
 app.use('/api/admin/editorial', adminEditorialReviewV322Routes);
 app.use('/api/admin/editorial', adminEditorialInboxV321Routes);
 app.use('/api/admin/editorial', adminEditorialV320Routes);
@@ -239,6 +241,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/shares', shareRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/release', releaseControlRoutes);
+app.use('/noticias', editorialPublishV323Public);
 app.use(publicCommunitySeoV180Routes);
 app.use(publicEventSeoV181Routes);
 app.use(publicMediaSeoV182Routes);
@@ -1181,7 +1184,7 @@ app.get('/sitemap-hashtags.xml',async(req,res)=>{
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -1207,6 +1210,8 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /tema/',
     'Allow: /guias',
     'Allow: /guias/',
+    'Allow: /noticias',
+    'Allow: /noticias/',
     'Allow: /historias',
     'Allow: /historia/',
     'Disallow: /app',
