@@ -56,8 +56,8 @@ test('panel móvil ofrece edición original, trazabilidad, tres verificaciones y
   assert.ok(js.includes("action==='approve'"));
   assert.ok(js.includes("no se publicará")||js.includes("NO se publicará"));
   assert.ok(css.includes('#editorialReviewEditor'));
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.22'/);
-  assert.match(read('package.json'),/"version": "3\.2\.22"/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.23'/);
+  assert.match(read('package.json'),/"version": "3\.2\.23"/);
 });
 
 test('V3.2.10 botón Reabrir se muestra al estar aprobado y oculta con pendientes',()=>{
