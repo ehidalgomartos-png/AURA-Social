@@ -181,6 +181,6 @@ test('integration documents release gate and project is declared as V3.0',()=>{
   assert.equal(pkg.version,version);
   assert.match(pkg.scripts['gate:public'],/release-gate-v300/);
   assert.match(pkg.scripts['gate:config'],/launch-preflight-v300/);
-  assert.match(read('server.js'),new RegExp("const APP_VERSION='"+version.replace(/\./g,'\\.')+"'"));
+  assert.match(read('server.js'),new RegExp("const APP_VERSION='"+version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(read('.github/workflows/validate-js.yml'),/test:launch-gates/);
 });

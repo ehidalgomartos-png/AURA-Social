@@ -7046,3 +7046,94 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(prefers-reduced-motion:reduce){
   #feedView .home-growth-chevron-v3224{transition:none}
 }
+
+/* V3.2.24.1 — Mobile polish after the clean Home rollout.
+   Never change personal post content, editorial interleaving, or other views. */
+#feedView .home-secondary-v3224 .home-momentum.only-active-v32241{
+  padding:12px 14px;
+  border-radius:17px;
+  max-width:740px;
+}
+#feedView .home-momentum.only-active-v32241 .active-people-block{
+  margin:0;
+  padding:0;
+  border-top:0;
+}
+#feedView .home-momentum.only-active-v32241 .active-people-head{
+  margin-bottom:8px;
+}
+#feedView .home-momentum.only-active-v32241 .active-people-strip{
+  padding-bottom:2px;
+}
+@media(max-width:760px){
+  /* Tighten ONLY the Home hero. Leave navigation and other view heroes alone. */
+  #feedView>.page-title{
+    margin:0 4px 8px;
+    padding:12px 13px 11px;
+    min-height:0;
+    border-radius:18px;
+    gap:9px;
+  }
+  #feedView>.page-title .eyebrow{
+    margin-bottom:5px;
+    font-size:9px;
+    letter-spacing:.13em;
+  }
+  #feedView>.page-title h1{
+    font-size:26px;
+    line-height:1.08;
+  }
+  #feedView>.page-title .segmented{
+    padding:3px;
+    border-radius:12px;
+    max-width:100%;
+    min-width:0;
+    gap:2px;
+  }
+  #feedView>.page-title .segmented button{
+    padding:8px 7px;
+    min-height:40px;
+    font-size:11px;
+    white-space:nowrap;
+  }
+  /* The full Story carousel remains exactly as before when others have stories. */
+  #feedView .stories.solo-story-v32241{
+    margin:0 -3px 3px;
+    padding:0 8px 3px;
+    min-height:0;
+  }
+  #feedView .stories.solo-story-v32241 .story{
+    min-width:52px;
+    width:52px;
+  }
+  #feedView .stories.solo-story-v32241 .story-ring{
+    width:46px;
+    height:46px;
+  }
+  #feedView .stories.solo-story-v32241 .story-ring>div{
+    border-width:2px;
+  }
+  #feedView .stories.solo-story-v32241 .story small{
+    font-size:9px;
+    margin-top:4px;
+  }
+  #feedView .home-secondary-v3224 .home-momentum.only-active-v32241{
+    margin:0 4px;
+    padding:11px 12px;
+    border-radius:16px;
+  }
+  #feedView .home-momentum.only-active-v32241 .active-people-strip{
+    margin-inline:-12px;
+    padding-inline:12px;
+    grid-auto-columns:minmax(200px,78%);
+  }
+  #feedView .home-momentum.only-active-v32241 .active-people-head{
+    gap:8px;
+  }
+}
+@media(max-width:390px){
+  #feedView>.page-title .segmented button{
+    padding-inline:6px;
+    font-size:10px;
+  }
+}

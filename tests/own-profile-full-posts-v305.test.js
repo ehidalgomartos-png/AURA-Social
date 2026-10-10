@@ -110,8 +110,9 @@ test('mobile feed is one-column with safe bottom navigation spacing',()=>{
 });
 test('current version is V3.0.5 and the new tests are part of CI',()=>{
   const pkg=require('../package.json');
-  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/);
-  assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
+  assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+(?:\.[0-9]+|\+[0-9a-z.-]+)?$/);
+  const displayedVersion=pkg.version.replace(/\+polish\./,'.');
+  assert.match(read('server.js'),new RegExp("const APP_VERSION='"+displayedVersion.replace(/\./g,'\\.')+"'"));
   assert.match(pkg.scripts['test:own-profile'],/own-profile-full-posts-v305/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:own-profile/);
 });

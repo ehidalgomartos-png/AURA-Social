@@ -124,7 +124,7 @@ test('mobile administration has filter, note input, history and action buttons',
 });
 test('server installs alert routes and stops worker on shutdown',()=>{
   const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
-  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(server,/createOperationalAlertAdminRoutes\(\{db,service:operationalAlerts\}\)/);
   assert.match(server,/operationalAlerts\.start\(\)/);
   assert.match(server,/operationalAlerts\.stop\(\)/);

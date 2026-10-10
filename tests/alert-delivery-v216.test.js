@@ -157,7 +157,7 @@ test('mobile admin displays deliveries and provides controlled retries',()=>{
 });
 test('service integrates with V2.16 server lifecycle',()=>{
   const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
-  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(server,/const alertDelivery=createAlertDeliveryService\(\{db\}\)/);
   assert.match(server,/alertDelivery\.start\(\)/);
   assert.match(server,/alertDelivery\.stop\(\)/);
