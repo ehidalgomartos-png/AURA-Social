@@ -79,6 +79,6 @@ test('revisión segura, sin acción masiva ni cambio de las reglas de aprobació
  assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
  assert.doesNotMatch(service,/\b(?:db\.query|INSERT INTO|DELETE FROM|UPDATE users|fetch\(|autoPublish)\b/);
  assert.doesNotMatch(html,/data-editorial-bulk-approve|data-editorial-bulk-publish/);
- assert.ok(read('server.js').includes("APP_VERSION='3.2.23'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.23');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.24'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.24');
 });
