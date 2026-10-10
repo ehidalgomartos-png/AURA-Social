@@ -3183,6 +3183,38 @@ router.get('/feed', optionalAuth, async (req, res) => {
   res.json({ posts: gateRows(repostPosts, viewer), mode });
 });
 
+/* V3.2.26 — authenticated, read-only count of genuine accessible new posts. */
+router.get('/new-activity',requireAuth,async(req,res)=>{
+  const raw=String(req.query.since||'');
+  if(!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(raw))
+    return res.status(400).json({error:'invalid_since'});
+  const parsed=Date.parse(raw);
+  if(!Number.isFinite(parsed))return res.status(400).json({error:'invalid_since'});
+  const now=Date.now();
+  const since=new Date(Math.max(now-7*86400000,Math.min(parsed,now))).toISOString();
+  const result=await db.query(`
+    SELECT COUNT(*)::int AS new_count FROM (
+      SELECT p.id
+        FROM posts p
+        JOIN users u ON u.id=p.user_id
+       WHERE p.moderation_status='published'
+         AND u.status='active'
+         AND p.user_id<>$1
+         AND p.created_at>$2::timestamptz
+         AND ${postAudienceWhere('$1','p')}
+         AND p.user_id NOT IN (
+           SELECT blocked_id FROM blocks WHERE blocker_id=$1
+           UNION SELECT blocker_id FROM blocks WHERE blocked_id=$1
+         )
+         AND p.user_id NOT IN (SELECT muted_id FROM mutes WHERE muter_id=$1)
+       ORDER BY p.created_at DESC
+       LIMIT 10
+    ) visible_new
+  `,[req.user.id,since]);
+  const count=Math.max(0,Math.min(10,Number(result.rows[0]?.new_count)||0));
+  res.set('Cache-Control','private, no-store').json({ok:true,count,capped:count===10});
+});
+
 router.get('/momentum', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
 

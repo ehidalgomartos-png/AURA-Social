@@ -134,6 +134,6 @@ test('alternancia 2:1, tipos de feed y controles originales permanecen',()=>{
  assert.ok(homepage.includes('posts[insertAt[i]-1].after(card)'));
  assert.ok(homepage.includes("String(item.source_name||'Medio identificado')"));
  assert.ok(source.includes('bindPostActions(feedRoot)'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.25');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.25'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.26');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.26'"));
 });
