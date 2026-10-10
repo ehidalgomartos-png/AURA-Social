@@ -9329,6 +9329,40 @@ async function prepareAudiencePickers(){
 $('#postAudienceSelect')?.addEventListener('change',()=>syncAudienceCirclePicker('postAudienceSelect','postCircleAudience'));
 $('#storyAudienceSelect')?.addEventListener('change',()=>syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience'));
 
+
+/* V3.2.27 — Single-purpose publication / Story composer. */
+function selectComposerModeV3227(mode,{focus=false}={}){
+  const next=mode==='story'?'story':'post';
+  const modal=$('#modal'),post=$('#createForm'),story=$('#storyForm');
+  if(!modal||!post||!story)return;
+  modal.dataset.composerMode=next;
+  for(const [type,form] of [['post',post],['story',story]]){
+    const visible=type===next;
+    form.hidden=!visible;
+    form.classList.toggle('hidden',!visible);
+    const tab=$('#composer'+(type==='post'?'Post':'Story')+'TabV3227');
+    if(tab){
+      tab.setAttribute('aria-selected',String(visible));
+      tab.tabIndex=visible?0:-1;
+      if(focus&&visible)tab.focus();
+    }
+  }
+  const heading=$('#composerHeadingV3227');
+  if(heading)heading.textContent=next==='story'?'Crear Story':'Crear publicación';
+  $('#createMessage').textContent='';
+  $('#storyMessage').textContent='';
+  const card=modal.querySelector('.composer-card-v3227');
+  if(card)card.scrollTop=0;
+}
+all('[data-composer-tab]').forEach(tab=>{
+  tab.addEventListener('click',()=>selectComposerModeV3227(tab.dataset.composerTab));
+  tab.addEventListener('keydown',event=>{
+    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+    event.preventDefault();
+    selectComposerModeV3227(tab.dataset.composerTab==='post'?'story':'post',{focus:true});
+  });
+});
+
 async function openModal() {
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
@@ -9358,6 +9392,8 @@ async function openModal() {
     }
   }
   updateCommunityComposeFields();
+  $('#composerDraftV3227')?.classList.toggle('hidden',!me?.creator_verified);
+  selectComposerModeV3227('post');
   $('#modal').classList.remove('hidden');
   setTimeout(() => $('#createForm textarea')?.focus(), 120);
 }
@@ -9562,7 +9598,7 @@ $('#createForm').addEventListener('submit', async e => {
 $('#storyForm').addEventListener('submit', async e => {
   e.preventDefault(); return runSocialSubmitOnce(e.currentTarget,async()=>{ const msg = $('#storyMessage');
   try {
-    msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#createForm [name="contentLevel"]').value;
+    msg.textContent = 'Publicando Story...'; const media = await ensureUpload(); const level = $('#storyContentLevelV3227').value;
     const requestedAudience=$('#storyForm [name="audience"]')?.value || 'public';
     let audience=requestedAudience;
     let audienceCircleIds=[];
@@ -9587,7 +9623,7 @@ $('#storyForm').addEventListener('submit', async e => {
           ? 'Uno de los círculos seleccionados ya no está disponible.'
           : 'No se pudo publicar.'
     );
-    toast(requestedAudience==='vip' ? 'Story VIP publicada durante 24 h' : requestedAudience==='close' ? 'Story publicada para Cercanas' : requestedAudience==='circles' ? 'Story publicada para tus círculos' : requestedAudience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); currentFileMedia = null; await loadStories();
+    toast(requestedAudience==='vip' ? 'Story VIP publicada durante 24 h' : requestedAudience==='close' ? 'Story publicada para Cercanas' : requestedAudience==='circles' ? 'Story publicada para tus círculos' : requestedAudience==='connections' ? 'Story publicada para tus conexiones' : 'Story publicada durante 24 h'); $('#modal').classList.add('hidden'); clearPostMedia(); await loadStories();
   } catch (err) { msg.textContent = err.message; }
 });
 });
