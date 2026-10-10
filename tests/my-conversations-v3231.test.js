@@ -41,7 +41,8 @@ test('contextual mobile controls are accessible and only inside active discussio
 function harness(scope,posts){
   const title={textContent:''},root={innerHTML:''};
   const hint={classList:{toggle() {}}};
-  const scopeGroup={hidden:true,classList:{toggle(_,flag){this.hidden=flag}}};
+  const scopeGroup={hidden:true};
+  scopeGroup.classList={toggle(_,flag){scopeGroup.hidden=flag}};
   const scopeButtons=['all','mine'].map(value=>({
     dataset:{discussionScope:value},active:false,pressed:null,
     classList:{toggle(_cls,flag){this.active=flag}},
