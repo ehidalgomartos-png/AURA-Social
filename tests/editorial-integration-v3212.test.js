@@ -48,7 +48,7 @@ test('explorar desde Inicio son tarjetas editoriales y solo llevan a noticias ex
   assert.match(api,/AS like_count/);
   assert.match(api,/AS comment_count/);
   assert.match(api,/p\.unpublished_at IS NULL AND ep\.status='ready'/);
-  assert.match(api,/LIMIT 3/);
+  assert.match(api,/LIMIT 12/);
   assert.match(client,/editorial-home-card/);
   assert.match(client,/editorial-home-avatar/);
   assert.match(client,/heading\.textContent=String\(item\.title/);
