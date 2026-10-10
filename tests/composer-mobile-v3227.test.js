@@ -19,7 +19,7 @@ function node(){
    focus(){this.focused=true},
    querySelector:sel=>sel==='.composer-card-v3227'?this.card:null,
    card:null,
-   addEventListener:(type,callback)=>{this.listeners[type]=callback},
+   addEventListener(type,callback){this.listeners[type]=callback},
    listeners:{}
  };
 }
