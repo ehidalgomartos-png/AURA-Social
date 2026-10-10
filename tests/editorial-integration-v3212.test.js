@@ -88,7 +88,7 @@ test('ninguna publicación RSS se ejecuta automáticamente y la publicación man
 });
 test('versión y metadatos públicos siguen consistentes',()=>{
   assert.match(read('server.js'),/const APP_VERSION='3\.2\.24\.1'/);
-  assert.match(read('package.json'),/"version": "3\.2\.24\.1"/);
+  assert.match(read('package.json'),/"version": "3\.2\.24\+polish\.1"/);
   assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.24\.1'/);
   const doc=page({title:'<script>bad</script>',description:'" onmouseover="bad',pathname:'/noticias',body:'<p>Visible</p>'});
   assert.ok(doc.includes(esc('<script>bad</script>')));
