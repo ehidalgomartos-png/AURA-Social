@@ -90,6 +90,8 @@ jobs:
         run: npm run test:home-real-activity
       - name: V3.2.27 mobile Post and Story composer, privacy and accessibility regressions
         run: npm run test:composer-mobile
+      - name: V3.2.28 three composer tabs, prominent classification and preserved publication safeguards
+        run: npm run test:composer-three-modes
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

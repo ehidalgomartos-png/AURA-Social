@@ -9330,25 +9330,34 @@ $('#postAudienceSelect')?.addEventListener('change',()=>syncAudienceCirclePicker
 $('#storyAudienceSelect')?.addEventListener('change',()=>syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience'));
 
 
-/* V3.2.27 — Single-purpose publication / Story composer. */
+/* V3.2.28 — Three clear types, preserving existing post, Story and Reel routes. */
 function selectComposerModeV3227(mode,{focus=false}={}){
-  const next=mode==='story'?'story':'post';
+  const next=['post','story','reel'].includes(mode)?mode:'post';
   const modal=$('#modal'),post=$('#createForm'),story=$('#storyForm');
   if(!modal||!post||!story)return;
   modal.dataset.composerMode=next;
-  for(const [type,form] of [['post',post],['story',story]]){
-    const visible=type===next;
-    form.hidden=!visible;
-    form.classList.toggle('hidden',!visible);
-    const tab=$('#composer'+(type==='post'?'Post':'Story')+'TabV3227');
-    if(tab){
-      tab.setAttribute('aria-selected',String(visible));
-      tab.tabIndex=visible?0:-1;
-      if(focus&&visible)tab.focus();
-    }
+  const storySelected=next==='story';
+  post.hidden=storySelected;
+  post.classList.toggle('hidden',storySelected);
+  story.hidden=!storySelected;
+  story.classList.toggle('hidden',!storySelected);
+  const kind=$('#composerKindV3228');
+  if(kind)kind.value=next==='reel'?'reel':'post';
+  post.setAttribute('aria-labelledby',next==='reel'?'composerReelTabV3228':'composerPostTabV3227');
+  for(const tab of all('[data-composer-tab]')){
+    const selected=tab.dataset.composerTab===next;
+    tab.setAttribute('aria-selected',String(selected));
+    tab.tabIndex=selected?0:-1;
+    if(focus&&selected)tab.focus();
   }
   const heading=$('#composerHeadingV3227');
-  if(heading)heading.textContent=next==='story'?'Crear Story':'Crear publicación';
+  if(heading)heading.textContent=next==='story'?'Crear Story':next==='reel'?'Crear Reel':'Crear publicación';
+  const publish=$('#composerPublishButtonV3228');
+  if(publish)publish.textContent=next==='reel'?'Publicar Reel':'Publicar ahora';
+  const hint=$('#composerReelHintV3228');
+  if(hint){hint.hidden=next!=='reel';hint.classList.toggle('hidden',next!=='reel');}
+  const upload=$('#uploadText');
+  if(upload)upload.textContent=next==='post'?'＋ Añadir foto o vídeo (opcional)':'＋ Añadir foto o vídeo (obligatorio)';
   $('#createMessage').textContent='';
   $('#storyMessage').textContent='';
   const card=modal.querySelector('.composer-card-v3227');
@@ -9357,13 +9366,17 @@ function selectComposerModeV3227(mode,{focus=false}={}){
 all('[data-composer-tab]').forEach(tab=>{
   tab.addEventListener('click',()=>selectComposerModeV3227(tab.dataset.composerTab));
   tab.addEventListener('keydown',event=>{
-    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
     event.preventDefault();
-    selectComposerModeV3227(tab.dataset.composerTab==='post'?'story':'post',{focus:true});
+    const order=['post','story','reel'];
+    const index=order.indexOf(tab.dataset.composerTab);
+    const next=event.key==='Home'?'post':event.key==='End'?'reel':
+      order[(index+(event.key==='ArrowRight'?1:order.length-1))%order.length];
+    selectComposerModeV3227(next,{focus:true});
   });
 });
 
-async function openModal() {
+async function openModal(mode='post') {
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
   const storyAudience=$('#storyForm [name="audience"]');
@@ -9393,11 +9406,11 @@ async function openModal() {
   }
   updateCommunityComposeFields();
   $('#composerDraftV3227')?.classList.toggle('hidden',!me?.creator_verified);
-  selectComposerModeV3227('post');
+  selectComposerModeV3227(mode);
   $('#modal').classList.remove('hidden');
-  setTimeout(() => $('#createForm textarea')?.focus(), 120);
+  if(mode!=='story')setTimeout(() => $('#createForm textarea')?.focus(), 120);
 }
-function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = openModal); }
+function bindCreateButtons() { all('[data-action="create"]').forEach(b => b.onclick = () => openModal(b.closest('#stories')?'story':'post')); }
 bindCreateButtons();
 $('#closeModal').onclick = () => $('#modal').classList.add('hidden');
 let postMediaPreviewUrl=null;
