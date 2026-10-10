@@ -17,7 +17,7 @@ function node(){
    setAttribute:(k,v)=>{attributes[k]=v},
    getAttribute:k=>attributes[k],
    focus(){this.focused=true},
-   querySelector:sel=>sel==='.composer-card-v3227'?this.card:null,
+   querySelector(sel){return sel==='.composer-card-v3227'?this.card:null},
    card:null,
    addEventListener(type,callback){this.listeners[type]=callback},
    listeners:{}
