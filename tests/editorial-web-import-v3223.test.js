@@ -154,6 +154,6 @@ test('móvil, formulario editable, foto sugerida privada y alternativa manual',(
  assert.ok(read('public/admin.css').includes('.editorial-web-import-v3223'));
  assert.ok(read('public/admin.css').includes('@media(max-width:620px)'));
  assert.ok(html.includes('/admin.js?v=3.2.25'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.31');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.31'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.32');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.32'"));
 });

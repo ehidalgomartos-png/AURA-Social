@@ -89,8 +89,8 @@ test('onboarding ligero no pierde herramientas ni muestra destacados vacíos',()
   assert.ok(css.includes('@media(max-width:760px)'));
 });
 test('release and existing RSS/video privacy gates unchanged',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.31');
-  assert.ok(read('server.js').includes("APP_VERSION='3.2.31'"));
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.32');
+  assert.ok(read('server.js').includes("APP_VERSION='3.2.32'"));
   assert.ok(read('src/routes/editorial-social-v324.js').includes("p.unpublished_at IS NULL AND ep.status='ready'"));
   assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
 });
