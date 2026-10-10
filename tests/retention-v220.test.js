@@ -155,7 +155,7 @@ test('mobile UI provides large touch targets and reduced-motion support',()=>{
 });
 test('feature mounts before growth routes, leaves notifications and monetization untouched',()=>{
   const server=read('server.js');
-  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(server,/app\.use\('\/api\/growth', retentionV220Routes\)/);
   const before=server.indexOf("app.use('/api/growth', retentionV220Routes)");
   const after=server.indexOf("app.use('/api/growth', growthRoutes)");
