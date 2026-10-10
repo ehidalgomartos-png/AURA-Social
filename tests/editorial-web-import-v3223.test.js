@@ -153,7 +153,7 @@ test('móvil, formulario editable, foto sugerida privada y alternativa manual',(
  assert.ok(js.includes("s.source_kind!=='web'"));
  assert.ok(read('public/admin.css').includes('.editorial-web-import-v3223'));
  assert.ok(read('public/admin.css').includes('@media(max-width:620px)'));
- assert.ok(html.includes('/admin.js?v=3.2.23'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.23');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.23'"));
+ assert.ok(html.includes('/admin.js?v=3.2.24'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.24');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.24'"));
 });

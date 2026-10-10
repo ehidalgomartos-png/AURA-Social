@@ -62,7 +62,7 @@ test('explorar desde Inicio son tarjetas editoriales y solo llevan a noticias ex
   assert.match(social,/@media\(max-width:790px\)/);
   const app=read('public/app.html');
   assert.match(app,/id="editorialHomeBlock"/);
-  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.12/);
+  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.24/);
 });
 test('comentarios sociales siguen con moderación, identidad real y mejora de legibilidad móvil',()=>{
   const client=read('public/editorial-social-v324.js');
@@ -87,9 +87,9 @@ test('ninguna publicación RSS se ejecuta automáticamente y la publicación man
   assert.doesNotMatch(read('public/editorial-home-v324.js'),/\.post\('\/publish|method:'POST'|INSERT INTO/);
 });
 test('versión y metadatos públicos siguen consistentes',()=>{
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.23'/);
-  assert.match(read('package.json'),/"version": "3\.2\.23"/);
-  assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.23'/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.24'/);
+  assert.match(read('package.json'),/"version": "3\.2\.24"/);
+  assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.24'/);
   const doc=page({title:'<script>bad</script>',description:'" onmouseover="bad',pathname:'/noticias',body:'<p>Visible</p>'});
   assert.ok(doc.includes(esc('<script>bad</script>')));
   assert.ok(!doc.includes('<script>bad</script>'));
