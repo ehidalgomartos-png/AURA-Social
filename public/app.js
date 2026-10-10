@@ -53,7 +53,16 @@ function loadPublicEntry(){
 const publicEntry=loadPublicEntry();
 function finishPublicEntry(serverPath=''){
   const path=publicEntry&&(!serverPath||serverPath===publicEntry.path)?publicEntry.path:'';
-  if(path){try{sessionStorage.removeItem(PUBLIC_ENTRY_STORAGE);}catch{} location.href=path;return;}
+  if(path){
+    // Public profile SEO pages are visitor-facing. After authentication,
+    // open the member profile view instead of returning to the visitor page.
+    const destination=publicEntry.type==='profile'
+      ? '/app?profile='+encodeURIComponent(publicEntry.key)
+      : path;
+    try{sessionStorage.removeItem(PUBLIC_ENTRY_STORAGE);}catch{}
+    location.href=destination;
+    return;
+  }
   location.href='/app';
 }
 function registrationValidationMessage(data){

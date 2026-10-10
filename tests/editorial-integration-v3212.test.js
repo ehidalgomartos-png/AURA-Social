@@ -48,7 +48,7 @@ test('explorar desde Inicio son tarjetas editoriales y solo llevan a noticias ex
   assert.match(api,/AS like_count/);
   assert.match(api,/AS comment_count/);
   assert.match(api,/p\.unpublished_at IS NULL AND ep\.status='ready'/);
-  assert.match(api,/LIMIT 3/);
+  assert.match(api,/LIMIT 12/);
   assert.match(client,/editorial-home-card/);
   assert.match(client,/editorial-home-avatar/);
   assert.match(client,/heading\.textContent=String\(item\.title/);
@@ -87,9 +87,9 @@ test('ninguna publicación RSS se ejecuta automáticamente y la publicación man
   assert.doesNotMatch(read('public/editorial-home-v324.js'),/\.post\('\/publish|method:'POST'|INSERT INTO/);
 });
 test('versión y metadatos públicos siguen consistentes',()=>{
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.24\.1'/);
-  assert.match(read('package.json'),/"version": "3\.2\.24\+polish\.1"/);
-  assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.24\.1'/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.24\.2'/);
+  assert.match(read('package.json'),/"version": "3\.2\.24\+polish\.2"/);
+  assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.24\.2'/);
   const doc=page({title:'<script>bad</script>',description:'" onmouseover="bad',pathname:'/noticias',body:'<p>Visible</p>'});
   assert.ok(doc.includes(esc('<script>bad</script>')));
   assert.ok(!doc.includes('<script>bad</script>'));
