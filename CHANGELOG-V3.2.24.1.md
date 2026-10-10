@@ -16,7 +16,7 @@ Base estable `main`: **V3.2.24** (`9d36ed37d1aa7cb1a5067a4e0a1ccfe042a2762a`).
 - Caché de assets móviles actualizada en `public/app.html`.
 - Pruebas `tests/home-mobile-polish-v32241.test.js` ejecutan el estado real de `loadHomeMomentum` con cuatro combinaciones de datos y error, y validan el comportamiento de Stories, controles y mezclador 2:1.
 - El API público y las migraciones PostgreSQL **no se modifican**.
-- `APP_VERSION=3.2.24.1` en servidor/health. La aplicación y `package.json` mantienen la misma versión `3.2.24.1`, coherente con los hotfixes anteriores del proyecto.
+- `APP_VERSION=3.2.24.1` en servidor/health. Para cumplir SemVer de npm, `package.json` usa `3.2.24+polish.1` (los cuatro componentes numéricos no son válidos en npm). La versión visible de RedLibertad no cambia.
 
 ## Verificación después de desplegar
 - Comprobar `https://redlibertad.com/api/health` → `version:"3.2.24.1"`.
