@@ -119,7 +119,7 @@ test('server mounts guide router before public catch-all and adds sitemap index 
   assert.ok(src.indexOf('app.use(publicGuidesV218.router)')<src.indexOf("app.get('*'"));
   assert.match(src,/sitemap-guias\.xml/);
   assert.match(src,/Allow: \/guias/);
-  assert.match(src,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+  assert.match(src,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(src,/seo-acquisition-guides-v2\.18/);
 });
 
