@@ -86,5 +86,5 @@ test('panel móvil enlazado con revisión y estadísticas reales, sin publicar s
   assert.match(js,/loadEditorialPublicV323\(\)/);
   assert.match(css,/#editorialQuality \.editorial-quality-form/);
   assert.match(read('server.js'),/const APP_VERSION='3\.2\.24\.1'/);
-  assert.match(read('package.json'),/"version": "3\.2\.24\+polish\.1"/);
+  assert.match(read('package.json'),/"version": "3\.2\.24\.1"/);
 });
