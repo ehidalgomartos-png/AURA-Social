@@ -88,6 +88,8 @@ jobs:
         run: npm run test:editorial-visibility
       - name: V3.2.26 real activity, new-post indicator and privacy regressions
         run: npm run test:home-real-activity
+      - name: V3.2.27 mobile Post and Story composer, privacy and accessibility regressions
+        run: npm run test:composer-mobile
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
