@@ -15,6 +15,7 @@ function entryDestination(type,key,sourcePath,serverPath=''){
   let cleared=false;
   const sandbox={
     publicEntry:{type,key,path:sourcePath},
+    PUBLIC_ENTRY_STORAGE:'redlibertad-public-entry-v188',
     sessionStorage:{removeItem:()=>{cleared=true}},
     location:{href:'/'},
     encodeURIComponent
