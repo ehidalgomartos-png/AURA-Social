@@ -118,8 +118,8 @@ test('reglas CSS aplican solo al Inicio y en móvil, sin tocar publicaciones',()
  assert.ok(css.includes('@media(max-width:760px)'));
  assert.ok(css.includes('@media(max-width:390px)'));
  const app=read('public/app.html');
- assert.ok(app.includes('/social.css?v=3.2.24.3'));
- assert.ok(app.includes('/social.js?v=3.2.24.3'));
+ assert.ok(app.includes('/social.css?v=3.2.27'));
+ assert.ok(app.includes('/social.js?v=3.2.27'));
  assert.ok(app.includes('/editorial-home-v324.js?v=3.2.24.2'));
  assert.ok(app.includes('id="homeGrowthDetailsV3224"'));
 });
@@ -134,6 +134,6 @@ test('alternancia 2:1, tipos de feed y controles originales permanecen',()=>{
  assert.ok(homepage.includes('posts[insertAt[i]-1].after(card)'));
  assert.ok(homepage.includes("String(item.source_name||'Medio identificado')"));
  assert.ok(source.includes('bindPostActions(feedRoot)'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.26');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.26'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.27');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.27'"));
 });
