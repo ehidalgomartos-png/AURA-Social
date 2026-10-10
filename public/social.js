@@ -1399,9 +1399,14 @@ async function loadHomeMomentum() {
 
   root.innerHTML = posts.length
     ? posts.map(momentumCardHTML).join('')
-    : '<div class="momentum-empty"><b>Estás al día.</b><span>Las próximas novedades aparecerán aquí.</span></div>';
+    : '';
 
   updateLatestModeBadge(catchup.length);
+  if(!posts.length&&!activeUsers.length){
+    section.classList.add('hidden');
+    storeHomeVisit(new Date());
+    return;
+  }
   section.classList.remove('hidden');
   storeHomeVisit(new Date());
 }
@@ -1617,6 +1622,7 @@ async function loadGrowthPanel() {
   const { r, d } = await api('/api/growth/me');
   if (!r.ok) {
     panel.classList.add('hidden');
+    $('#homeGrowthDetailsV3224')?.classList.add('hidden');
     return;
   }
 
@@ -1667,6 +1673,16 @@ async function loadGrowthPanel() {
   }
 
   panel.classList.remove('hidden');
+  const homeGrowth=$('#homeGrowthDetailsV3224');
+  if(homeGrowth){
+    homeGrowth.classList.remove('hidden');
+    const title=$('#homeGrowthHeadlineV3224');
+    const subtitle=$('#homeGrowthProgressV3224');
+    if(title)title.textContent=progress>=100?'Tu comunidad está en marcha':'Completa tu RedLibertad';
+    if(subtitle)subtitle.textContent=progress>=100
+      ?'Invitaciones y herramientas de la comunidad'
+      :completed+' de '+steps.length+' pasos · Ver recomendaciones e invitaciones';
+  }
 
   if (Number(d.progress || 0) >= 100) {
     panel.classList.add('growth-complete');
@@ -1992,6 +2008,11 @@ async function loadFeed(mode = currentMode) {
       </div>`;
 
   bindPostActions(feedRoot);
+  // News cards may be interleaved only after real posts finish rendering.
+  // The listener handles its own privacy-safe mode checks (V3.2.24).
+  document.dispatchEvent(new CustomEvent('redlibertad:feed-updated',{
+    detail:{mode,postCount:posts.length}
+  }));
   if(mode==='vip')markVipSeen();
 }
 
