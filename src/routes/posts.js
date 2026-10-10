@@ -3484,11 +3484,14 @@ router.get('/search', requireAuth, async (req,res)=>{
 
 router.get('/trending', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
-  const sort=['score','likes','comments'].includes(String(req.query.sort||'')) ? String(req.query.sort) : 'score';
+  const sort=['score','likes','comments','active'].includes(String(req.query.sort||'')) ? String(req.query.sort) : 'score';
+  const isActive=sort==='active';
   const orderBy=sort==='likes'
     ? 'like_count DESC, comment_count DESC'
     : sort==='comments'
       ? 'comment_count DESC, like_count DESC'
+      : sort==='active'
+        ? 'recent_comment_count DESC, last_comment_at DESC'
       : '((SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) * 2 + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id) * 3) DESC';
 
   const result=await db.query(`
@@ -3498,13 +3501,18 @@ router.get('/trending', requireAuth, async (req,res)=>{
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) like_count,
            EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1) liked_by_me,
            (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) comment_count
+           ${isActive ? `, (SELECT count(*)::int FROM comments recent WHERE recent.post_id=p.id AND recent.created_at >= now()-interval '7 days') AS recent_comment_count,
+           (SELECT max(recent.created_at) FROM comments recent WHERE recent.post_id=p.id AND recent.created_at >= now()-interval '7 days') AS last_comment_at` : ''}
       FROM posts p
       JOIN users u ON u.id=p.user_id
      WHERE p.moderation_status='published'
        AND u.status='active'
        AND u.discoverable=true
        AND ${postAudienceWhere('$1','p')}
-       AND p.created_at >= now() - interval '30 days'
+       AND ${isActive ? `p.audience='public' AND p.content_level='normal' AND EXISTS (
+         SELECT 1 FROM comments recent WHERE recent.post_id=p.id
+           AND recent.created_at >= now() - interval '7 days'
+       )` : `p.created_at >= now() - interval '30 days'`}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION

@@ -2217,12 +2217,22 @@ function initGlobalSearch(){
   renderGlobalSearchHistory();
 }
 
-function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenido aquí.', emptyCopy = 'Vuelve pronto o publica algo para poner RedLibertad en movimiento.') {
+function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenido aquí.', emptyCopy = 'Vuelve pronto o publica algo para poner RedLibertad en movimiento.', {conversationMode=false}={}) {
   const root = $('#discoveryFeed');
   if (!root) return;
   root.innerHTML = posts.length
     ? posts.map(post=>postHTML(post,{discovery:true})).join('')
     : `<div class="info-card discovery-empty"><b>${emptyTitle}</b><p>${emptyCopy}</p></div>`;
+  if(conversationMode){
+    root.querySelectorAll('article.post').forEach((card,index)=>{
+      const count=Math.max(0,Number(posts[index]?.recent_comment_count)||0);
+      const button=card.querySelector('[data-comments]');
+      if(!button||!count)return;
+      button.textContent='💬 Participar · '+count+' '+(count===1?'comentario esta semana':'comentarios esta semana');
+      button.setAttribute('aria-label','Entrar en la conversación: '+count+' '+(count===1?'comentario reciente':'comentarios recientes'));
+      button.classList.add('discovery-discussion-cta-v3230');
+    });
+  }
   bindPostActions(root);
 }
 
@@ -2240,6 +2250,7 @@ async function loadDiscoveryContent(mode = activeContentMode) {
   activeContentMode = mode;
   activePostSearch = '';
   all('[data-content-mode]').forEach(button => button.classList.toggle('active', button.dataset.contentMode === mode));
+  $('#activeDiscussionsHintV3230')?.classList.toggle('hidden',mode!=='active');
 
   const title = $('#contentDiscoveryTitle');
   const endpoint = mode === 'saved'
@@ -2250,6 +2261,8 @@ async function loadDiscoveryContent(mode = activeContentMode) {
         ? '/api/posts/trending?sort=likes'
         : mode === 'commented'
           ? '/api/posts/trending?sort=comments'
+          : mode === 'active'
+            ? '/api/posts/trending?sort=active'
           : mode === 'trending'
             ? '/api/posts/trending?sort=score'
             : '/api/posts/discover';
@@ -2263,6 +2276,8 @@ async function loadDiscoveryContent(mode = activeContentMode) {
           ? 'Lo más gustado'
           : mode === 'commented'
             ? 'Lo más comentado'
+            : mode === 'active'
+              ? 'Conversaciones activas'
             : mode === 'trending'
               ? 'Tendencias'
               : 'Para ti';
@@ -2277,11 +2292,14 @@ async function loadDiscoveryContent(mode = activeContentMode) {
   }
 
   const posts = Array.isArray(d.posts) ? d.posts : [];
-  const emptyTitle = mode === 'saved' ? 'Todavía no has guardado nada.' : 'Todavía no hay publicaciones en esta sección.';
+  const emptyTitle = mode === 'active'
+    ? 'Aún no hay conversaciones activas esta semana.'
+    : mode === 'saved' ? 'Todavía no has guardado nada.' : 'Todavía no hay publicaciones en esta sección.';
   const emptyCopy = mode === 'saved'
     ? 'Pulsa ☆ en cualquier publicación para guardarla y volver a ella después.'
+    : mode === 'active' ? 'Cuando una publicación pública reciba comentarios recientes podrás participar aquí.'
     : 'Las primeras publicaciones aparecerán aquí.';
-  renderDiscoveryPosts(posts, emptyTitle, emptyCopy);
+  renderDiscoveryPosts(posts, emptyTitle, emptyCopy, {conversationMode:mode==='active'});
 }
 
 async function searchPosts(query) {
@@ -2290,6 +2308,7 @@ async function searchPosts(query) {
 
   activePostSearch = clean;
   all('[data-content-mode]').forEach(button => button.classList.remove('active'));
+  $('#activeDiscussionsHintV3230')?.classList.add('hidden');
   $('#contentDiscoveryTitle').textContent = `Resultados para “${clean}”`;
   $('#discoveryFeed').innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
 

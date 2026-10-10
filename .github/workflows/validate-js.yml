@@ -94,6 +94,8 @@ jobs:
         run: npm run test:composer-three-modes
       - name: V3.2.29 direct conversation notification routing and privacy regressions
         run: npm run test:direct-conversations
+      - name: V3.2.30 active public discussions and Explore privacy regression tests
+        run: npm run test:active-discussions
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
