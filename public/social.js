@@ -64,6 +64,7 @@ let pendingDeleteComment = null;
 let activeManagePost = null;
 let deletePostArmed = false;
 let activeContentMode = 'foryou';
+let exploreMobileSection = 'content';
 let activePostSearch = '';
 let discussionScope = 'all';
 let discoveryRequestSequence = 0;
@@ -2336,6 +2337,20 @@ async function searchPosts(query) {
   );
 }
 
+function setExploreMobileSection(mode) {
+  if(mode!=='content' && mode!=='people')return false;
+  exploreMobileSection=mode;
+  const root=$('#exploreView');
+  if(!root)return false;
+  root.dataset.exploreSection=mode;
+  all('[data-explore-mobile-section]').forEach(button=>{
+    const selected=button.dataset.exploreMobileSection===mode;
+    button.classList.toggle('active',selected);
+    button.setAttribute('aria-pressed',String(selected));
+  });
+  return true;
+}
+
 async function loadExplore() {
   initGlobalSearch();
   await Promise.all([
@@ -3112,6 +3127,9 @@ document.addEventListener('click', async event => {
   const jump = event.target.closest('[data-view-jump]');
   if (jump) {
     event.preventDefault();
+    if(jump.dataset.viewJump==='explore' && jump.dataset.exploreTarget==='people'){
+      setExploreMobileSection('people');
+    }
     showView(jump.dataset.viewJump);
     return;
   }
@@ -8369,6 +8387,10 @@ $('#postSearchForm')?.addEventListener('submit', async event => {
   await searchPosts($('#postSearchInput').value);
 });
 
+all('[data-explore-mobile-section]').forEach(button=>{
+  button.onclick=()=>setExploreMobileSection(button.dataset.exploreMobileSection);
+});
+
 all('[data-content-mode]').forEach(button => {
   button.onclick = async () => {
     $('#postSearchInput').value = '';
@@ -9292,7 +9314,10 @@ function showView(name) {
   }
   if(switching)restoreViewScroll(name);
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); loadCommunityReturn(); }
-  if (name === 'explore') loadExplore();
+  if (name === 'explore') {
+    setExploreMobileSection(exploreMobileSection);
+    loadExplore();
+  }
   if (name === 'connections') loadConnectionsCenter();
   if (name === 'communities') {
     if(activeCommunityId)openCommunityDetail(activeCommunityId);

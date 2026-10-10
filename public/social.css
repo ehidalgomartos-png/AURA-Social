@@ -7459,7 +7459,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #discoveryFeed .discovery-discussion-cta-v3230{font-size:11px;padding:9px 10px}
 }
 
-/* V3.2.31 — Contextual filters within existing active conversations. */
+/* V3.2.32 — Contextual filters within existing active conversations. */
 .discussion-scope-v3231{
   display:flex;flex-wrap:wrap;gap:8px;
   align-items:center;margin:0 2px 13px;
@@ -7479,4 +7479,36 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(max-width:760px){
   .discussion-scope-v3231{margin:0 6px 13px}
   .discussion-scope-v3231 button{flex:1 1 0;min-width:0;white-space:normal}
+}
+
+/* RedLibertad V3.2.32 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
+.explore-mobile-switch-v3232{display:none}
+@media(max-width:760px){
+  #exploreView .explore-mobile-switch-v3232{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:stretch;gap:5px;padding:5px;margin:14px 4px 16px;
+    border:1px solid var(--line);border-radius:16px;background:var(--paper);
+  }
+  #exploreView .explore-mobile-switch-v3232 button{
+    min-width:0;min-height:48px;padding:10px 12px;
+    border:0;border-radius:12px;background:transparent;
+    color:var(--muted);font-size:14px;font-weight:800;
+  }
+  #exploreView .explore-mobile-switch-v3232 button.active{
+    background:var(--navy);color:#fff;
+  }
+  #exploreView .explore-mobile-switch-v3232 button:focus-visible{
+    outline:3px solid var(--teal);outline-offset:2px;
+  }
+  #exploreView[data-explore-section="content"] #connectionsSection,
+  #exploreView[data-explore-section="content"] #explorePeoplePaneV3232,
+  #exploreView[data-explore-section="people"] #exploreContentPaneV3232{
+    display:none!important;
+  }
+  #exploreView[data-explore-section="content"] #exploreContentPaneV3232{
+    margin-top:8px;padding-top:0;border-top:0;
+  }
+  #exploreView[data-explore-section="people"] #explorePeoplePaneV3232{
+    margin-top:8px;
+  }
 }
