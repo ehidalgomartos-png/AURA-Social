@@ -7221,3 +7221,22 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(prefers-reduced-motion:reduce){
   #feedView .stories.solo-story-v32241 .story{transition:none}
 }
+
+/* V3.2.26 — Small opt-in notice; no replacement of posts while reading. */
+#feedView .feed-column-v3226{min-width:0;display:grid;align-content:start;gap:0}
+#feedView .feed-new-activity-v3226{display:flex;justify-content:center;margin:0 0 11px;min-width:0}
+#feedView .feed-new-activity-v3226.hidden{display:none!important}
+#feedView .feed-new-activity-v3226 button{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  min-height:44px;padding:10px 16px;max-width:100%;
+  background:var(--navy);color:white;border:0;border-radius:999px;
+  font-weight:800;font-size:12px;line-height:1.35;
+  box-shadow:0 7px 22px rgba(13,34,56,.15);
+}
+#feedView .feed-new-activity-v3226 button:hover{background:var(--navy2)}
+#feedView .feed-new-activity-v3226 button:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+#feedView .feed-new-activity-icon-v3226{font-size:17px;line-height:1}
+@media(max-width:760px){
+  #feedView .feed-new-activity-v3226{margin:0 10px 9px}
+  #feedView .feed-new-activity-v3226 button{width:100%;max-width:480px}
+}
