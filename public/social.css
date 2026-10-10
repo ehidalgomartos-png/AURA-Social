@@ -7408,3 +7408,32 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(max-width:390px){
   #modal .composer-tabs-v3227 button{font-size:12px;padding-inline:3px}
 }
+
+/* V3.2.29 — Compact conversation navigation, mobile-first. */
+#commentsModal .comments-heading-v3229{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:3px 30px 12px 0;
+}
+#commentsModal .comments-heading-v3229 h2{margin:0}
+#commentsModal #commentsOpenPostV3229{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-height:44px;
+  padding:8px 11px;
+  font-size:12px;
+  white-space:nowrap;
+}
+#commentsModal #commentsOpenPostV3229:focus-visible{
+  outline:3px solid var(--teal);
+  outline-offset:2px;
+}
+@media(max-width:420px){
+  #commentsModal .comments-heading-v3229{margin-right:38px}
+  #commentsModal #commentsOpenPostV3229{font-size:11px}
+}

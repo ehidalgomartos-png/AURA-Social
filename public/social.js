@@ -6660,6 +6660,13 @@ $('#closeCommentsModal').onclick = () => {
   clearCommentReply();
 };
 $('#cancelCommentReply')?.addEventListener('click',clearCommentReply);
+// Show the post context on demand rather than stacking two modal dialogs.
+$('#commentsOpenPostV3229')?.addEventListener('click',async()=>{
+  const postId=activeCommentsPostId;
+  if(!postId)return;
+  $('#closeCommentsModal')?.click();
+  await openPostFocus(postId);
+});
 
 // Keep publication actions single-flight on slow mobile networks.
 const socialSubmittingForms=new WeakSet();
@@ -7104,7 +7111,7 @@ function updateNotificationBadge(n) {
 function notificationIcon(type) {
   return ({
     like: '♥',
-    comment: '◯',
+    comment: '💬',
     mention: '@',
     repost: '⟳',
     follow: '+',
@@ -7130,6 +7137,7 @@ function notificationIcon(type) {
 function notificationMatches(notification, filter) {
   if (filter === 'all') return true;
   if (filter === 'unread') return !notification.read_at;
+  if (filter === 'conversations') return (notification.type==='comment' && notification.entity_type==='post') || (['mention','circle_mention'].includes(notification.type) && notification.entity_type==='post');
   if (filter === 'mentions') return ['mention','circle_mention'].includes(notification.type);
   if (filter === 'interactions') return ['like','comment','repost'].includes(notification.type);
   if (filter === 'community') return ['follow','creator_broadcast','creator_vip_broadcast','creator_poll_vote','creator_question_response','event_reminder'].includes(notification.type);
@@ -7254,7 +7262,13 @@ async function navigateNotification(notification) {
     return;
   }
 
-  if (entityType === 'post' && entityId && ['like','comment','mention','repost'].includes(type)) {
+  // V3.2.29: a comment notification should open its real discussion directly.
+  if (type === 'comment' && entityType === 'post' && entityId) {
+    await openComments(entityId);
+    return;
+  }
+
+  if (entityType === 'post' && entityId && ['like','mention','repost'].includes(type)) {
     await openPostFocus(entityId);
     return;
   }
