@@ -59,7 +59,7 @@ test('las noticias son tarjetas en el feed, no publicaciones falsas ni imágenes
    "localImage(item.image_url)",
    "root.hidden=true"
   ])assert.ok(script.includes(term),term);
-  assert.doesNotMatch(script,/INSERT INTO posts|/api/posts/create|document\.createElement\('script'\)/);
+  assert.doesNotMatch(script,/INSERT INTO posts|\/api\/posts\/create|document\.createElement\('script'\)/);
   assert.doesNotMatch(script,/innerHTML\s*=/);
 });
 test('post feed original continúa manejando acciones, filtros, y señaliza el nuevo render sin tocar privacidad',()=>{
