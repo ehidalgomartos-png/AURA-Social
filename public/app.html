@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/social.css?v=3.2.28">
+  <link rel="stylesheet" href="/social.css?v=3.2.29">
   <link rel="stylesheet" href="/creator-ops.css">
 </head>
 <body>
@@ -435,6 +435,7 @@
       <div class="notification-filters" role="tablist" aria-label="Filtrar actividad">
         <button type="button" class="active" data-notification-filter="all">Todo</button>
         <button type="button" data-notification-filter="unread">Sin leer</button>
+        <button type="button" data-notification-filter="conversations">Conversaciones</button>
         <button type="button" data-notification-filter="mentions">Menciones</button>
         <button type="button" data-notification-filter="interactions">Interacciones</button>
         <button type="button" data-notification-filter="community">Comunidad</button>
@@ -1315,7 +1316,7 @@
   <div class="modal-card comments-modal-card">
     <button id="closeCommentsModal" class="modal-close" type="button">×</button>
     <span class="eyebrow">CONVERSACIÓN</span>
-    <h2>Comentarios</h2>
+    <div class="comments-heading-v3229"><h2>Comentarios</h2><button type="button" id="commentsOpenPostV3229" class="tiny-action">Ver publicación <span aria-hidden="true">↗</span></button></div>
     <div id="commentsList" class="comments-list"></div>
     <div id="commentReplyContext" class="comment-reply-context hidden">
       <span>Respondiendo a <b id="commentReplyName"></b></span>
@@ -1507,5 +1508,5 @@
 </div>
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="/pwa.js"></script><script src="/social.js?v=3.2.28"></script><script src="/creator-ops.js"></script><script src="/feed-new-activity-v3226.js?v=3.2.26" defer></script><script src="/editorial-interleave-v3224.js?v=3.2.24" defer></script><script src="/editorial-home-v324.js?v=3.2.24.2" defer></script>
+<script src="/pwa.js"></script><script src="/social.js?v=3.2.29"></script><script src="/creator-ops.js"></script><script src="/feed-new-activity-v3226.js?v=3.2.26" defer></script><script src="/editorial-interleave-v3224.js?v=3.2.24" defer></script><script src="/editorial-home-v324.js?v=3.2.24.2" defer></script>
 </body></html>

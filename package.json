@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.28",
+  "version": "3.2.29",
   "private": true,
-  "description": "RedLibertad V3.2.28 — Three-Type Composer",
+  "description": "RedLibertad V3.2.29 — Direct Conversations",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -68,7 +68,8 @@
     "test:editorial-visibility": "node --test tests/editorial-home-visibility-v3225.test.js",
     "test:home-real-activity": "node --test tests/home-real-activity-v3226.test.js",
     "test:composer-mobile": "node --test tests/composer-mobile-v3227.test.js",
-    "test:composer-three-modes": "node --test tests/composer-three-modes-v3228.test.js"
+    "test:composer-three-modes": "node --test tests/composer-three-modes-v3228.test.js",
+    "test:direct-conversations": "node --test tests/direct-conversations-v3229.test.js"
   },
   "engines": {
     "node": ">=20"
