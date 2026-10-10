@@ -1386,6 +1386,7 @@ async function loadHomeMomentum() {
     section.classList.toggle('only-active-v32241',onlyPeople);
     section.classList.toggle('hidden',!onlyPeople);
     section.querySelector('.momentum-head')?.classList.add('hidden');
+    section.querySelector('.active-people-block')?.classList.toggle('hidden',!onlyPeople);
     root.classList.add('hidden');
     return;
   }
