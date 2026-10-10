@@ -174,6 +174,6 @@ test('mismo sistema gratis y multimedia persistente del VPS, sin romper publicac
  assert.ok(route.includes("if(!qualityReady(row))"));
  assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
  assert.ok(read('src/services/editorial-image-v3222.js').includes('process.env.UPLOAD_DIR'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.24.1');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.24+polish.1');
  assert.ok(read('public/editorial-v323.css').includes('ed-article-photo'));
 });
