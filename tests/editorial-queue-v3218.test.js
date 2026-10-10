@@ -80,5 +80,5 @@ test('revisión segura, sin acción masiva ni cambio de las reglas de aprobació
  assert.doesNotMatch(service,/\b(?:db\.query|INSERT INTO|DELETE FROM|UPDATE users|fetch\(|autoPublish)\b/);
  assert.doesNotMatch(html,/data-editorial-bulk-approve|data-editorial-bulk-publish/);
  assert.ok(read('server.js').includes("APP_VERSION='3.2.24.1'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.24.1');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.24+polish.1');
 });
