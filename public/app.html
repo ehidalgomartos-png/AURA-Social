@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/social.css?v=3.2.31">
+  <link rel="stylesheet" href="/social.css?v=3.2.32">
   <link rel="stylesheet" href="/creator-ops.css">
 </head>
 <body>
@@ -120,7 +120,7 @@
         </div>
         <div id="momentumPosts" class="momentum-strip"></div>
         <div class="active-people-block">
-          <div class="active-people-head"><b>Personas con actividad reciente</b><button type="button" data-view-jump="explore">Explorar personas</button></div>
+          <div class="active-people-head"><b>Personas con actividad reciente</b><button type="button" data-view-jump="explore" data-explore-target="people">Explorar personas</button></div>
           <div id="activePeople" class="active-people-strip"></div>
         </div>
       </section>
@@ -130,7 +130,7 @@
       <section class="editorial-home-block hidden" id="editorialHomeBlock" aria-label="Noticias para conversar" hidden><div id="editorialHomeItems" hidden></div></section>
     </section>
 
-    <section id="exploreView" class="view hidden">
+    <section id="exploreView" class="view hidden" data-explore-section="content">
       <p class="editorial-discovery-entry"><a href="/noticias">📰 Noticias de RedLibertad <span>· Fuentes originales y revisión editorial ↗</span></a></p>
       <div class="page-title">
         <div><span class="eyebrow">DESCUBRE</span><h1>Explorar</h1></div>
@@ -156,6 +156,10 @@
         <div id="globalSearchHistory" class="global-search-history hidden"></div>
         <div id="globalSearchResults" class="global-search-results hidden"></div>
       </section>
+      <div id="exploreMobileSwitchV3232" class="explore-mobile-switch-v3232" role="group" aria-label="Explorar publicaciones o personas">
+        <button type="button" class="active" data-explore-mobile-section="content" aria-pressed="true" aria-controls="exploreContentPaneV3232">Publicaciones</button>
+        <button type="button" data-explore-mobile-section="people" aria-pressed="false" aria-controls="explorePeoplePaneV3232">Personas</button>
+      </div>
 
       <section id="connectionsSection" class="connections-section hidden">
         <div class="connections-head">
@@ -169,7 +173,7 @@
         <div id="connectionCircleFilters" class="connection-circle-filters"></div>
         <div id="connectionsList" class="connections-strip"></div>
       </section>
-      <section class="people-discovery">
+      <section class="people-discovery" id="explorePeoplePaneV3232">
         <div class="explore-search-row">
           <form id="peopleSearchForm" class="people-search">
             <input id="peopleSearchInput" type="search" minlength="2" placeholder="Buscar personas por nombre, @usuario o bio">
@@ -192,7 +196,7 @@
         <p id="peopleSuggestionsStatus" class="discover-people-status" role="status" aria-live="polite"></p>
         <div id="peopleSuggestions" class="people-grid" aria-busy="false"></div>
       </section>
-      <section class="content-discovery">
+      <section class="content-discovery" id="exploreContentPaneV3232">
         <div class="discovery-heading"><div><span class="eyebrow">CONTENIDO</span><h2 id="contentDiscoveryTitle">Lo que está pasando</h2></div></div>
         <form id="postSearchForm" class="content-search">
           <input id="postSearchInput" type="search" minlength="2" maxlength="80" placeholder="Buscar ideas, publicaciones o #hashtags">
@@ -1514,5 +1518,5 @@
 </div>
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="/pwa.js"></script><script src="/social.js?v=3.2.31"></script><script src="/creator-ops.js"></script><script src="/feed-new-activity-v3226.js?v=3.2.26" defer></script><script src="/editorial-interleave-v3224.js?v=3.2.24" defer></script><script src="/editorial-home-v324.js?v=3.2.24.2" defer></script>
+<script src="/pwa.js"></script><script src="/social.js?v=3.2.32"></script><script src="/creator-ops.js"></script><script src="/feed-new-activity-v3226.js?v=3.2.26" defer></script><script src="/editorial-interleave-v3224.js?v=3.2.24" defer></script><script src="/editorial-home-v324.js?v=3.2.24.2" defer></script>
 </body></html>
