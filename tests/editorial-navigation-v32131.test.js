@@ -69,7 +69,7 @@ test('la app acepta comunidades en la navegación profunda y conserva un enlace 
  assert.match(js,/editorialCommunityReturn/);
  assert.match(js,/editorialReturn\.hidden=view!=='communities'\|\|!safe/);
  assert.match(html,/id="editorialCommunityReturn"/);
- assert.match(html,/social\.js\?v=3\.2\.14/);
+ assert.match(html,/social\.js\?v=3\.2\.24/);
  assert.match(css,/\.editorial-community-return\[hidden\]\{display:none!important\}/);
 });
 test('el regreso del directorio público acepta solo URLs internas de Noticias',()=>{
