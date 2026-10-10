@@ -35,7 +35,7 @@ function controller(){
  postTab.dataset.composerTab='post';
  storyTab.dataset.composerTab='story';
  const start=js.indexOf('function selectComposerModeV3227(');
- const end=js.indexOf('async function openModal()',start);
+ const end=js.indexOf('async function openModal(',start);
  assert.ok(start>=0&&end>start,'Composer mode controller available');
  const sandbox={
    '$':sel=>mapping[sel]||null,
@@ -44,7 +44,7 @@ function controller(){
  vm.runInNewContext(js.slice(start,end)+'\nthis.select=selectComposerModeV3227',sandbox);
  return {select:sandbox.select,post,story,postTab,storyTab,heading,modal,card,createMessage,storyMessage};
 }
-test('composer has two accessible tabs and one shared media input outside both forms',()=>{
+test('composer has three accessible tabs and one shared media input outside both forms',()=>{
  const modal=html.slice(html.indexOf('<div id="modal"'),html.indexOf('<div id="profileModal"'));
  const upload=modal.indexOf('id="mediaFile"');
  const post=modal.indexOf('<form id="createForm"');
@@ -53,6 +53,7 @@ test('composer has two accessible tabs and one shared media input outside both f
  assert.match(modal,/role="tablist"/);
  assert.match(modal,/id="composerPostTabV3227"[^>]*aria-selected="true"/);
  assert.match(modal,/id="composerStoryTabV3227"[^>]*aria-selected="false"/);
+ assert.match(modal,/id="composerReelTabV3228"[^>]*aria-selected="false"/);
  assert.match(modal,/id="storyForm"[^>]*hidden/);
  assert.match(modal,/id="preview"/);
 });
@@ -77,10 +78,13 @@ test('post advanced settings hide complexity but preserve all workflow inputs',(
  const modal=html.slice(html.indexOf('<div id="modal"'),html.indexOf('<div id="profileModal"'));
  const adv=modal.slice(modal.indexOf('<details id="composerAdvancedV3227"'),modal.indexOf('class="composer-actions-v3227"'));
  assert.match(adv,/Más opciones/);
- for(const field of ['name="kind"','name="contentLevel"','name="participants"','name="collaborators"','name="editorialDate"','name="editorialLabel"','name="scheduledFor"','name="communityType"','name="communityPrompt"','name="pollOption1"','id="postCircleMentionOptions"']){
+ for(const field of ['name="participants"','name="collaborators"','name="editorialDate"','name="editorialLabel"','name="scheduledFor"','name="communityType"','name="communityPrompt"','name="pollOption1"','id="postCircleMentionOptions"']){
    assert.ok(adv.includes(field),'Missing '+field);
  }
  assert.match(modal,/id="composerDraftV3227"[^>]*data-publish-mode="draft"/);
+ assert.match(modal,/id="composerKindV3228" name="kind" value="post"/);
+ assert.match(modal,/id="composerPostLevelV3228" name="contentLevel"/);
+ assert.doesNotMatch(adv,/Formato<select|name="contentLevel"/);
  assert.match(modal,/data-publish-mode="now"/);
  assert.match(adv,/data-publish-mode="scheduled"/);
  assert.ok(js.includes("'#composerDraftV3227')?.classList.toggle('hidden',!me?.creator_verified)"));
@@ -105,10 +109,10 @@ test('mobile is compact with sticky actions, minimum touch size and reduced moti
  assert.match(css,/#modal #createForm\.hidden,#modal #storyForm\.hidden/);
 });
 test('session/permission, server endpoints and previous Inicio feed remain unchanged',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.27');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.27'"));
- assert.ok(html.includes('/social.js?v=3.2.27'));
- assert.ok(html.includes('/social.css?v=3.2.27'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.28');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.28'"));
+ assert.ok(html.includes('/social.js?v=3.2.28'));
+ assert.ok(html.includes('/social.css?v=3.2.28'));
  assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
  assert.match(js,/runSocialSubmitOnce\(e.currentTarget/);
  assert.match(js,/verified_creator_required_for_nudity/);
