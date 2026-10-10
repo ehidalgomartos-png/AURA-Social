@@ -76,6 +76,8 @@ jobs:
         run: npm run test:editorial-images
       - name: V3.2.23 safe HTTPS article metadata and manual editorial draft import tests
         run: npm run test:editorial-web-import
+      - name: V3.2.24 clean Home and two-posts-one-news privacy regression tests
+        run: npm run test:home-clean
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests
