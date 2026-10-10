@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.24",
+  "version": "3.2.24.1",
   "private": true,
-  "description": "RedLibertad V3.2.24 — Inicio Limpio 2.0 y noticias intercaladas",
+  "description": "RedLibertad V3.2.24.1 — Inicio Mobile Polish",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -61,7 +61,8 @@
     "test:editorial-relink": "node --test tests/editorial-relink-v3221.test.js",
     "test:editorial-images": "node --test tests/editorial-images-v3222.test.js",
     "test:editorial-web-import": "node --test tests/editorial-web-import-v3223.test.js",
-    "test:home-clean": "node --test tests/home-clean-v3224.test.js"
+    "test:home-clean": "node --test tests/home-clean-v3224.test.js",
+    "test:home-mobile-polish": "node --test tests/home-mobile-polish-v32241.test.js"
   },
   "engines": {
     "node": ">=20"
