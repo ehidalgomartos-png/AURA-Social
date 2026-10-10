@@ -69,7 +69,8 @@
     "test:home-real-activity": "node --test tests/home-real-activity-v3226.test.js",
     "test:composer-mobile": "node --test tests/composer-mobile-v3227.test.js",
     "test:composer-three-modes": "node --test tests/composer-three-modes-v3228.test.js",
-    "test:direct-conversations": "node --test tests/direct-conversations-v3229.test.js"
+    "test:direct-conversations": "node --test tests/direct-conversations-v3229.test.js",
+    "test:active-discussions": "node --test tests/active-discussions-v3230.test.js"
   },
   "engines": {
     "node": ">=20"
