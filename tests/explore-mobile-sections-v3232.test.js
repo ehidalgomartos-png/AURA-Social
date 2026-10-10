@@ -27,6 +27,10 @@ test('mobile hides only the nonselected Explore section and keeps desktop both v
   assert.match(css, /focus-visible/);
   assert.match(html,/data-discussion-scope="mine"/);
   assert.match(html,/data-content-mode="active"/);
+  const tabs=html.slice(html.indexOf('<div class="content-tabs"'),html.indexOf('</div>',html.indexOf('<div class="content-tabs"')));
+  for(const [first,second] of [['foryou','active'],['active','latest'],['latest','saved'],['saved','trending']]){
+    assert.ok(tabs.indexOf('data-content-mode="'+first+'"') < tabs.indexOf('data-content-mode="'+second+'"'));
+  }
 });
 test('section choice is remembered in memory, updates pressed state and rejects invalid values',()=>{
   const start=js.indexOf('function setExploreMobileSection(');
