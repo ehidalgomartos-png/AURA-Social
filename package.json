@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.26",
+  "version": "3.2.27",
   "private": true,
-  "description": "RedLibertad V3.2.26 — Real New Posts",
+  "description": "RedLibertad V3.2.27 — Composer Mobile Simplification",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -66,7 +66,8 @@
     "test:home-news-profile": "node --test tests/home-news-profile-hotfix-v32242.test.js",
     "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js",
     "test:editorial-visibility": "node --test tests/editorial-home-visibility-v3225.test.js",
-    "test:home-real-activity": "node --test tests/home-real-activity-v3226.test.js"
+    "test:home-real-activity": "node --test tests/home-real-activity-v3226.test.js",
+    "test:composer-mobile": "node --test tests/composer-mobile-v3227.test.js"
   },
   "engines": {
     "node": ">=20"
