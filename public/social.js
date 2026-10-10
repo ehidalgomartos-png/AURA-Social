@@ -1381,7 +1381,12 @@ async function loadHomeMomentum() {
   ]);
 
   if (!momentumResponse.r.ok) {
-    if (!activeUsers.length) section.classList.add('hidden');
+    // Even when the highlights endpoint fails, recent people may still be useful.
+    const onlyPeople=activeUsers.length>0;
+    section.classList.toggle('only-active-v32241',onlyPeople);
+    section.classList.toggle('hidden',!onlyPeople);
+    section.querySelector('.momentum-head')?.classList.add('hidden');
+    root.classList.add('hidden');
     return;
   }
 
@@ -1400,6 +1405,15 @@ async function loadHomeMomentum() {
   root.innerHTML = posts.length
     ? posts.map(momentumCardHTML).join('')
     : '';
+
+  // V3.2.24.1: If there are no featured posts, don't show an empty
+  // "Destacados de hoy" heading. Keep only a compact active-people strip.
+  const hasPosts=posts.length>0;
+  const hasPeople=activeUsers.length>0;
+  section.querySelector('.momentum-head')?.classList.toggle('hidden',!hasPosts);
+  root.classList.toggle('hidden',!hasPosts);
+  section.querySelector('.active-people-block')?.classList.toggle('hidden',!hasPeople);
+  section.classList.toggle('only-active-v32241',!hasPosts&&hasPeople);
 
   updateLatestModeBadge(catchup.length);
   if(!posts.length&&!activeUsers.length){
@@ -2090,6 +2104,8 @@ async function loadStories() {
   }
 
   const representatives=[...storyGroups.values()].map(group=>group[0]);
+  // A single 'Tu Story' should not occupy the height of a full carousel.
+  $('#stories')?.classList.toggle('solo-story-v32241',representatives.length===0);
   $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + representatives.map(story => {
     const group=storyGroups.get(String(story.user_id)) || [];
     const hasVip=group.some(item=>item.audience==='vip');
