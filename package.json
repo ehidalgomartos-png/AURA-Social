@@ -67,7 +67,8 @@
     "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js",
     "test:editorial-visibility": "node --test tests/editorial-home-visibility-v3225.test.js",
     "test:home-real-activity": "node --test tests/home-real-activity-v3226.test.js",
-    "test:composer-mobile": "node --test tests/composer-mobile-v3227.test.js"
+    "test:composer-mobile": "node --test tests/composer-mobile-v3227.test.js",
+    "test:composer-three-modes": "node --test tests/composer-three-modes-v3228.test.js"
   },
   "engines": {
     "node": ">=20"
