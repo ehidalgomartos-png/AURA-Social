@@ -80,7 +80,19 @@
     if(posts.length<2)return;
     if(feed.querySelector('[data-editorial-news-id]'))return; // already mixed this load
     seenMemory=[...new Set([...seenMemory,...seenIds()])];
-    const available=planner.unseenNews(newsItems,seenMemory);
+    let available=planner.unseenNews(newsItems,seenMemory);
+    // Previously displayed stories must not permanently empty the news feed.
+    // Restart the rotation only after every currently published article was
+    // already displayed. The planner still inserts each article at most once
+    // in this feed render; unreviewed articles never enter this collection.
+    if(!available.length && newsItems.length){
+      const nextCycle=planner.unseenNews(newsItems,[]);
+      if(nextCycle.length){
+        seenMemory=[];
+        storeSeen([]);
+        available=nextCycle;
+      }
+    }
     const insertAt=planner.slots(posts.length,available.length,3);
     for(let i=0;i<insertAt.length;i++){
       const item=available[i],card=newsCard(item);
