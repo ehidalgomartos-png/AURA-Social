@@ -48,5 +48,5 @@ test('la interfaz permite revisión instantánea sin guardar ni aprobar',()=>{
  assert.ok(route.includes("if(!isOriginalEditorial(row))"));
  assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
  assert.ok(read('server.js').includes("APP_VERSION='3.2.24.1'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.24+polish.1');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.24.1');
 });
