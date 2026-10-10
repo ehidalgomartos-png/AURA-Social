@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.24+polish.2",
+  "version": "3.2.24+polish.3",
   "private": true,
-  "description": "RedLibertad V3.2.24.2 — News Rotation & Profile Entry Hotfix",
+  "description": "RedLibertad V3.2.24.3 — Solo Story Mobile Layout",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -63,7 +63,8 @@
     "test:editorial-web-import": "node --test tests/editorial-web-import-v3223.test.js",
     "test:home-clean": "node --test tests/home-clean-v3224.test.js",
     "test:home-mobile-polish": "node --test tests/home-mobile-polish-v32241.test.js",
-    "test:home-news-profile": "node --test tests/home-news-profile-hotfix-v32242.test.js"
+    "test:home-news-profile": "node --test tests/home-news-profile-hotfix-v32242.test.js",
+    "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js"
   },
   "engines": {
     "node": ">=20"
