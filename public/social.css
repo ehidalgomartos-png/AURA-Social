@@ -6981,3 +6981,68 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 .editorial-community-return{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 12px;padding:9px 14px;border:1px solid var(--line);background:var(--paper);border-radius:11px;color:#126b80;text-decoration:none;font-size:13px;font-weight:800}
 .editorial-community-return[hidden]{display:none!important}
 .editorial-community-return:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
+
+/* V3.2.24 — Inicio Limpio 2.0. Social posts appear before secondary panels.
+   The editorial cards are distinct from social posts, without impersonation. */
+#feedView .home-growth-details-v3224{
+  margin:0 0 14px;border:1px solid var(--line);border-radius:16px;
+  background:var(--paper);box-shadow:0 4px 20px rgba(13,34,56,.035);
+  overflow:hidden;max-width:700px
+}
+#feedView .home-growth-details-v3224>summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:10px 15px;min-height:50px;color:var(--navy)
+}
+#feedView .home-growth-details-v3224>summary::-webkit-details-marker{display:none}
+#feedView .home-growth-summary-text-v3224{display:grid;gap:2px}
+#feedView .home-growth-summary-text-v3224 b{font-size:13px;line-height:1.3}
+#feedView .home-growth-summary-text-v3224 small{font-size:11px;color:var(--muted);line-height:1.35}
+#feedView .home-growth-chevron-v3224{font-size:20px;transition:transform .15s ease}
+#feedView .home-growth-details-v3224[open] .home-growth-chevron-v3224{transform:rotate(180deg)}
+#feedView .home-growth-details-v3224 .growth-panel{margin:0;padding:12px;border:0;box-shadow:none}
+#feedView .home-secondary-v3224{margin-top:24px;display:grid;gap:12px;max-width:1010px}
+#feedView .home-secondary-v3224>.return-pulse,
+#feedView .home-secondary-v3224>.community-return,
+#feedView .home-secondary-v3224>.home-momentum{margin:0}
+/* Feed-local editorial cards: two genuine social posts then one reviewed news item. */
+#feedView #feed>.editorial-feed-card-v3224{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:10px;
+  width:100%;min-width:0;margin:0;padding:15px 17px;
+  border:1px solid var(--line);border-left:3px solid var(--teal);
+  border-radius:20px;background:var(--paper);
+  box-shadow:0 7px 24px rgba(13,34,56,.04)
+}
+#feedView .editorial-feed-card-v3224 .editorial-home-profile{margin:0}
+#feedView .editorial-feed-card-v3224 .editorial-home-headline{display:block}
+#feedView .editorial-feed-card-v3224 .editorial-home-title{
+  font:800 clamp(16px,2.8vw,21px)/1.35 Manrope,sans-serif;letter-spacing:-.02em
+}
+#feedView .editorial-feed-card-v3224 .editorial-home-summary{
+  font-size:13px;line-height:1.55;-webkit-line-clamp:3
+}
+#feedView .editorial-feed-card-v3224 .editorial-home-engagement{
+  margin-top:0;padding-top:10px
+}
+#feedView .editorial-feed-card-v3224 .editorial-home-open{width:auto;padding-top:0}
+#feedView .editorial-feed-card-v3224 .editorial-home-photo{margin:3px 0 0}
+#feedView .editorial-feed-card-v3224 .editorial-home-photo img{
+  aspect-ratio:16/9;width:100%;height:auto;max-height:290px;object-fit:cover
+}
+@media(max-width:760px){
+  #feedView .page-title{margin-bottom:10px}
+  #feedView .stories{padding-bottom:8px;gap:9px}
+  #feedView .story{min-width:60px}
+  #feedView .story-ring{width:57px;height:57px}
+  #feedView .mobile-composer{margin-bottom:10px}
+  #feedView .home-growth-details-v3224{margin-bottom:10px;border-radius:13px}
+  #feedView .home-growth-details-v3224>summary{padding:9px 12px;min-height:44px}
+  #feedView #feed>.editorial-feed-card-v3224{
+    border-radius:16px;padding:13px;gap:9px
+  }
+  #feedView .editorial-feed-card-v3224 .editorial-home-title{font-size:17px}
+  #feedView .editorial-feed-card-v3224 .editorial-home-photo img{max-height:225px}
+  #feedView .home-secondary-v3224{margin-top:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  #feedView .home-growth-chevron-v3224{transition:none}
+}
