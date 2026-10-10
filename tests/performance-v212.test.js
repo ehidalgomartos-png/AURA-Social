@@ -148,7 +148,7 @@ test('existing push handlers and offline shell remain available',()=>{
   assert.ok(sw.callbacks.fetch);
 });
 test('server uses performance headers, retains range-capable static delivery and version',()=>{
-  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+  assert.match(server,new RegExp("const APP_VERSION='"+require('../package.json').version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(server,/app\.use\('\/uploads', express\.static\(UPLOAD_DIR/);
   assert.match(server,/setHeaders: setUploadHeaders/);
   assert.match(server,/setHeaders: setPerformanceHeaders/);
