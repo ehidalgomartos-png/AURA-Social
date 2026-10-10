@@ -106,6 +106,46 @@ async function writeAndAudit(adminId,action,entityType,work){
   }finally{client.release();}
 }
 
+
+// V3.2.25 — Admin-only read-only audit of real, published editorial news.
+router.get('/home-visibility',wrap(async(_req,res)=>{
+  await ensurePublicationSchema();
+  const [counts,latest]=await Promise.all([
+    db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE p.unpublished_at IS NULL AND ep.status='ready')::int AS eligible,
+        COUNT(*) FILTER (WHERE p.unpublished_at IS NULL AND ep.status<>'ready')::int AS paused_profile,
+        COUNT(*) FILTER (WHERE p.unpublished_at IS NOT NULL)::int AS unpublished,
+        COUNT(*) FILTER (WHERE p.unpublished_at IS NULL AND ep.status='ready'
+          AND p.image_url ~ '^/uploads/editorial/[0-9a-f-]{36}\\.(jpg|png|webp)$')::int AS local_photo,
+        COUNT(*) FILTER (WHERE p.unpublished_at IS NULL AND ep.status='ready'
+          AND (p.image_url IS NULL OR p.image_url !~ '^/uploads/editorial/[0-9a-f-]{36}\\.(jpg|png|webp)$'))::int AS without_local_photo
+      FROM editorial_publications p
+      JOIN editorial_profiles ep ON ep.id=p.profile_id
+    `),
+    db.query(`
+      SELECT p.id,p.title,p.published_at,ep.name AS profile_name
+      FROM editorial_publications p
+      JOIN editorial_profiles ep ON ep.id=p.profile_id
+      WHERE p.unpublished_at IS NULL AND ep.status='ready'
+      ORDER BY p.published_at DESC,p.id DESC LIMIT 3
+    `)
+  ]);
+  const c=counts.rows[0]||{};
+  res.set('Cache-Control','private, no-store').json({
+    ok:true,
+    counts:{
+      eligible:Number(c.eligible||0),
+      pausedProfile:Number(c.paused_profile||0),
+      unpublished:Number(c.unpublished||0),
+      localPhoto:Number(c.local_photo||0),
+      withoutLocalPhoto:Number(c.without_local_photo||0)
+    },
+    latest:latest.rows,
+    rules:{modes:['foryou','latest'],postsPerNews:2,maxNewsPerLoad:3,discoveryPool:12}
+  });
+}));
+
 router.get('/overview',wrap(async(req,res)=>{
   const [profiles,sources,communities,settings,audit]=await Promise.all([
     db.query('SELECT id,slug,name,bio,category,community_id,avatar_url,cover_url,status,created_at,updated_at FROM editorial_profiles ORDER BY id DESC LIMIT 200'),
@@ -115,7 +155,7 @@ router.get('/overview',wrap(async(req,res)=>{
     db.query('SELECT id,action,entity_type,entity_id,created_at FROM editorial_audit ORDER BY created_at DESC,id DESC LIMIT 30')
   ]);
   res.json({
-    version:'3.2.24.3',
+    version:'3.2.25',
     profiles:profiles.rows,sources:sources.rows,communities:communities.rows,
     settings:settings.rows[0]||{review_required:true,ingestion_enabled:false,auto_publish_enabled:false},
     audit:audit.rows,

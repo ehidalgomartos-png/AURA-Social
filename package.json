@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.24+polish.3",
+  "version": "3.2.25",
   "private": true,
-  "description": "RedLibertad V3.2.24.3 — Solo Story Mobile Layout",
+  "description": "RedLibertad V3.2.25 — Editorial Home Visibility",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -64,7 +64,8 @@
     "test:home-clean": "node --test tests/home-clean-v3224.test.js",
     "test:home-mobile-polish": "node --test tests/home-mobile-polish-v32241.test.js",
     "test:home-news-profile": "node --test tests/home-news-profile-hotfix-v32242.test.js",
-    "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js"
+    "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js",
+    "test:editorial-visibility": "node --test tests/editorial-home-visibility-v3225.test.js"
   },
   "engines": {
     "node": ">=20"
