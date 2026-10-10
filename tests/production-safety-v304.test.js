@@ -144,10 +144,10 @@ test('network failures are sanitized; the report does not contain secrets',async
 });
 test('V3.0.4 commands and CI run the safety audit suite',()=>{
  const pkg=require('../package.json');
- assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/);
+ assert.match(pkg.version,/^3\.[0-9]+\.[0-9]+(?:\.[0-9]+|\+[0-9a-z.-]+)?$/);
  assert.match(pkg.scripts['gate:seo'],/seo-sitemap-audit-v304/);
  assert.match(pkg.scripts['gate:storage'],/storage-audit-v304/);
  assert.match(pkg.scripts['test:production-safety'],/production-safety-v304/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:production-safety/);
- assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\./g,'\\.')+"'"));
+ assert.match(read('server.js'),new RegExp("const APP_VERSION='"+pkg.version.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
 });
