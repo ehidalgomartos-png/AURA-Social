@@ -54,8 +54,8 @@ test('las noticias son tarjetas en el feed, no publicaciones falsas ni imágenes
    "const url='/noticias/p/'",
    "editorial-home-card editorial-feed-card-v3224",
    "String(item.source_name||'Medio identificado')",
-   "String(item.like_count)",
-   "String(item.comment_count)",
+   "Number(item.like_count)",
+   "Number(item.comment_count)",
    "localImage(item.image_url)",
    "root.hidden=true"
   ])assert.ok(script.includes(term),term);
