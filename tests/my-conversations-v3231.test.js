@@ -36,7 +36,7 @@ test('contextual mobile controls are accessible and only inside active discussio
   assert.match(css,/\.discussion-scope-v3231 button\{/);
   assert.match(css,/min-height:44px/);
   assert.match(css,/@media\(max-width:760px\)/);
-  assert.doesNotMatch(html,/<section id="feedView"[^>]*>[\s\S]*?data-discussion-scope=/);
+  assert.ok(html.indexOf('data-discussion-scope="mine"') > html.indexOf('<section class="content-discovery">'));
 });
 function harness(scope,posts){
   const title={textContent:''},root={innerHTML:''};
