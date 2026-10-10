@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.24+polish.3",
+  "version": "3.2.25",
   "private": true,
-  "description": "RedLibertad V3.2.24.3 — Solo Story Mobile Layout",
+  "description": "RedLibertad V3.2.25 — Editorial Home Visibility",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

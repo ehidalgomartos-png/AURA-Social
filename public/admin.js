@@ -1508,8 +1508,79 @@ async function loadEditorialV320(){
     $('#editorialAudit').innerHTML=(d.audit||[]).map(a=>'<div class="report">'+esc(timeLabel(a.created_at))+' · '+esc(a.action)+' · '+esc(a.entity_type)+'</div>').join('')||'<p>Sin cambios registrados.</p>';
     window.editorialV320State=d;
     webImportProfilesV3223();
+    void loadEditorialHomeVisibilityV3225();
   }catch(_){message.textContent='No se pudo cargar la configuración editorial.';}
 }
+
+// V3.2.25 — Show the real number of news eligible for Inicio, read-only.
+let editorialVisibilityRequestV3225=0;
+async function loadEditorialHomeVisibilityV3225(){
+  const status=$('#editorialVisibilityStatusV3225');
+  const metrics=$('#editorialVisibilityMetricsV3225');
+  const latest=$('#editorialVisibilityLatestV3225');
+  if(!status||!metrics||!latest)return;
+  const request=++editorialVisibilityRequestV3225;
+  status.textContent='Comprobando publicaciones visibles…';
+  metrics.replaceChildren();
+  latest.replaceChildren();
+  try{
+    const {r,d}=await api('/api/admin/editorial/home-visibility');
+    if(request!==editorialVisibilityRequestV3225)return;
+    if(!r.ok||!d.ok||!d.counts)throw Error('editorial_visibility_unavailable');
+    const c=d.counts;
+    const entries=[
+      ['Visibles en Inicio',c.eligible],
+      ['Con foto local',c.localPhoto],
+      ['Sin foto local',c.withoutLocalPhoto],
+      ['Perfil no preparado',c.pausedProfile],
+      ['Retiradas',c.unpublished]
+    ];
+    for(const [label,value] of entries){
+      const tile=document.createElement('div');
+      tile.className='editorial-visibility-metric-v3225';
+      const number=document.createElement('strong');
+      number.textContent=String(Math.max(0,Number(value)||0));
+      const name=document.createElement('span');
+      name.textContent=label;
+      tile.append(number,name);
+      metrics.append(tile);
+    }
+    const eligible=Math.max(0,Number(c.eligible)||0);
+    const blocked=Math.max(0,Number(c.pausedProfile)||0);
+    status.textContent=eligible
+      ? eligible+' noticias publicadas y con perfil preparado. Pueden entrar en la rotación de Inicio.'
+      : blocked
+        ? 'No hay noticias elegibles: existen publicaciones cuyo perfil editorial no está preparado.'
+        : 'No hay noticias elegibles. Revisa la publicación manual en el Centro Editorial.';
+    const rows=Array.isArray(d.latest)?d.latest:[];
+    if(rows.length){
+      const heading=document.createElement('h4');
+      heading.textContent='Últimas noticias disponibles';
+      latest.append(heading);
+      const ul=document.createElement('ul');
+      for(const item of rows.slice(0,3)){
+        const id=String(item?.id||'');
+        if(!/^[1-9][0-9]{0,14}$/.test(id))continue;
+        const li=document.createElement('li');
+        const a=document.createElement('a');
+        a.href='/noticias/p/'+encodeURIComponent(id);
+        a.target='_blank';
+        a.rel='noopener noreferrer';
+        a.textContent=String(item.title||'Noticia editorial');
+        const media=document.createElement('small');
+        media.textContent=' · '+String(item.profile_name||'RedLibertad Noticias');
+        li.append(a,media);
+        ul.append(li);
+      }
+      latest.append(ul);
+    }
+  }catch(_){
+    if(request!==editorialVisibilityRequestV3225)return;
+    status.textContent='No se pudo comprobar la visibilidad de noticias. Pulsa Comprobar para reintentar.';
+  }
+}
+$('#editorialVisibilityReloadV3225')?.addEventListener('click',loadEditorialHomeVisibilityV3225);
+
 // V3.2.23 — Manual article-from-URL import, not RSS ingestion.
 let editorialWebBusyV3223=false;
 let editorialWebPreviewV3223=null;
