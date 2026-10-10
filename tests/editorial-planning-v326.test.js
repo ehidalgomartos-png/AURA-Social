@@ -100,6 +100,6 @@ test('interfaz permite prioridad, filtros y eliminar objetivo con publicación s
  assert.match(js,/data-editorial-unplan/);
  assert.match(js,/plannedFor:localTime\?localTime\.toISOString\(\):null/);
  assert.match(js,/No se publicará automáticamente/);
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.30'/);
- assert.match(read('package.json'),/"version": "3\.2\.30"/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.31'/);
+ assert.match(read('package.json'),/"version": "3\.2\.31"/);
 });

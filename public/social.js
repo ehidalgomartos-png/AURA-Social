@@ -65,6 +65,8 @@ let activeManagePost = null;
 let deletePostArmed = false;
 let activeContentMode = 'foryou';
 let activePostSearch = '';
+let discussionScope = 'all';
+let discoveryRequestSequence = 0;
 let savedPostIds = new Set();
 let toastTimer = null;
 let ownProfileMode = 'posts';
@@ -2249,8 +2251,16 @@ async function loadTrendChips() {
 async function loadDiscoveryContent(mode = activeContentMode) {
   activeContentMode = mode;
   activePostSearch = '';
+  const requestNumber=++discoveryRequestSequence;
+  const selectedScope=discussionScope;
   all('[data-content-mode]').forEach(button => button.classList.toggle('active', button.dataset.contentMode === mode));
   $('#activeDiscussionsHintV3230')?.classList.toggle('hidden',mode!=='active');
+  $('#activeDiscussionScopeV3231')?.classList.toggle('hidden',mode!=='active');
+  if(mode==='active')all('[data-discussion-scope]').forEach(button=>{
+    const selected=button.dataset.discussionScope===selectedScope;
+    button.classList.toggle('active',selected);
+    button.setAttribute?.('aria-pressed',String(selected));
+  });
 
   const title = $('#contentDiscoveryTitle');
   const endpoint = mode === 'saved'
@@ -2262,7 +2272,7 @@ async function loadDiscoveryContent(mode = activeContentMode) {
         : mode === 'commented'
           ? '/api/posts/trending?sort=comments'
           : mode === 'active'
-            ? '/api/posts/trending?sort=active'
+            ? '/api/posts/trending?sort=active'+(selectedScope==='mine'?'&scope=mine':'')
           : mode === 'trending'
             ? '/api/posts/trending?sort=score'
             : '/api/posts/discover';
@@ -2286,18 +2296,18 @@ async function loadDiscoveryContent(mode = activeContentMode) {
   if (root) root.innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
 
   const { r, d } = await api(endpoint);
-  if (activePostSearch) return;
+  if (activePostSearch || requestNumber!==discoveryRequestSequence || activeContentMode!==mode) return;
   if (!r.ok) {
     return renderDiscoveryPosts([], 'No se pudo cargar el contenido.', 'Inténtalo de nuevo dentro de unos segundos.');
   }
 
   const posts = Array.isArray(d.posts) ? d.posts : [];
   const emptyTitle = mode === 'active'
-    ? 'Aún no hay conversaciones activas esta semana.'
+    ? (selectedScope==='mine' ? 'Aún no tienes conversaciones activas para retomar.' : 'Aún no hay conversaciones activas esta semana.')
     : mode === 'saved' ? 'Todavía no has guardado nada.' : 'Todavía no hay publicaciones en esta sección.';
   const emptyCopy = mode === 'saved'
     ? 'Pulsa ☆ en cualquier publicación para guardarla y volver a ella después.'
-    : mode === 'active' ? 'Cuando una publicación pública reciba comentarios recientes podrás participar aquí.'
+    : mode === 'active' ? (selectedScope==='mine' ? 'Aquí aparecerán tus publicaciones y aquellas en las que hayas comentado, si reciben comentarios esta semana.' : 'Cuando una publicación pública reciba comentarios recientes podrás participar aquí.')
     : 'Las primeras publicaciones aparecerán aquí.';
   renderDiscoveryPosts(posts, emptyTitle, emptyCopy, {conversationMode:mode==='active'});
 }
@@ -2307,12 +2317,15 @@ async function searchPosts(query) {
   if (clean.length < 2) return loadDiscoveryContent(activeContentMode);
 
   activePostSearch = clean;
+  ++discoveryRequestSequence;
   all('[data-content-mode]').forEach(button => button.classList.remove('active'));
   $('#activeDiscussionsHintV3230')?.classList.add('hidden');
+  $('#activeDiscussionScopeV3231')?.classList.add('hidden');
   $('#contentDiscoveryTitle').textContent = `Resultados para “${clean}”`;
   $('#discoveryFeed').innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
 
   const { r, d } = await api(`/api/posts/search?q=${encodeURIComponent(clean)}`);
+  if (activePostSearch!==clean) return;
   if (!r.ok) {
     return renderDiscoveryPosts([], 'No se pudo completar la búsqueda.', 'Prueba de nuevo.');
   }
@@ -8360,6 +8373,16 @@ all('[data-content-mode]').forEach(button => {
   button.onclick = async () => {
     $('#postSearchInput').value = '';
     await loadDiscoveryContent(button.dataset.contentMode);
+  };
+});
+
+all('[data-discussion-scope]').forEach(button=>{
+  button.onclick=async()=>{
+    const scope=button.dataset.discussionScope;
+    if(scope!=='all' && scope!=='mine')return;
+    discussionScope=scope;
+    $('#postSearchInput').value='';
+    await loadDiscoveryContent('active');
   };
 });
 
