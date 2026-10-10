@@ -56,7 +56,7 @@ test('interfaces: sugerencias legibles, decisión manual, diaria y publicación 
  assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
 });
 test('versión 3.2.24.1 y controles de calidad intactos',()=>{
- assert.ok(read('server.js').includes("APP_VERSION='3.2.24.3'"));
- assert.ok(read('package.json').includes('"version": "3.2.24+polish.3"'));
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.25'"));
+ assert.ok(read('package.json').includes('"version": "3.2.25"'));
  assert.ok(read('src/routes/editorial-publication-v323.js').includes('editorial_quality_clearance_required'));
 });
