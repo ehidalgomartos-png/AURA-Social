@@ -64,7 +64,8 @@
     "test:home-clean": "node --test tests/home-clean-v3224.test.js",
     "test:home-mobile-polish": "node --test tests/home-mobile-polish-v32241.test.js",
     "test:home-news-profile": "node --test tests/home-news-profile-hotfix-v32242.test.js",
-    "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js"
+    "test:home-solo-story": "node --test tests/home-solo-story-mobile-v32243.test.js",
+    "test:editorial-visibility": "node --test tests/editorial-home-visibility-v3225.test.js"
   },
   "engines": {
     "node": ">=20"
