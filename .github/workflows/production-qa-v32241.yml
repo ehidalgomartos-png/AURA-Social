@@ -1,0 +1,26 @@
+name: RedLibertad production verification (read-only)
+on:
+  workflow_dispatch:
+    inputs:
+      expected_version:
+        description: 'Expected deployed app version (e.g. 3.2.24.1)'
+        required: true
+        default: '3.2.24.1'
+        type: string
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax verification
+        run: node --check scripts/production-qa-v32241.js
+      - name: Check deployed RedLibertad without mutation
+        env:
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+        run: node scripts/production-qa-v32241.js
