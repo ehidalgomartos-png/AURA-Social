@@ -85,7 +85,7 @@ test('View publication closes the comments dialog before opening the post, witho
 });
 test('Comments still load through the original authenticated endpoint with error states',()=>{
  const comments=script.slice(script.indexOf('async function loadComments('),script.indexOf('async function openComments('));
- assert.match(comments,/api\('\/api\/posts\/\$\{encodeURIComponent\(postId\)\}\/comments'/);
+ assert.ok(comments.includes("api('/api/posts/'+encodeURIComponent(postId)+'/comments'"));
  assert.match(comments,/No se pudieron cargar los comentarios/);
  const notifications=read('src/routes/notifications.js');
  assert.match(notifications,/router\.use\(requireAuth\)/);
