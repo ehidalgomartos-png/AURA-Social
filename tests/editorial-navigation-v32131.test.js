@@ -92,7 +92,7 @@ test('el regreso del directorio público acepta solo URLs internas de Noticias',
 });
 test('la corrección es solo navegación; no cambia RSS, publicación humana ni autenticación',()=>{
  assert.match(read('server.js'),/const APP_VERSION='3\.2\.24\.1'/);
- assert.match(read('package.json'),/"version": "3\.2\.24\.1"/);
+ assert.match(read('package.json'),/"version": "3\.2\.24\+polish\.1"/);
  const publishing=read('src/routes/editorial-publication-v323.js');
  assert.match(publishing,/editorial_quality_clearance_required/);
  assert.match(publishing,/admin\.post\('\/publish\/:candidateId'/);
