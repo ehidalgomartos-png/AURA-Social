@@ -7458,3 +7458,25 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .discovery-discussions-hint-v3230{margin:8px 6px 11px;font-size:11px}
   #discoveryFeed .discovery-discussion-cta-v3230{font-size:11px;padding:9px 10px}
 }
+
+/* V3.2.31 — Contextual filters within existing active conversations. */
+.discussion-scope-v3231{
+  display:flex;flex-wrap:wrap;gap:8px;
+  align-items:center;margin:0 2px 13px;
+}
+.discussion-scope-v3231.hidden{display:none!important}
+.discussion-scope-v3231 button{
+  appearance:none;background:var(--paper);border:1px solid var(--line);
+  border-radius:999px;padding:10px 14px;min-height:44px;
+  color:var(--navy);font-size:12px;font-weight:800;
+}
+.discussion-scope-v3231 button.active{
+  background:var(--navy);border-color:var(--navy);color:#fff;
+}
+.discussion-scope-v3231 button:focus-visible{
+  outline:3px solid var(--teal);outline-offset:2px;
+}
+@media(max-width:760px){
+  .discussion-scope-v3231{margin:0 6px 13px}
+  .discussion-scope-v3231 button{flex:1 1 0;min-width:0;white-space:normal}
+}

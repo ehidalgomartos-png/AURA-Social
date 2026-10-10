@@ -3486,12 +3486,13 @@ router.get('/trending', requireAuth, async (req,res)=>{
   const viewer=await viewerFrom(req);
   const sort=['score','likes','comments','active'].includes(String(req.query.sort||'')) ? String(req.query.sort) : 'score';
   const isActive=sort==='active';
+  const myConversations=isActive && String(req.query.scope||'')==='mine';
   const orderBy=sort==='likes'
     ? 'like_count DESC, comment_count DESC'
     : sort==='comments'
       ? 'comment_count DESC, like_count DESC'
       : sort==='active'
-        ? 'recent_comment_count DESC, last_comment_at DESC'
+        ? (myConversations ? 'last_comment_at DESC, recent_comment_count DESC' : 'recent_comment_count DESC, last_comment_at DESC')
       : '((SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) * 2 + (SELECT count(*) FROM comments c2 WHERE c2.post_id=p.id) * 3) DESC';
 
   const result=await db.query(`
@@ -3513,6 +3514,9 @@ router.get('/trending', requireAuth, async (req,res)=>{
          SELECT 1 FROM comments recent WHERE recent.post_id=p.id
            AND recent.created_at >= now() - interval '7 days'
        )` : `p.created_at >= now() - interval '30 days'`}
+       AND ${myConversations ? `(p.user_id=$1 OR EXISTS (
+         SELECT 1 FROM comments mine WHERE mine.post_id=p.id AND mine.user_id=$1
+       ))` : 'TRUE'}
        AND p.user_id NOT IN (
          SELECT blocked_id FROM blocks WHERE blocker_id=$1
          UNION
@@ -3531,7 +3535,7 @@ router.get('/trending', requireAuth, async (req,res)=>{
   const participantPosts=await attachApprovedParticipants(result.rows);
   const posts=await attachCommentPreviews(participantPosts,viewer);
   const repostPosts=await attachRepostMeta(posts,req.user.id);
-  res.json({posts:gateRows(repostPosts,viewer),sort});
+  res.json({posts:gateRows(repostPosts,viewer),sort,scope:myConversations?'mine':'all'});
 });
 
 router.get('/trends', requireAuth, async (req,res)=>{

@@ -40,6 +40,8 @@ function activityHarness(mode,posts){
  const sandbox={
    activeContentMode:'foryou',
    activePostSearch:'',
+   discussionScope:'all',
+   discoveryRequestSequence:0,
    '$':selector=>({
      '#contentDiscoveryTitle':title,'#discoveryFeed':root,'#activeDiscussionsHintV3230':hint
    })[selector]||null,
@@ -118,8 +120,8 @@ test('mobile filter stays inside Explore with touch targets and no Inicio blocks
  assert.match(css,/#discoveryFeed \.discovery-discussion-cta-v3230/);
  assert.match(css,/min-height:44px/);
  assert.match(css,/@media\(max-width:760px\)/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.30');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.30'"));
- assert.ok(html.includes('/social.js?v=3.2.30'));
- assert.ok(html.includes('/social.css?v=3.2.30'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.31');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.31'"));
+ assert.ok(html.includes('/social.js?v=3.2.31'));
+ assert.ok(html.includes('/social.css?v=3.2.31'));
 });
