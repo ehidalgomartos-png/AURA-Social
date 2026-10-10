@@ -129,7 +129,8 @@ test('concurrent checks reuse one in-flight run',async()=>{
   assert.equal(h.calls.length,7);
 });
 test('startup accepts the active four-segment maintenance version without weakening invalid-version checks',async()=>{
-  const {version}=require('../package.json');
+  const {version:packageVersion}=require('../package.json');
+  const version=packageVersion.replace(/\+polish\./,'.');
   const fetchFn=async(url)=>{
     if(url.endsWith('/api/health'))return response(200,{ok:true,version});
     if(url.endsWith('/api/ready'))return response(200,{ok:true,version,database:'ready'});
@@ -176,7 +177,7 @@ test('admin mobile screen offers release checklist without claiming production v
 test('server mounts safe release checks and shares declared version with package',()=>{
   const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
   const declared=require('../package.json').version;
-  assert.match(server,new RegExp("const APP_VERSION='"+declared.replace(/\./g,'\\.')+"'"));
+  assert.match(server,new RegExp("const APP_VERSION='"+declared.replace(/\+polish\./,'.').replace(/\./g,'\\.')+"'"));
   assert.match(server,/const releaseVerifier=createReleaseVerifier\(\{port:PORT,version:APP_VERSION\}\)/);
   assert.match(server,/createReleaseVerificationRoutes\(releaseVerifier\)/);
 });
