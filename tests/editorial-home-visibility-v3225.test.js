@@ -22,7 +22,7 @@ function diagnosticHarness(response){
     '#editorialVisibilityReloadV3225':createNode('button')
   };
   const source=read('public/admin.js');
-  const start=source.indexOf('// V3.2.26 — Show the real number');
+  const start=source.indexOf('// V3.2.25 — Show the real number');
   const end=source.indexOf('// V3.2.23 — Manual article-from-URL',start);
   assert.ok(start>=0&&end>start,'Visibility dashboard exists');
   const requests=[];
