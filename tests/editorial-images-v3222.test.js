@@ -167,13 +167,13 @@ test('la interfaz no hace hotlink ni baja imágenes al consultar RSS',()=>{
 });
 test('mismo sistema gratis y multimedia persistente del VPS, sin romper publicación manual',()=>{
  const server=read('server.js'),route=read('src/routes/editorial-publication-v323.js');
- assert.ok(server.includes("APP_VERSION='3.2.29'"));
+ assert.ok(server.includes("APP_VERSION='3.2.30'"));
  assert.ok(server.includes("editorialImagesV3222Admin"));
  assert.ok(server.includes("app.use('/api/admin/editorial', editorialImagesV3222Admin)"));
  assert.ok(route.includes("admin.post('/publish/:candidateId'"));
  assert.ok(route.includes("if(!qualityReady(row))"));
  assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
  assert.ok(read('src/services/editorial-image-v3222.js').includes('process.env.UPLOAD_DIR'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.29');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.30');
  assert.ok(read('public/editorial-v323.css').includes('ed-article-photo'));
 });
