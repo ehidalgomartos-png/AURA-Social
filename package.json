@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.24+polish.2",
+  "version": "3.2.24+polish.3",
   "private": true,
-  "description": "RedLibertad V3.2.24.2 — News Rotation & Profile Entry Hotfix",
+  "description": "RedLibertad V3.2.24.3 — Solo Story Mobile Layout",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

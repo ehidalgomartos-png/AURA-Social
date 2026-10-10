@@ -2107,7 +2107,7 @@ async function loadStories() {
   const representatives=[...storyGroups.values()].map(group=>group[0]);
   // A single 'Tu Story' should not occupy the height of a full carousel.
   $('#stories')?.classList.toggle('solo-story-v32241',representatives.length===0);
-  $('#stories').innerHTML = `<button class="story" data-action="create"><div class="story-ring"><div>＋</div></div><small>Tu Story</small></button>` + representatives.map(story => {
+  $('#stories').innerHTML = `<button type="button" class="story" data-action="create" aria-label="Crear tu Story"><div class="story-ring"><div>＋</div></div><small>Tu Story</small><span class="story-solo-copy-v32243" aria-hidden="true"><b>Crear una Story</b><span>Comparte una foto o vídeo · 24 h</span></span><span class="story-solo-chevron-v32243" aria-hidden="true">›</span></button>` + representatives.map(story => {
     const group=storyGroups.get(String(story.user_id)) || [];
     const hasVip=group.some(item=>item.audience==='vip');
     const hasPrivate=group.some(item=>item.audience==='connections' || item.audience==='circles');
