@@ -7459,7 +7459,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #discoveryFeed .discovery-discussion-cta-v3230{font-size:11px;padding:9px 10px}
 }
 
-/* V3.2.33 — Contextual filters within existing active conversations. */
+/* V3.2.34 — Contextual filters within existing active conversations. */
 .discussion-scope-v3231{
   display:flex;flex-wrap:wrap;gap:8px;
   align-items:center;margin:0 2px 13px;
@@ -7481,7 +7481,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .discussion-scope-v3231 button{flex:1 1 0;min-width:0;white-space:normal}
 }
 
-/* RedLibertad V3.2.33 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
+/* RedLibertad V3.2.34 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
 .explore-mobile-switch-v3232{display:none}
 @media(max-width:760px){
   #exploreView .explore-mobile-switch-v3232{
@@ -7513,7 +7513,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   }
 }
 
-/* V3.2.33 — Keep mobile Explore focused; global search is available on demand. */
+/* V3.2.34 — Keep mobile Explore focused; global search is available on demand. */
 .global-search-mobile-toggle-v3233{display:none}
 @media(max-width:760px){
   #exploreView .global-search-mobile-toggle-v3233{
@@ -7537,4 +7537,50 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 }
 @media(prefers-reduced-motion:reduce){
   #exploreView .global-search-caret-v3233{transition:none}
+}
+
+/* V3.2.34 — Comentarios móviles: teclado solo tras Participar y compositor visible. */
+@media(max-width:760px){
+  #commentsModal{
+    padding:0;align-items:end;
+  }
+  #commentsModal .comments-modal-card{
+    box-sizing:border-box;width:100%;
+    height:min(700px,calc(var(--visual-vh,100dvh) - max(8px,env(safe-area-inset-top))));
+    max-height:calc(var(--visual-vh,100dvh) - max(8px,env(safe-area-inset-top)));
+    padding:18px 16px calc(12px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;overflow:hidden;
+    border-radius:24px 24px 0 0;
+  }
+  #commentsModal .comments-list{
+    flex:1 1 auto;min-height:0;max-height:none;
+    overflow-y:auto;overscroll-behavior:contain;
+    margin:10px 0;
+  }
+  #commentsModal .comment-reply-context{flex:0 0 auto}
+  #commentsModal .comment-form{
+    flex:0 0 auto;
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    gap:8px;align-items:end;
+    padding-top:10px;border-top:1px solid var(--line);
+  }
+  #commentsModal #commentBody{
+    width:100%;height:46px;min-height:46px;max-height:110px;
+    padding:11px 12px;font-size:16px;resize:vertical;
+  }
+  #commentsModal .comment-form button[type="submit"]{
+    min-height:46px;white-space:nowrap;padding:10px 13px;
+  }
+  #commentsModal #commentStatus{
+    flex:0 0 auto;min-height:16px;margin:5px 0 0;
+    font-size:12px;
+  }
+  #commentsModal #commentBody:focus-visible{
+    outline:3px solid var(--teal);outline-offset:1px;
+  }
+}
+@media(max-width:360px){
+  #commentsModal .comments-modal-card{padding-inline:11px}
+  #commentsModal .comment-form{gap:6px}
+  #commentsModal .comment-form button[type="submit"]{padding-inline:10px}
 }
