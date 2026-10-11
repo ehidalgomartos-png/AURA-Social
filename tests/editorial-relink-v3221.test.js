@@ -99,8 +99,8 @@ test('panel móvil requiere motivo, confirmación humana, protege ediciones y li
  assert.ok(css.includes('editorial-relink-panel-v3221'));
  assert.ok(css.includes('@media(max-width:620px)'));
  assert.ok(html.includes('/admin.js?v=3.2.25'));
- assert.ok(read('server.js').includes("APP_VERSION='3.2.36'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.36');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.37'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.37');
 });
 test('siguiente borrado preserva origen histórico más reciente tras un relink',()=>{
  const removal=read('src/services/editorial-source-removal-v3219.js');

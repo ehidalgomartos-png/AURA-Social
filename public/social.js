@@ -6070,6 +6070,21 @@ function commentsRequestIsCurrent(requestId,postId){
     !$('#commentsModal')?.classList.contains('hidden');
 }
 
+// Contextual shortcut: only when reading older comments in an open discussion.
+function updateCommentJumpV3237(){
+  const list=$('#commentsList');
+  const jump=$('#commentsJumpLatestV3237');
+  const modal=$('#commentsModal');
+  if(!list||!jump||!modal)return false;
+  const distance=list.scrollHeight-list.scrollTop-list.clientHeight;
+  const visible=!!activeCommentsPostId &&
+    !modal.classList.contains('hidden') &&
+    list.scrollHeight>list.clientHeight+64 &&
+    distance>160;
+  jump.hidden=!visible;
+  return visible;
+}
+
 // Preserve the first visible comment (or the bottom) when refreshing a real thread.
 function captureCommentPositionV3236(list){
   const rows=all('[data-comment-id]',list);
@@ -6150,12 +6165,21 @@ async function loadComments(postId,{preserveScroll=false}={}) {
     if(commentsRequestIsCurrent(requestId,postId)){
       list.setAttribute('aria-busy','false');
       if(refresh)refresh.disabled=false;
+      updateCommentJumpV3237();
     }
   }
 }
 $('#commentsList')?.addEventListener('click',event=>{
   if(!event.target.closest('[data-comments-retry]')||!activeCommentsPostId)return;
   loadComments(activeCommentsPostId);
+});
+$('#commentsList')?.addEventListener('scroll',updateCommentJumpV3237,{passive:true});
+$('#commentsJumpLatestV3237')?.addEventListener('click',()=>{
+  const list=$('#commentsList');
+  if(!list||!activeCommentsPostId)return;
+  list.scrollTop=list.scrollHeight;
+  updateCommentJumpV3237();
+  list.focus({preventScroll:true});
 });
 $('#commentsRefreshV3236')?.addEventListener('click',()=>{
   const button=$('#commentsRefreshV3236');
@@ -6171,6 +6195,7 @@ async function openComments(postId,{focusComposer=false}={}) {
   $('#commentBody').value='';
   $('#commentStatus').textContent='';
   if($('#commentsRefreshStatusV3236'))$('#commentsRefreshStatusV3236').textContent='';
+  if($('#commentsJumpLatestV3237'))$('#commentsJumpLatestV3237').hidden=true;
   clearCommentReply();
   restoreCommentDraftV3235(value);
   $('#commentsModal').classList.remove('hidden');
@@ -6831,6 +6856,7 @@ $('#closeCommentsModal').onclick = () => {
   commentsRequestSequence++;
   $('#commentsModal').classList.add('hidden');
   activeCommentsPostId = null;
+  if($('#commentsJumpLatestV3237'))$('#commentsJumpLatestV3237').hidden=true;
   clearCommentReply();
 };
 $('#cancelCommentReply')?.addEventListener('click',()=>{

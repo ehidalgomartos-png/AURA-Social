@@ -43,6 +43,7 @@ function harness(rows,success=true){
     api:async()=>success?{r:{ok:true},d:{comments:[{id:1},{id:2},{id:3},{id:4}]}}:{r:{ok:false},d:{}},
     commentHTML:comment=>'<article data-comment-id="'+comment.id+'"></article>',
     startCommentReply:()=>{},
+    updateCommentJumpV3237:()=>{},
     encodeURIComponent
   };
   const from=js.indexOf('function captureCommentPositionV3236(');
@@ -90,9 +91,9 @@ test('refresh does not touch drafts, post audiences or notification endpoints',(
   assert.match(js,/saveCommentDraftV3235/);
   assert.match(js,/restoreCommentDraftV3235/);
   assert.match(js,/parentCommentId:commentReplyId/);
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.36');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.36'/);
-  assert.match(html,/\/social\.js\?v=3\.2\.36/);
-  assert.match(html,/\/social\.css\?v=3\.2\.36/);
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.37');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.37'/);
+  assert.match(html,/\/social\.js\?v=3\.2\.37/);
+  assert.match(html,/\/social\.css\?v=3\.2\.37/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:comment-refresh/);
 });

@@ -45,6 +45,6 @@ test('la validación impide aprobar un texto no guardado y ofrece avisos junto a
  assert.ok(route.includes("if(!isOriginalEditorial(row))"));
  assert.ok(route.includes('router.use(requireAdmin)'));
  assert.ok(get('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
- assert.ok(get('server.js').includes("APP_VERSION='3.2.36'"));
- assert.equal(JSON.parse(get('package.json')).version,'3.2.36');
+ assert.ok(get('server.js').includes("APP_VERSION='3.2.37'"));
+ assert.equal(JSON.parse(get('package.json')).version,'3.2.37');
 });
