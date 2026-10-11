@@ -89,8 +89,8 @@ test('an empty personal filter explains that nobody is inventing activity',async
   assert.match(h.rendered()[2],/tus publicaciones y aquellas en las que hayas comentado/);
 });
 test('release is versioned and registered for CI',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.36');
-  assert.ok(read('server.js').includes("APP_VERSION='3.2.36'"));
-  assert.ok(html.includes('/social.js?v=3.2.36'));
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.37');
+  assert.ok(read('server.js').includes("APP_VERSION='3.2.37'"));
+  assert.ok(html.includes('/social.js?v=3.2.37'));
   assert.ok(read('.github/workflows/validate-js.yml').includes('npm run test:my-conversations'));
 });
