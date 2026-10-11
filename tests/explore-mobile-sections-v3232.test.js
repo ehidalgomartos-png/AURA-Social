@@ -63,7 +63,7 @@ test('navigation respects explicit Personas entry and restores section on Explor
   assert.match(js,/if\(jump\.dataset\.viewJump==='explore' && jump\.dataset\.exploreTarget==='people'\)\{\s*setExploreMobileSection\('people'\)/);
   assert.match(js,/all\('\[data-explore-mobile-section\]'\)\.forEach\(button=>\{/);
   assert.match(js,/button\.onclick=\(\)=>setExploreMobileSection\(button\.dataset\.exploreMobileSection\)/);
-  assert.match(js,/if \(name === 'explore'\) \{\s*setExploreMobileSection\(exploreMobileSection\);\s*loadExplore\(\);/);
+  assert.match(js,/if \(name === 'explore'\) \{\s*setExploreMobileSection\(exploreMobileSection\);\s*setGlobalSearchMobileOpen\(globalSearchMobileOpen\);\s*loadExplore\(\);/);
 });
 test('previous filters and unrelated flows remain available without backend modifications',()=>{
   assert.match(js, /\/api\/posts\/trending\?sort=active/);
