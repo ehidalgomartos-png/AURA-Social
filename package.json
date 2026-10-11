@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.33",
+  "version": "3.2.34",
   "private": true,
-  "description": "RedLibertad V3.2.33 — On-demand Mobile Global Search",
+  "description": "RedLibertad V3.2.34 — Mobile Comment Participation",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -73,7 +73,8 @@
     "test:active-discussions": "node --test tests/active-discussions-v3230.test.js",
     "test:my-conversations": "node --test tests/my-conversations-v3231.test.js",
     "test:explore-mobile-sections": "node --test tests/explore-mobile-sections-v3232.test.js",
-    "test:mobile-global-search": "node --test tests/mobile-global-search-v3233.test.js"
+    "test:mobile-global-search": "node --test tests/mobile-global-search-v3233.test.js",
+    "test:mobile-comment-participation": "node --test tests/mobile-comment-participation-v3234.test.js"
   },
   "engines": {
     "node": ">=20"

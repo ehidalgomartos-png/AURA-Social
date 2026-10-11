@@ -6059,7 +6059,7 @@ $('#commentsList')?.addEventListener('click',event=>{
   loadComments(activeCommentsPostId);
 });
 
-async function openComments(postId) {
+async function openComments(postId,{focusComposer=false}={}) {
   const value=Number(postId);
   if(!Number.isSafeInteger(value)||value<1)return;
   activeCommentsPostId=value;
@@ -6067,6 +6067,8 @@ async function openComments(postId) {
   $('#commentStatus').textContent='';
   clearCommentReply();
   $('#commentsModal').classList.remove('hidden');
+  // Only an explicit Participar tap opens the keyboard; normal comment views do not.
+  if(focusComposer)$('#commentBody').focus({preventScroll:true});
   await loadComments(value);
 }
 
@@ -6359,7 +6361,9 @@ function bindPostActions(root) {
   });
 
   all('[data-comments]', root).forEach(b => {
-    b.onclick = () => openComments(b.dataset.comments);
+    b.onclick = () => openComments(b.dataset.comments,{
+      focusComposer:b.classList.contains('discovery-discussion-cta-v3230')
+    });
   });
 
 
