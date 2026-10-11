@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.36",
+  "version": "3.2.37",
   "private": true,
-  "description": "RedLibertad V3.2.36 — Comment Thread Refresh",
+  "description": "RedLibertad V3.2.37 — Latest Comment Jump",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -76,7 +76,8 @@
     "test:mobile-global-search": "node --test tests/mobile-global-search-v3233.test.js",
     "test:mobile-comment-participation": "node --test tests/mobile-comment-participation-v3234.test.js",
     "test:comment-drafts": "node --test tests/comment-drafts-v3235.test.js",
-    "test:comment-refresh": "node --test tests/comment-refresh-v3236.test.js"
+    "test:comment-refresh": "node --test tests/comment-refresh-v3236.test.js",
+    "test:comment-jump-latest": "node --test tests/comment-jump-latest-v3237.test.js"
   },
   "engines": {
     "node": ">=20"
