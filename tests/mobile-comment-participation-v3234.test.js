@@ -26,6 +26,7 @@ function makeHarness(){
     activeCommentsPostId:null,
     '$':sel=>({'#commentBody':textarea,'#commentStatus':status,'#commentsModal':modal})[sel]||null,
     clearCommentReply:()=>events.push(['clearReply']),
+    resetUnseenCommentsV3238:()=>{},
     saveCommentDraftV3235:()=>{},
     restoreCommentDraftV3235:()=>false,
     loadComments:async id=>events.push(['load',id])
@@ -80,10 +81,10 @@ test('reply, retry, privacy and other comment flows are preserved',()=>{
   assert.match(html,/id="cancelCommentReply"/);
   assert.match(html,/id="commentsOpenPostV3229"/);
 });
-test('version and GitHub Actions include V3.2.37',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.37');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.37'/);
-  assert.match(html,/\/social\.js\?v=3\.2\.37/);
-  assert.match(html,/\/social\.css\?v=3\.2\.37/);
+test('version and GitHub Actions include V3.2.38',()=>{
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.38');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.38'/);
+  assert.match(html,/\/social\.js\?v=3\.2\.38/);
+  assert.match(html,/\/social\.css\?v=3\.2\.38/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-comment-participation/);
 });
