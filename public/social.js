@@ -6070,6 +6070,46 @@ function commentsRequestIsCurrent(requestId,postId){
     !$('#commentsModal')?.classList.contains('hidden');
 }
 
+// New arrivals are tracked only for the current authenticated comment panel.
+let unseenCommentIdsV3238=new Set();
+let unseenCommentPostV3238=null;
+function resetUnseenCommentsV3238(){
+  unseenCommentIdsV3238.clear();
+  unseenCommentPostV3238=null;
+}
+function rememberNewCommentsV3238(postId,newIds,availableIds){
+  const key=String(postId);
+  const merged=unseenCommentPostV3238===key
+    ? [...unseenCommentIdsV3238,...newIds.map(String)]
+    : newIds.map(String);
+  const allowed=new Set(availableIds.map(String));
+  unseenCommentIdsV3238=new Set(merged.filter(id=>allowed.has(id)));
+  unseenCommentPostV3238=key;
+}
+function firstNewCommentV3238(list){
+  if(unseenCommentPostV3238!==String(activeCommentsPostId))return null;
+  return all('[data-comment-id]',list)
+    .find(row=>unseenCommentIdsV3238.has(String(row.dataset.commentId)))||null;
+}
+function updateNewCommentJumpV3238(){
+  const list=$('#commentsList'),jump=$('#commentsJumpLatestV3237');
+  const modal=$('#commentsModal');
+  if(!list||!jump||!modal)return false;
+  const matches=unseenCommentPostV3238===String(activeCommentsPostId)
+    ? all('[data-comment-id]',list).filter(row=>unseenCommentIdsV3238.has(String(row.dataset.commentId)))
+    : [];
+  const canShow=!!activeCommentsPostId&&!modal.classList.contains('hidden')&&matches.length>0;
+  if(canShow){
+    jump.textContent='↓ Ver '+matches.length+' '+(matches.length===1?'comentario nuevo':'comentarios nuevos');
+    jump.setAttribute('aria-label','Ir al primer comentario nuevo');
+    jump.hidden=false;
+  }else{
+    jump.textContent='↓ Últimos comentarios';
+    jump.setAttribute('aria-label','Ir a los comentarios más recientes');
+  }
+  return canShow;
+}
+
 // Contextual shortcut: only when reading older comments in an open discussion.
 function updateCommentJumpV3237(){
   const list=$('#commentsList');
@@ -6136,9 +6176,12 @@ async function loadComments(postId,{preserveScroll=false}={}) {
       return;
     }
     const comments=Array.isArray(d.comments)?d.comments:[];
-    const newlySeen=position
-      ? comments.filter(comment=>!position.knownIds.has(String(comment.id))).length
-      : 0;
+    const newlySeenIds=position
+      ? comments.filter(comment=>!position.knownIds.has(String(comment.id))).map(comment=>String(comment.id))
+      : [];
+    const newlySeen=newlySeenIds.length;
+    if(position)rememberNewCommentsV3238(postId,newlySeenIds,comments.map(comment=>comment.id));
+    else resetUnseenCommentsV3238();
     list.innerHTML=comments.length
       ? comments.map(commentHTML).join('')
       : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
@@ -6166,6 +6209,7 @@ async function loadComments(postId,{preserveScroll=false}={}) {
       list.setAttribute('aria-busy','false');
       if(refresh)refresh.disabled=false;
       updateCommentJumpV3237();
+      updateNewCommentJumpV3238();
     }
   }
 }
@@ -6174,11 +6218,20 @@ $('#commentsList')?.addEventListener('click',event=>{
   loadComments(activeCommentsPostId);
 });
 $('#commentsList')?.addEventListener('scroll',updateCommentJumpV3237,{passive:true});
+$('#commentsList')?.addEventListener('scroll',updateNewCommentJumpV3238,{passive:true});
 $('#commentsJumpLatestV3237')?.addEventListener('click',()=>{
   const list=$('#commentsList');
   if(!list||!activeCommentsPostId)return;
-  list.scrollTop=list.scrollHeight;
+  const firstNew=firstNewCommentV3238(list);
+  if(firstNew){
+    list.scrollTop=Math.max(0,firstNew.offsetTop-12);
+    firstNew.classList.add('comment-new-arrival-v3238');
+    resetUnseenCommentsV3238();
+  }else{
+    list.scrollTop=list.scrollHeight;
+  }
   updateCommentJumpV3237();
+  updateNewCommentJumpV3238();
   list.focus({preventScroll:true});
 });
 $('#commentsRefreshV3236')?.addEventListener('click',()=>{
@@ -6191,6 +6244,7 @@ async function openComments(postId,{focusComposer=false}={}) {
   const value=Number(postId);
   if(!Number.isSafeInteger(value)||value<1)return;
   if(activeCommentsPostId)saveCommentDraftV3235(activeCommentsPostId);
+  resetUnseenCommentsV3238();
   activeCommentsPostId=value;
   $('#commentBody').value='';
   $('#commentStatus').textContent='';
@@ -6856,6 +6910,7 @@ $('#closeCommentsModal').onclick = () => {
   commentsRequestSequence++;
   $('#commentsModal').classList.add('hidden');
   activeCommentsPostId = null;
+  resetUnseenCommentsV3238();
   if($('#commentsJumpLatestV3237'))$('#commentsJumpLatestV3237').hidden=true;
   clearCommentReply();
 };
