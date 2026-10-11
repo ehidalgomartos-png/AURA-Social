@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.35",
+  "version": "3.2.36",
   "private": true,
-  "description": "RedLibertad V3.2.35 — Comment Draft Protection",
+  "description": "RedLibertad V3.2.36 — Comment Thread Refresh",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -75,7 +75,8 @@
     "test:explore-mobile-sections": "node --test tests/explore-mobile-sections-v3232.test.js",
     "test:mobile-global-search": "node --test tests/mobile-global-search-v3233.test.js",
     "test:mobile-comment-participation": "node --test tests/mobile-comment-participation-v3234.test.js",
-    "test:comment-drafts": "node --test tests/comment-drafts-v3235.test.js"
+    "test:comment-drafts": "node --test tests/comment-drafts-v3235.test.js",
+    "test:comment-refresh": "node --test tests/comment-refresh-v3236.test.js"
   },
   "engines": {
     "node": ">=20"

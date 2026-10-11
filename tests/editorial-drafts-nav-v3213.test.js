@@ -79,7 +79,7 @@ test('seguridad editorial: nadie aprueba ni publica de modo automático',()=>{
  assert.match(read('src/services/editorial-v320.js'),/CHECK\(NOT auto_publish_enabled\)/);
 });
 test('cambios de versión',()=>{
- assert.match(read('server.js'),/const APP_VERSION='3\.2\.35'/);
- assert.match(read('package.json'),/"version": "3\.2\.35"/);
- assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.35'/);
+ assert.match(read('server.js'),/const APP_VERSION='3\.2\.36'/);
+ assert.match(read('package.json'),/"version": "3\.2\.36"/);
+ assert.match(read('src/routes/admin-editorial-v320.js'),/version:'3\.2\.36'/);
 });

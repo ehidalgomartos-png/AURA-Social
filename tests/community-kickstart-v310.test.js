@@ -183,8 +183,8 @@ test('new community starter uses readable responsive cards and accessible touch 
 });
 test('V3.1 compatibility suite stays active on V3.2.0',()=>{
   const pkg=require('../package.json');
-  assert.equal(pkg.version,'3.2.35');
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.35'/);
+  assert.equal(pkg.version,'3.2.36');
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.36'/);
   assert.match(pkg.scripts['test:community-kickstart'],/community-kickstart-v310/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:community-kickstart/);
 });

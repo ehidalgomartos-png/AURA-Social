@@ -6070,41 +6070,97 @@ function commentsRequestIsCurrent(requestId,postId){
     !$('#commentsModal')?.classList.contains('hidden');
 }
 
-async function loadComments(postId) {
+// Preserve the first visible comment (or the bottom) when refreshing a real thread.
+function captureCommentPositionV3236(list){
+  const rows=all('[data-comment-id]',list);
+  const atBottom=list.scrollHeight-list.scrollTop-list.clientHeight<=64;
+  const anchor=rows.find(row=>row.offsetTop+row.offsetHeight>list.scrollTop);
+  return {
+    previousTop:list.scrollTop,
+    atBottom,
+    anchorId:anchor?.dataset.commentId||null,
+    anchorOffset:anchor?anchor.offsetTop-list.scrollTop:0,
+    knownIds:new Set(rows.map(row=>String(row.dataset.commentId)))
+  };
+}
+function restoreCommentPositionV3236(list,position){
+  if(!position)return;
+  if(position.atBottom){
+    list.scrollTop=list.scrollHeight;
+    return;
+  }
+  const anchor=all('[data-comment-id]',list).find(row=>row.dataset.commentId===position.anchorId);
+  list.scrollTop=anchor
+    ? anchor.offsetTop-position.anchorOffset
+    : position.previousTop;
+}
+
+async function loadComments(postId,{preserveScroll=false}={}) {
   const list=$('#commentsList');
   if(!list)return;
+  const status=$('#commentsRefreshStatusV3236');
+  const refresh=$('#commentsRefreshV3236');
   const requestId=++commentsRequestSequence;
+  const position=preserveScroll?captureCommentPositionV3236(list):null;
   list.setAttribute('aria-busy','true');
-  list.innerHTML='<div class="comments-loading">Cargando comentarios...</div>';
+  if(refresh)refresh.disabled=true;
+  if(status)status.textContent='';
+  if(!preserveScroll)list.innerHTML='<div class="comments-loading">Cargando comentarios...</div>';
   try{
     const {r,d}=await api('/api/posts/'+encodeURIComponent(postId)+'/comments',{dedupe:false});
     if(!commentsRequestIsCurrent(requestId,postId))return;
     if(!r.ok){
+      if(preserveScroll){
+        if(status)status.textContent='No se pudo actualizar. Inténtalo otra vez.';
+      }else{
+        list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
+          '<b>No se pudieron cargar los comentarios.</b>'+
+          '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
+          '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
+      }
+      return;
+    }
+    const comments=Array.isArray(d.comments)?d.comments:[];
+    const newlySeen=position
+      ? comments.filter(comment=>!position.knownIds.has(String(comment.id))).length
+      : 0;
+    list.innerHTML=comments.length
+      ? comments.map(commentHTML).join('')
+      : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
+    all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
+    if(preserveScroll){
+      restoreCommentPositionV3236(list,position);
+      if(status)status.textContent=newlySeen
+        ? newlySeen+' '+(newlySeen===1?'comentario nuevo.':'comentarios nuevos.')
+        : 'Conversación actualizada.';
+    }else{
+      list.scrollTop=list.scrollHeight;
+    }
+  }catch(_){
+    if(!commentsRequestIsCurrent(requestId,postId))return;
+    if(preserveScroll){
+      if(status)status.textContent='No se pudo actualizar. Inténtalo otra vez.';
+    }else{
       list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
         '<b>No se pudieron cargar los comentarios.</b>'+
         '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
         '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
-      return;
     }
-    list.innerHTML=Array.isArray(d.comments)&&d.comments.length
-      ? d.comments.map(commentHTML).join('')
-      : '<div class="comments-empty"><b>Todavía no hay comentarios.</b><p>Sé la primera persona en comentar.</p></div>';
-    all('[data-reply-comment]',list).forEach(button=>button.onclick=()=>startCommentReply(button));
-    list.scrollTop=list.scrollHeight;
-  }catch(_){
-    if(!commentsRequestIsCurrent(requestId,postId))return;
-    list.innerHTML='<div class="info-card comments-retry-card" role="status">'+
-      '<b>No se pudieron cargar los comentarios.</b>'+
-      '<p>Comprueba tu conexión y vuelve a intentarlo.</p>'+
-      '<button type="button" class="secondary" data-comments-retry>Reintentar</button></div>';
   }finally{
-    if(commentsRequestIsCurrent(requestId,postId))list.setAttribute('aria-busy','false');
+    if(commentsRequestIsCurrent(requestId,postId)){
+      list.setAttribute('aria-busy','false');
+      if(refresh)refresh.disabled=false;
+    }
   }
 }
-
 $('#commentsList')?.addEventListener('click',event=>{
   if(!event.target.closest('[data-comments-retry]')||!activeCommentsPostId)return;
   loadComments(activeCommentsPostId);
+});
+$('#commentsRefreshV3236')?.addEventListener('click',()=>{
+  const button=$('#commentsRefreshV3236');
+  if(!activeCommentsPostId||button?.disabled)return;
+  loadComments(activeCommentsPostId,{preserveScroll:true});
 });
 
 async function openComments(postId,{focusComposer=false}={}) {
@@ -6114,6 +6170,7 @@ async function openComments(postId,{focusComposer=false}={}) {
   activeCommentsPostId=value;
   $('#commentBody').value='';
   $('#commentStatus').textContent='';
+  if($('#commentsRefreshStatusV3236'))$('#commentsRefreshStatusV3236').textContent='';
   clearCommentReply();
   restoreCommentDraftV3235(value);
   $('#commentsModal').classList.remove('hidden');

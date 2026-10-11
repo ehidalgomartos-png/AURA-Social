@@ -93,6 +93,6 @@ test('interfaz permite ir a revisar, calidad, fuentes y publicación humana',()=
   assert.match(js,/loadEditorialQualityV325\(candidateId\)/);
   assert.match(js,/data-editorial-daily-target/);
   assert.match(css,/#editorialDaily \.editorial-daily-sections/);
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.35'/);
-  assert.match(read('package.json'),/"version": "3\.2\.35"/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.36'/);
+  assert.match(read('package.json'),/"version": "3\.2\.36"/);
 });

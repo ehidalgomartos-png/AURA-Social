@@ -7459,7 +7459,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #discoveryFeed .discovery-discussion-cta-v3230{font-size:11px;padding:9px 10px}
 }
 
-/* V3.2.35 — Contextual filters within existing active conversations. */
+/* V3.2.36 — Contextual filters within existing active conversations. */
 .discussion-scope-v3231{
   display:flex;flex-wrap:wrap;gap:8px;
   align-items:center;margin:0 2px 13px;
@@ -7481,7 +7481,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .discussion-scope-v3231 button{flex:1 1 0;min-width:0;white-space:normal}
 }
 
-/* RedLibertad V3.2.35 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
+/* RedLibertad V3.2.36 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
 .explore-mobile-switch-v3232{display:none}
 @media(max-width:760px){
   #exploreView .explore-mobile-switch-v3232{
@@ -7513,7 +7513,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   }
 }
 
-/* V3.2.35 — Keep mobile Explore focused; global search is available on demand. */
+/* V3.2.36 — Keep mobile Explore focused; global search is available on demand. */
 .global-search-mobile-toggle-v3233{display:none}
 @media(max-width:760px){
   #exploreView .global-search-mobile-toggle-v3233{
@@ -7539,7 +7539,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #exploreView .global-search-caret-v3233{transition:none}
 }
 
-/* V3.2.35 — Comentarios móviles: teclado solo tras Participar y compositor visible. */
+/* V3.2.36 — Comentarios móviles: teclado solo tras Participar y compositor visible. */
 @media(max-width:760px){
   #commentsModal{
     padding:0;align-items:end;
@@ -7585,7 +7585,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #commentsModal .comment-form button[type="submit"]{padding-inline:10px}
 }
 
-/* V3.2.35 — Session-only comment drafts, with unobtrusive restoration notice. */
+/* V3.2.36 — Session-only comment drafts, with unobtrusive restoration notice. */
 #commentsModal .comment-draft-hint-v3235{
   flex:0 0 auto;
   margin:5px 2px 0;
@@ -7594,3 +7594,24 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   line-height:1.4;
 }
 #commentsModal .comment-draft-hint-v3235.hidden{display:none!important}
+
+/* V3.2.36 — Manual, non-disruptive refresh of real comment threads. */
+#commentsModal #commentsRefreshV3236{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  min-height:44px;padding:8px 11px;
+  font-size:12px;font-weight:800;white-space:nowrap;
+}
+#commentsModal #commentsRefreshV3236:disabled{opacity:.55;cursor:wait}
+#commentsModal #commentsRefreshV3236:focus-visible{
+  outline:3px solid var(--teal);outline-offset:2px;
+}
+#commentsModal .comment-refresh-status-v3236{
+  margin:0;padding:0 2px;
+  font-size:12px;line-height:1.4;color:var(--muted);
+}
+#commentsModal .comment-refresh-status-v3236:empty{display:none}
+@media(max-width:440px){
+  #commentsModal .comment-refresh-label-v3236{display:none}
+  #commentsModal #commentsRefreshV3236{min-width:44px;font-size:19px}
+  #commentsModal .comments-heading-v3229{gap:6px}
+}
