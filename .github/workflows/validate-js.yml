@@ -96,10 +96,12 @@ jobs:
         run: npm run test:direct-conversations
       - name: V3.2.30 active public discussions and Explore privacy regression tests
         run: npm run test:active-discussions
-      - name: V3.2.32 my conversations, responsive filters and privacy regressions
+      - name: V3.2.33 my conversations, responsive filters and privacy regressions
         run: npm run test:my-conversations
-      - name: V3.2.32 mobile Explore sections and compatibility regressions
+      - name: V3.2.33 mobile Explore sections and compatibility regressions
         run: npm run test:explore-mobile-sections
+      - name: V3.2.33 mobile on-demand global search regression tests
+        run: npm run test:mobile-global-search
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

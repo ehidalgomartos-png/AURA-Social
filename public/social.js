@@ -65,6 +65,7 @@ let activeManagePost = null;
 let deletePostArmed = false;
 let activeContentMode = 'foryou';
 let exploreMobileSection = 'content';
+let globalSearchMobileOpen = false;
 let activePostSearch = '';
 let discussionScope = 'all';
 let discoveryRequestSequence = 0;
@@ -2335,6 +2336,17 @@ async function searchPosts(query) {
     'No encontramos publicaciones.',
     'Prueba otras palabras o un #hashtag.'
   );
+}
+
+function setGlobalSearchMobileOpen(open,{focus=false}={}){
+  const root=$('#exploreView');
+  const trigger=$('#globalSearchOpenV3233');
+  if(!root||!trigger)return false;
+  globalSearchMobileOpen=Boolean(open);
+  root.dataset.globalSearchOpen=String(globalSearchMobileOpen);
+  trigger.setAttribute('aria-expanded',String(globalSearchMobileOpen));
+  if(globalSearchMobileOpen && focus)$('#globalSearchInput')?.focus();
+  return true;
 }
 
 function setExploreMobileSection(mode) {
@@ -8387,6 +8399,10 @@ $('#postSearchForm')?.addEventListener('submit', async event => {
   await searchPosts($('#postSearchInput').value);
 });
 
+$('#globalSearchOpenV3233')?.addEventListener('click',()=>{
+  setGlobalSearchMobileOpen(!globalSearchMobileOpen,{focus:true});
+});
+
 all('[data-explore-mobile-section]').forEach(button=>{
   button.onclick=()=>setExploreMobileSection(button.dataset.exploreMobileSection);
 });
@@ -9316,6 +9332,7 @@ function showView(name) {
   if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); loadCommunityReturn(); }
   if (name === 'explore') {
     setExploreMobileSection(exploreMobileSection);
+    setGlobalSearchMobileOpen(globalSearchMobileOpen);
     loadExplore();
   }
   if (name === 'connections') loadConnectionsCenter();

@@ -63,7 +63,7 @@ test('navigation respects explicit Personas entry and restores section on Explor
   assert.match(js,/if\(jump\.dataset\.viewJump==='explore' && jump\.dataset\.exploreTarget==='people'\)\{\s*setExploreMobileSection\('people'\)/);
   assert.match(js,/all\('\[data-explore-mobile-section\]'\)\.forEach\(button=>\{/);
   assert.match(js,/button\.onclick=\(\)=>setExploreMobileSection\(button\.dataset\.exploreMobileSection\)/);
-  assert.match(js,/if \(name === 'explore'\) \{\s*setExploreMobileSection\(exploreMobileSection\);\s*loadExplore\(\);/);
+  assert.match(js,/if \(name === 'explore'\) \{\s*setExploreMobileSection\(exploreMobileSection\);\s*setGlobalSearchMobileOpen\(globalSearchMobileOpen\);\s*loadExplore\(\);/);
 });
 test('previous filters and unrelated flows remain available without backend modifications',()=>{
   assert.match(js, /\/api\/posts\/trending\?sort=active/);
@@ -78,9 +78,9 @@ test('previous filters and unrelated flows remain available without backend modi
   assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
 });
 test('version and CI are registered',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.32');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.32'/);
-  assert.match(html,/\/social\.js\?v=3\.2\.32/);
-  assert.match(html,/\/social\.css\?v=3\.2\.32/);
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.33');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.33'/);
+  assert.match(html,/\/social\.js\?v=3\.2\.33/);
+  assert.match(html,/\/social\.css\?v=3\.2\.33/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:explore-mobile-sections/);
 });
