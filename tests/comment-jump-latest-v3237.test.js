@@ -54,7 +54,7 @@ test('hidden when closed or missing',()=>{
 });
 test('jump only scrolls within comments and never affects drafts or network',()=>{
   const from=js.indexOf("$('#commentsJumpLatestV3237')?.addEventListener('click'");
-  const to=js.indexOf('\nasync function openComments(',from);
+  const to=js.indexOf("\n$('#commentsRefreshV3236')?.addEventListener('click'",from);
   assert.ok(from>0&&to>from);
   const source=js.slice(from,to);
   assert.match(source,/list\.scrollTop=list\.scrollHeight/);
