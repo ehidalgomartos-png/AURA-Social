@@ -109,10 +109,10 @@ test('mobile is compact with sticky actions, minimum touch size and reduced moti
  assert.match(css,/#modal #createForm\.hidden,#modal #storyForm\.hidden/);
 });
 test('session/permission, server endpoints and previous Inicio feed remain unchanged',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.36');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.36'"));
- assert.ok(html.includes('/social.js?v=3.2.36'));
- assert.ok(html.includes('/social.css?v=3.2.36'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.37');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.37'"));
+ assert.ok(html.includes('/social.js?v=3.2.37'));
+ assert.ok(html.includes('/social.css?v=3.2.37'));
  assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
  assert.match(js,/runSocialSubmitOnce\(e.currentTarget/);
  assert.match(js,/verified_creator_required_for_nudity/);
