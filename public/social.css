@@ -7459,7 +7459,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #discoveryFeed .discovery-discussion-cta-v3230{font-size:11px;padding:9px 10px}
 }
 
-/* V3.2.32 — Contextual filters within existing active conversations. */
+/* V3.2.33 — Contextual filters within existing active conversations. */
 .discussion-scope-v3231{
   display:flex;flex-wrap:wrap;gap:8px;
   align-items:center;margin:0 2px 13px;
@@ -7481,7 +7481,7 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   .discussion-scope-v3231 button{flex:1 1 0;min-width:0;white-space:normal}
 }
 
-/* RedLibertad V3.2.32 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
+/* RedLibertad V3.2.33 — Explorar móvil: Publicaciones / Personas, sin nuevos menús. */
 .explore-mobile-switch-v3232{display:none}
 @media(max-width:760px){
   #exploreView .explore-mobile-switch-v3232{
@@ -7511,4 +7511,30 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   #exploreView[data-explore-section="people"] #explorePeoplePaneV3232{
     margin-top:8px;
   }
+}
+
+/* V3.2.33 — Keep mobile Explore focused; global search is available on demand. */
+.global-search-mobile-toggle-v3233{display:none}
+@media(max-width:760px){
+  #exploreView .global-search-mobile-toggle-v3233{
+    display:block;
+    margin:9px 4px 6px;
+  }
+  #exploreView #globalSearchOpenV3233{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;min-height:48px;padding:10px 14px;
+    border:1px solid var(--line);border-radius:14px;
+    background:var(--paper);color:var(--navy);
+    font-size:13px;font-weight:800;text-align:center;
+  }
+  #exploreView #globalSearchOpenV3233:focus-visible{
+    outline:3px solid var(--teal);outline-offset:2px;
+  }
+  #exploreView .global-search-caret-v3233{font-size:17px;transition:transform .18s ease}
+  #exploreView[data-global-search-open="true"] .global-search-caret-v3233{transform:rotate(180deg)}
+  #exploreView[data-global-search-open="false"] #globalSearchPanelV3233{display:none!important}
+  #exploreView[data-global-search-open="true"] #globalSearchPanelV3233{margin-top:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  #exploreView .global-search-caret-v3233{transition:none}
 }
