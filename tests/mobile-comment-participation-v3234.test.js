@@ -26,6 +26,7 @@ function makeHarness(){
     activeCommentsPostId:null,
     '$':sel=>({'#commentBody':textarea,'#commentStatus':status,'#commentsModal':modal})[sel]||null,
     clearCommentReply:()=>events.push(['clearReply']),
+    resetUnseenCommentsV3238:()=>{},
     saveCommentDraftV3235:()=>{},
     restoreCommentDraftV3235:()=>false,
     loadComments:async id=>events.push(['load',id])
