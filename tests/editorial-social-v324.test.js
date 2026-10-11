@@ -91,5 +91,5 @@ test('noticias siguen diferenciadas de perfiles humanos y accesibles desde Inici
   assert.match(source('public/app.html'),/editorial-home-v324\.js/);
   assert.match(source('src/routes/editorial-social-v324.js'),/router\.get\('\/discover'/);
   assert.match(source('src/routes/editorial-social-v324.js'),/LIMIT 12/);
-  assert.match(source('server.js'),/const APP_VERSION='3\.2\.33'/);
+  assert.match(source('server.js'),/const APP_VERSION='3\.2\.34'/);
 });

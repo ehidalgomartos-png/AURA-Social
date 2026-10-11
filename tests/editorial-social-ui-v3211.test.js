@@ -90,6 +90,6 @@ test('sin nuevas dependencias ni cambios en publicación manual o control editor
   assert.match(route,/editorial_already_published/);
   assert.match(route,/admin\.post\('\/unpublish\/:candidateId'/);
   assert.match(read('src/services/editorial-v320.js'),/CHECK\(NOT auto_publish_enabled\)/);
-  assert.match(read('server.js'),/const APP_VERSION='3\.2\.33'/);
-  assert.match(read('package.json'),/"version": "3\.2\.33"/);
+  assert.match(read('server.js'),/const APP_VERSION='3\.2\.34'/);
+  assert.match(read('package.json'),/"version": "3\.2\.34"/);
 });
