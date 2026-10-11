@@ -96,14 +96,16 @@ jobs:
         run: npm run test:direct-conversations
       - name: V3.2.30 active public discussions and Explore privacy regression tests
         run: npm run test:active-discussions
-      - name: V3.2.34 my conversations, responsive filters and privacy regressions
+      - name: V3.2.35 my conversations, responsive filters and privacy regressions
         run: npm run test:my-conversations
-      - name: V3.2.34 mobile Explore sections and compatibility regressions
+      - name: V3.2.35 mobile Explore sections and compatibility regressions
         run: npm run test:explore-mobile-sections
-      - name: V3.2.34 mobile on-demand global search regression tests
+      - name: V3.2.35 mobile on-demand global search regression tests
         run: npm run test:mobile-global-search
-      - name: V3.2.34 mobile comment participation and modal safety regressions
+      - name: V3.2.35 mobile comment participation and modal safety regressions
         run: npm run test:mobile-comment-participation
+      - name: V3.2.35 session-only drafts, reply context and submission safety
+        run: npm run test:comment-drafts
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
       - name: Own profile full posts, tabs and mobile interaction regression tests

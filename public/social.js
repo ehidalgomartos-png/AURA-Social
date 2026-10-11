@@ -59,6 +59,9 @@ let relationshipMode='all';
 let relationshipSuggestions=[];
 let activeCommentsPostId = null;
 let activeCommentReply = null;
+// Session-only comment drafts. Never persist private comment text to localStorage or the server.
+const commentDraftsV3235=new Map();
+let commentDraftOwnerV3235=null;
 let activeReportPostId = null;
 let pendingDeleteComment = null;
 let activeManagePost = null;
@@ -5998,7 +6001,7 @@ function clearCommentReply() {
   if(submit && !submit.disabled)submit.textContent='Comentar';
 }
 
-function startCommentReply(button) {
+function startCommentReply(button,{focus=true}={}) {
   activeCommentReply={
     id:Number(button.dataset.replyComment),
     username:String(button.dataset.replyUsername || ''),
@@ -6008,10 +6011,55 @@ function startCommentReply(button) {
   $('#commentReplyContext')?.classList.remove('hidden');
   if($('#commentBody')){
     $('#commentBody').placeholder=`Responde a ${activeCommentReply.displayName}...`;
-    $('#commentBody').focus();
+    if(focus)$('#commentBody').focus();
   }
   const submit=$('#commentForm button[type="submit"]');
   if(submit)submit.textContent='Responder';
+  saveCommentDraftV3235();
+}
+
+// Keep drafts separate per account and per real publication; bounded to 20 in-memory drafts.
+function ensureCommentDraftOwnerV3235(){
+  const viewer=me?.id==null ? null : String(me.id);
+  if(commentDraftOwnerV3235!==viewer){
+    commentDraftsV3235.clear();
+    commentDraftOwnerV3235=viewer;
+  }
+}
+function saveCommentDraftV3235(postId=activeCommentsPostId){
+  if(!postId)return;
+  ensureCommentDraftOwnerV3235();
+  const key=String(postId);
+  const body=String($('#commentBody')?.value||'').slice(0,1000);
+  if(!body.trim()){commentDraftsV3235.delete(key);return;}
+  const reply=activeCommentReply?{
+    id:activeCommentReply.id,
+    username:activeCommentReply.username,
+    displayName:activeCommentReply.displayName
+  }:null;
+  commentDraftsV3235.delete(key);
+  commentDraftsV3235.set(key,{body,reply});
+  while(commentDraftsV3235.size>20){
+    commentDraftsV3235.delete(commentDraftsV3235.keys().next().value);
+  }
+}
+function restoreCommentDraftV3235(postId){
+  ensureCommentDraftOwnerV3235();
+  const draft=commentDraftsV3235.get(String(postId));
+  $('#commentDraftHintV3235')?.classList.toggle('hidden',!draft);
+  if(!draft)return false;
+  const composer=$('#commentBody');
+  if(composer)composer.value=draft.body;
+  if(draft.reply?.id){
+    startCommentReply({
+      dataset:{
+        replyComment:String(draft.reply.id),
+        replyUsername:draft.reply.username,
+        replyDisplay:draft.reply.displayName
+      }
+    },{focus:false});
+  }
+  return true;
 }
 
 // Prevent outdated requests from replacing a newly opened comment thread.
@@ -6062,10 +6110,12 @@ $('#commentsList')?.addEventListener('click',event=>{
 async function openComments(postId,{focusComposer=false}={}) {
   const value=Number(postId);
   if(!Number.isSafeInteger(value)||value<1)return;
+  if(activeCommentsPostId)saveCommentDraftV3235(activeCommentsPostId);
   activeCommentsPostId=value;
   $('#commentBody').value='';
   $('#commentStatus').textContent='';
   clearCommentReply();
+  restoreCommentDraftV3235(value);
   $('#commentsModal').classList.remove('hidden');
   // Only an explicit Participar tap opens the keyboard; normal comment views do not.
   if(focusComposer)$('#commentBody').focus({preventScroll:true});
@@ -6720,12 +6770,20 @@ $('#confirmDeleteComment').onclick = async () => {
 };
 
 $('#closeCommentsModal').onclick = () => {
+  saveCommentDraftV3235();
   commentsRequestSequence++;
   $('#commentsModal').classList.add('hidden');
   activeCommentsPostId = null;
   clearCommentReply();
 };
-$('#cancelCommentReply')?.addEventListener('click',clearCommentReply);
+$('#cancelCommentReply')?.addEventListener('click',()=>{
+  clearCommentReply();
+  saveCommentDraftV3235();
+});
+$('#commentBody')?.addEventListener('input',()=>{
+  saveCommentDraftV3235();
+  $('#commentDraftHintV3235')?.classList.add('hidden');
+});
 // Show the post context on demand rather than stacking two modal dialogs.
 $('#commentsOpenPostV3229')?.addEventListener('click',async()=>{
   const postId=activeCommentsPostId;
@@ -6759,6 +6817,7 @@ $('#commentForm').addEventListener('submit', async event => {
   const commentReplyId=activeCommentReply?.id || null;
   const body = $('#commentBody').value.trim();
   if (!body) return;
+  saveCommentDraftV3235(commentPostId);
 
   const button = event.currentTarget.querySelector('button[type="submit"]');
   const original = button.textContent;
@@ -6782,17 +6841,31 @@ $('#commentForm').addEventListener('submit', async event => {
         : 'No se pudo publicar el comentario.');
     }
 
+    // Do not discard a newer draft typed while this request was in flight.
+    ensureCommentDraftOwnerV3235();
+    const stored=commentDraftsV3235.get(String(commentPostId));
+    const matchesSent=stored?.body?.trim()===body &&
+      (stored?.reply?.id||null)===commentReplyId;
+    if(matchesSent)commentDraftsV3235.delete(String(commentPostId));
     // A previous request must not erase a draft in a different thread.
     if(String(activeCommentsPostId||'')!==String(commentPostId))return;
     const wasReply=!!commentReplyId;
-    $('#commentBody').value = '';
-    clearCommentReply();
+    const sameComposer=$('#commentBody').value.trim()===body &&
+      (activeCommentReply?.id||null)===commentReplyId;
+    if(sameComposer){
+      $('#commentBody').value='';
+      clearCommentReply();
+      $('#commentDraftHintV3235')?.classList.add('hidden');
+    }else{
+      saveCommentDraftV3235(commentPostId);
+    }
     $('#commentStatus').textContent = wasReply ? 'Respuesta publicada.' : 'Comentario publicado.';
     await loadComments(activeCommentsPostId);
     await loadFeed(currentMode);
     if ($('#growthPanel')) await loadGrowthPanel();
   } catch (error) {
-    $('#commentStatus').textContent = error.message;
+    if(String(activeCommentsPostId||'')===String(commentPostId))
+      $('#commentStatus').textContent = error.message;
   } finally {
     button.disabled = false;
     button.textContent = original;
@@ -9880,7 +9953,12 @@ $('#supportForm')?.addEventListener('submit',async event=>{
   }
 });
 
-$('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); location.href = '/'; };
+$('#logout').onclick = async () => {
+  commentDraftsV3235.clear();
+  commentDraftOwnerV3235=null;
+  await fetch('/api/auth/logout', { method: 'POST' });
+  location.href = '/';
+};
 
 window.addEventListener('redlibertad-install-ready', e => {
   const button = $('#installApp');
