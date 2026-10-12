@@ -2938,7 +2938,7 @@ document.addEventListener('click', async event => {
   const communityConversation=event.target.closest('[data-community-conversation]');
   if(communityConversation){
     event.preventDefault();
-    showView('messages');
+    if(activeViewName!=='messages')showView('messages');
     await openConversation(communityConversation.dataset.communityConversation);
     return;
   }
@@ -7588,6 +7588,8 @@ all('[data-message-filter]').forEach(button=>{
     activeConversationMeta=null;
     activeConversationOther=null;
     $('.messages-layout')?.classList.remove('chat-open');
+    document.body.classList.remove('mobile-chat-active-v3244');
+    openConversationSequenceV3244++;
     await loadConversations();
   };
 });
@@ -7833,22 +7835,31 @@ function groupParticipantsSummary(group){
   return extra ? `${visible.join(', ')} y ${extra} más` : visible.join(', ');
 }
 
+let openConversationSequenceV3244=0;
 async function openConversation(id) {
-  activeConversationId=id;
+  const sequence=++openConversationSequenceV3244;
+  const conversationId=String(id||'');
+  if(!/^[1-9]\d*$/.test(conversationId))return toast('Esta conversación ya no está disponible.');
+  let response;
+  try{
+    response=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`);
+  }catch(_){
+    if(sequence===openConversationSequenceV3244)toast('No se pudo conectar al chat. Comprueba tu conexión.');
+    return;
+  }
+  if(sequence!==openConversationSequenceV3244)return;
+  const {r,d}=response;
+  if(!r.ok){
+    toast(d?.error==='messaging_blocked'
+      ? 'Esta conversación ya no está disponible.'
+      : 'No se pudo abrir la conversación.');
+    return;
+  }
+  activeConversationId=conversationId;
   clearMessageReply();
   const layout=$('.messages-layout');
   if(layout)layout.classList.add('chat-open');
-
-  const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(id)}/messages`);
-  if(!r.ok){
-    toast(
-      d.error==='messaging_blocked'
-        ? 'Esta conversación ya no está disponible.'
-        : 'No se pudo abrir la conversación.'
-    );
-    return;
-  }
-
+  document.body.classList.add('mobile-chat-active-v3244');
   activeConversationOther=d.other || null;
   activeConversationMeta=d.conversation || null;
   activeConversationSettings=d.settings || {
@@ -7906,11 +7917,14 @@ async function openConversation(id) {
     <div id="messagePreview" class="message-preview hidden"></div>
     <div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="${isGroup ? 'Escribe al grupo…' : 'Escribe un mensaje…'}"></textarea><button class="primary" type="submit">Enviar</button></div>
     <small class="message-hint">${isGroup ? 'Cada persona decide si acepta el contenido sensible de cada remitente.' : 'El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.'}</small>
+    <p class="message-send-feedback-v3244" id="messageSendFeedbackV3244" role="status" aria-live="polite"></p>
   </form>`;
 
   const mobileBack=$('#mobileChatBack');
   if(mobileBack)mobileBack.onclick=()=>{
     $('.messages-layout')?.classList.remove('chat-open');
+    document.body.classList.remove('mobile-chat-active-v3244');
+    openConversationSequenceV3244++;
     sendChatPresence({typing:false,conversationId:null});
     activeConversationId=null;
     activeConversationMeta=null;
@@ -7984,6 +7998,8 @@ async function openConversation(id) {
         activeConversationMeta=null;
         activeConversationOther=null;
         $('.messages-layout')?.classList.remove('chat-open');
+        document.body.classList.remove('mobile-chat-active-v3244');
+        openConversationSequenceV3244++;
         $('#chatPanel').className='chat-panel empty-chat';
         $('#chatPanel').innerHTML='<div class="empty-state"><b>Conversación archivada</b><p>Puedes recuperarla desde la pestaña Archivadas.</p></div>';
         await loadConversations();
@@ -8224,6 +8240,8 @@ async function sendMessage(e) {
   }
 
   try {
+    const feedback=$('#messageSendFeedbackV3244');
+    if(feedback)feedback.textContent='';
     const file = $('#messageFile').files[0];
     const media = await uploadFile(file);
 
@@ -8276,6 +8294,8 @@ async function sendMessage(e) {
       toast('Mensaje enviado. Recarga la conversación para verlo.');
     }
   } catch (err) {
+    const feedback=$('#messageSendFeedbackV3244');
+    if(feedback)feedback.textContent=(err?.message||'No se pudo enviar el mensaje.')+' Puedes corregirlo y volver a intentar.';
     toast(err.message);
   } finally {
     messageSendInFlight = false;
@@ -8306,6 +8326,8 @@ function openNewConversationModal(){
 function closeNewConversationModal(){
   $('#newMessageModal').classList.add('hidden');
   $('#newMessageForm')?.reset();
+  clearRecipientSuggestionsV3244();
+  const input=$('#newMessageRecipientV3244');if(input)delete input.dataset.exactUsername;
   $('#newGroupForm')?.reset();
   setNewConversationMode('direct');
 }
@@ -8415,12 +8437,71 @@ all('[data-new-conversation-mode]').forEach(button=>{
   button.onclick=()=>setNewConversationMode(button.dataset.newConversationMode);
 });
 
+
+// V3.2.44 — Search by visible name AND exact username; only user-selected handles are submitted.
+let recipientSearchSequenceV3244=0;
+let recipientSearchTimerV3244=null;
+function clearRecipientSuggestionsV3244(){
+  recipientSearchSequenceV3244++;
+  clearTimeout(recipientSearchTimerV3244);
+  const list=$('#newMessageRecipientResultsV3244');
+  if(list){list.replaceChildren();list.hidden=true;}
+}
+function renderRecipientSuggestionsV3244(users){
+  const list=$('#newMessageRecipientResultsV3244');
+  if(!list)return;
+  list.replaceChildren();
+  for(const user of users){
+    if(!user.username)continue;
+    const button=document.createElement('button');
+    button.type='button';button.className='message-recipient-choice-v3244';
+    button.setAttribute('role','option');
+    const name=document.createElement('b');
+    name.textContent=String(user.display_name||user.username);
+    const handle=document.createElement('small');
+    handle.textContent='@'+String(user.username);
+    button.append(name,handle);
+    button.addEventListener('click',()=>{
+      const input=$('#newMessageRecipientV3244');
+      if(input){input.value=String(user.username);input.dataset.exactUsername=String(user.username);}
+      const status=$('#newMessageStatus');
+      if(status)status.textContent='Destinatario seleccionado: @'+String(user.username);
+      clearRecipientSuggestionsV3244();
+    });
+    list.append(button);
+  }
+  list.hidden=list.children.length===0;
+}
+$('#newMessageRecipientV3244')?.addEventListener('input',event=>{
+  const input=event.currentTarget;
+  delete input.dataset.exactUsername;
+  const q=input.value.trim().replace(/^@/,'');
+  clearRecipientSuggestionsV3244();
+  const sequence=recipientSearchSequenceV3244;
+  const status=$('#newMessageStatus');
+  if(q.length<2){if(status)status.textContent='Escribe al menos dos letras para buscar.';return;}
+  if(status)status.textContent='Buscando personas…';
+  recipientSearchTimerV3244=setTimeout(async()=>{
+    try{
+      const {r,d}=await api('/api/messages/recipients?q='+encodeURIComponent(q));
+      if(sequence!==recipientSearchSequenceV3244||
+         $('#newMessageRecipientV3244')?.value.trim().replace(/^@/,'')!==q)return;
+      if(!r.ok)throw Error('No se pudo buscar personas. Inténtalo de nuevo.');
+      renderRecipientSuggestionsV3244(Array.isArray(d.users)?d.users:[]);
+      if(status)status.textContent=(d.users||[]).length?'Selecciona la persona correcta de la lista.':
+        'Sin resultados. Comprueba el @usuario exacto; algunas cuentas no aparecen en las búsquedas.';
+    }catch(err){if(sequence===recipientSearchSequenceV3244&&status)status.textContent=err.message;}
+  },280);
+});
+
 $('#newMessageForm').addEventListener('submit',async event=>{
   event.preventDefault();
   const fd=new FormData(event.target);
   const status=$('#newMessageStatus');
   status.textContent='Abriendo…';
-  const username=String(fd.get('username') || '').replace(/^@/,'');
+  const typed=String(fd.get('username') || '').trim().replace(/^@/,'');
+  const selected=$('#newMessageRecipientV3244')?.dataset.exactUsername||'';
+  const username=selected&&selected===typed ? selected:typed;
   const {r,d}=await api('/api/messages/conversations',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -8428,7 +8509,7 @@ $('#newMessageForm').addEventListener('submit',async event=>{
   });
   if(!r.ok){
     status.textContent=d.error==='user_not_found'
-      ? 'No encuentro ese usuario.'
+      ? 'No encuentro ese @usuario exacto. Búscalo por su nombre y selecciona una sugerencia.'
       : d.error==='message_privacy_denied'
         ? 'Esta persona no acepta nuevas conversaciones.'
         : d.error==='message_privacy_following_only'
@@ -9526,6 +9607,10 @@ function showView(name) {
     saveCurrentViewScroll();
   }
   if(name!=='messages' && activeConversationId)sendChatPresence({typing:false,conversationId:null});
+  if(name!=='messages'){
+    document.body.classList.remove('mobile-chat-active-v3244');
+    openConversationSequenceV3244++;
+  }
   if(name!=='reels')pauseReelVideos();
   all('.view').forEach(v => { v.classList.add('hidden'); v.setAttribute('aria-hidden','true'); });
   view.classList.remove('hidden');
@@ -9561,6 +9646,8 @@ function showView(name) {
   if (name === 'messages') {
     const layout=$('.messages-layout');
     if(layout)layout.classList.remove('chat-open');
+    document.body.classList.remove('mobile-chat-active-v3244');
+    openConversationSequenceV3244++;
     activeConversationId=null;
     activeConversationMeta=null;
     activeConversationOther=null;
