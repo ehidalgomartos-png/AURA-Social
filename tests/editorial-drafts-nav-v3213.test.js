@@ -29,19 +29,19 @@ test('propuesta gestionada con longitudes y campos incompletos',()=>{
  assert.ok(max.summary.length<=1100&&max.summary.length>=70);
  assert.equal(editorialDraftV3213({source_title:'breve'}).title,'');
 });
-test('el editor prepara sugerencia al abrir una noticia pendiente y no sobrescribe una edición humana',()=>{
+test('la propuesta básica solo se ejecuta a petición y no sobrescribe una edición humana',()=>{
  const html=read('public/admin.html'),js=read('public/admin.js');
  assert.match(html,/id="editorialSuggestDraft"/);
  assert.match(html,/editorial-draft-v3216\.js\?v=3\.2\.16/);
  assert.match(html,/id="editorialSuggestionStatus"/);
  assert.match(js,/function fillEditorialDraftV3213\(item,force=false\)/);
- assert.match(js,/if\(item\.status==='pending'\)fillEditorialDraftV3213\(item,false\)/);
+ assert.doesNotMatch(js,/if\(item\.status==='pending'\)fillEditorialDraftV3213\(item,false\)/);
  assert.match(js,/force\|\|!title\.value\.trim\(\)/);
  assert.match(js,/force\|\|!summary\.value\.trim\(\)/);
  assert.match(js,/window\.confirm\('¿Sustituir/);
  assert.ok(js.includes("$('#editorialSuggestDraft')"));
  assert.match(js,/verifica y reescribe antes de guardar o aprobar/);
- assert.match(html,/no resume ni verifica el artículo completo/);
+ assert.match(html,/Solo prepara un borrador, nunca publica/);
  assert.doesNotMatch(js,/autoPublish\s*:\s*true|auto_publish_enabled\s*=\s*true/);
 });
 test('Mesa editorial lleva el ID de cada noticia, activa su filtro y abre el editor concreto',()=>{
