@@ -2372,9 +2372,11 @@ function updateEditorialImageModeV3242(){
   const mode=document.querySelector('input[name="editorialImageModeV3242"]:checked')?.value||'none';
   const none=$('#editorialImageNoneV3242'),own=$('#editorialImageOwnFormV3242');
   const rss=$('#editorialImageRssControlsV3242');
+  const ai=$('#editorialImageAiV3243');
   if(none)none.hidden=mode!=='none';
   if(own)own.hidden=mode!=='own';
   if(rss)rss.hidden=mode!=='rss';
+  if(ai)ai.hidden=mode!=='ai';
   const original=$('#editorialImageRemoveV3242');
   const stored=imageLocalV3222(editorialReviewCurrent?.editorial_image_url);
   if(original)original.hidden=!stored;
@@ -2428,7 +2430,19 @@ function displayEditorialImageV3222(item){
   ownForm?.reset();
   const ownStatus=$('#editorialImageOwnStatusV3242');
   if(ownStatus)ownStatus.textContent='';
-  const existingOrigin=stored?(item.editorial_image_origin==='own'?'own':'rss'):'none';
+  const existingOrigin=stored?(['own','ai'].includes(item.editorial_image_origin)?item.editorial_image_origin:'rss'):'none';
+  const aiExisting=stored&&item.editorial_image_origin==='ai';
+  const aiPreview=$('#editorialAiImagePreviewV3243');
+  if(aiPreview){aiPreview.hidden=!aiExisting;
+    const pic=aiPreview.querySelector('img');
+    if(pic){if(aiExisting)pic.src=item.editorial_image_url;else pic.removeAttribute('src');}
+  }
+  const aiButton=$('#editorialAiImageButtonV3243');
+  if(aiButton)aiButton.disabled=aiExisting;
+  const aiStatus=$('#editorialAiImageStatusV3243');
+  if(aiStatus)aiStatus.textContent=aiExisting
+    ?'Ilustración IA guardada. Solo se permite una generación por noticia. Revisa los derechos y el texto antes de aprobar.'
+    :'La generación de imágenes utiliza créditos de la API y nunca publica automáticamente.';
   const choice=document.querySelector('input[name="editorialImageModeV3242"][value="'+existingOrigin+'"]');
   if(choice&&!choice.disabled)choice.checked=true;
   updateEditorialImageModeV3242();
@@ -2551,6 +2565,66 @@ $('#editorialImageOwnFormV3242')?.addEventListener('submit',async event=>{
   }catch(e){status.textContent=e.message;}
   finally{button.disabled=false;}
 });
+
+let editorialAiImageBusyV3243=false;
+function editorialAiImageErrorV3243(code){
+  return ({
+    editorial_ai_image_not_configured:'La generación de imágenes IA está desactivada. Configura OPENAI_API_KEY y EDITORIAL_AI_IMAGE_ENABLED=true en Coolify.',
+    editorial_ai_image_quota:'Has alcanzado el límite de ilustraciones de hoy o de este mes.',
+    editorial_ai_image_one_per_story:'Esta noticia ya tiene una ilustración IA generada, o existe una generación en curso.',
+    editorial_ai_image_rate_limited:'Demasiadas solicitudes de imágenes. Espera unos minutos.',
+    editorial_ai_image_provider_unavailable:'El proveedor de imágenes no responde. Consulta el saldo de la API.',
+    editorial_ai_image_provider_limited:'La API de imágenes está temporalmente limitada.',
+    editorial_ai_image_invalid:'La imagen generada no superó la validación. No se ha guardado.',
+    editorial_review_stale:'La noticia cambió mientras se generaba. Recarga la revisión.',
+    editorial_unpublish_before_reopen:'Primero retira la noticia publicada.',
+    editorial_ai_insufficient_evidence:'No hay información suficiente para redactar el titular y el resumen. Añade hechos contrastados.',
+    editorial_ai_image_reservation_expired:'La generación tardó demasiado. No se ha guardado la imagen.',
+    editorial_ai_image_unavailable:'No se pudo completar la generación de la imagen.'
+  })[code]||editorialAiErrorV3242(code)||'No se pudo generar la imagen.';
+}
+async function requestEditorialAiImageV3243(full,button,status){
+  const item=editorialReviewCurrent;
+  if(!item||item.status!=='pending'||editorialAiImageBusyV3243)return;
+  const id=String(item.id);
+  if(editorialReviewHasChangesV3216()&&
+    !confirm('Hay textos sin guardar. Se volverá a abrir la revisión y se perderán esos cambios. ¿Continuar?'))return;
+  if(!confirm('Esta operación utilizará créditos de OpenAI y generará una ilustración conceptual, no una foto real. Solo se permite una imagen IA por noticia. ¿Continuar?'))return;
+  const body={revision:Number(item.revision),verifiedFacts:$('#editorialVerifiedFactsV3242')?.value.trim()||''};
+  editorialAiImageBusyV3243=true;
+  button.disabled=true;
+  status.textContent=full?'Creando titular, resumen e ilustración IA. Puede tardar hasta dos minutos…'
+    :'Generando ilustración IA. Puede tardar hasta dos minutos…';
+  try{
+    const {r,d}=await api('/api/admin/editorial/'+(full?'ai-complete/':'ai-image/')+encodeURIComponent(id),{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)throw Error(editorialAiImageErrorV3243(d?.error));
+    setAdminNotice('Ilustración guardada como borrador, claramente marcada como IA. No está publicada y requiere aprobación.');
+    // Never force navigation back to an old candidate if the administrator changed news.
+    if(String(editorialReviewCurrent?.id)!==id){
+      await loadEditorialInboxV321();
+      return;
+    }
+    await refreshEditorialImageAfterSaveV3242(id);
+    if(full&&d?.textDraft?.ready&&String(editorialReviewCurrent?.id)===id){
+      const form=$('#editorialReviewForm');
+      form.elements.namedItem('title').value=d.textDraft.title;
+      form.elements.namedItem('summary').value=d.textDraft.summary;
+      renderEditorialOriginalityV32171(editorialReviewCurrent);
+      $('#editorialSuggestionStatus').textContent=
+        'Titular y resumen IA añadidos al editor, pero todavía SIN GUARDAR. Contrasta la fuente y pulsa «Guardar borrador» manualmente.';
+      $('#editorialReviewForm').scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }catch(e){status.textContent=e.message;setAdminNotice('Generación IA: '+e.message,true);}
+  finally{editorialAiImageBusyV3243=false;button.disabled=false;}
+}
+$('#editorialAiImageButtonV3243')?.addEventListener('click',event=>{
+  requestEditorialAiImageV3243(false,event.currentTarget,$('#editorialAiImageStatusV3243'));
+});
+$('#editorialAiCompleteButtonV3243')?.addEventListener('click',event=>{
+  requestEditorialAiImageV3243(true,event.currentTarget,$('#editorialSuggestionStatus'));
+});
+
 $('#editorialImageUseV3222')?.addEventListener('click',async()=>{
   const item=editorialReviewCurrent;
   if(!imageReadyV3222()||!item)return;

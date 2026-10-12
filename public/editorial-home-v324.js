@@ -65,7 +65,7 @@
       const pic=make('img','');pic.src=item.image_url;
       pic.alt=String(item.image_alt||item.title||'Fotografía de noticia revisada');
       pic.loading='lazy';pic.decoding='async';
-      const credit=make('figcaption','',String(item.image_credit||'Crédito fotográfico'));
+      const credit=make('figcaption','',(item.image_origin==='ai'?'Imagen ilustrativa generada con IA':String(item.image_credit||'Crédito fotográfico')));
       photo.append(pic,credit);
     }
     card.append(header,headline);

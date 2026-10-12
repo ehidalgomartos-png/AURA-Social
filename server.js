@@ -34,6 +34,7 @@ const {admin:editorialPublishV323Admin,publicRouter:editorialPublishV323Public}=
 const editorialImagesV3222Admin=require('./src/routes/admin-editorial-images-v3222');
 const editorialMediaV3242Admin=require('./src/routes/admin-editorial-media-v3242');
 const {router:editorialAiV3242Admin}=require('./src/routes/admin-editorial-ai-v3242');
+const editorialAiImageV3243Admin=require('./src/routes/admin-editorial-ai-image-v3243');
 const editorialWebImportV3223Admin=require('./src/routes/admin-editorial-web-import-v3223');
 const {router:editorialQualityV325Admin}=require('./src/routes/admin-editorial-quality-v325');
 const {router:editorialPlanningV326Admin}=require('./src/routes/admin-editorial-planning-v326');
@@ -75,7 +76,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.42';
+const APP_VERSION='3.2.43';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -235,6 +236,7 @@ app.use('/api/admin/editorial', editorialPublishV323Admin);
 app.use('/api/admin/editorial', editorialImagesV3222Admin);
 app.use('/api/admin/editorial', editorialMediaV3242Admin);
 app.use('/api/admin/editorial', editorialAiV3242Admin);
+app.use('/api/admin/editorial', editorialAiImageV3243Admin);
 app.use('/api/admin/editorial', editorialWebImportV3223Admin);
 app.use('/api/admin/editorial', adminEditorialReviewV322Routes);
 app.use('/api/admin/editorial', adminEditorialInboxV321Routes);

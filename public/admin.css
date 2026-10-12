@@ -685,7 +685,7 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 }
 
 /* V3.2.42 — isolated editorial photo choices, not applied to other admin forms. */
-#editorialInbox .editorial-media-options-v3242{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+#editorialInbox .editorial-media-options-v3242{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
 #editorialInbox .editorial-media-options-v3242 label{display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer;min-height:48px;font-size:12px}
 #editorialInbox .editorial-media-options-v3242 input[type=radio]{width:18px;height:18px;flex:0 0 18px;accent-color:var(--teal)}
 #editorialInbox .editorial-media-mode-v3242[hidden]{display:none!important}
