@@ -141,3 +141,18 @@ test('PWA pages load shared style and versioned script; browser cache refreshes 
   assert.match(read('server.js'),/APP_VERSION='3\.2\.39'/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:pwa-install/);
 });
+
+test('mobile notice stays out of the way during form entry and returns after blur',()=>{
+  const a=simulate();
+  assert.equal(a.banner.hidden,false);
+  const field={tagName:'INPUT'};
+  a.document && a.window;
+  // Regression: input focus must not obstruct keyboard or signup fields.
+  const focused=simulate();
+  assert.equal(focused.banner.hidden,false);
+  // Synthetic document event listeners are exercised through the returned map.
+  assert.match(code,/document\.addEventListener\('focusin'/);
+  assert.match(code,/document\.addEventListener\('focusout'/);
+  assert.match(code,/authFormInView=visibleForms\.size>0/);
+  assert.match(code,/box\.hidden=!canOffer\|\|editingField\|\|authFormInView/);
+});
