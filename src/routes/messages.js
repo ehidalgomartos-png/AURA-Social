@@ -653,7 +653,7 @@ router.get('/community-conversations', async (req,res)=>{
 // V3.2.44 — Private autocomplete for starting a real one-to-one conversation.
 // Suggestions never reveal blocked, suspended or non-discoverable accounts.
 router.get('/recipients',async(req,res)=>{
-  const q=String(req.query.q||'').trim().replace(/^@/,'').slice(0,60);
+  const q=String(req.query.q||'').trim().replace(/^@/,'').replace(/[%_\\]/g,'').slice(0,60);
   if(q.length<2)return res.set('Cache-Control','no-store').json({users:[]});
   try{
     const found=await db.query(
@@ -665,7 +665,7 @@ router.get('/recipients',async(req,res)=>{
       "ORDER BY CASE WHEN lower(u.username)=lower($2) THEN 0 "+
       "WHEN lower(u.username) LIKE lower($2)||'%' THEN 1 "+
       "WHEN lower(COALESCE(u.display_name,'')) LIKE lower($2)||'%' THEN 2 ELSE 3 END, u.id DESC LIMIT 8",
-      [req.user.id,q.replace(/[%_\\]/g,'')]);
+      [req.user.id,q]);
     res.set('Cache-Control','no-store').json({users:found.rows});
   }catch(e){
     console.error('Direct recipient lookup failed:',e);
