@@ -1878,6 +1878,7 @@ function editorialSafeHref(value){
   }catch(_){return '';}
 }
 function closeEditorialReview(){
+  cancelEditorialImagePreviewV3241();
   editorialReviewCurrent=null;
   editorialRelinkPreviewV3221=null;
   editorialRelinkRequestV3221++;
@@ -2294,6 +2295,22 @@ $('#editorialRelinkConfirmV3221')?.addEventListener('click',async()=>{
 // V3.2.22 — RSS picture is ONLY displayed on explicit admin preview.
 // Public pages are fed by independently licensed, saved local snapshots.
 let editorialImageBusyV3222=false;
+// V3.2.41: an explicit preview must never wait on a lazy image in a hidden figure.
+let editorialImagePreviewSequenceV3241=0;
+let editorialImagePreviewTimerV3241=null;
+function cancelEditorialImagePreviewV3241(){
+  editorialImagePreviewSequenceV3241++;
+  clearTimeout(editorialImagePreviewTimerV3241);
+  editorialImagePreviewTimerV3241=null;
+  const image=$('#editorialImagePreviewV3222');
+  if(image){
+    image.onload=null;
+    image.onerror=null;
+    image.removeAttribute('src');
+  }
+  const button=$('#editorialImagePreviewButtonV3222');
+  if(button)button.disabled=false;
+}
 function imageLocalV3222(value){
   return /^\/uploads\/editorial\/[0-9a-f-]{36}\.(?:jpg|png|webp)$/.test(String(value||''));
 }
@@ -2314,6 +2331,7 @@ function imageReadyV3222(){
   return ready;
 }
 function displayEditorialImageV3222(item){
+  cancelEditorialImagePreviewV3241();
   const section=$('#editorialImagePanelV3222');
   if(!section)return;
   const hasSuggestion=!!item?.source_image_url&&item.source_id!=null;
@@ -2359,13 +2377,37 @@ $('#editorialImagePreviewButtonV3222')?.addEventListener('click',()=>{
   if(!/^[1-9][0-9]{0,14}$/.test(id))return;
   const img=$('#editorialImagePreviewV3222'),figure=$('#editorialImageFigureV3222');
   const status=$('#editorialImageStatusV3222');
-  if(!img||!figure)return;
-  img.onload=()=>{if(String(editorialReviewCurrent?.id)===id){
-    figure.hidden=false;if(status)status.textContent='Vista previa privada cargada. Confirma por separado los derechos de la fotografía.';}};
-  img.onerror=()=>{if(String(editorialReviewCurrent?.id)===id){
-    figure.hidden=true;if(status)status.textContent='No se pudo obtener la foto de forma segura. Comprueba que es HTTPS, accesible y JPEG, PNG o WebP (máximo 4 MB).';}};
+  const button=$('#editorialImagePreviewButtonV3222');
+  if(!img||!figure||!button||button.disabled)return;
+  const sequence=++editorialImagePreviewSequenceV3241;
+  const isCurrent=()=>sequence===editorialImagePreviewSequenceV3241&&
+    String(editorialReviewCurrent?.id)===id;
+  function completePreview(ok,message){
+    if(!isCurrent())return;
+    clearTimeout(editorialImagePreviewTimerV3241);
+    editorialImagePreviewTimerV3241=null;
+    button.disabled=false;
+    figure.hidden=!ok;
+    if(status)status.textContent=message;
+    img.onload=null;
+    img.onerror=null;
+  }
+  button.disabled=true;
+  figure.hidden=true;
+  img.loading='eager'; // Hidden, lazily loaded <img> never starts fetching on some browsers.
   img.alt='Vista previa privada de la fotografía del RSS';
+  img.onload=()=>completePreview(true,
+    'Vista previa privada cargada. Confirma por separado los derechos de la fotografía.');
+  img.onerror=()=>completePreview(false,
+    'No se pudo cargar la fotografía del RSS. Puede no estar disponible o no superar las comprobaciones de seguridad. Pulsa Previsualizar para reintentar.');
   if(status)status.textContent='Cargando la vista previa privada…';
+  clearTimeout(editorialImagePreviewTimerV3241);
+  editorialImagePreviewTimerV3241=setTimeout(()=>{
+    if(!isCurrent())return;
+    img.onload=null;img.onerror=null;
+    img.removeAttribute('src');
+    completePreview(false,'La vista previa ha tardado demasiado. Pulsa Previsualizar para reintentar o consulta la noticia en su fuente.');
+  },30000);
   img.src='/api/admin/editorial/images/'+encodeURIComponent(id)+'/preview';
 });
 $('#editorialImageUseV3222')?.addEventListener('click',async()=>{
