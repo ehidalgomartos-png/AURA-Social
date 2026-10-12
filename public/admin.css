@@ -683,3 +683,20 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
   #editorialCenter .editorial-home-visibility-head-v3225 button{min-height:44px}
   #editorialCenter .editorial-visibility-metrics-v3225{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* V3.2.42 — isolated editorial photo choices, not applied to other admin forms. */
+#editorialInbox .editorial-media-options-v3242{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+#editorialInbox .editorial-media-options-v3242 label{display:flex;align-items:center;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer;min-height:48px;font-size:12px}
+#editorialInbox .editorial-media-options-v3242 input[type=radio]{width:18px;height:18px;flex:0 0 18px;accent-color:var(--teal)}
+#editorialInbox .editorial-media-mode-v3242[hidden]{display:none!important}
+#editorialInbox .editorial-media-mode-v3242{display:grid;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:12px}
+#editorialInbox #editorialImageOwnFormV3242 label{display:grid;gap:5px}
+#editorialInbox #editorialImageOwnFormV3242 label.editorial-check{display:flex;gap:8px;align-items:flex-start}
+#editorialInbox #editorialImageOwnFormV3242 input:not([type=checkbox]),#editorialInbox #editorialImageOwnFormV3242 textarea{width:100%;max-width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px}
+#editorialInbox #editorialImageOwnFormV3242 input[type=checkbox]{width:18px;height:18px;flex:0 0 18px}
+#editorialInbox .editorial-draft-suggestion label{display:grid;gap:6px;margin:12px 0;font-size:12px;font-weight:700}
+#editorialInbox #editorialVerifiedFactsV3242{width:100%;min-height:84px;border:1px solid var(--line);border-radius:9px;padding:10px}
+@media(max-width:620px){
+ #editorialInbox .editorial-media-options-v3242{grid-template-columns:1fr}
+ #editorialInbox #editorialImageOwnFormV3242 button,#editorialInbox .editorial-draft-suggestion button{width:100%}
+}

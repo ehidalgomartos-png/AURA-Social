@@ -86,6 +86,10 @@
           <label for="editorialWebProfileV3223">Perfil editorial preparado de la categoría
             <select id="editorialWebProfileV3223" required><option value="">Selecciona un perfil</option></select>
           </label>
+          <label for="editorialWebVerifiedFactsV3242">Hechos contrastados para generar el borrador con IA (opcional)
+            <textarea id="editorialWebVerifiedFactsV3242" maxlength="1800" rows="3" placeholder="Resume con tus palabras lo que has comprobado en el artículo."></textarea>
+          </label>
+          <button type="button" id="editorialWebAiDraftV3242" class="alt">Crear titular y resumen con IA</button>
           <label for="editorialWebTitleV3223">Titular editorial propio
             <input id="editorialWebTitleV3223" minlength="12" maxlength="220" required placeholder="Escribe un titular original">
           </label>
@@ -205,7 +209,31 @@
         <button type="button" id="editorialRelinkConfirmV3221" class="soft" disabled>Vincular fuente y volver a revisar</button>
       </section>
       <section id="editorialImagePanelV3222" class="editorial-image-panel-v3222" aria-labelledby="editorialImageTitleV3222" hidden>
-        <h4 id="editorialImageTitleV3222">Fotografía de la noticia RSS</h4>
+        <h4 id="editorialImageTitleV3222">Imagen de la noticia</h4>
+        <p class="panel-copy">Elige cómo quieres publicar esta noticia. Ninguna imagen se utiliza automáticamente.</p>
+        <div class="editorial-media-options-v3242" role="group" aria-label="Tipo de imagen editorial">
+          <label><input type="radio" name="editorialImageModeV3242" value="none" checked> Sin fotografía</label>
+          <label><input type="radio" name="editorialImageModeV3242" value="own"> Subir fotografía propia</label>
+          <label><input type="radio" name="editorialImageModeV3242" value="rss"> Utilizar fotografía RSS autorizada</label>
+        </div>
+        <section id="editorialImageNoneV3242" class="editorial-media-mode-v3242">
+          <p class="panel-copy">Publica solo titular, resumen y enlace al medio. No necesitas gestionar derechos fotográficos.</p>
+          <button id="editorialImageRemoveV3242" type="button" class="soft" hidden>Eliminar foto asociada y volver a revisión</button>
+          <p id="editorialImageNoneStatusV3242" class="status"></p>
+        </section>
+        <form id="editorialImageOwnFormV3242" class="editorial-media-mode-v3242" hidden>
+          <p class="panel-copy">Solo fotografías creadas por ti o sobre las que tienes permiso explícito para usar y publicar.</p>
+          <label>Archivo de imagen (JPG, PNG o WebP, máximo 4 MB)
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required>
+          </label>
+          <label>Descripción accesible <input name="alt" minlength="12" maxlength="220" required placeholder="Qué aparece realmente en la fotografía"></label>
+          <label>Autor o crédito <input name="credit" minlength="3" maxlength="200" required placeholder="Nombre del autor o titular"></label>
+          <label>Origen y autorización <textarea name="rightsReference" minlength="12" maxlength="1000" rows="2" required placeholder="Ej.: Fotografía realizada por mí, tengo los derechos de publicación"></textarea></label>
+          <label class="editorial-check"><input name="confirmedOwnedRights" type="checkbox" required> Confirmo que poseo los derechos necesarios para publicar esta fotografía.</label>
+          <button type="submit" class="soft">Guardar foto propia y volver a revisión</button>
+          <p id="editorialImageOwnStatusV3242" class="status" role="status"></p>
+        </form>
+        <div id="editorialImageRssControlsV3242" class="editorial-media-mode-v3242" hidden>
         <p id="editorialImageStatusV3222" class="panel-copy" role="status" aria-live="polite"></p>
         <button type="button" class="soft" id="editorialImagePreviewButtonV3222">Previsualizar foto del RSS</button>
         <figure id="editorialImageFigureV3222" hidden>
@@ -225,12 +253,21 @@
         <label class="editorial-check"><input id="editorialImageConfirmRightsV3222" type="checkbox"> Confirmo que he comprobado el derecho a reutilizar esta fotografía concreta, no solo el texto o la fuente RSS.</label>
         <button type="button" class="soft" id="editorialImageUseV3222" disabled>Guardar foto autorizada en el VPS y volver a revisión</button>
         <p class="panel-copy">La foto solo se descargará a nuestro VPS al confirmarla. Después, la noticia volverá a Pendientes y requerirá nueva aprobación y control de calidad. No se publicará automáticamente.</p>
+        </div>
       </section>
       <p><a id="editorialReviewLink" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden>Leer noticia en la fuente ↗</a></p>
       <section id="editorialIntelligence" class="editorial-advice" hidden aria-label="Sugerencias de clasificación y noticias relacionadas"></section>
       <section id="editorialProvenanceV3217" class="editorial-provenance-v3217" aria-label="Control orientativo de originalidad y trazabilidad" aria-live="polite" hidden></section>
       <form id="editorialReviewForm" class="editorial-form">
-        <div class="editorial-draft-suggestion"><button type="button" id="editorialSuggestDraft" class="soft">Preparar titular y resumen automáticamente</button><p class="panel-copy">Propuesta gratuita basada en metadatos RSS. Es orientativa: no resume ni verifica el artículo completo. Revisa y reescribe antes de aprobar.</p><p id="editorialSuggestionStatus" class="status" role="status" aria-live="polite"></p></div>
+        <div class="editorial-draft-suggestion">
+          <button type="button" id="editorialSuggestDraft" class="soft">Propuesta básica sin IA</button>
+          <label for="editorialVerifiedFactsV3242">Hechos contrastados (para mejorar el titular y resumen)
+            <textarea id="editorialVerifiedFactsV3242" maxlength="1800" rows="3" placeholder="Escribe los datos del artículo que has comprobado: quién, qué, dónde, cuándo y cifras fiables."></textarea>
+          </label>
+          <button type="button" id="editorialAiDraftButtonV3242" class="alt">Crear titular y resumen con IA</button>
+          <p class="panel-copy">La IA es opcional y requiere configuración en el VPS. No inventará datos intencionadamente, pero puede equivocarse: revisa y contrasta todo. Solo prepara un borrador, nunca publica.</p>
+          <p id="editorialSuggestionStatus" class="status" role="status" aria-live="polite"></p>
+        </div>
         <label>Titular editorial propio <input type="text" name="title" required minlength="12" maxlength="220" autocomplete="off" aria-describedby="editorialOriginalityTitleV32171"><span id="editorialOriginalityTitleV32171" class="editorial-field-feedback-v32171" aria-live="polite"></span></label>
         <label>Resumen original (mínimo 70 caracteres) <textarea name="summary" required minlength="70" maxlength="1100" rows="5" aria-describedby="editorialOriginalitySummaryV32171"></textarea><span id="editorialOriginalitySummaryV32171" class="editorial-field-feedback-v32171" aria-live="polite"></span></label>
         <label>Nota de revisión / motivo <textarea name="note" maxlength="500" rows="3" placeholder="Justifica la decisión y registra las verificaciones"></textarea></label>
@@ -680,6 +717,6 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.41"></script>
+  <script src="/admin.js?v=3.2.42"></script>
 </body>
 </html>
