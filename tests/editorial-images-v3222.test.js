@@ -163,7 +163,7 @@ test('la interfaz no hace hotlink ni baja imágenes al consultar RSS',()=>{
  assert.ok(js.includes('imageLocalV3222(item.editorial_image_url)'));
  assert.doesNotMatch(reader,/fetchImageV3222|saveEditorialImageV3222/);
  assert.doesNotMatch(rss,/req\.file|downloadImage|fetchImageV3222/);
- assert.ok(html.includes('/admin.js?v=3.2.25'));
+ assert.ok(html.includes('/admin.js?v=3.2.41'));
 });
 test('mismo sistema gratis y multimedia persistente del VPS, sin romper publicación manual',()=>{
  const server=read('server.js'),route=read('src/routes/editorial-publication-v323.js');
