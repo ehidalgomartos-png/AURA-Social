@@ -96,21 +96,21 @@ jobs:
         run: npm run test:direct-conversations
       - name: V3.2.30 active public discussions and Explore privacy regression tests
         run: npm run test:active-discussions
-      - name: V3.2.38 my conversations, responsive filters and privacy regressions
+      - name: V3.2.39 my conversations, responsive filters and privacy regressions
         run: npm run test:my-conversations
-      - name: V3.2.38 mobile Explore sections and compatibility regressions
+      - name: V3.2.39 mobile Explore sections and compatibility regressions
         run: npm run test:explore-mobile-sections
-      - name: V3.2.38 mobile on-demand global search regression tests
+      - name: V3.2.39 mobile on-demand global search regression tests
         run: npm run test:mobile-global-search
-      - name: V3.2.38 mobile comment participation and modal safety regressions
+      - name: V3.2.39 mobile comment participation and modal safety regressions
         run: npm run test:mobile-comment-participation
-      - name: V3.2.38 session-only drafts, reply context and submission safety
+      - name: V3.2.39 session-only drafts, reply context and submission safety
         run: npm run test:comment-drafts
-      - name: V3.2.38 manual comment refresh, scroll and draft preservation
+      - name: V3.2.39 manual comment refresh, scroll and draft preservation
         run: npm run test:comment-refresh
-      - name: V3.2.38 jump to recent comments and accessibility regression tests
+      - name: V3.2.39 jump to recent comments and accessibility regression tests
         run: npm run test:comment-jump-latest
-      - name: V3.2.38 navigate actual new replies without losing reading position
+      - name: V3.2.39 navigate actual new replies without losing reading position
         run: npm run test:new-comment-navigation
       - name: Mobile navigation icon, dock opacity and small-screen regression tests
         run: npm run test:mobile-nav
@@ -142,6 +142,8 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
+      - name: V3.2.39 mobile PWA installation and installed-state safety tests
+        run: npm run test:pwa-install
       - name: Mobile performance and PWA cache regression tests
         run: npm run test:performance
       - name: Advanced security regression tests

@@ -1,0 +1,38 @@
+/* V3.2.39 — contextual install guidance, mobile only, with native prompt when possible. */
+.pwa-install-banner-v3239{
+  position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  max-width:460px;margin-inline:auto;padding:14px 48px 14px 12px;
+  display:flex;align-items:flex-start;gap:12px;
+  border:1px solid rgba(13,34,56,.15);border-radius:18px;
+  color:#132b3e;background:#fffdf9;box-shadow:0 12px 36px rgba(13,34,56,.2);
+  z-index:70;font-family:inherit;text-align:left;
+}
+.pwa-install-banner-v3239[hidden],.pwa-install-guide-v3239[hidden]{display:none!important}
+.pwa-install-icon-v3239{width:48px;height:48px;border-radius:12px;flex-shrink:0}
+.pwa-install-copy-v3239{display:grid;gap:5px;min-width:0;font-size:13px;line-height:1.4}
+.pwa-install-copy-v3239 strong{font-size:14px;color:#0d2238}
+.pwa-install-copy-v3239 span,.pwa-install-guide-v3239{color:#526273}
+.pwa-install-actions-v3239{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:5px}
+.pwa-install-primary-v3239,.pwa-install-already-v3239{
+  font-family:inherit;min-height:44px;padding:9px 13px;cursor:pointer;
+  border-radius:11px;font-size:13px;font-weight:750;
+}
+.pwa-install-primary-v3239{color:#fff;background:#0d2238;border:1px solid #0d2238}
+.pwa-install-already-v3239{color:#0d2238;background:transparent;border:1px solid #d6e0e2}
+.pwa-install-close-v3239{
+  position:absolute;right:5px;top:5px;min-width:44px;min-height:44px;
+  background:transparent;border:0;color:#526273;cursor:pointer;font-size:24px;
+}
+.pwa-install-guide-v3239{margin:3px 0 0;font-size:13px;line-height:1.5}
+.pwa-install-banner-v3239 button:focus-visible,.pwa-install-guide-v3239:focus-visible{
+  outline:3px solid #2bb7a9;outline-offset:2px
+}
+body.pwa-install-inside-app-v3239 .pwa-install-banner-v3239{
+  bottom:calc(82px + env(safe-area-inset-bottom,0px));
+}
+@media(min-width:769px){
+  .pwa-install-banner-v3239{display:none!important}
+}
+@media(display-mode:standalone){
+  .pwa-install-banner-v3239{display:none!important}
+}
