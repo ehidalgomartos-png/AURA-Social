@@ -45,7 +45,7 @@ function simulate({agent='Mozilla/5.0 (Linux; Android 14; Pixel) AppleWebKit Chr
     removeItem:k=>storage.delete(k)
   };
   vm.runInNewContext(code,{window,document,navigator,localStorage,Date});
-  return {window,document,navigator,banner,buttons,events,windowEvents,storage,sidebar,mmCallbacks};
+  return {window,document,navigator,banner,buttons,events,windowEvents,docEvents,storage,sidebar,mmCallbacks};
 }
 test('install offer appears for Android visitors without login and falls back to manual guide',async()=>{
   const a=simulate();
@@ -146,13 +146,9 @@ test('mobile notice stays out of the way during form entry and returns after blu
   const a=simulate();
   assert.equal(a.banner.hidden,false);
   const field={tagName:'INPUT'};
-  a.document && a.window;
-  // Regression: input focus must not obstruct keyboard or signup fields.
-  const focused=simulate();
-  assert.equal(focused.banner.hidden,false);
-  // Synthetic document event listeners are exercised through the returned map.
-  assert.match(code,/document\.addEventListener\('focusin'/);
-  assert.match(code,/document\.addEventListener\('focusout'/);
-  assert.match(code,/authFormInView=visibleForms\.size>0/);
-  assert.match(code,/box\.hidden=!canOffer\|\|editingField\|\|authFormInView/);
+  a.docEvents.focusin({target:field});
+  assert.equal(a.banner.hidden,true);
+  a.docEvents.focusout({target:field});
+  assert.equal(a.banner.hidden,false);
+  assert.match(code,/authFormInView=visibleForms.size>0/);
 });
