@@ -2599,7 +2599,8 @@ function openEditorialReview(item){
   form.elements.namedItem('note').value=item.editor_note||'';
   $('#editorialSuggestionStatus').textContent='';
   $('#editorialSuggestDraft').hidden=item.status!=='pending';
-  if(item.status==='pending')fillEditorialDraftV3213(item,false);
+  // V3.2.42: never silently fill the editor with generic RSS boilerplate.
+  // Only a deliberate basic suggestion or on-demand AI may replace empty fields.
   $('#editorialReviewEditorTitle').textContent='Revisión #'+item.id+' · '+(item.status==='pending'?'Pendiente':item.status==='approved'?'Aprobada':'Rechazada');
   renderEditorialAdviceV3215(item);
   renderEditorialProvenanceV3217(item);

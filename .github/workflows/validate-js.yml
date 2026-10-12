@@ -76,6 +76,8 @@ jobs:
         run: npm run test:editorial-images
       - name: V3.2.41 private RSS preview loading and timeout regression tests
         run: npm run test:editorial-preview
+      - name: V3.2.42 image choices, original uploads and optional AI editorial tests
+        run: npm run test:editorial-assistant
       - name: V3.2.23 safe HTTPS article metadata and manual editorial draft import tests
         run: npm run test:editorial-web-import
       - name: V3.2.24 clean Home and two-posts-one-news privacy regression tests
