@@ -27,6 +27,8 @@ if('serviceWorker' in navigator){
   let installedThisVisit=false;
   let acceptedThisVisit=false;
   let banner=null;
+  let editingField=false;
+  let authFormInView=false;
 
   function standaloneV3239(){
     return navigator.standalone===true ||
@@ -41,6 +43,9 @@ if('serviceWorker' in navigator){
   }
   function storageClear(key){
     try{localStorage.removeItem(key);}catch(_){}
+  }
+  function isEditableV3239(target){
+    return !!target && (/^(INPUT|TEXTAREA|SELECT)$/i.test(String(target.tagName||'')) || target.isContentEditable===true);
   }
   function isSuppressedV3239(){
     return standaloneV3239()||installedThisVisit||acceptedThisVisit||
@@ -121,7 +126,8 @@ if('serviceWorker' in navigator){
     if(document.querySelector('.social-shell'))document.body?.classList.add('pwa-install-inside-app-v3239');
     const box=createBannerV3239();
     if(!box)return;
-    box.hidden=!canOffer;
+    // Keep signup, login and mobile text editing usable without a floating overlay.
+    box.hidden=!canOffer||editingField||isEditableV3239(document.activeElement)||authFormInView;
     if(!canOffer)return;
     box.querySelector('.pwa-install-primary-v3239').textContent=
       deferredInstallPrompt?'Instalar':'Cómo instalarla';
@@ -142,6 +148,34 @@ if('serviceWorker' in navigator){
     storageClear(DISMISS_KEY);
     renderInstallV3239();
   });
+  document.addEventListener('focusin',event=>{
+    if(isEditableV3239(event.target)){
+      editingField=true;
+      renderInstallV3239();
+    }
+  });
+  document.addEventListener('focusout',event=>{
+    if(isEditableV3239(event.target)){
+      editingField=false;
+      renderInstallV3239();
+    }
+  });
+  // On the public landing page, don't cover either registration or login forms.
+  if(isMobile && typeof IntersectionObserver!=='undefined'){
+    const forms=['#registerForm','#loginForm'].map(sel=>document.querySelector(sel)).filter(Boolean);
+    if(forms.length){
+      const visibleForms=new Set();
+      const observer=new IntersectionObserver(entries=>{
+        for(const entry of entries){
+          if(entry.isIntersecting)visibleForms.add(entry.target);
+          else visibleForms.delete(entry.target);
+        }
+        authFormInView=visibleForms.size>0;
+        renderInstallV3239();
+      });
+      for(const form of forms)observer.observe(form);
+    }
+  }
   window.addEventListener('pageshow',renderInstallV3239);
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')renderInstallV3239();
