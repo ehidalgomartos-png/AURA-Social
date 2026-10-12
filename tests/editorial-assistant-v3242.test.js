@@ -68,7 +68,8 @@ test('AI is disabled by default, only on-demand by admin with throttling and no 
     "strict:true","confirmedPhotoRights", "editorial_ai_not_configured"]){
     if(token!=='confirmedPhotoRights')assert.ok(aiRoute.includes(token),token);
   }
-  assert.doesNotMatch(aiRoute,/approveCandidate|autoPublish|INSERT INTO editorial/);
+  assert.match(aiRoute,/autoPublish:false/);
+  assert.doesNotMatch(aiRoute,/approveCandidate|autoPublish\s*:\s*true|INSERT INTO editorial/);
 });
 test('AI proposes constrained original output and checks insufficient evidence',async()=>{
   const old=process.env.OPENAI_API_KEY;
