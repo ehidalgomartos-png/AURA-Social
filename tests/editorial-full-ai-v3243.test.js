@@ -96,7 +96,7 @@ test('saving image does not publish: reset review and quality, audited, with rol
   "status='pending',reviewed_at=NULL,reviewed_by=NULL,revision=revision+1",
   "'ai_illustration'","'ROLLBACK'","fs.unlink(stored.absolutePath)",
   "requiresNewReview:true,requiresNewQuality:true","published:false",
-  "'ai-complete/:id'","editorial_review_stale"])assert.ok(api.includes(token),token);
+  "'/ai-complete/:id'","editorial_review_stale"])assert.ok(api.includes(token),token);
  assert.doesNotMatch(api,/UPDATE editorial_publications SET|INSERT INTO editorial_publications/);
 });
 test('public news surfaces and social feed identify the illustration as AI',()=>{
