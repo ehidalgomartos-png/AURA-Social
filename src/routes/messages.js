@@ -658,7 +658,10 @@ router.get('/recipients',async(req,res)=>{
   try{
     const found=await db.query(
       "SELECT u.username,u.display_name FROM users u WHERE u.status='active' "+
-      "AND COALESCE(u.discoverable,true)=true AND u.id<>$1 "+
+      "AND u.id<>$1 AND (COALESCE(u.discoverable,true)=true OR EXISTS("+
+      "SELECT 1 FROM conversation_members own_member JOIN conversation_members other_member "+
+      "ON other_member.conversation_id=own_member.conversation_id "+
+      "WHERE own_member.user_id=$1 AND other_member.user_id=u.id)) "+
       "AND (u.username ILIKE '%'||$2||'%' OR COALESCE(u.display_name,'') ILIKE '%'||$2||'%') "+
       "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE "+
       "(b.blocker_id=$1 AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=$1)) "+
