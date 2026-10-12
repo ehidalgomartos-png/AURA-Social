@@ -7684,3 +7684,65 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 @media(prefers-reduced-motion:reduce){
   #commentsModal .comment-item.comment-new-arrival-v3238{scroll-behavior:auto}
 }
+
+
+/* V3.2.44 — Chat mobile ocupa la ventana real; el teclado nunca oculta Enviar. */
+.message-recipient-results-v3244{display:grid;gap:4px;margin:4px 0 12px;padding:6px;border:1px solid var(--line);background:var(--paper);border-radius:13px;max-height:220px;overflow-y:auto}
+.message-recipient-results-v3244[hidden]{display:none!important}
+.message-recipient-choice-v3244{min-height:48px;padding:10px 12px;text-align:left;border:0;border-radius:9px;background:var(--ivory);display:grid;gap:3px;cursor:pointer}
+.message-recipient-choice-v3244:focus-visible,.message-recipient-choice-v3244:hover{outline:2px solid var(--teal);outline-offset:0}
+.message-recipient-choice-v3244 b{color:var(--ink);font-size:13px}
+.message-recipient-choice-v3244 small{color:var(--muted);font-size:11px}
+.message-send-feedback-v3244{margin:5px 0 0;min-height:0;color:#a33434;font-weight:700;font-size:12px}
+.message-send-feedback-v3244:empty{display:none}
+@media(max-width:760px){
+  body.mobile-chat-active-v3244{overflow:hidden}
+  body.mobile-chat-active-v3244 #messagesView.view-enter{animation:none!important;transform:none!important}
+  body.mobile-chat-active-v3244 .bottom-nav{visibility:hidden;pointer-events:none}
+  #messagesView .messages-layout.chat-open{
+    position:fixed;inset:0 0 auto 0;
+    z-index:180;
+    width:100%;
+    height:var(--visual-vh,100dvh);
+    min-height:0;max-height:none;margin:0;padding:0;
+    border:0;border-radius:0;overflow:hidden;
+    box-shadow:none;background:var(--paper);
+  }
+  #messagesView .messages-layout.chat-open .chat-panel,
+  body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel{
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr) auto;
+    height:100%;min-height:0;max-height:none;
+    overflow:hidden;
+  }
+  #messagesView .messages-layout.chat-open .chat-head{
+    position:relative;flex:0 0 auto;z-index:2;
+    padding:calc(8px + env(safe-area-inset-top)) 10px 8px;
+  }
+  #messagesView .messages-layout.chat-open .message-thread{
+    min-height:0;max-height:none;
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:10px;
+  }
+  #messagesView .messages-layout.chat-open .message-form,
+  body.keyboard-open #messagesView .messages-layout.chat-open .message-form{
+    position:relative;bottom:auto;
+    min-height:0;max-height:58vh;overflow-y:auto;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:var(--paper);z-index:3;
+  }
+  body.keyboard-open #messagesView .messages-layout.chat-open .message-form{
+    padding-bottom:8px;
+  }
+  #messagesView .messages-layout.chat-open .message-hint{display:none}
+  #messagesView .messages-layout.chat-open .message-compose{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;
+  }
+  #messagesView .messages-layout.chat-open #messageBody{
+    min-width:0;min-height:46px;font-size:16px;
+  }
+  #messagesView .messages-layout.chat-open .message-compose button[type="submit"]{
+    min-height:46px;min-width:76px;
+  }
+  #newMessageRecipientV3244{font-size:16px}
+}
