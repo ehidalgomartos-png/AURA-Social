@@ -10098,17 +10098,7 @@ $('#logout').onclick = async () => {
   location.href = '/';
 };
 
-window.addEventListener('redlibertad-install-ready', e => {
-  const button = $('#installApp');
-  if (!button) return;
-  button.classList.remove('hidden');
-  button.onclick = async () => {
-    const promptEvent = e.detail;
-    promptEvent.prompt();
-    await promptEvent.userChoice;
-    button.classList.add('hidden');
-  };
-}, { once: true });
+// The shared /pwa.js handles installability and mobile guidance for all visitors.
 
 async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);

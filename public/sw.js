@@ -1,6 +1,6 @@
 'use strict';
-const SHELL_CACHE='redlibertad-v2120-shell';
-const STATIC_CACHE='redlibertad-v2120-static';
+const SHELL_CACHE='redlibertad-v3239-shell';
+const STATIC_CACHE='redlibertad-v3239-static';
 const CACHE_PREFIX='redlibertad-';
 const MAX_STATIC_ENTRIES=64;
 
@@ -14,6 +14,7 @@ const SHELL_ASSETS=[
   '/social.js',
   '/creator-ops.js',
   '/pwa.js',
+  '/pwa-install.css',
   '/manifest.webmanifest',
   '/assets/logo-mark.svg',
   '/assets/favicon.svg',

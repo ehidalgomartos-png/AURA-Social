@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.38",
+  "version": "3.2.39",
   "private": true,
-  "description": "RedLibertad V3.2.38 — Navigate New Comments",
+  "description": "RedLibertad V3.2.39 — Mobile PWA Install Guidance",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -78,7 +78,8 @@
     "test:comment-drafts": "node --test tests/comment-drafts-v3235.test.js",
     "test:comment-refresh": "node --test tests/comment-refresh-v3236.test.js",
     "test:comment-jump-latest": "node --test tests/comment-jump-latest-v3237.test.js",
-    "test:new-comment-navigation": "node --test tests/new-comment-navigation-v3238.test.js"
+    "test:new-comment-navigation": "node --test tests/new-comment-navigation-v3238.test.js",
+    "test:pwa-install": "node --test tests/pwa-install-v3239.test.js"
   },
   "engines": {
     "node": ">=20"
