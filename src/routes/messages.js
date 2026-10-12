@@ -650,6 +650,29 @@ router.get('/community-conversations', async (req,res)=>{
   });
 });
 
+// V3.2.44 — Private autocomplete for starting a real one-to-one conversation.
+// Suggestions never reveal blocked, suspended or non-discoverable accounts.
+router.get('/recipients',async(req,res)=>{
+  const q=String(req.query.q||'').trim().replace(/^@/,'').slice(0,60);
+  if(q.length<2)return res.set('Cache-Control','no-store').json({users:[]});
+  try{
+    const found=await db.query(
+      "SELECT u.username,u.display_name FROM users u WHERE u.status='active' "+
+      "AND COALESCE(u.discoverable,true)=true AND u.id<>$1 "+
+      "AND (u.username ILIKE '%'||$2||'%' OR COALESCE(u.display_name,'') ILIKE '%'||$2||'%') "+
+      "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE "+
+      "(b.blocker_id=$1 AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=$1)) "+
+      "ORDER BY CASE WHEN lower(u.username)=lower($2) THEN 0 "+
+      "WHEN lower(u.username) LIKE lower($2)||'%' THEN 1 "+
+      "WHEN lower(COALESCE(u.display_name,'')) LIKE lower($2)||'%' THEN 2 ELSE 3 END, u.id DESC LIMIT 8",
+      [req.user.id,q.replace(/[%_\\]/g,'')]);
+    res.set('Cache-Control','no-store').json({users:found.rows});
+  }catch(e){
+    console.error('Direct recipient lookup failed:',e);
+    res.status(503).json({error:'recipient_lookup_unavailable'});
+  }
+});
+
 const createConversationSchema = z.object({ username: z.string().min(1).max(30) });
 router.post('/conversations', async (req, res) => {
   const parsed = createConversationSchema.safeParse(req.body);
