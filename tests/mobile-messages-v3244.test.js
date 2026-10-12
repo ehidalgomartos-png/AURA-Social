@@ -65,8 +65,8 @@ test('recipient choices display safe text, never HTML, and do not open somebody 
  assert.match(js,/Selecciona la persona correcta de la lista/);
  assert.match(css,/\.message-recipient-choice-v3244:focus-visible/);
 });
-test('V3.2.44.1 version, cache-busting and CI contract',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.44.1');
+test('V3.2.44.2 version, cache-busting and CI contract',()=>{
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.44.2');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.1'/);
  assert.match(html,/\/social\.js\?v=3\.2\.44\.1/);
  assert.match(html,/\/social\.css\?v=3\.2\.44\.1/);
