@@ -120,7 +120,7 @@ test('reglas CSS aplican solo al Inicio y en móvil, sin tocar publicaciones',()
  const app=read('public/app.html');
  assert.ok(app.includes('/social.css?v=3.2.43'));
  assert.ok(app.includes('/social.js?v=3.2.43'));
- assert.ok(app.includes('/editorial-home-v324.js?v=3.2.24.2'));
+ assert.ok(app.includes('/editorial-home-v324.js?v=3.2.43'));
  assert.ok(app.includes('id="homeGrowthDetailsV3224"'));
 });
 test('alternancia 2:1, tipos de feed y controles originales permanecen',()=>{

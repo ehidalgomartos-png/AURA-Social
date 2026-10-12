@@ -111,5 +111,5 @@ test('release versions and cache busters point to the new hotfix assets',()=>{
   assert.equal(JSON.parse(read('package.json')).version,'3.2.43');
   assert.ok(read('server.js').includes("APP_VERSION='3.2.43'"));
   assert.ok(read('public/index.html').includes('/app.js?v=3.2.24.2'));
-  assert.ok(read('public/app.html').includes('/editorial-home-v324.js?v=3.2.24.2'));
+  assert.ok(read('public/app.html').includes('/editorial-home-v324.js?v=3.2.43'));
 });
