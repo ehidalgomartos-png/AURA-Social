@@ -79,8 +79,8 @@ test('previous filters and unrelated flows remain available without backend modi
 });
 test('version and CI are registered',()=>{
   assert.equal(JSON.parse(read('package.json')).version,'3.2.44.2');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.1'/);
-  assert.match(html,/\/social\.js\?v=3\.2\.44\.1/);
-  assert.match(html,/\/social\.css\?v=3\.2\.44\.1/);
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.2'/);
+  assert.match(html,/\/social\.js\?v=3\.2\.44\.2/);
+  assert.match(html,/\/social\.css\?v=3\.2\.44\.2/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:explore-mobile-sections/);
 });
