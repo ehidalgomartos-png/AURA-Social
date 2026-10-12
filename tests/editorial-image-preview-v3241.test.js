@@ -108,6 +108,6 @@ test('private HTTPS-only preview, human image rights and explicit authorization 
   assert.match(html,/id="editorialImagePreviewV3222"[^>]*loading="eager"/);
   assert.match(html,/\/admin\.js\?v=3\.2\.44\.1/);
   assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.1'/);
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.44.1');
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.44.2');
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-preview/);
 });
