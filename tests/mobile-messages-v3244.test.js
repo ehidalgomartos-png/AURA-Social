@@ -24,7 +24,7 @@ test('failed conversation open never traps the viewer behind a missing chat',()=
  assert.match(js,/document\.body\.classList\.remove\('mobile-chat-active-v3244'\)/);
 });
 test('mobile chat is fixed to the visual viewport, not below community suggestions',()=>{
- assert.match(css,/#messagesView \.messages-layout\.chat-open\s*\{\s*position:fixed;inset:0/);
+ assert.match(css,/#messagesView \.messages-layout\.chat-open\s*\{[\s\S]*?position:fixed;inset:var\(--visual-vtop,0px\)/);
  assert.match(css,/height:var\(--visual-vh,100dvh\)/);
  assert.match(css,/body\.keyboard-open #messagesView \.messages-layout\.chat-open \.chat-panel/);
  assert.match(css,/grid-template-rows:auto minmax\(0,1fr\) auto/);
