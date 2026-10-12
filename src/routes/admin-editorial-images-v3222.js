@@ -96,7 +96,7 @@ router.post('/images/:id/use',limiter,async(req,res)=>{
     if(live.rowCount)throw err(409,'editorial_unpublish_before_reopen');
     // All previous approval/quality gates must be re-run after choosing an image.
     const saved=await client.query(
-      "UPDATE editorial_candidates SET editorial_image_url=$2,editorial_image_alt=$3,"+
+      "UPDATE editorial_candidates SET editorial_image_url=$2,editorial_image_origin='rss',editorial_image_alt=$3,"+
       "editorial_image_credit=$4,editorial_image_rights_reference=$5,"+
       "status='pending',reviewed_at=NULL,reviewed_by=NULL,revision=revision+1,edited_at=now() "+
       "WHERE id=$1 RETURNING id,revision,status,editorial_image_url",

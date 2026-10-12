@@ -65,6 +65,7 @@ async function ensureReviewSchema(){
       await db.query("ALTER TABLE editorial_candidates ADD COLUMN IF NOT EXISTS editorial_image_alt VARCHAR(220)");
       await db.query("ALTER TABLE editorial_candidates ADD COLUMN IF NOT EXISTS editorial_image_credit VARCHAR(200)");
       await db.query("ALTER TABLE editorial_candidates ADD COLUMN IF NOT EXISTS editorial_image_rights_reference VARCHAR(1000)");
+      await db.query("ALTER TABLE editorial_candidates ADD COLUMN IF NOT EXISTS editorial_image_origin VARCHAR(12)");
       await db.query("CREATE INDEX IF NOT EXISTS idx_editorial_review_status ON editorial_candidates(status,fetched_at DESC,id DESC)");
     })().catch(e=>{schemaReady=null;throw e;});
   }
@@ -87,7 +88,7 @@ router.get('/review',guarded(async(req,res)=>{
   const focus=/^[1-9][0-9]{0,14}$/.test(String(req.query.focus||''))?String(req.query.focus):'0';
   const orphaned=req.query.orphaned==='only'?'only':'all';
   const r=await db.query(
-    "SELECT c.id,c.source_id,c.source_name_snapshot,c.removed_source_id,c.source_image_url,c.editorial_image_url,c.editorial_image_alt,c.editorial_image_credit,c.editorial_image_rights_reference,c.profile_id,c.category,c.source_title,c.source_excerpt,c.canonical_url,c.published_at,c.status,c.fetched_at,c.editorial_title,c.editorial_summary,c.editor_note,c.revision,c.edited_at,c.reviewed_at,c.reviewed_by,COALESCE(s.name,c.source_name_snapshot) AS source_name,s.status AS source_status,s.rights_mode,s.rights_reference AS source_rights_reference,u.username AS reviewer_username FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id LEFT JOIN users u ON u.id=c.reviewed_by WHERE c.status=$1 AND ($3::text <> 'only' OR c.source_id IS NULL) ORDER BY (c.id=$2::bigint) DESC,c.fetched_at DESC,c.id DESC LIMIT 100",
+    "SELECT c.id,c.source_id,c.source_name_snapshot,c.removed_source_id,c.source_image_url,c.editorial_image_url,c.editorial_image_alt,c.editorial_image_credit,c.editorial_image_rights_reference,c.editorial_image_origin,c.profile_id,c.category,c.source_title,c.source_excerpt,c.canonical_url,c.published_at,c.status,c.fetched_at,c.editorial_title,c.editorial_summary,c.editor_note,c.revision,c.edited_at,c.reviewed_at,c.reviewed_by,COALESCE(s.name,c.source_name_snapshot) AS source_name,s.status AS source_status,s.rights_mode,s.rights_reference AS source_rights_reference,u.username AS reviewer_username FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id LEFT JOIN users u ON u.id=c.reviewed_by WHERE c.status=$1 AND ($3::text <> 'only' OR c.source_id IS NULL) ORDER BY (c.id=$2::bigint) DESC,c.fetched_at DESC,c.id DESC LIMIT 100",
     [status,focus,orphaned]
   );
   // Recommendations are generated on demand from existing RSS metadata.

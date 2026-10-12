@@ -59,7 +59,8 @@ async function assertApprovedForPublication(client,id,revision){
   if(row.editorial_image_url&&
      (!safeLocalImageV3222(row.editorial_image_url)||!row.editorial_image_alt||
       !row.editorial_image_credit||!row.editorial_image_rights_reference||
-      row.rights_mode!=='licensed'||String(row.rights_reference||'').trim().length<10)){
+      (row.editorial_image_origin!=='own'&&
+        (row.rights_mode!=='licensed'||String(row.rights_reference||'').trim().length<10)))){
     throw fail(409,'editorial_image_license_required');
   }
   // Never embed source HTML or reproduce its original synopsis.
