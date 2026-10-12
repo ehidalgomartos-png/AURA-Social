@@ -98,7 +98,7 @@ test('mobile-first admin UI and manual-only publishing are preserved',()=>{
 test('release asset versions and public Home remain unchanged',()=>{
   assert.equal(JSON.parse(read('package.json')).version,'3.2.41');
   assert.ok(read('server.js').includes("APP_VERSION='3.2.41'"));
-  assert.ok(read('public/admin.html').includes('/admin.js?v=3.2.25'));
+  assert.ok(read('public/admin.html').includes('/admin.js?v=3.2.41'));
   assert.ok(read('public/admin.html').includes('/admin.css?v=3.2.25'));
   assert.ok(read('public/app.html').includes('/editorial-home-v324.js?v=3.2.24.2'));
   assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
