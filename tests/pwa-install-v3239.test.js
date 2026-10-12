@@ -138,7 +138,7 @@ test('PWA pages load shared style and versioned script; browser cache refreshes 
   assert.match(read('public/social.js'),/shared \/pwa\.js handles installability/);
   assert.doesNotMatch(read('public/social.js'),/redlibertad-install-ready/);
   assert.equal(JSON.parse(read('package.json')).version,'3.2.44.2');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.1'/);
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.2'/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:pwa-install/);
 });
 

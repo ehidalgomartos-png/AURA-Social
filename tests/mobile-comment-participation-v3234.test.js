@@ -83,8 +83,8 @@ test('reply, retry, privacy and other comment flows are preserved',()=>{
 });
 test('version and GitHub Actions include V3.2.44.2',()=>{
   assert.equal(JSON.parse(read('package.json')).version,'3.2.44.2');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.1'/);
-  assert.match(html,/\/social\.js\?v=3\.2\.44\.1/);
-  assert.match(html,/\/social\.css\?v=3\.2\.44\.1/);
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.44\.2'/);
+  assert.match(html,/\/social\.js\?v=3\.2\.44\.2/);
+  assert.match(html,/\/social\.css\?v=3\.2\.44\.2/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-comment-participation/);
 });
