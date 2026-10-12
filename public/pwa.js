@@ -127,7 +127,7 @@ if('serviceWorker' in navigator){
     const box=createBannerV3239();
     if(!box)return;
     // Keep signup, login and mobile text editing usable without a floating overlay.
-    box.hidden=!canOffer||editingField||isEditableV3239(document.activeElement)||authFormInView;
+    box.hidden=!canOffer||editingField||authFormInView;
     if(!canOffer)return;
     box.querySelector('.pwa-install-primary-v3239').textContent=
       deferredInstallPrompt?'Instalar':'Cómo instalarla';
