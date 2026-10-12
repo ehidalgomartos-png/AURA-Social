@@ -8,7 +8,7 @@ let feedRequestSequence = 0;
 let releaseFlags={support_center:true};
 let activeViewName='feed';
 
-/* V3.2.44.1: preserve navigation within /app for Android/browser Back. */
+/* V3.2.44.2: preserve navigation within /app for Android/browser Back. */
 const APP_HISTORY_KEY_V32441='rlAppRouteV32441';
 const APP_VIEWS_V32441=new Set(['feed','explore','connections','communities','events','reels','messages','notifications','profile','publicProfile']);
 let appHistoryReadyV32441=false;
@@ -180,11 +180,17 @@ let creatorFollowUpSearchTimer = null;
 function syncVisualViewport(){
   const viewport=window.visualViewport;
   const height=Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 0);
-  const offsetTop=Math.round(viewport?.offsetTop || 0);
-  const keyboardInset=Math.max(0,Math.round((window.innerHeight || height)-height-offsetTop));
+  // iOS Safari pans its visual viewport when the chat textarea receives focus.
+  // Keep fixed chat top and height in the SAME visual viewport coordinate system.
+  const offsetTop=Math.max(0,Math.round(viewport?.offsetTop || 0));
+  const visualGap=Math.max(0,Math.round((window.innerHeight || height)-height));
+  const keyboardInset=Math.max(0,visualGap-offsetTop);
+  const focusedChat=document.activeElement?.id==='messageBody'
+    && document.body.classList.contains('mobile-chat-active-v3244');
   document.documentElement.style.setProperty('--visual-vh',height ? `${height}px` : '100dvh');
+  document.documentElement.style.setProperty('--visual-vtop',`${offsetTop}px`);
   document.documentElement.style.setProperty('--keyboard-inset',`${keyboardInset}px`);
-  document.body.classList.toggle('keyboard-open',keyboardInset>120);
+  document.body.classList.toggle('keyboard-open',keyboardInset>120 || (focusedChat && visualGap>120));
 }
 
 function setConnectivityStatus(online,{initial=false}={}){
@@ -240,6 +246,12 @@ syncVisualViewport();
 window.visualViewport?.addEventListener('resize',syncVisualViewport);
 window.visualViewport?.addEventListener('scroll',syncVisualViewport);
 window.addEventListener('resize',syncVisualViewport);
+// iOS can defer viewport panning until after focus.
+document.addEventListener('focusin',event=>{
+  if(event.target?.id!=='messageBody')return;
+  requestAnimationFrame(syncVisualViewport);
+  setTimeout(syncVisualViewport,250);
+});
 window.addEventListener('online',()=>setConnectivityStatus(true));
 window.addEventListener('offline',()=>setConnectivityStatus(false));
 setConnectivityStatus(navigator.onLine,{initial:true});
