@@ -6620,6 +6620,39 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   flex:none;
   accent-color:var(--teal);
 }
+/* V3.2.40 — The generic .modal-card label input rule otherwise stretches
+   push checkboxes to 100%, pushing their text beyond the mobile modal. */
+.account-modal-card .push-preference-options{
+  min-width:0;
+}
+.account-modal-card .push-preference-options > label{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  gap:12px;
+}
+.account-modal-card .push-preference-options > label > input[type="checkbox"]{
+  appearance:auto;
+  box-sizing:border-box;
+  display:block;
+  width:19px;
+  min-width:19px;
+  max-width:19px;
+  height:19px;
+  min-height:19px;
+  flex:0 0 19px;
+  margin:0;
+  padding:0;
+  border:initial;
+  border-radius:4px;
+  background:initial;
+  accent-color:var(--teal);
+}
+.account-modal-card .push-preference-options > label > span{
+  min-width:0;
+  flex:1 1 auto;
+  overflow-wrap:anywhere;
+}
 .push-preference-options span{min-width:0}
 .push-preference-options b{display:block;font-size:12px;color:var(--navy)}
 .push-preference-options small{
@@ -6639,6 +6672,14 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 .push-preferences-form button[type="submit"]:disabled{opacity:.5}
 @media(max-width:620px){
   .push-preference-options{grid-template-columns:minmax(0,1fr)}
+  .account-modal-card .push-preference-options{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .account-modal-card .push-preference-options > label{
+    min-height:64px;
+  }
+  .account-modal-card .push-preference-options b{font-size:13px}
+  .account-modal-card .push-preference-options small{font-size:12px}
   .push-preferences-form button[type="submit"]{width:100%}
 }
 
