@@ -7,6 +7,63 @@ let currentMode = 'foryou';
 let feedRequestSequence = 0;
 let releaseFlags={support_center:true};
 let activeViewName='feed';
+
+/* V3.2.44.1: preserve navigation within /app for Android/browser Back. */
+const APP_HISTORY_KEY_V32441='rlAppRouteV32441';
+const APP_VIEWS_V32441=new Set(['feed','explore','connections','communities','events','reels','messages','notifications','profile','publicProfile']);
+let appHistoryReadyV32441=false;
+let appHistoryRestoringV32441=false;
+function appRouteV32441({view=activeViewName,chat=null,modal=null,profile=null,anchor=false}={}){
+  const name=APP_VIEWS_V32441.has(view)?view:'feed';
+  return {view:name,chat:name==='messages' && /^[1-9]\d*$/.test(String(chat||''))?String(chat):null,
+    modal:modal==='newMessage'?'newMessage':null,
+    profile:name==='publicProfile'?String(profile||'').slice(0,60):null,anchor:anchor===true};
+}
+function currentAppRouteV32441(){return history.state?.[APP_HISTORY_KEY_V32441]||null;}
+function recordAppRouteV32441(route,{replace=false}={}){
+  if(!appHistoryReadyV32441||appHistoryRestoringV32441)return;
+  const next=appRouteV32441(route),old=currentAppRouteV32441();
+  if(old && !old.anchor && old.view===next.view && old.chat===next.chat &&
+     old.modal===next.modal && old.profile===next.profile)return;
+  const state={...(history.state||{}),[APP_HISTORY_KEY_V32441]:next};
+  if(replace)history.replaceState(state,'',location.href);
+  else history.pushState(state,'',location.href);
+}
+function installAppHistoryV32441(){
+  if(appHistoryReadyV32441)return;
+  // A guard entry avoids exiting straight to the old login page at the first Back.
+  history.replaceState({...(history.state||{}),[APP_HISTORY_KEY_V32441]:
+    appRouteV32441({view:'feed',anchor:true})},'',location.href);
+  history.pushState({...(history.state||{}),[APP_HISTORY_KEY_V32441]:
+    appRouteV32441({view:'feed'})},'',location.href);
+  appHistoryReadyV32441=true;
+}
+window.addEventListener('popstate',event=>{
+  if(!appHistoryReadyV32441)return;
+  const saved=event.state?.[APP_HISTORY_KEY_V32441];
+  if(!saved)return;
+  const route=appRouteV32441(saved);
+  appHistoryRestoringV32441=true;
+  try{
+    if(!$('#newMessageModal')?.classList.contains('hidden'))
+      closeNewConversationModal({fromHistory:true});
+    if(route.anchor){
+      showView('feed');
+      appHistoryRestoringV32441=false;
+      recordAppRouteV32441({view:'feed'});
+      return;
+    }
+    if(route.view==='publicProfile' && route.profile){
+      openPublicProfile(route.profile);
+    }else{
+      showView(route.view);
+      if(route.view==='messages' && route.chat)openConversation(route.chat);
+    }
+    if(route.view==='messages' && route.modal==='newMessage')
+      openNewConversationModal({fromHistory:true});
+  }finally{appHistoryRestoringV32441=false;}
+});
+
 const viewScrollPositions=new Map();
 let connectivityHideTimer=null;
 let currentFileMedia = null;
@@ -2632,6 +2689,7 @@ async function openPublicProfile(username) {
   activePublicProfileUsername=clean;
   viewScrollPositions.set('publicProfile',0);
   showView('publicProfile');
+  recordAppRouteV32441({view:'publicProfile',profile:clean},{replace:true});
   const content = $('#publicProfileContent');
   content.innerHTML = '<div class="public-profile-loading">Cargando perfil...</div>';
 
@@ -7860,6 +7918,7 @@ async function openConversation(id) {
   const layout=$('.messages-layout');
   if(layout)layout.classList.add('chat-open');
   document.body.classList.add('mobile-chat-active-v3244');
+  recordAppRouteV32441({view:'messages',chat:conversationId});
   activeConversationOther=d.other || null;
   activeConversationMeta=d.conversation || null;
   activeConversationSettings=d.settings || {
@@ -7922,6 +7981,11 @@ async function openConversation(id) {
 
   const mobileBack=$('#mobileChatBack');
   if(mobileBack)mobileBack.onclick=()=>{
+    if(currentAppRouteV32441()?.chat===String(activeConversationId)){
+      sendChatPresence({typing:false,conversationId:null});
+      history.back();
+      return;
+    }
     $('.messages-layout')?.classList.remove('chat-open');
     document.body.classList.remove('mobile-chat-active-v3244');
     openConversationSequenceV3244++;
@@ -8317,13 +8381,21 @@ function setNewConversationMode(mode){
   $('#newGroupStatus').textContent='';
 }
 
-function openNewConversationModal(){
+function openNewConversationModal({fromHistory=false}={}){
   $('#newMessageModal').classList.remove('hidden');
+  if(!fromHistory)recordAppRouteV32441({view:'messages',modal:'newMessage'});
   setNewConversationMode('direct');
   setTimeout(()=>$('#newMessageForm input[name="username"]')?.focus(),100);
 }
 
-function closeNewConversationModal(){
+function closeNewConversationModal({fromHistory=false,afterSubmit=false}={}){
+  if(!fromHistory&&!afterSubmit&&currentAppRouteV32441()?.modal==='newMessage'){
+    history.back();return;
+  }
+  if(afterSubmit&&currentAppRouteV32441()?.modal==='newMessage'){
+    history.replaceState({...(history.state||{}),[APP_HISTORY_KEY_V32441]:
+      appRouteV32441({view:'messages'})},'',location.href);
+  }
   $('#newMessageModal').classList.add('hidden');
   $('#newMessageForm')?.reset();
   clearRecipientSuggestionsV3244();
@@ -8519,7 +8591,7 @@ $('#newMessageForm').addEventListener('submit',async event=>{
             : 'No se pudo abrir la conversación.';
     return;
   }
-  closeNewConversationModal();
+  closeNewConversationModal({afterSubmit:true});
   showView('messages');
   await loadConversations(d.conversationId);
 });
@@ -8568,7 +8640,7 @@ $('#newGroupForm')?.addEventListener('submit',async event=>{
       return;
     }
 
-    closeNewConversationModal();
+    closeNewConversationModal({afterSubmit:true});
     toast('Grupo creado');
     showView('messages');
     await loadConversations(d.conversationId);
@@ -9601,6 +9673,7 @@ function showView(name) {
   const view=document.getElementById(String(name||'')+'View');
   if(!view||!view.classList.contains('view'))return;
   const switching=name!==activeViewName;
+  const hadChat=Boolean(activeConversationId&&name==='messages');
   if(!switching){
     window.scrollTo({top:0,behavior:'smooth'});
   }else{
@@ -9655,6 +9728,7 @@ function showView(name) {
     loadCommunityConversations();
   }
   if (name === 'notifications') loadNotifications();
+  if(switching||hadChat)recordAppRouteV32441({view:name});
 }
 all('[data-view]').forEach(b => b.onclick = () => {
   tapFeedback();
@@ -10235,6 +10309,7 @@ async function handleInitialDeepLink() {
   try {
     await loadPublicConfig();
     await loadMe();
+    installAppHistoryV32441();
     await loadReleaseFlags();
     await loadSavedPostIds();
     await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel(), loadCommunityReturn()]);
