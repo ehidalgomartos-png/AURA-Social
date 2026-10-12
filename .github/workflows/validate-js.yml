@@ -106,6 +106,8 @@ jobs:
         run: npm run test:mobile-messages
       - name: V3.2.44.1 Android browser Back navigation and login preservation
         run: npm run test:mobile-browser-back
+      - name: V3.2.44.2 iPhone keyboard and Safari viewport checks
+        run: npm run test:iphone-keyboard
       - name: V3.2.30 active public discussions and Explore privacy regression tests
         run: npm run test:active-discussions
       - name: V3.2.39 my conversations, responsive filters and privacy regressions

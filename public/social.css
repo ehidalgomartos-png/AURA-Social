@@ -4178,6 +4178,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
    ========================================================= */
 :root{
   --visual-vh:100dvh;
+  --visual-vtop:0px;
   --keyboard-inset:0px;
 }
 .connectivity-banner{
@@ -7700,7 +7701,8 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
   body.mobile-chat-active-v3244 #messagesView.view-enter{animation:none!important;transform:none!important}
   body.mobile-chat-active-v3244 .bottom-nav{visibility:hidden;pointer-events:none}
   #messagesView .messages-layout.chat-open{
-    position:fixed;inset:0 0 auto 0;
+    /* Match Safari's shifted visual viewport when the keyboard opens. */
+    position:fixed;inset:var(--visual-vtop,0px) 0 auto 0;
     z-index:180;
     width:100%;
     height:var(--visual-vh,100dvh);
