@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: Startup Express route export smoke test
+        run: npm run test:startup-router
       - name: Legal timeline regression tests
         run: npm run test:legal
       - name: Social, PWA and authentication smoke tests

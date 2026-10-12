@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
+    "test:startup-router": "node --test tests/server-router-wiring-v32421.test.js",
     "test:legal": "node --test tests/legal-consent-timeline.test.js tests/legal-consent-receipt.test.js tests/legal-consent-readable.test.js tests/legal-consent-filters.test.js tests/legal-status-overview.test.js",
     "test:smoke": "node --test tests/stability-*.test.js",
     "test": "node --test tests/*.test.js",
