@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.42?v=3.2.25">
+  <link rel="stylesheet" href="/admin.css?v=3.2.43">
 </head>
 <body>
 <header>
@@ -215,6 +215,7 @@
           <label><input type="radio" name="editorialImageModeV3242" value="none" checked> Sin fotografía</label>
           <label><input type="radio" name="editorialImageModeV3242" value="own"> Subir fotografía propia</label>
           <label><input type="radio" name="editorialImageModeV3242" value="rss"> Utilizar fotografía RSS autorizada</label>
+          <label><input type="radio" name="editorialImageModeV3242" value="ai"> Generar ilustración con IA</label>
         </div>
         <section id="editorialImageNoneV3242" class="editorial-media-mode-v3242">
           <p class="panel-copy">Publica solo titular, resumen y enlace al medio. No necesitas gestionar derechos fotográficos.</p>
@@ -233,6 +234,12 @@
           <button type="submit" class="soft">Guardar foto propia y volver a revisión</button>
           <p id="editorialImageOwnStatusV3242" class="status" role="status"></p>
         </form>
+        <section id="editorialImageAiV3243" class="editorial-media-mode-v3242" hidden>
+          <p class="panel-copy">Crea una ilustración conceptual, nunca una fotografía documental. La imagen llevará una etiqueta pública de IA y quedará pendiente de revisión.</p>
+          <p class="panel-copy">Una imagen por noticia. Máximo 10 al día y 30 al mes (o los límites inferiores configurados).</p>
+          <button type="button" id="editorialAiImageButtonV3243" class="alt">Crear imagen ilustrativa con IA</button>
+          <p id="editorialAiImageStatusV3243" class="status" role="status" aria-live="polite"></p>
+        </section>
         <div id="editorialImageRssControlsV3242" class="editorial-media-mode-v3242" hidden>
         <p id="editorialImageStatusV3222" class="panel-copy" role="status" aria-live="polite"></p>
         <button type="button" class="soft" id="editorialImagePreviewButtonV3222">Previsualizar foto del RSS</button>
@@ -265,6 +272,8 @@
             <textarea id="editorialVerifiedFactsV3242" maxlength="1800" rows="3" placeholder="Escribe los datos del artículo que has comprobado: quién, qué, dónde, cuándo y cifras fiables."></textarea>
           </label>
           <button type="button" id="editorialAiDraftButtonV3242" class="alt">Crear titular y resumen con IA</button>
+          <button type="button" id="editorialAiCompleteButtonV3243" class="alt">Crear titular, resumen e imagen con IA</button>
+          <p class="panel-copy">La imagen generada utiliza créditos de API. El texto se aplica como borrador sin guardar hasta que lo revises. No hay publicación automática.</p>
           <p class="panel-copy">La IA es opcional y requiere configuración en el VPS. No inventará datos intencionadamente, pero puede equivocarse: revisa y contrasta todo. Solo prepara un borrador, nunca publica.</p>
           <p id="editorialSuggestionStatus" class="status" role="status" aria-live="polite"></p>
         </div>
@@ -717,6 +726,6 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.42"></script>
+  <script src="/admin.js?v=3.2.43"></script>
 </body>
 </html>

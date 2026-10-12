@@ -25,6 +25,7 @@ function ensurePublicationSchema(){
       await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_alt VARCHAR(220)");
       await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_credit VARCHAR(200)");
       await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_rights_reference VARCHAR(1000)");
+      await db.query("ALTER TABLE editorial_publications ADD COLUMN IF NOT EXISTS image_origin VARCHAR(12)");
       await db.query('CREATE INDEX IF NOT EXISTS idx_editorial_public_profile ON editorial_publications(profile_id,published_at DESC) WHERE unpublished_at IS NULL');
     })().catch(e=>{schemaReady=null;throw e;});
   }
@@ -59,7 +60,8 @@ async function assertApprovedForPublication(client,id,revision){
   if(row.editorial_image_url&&
      (!safeLocalImageV3222(row.editorial_image_url)||!row.editorial_image_alt||
       !row.editorial_image_credit||!row.editorial_image_rights_reference||
-      (row.editorial_image_origin!=='own'&&
+      (row.editorial_image_origin==='ai'?!row.editorial_image_prompt||!row.editorial_image_model:
+        row.editorial_image_origin!=='own'&&
         (row.rights_mode!=='licensed'||String(row.rights_reference||'').trim().length<10)))){
     throw fail(409,'editorial_image_license_required');
   }
@@ -240,13 +242,13 @@ admin.post('/publish/:candidateId',errorHandler(async(req,res)=>{
     let publication;
     if(previous.rowCount){
       const updated=await client.query(
-        "UPDATE editorial_publications SET profile_id=$2,title=$3,summary=$4,source_url=$5,source_name=$6,category=$7,published_at=now(),unpublished_at=NULL,published_by=$8,unpublished_by=NULL,image_url=$9,image_alt=$10,image_credit=$11,image_rights_reference=$12 WHERE candidate_id=$1 RETURNING id,published_at",
-        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference]
+        "UPDATE editorial_publications SET profile_id=$2,title=$3,summary=$4,source_url=$5,source_name=$6,category=$7,published_at=now(),unpublished_at=NULL,published_by=$8,unpublished_by=NULL,image_url=$9,image_alt=$10,image_credit=$11,image_rights_reference=$12,image_origin=$13 WHERE candidate_id=$1 RETURNING id,published_at",
+        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference,row.editorial_image_origin]
       );publication=updated.rows[0];
     }else{
       const inserted=await client.query(
-        'INSERT INTO editorial_publications(candidate_id,profile_id,title,summary,source_url,source_name,category,published_by,image_url,image_alt,image_credit,image_rights_reference) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,published_at',
-        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference]
+        'INSERT INTO editorial_publications(candidate_id,profile_id,title,summary,source_url,source_name,category,published_by,image_url,image_alt,image_credit,image_rights_reference,image_origin) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id,published_at',
+        [id,row.profile_id,row.editorial_title,row.editorial_summary,row.canonical_url,row.source_name,row.category,req.user.id,row.editorial_image_url,row.editorial_image_alt,row.editorial_image_credit,row.editorial_image_rights_reference,row.editorial_image_origin]
       );publication=inserted.rows[0];
     }
     await client.query(
@@ -326,7 +328,7 @@ function card(row){
   const profilePath='/noticias/perfil/'+encodeURIComponent(row.profile_slug);
   const date=new Date(row.published_at).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'});
   const photo=safeLocalImageV3222(row.image_url)
-    ?'<figure class="ed-photo ed-card-photo"><a href="'+publicationPath(row.id)+'"><img loading="lazy" decoding="async" src="'+esc(row.image_url)+'" alt="'+esc(row.image_alt||row.title)+'"></a><figcaption>Imagen: '+esc(row.image_credit||'Crédito identificado')+'</figcaption></figure>'
+    ?'<figure class="ed-photo ed-card-photo"><a href="'+publicationPath(row.id)+'"><img loading="lazy" decoding="async" src="'+esc(row.image_url)+'" alt="'+esc(row.image_alt||row.title)+'"></a><figcaption>'+(row.image_origin==='ai'?'Imagen ilustrativa generada con IA':'Imagen: '+esc(row.image_credit||'Crédito identificado'))+'</figcaption></figure>'
     :'';
   return '<article class="ed-card"><div class="ed-meta"><span>'+esc(row.category)+'</span><span>'+esc(date)+'</span><span>Editorial revisado</span></div>'+
     '<h2><a href="'+publicationPath(row.id)+'">'+esc(row.title)+'</a></h2>'+photo+'<p>'+esc(row.summary)+'</p>'+
@@ -334,7 +336,7 @@ function card(row){
 }
 async function liveItems(extra='',params=[]){
   return db.query(
-    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,pub.image_url,pub.image_alt,pub.image_credit,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
+    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,pub.image_url,pub.image_alt,pub.image_credit,pub.image_origin,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
     params
   );
 }
@@ -402,7 +404,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
       '<span class="ed-post-badge">Noticias</span></div>'+
       '<div class="ed-post-content"><div class="ed-tags"><span class="ed-topic">'+esc(p.category)+'</span><span class="ed-reviewed">✓ Revisado por el equipo</span></div>'+
       '<h1>'+esc(p.title)+'</h1>'+
-      (safeLocalImageV3222(p.image_url)?'<figure class="ed-photo ed-article-photo"><img src="'+esc(p.image_url)+'" alt="'+esc(p.image_alt||p.title)+'" loading="eager" decoding="async"><figcaption>Imagen: '+esc(p.image_credit||'Crédito identificado')+'</figcaption></figure>':'')+
+      (safeLocalImageV3222(p.image_url)?'<figure class="ed-photo ed-article-photo"><img src="'+esc(p.image_url)+'" alt="'+esc(p.image_alt||p.title)+'" loading="eager" decoding="async"><figcaption>'+(p.image_origin==='ai'?'Imagen ilustrativa generada con IA':'Imagen: '+esc(p.image_credit||'Crédito identificado'))+'</figcaption></figure>':'')+
       '<p class="ed-summary">'+esc(p.summary)+'</p>'+
       '<div class="ed-attribution"><span class="ed-source-icon" aria-hidden="true">↗</span><div class="ed-attribution-body">'+
       '<b>Fuente: '+esc(p.source_name)+'</b><p>'+linkOut(p.source_url,'Leer información original ↗')+'</p>'+
