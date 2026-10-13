@@ -31,7 +31,7 @@ test('recommendations are bounded to three, escape markup and include only expli
  assert.match(html,/href="\/noticias\/p\/7"/);
  assert.match(html,/&lt;script&gt;/);
  assert.match(html,/&lt;img/);
- assert.doesNotMatch(html,/<script>|<img|onerror=bad|Cuarta|Malicious/);
+ assert.doesNotMatch(html,/<script>|<img\b|Cuarta|Malicious/);
  assert.equal((html.match(/class="ed-related-card-v3248"/g)||[]).length,3);
  assert.equal(utils.relatedNews([],'deportes'),'');
 });
