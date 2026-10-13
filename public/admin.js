@@ -1700,6 +1700,10 @@ async function editorialAiOpenReviewV3246(id,{autoPreview=false}={}){
 $('#editorialAiFastFormV3246')?.addEventListener('submit',async event=>{
   event.preventDefault();
   if(editorialAiBusyV3246)return;
+  // The additional editor inputs start hidden; Enter on URL first analyzes it.
+  if(!editorialAiMetaV3246){
+    $('#editorialAiAnalyzeV3246').click();return;
+  }
   const paid=$('#editorialAiPaidConfirmV3246').checked;
   const fields={
     url:$('#editorialAiUrlV3246').value.trim(),category:$('#editorialAiCategoryV3246').value,
