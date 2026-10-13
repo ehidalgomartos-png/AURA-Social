@@ -48,7 +48,7 @@
     }).sort((a,b)=>b.score-a.score);
     const winner=scores[0],second=scores[1];
     // Avoid defaulting to an inaccurate category with weak/ambiguous evidence.
-    if(!winner||winner.score<4||winner.score-second.score<2){
+    if(!winner||winner.score<4||winner.score-second.score<3){
       return {category:null,confidence:'insuficiente',explanation:'No hay una categoría clara. Selección manual necesaria.',advisoryOnly:true};
     }
     return {category:winner.key,confidence:winner.score>=7?'alta':'media',
