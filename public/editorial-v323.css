@@ -205,3 +205,19 @@ a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid va
   .ed-card-photo img{max-height:240px}
   .ed-article-photo img{max-height:350px}
 }
+
+/* V3.2.45 — compact mobile news and full image aspect without cropping. */
+.ed-card-read-v3245{display:inline-flex;min-height:40px;align-items:center;text-decoration:none;color:var(--navy);font-size:13px;font-weight:800}
+.ed-card-read-v3245:hover{text-decoration:underline}
+.ed-photo img{aspect-ratio:3/2;object-fit:contain}
+.ed-article-photo img{max-height:none}
+@media(max-width:740px){
+ .ed-layout{padding-bottom:calc(135px + env(safe-area-inset-bottom,0px))}
+ .ed-card{padding:16px;border-radius:18px}
+ .ed-card>p:not(.ed-source){display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;line-height:1.6}
+ .ed-article h1{font-size:clamp(24px,6vw,31px);line-height:1.25;margin-bottom:12px}
+ .ed-summary{line-height:1.65;font-size:16px}
+ .ed-article-photo img{max-height:none}
+ .ed-card-photo img{max-height:300px}
+ .ed-attribution{margin-bottom:12px}
+}
