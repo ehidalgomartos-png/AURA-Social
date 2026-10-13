@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.44.2">
+  <link rel="stylesheet" href="/admin.css?v=3.2.45">
 </head>
 <body>
 <header>
@@ -155,7 +155,7 @@
   </section>
 
   <section class="panel" id="editorialInbox" aria-labelledby="editorialInboxTitle">
-    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.24.1</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Edita titulares y resúmenes originales, comprueba la fuente y aprueba o rechaza. Las noticias aprobadas siguen siendo internas: no se publican en perfiles ni comunidades.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
+    <div class="panel-head"><div><span class="eyebrow">EDITORIAL · V3.2.24.1</span><h2 id="editorialInboxTitle">Revisión de noticias</h2><p class="panel-copy">Prepara la noticia aquí mismo: genera el borrador, verifica los hechos y pulsa «Revisar y publicar». No tendrás que pasar por Calidad ni Publicaciones para terminar.</p></div><div class="panel-tools"><label for="editorialReviewFilter">Estado</label><select id="editorialReviewFilter" aria-label="Filtrar noticias editoriales"><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select><label for="editorialOrphanFilterV3220">Fuente RSS</label><select id="editorialOrphanFilterV3220" aria-label="Filtrar noticias de fuentes RSS eliminadas"><option value="all">Todas</option><option value="only">Solo sin fuente</option></select><button type="button" id="editorialInboxReload">Actualizar</button></div></div>
     <div class="editorial-queue-tools-v3218" role="group" aria-label="Filtros rápidos de noticias cargadas">
       <label for="editorialQueueSearchV3218">Buscar noticia
         <input id="editorialQueueSearchV3218" type="search" maxlength="140" placeholder="Titular, medio o palabras" autocomplete="off">
@@ -187,6 +187,7 @@
     </div>
     <p id="editorialQueueCountV3218" class="panel-copy" role="status" aria-live="polite"></p>
     <p id="editorialInboxStatus" class="status" role="status" aria-live="polite">Cargando borradores…</p>
+    <div id="editorialQuickPublishResultV3245" class="editorial-quick-result-v3245" role="status" aria-live="polite" hidden></div>
     <p class="panel-copy">Las noticias de una fuente RSS eliminada se conservan para consulta y trazabilidad, pero no pueden aprobarse ni publicarse mientras no tengan una fuente autorizada. Su descarte sigue siendo una decisión humana.</p>
     <p class="panel-copy">Prioridad sugerida, categoría y noticias parecidas se calculan exclusivamente desde los metadatos RSS. No sustituyen la revisión humana.</p>
     <div id="editorialInboxItems" class="report-list" aria-live="polite"></div>
@@ -287,19 +288,44 @@
         <label class="editorial-check"><input type="checkbox" name="sourceRead"> He consultado la fuente original.</label>
         <label class="editorial-check"><input type="checkbox" name="factsChecked"> He verificado la exactitud y el contexto de la información.</label>
         <label class="editorial-check"><input type="checkbox" name="rightsChecked"> He comprobado la atribución y las condiciones de reutilización.</label>
-        <p class="panel-copy">1. Redacta un titular y resumen propios. 2. Guarda el borrador. 3. Comprueba la fuente, los hechos y los derechos antes de aprobar internamente. La aprobación no publica la noticia.</p>
+        <p class="panel-copy">Revisa el titular, el resumen y la fuente, anota qué has verificado y confirma las tres casillas. Después, pulsa el botón principal y comprueba la vista previa antes de publicar.</p>
         <p id="editorialOriginalityWorkflowV32171" class="status" role="status" aria-live="polite"></p>
-        <div class="actions" id="editorialReviewActions">
-          <button type="submit" class="soft" id="editorialSaveDraft">Guardar borrador</button>
-          <button type="button" class="alt" data-editorial-decision="approve">Aprobar internamente</button>
-          <button type="button" class="soft" data-editorial-decision="reject">Rechazar</button>
-          <button type="button" class="soft" hidden data-editorial-decision="reopen">Reabrir para edición</button>
-          <button type="button" class="soft" id="editorialCancelEditor">Cerrar</button>
+        <div class="editorial-quick-actions-v3245">
+          <button type="button" class="alt" id="editorialQuickPublishV3245">Revisar y publicar →</button>
+          <small>Abre una vista previa. La publicación solo ocurre al confirmarla.</small>
         </div>
+        <details class="editorial-legacy-actions-v3245"><summary>Guardar borrador u opciones avanzadas</summary>
+          <div class="actions" id="editorialReviewActions">
+            <button type="submit" class="soft" id="editorialSaveDraft">Guardar borrador</button>
+            <button type="button" class="alt" data-editorial-decision="approve">Aprobar internamente</button>
+            <button type="button" class="soft" data-editorial-decision="reject">Rechazar</button>
+            <button type="button" class="soft" hidden data-editorial-decision="reopen">Reabrir para edición</button>
+            <button type="button" class="soft" id="editorialCancelEditor">Cerrar</button>
+          </div>
+        </details>
       </form>
     </section>
   </section>
 
+  <dialog id="editorialQuickPreviewV3245" class="editorial-quick-preview-v3245" aria-labelledby="editorialQuickPreviewTitleV3245">
+    <div class="editorial-quick-preview-content-v3245">
+      <p class="eyebrow">VISTA PREVIA EN MÓVIL</p>
+      <h2 id="editorialQuickPreviewTitleV3245">Comprueba antes de publicar</h2>
+      <p>La noticia será pública solo cuando pulses «Publicar noticia» después de verificar la fuente, los derechos y el contexto.</p>
+      <article class="editorial-quick-phone-v3245">
+        <small id="editorialQuickMetaV3245"></small><h3 id="editorialQuickTitleV3245"></h3>
+        <figure id="editorialQuickFigureV3245" hidden><img id="editorialQuickImageV3245" alt="Vista previa de imagen editorial"><figcaption id="editorialQuickImageCreditV3245"></figcaption></figure>
+        <p id="editorialQuickSummaryV3245"></p>
+        <p><strong>Fuente:</strong> <a id="editorialQuickSourceV3245" target="_blank" rel="noopener noreferrer external">Leer original ↗</a></p>
+      </article>
+      <label class="editorial-quick-accept-v3245"><input type="checkbox" id="editorialQuickVerifiedV3245"> He revisado esta vista previa y confirmo que deseo publicar.</label>
+      <p id="editorialQuickStatusV3245" role="status" aria-live="polite"></p>
+      <div class="editorial-quick-footer-v3245">
+        <button type="button" class="soft" id="editorialQuickCancelV3245">Volver a editar</button>
+        <button type="button" class="alt" id="editorialQuickConfirmV3245" disabled>Publicar noticia</button>
+      </div>
+    </div>
+  </dialog>
   <section class="panel" id="editorialPublication" aria-labelledby="editorialPublicationTitle">
     <div class="panel-head">
       <div><span class="eyebrow">EDITORIAL · V3.2.3</span><h2 id="editorialPublicationTitle">Publicaciones editoriales</h2>
@@ -730,6 +756,7 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/admin.js?v=3.2.44.2"></script>
+  <script src="/editorial-quick-publish-v3245.js?v=3.2.45"></script>
+  <script src="/admin.js?v=3.2.45"></script>
 </body>
 </html>
