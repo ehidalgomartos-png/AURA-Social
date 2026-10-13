@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.48",
+  "version": "3.2.48.1",
   "private": true,
-  "description": "RedLibertad V3.2.48 — Noticias y Descubrimiento 3.0",
+  "description": "RedLibertad V3.2.48.1 — News Discovery Route Hotfix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -68,6 +68,7 @@
     "test:editorial-one-screen": "node --test tests/editorial-one-screen-v3246.test.js",
     "test:editorial-categories": "node --test tests/editorial-categories-v3247.test.js",
     "test:editorial-discovery": "node --test tests/editorial-discovery-v3248.test.js",
+    "test:editorial-news-hotfix": "node --test tests/editorial-news-route-hotfix-v32481.test.js",
     "test:editorial-web-import": "node --test tests/editorial-web-import-v3223.test.js",
     "test:home-clean": "node --test tests/home-clean-v3224.test.js",
     "test:home-mobile-polish": "node --test tests/home-mobile-polish-v32241.test.js",
