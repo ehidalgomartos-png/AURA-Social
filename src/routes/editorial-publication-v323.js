@@ -42,6 +42,7 @@ function errorHandler(handler){return(req,res)=>Promise.resolve().then(()=>handl
 });}
 const confirmation=({revision,confirm})=>Number.isSafeInteger(revision)&&revision>=0&&confirm===true;
 const publicationPath=id=>'/noticias/p/'+encodeURIComponent(id);
+const {categoryLabel:categoryLabelV3247}=require('../../public/editorial-category-v3247');
 async function assertApprovedForPublication(client,id,revision){
   const r=await client.query(
     "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.rights_reference,s.profile_id AS source_profile_id,s.category AS source_category,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,sp.status AS source_profile_status,sp.category AS source_profile_category,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
@@ -397,7 +398,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
     const iconLike='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6z"/></svg>';
     const iconComment='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4.5-1.2L3 20l1.2-4.5A9 9 0 0 1 3 11.5a8.5 8.5 0 0 1 17.5 0z"/></svg>';
     const iconShare='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7 11 9-5M7 13l9 5"/></svg>';
-    const body='<div class="ed-timeline"><a href="/noticias" class="ed-timeline-back">← Todas las noticias</a><span>Actualidad para conversar</span></div>'+
+    const body='<div class="ed-timeline"><a href="/noticias" class="ed-timeline-back">← Todas las noticias</a><span>'+esc(categoryLabelV3247(p.category))+' para conversar</span></div>'+
       '<article class="ed-article ed-post">'+
       '<div class="ed-post-head"><a class="ed-profile-avatar" href="/noticias/perfil/'+encodeURIComponent(p.profile_slug)+'" aria-label="Perfil editorial '+esc(p.profile_name)+'"><img src="/assets/logo-mark.svg" alt="" width="28" height="28"></a>'+
       '<div class="ed-post-identity"><a href="/noticias/perfil/'+encodeURIComponent(p.profile_slug)+'" class="ed-profile-name">'+esc(p.profile_name)+'</a>'+

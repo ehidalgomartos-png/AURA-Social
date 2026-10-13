@@ -1582,7 +1582,7 @@ async function loadEditorialHomeVisibilityV3225(){
 $('#editorialVisibilityReloadV3225')?.addEventListener('click',loadEditorialHomeVisibilityV3225);
 
 
-// V3.2.46 — from one URL to the existing human-reviewed mobile publish modal.
+// V3.2.47 — from one URL to the existing human-reviewed mobile publish modal.
 let editorialAiMetaV3246=null,editorialAiProfileOptionsV3246=[],editorialAiBusyV3246=false;
 function editorialAiStatusV3246(message,error=false){
   const el=$('#editorialAiFastStatusV3246');
@@ -1605,7 +1605,12 @@ function renderEditorialAiProfilesV3246(){
   if(matches.some(p=>String(p.id)===previous))target.value=previous;
   else if(matches.length===1)target.value=String(matches[0].id);
 }
-$('#editorialAiCategoryV3246')?.addEventListener('change',renderEditorialAiProfilesV3246);
+$('#editorialAiCategoryV3246')?.addEventListener('change',()=>{
+  renderEditorialAiProfilesV3246();
+  const label=window.editorialCategoryV3247?.categoryLabel($('#editorialAiCategoryV3246').value)||'Noticias';
+  $('#editorialAiCategorySuggestionV3247').textContent=
+    'Categoría elegida manualmente: '+label+'. Comprueba que coincide con el artículo original.';
+});
 $('#editorialAiUrlV3246')?.addEventListener('input',()=>{
   if(!editorialAiMetaV3246)return;
   if($('#editorialAiUrlV3246').value.trim()!==editorialAiMetaV3246.canonical_url){
@@ -1642,8 +1647,21 @@ $('#editorialAiAnalyzeV3246')?.addEventListener('click',async()=>{
     $('#editorialAiOriginalExcerptV3246').textContent=meta.source_excerpt||'La página no muestra un extracto. Revisa el texto original antes de solicitar IA.';
     const link=$('#editorialAiOriginalLinkV3246');
     link.href=meta.canonical_url;
-    $('#editorialAiCategoryV3246').value='actualidad';
+    // V3.2.47: classification is advisory. A real prepared profile is still required.
+    const proposal=window.editorialCategoryV3247?.suggest(meta);
+    const recommended=proposal?.category;
+    const available=editorialAiProfileOptionsV3246.some(p=>p.category===recommended);
+    $('#editorialAiCategoryV3246').value=recommended&&available?recommended:'actualidad';
     renderEditorialAiProfilesV3246();
+    const suggestion=$('#editorialAiCategorySuggestionV3247');
+    if(proposal?.category){
+      const label=window.editorialCategoryV3247.categoryLabel(proposal.category);
+      suggestion.textContent=available
+        ?'Sugerida: '+label+' ('+proposal.confidence+'). '+proposal.explanation+' Puedes cambiarla.'
+        :'Detectamos «'+label+'», pero no hay un perfil preparado para ella. Selecciona categoría y perfil manualmente.';
+    }else{
+      suggestion.textContent='No se encontró una categoría clara. Selecciona manualmente la categoría y su perfil.';
+    }
     ['editorialAiFactsV3246','editorialAiTitleV3246','editorialAiSummaryV3246','editorialAiNoteV3246'].forEach(id=>{$('#'+id).value='';});
     ['editorialAiSourceReadV3246','editorialAiFactsCheckedV3246','editorialAiRightsCheckedV3246','editorialAiPaidConfirmV3246'].forEach(id=>{$('#'+id).checked=false;});
     $('#editorialAiDetailsV3246').hidden=false;
@@ -1664,7 +1682,8 @@ $('#editorialAiGenerateDraftV3246')?.addEventListener('click',async()=>{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         sourceTitle:meta.source_title,sourceExcerpt:meta.source_excerpt||'',
-        sourceName:meta.source_name||'',verifiedFacts:$('#editorialAiFactsV3246').value.trim()
+        sourceName:meta.source_name||'',verifiedFacts:$('#editorialAiFactsV3246').value.trim(),
+        category:$('#editorialAiCategoryV3246').value
       })
     });
     if(!r.ok)throw Error(editorialAiErrorV3242(d?.error));
@@ -2235,7 +2254,8 @@ $('#editorialWebAiDraftV3242')?.addEventListener('click',async event=>{
   await askEditorialAiV3242('/api/admin/editorial/ai-draft/web',{
     sourceTitle:title,sourceExcerpt:excerpt,
     sourceName:editorialWebPreviewV3223?.metadata?.source_name||'',
-    verifiedFacts:$('#editorialWebVerifiedFactsV3242').value.trim()
+    verifiedFacts:$('#editorialWebVerifiedFactsV3242').value.trim(),
+    category:$('#editorialWebCategoryV3223').value
   },$('#editorialWebImportStatusV3223'),event.currentTarget,(draftTitle,summary)=>{
     $('#editorialWebTitleV3223').value=draftTitle;
     $('#editorialWebSummaryV3223').value=summary;
@@ -2965,7 +2985,7 @@ async function submitEditorialReview(action){
   finally{controls.forEach(b=>b.disabled=false);}
 }
 
-// V3.2.46 — one-screen, explicit human review; reuse all existing server gates.
+// V3.2.47 — one-screen, explicit human review; reuse all existing server gates.
 let editorialQuickBusyV3245=false,editorialQuickSnapshotV3245=null;
 function editorialQuickFieldsV3245(){
  const f=$('#editorialReviewForm');

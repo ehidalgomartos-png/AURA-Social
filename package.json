@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.46",
+  "version": "3.2.47",
   "private": true,
-  "description": "RedLibertad V3.2.46 — Centro Editorial Inteligente 2.0",
+  "description": "RedLibertad V3.2.47 — Noticias Inteligentes 2.1",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -66,6 +66,7 @@
     "test:editorial-full-ai": "node --test tests/editorial-full-ai-v3243.test.js",
     "test:editorial-quick-publish": "node --test tests/editorial-quick-publish-v3245.test.js",
     "test:editorial-one-screen": "node --test tests/editorial-one-screen-v3246.test.js",
+    "test:editorial-categories": "node --test tests/editorial-categories-v3247.test.js",
     "test:editorial-web-import": "node --test tests/editorial-web-import-v3223.test.js",
     "test:home-clean": "node --test tests/home-clean-v3224.test.js",
     "test:home-mobile-polish": "node --test tests/home-mobile-polish-v32241.test.js",

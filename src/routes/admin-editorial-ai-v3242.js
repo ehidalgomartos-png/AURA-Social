@@ -7,6 +7,9 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {isOriginalEditorial}=require('./admin-editorial-review-v322');
+const {CATEGORIES}=require('../services/editorial-v320');
+const {editorialStyle:editorialStyleV3247,LABELS:EDITORIAL_CATEGORIES_V3247}=
+  require('../../public/editorial-category-v3247');
 const router=express.Router();
 const throttle=rateLimit({windowMs:15*60*1000,limit:10,standardHeaders:'draft-7',
   legacyHeaders:false,message:{error:'editorial_ai_rate_limited'}});
@@ -17,6 +20,7 @@ const webSchema=z.object({
   sourceTitle:z.string().trim().min(8).max(240),
   sourceExcerpt:z.string().trim().max(400).default(''),
   sourceName:z.string().trim().max(100).default(''),
+  category:z.enum(CATEGORIES).optional(),
   verifiedFacts:z.string().trim().max(1800).default('')
 }).strict();
 const aiReady=()=>typeof process.env.OPENAI_API_KEY==='string'&&
@@ -45,6 +49,7 @@ async function generate(context,{fetcher=fetch}={}){
     'Incluye solamente países, fechas, cifras y declaraciones explícitamente contenidos en la fuente o las notas.',
     'Cuando falten hechos, indica la insuficiencia en lugar de completarla con información inventada.',
     'Escribe un titular independiente (12-180 caracteres) y un resumen informativo (70-850 caracteres).',
+    editorialStyleV3247(context.category),
     'Nunca copies literalmente el titular original ni reproduzcas el extracto completo.',
     'No des por verificados los datos porque procedan del medio o de un editor.',
     'Si no hay información suficiente para producir un texto responsable, indica ready=false, textos vacíos y una razón clara.',
@@ -57,6 +62,7 @@ async function generate(context,{fetcher=fetch}={}){
         source_title:safe(context.sourceTitle).slice(0,240),
         source_excerpt:safe(context.sourceExcerpt).slice(0,400),
         source_name:safe(context.sourceName).slice(0,100),
+        editorial_category:EDITORIAL_CATEGORIES_V3247[context.category]?context.category:'actualidad',
         editorial_notes_for_review:safe(context.verifiedFacts).slice(0,1800)
       })}],
     text:{format:{type:'json_schema',name:'editorial_draft',
@@ -117,14 +123,14 @@ router.post('/ai-draft/:id',throttle,async(req,res)=>{
     const parsed=factsSchema.safeParse(req.body);
     if(!parsed.success)throw fail(400,'editorial_ai_invalid_input');
     const r=await db.query(
-      'SELECT c.id,c.status,c.source_title,c.source_excerpt,COALESCE(s.name,c.source_name_snapshot) AS source_name '+
+      'SELECT c.id,c.status,c.category,c.source_title,c.source_excerpt,COALESCE(s.name,c.source_name_snapshot) AS source_name '+
       'FROM editorial_candidates c LEFT JOIN editorial_sources s ON s.id=c.source_id WHERE c.id=$1',
       [req.params.id]);
     if(!r.rowCount)throw fail(404,'editorial_candidate_not_found');
     const item=r.rows[0];
     if(item.status!=='pending')throw fail(409,'editorial_review_locked');
     const result=await generate({sourceTitle:item.source_title,sourceExcerpt:item.source_excerpt,
-      sourceName:item.source_name,verifiedFacts:parsed.data.verifiedFacts});
+      sourceName:item.source_name,category:item.category,verifiedFacts:parsed.data.verifiedFacts});
     res.set('Cache-Control','no-store');
     res.json(result);
   }catch(e){sendFail(res,e);}
