@@ -1581,6 +1581,165 @@ async function loadEditorialHomeVisibilityV3225(){
 }
 $('#editorialVisibilityReloadV3225')?.addEventListener('click',loadEditorialHomeVisibilityV3225);
 
+
+// V3.2.46 — from one URL to the existing human-reviewed mobile publish modal.
+let editorialAiMetaV3246=null,editorialAiProfilesV3246=[],editorialAiBusyV3246=false;
+function editorialAiStatusV3246(message,error=false){
+  const el=$('#editorialAiFastStatusV3246');
+  el.textContent=message;
+  el.classList.toggle('error',error);
+}
+function editorialAiProfilesV3246(){
+  const target=$('#editorialAiProfileV3246'),category=$('#editorialAiCategoryV3246').value;
+  const previous=target.value;
+  target.replaceChildren();
+  const matches=editorialAiProfilesV3246.filter(p=>p.category===category);
+  const choose=document.createElement('option');
+  choose.value='';choose.textContent=matches.length?'Selecciona perfil editorial':'No hay perfiles preparados en esta categoría';
+  target.append(choose);
+  for(const p of matches){
+    const option=document.createElement('option');
+    option.value=String(p.id);option.textContent=String(p.name||'Perfil editorial');
+    target.append(option);
+  }
+  if(matches.some(p=>String(p.id)===previous))target.value=previous;
+  else if(matches.length===1)target.value=String(matches[0].id);
+}
+$('#editorialAiCategoryV3246')?.addEventListener('change',editorialAiProfilesV3246);
+$('#editorialAiUrlV3246')?.addEventListener('input',()=>{
+  if(!editorialAiMetaV3246)return;
+  if($('#editorialAiUrlV3246').value.trim()!==editorialAiMetaV3246.canonical_url){
+    editorialAiMetaV3246=null;$('#editorialAiDetailsV3246').hidden=true;
+    editorialAiStatusV3246('El enlace cambió. Analízalo de nuevo antes de continuar.');
+  }
+});
+$('#editorialAiAnalyzeV3246')?.addEventListener('click',async()=>{
+  if(editorialAiBusyV3246)return;
+  const url=$('#editorialAiUrlV3246').value.trim();
+  if(!window.editorialAiPublisherV3246?.urlOk(url))
+    return editorialAiStatusV3246('Introduce la dirección HTTPS completa de un artículo.',true);
+  editorialAiBusyV3246=true;
+  editorialAiMetaV3246=null;$('#editorialAiDetailsV3246').hidden=true;
+  const button=$('#editorialAiAnalyzeV3246');button.disabled=true;
+  editorialAiStatusV3246('Analizando el artículo y comprobando duplicados…');
+  try{
+    const {r,d}=await api('/api/admin/editorial/web-import/preview',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})
+    });
+    if(!r.ok)throw Error({
+      editorial_web_duplicate:'Esta noticia ya existe. Búscala en Revisión de noticias.',
+      editorial_web_url_invalid:'El enlace debe corresponder a un artículo HTTPS público.',
+      editorial_web_http_error:'El medio bloquea el análisis. Usa la importación manual avanzada.',
+      editorial_web_title_unavailable:'El medio no ofrece metadatos. Usa el importador manual.',
+      editorial_web_rate_limited:'Demasiados análisis. Espera unos minutos.'
+    }[d?.error]||d?.error||'No se ha podido analizar el enlace.');
+    const meta=d.extracted||{};
+    if(!meta.canonical_url||!meta.source_title)throw Error('La página no proporciona datos suficientes.');
+    editorialAiMetaV3246=meta;
+    editorialAiProfilesV3246=Array.isArray(d.profiles)?d.profiles:[];
+    $('#editorialAiUrlV3246').value=meta.canonical_url;
+    $('#editorialAiOriginalTitleV3246').textContent=meta.source_title;
+    $('#editorialAiOriginalExcerptV3246').textContent=meta.source_excerpt||'La página no muestra un extracto. Revisa el texto original antes de solicitar IA.';
+    const link=$('#editorialAiOriginalLinkV3246');
+    link.href=meta.canonical_url;
+    $('#editorialAiCategoryV3246').value='actualidad';
+    editorialAiProfilesV3246();
+    ['editorialAiFactsV3246','editorialAiTitleV3246','editorialAiSummaryV3246','editorialAiNoteV3246'].forEach(id=>{$('#'+id).value='';});
+    ['editorialAiSourceReadV3246','editorialAiFactsCheckedV3246','editorialAiRightsCheckedV3246','editorialAiPaidConfirmV3246'].forEach(id=>{$('#'+id).checked=false;});
+    $('#editorialAiDetailsV3246').hidden=false;
+    editorialAiStatusV3246('Enlace analizado. Contrasta la fuente, completa el texto y decide si deseas ilustración IA.');
+    $('#editorialAiDetailsV3246').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){editorialAiStatusV3246(e.message,true);}
+  finally{editorialAiBusyV3246=false;button.disabled=false;}
+});
+$('#editorialAiGenerateDraftV3246')?.addEventListener('click',async()=>{
+  if(editorialAiBusyV3246||!editorialAiMetaV3246)return;
+  const meta=editorialAiMetaV3246;
+  if(!confirm('La IA generará un titular y un resumen como BORRADOR utilizando créditos API. El resultado debe verificarse; ¿continuar?'))return;
+  editorialAiBusyV3246=true;
+  const button=$('#editorialAiGenerateDraftV3246');button.disabled=true;
+  editorialAiStatusV3246('Generando borrador IA; no se guardará ni publicará automáticamente…');
+  try{
+    const {r,d}=await api('/api/admin/editorial/ai-draft/web',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sourceTitle:meta.source_title,sourceExcerpt:meta.source_excerpt||'',
+        sourceName:meta.source_name||'',verifiedFacts:$('#editorialAiFactsV3246').value.trim()
+      })
+    });
+    if(!r.ok)throw Error(editorialAiErrorV3242(d?.error));
+    if(!d.ready)throw Error(d.reason||'Faltan hechos suficientes para redactar la noticia.');
+    if(editorialAiMetaV3246!==meta)return;
+    const old=$('#editorialAiTitleV3246').value.trim()||$('#editorialAiSummaryV3246').value.trim();
+    if(old&&!confirm('¿Sustituir los textos que ya has escrito por la nueva propuesta IA?'))return;
+    $('#editorialAiTitleV3246').value=d.title;
+    $('#editorialAiSummaryV3246').value=d.summary;
+    editorialAiStatusV3246('Borrador IA preparado. Corrige imprecisiones, comprueba la fuente y revisa antes de guardar.');
+  }catch(e){editorialAiStatusV3246(e.message,true);}
+  finally{editorialAiBusyV3246=false;button.disabled=false;}
+});
+async function editorialAiOpenReviewV3246(id,{autoPreview=false}={}){
+  if($('#editorialReviewFilter'))$('#editorialReviewFilter').value='pending';
+  if($('#editorialOrphanFilterV3220'))$('#editorialOrphanFilterV3220').value='all';
+  closeEditorialReview();
+  resetEditorialQueueV3218({render:false});
+  await loadEditorialInboxV321(String(id));
+  const candidate=editorialReviewItems.find(row=>String(row.id)===String(id));
+  if(!candidate)return false;
+  openEditorialReview(candidate);
+  if(autoPreview){
+    const form=$('#editorialReviewForm');
+    ['sourceRead','factsChecked','rightsChecked'].forEach(key=>{
+      form.elements.namedItem(key).checked=true;
+    });
+    // Only opens the preview modal; publication still requires explicit checkbox and click.
+    $('#editorialQuickPublishV3245')?.click();
+  }
+  return true;
+}
+$('#editorialAiFastFormV3246')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(editorialAiBusyV3246)return;
+  const paid=$('#editorialAiPaidConfirmV3246').checked;
+  const fields={
+    url:$('#editorialAiUrlV3246').value.trim(),category:$('#editorialAiCategoryV3246').value,
+    profileId:$('#editorialAiProfileV3246').value,
+    title:$('#editorialAiTitleV3246').value,summary:$('#editorialAiSummaryV3246').value,
+    note:$('#editorialAiNoteV3246').value,verifiedFacts:$('#editorialAiFactsV3246').value,
+    checks:{sourceRead:$('#editorialAiSourceReadV3246').checked,
+      factsChecked:$('#editorialAiFactsCheckedV3246').checked,
+      rightsChecked:$('#editorialAiRightsCheckedV3246').checked},
+    wantImage:paid,paidImageConfirmed:paid
+  };
+  const validated=window.editorialAiPublisherV3246?.validate({
+    metadata:editorialAiMetaV3246,fields,profiles:editorialAiProfilesV3246
+  });
+  if(!validated?.ok)return editorialAiStatusV3246(validated?.error||'Revisa todos los datos.',true);
+  if(!confirm(paid
+    ?'Guardarás el borrador y pagarás una ilustración IA (máximo una por noticia). Después comprobarás la vista previa antes de publicar. ¿Continuar?'
+    :'Se guardará el borrador pendiente de revisión. Después podrás comprobar la vista previa antes de publicar. ¿Continuar?'))return;
+  editorialAiBusyV3246=true;
+  const button=$('#editorialAiPrepareV3246');button.disabled=true;
+  editorialAiStatusV3246('Guardando borrador…');
+  try{
+    const result=await window.editorialAiPublisherV3246.prepare({
+      metadata:editorialAiMetaV3246,fields,profiles:editorialAiProfilesV3246,
+      apiRequest:api,onStep:step=>editorialAiStatusV3246('Procesando: '+step+'…')
+    });
+    editorialAiStatusV3246('Borrador guardado'+(result.hasImage?' con ilustración IA':'')+'. Abriendo la vista previa final…');
+    const opened=await editorialAiOpenReviewV3246(result.id,{autoPreview:true});
+    if(!opened)throw Error('Borrador guardado. Abre la noticia desde Revisión de noticias.');
+    editorialAiStatusV3246('Noticia preparada. Confirma la vista previa para publicarla o vuelve a editarla.');
+    $('#editorialAiDetailsV3246').hidden=true;
+  }catch(e){
+    const exists=e.candidateId;
+    editorialAiStatusV3246(exists
+      ?'El borrador #'+exists+' se guardó, pero falló la ilustración: '+editorialAiImageErrorV3243(e.code||e.message)+'. No se ha publicado. Puedes revisarlo sin foto desde Pendientes.'
+      :('No se ha completado la preparación: '+String(e.message||'Error desconocido')+'. Comprueba Pendientes antes de intentarlo de nuevo.'),true);
+    if(exists)await editorialAiOpenReviewV3246(exists,{autoPreview:false});
+  }finally{editorialAiBusyV3246=false;button.disabled=false;}
+});
+
 // V3.2.23 — Manual article-from-URL import, not RSS ingestion.
 let editorialWebBusyV3223=false;
 let editorialWebPreviewV3223=null;
@@ -2802,7 +2961,7 @@ async function submitEditorialReview(action){
   finally{controls.forEach(b=>b.disabled=false);}
 }
 
-// V3.2.45 — one-screen, explicit human review; reuse all existing server gates.
+// V3.2.46 — one-screen, explicit human review; reuse all existing server gates.
 let editorialQuickBusyV3245=false,editorialQuickSnapshotV3245=null;
 function editorialQuickFieldsV3245(){
  const f=$('#editorialReviewForm');
