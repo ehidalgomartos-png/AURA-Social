@@ -1875,8 +1875,8 @@ function editorialSafeHref(value){
   }catch(_){return '';}
 }
 function closeEditorialReview(){
-  if($('#editorialQuickPreviewV3245')?.open)$('#editorialQuickPreviewV3245').close();
   cancelEditorialImagePreviewV3241();
+  if($('#editorialQuickPreviewV3245')?.open)$('#editorialQuickPreviewV3245').close();
   editorialReviewCurrent=null;
   editorialRelinkPreviewV3221=null;
   editorialRelinkRequestV3221++;
