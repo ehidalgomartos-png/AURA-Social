@@ -54,7 +54,7 @@ test('public detail labels correspond to verified category, never a fixed Actual
  assert.doesNotMatch(pub,/Actualidad para conversar/);
  assert.match(pub,/categoryLabelV3247\(p.category\)/);
  assert.match(pub,/esc\(categoryLabelV3247\(p.category\)/);
- assert.match(read('public/admin.js'),/editorialCategoryV3247\.suggest/);
+ assert.match(read('public/admin.js'),/editorialCategoryV3247\?\.suggest/);
  assert.match(read('public/admin.html'),/id="editorialAiCategorySuggestionV3247"/);
  assert.match(read('public/admin.html'),/editorial-category-v3247\.js\?v=3\.2\.47/);
  assert.match(read('public/admin.js'),/editorialAiCategoryV3246'\)\?\.addEventListener\('change'/);
