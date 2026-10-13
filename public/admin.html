@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin.css?v=3.2.45">
+  <link rel="stylesheet" href="/admin.css?v=3.2.46">
 </head>
 <body>
 <header>
@@ -55,6 +55,65 @@
       <div id="editorialVisibilityMetricsV3225" class="editorial-visibility-metrics-v3225" aria-live="polite"></div>
       <div id="editorialVisibilityLatestV3225" class="editorial-visibility-latest-v3225"></div>
       <p class="editorial-visibility-rule-v3225">Las noticias aparecen en «Para ti» y «Nuevo» después de cada 2 publicaciones sociales. Máximo 3 noticias por carga del Inicio, siempre que haya publicaciones suficientes. «Siguiendo», «Cercanas» y «VIP» no mezclan noticias.</p>
+    </section>
+
+    <section class="editorial-ai-fast-v3246" id="editorialAiFastV3246" aria-labelledby="editorialAiFastTitleV3246">
+      <div class="editorial-ai-fast-head-v3246">
+        <span class="eyebrow">V3.2.46 · CREACIÓN RÁPIDA CON IA</span>
+        <h3 id="editorialAiFastTitleV3246">Una noticia, una pantalla</h3>
+        <p>Pega el enlace, prepara un texto original con IA si lo deseas y publica tras revisar una vista previa. La IA nunca verifica hechos ni publica sola.</p>
+      </div>
+      <form id="editorialAiFastFormV3246" autocomplete="off">
+        <label for="editorialAiUrlV3246">Enlace HTTPS de la noticia
+          <input id="editorialAiUrlV3246" type="url" required maxlength="2048" inputmode="url" placeholder="https://medio.es/noticia">
+        </label>
+        <button class="alt" type="button" id="editorialAiAnalyzeV3246">1. Analizar noticia</button>
+        <p class="status" id="editorialAiFastStatusV3246" role="status" aria-live="polite">Pega el enlace y pulsa Analizar noticia.</p>
+        <section id="editorialAiDetailsV3246" hidden>
+          <div class="editorial-ai-extracted-v3246">
+            <span>REFERENCIA DEL MEDIO · NO VERIFICADA</span>
+            <strong id="editorialAiOriginalTitleV3246"></strong>
+            <p id="editorialAiOriginalExcerptV3246"></p>
+            <a id="editorialAiOriginalLinkV3246" target="_blank" rel="noopener noreferrer external">Leer el artículo original ↗</a>
+            <small>Los metadatos del medio no acreditan la veracidad de los datos ni los derechos de sus imágenes.</small>
+          </div>
+          <div class="editorial-ai-field-row-v3246">
+            <label>Categoría
+              <select id="editorialAiCategoryV3246">
+                <option value="actualidad">Actualidad</option><option value="tecnologia">Tecnología</option>
+                <option value="cultura">Cultura</option><option value="deportes">Deportes</option>
+                <option value="sociedad">Sociedad</option><option value="entretenimiento">Entretenimiento</option>
+              </select>
+            </label>
+            <label>Perfil editorial
+              <select id="editorialAiProfileV3246"><option value="">Elige un perfil preparado</option></select>
+            </label>
+          </div>
+          <label for="editorialAiFactsV3246">Hechos que has comprobado (para orientar a la IA)
+            <textarea id="editorialAiFactsV3246" maxlength="1800" rows="3" placeholder="Qué ha ocurrido, quién, dónde, cuándo y datos comprobados en la fuente."></textarea>
+          </label>
+          <button class="alt" type="button" id="editorialAiGenerateDraftV3246">2. Crear titular y resumen con IA</button>
+          <p class="editorial-ai-disclaimer-v3246">La IA de texto utiliza créditos API. Puedes escribir o corregir los textos manualmente y omitir este paso.</p>
+          <label>Titular editorial original
+            <input id="editorialAiTitleV3246" type="text" minlength="12" maxlength="220">
+          </label>
+          <label>Resumen editorial propio
+            <textarea id="editorialAiSummaryV3246" rows="5" minlength="70" maxlength="1100"></textarea>
+          </label>
+          <label>Nota de revisión: explica lo verificado
+            <textarea id="editorialAiNoteV3246" rows="3" minlength="12" maxlength="500" placeholder="Ej.: He consultado el artículo original, contrastado las cifras y comprobado las condiciones de uso."></textarea>
+          </label>
+          <div class="editorial-ai-checks-v3246">
+            <label><input type="checkbox" id="editorialAiSourceReadV3246"> He leído el artículo original.</label>
+            <label><input type="checkbox" id="editorialAiFactsCheckedV3246"> He comprobado los hechos y su contexto.</label>
+            <label><input type="checkbox" id="editorialAiRightsCheckedV3246"> He comprobado la atribución y los derechos de reutilización. No usaré la foto del medio sin licencia.</label>
+          </div>
+          <label class="editorial-ai-paid-v3246"><input type="checkbox" id="editorialAiPaidConfirmV3246"> También generar una ilustración conceptual original con IA (consume créditos de OpenAI; máximo una por noticia y límites de imagen vigentes).</label>
+          <button type="submit" id="editorialAiPrepareV3246" class="alt">3. Preparar noticia y ver vista previa →</button>
+          <p class="editorial-ai-disclaimer-v3246">La noticia se guardará como borrador. Si solicitas imagen, se generará antes de mostrar la vista previa. La publicación pública necesita tu confirmación final.</p>
+        </section>
+        <a href="#editorialWebImportTitleV3223" class="editorial-ai-manual-v3246">¿El medio bloquea el análisis? Usar importación manual avanzada →</a>
+      </form>
     </section>
 
     <section class="editorial-web-import-v3223" aria-labelledby="editorialWebImportTitleV3223">
@@ -756,7 +815,8 @@
 <script src="/editorial-provenance-v3217.js?v=3.2.17"></script>
 <script src="/editorial-originality-v32171.js?v=3.2.17.1"></script>
   <script src="/editorial-queue-v3218.js?v=3.2.18"></script>
-  <script src="/editorial-quick-publish-v3245.js?v=3.2.45"></script>
-  <script src="/admin.js?v=3.2.45"></script>
+  <script src="/editorial-quick-publish-v3245.js?v=3.2.46"></script>
+  <script src="/editorial-ai-publisher-v3246.js?v=3.2.46"></script>
+  <script src="/admin.js?v=3.2.46"></script>
 </body>
 </html>

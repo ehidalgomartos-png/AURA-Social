@@ -701,7 +701,7 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
  #editorialInbox #editorialImageOwnFormV3242 button,#editorialInbox .editorial-draft-suggestion button{width:100%}
 }
 
-/* V3.2.45 — clear primary review flow and true phone-sized preview. */
+/* V3.2.46 — clear primary review flow and true phone-sized preview. */
 .editorial-quick-actions-v3245{display:grid;gap:6px;padding:14px;border:1px solid #a6ded5;background:#effaf7;border-radius:15px}
 .editorial-quick-actions-v3245 button{min-height:50px;font-size:15px;font-weight:800}
 .editorial-quick-actions-v3245 small{color:#315b55}
@@ -733,4 +733,35 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
  .editorial-quick-preview-v3245{width:100%;max-height:calc(100dvh - 8px);margin:auto 0 0;border-radius:20px 20px 0 0}
  .editorial-quick-preview-content-v3245{padding:14px 12px calc(16px + env(safe-area-inset-bottom))}
  .editorial-quick-footer-v3245{position:sticky;bottom:0;background:var(--paper);padding:8px 0}
+}
+
+
+/* V3.2.46 — Fast editorial intake, mobile-first and on-demand OpenAI credits. */
+.editorial-ai-fast-v3246{margin:20px 0;padding:18px;border:1px solid #a5dcd3;border-radius:19px;background:linear-gradient(145deg,#edf9f6,#fffdf9)}
+.editorial-ai-fast-head-v3246{display:grid;gap:7px;margin-bottom:15px}
+.editorial-ai-fast-head-v3246 h3{font-size:clamp(20px,3vw,27px);margin:0;color:var(--navy)}
+.editorial-ai-fast-head-v3246 p{margin:0;color:#405865;font-size:13px;line-height:1.5}
+#editorialAiFastFormV3246{display:grid;gap:13px}
+#editorialAiFastFormV3246 label:not(.editorial-ai-paid-v3246){display:grid;gap:6px;font-size:13px;font-weight:750;color:#172b40}
+#editorialAiFastFormV3246 :is(input:not([type=checkbox]),select,textarea){width:100%;min-width:0;border:1px solid #bbcdd3;background:white;color:#192b3e;padding:11px 12px;border-radius:11px;font-size:16px}
+#editorialAiFastFormV3246>button,#editorialAiDetailsV3246>button{min-height:48px;font-weight:800}
+#editorialAiDetailsV3246{display:grid;gap:14px}
+#editorialAiDetailsV3246[hidden]{display:none!important}
+.editorial-ai-extracted-v3246{display:grid;gap:7px;padding:13px;border-radius:14px;background:white;border:1px solid var(--line)}
+.editorial-ai-extracted-v3246 span{font-size:11px;font-weight:800;letter-spacing:.05em;color:#45706d}
+.editorial-ai-extracted-v3246 strong{font-size:16px;color:var(--navy);line-height:1.35}
+.editorial-ai-extracted-v3246 p{font-size:13px;line-height:1.5;margin:0}
+.editorial-ai-extracted-v3246 small{font-size:11px;color:#4b6470}
+.editorial-ai-extracted-v3246 a,.editorial-ai-manual-v3246{font-size:13px;font-weight:750;color:#176f65}
+.editorial-ai-field-row-v3246{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.editorial-ai-disclaimer-v3246{font-size:12px;color:#506576;line-height:1.5;margin:0}
+.editorial-ai-checks-v3246{display:grid;gap:9px}
+#editorialAiFastFormV3246 .editorial-ai-checks-v3246 label,.editorial-ai-paid-v3246{display:flex;gap:10px;align-items:flex-start;line-height:1.5;font-size:13px;font-weight:600}
+.editorial-ai-paid-v3246{padding:12px;border-radius:12px;border:1px solid #a6e0d3;background:#e7f7f3}
+#editorialAiFastFormV3246 input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;min-height:20px;margin-top:1px}
+#editorialAiFastFormV3246 .status.error{color:#ab3e31}
+@media(max-width:620px){
+ .editorial-ai-fast-v3246{padding:14px 12px;border-radius:14px;margin:13px 0}
+ .editorial-ai-field-row-v3246{grid-template-columns:1fr}
+ #editorialAiFastFormV3246>button,#editorialAiDetailsV3246>button{width:100%}
 }
