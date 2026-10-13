@@ -56,7 +56,7 @@ test('image failures preserve draft ID and do not attempt publication',async()=>
   }}),error=>error.candidateId==='12'&&error.stage==='generar ilustración IA');
  assert.equal(calls,2);
 });
-test('UI calls existing V3.2.45 review-to-publication preview, not direct publish',()=>{
+test('UI calls existing V3.2.46 review-to-publication preview, not direct publish',()=>{
  const admin=read('public/admin.js'),html=read('public/admin.html'),css=read('public/admin.css');
  assert.match(html,/id="editorialAiUrlV3246"/);
  assert.match(html,/id="editorialAiPrepareV3246"/);
