@@ -701,7 +701,7 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
  #editorialInbox #editorialImageOwnFormV3242 button,#editorialInbox .editorial-draft-suggestion button{width:100%}
 }
 
-/* V3.2.46 — clear primary review flow and true phone-sized preview. */
+/* V3.2.47 — clear primary review flow and true phone-sized preview. */
 .editorial-quick-actions-v3245{display:grid;gap:6px;padding:14px;border:1px solid #a6ded5;background:#effaf7;border-radius:15px}
 .editorial-quick-actions-v3245 button{min-height:50px;font-size:15px;font-weight:800}
 .editorial-quick-actions-v3245 small{color:#315b55}
@@ -736,7 +736,7 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 }
 
 
-/* V3.2.46 — Fast editorial intake, mobile-first and on-demand OpenAI credits. */
+/* V3.2.47 — Fast editorial intake, mobile-first and on-demand OpenAI credits. */
 .editorial-ai-fast-v3246{margin:20px 0;padding:18px;border:1px solid #a5dcd3;border-radius:19px;background:linear-gradient(145deg,#edf9f6,#fffdf9)}
 .editorial-ai-fast-head-v3246{display:grid;gap:7px;margin-bottom:15px}
 .editorial-ai-fast-head-v3246 h3{font-size:clamp(20px,3vw,27px);margin:0;color:var(--navy)}
@@ -765,3 +765,9 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
  .editorial-ai-field-row-v3246{grid-template-columns:1fr}
  #editorialAiFastFormV3246>button,#editorialAiDetailsV3246>button{width:100%}
 }
+
+
+/* V3.2.47 — small, unobtrusive classification hints; never a factual verification badge. */
+.editorial-category-suggestion-v3247{display:block;margin-top:5px;padding:9px 10px;border-radius:9px;
+ background:#fffefa;border:1px dashed #bbd3d1;color:#335b60;font-size:12px;font-weight:600;line-height:1.5}
+@media(max-width:620px){.editorial-category-suggestion-v3247{font-size:12px;padding:8px}}

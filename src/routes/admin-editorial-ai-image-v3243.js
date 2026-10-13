@@ -86,7 +86,7 @@ async function generateImage(prompt,{fetcher=fetch}={}){
 }
 function candidateContext(row,facts){
   return {sourceTitle:row.source_title,sourceExcerpt:row.source_excerpt,
-    sourceName:row.source_name,verifiedFacts:facts};
+    sourceName:row.source_name,verifiedFacts:facts,category:row.category};
 }
 async function reserve(id,revision,adminId){
   const client=await db.pool.connect();
@@ -96,7 +96,7 @@ async function reserve(id,revision,adminId){
     await client.query('SELECT pg_advisory_xact_lock(3243, 1)');
     await client.query("UPDATE editorial_ai_image_requests SET status='failed',completed_at=now() WHERE status='reserved' AND created_at<now()-interval '10 minutes'");
     const q=await client.query(
-      "SELECT c.id,c.revision,c.status,c.editorial_image_url,c.source_title,c.source_excerpt,"+
+      "SELECT c.id,c.revision,c.status,c.category,c.editorial_image_url,c.source_title,c.source_excerpt,"+
       "COALESCE(s.name,c.source_name_snapshot) AS source_name FROM editorial_candidates c "+
       "LEFT JOIN editorial_sources s ON s.id=c.source_id WHERE c.id=$1 FOR UPDATE OF c",[id]);
     if(!q.rowCount)throw error(404,'editorial_candidate_not_found');
