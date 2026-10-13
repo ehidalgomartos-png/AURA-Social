@@ -43,6 +43,7 @@ function errorHandler(handler){return(req,res)=>Promise.resolve().then(()=>handl
 const confirmation=({revision,confirm})=>Number.isSafeInteger(revision)&&revision>=0&&confirm===true;
 const publicationPath=id=>'/noticias/p/'+encodeURIComponent(id);
 const {categoryLabel:categoryLabelV3247}=require('../../public/editorial-category-v3247');
+const discoveryV3248=require('../../public/editorial-discovery-v3248');
 async function assertApprovedForPublication(client,id,revision){
   const r=await client.query(
     "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.rights_reference,s.profile_id AS source_profile_id,s.category AS source_category,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,sp.status AS source_profile_status,sp.category AS source_profile_category,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
@@ -305,7 +306,7 @@ function page({title,description,pathname,body,noindex=false,imageUrl=null}){
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
     (safeLocalImageV3222(imageUrl)?'<meta property="og:image" content="'+esc(base+imageUrl)+'"><meta name="twitter:card" content="summary_large_image">':'')+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.45"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.48"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
     '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi perfil" href="/app">Entrar</a></nav></header>'+
@@ -333,22 +334,33 @@ function card(row){
     :'';
   return '<article class="ed-card"><div class="ed-meta"><span>'+esc(row.category)+'</span><span>'+esc(date)+'</span><span>Editorial revisado</span></div>'+
     '<h2><a href="'+publicationPath(row.id)+'">'+esc(row.title)+'</a></h2>'+photo+'<p>'+esc(row.summary)+'</p>'+
-    '<a class="ed-card-read-v3245" href="'+publicationPath(row.id)+'">Leer noticia completa →</a>'+
+    '<div class="ed-card-actions-v3248"><a class="ed-card-read-v3245" href="'+publicationPath(row.id)+'">Leer noticia completa →</a>'+
+    '<a class="ed-card-discuss-v3248" href="'+publicationPath(row.id)+'#edDiscussion">Comentar noticia →</a></div>'+
     '<p class="ed-source">Por <a href="'+profilePath+'">'+esc(row.profile_name)+'</a> · Fuente: '+esc(row.source_name)+'</p></article>';
 }
-async function liveItems(extra='',params=[]){
+async function liveItems(extra='',params=[],limit=50){
+  const maxRows=limit===3?3:50;
   return db.query(
-    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,pub.image_url,pub.image_alt,pub.image_credit,pub.image_origin,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT 50",
+    "SELECT pub.id,pub.title,pub.summary,pub.category,pub.published_at,pub.source_url,pub.source_name,pub.image_url,pub.image_alt,pub.image_credit,pub.image_origin,ep.name AS profile_name,ep.slug AS profile_slug,ep.bio,ep.community_id,c.name AS community_name FROM editorial_publications pub JOIN editorial_profiles ep ON ep.id=pub.profile_id LEFT JOIN communities c ON c.id=ep.community_id AND c.privacy='public' WHERE pub.unpublished_at IS NULL AND ep.status='ready' "+extra+" ORDER BY pub.published_at DESC,pub.id DESC LIMIT "+maxRows,
     params
   );
 }
 publicRouter.use(async(_req,res,next)=>{try{await ensurePublicationSchema();next();}catch(e){console.error('Public editorial schema bootstrap failed:',e);res.status(503).type('text/plain').send('Noticias temporalmente no disponibles');}});
 publicRouter.get('/',async(_req,res)=>{
   try{
-    const items=await liveItems();
-    const cards=items.rows.map(card).join('')||'<div class="ed-empty">Todavía no hay noticias publicadas. Puedes explorar las comunidades mientras tanto.</div>';
-    res.type('html').send(page({title:'Noticias y actualidad',description:'Noticias originales revisadas por el equipo editorial de RedLibertad, con enlaces a las fuentes originales.',pathname:'/noticias',body:
-      '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section><section class="ed-stack">'+cards+'</section>',noindex:items.rows.length===0}));
+    const filter=discoveryV3248.filter(req.query.categoria);
+    if(!filter.valid)return res.redirect(302,'/noticias');
+    const category=filter.category;
+    const items=await liveItems(category?'AND pub.category=$1':'',category?[category]:[]);
+    const categoryTitle=category?'Noticias de '+categoryLabelV3247(category):'Noticias y actualidad';
+    const cards=items.rows.map(card).join('')||
+      '<div class="ed-empty">'+(category?'No hay noticias publicadas en esta categoría todavía.':'Todavía no hay noticias publicadas.')+
+      ' <a href="/noticias">Ver todas las noticias</a>.</div>';
+    res.type('html').send(page({title:categoryTitle,description:'Noticias originales revisadas por el equipo editorial de RedLibertad, con enlaces a las fuentes originales.',pathname:'/noticias',body:
+      '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section>'+
+      discoveryV3248.categoryTabs(category)+
+      '<p class="ed-discovery-intro-v3248">'+(category?'Mostrando noticias publicadas de '+esc(categoryLabelV3247(category))+'.':'Explora temas y participa en las conversaciones de RedLibertad.')+'</p>'+
+      '<section class="ed-stack">'+cards+'</section>',noindex:items.rows.length===0||Boolean(category)}));
   }catch(e){console.error('Editorial listing failed:',e);res.status(503).send('No disponible');}
 });
 // A dedicated sitemap query avoids the 50-item cap on the public news feed.
@@ -391,6 +403,9 @@ publicRouter.get('/p/:id',async(req,res)=>{
     const r=await liveItems('AND pub.id=$1',[id]);
     if(!r.rowCount)return res.status(404).send('No encontrado');
     const p=r.rows[0];
+    // Only live publications and ready editorial profiles.
+    const related=await liveItems('AND pub.category=$1 AND pub.id<>$2',[p.category,id],3);
+    const relatedHtml=discoveryV3248.relatedNews(related.rows,p.category);
     const community=p.community_name&&p.community_id?'<p class="ed-community">Participa en la <a href="/comunidad/'+encodeURIComponent(p.community_id)+'">'+esc(p.community_name)+'</a>.</p>':'';
     const publishedDate=new Date(p.published_at);
     const readableDate=publishedDate.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Madrid'});
@@ -426,7 +441,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
         '<button type="submit">Publicar comentario</button></form>'+
         '<a id="edLoginCta" class="ed-login-cta" href="/app" hidden>Entra en RedLibertad para participar en la conversación →</a>'+
         '<div id="edComments" class="ed-discussion" aria-live="polite">Cargando comentarios…</div></div></section>'+
-      '</article><p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
+      '</article>'+relatedHtml+'<p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
     res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.11" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
