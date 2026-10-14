@@ -304,8 +304,54 @@ async function saveListing(event){
 function details(item){
  const images=(item.image_urls||[]).filter(u=>/^\/uploads\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(u));
  const mine=String(item.seller_id)===String(window.currentUserId);
- $('#detailContent').innerHTML='<h2>'+esc(item.title)+'</h2><div class="gallery">'+(images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+'</div><p><span class="chip">'+esc(label[item.kind]||'Anuncio')+'</span></p><div class="price">'+priceLabel(item)+'</div><p>📍 '+esc(item.city)+' · '+esc(item.category)+'</p><p>'+esc(item.description)+'</p><p class="muted">Publicado por @'+esc(item.seller_username)+'</p><div class="actions">'+(mine?'':'<button class="primary" data-contact="'+esc(item.seller_username)+'">Enviar mensaje al vendedor</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+'</div><small>RedLibertad no interviene en el pago, envío ni en los acuerdos.</small>';
+ const publicOK=item.status==='active'&&item.moderation_status==='published'&&item.seller_discoverable===true;
+ const sellerOK=item.seller_discoverable===true&&/^[A-Za-z0-9_.-]+$/.test(String(item.seller_username||''));
+ const seller=sellerOK?'<a href="/perfil/'+encodeURIComponent(item.seller_username)+'">'+esc(item.seller_name||item.seller_username)+'</a>':esc(item.seller_name||item.seller_username);
+ $('#detailContent').innerHTML='<h2>'+esc(item.title)+'</h2><div class="gallery">'+
+ (images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+
+ '</div><p><span class="chip market-deal-'+esc(item.deal)+'">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO')+'</span></p>'+
+ '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc([item.city,item.details?.province].filter(Boolean).join(' · '))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
+ '<p>'+esc(item.description)+'</p><p class="muted">Publicado por '+seller+'</p><div class="actions">'+
+ (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button>':'')+
+ (mine?'':'<button class="primary" data-contact="'+esc(item.seller_username)+'">Enviar mensaje</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
+ '</div><small>RedLibertad no interviene en el pago, envío ni en los acuerdos.</small>';
  $('#detail').showModal();
+}
+async function shareListing(item){
+ if(!item||item.status!=='active'||item.moderation_status!=='published'||item.seller_discoverable!==true)return;
+ const url=location.origin+'/marketplace/p/'+encodeURIComponent(item.id)+'/'+slugifyMarket(item.title);
+ if(navigator.share){
+  try{await navigator.share({title:item.title,text:'Mira este anuncio en RedLibertad',url});return;}
+  catch(error){if(error?.name==='AbortError')return;}
+ }
+ try{
+  if(!navigator.clipboard?.writeText)throw Error('No clipboard');
+  await navigator.clipboard.writeText(url);
+  note('Enlace del anuncio copiado. Puedes compartirlo por WhatsApp o Facebook.');
+ }catch{
+  window.prompt('Copia el enlace del anuncio:',url);
+ }
+}
+function openReport(id){
+ if(!state.authenticated){updateMarketplaceAuth('guest');return;}
+ state.reportId=String(id);
+ $('#reportError').textContent='';
+ $('#reportForm').reset();
+ $('#reportDialog').showModal();
+}
+async function submitReport(event){
+ event.preventDefault();
+ if(!state.reportId)return;
+ const button=$('#reportSubmit');button.disabled=true;
+ const data=new FormData($('#reportForm'));
+ const body={reason:String(data.get('reason')||''),details:String(data.get('details')||'').trim()};
+ const result=await request('/api/marketplace/'+encodeURIComponent(state.reportId)+'/report',{method:'POST',body:JSON.stringify(body)});
+ button.disabled=false;
+ if(!result.ok){
+  $('#reportError').textContent=result.status===401?'Inicia sesión para denunciar el anuncio.':'No se pudo enviar. Inténtalo otra vez.';
+  return;
+ }
+ state.reportId=null;closeDialog('reportDialog');note('Denuncia recibida. Moderación revisará el anuncio.');
 }
 async function showDetail(id){
  let item=state.items.find(x=>String(x.id)===String(id));
@@ -358,6 +404,8 @@ $('#editor').addEventListener('close',()=>{resetPendingPhotos();});
 $('#listingForm [name=kind]').onchange=syncKind;
 $('#listingForm [name=deal]').onchange=syncKind;
 $('#listingForm').addEventListener('submit',saveListing);
+$('#listingForm [name=category]').addEventListener('input',populateSuggestions);
+$('#reportForm').addEventListener('submit',submitReport);
 document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.close){closeDialog(b.dataset.close);return;}
@@ -381,9 +429,10 @@ document.addEventListener('click',async e=>{
   else{b.disabled=false;b.textContent='Eliminar anuncio';note(result.status===401?'Tu sesión ha caducado. Inicia sesión para borrar anuncios.':'No se pudo eliminar el anuncio. Inténtalo de nuevo.');}
   return;
  }
+ if(b.dataset.share){const item=state.items.find(x=>String(x.id)===String(b.dataset.share));if(item)await shareListing(item);return;}
  if(b.dataset.fav){const item=state.items.find(x=>String(x.id)===b.dataset.fav);if(!item)return;const r=await request('/api/marketplace/'+encodeURIComponent(item.id)+'/favorite',{method:item.is_favorite?'DELETE':'POST'});if(r.ok)await load();return;}
  if(b.dataset.contact){await contact(b.dataset.contact);return;}
- if(b.dataset.report){const reason=prompt('Motivo: fraud, prohibited, spam, misleading u other','misleading');if(!reason)return;const r=await request('/api/marketplace/'+encodeURIComponent(b.dataset.report)+'/report',{method:'POST',body:JSON.stringify({reason,details:''})});alert(r.ok?'Denuncia enviada a moderación.':'No se pudo enviar la denuncia.');return;}
+ if(b.dataset.report){openReport(b.dataset.report);return;}
  if(b.dataset.mod){const action=prompt('Acción: hide, restore o resolve','hide');if(!action)return;const r=await request('/api/marketplace/admin/'+encodeURIComponent(b.dataset.mod)+'/moderate',{method:'POST',body:JSON.stringify({action})});if(r.ok)await load();else note('No se pudo moderar.');}
 });
 init();
