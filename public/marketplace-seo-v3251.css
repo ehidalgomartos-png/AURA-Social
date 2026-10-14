@@ -73,3 +73,8 @@
 .market-public-extra .secondary,.market-public-extra .market-clear-filters{min-height:44px;width:100%}
 @media(max-width:780px){.market-public-extra{grid-template-columns:repeat(2,minmax(0,1fr))}.market-public-extra label:nth-child(3){grid-column:1/-1}}
 @media(max-width:430px){.market-public-search{grid-template-columns:minmax(0,1fr) auto}.market-public-search button{min-width:80px;padding:9px 10px}.market-public-extra{gap:8px}}
+
+/* V3.2.60 import action alongside individual publishing */
+.market-publish-actions{display:grid;gap:8px}
+.market-publish-actions a{display:inline-flex;justify-content:center;align-items:center;min-height:44px;text-decoration:none;text-align:center}
+.market-publish-actions .secondary{border:1px solid #bad7d3;color:#12675b;background:white;border-radius:11px;padding:10px 12px;font-weight:800;font-size:13px}

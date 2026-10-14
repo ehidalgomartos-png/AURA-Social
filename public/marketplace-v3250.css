@@ -169,7 +169,7 @@ body>.site-foot{margin-top:auto}
 }
 @media(max-width:350px){.market-extra-search{grid-template-columns:1fr}.market-extra-search>label{grid-column:auto!important}}
 
-/* V3.2.59 — install the Marketplace independently without crowding the catalogue */
+/* V3.2.60 — install the Marketplace independently without crowding the catalogue */
 .market-pwa-install[hidden]{display:none!important}
 .market-pwa-install{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid #b9dad5;border-radius:15px;padding:12px 14px;background:#eaf7f4;margin:12px 0 18px;color:#0f574f}
 .market-pwa-install>div{display:flex;gap:10px;align-items:center;min-width:0}
@@ -181,3 +181,9 @@ body>.site-foot{margin-top:auto}
 .market-pwa-install>p{grid-column:1/-1;font-size:12px;line-height:1.5;margin:0}
 .market-pwa-install>p:empty{display:none}
 @media(max-width:450px){.market-pwa-install{grid-template-columns:minmax(0,1fr);gap:10px}.market-pwa-install button{width:100%}}
+
+/* V3.2.60 importer entry */
+.market-import-link{margin:9px 0 14px;font-size:13px}
+.market-import-link a{display:block;border:1px solid #a9d8d1;background:#eff9f6;padding:12px 14px;min-height:45px;border-radius:12px;text-decoration:none;font-weight:800;color:#12665c}
+.market-import-link a:focus-visible{outline:3px solid #12766d;outline-offset:2px}
+.market-guest .market-import-link{display:none}
