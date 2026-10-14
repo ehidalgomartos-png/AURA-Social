@@ -378,6 +378,8 @@ async function init(){
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
  $('#reportsTab').classList.toggle('hidden',!state.admin);
  await load();
+ const reportId=new URLSearchParams(location.search).get('report');
+ if(/^[1-9]\d{0,15}$/.test(String(reportId||'')))openReport(reportId);
  const contactName=new URLSearchParams(location.search).get('contact');
  if(contactName&&/^[A-Za-z0-9_.]{3,30}$/.test(contactName)){
   const msg=document.createElement('button');msg.type='button';msg.className='primary';msg.textContent='Abrir conversación con @'+contactName;
