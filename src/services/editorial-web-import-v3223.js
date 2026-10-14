@@ -27,15 +27,74 @@ function articleUrlV3223(raw){
 function pageError(code,status=422){const err=new Error(code);err.code=code;err.status=status;return err;}
 function decodeEntitiesV3223(text){
   const entities={amp:'&',quot:'"',apos:"'",lt:'<',gt:'>',nbsp:' ',hellip:'…',mdash:'—',ndash:'–',
-    rsquo:'’',lsquo:'‘',rdquo:'”',ldquo:'“'};
+    rsquo:'’',lsquo:'‘',rdquo:'”',ldquo:'“',euro:'€',iexcl:'¡',iquest:'¿',
+    laquo:'«',raquo:'»',copy:'©',reg:'®',bull:'•',ordm:'º',ordf:'ª',
+    aacute:'á',agrave:'à',acirc:'â',atilde:'ã',auml:'ä',
+    eacute:'é',egrave:'è',ecirc:'ê',euml:'ë',
+    iacute:'í',igrave:'ì',icirc:'î',iuml:'ï',
+    oacute:'ó',ograve:'ò',ocirc:'ô',otilde:'õ',ouml:'ö',
+    uacute:'ú',ugrave:'ù',ucirc:'û',uuml:'ü',
+    ntilde:'ñ',ccedil:'ç'};
+  const upper=new Set(['aacute','agrave','acirc','atilde','auml','eacute','egrave','ecirc','euml',
+    'iacute','igrave','icirc','iuml','oacute','ograve','ocirc','otilde','ouml',
+    'uacute','ugrave','ucirc','uuml','ntilde','ccedil']);
   return String(text||'').replace(/&(#x[0-9a-f]{1,6}|#[0-9]{1,7}|[a-z]{2,9});/gi,(all,key)=>{
     const name=key.toLowerCase();
-    if(entities[name])return entities[name];
+    if(entities[name]){
+      return upper.has(name)&&key[0]!==key[0].toLowerCase()
+        ?entities[name].toUpperCase():entities[name];
+    }
     const n=name.startsWith('#x')?parseInt(name.slice(2),16):
       name.startsWith('#')?parseInt(name.slice(1),10):NaN;
     return n>=32&&n<=0x10ffff&&!(n>=0xd800&&n<=0xdfff)?String.fromCodePoint(n):all;
   });
 }
+// V3.2.49.1.1: honor HTTP charset and early HTML meta before extracting text.
+// Decoding takes place while the ORIGINAL response bytes remain available,
+// preventing lossy UTF-8 replacement characters from a legacy Spanish site.
+const KNOWN_CHARSETS=Object.freeze({
+ 'utf-8':'utf-8',utf8:'utf-8',
+ 'windows-1252':'windows-1252',cp1252:'windows-1252',xcp1252:'windows-1252',
+ 'iso-8859-1':'windows-1252',latin1:'windows-1252','latin-1':'windows-1252',
+ 'iso-8859-15':'iso-8859-15',
+ 'utf-16le':'utf-16le','utf-16':'utf-16le'
+});
+function charsetV32491(label){
+  return KNOWN_CHARSETS[String(label||'').trim().replace(/^['"]|['"]$/g,'').toLowerCase()]||'';
+}
+function declaredCharsetsV32491(buffer,contentType=''){
+  const ct=String(contentType||'').slice(0,300);
+  const http=charsetV32491(ct.match(/(?:^|;)\s*charset\s*=\s*(?:"([^"]{1,40})"|'([^']{1,40})'|([^;\s]{1,40}))/i)?.slice(1).find(Boolean));
+  const start=buffer.subarray(0,8192).toString('latin1');
+  let meta='';
+  for(const matched of start.matchAll(/<meta\b[^>]{0,600}>/gi)){
+    const props=attributesV3223(matched[0]);
+    meta=charsetV32491(props.charset);
+    if(!meta&&/content-type/i.test(props['http-equiv']||'')){
+      const legacy=String(props.content||'').match(/charset\s*=\s*["']?([a-z0-9_-]{1,40})/i);
+      meta=charsetV32491(legacy?.[1]);
+    }
+    if(meta)break;
+  }
+  return {http,meta};
+}
+function decodeHtmlBufferV32491(buffer,contentType=''){
+  if(!Buffer.isBuffer(buffer)||buffer.length>MAX_PAGE_BYTES)
+    throw pageError('editorial_web_page_invalid');
+  const {http,meta}=declaredCharsetsV32491(buffer,contentType);
+  // BOM is authoritative; strict UTF-8 avoids silently discarding ñ or á.
+  const bom=buffer.length>=3&&buffer[0]===0xef&&buffer[1]===0xbb&&buffer[2]===0xbf
+    ?'utf-8':buffer.length>=2&&buffer[0]===0xff&&buffer[1]===0xfe?'utf-16le':'';
+  const candidates=[bom,http,meta,'utf-8','windows-1252'].filter(Boolean);
+  for(const charset of [...new Set(candidates)]){
+    try{return new TextDecoder(charset,{fatal:true}).decode(buffer);}
+    catch(_){/* invalid bytes for this charset; try another documented encoding */}
+  }
+  // Extremely rare bytes undefined in Windows-1252: use last-resort
+  // replacement without trying to reconstruct already-damaged text.
+  return new TextDecoder('windows-1252').decode(buffer);
+}
+
 function plainV3223(raw,max=400){
   return decodeEntitiesV3223(String(raw||'').replace(/<[^>]{0,500}>/g,' '))
     .replace(/[\u0000-\u001f\u007f-\u009f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
@@ -122,7 +181,10 @@ async function fetchWebPageV3223(raw,{lookup,request=https.request}={}){
               if(bytes>MAX_PAGE_BYTES)return finish(pageError('editorial_web_too_large'));
               chunks.push(piece);
             });
-            res.on('end',()=>finish(null,Buffer.concat(chunks).toString('utf8')));
+            res.on('end',()=>{
+              try{finish(null,decodeHtmlBufferV32491(Buffer.concat(chunks),mime));}
+              catch(error){finish(error);}
+            });
             res.on('error',()=>finish(pageError('editorial_web_download_failed')));
             res.on('aborted',()=>finish(pageError('editorial_web_download_failed')));
           });
@@ -153,5 +215,6 @@ function draftFromMetadataV3223(meta){
 function fingerprintV3223(category,title){
   return crypto.createHash('sha256').update(category+'|'+normalizedTitle(title)).digest('hex');
 }
-module.exports={MAX_PAGE_BYTES,articleUrlV3223,decodeEntitiesV3223,plainV3223,attributesV3223,
+module.exports={MAX_PAGE_BYTES,articleUrlV3223,decodeEntitiesV3223,decodeHtmlBufferV32491,
+  declaredCharsetsV32491,plainV3223,attributesV3223,
   extractPageMetadataV3223,fetchWebPageV3223,draftFromMetadataV3223,fingerprintV3223};

@@ -82,20 +82,22 @@ jobs:
         run: npm run test:editorial-assistant
       - name: V3.2.43 full AI illustration, quota and disclosure tests
         run: npm run test:editorial-full-ai
-      - name: V3.2.49 editorial review-to-publication safety tests
+      - name: V3.2.49.1 editorial review-to-publication safety tests
         run: npm run test:editorial-quick-publish
-      - name: V3.2.49 single-screen URL to AI draft and reviewed publication
+      - name: V3.2.49.1 single-screen URL to AI draft and reviewed publication
         run: npm run test:editorial-one-screen
-      - name: V3.2.49 smart news category suggestions and editorial styling
+      - name: V3.2.49.1 smart news category suggestions and editorial styling
         run: npm run test:editorial-categories
-      - name: V3.2.49 public news category filters, conversations and related articles
+      - name: V3.2.49.1 public news category filters, conversations and related articles
         run: npm run test:editorial-discovery
-      - name: V3.2.49.1 live news HTTP handler and filtered page regression
+      - name: V3.2.49.1.1 live news HTTP handler and filtered page regression
         run: npm run test:editorial-news-hotfix
-      - name: V3.2.49 comment grammar, source attribution and related cards
+      - name: V3.2.49.1 comment grammar, source attribution and related cards
         run: npm run test:editorial-social-polish
       - name: V3.2.23 safe HTTPS article metadata and manual editorial draft import tests
         run: npm run test:editorial-web-import
+      - name: V3.2.49.1.1 legacy Spanish charset decoding and HTML entities
+        run: npm run test:editorial-encoding
       - name: V3.2.24 clean Home and two-posts-one-news privacy regression tests
         run: npm run test:home-clean
       - name: V3.2.24.1 mobile homepage highlights and single Story regression tests
@@ -118,7 +120,7 @@ jobs:
         run: npm run test:mobile-messages
       - name: V3.2.44.1 Android browser Back navigation and login preservation
         run: npm run test:mobile-browser-back
-      - name: V3.2.49 iPhone keyboard and Safari viewport checks
+      - name: V3.2.49.1 iPhone keyboard and Safari viewport checks
         run: npm run test:iphone-keyboard
       - name: V3.2.30 active public discussions and Explore privacy regression tests
         run: npm run test:active-discussions

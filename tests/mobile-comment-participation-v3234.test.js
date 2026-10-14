@@ -81,10 +81,10 @@ test('reply, retry, privacy and other comment flows are preserved',()=>{
   assert.match(html,/id="cancelCommentReply"/);
   assert.match(html,/id="commentsOpenPostV3229"/);
 });
-test('version and GitHub Actions include V3.2.49',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.49');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.49'/);
-  assert.match(html,/\/social\.js\?v=3\.2\.49/);
-  assert.match(html,/\/social\.css\?v=3\.2\.49/);
+test('version and GitHub Actions include V3.2.49.1',()=>{
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.49.1');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.49\.1'/);
+  assert.match(html,/\/social\.js\?v=3\.2\.49\.1/);
+  assert.match(html,/\/social\.css\?v=3\.2\.49\.1/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-comment-participation/);
 });

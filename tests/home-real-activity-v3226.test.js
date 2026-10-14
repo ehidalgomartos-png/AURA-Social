@@ -130,6 +130,6 @@ test('mobile layout and original feed/news functionality remain intact',()=>{
  assert.ok(css.includes('@media(max-width:760px)'));
  assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
  assert.ok(read('public/editorial-interleave-v3224.js').includes("mode==='foryou'||mode==='latest'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.49');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.49'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.49.1');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.49.1'"));
 });
