@@ -122,11 +122,11 @@ test('admin has fourth image mode and full draft requires confirmation',()=>{
  assert.match(ui,/confirm\('Esta operación utilizará créditos de OpenAI/);
  assert.match(ui,/editorialAiImageErrorV3243/);
 });
-test('3.2.50 is wired with new release assets and CI tests without modifying PWA worker',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.50');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.50'/);
- assert.match(html,/\/admin\.js\?v=3\.2\.50/);
- assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.50/);
+test('3.2.51 is wired with new release assets and CI tests without modifying PWA worker',()=>{
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.51');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.51'/);
+ assert.match(html,/\/admin\.js\?v=3\.2\.51/);
+ assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.51/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-full-ai/);
  assert.match(read('package.json'),/test:editorial-full-ai/);
 });
