@@ -2,7 +2,29 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label={product:'Producto',service:'Servicio',property:'Inmueble',sale:'Venta',rent:'Alquiler',offer:'Servicio',buy:'Compra · Busco',active:'Activo',reserved:'Reservado',sold:'Finalizado',paused:'Pausado'};
-const state={kind:'',mode:'discover',page:1,items:[],deal:'',editing:null,images:[],pendingPhotos:[],admin:false,authenticated:false,authStatus:'checking'};
+const state={kind:'',mode:'discover',page:1,items:[],deal:'',editing:null,images:[],pendingPhotos:[],admin:false,authenticated:false,authStatus:'checking',reportId:null};
+const CATEGORY_SUGGESTIONS={
+ product:['Hogar y muebles','Moda y accesorios','Tecnología','Vehículos','Deportes y ocio','Libros y coleccionismo','Tazas','Otros'],
+ service:['Reformas y mantenimiento','Clases y formación','Salud y bienestar','Hogar y limpieza','Profesionales','Otros servicios'],
+ property:['Pisos','Casas','Habitaciones','Locales','Terrenos','Garajes','Otros inmuebles']
+};
+const SUBCATEGORY_SUGGESTIONS={
+ 'Hogar y muebles':['Sofás','Dormitorios','Mesas','Sillas','Decoración','Tazas'],
+ 'Tecnología':['Móviles','Ordenadores','Videojuegos','Fotografía'],
+ 'Vehículos':['Coches','Motos','Bicicletas'],
+ 'Moda y accesorios':['Ropa','Calzado','Bolsos'],
+ 'Tazas':['Personalizadas','Regalos','Coleccionismo'],
+ 'Pisos':['Pisos en venta','Pisos en alquiler'],
+ 'Casas':['Chalets','Adosados'],
+ 'Reformas y mantenimiento':['Albañilería','Pintura','Fontanería','Electricidad'],
+ 'Clases y formación':['Idiomas','Apoyo escolar','Música']
+};
+function populateSuggestions(){
+ const form=$('#listingForm');if(!form)return;
+ const kind=form.elements.namedItem('kind').value,category=form.elements.namedItem('category').value;
+ $('#listingCategories').innerHTML=(CATEGORY_SUGGESTIONS[kind]||[]).map(v=>'<option value="'+esc(v)+'"></option>').join('');
+ $('#listingSubcategories').innerHTML=(SUBCATEGORY_SUGGESTIONS[category]||[]).map(v=>'<option value="'+esc(v)+'"></option>').join('');
+}
 const MAX_MARKET_PHOTOS=6;
 const MAX_MARKET_IMAGE_BYTES=15*1024*1024;
 const errorMessage={authentication_required:'Inicia sesión para continuar.',invalid_session:'Tu sesión ha caducado.',invalid_listing:'Revisa los campos del anuncio.',listing_not_found:'Este anuncio ya no está disponible.',listing_not_available:'El anuncio ya no está disponible.',marketplace_unavailable:'Marketplace no disponible. Prueba de nuevo.'};
@@ -77,7 +99,24 @@ function priceLabel(item){return (item.deal==='buy'?'Presupuesto máximo: ':'')+
 function firstImage(item){const url=(item.image_urls||[])[0];return typeof url==='string'&&/^\/uploads\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(url)?url:null;}
 function card(item){
  const img=firstImage(item),own=state.mode==='mine';
- return '<article class="card"><div class="thumb">'+(img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>')+'</div><div class="cardbody"><span class="chip">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':label[item.kind]||item.kind)+'</span><h3>'+esc(item.title)+'</h3><div class="price">'+priceLabel(item)+'</div><p class="muted">📍 '+esc(item.city)+' · '+esc(item.seller_name||item.seller_username)+'</p>'+(own?'<span class="muted">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+'<div class="actions">'+((item.status==='active'&&item.moderation_status==='published')?'<a class="market-seo-link" href="/marketplace/p/'+esc(item.id)+'/'+slugifyMarket(item.title)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+(own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':'<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button>')+'</div></div></article>';
+ const publicOK=item.status==='active'&&item.moderation_status==='published'&&item.seller_discoverable===true;
+ const url='/marketplace/p/'+encodeURIComponent(item.id)+'/'+slugifyMarket(item.title);
+ const sellerOK=item.seller_discoverable===true&&/^[A-Za-z0-9_.-]+$/.test(String(item.seller_username||''));
+ const seller=sellerOK?'<a class="seller-profile-link" href="/perfil/'+encodeURIComponent(item.seller_username)+'">'+esc(item.seller_name||item.seller_username)+'</a>':esc(item.seller_name||item.seller_username);
+ const location=[item.city,item.details?.province].filter(Boolean).join(' · ');
+ const badge=item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO';
+ const more=item.details?.subcategory?'<p class="muted market-subcategory">'+esc(item.category)+' · '+esc(item.details.subcategory)+'</p>':'';
+ return '<article class="card"><div class="thumb">'+(img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>')+
+ '</div><div class="cardbody"><span class="chip market-deal-'+esc(item.deal)+'">'+esc(badge)+'</span><h3>'+esc(item.title)+'</h3>'+more+'<div class="price">'+priceLabel(item)+'</div>'+
+ '<p class="muted">📍 '+esc(location)+' · '+seller+'</p>'+
+ (own?'<span class="muted">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
+ '<div class="actions">'+(publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
+ (publicOK?'<button type="button" data-share="'+esc(item.id)+'">Compartir</button>':'')+
+ (own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':
+ state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':
+ '<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button>'+
+ (String(item.seller_id)===String(window.currentUserId)?'':'<button data-report="'+esc(item.id)+'">Denunciar</button>'))+
+ '</div></div></article>';
 }
 async function load(reset=true){
  if(reset)state.page=1;
@@ -88,7 +127,7 @@ async function load(reset=true){
  else if(state.mode==='reports')path+='/admin/reports';
  else{
   const f=new FormData($('#filters'));
-  path+='?'+new URLSearchParams({kind:state.kind,deal:state.deal,q:String(f.get('q')||''),city:String(f.get('city')||''),maxPrice:String(f.get('maxPrice')||''),page:String(state.page)});
+  path+='?'+new URLSearchParams({kind:state.kind,deal:state.deal,q:String(f.get('q')||''),city:String(f.get('city')||''),province:String(f.get('province')||''),category:String(f.get('category')||''),maxPrice:String(f.get('maxPrice')||''),page:String(state.page)});
  }
  if(!state.authenticated){$('#list').innerHTML='';$('#more').classList.add('hidden');note('Inicia sesión para usar tus anuncios y favoritos, o consulta el catálogo público.');return;}
  const data=await request(path);
@@ -111,6 +150,7 @@ function syncKind(){
  const allowed=kind==='property'?['sale','rent','buy']:kind==='service'?['offer']:['sale','buy'];
  [...deal.options].forEach(opt=>opt.hidden=!allowed.includes(opt.value));
  if(!allowed.includes(deal.value))deal.value=allowed[0];
+ populateSuggestions();
  const budget=deal.value==='buy';
  $('#listingPriceLabel').textContent=budget?'Presupuesto máximo en euros':'Precio en euros';
  $('#listingPriceHint').textContent=budget?'Indica cuánto pagarías como máximo (0 € si está por negociar).':'Indica el precio del anuncio.';
@@ -124,6 +164,8 @@ function openEditor(item=null){
  if(item){
    for(const n of ['kind','deal','title','description','category','city','status'])f(n).value=n==='status'?item.status:(item[n]||'');
    f('price').value=(Number(item.price_cents)/100).toFixed(2);
+   f('province').value=item.details?.province||'';
+   f('subcategory').value=item.details?.subcategory||'';
  }
  syncKind();renderPhotos();$('#formError').textContent='';
  $('#editorTitle').textContent=item?'Editar anuncio':'Publicar anuncio';$('#editor').showModal();
@@ -155,7 +197,10 @@ function listingFormData(form){
   if(!/^\d{1,9}(?:\.\d{1,2})?$/.test(priceText))return invalid('price','Introduce un precio válido, por ejemplo 15,99 o 15.99.');
   const priceCents=Math.round(Number(priceText)*100);
   if(!Number.isSafeInteger(priceCents)||priceCents>99999999900)return invalid('price','El precio supera el máximo permitido.');
-  return {data:{kind,deal,title,description,category,city,priceCents,images:[],details:{}},status:field('status')};
+  const province=field('province'),subcategory=field('subcategory');
+  if(province.length>100)return invalid('province','La provincia no debe superar 100 caracteres.');
+  if(subcategory.length>65)return invalid('subcategory','La subcategoría no debe superar 65 caracteres.');
+  return {data:{kind,deal,title,description,category,city,priceCents,images:[],details:{...(province?{province}:{}),...(subcategory?{subcategory}:{})}},status:field('status')};
 }
 function listingError(message,fieldName){
   const error=$('#formError');
@@ -216,7 +261,10 @@ async function saveListing(event){
       renderPhotos();
     }
     btn.textContent=state.editing?'Actualizando anuncio…':'Publicando anuncio…';
-    const payload={...parsed.data,images:[...state.images]};
+    const previous=state.editing?.details||{};
+    const payload={...parsed.data,images:[...state.images],details:{...previous,...parsed.data.details}};
+    if(!parsed.data.details.province)delete payload.details.province;
+    if(!parsed.data.details.subcategory)delete payload.details.subcategory;
     if(state.editing)payload.status=parsed.status;
     const response=await request('/api/marketplace'+(state.editing?'/'+encodeURIComponent(state.editing.id):''),{
       method:state.editing?'PATCH':'POST',body:JSON.stringify(payload)
