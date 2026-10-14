@@ -170,6 +170,8 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
+      - name: V3.2.58.1 Marketplace clean mobile navigation and visitor UX
+        run: npm run test:marketplace-clean
       - name: V3.2.58 Marketplace quick publish, recent labels, sharing and typed details
         run: npm run test:marketplace-growth
       - name: V3.2.58 Marketplace search, related listings and seller status tests

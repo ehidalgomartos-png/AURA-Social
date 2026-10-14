@@ -75,8 +75,8 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
  '<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.58"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.58&amp;nav=1">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.58" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.58.1"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.58.1&amp;nav=1">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.58.1" defer></script></head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/">RedLibertad</a><a class="headname" href="/marketplace">Mi Marketplace</a></header>'+
  '<main>'+body+'</main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
@@ -203,17 +203,22 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
     "ORDER BY "+sorts[sort]+" LIMIT 25 OFFSET $5",
     args);
   const cards=result.rows.slice(0,24).map(listingCard).join('');
+  const advanced=Boolean(city||kind||sort!=='recent');
   const filterBox='<form class="market-public-filters" action="/marketplace/explorar" method="get" role="search">'+
    (operation?'<input type="hidden" name="operacion" value="'+esc(operation)+'">':'')+
-   '<label>Buscar anuncios<input name="q" type="search" maxlength="80" value="'+esc(q)+'" placeholder="¿Qué estás buscando?"></label>'+
-   '<label>Ciudad<input name="ciudad" maxlength="80" value="'+esc(city)+'" placeholder="Ej. Valencia"></label>'+
-   '<label>Tipo de anuncio<select name="tipo">'+
-    [['','Todos'],['product','Productos'],['service','Servicios'],['property','Inmobiliaria']].map(([value,label])=>'<option value="'+value+'"'+(kind===value||(!kind&&!value)?' selected':'')+'>'+label+'</option>').join('')+
-   '</select></label>'+
-   '<label>Ordenar<select name="orden">'+
-    [['recent','Más recientes'],['price_asc','Precio más bajo'],['price_desc','Precio más alto']].map(([value,label])=>'<option value="'+value+'"'+(sort===value?' selected':'')+'>'+label+'</option>').join('')+
-   '</select></label>'+
-   '<button type="submit" class="primary">Buscar</button><a class="market-clear-filters" href="/marketplace/explorar">Limpiar</a></form>';
+   '<div class="market-public-search">'+
+     '<label>Buscar anuncios<input name="q" type="search" maxlength="80" value="'+esc(q)+'" placeholder="¿Qué estás buscando?"></label>'+
+     '<button type="submit" class="primary">Buscar</button></div>'+
+   '<details class="market-public-advanced"'+(advanced?' open':'')+'><summary>Más filtros</summary>'+
+    '<div class="market-public-extra"><label>Ciudad<input name="ciudad" maxlength="80" value="'+esc(city)+'" placeholder="Ej. Valencia"></label>'+
+    '<label>Tipo de anuncio<select name="tipo">'+
+     [['','Todos'],['product','Productos'],['service','Servicios'],['property','Inmobiliaria']].map(([value,label])=>'<option value="'+value+'"'+(kind===value||(!kind&&!value)?' selected':'')+'>'+label+'</option>').join('')+
+    '</select></label>'+
+    '<label>Ordenar<select name="orden">'+
+     [['recent','Más recientes'],['price_asc','Precio más bajo'],['price_desc','Precio más alto']].map(([value,label])=>'<option value="'+value+'"'+(sort===value?' selected':'')+'>'+label+'</option>').join('')+
+    '</select></label>'+
+    '<button type="submit" class="secondary">Aplicar filtros</button>'+
+    '<a class="market-clear-filters" href="/marketplace/explorar">Limpiar</a></div></details></form>';
   const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace">Publicar anuncio</a></section>'+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
    filterBox+
