@@ -18,17 +18,23 @@ function categoryTabs(active=''){
     opts.map(([id,label])=>'<a href="/noticias'+(id?'?categoria='+id:'')+'"'+
       (id===active?' aria-current="page"':'')+'>'+esc(label)+'</a>').join('')+'</nav>';
 }
-function relatedNews(rows,category){
+function relatedNews(rows,category,{safeImage=()=>false}={}){
   const safe=Array.isArray(rows)?rows.filter(x=>validId(x?.id)).slice(0,3):[];
   if(!safe.length)return '';
   return '<section class="ed-related-v3248" aria-labelledby="ed-related-title-v3248">'+
     '<div class="ed-related-head-v3248"><div><span>SEGUIR DESCUBRIENDO</span>'+
     '<h2 id="ed-related-title-v3248">Más noticias de '+esc(categoryLabel(category))+'</h2></div>'+
     '<a href="/noticias?categoria='+encodeURIComponent(categories.includes(category)?category:'actualidad')+'">Ver sección ↗</a></div>'+
-    '<div class="ed-related-grid-v3248">'+safe.map(row=>
-      '<article class="ed-related-card-v3248">'+
-      '<a href="/noticias/p/'+encodeURIComponent(row.id)+'">'+esc(String(row.title||'Noticia'))+'</a>'+
-      '<p>'+esc(String(row.summary||'').slice(0,185))+'</p></article>'
-    ).join('')+'</div></section>';
+    '<div class="ed-related-grid-v3248">'+safe.map(row=>{
+      const path='/noticias/p/'+encodeURIComponent(row.id);
+      const image=typeof safeImage==='function'&&safeImage(row.image_url)
+        ?'<a class="ed-related-photo-v3249" href="'+path+'"><img src="'+esc(row.image_url)+'" alt="" loading="lazy" decoding="async">'+
+          (row.image_origin==='ai'?'<span>Ilustración IA</span>':'')+'</a>':'';
+      return '<article class="ed-related-card-v3248">'+image+
+        '<div class="ed-related-content-v3249"><span class="ed-related-topic-v3249">'+esc(categoryLabel(category))+'</span>'+
+        '<a class="ed-related-title-v3249" href="'+path+'">'+esc(String(row.title||'Noticia'))+'</a>'+
+        '<p>'+esc(String(row.summary||'').slice(0,185))+'</p>'+
+        '<a class="ed-related-read-v3249" href="'+path+'" aria-label="Leer noticia: '+esc(String(row.title||'Noticia'))+'">Leer noticia →</a></div></article>';
+    }).join('')+'</div></section>';
 }
 module.exports={filter,categoryTabs,relatedNews,categories,validId,esc};
