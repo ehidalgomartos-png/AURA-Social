@@ -55,7 +55,14 @@ async function ensureMarketplaceSchema(){
 }
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 router.use(requireAuth);
-router.use(wrap(async()=>{await ensureMarketplaceSchema();}));
+// A successful schema check MUST advance the Express router. The previous
+// middleware resolved its promise without next(), leaving POST/GET waiting.
+function marketplaceSchemaMiddleware(ensureSchema=ensureMarketplaceSchema){
+  return (_req,_res,next)=>{
+    Promise.resolve().then(ensureSchema).then(()=>next(),next);
+  };
+}
+router.use(marketplaceSchemaMiddleware());
 
 const cardFields="l.id,l.seller_id,l.kind,l.deal,l.title,l.description,l.category,l.city,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.avatar_url AS seller_avatar,EXISTS(SELECT 1 FROM marketplace_favorites mf WHERE mf.listing_id=l.id AND mf.user_id=$1) AS is_favorite";
 const joins=' FROM marketplace_listings l JOIN users u ON u.id=l.seller_id ';
@@ -169,3 +176,5 @@ router.use((err,_req,res,_next)=>{
 module.exports=router;
 module.exports.ensureMarketplaceSchema=ensureMarketplaceSchema;
 module.exports.DDL=DDL;
+module.exports.marketplaceSchemaMiddleware=marketplaceSchemaMiddleware;
+
