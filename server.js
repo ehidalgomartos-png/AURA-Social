@@ -45,6 +45,7 @@ const adminVerificationV1891Routes = require('./src/routes/admin-verification-v1
 const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
 const {publicProfileSeo,safeJsonLd}=require('./src/services/public-profile-seo-v302');
 const {createGrowthCenterRouter}=require('./src/routes/admin-growth-v219');
+const marketplaceRoutes = require('./src/routes/marketplace-v3250');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
@@ -76,7 +77,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.49.1';
+const APP_VERSION='3.2.50';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -242,6 +243,7 @@ app.use('/api/admin/editorial', adminEditorialReviewV322Routes);
 app.use('/api/admin/editorial', adminEditorialInboxV321Routes);
 app.use('/api/admin/editorial', adminEditorialV320Routes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/marketplace',marketplaceRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/messages', messageRoutes);
@@ -1304,6 +1306,7 @@ function sendHtmlShell(file){
     res.sendFile(path.join(__dirname,'public',file));
   };
 }
+app.get('/marketplace',sendHtmlShell('marketplace.html'));
 app.get('/app', sendHtmlShell('app.html'));
 app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));

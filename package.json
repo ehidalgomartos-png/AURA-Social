@@ -1,14 +1,15 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.49.1",
+  "version": "3.2.50",
   "private": true,
-  "description": "RedLibertad V3.2.49.1 — Editorial Encoding Hotfix",
+  "description": "RedLibertad V3.2.50 — Marketplace 1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
+    "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:startup-router": "node --test tests/server-router-wiring-v32421.test.js",
     "test:legal": "node --test tests/legal-consent-timeline.test.js tests/legal-consent-receipt.test.js tests/legal-consent-readable.test.js tests/legal-consent-filters.test.js tests/legal-status-overview.test.js",
     "test:smoke": "node --test tests/stability-*.test.js",

@@ -1,0 +1,171 @@
+'use strict';
+// RedLibertad V3.2.50 - Marketplace: products, services and property.
+// Authenticated catalogue, ownership, moderation and reports; no in-app payments.
+const express=require('express');
+const {z}=require('zod');
+const rateLimit=require('express-rate-limit');
+const db=require('../db');
+const {requireAuth}=require('../middleware/auth');
+const router=express.Router();
+
+const KINDS=['product','service','property'];
+const DEALS=['sale','rent','offer'];
+const STATUSES=['active','reserved','sold','paused'];
+const picture=z.string().trim().regex(/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i);
+const listingInput=z.object({
+  kind:z.enum(KINDS),
+  deal:z.enum(DEALS),
+  title:z.string().trim().min(6).max(120),
+  description:z.string().trim().min(25).max(4000),
+  category:z.string().trim().min(2).max(65),
+  city:z.string().trim().min(2).max(100),
+  priceCents:z.number().int().nonnegative().max(99999999900),
+  images:z.array(picture).max(6).default([]),
+  details:z.object({
+    condition:z.enum(['new','used']).optional(),
+    areaM2:z.number().int().positive().max(100000).optional(),
+    rooms:z.number().int().min(0).max(100).optional(),
+    subtype:z.string().trim().max(60).optional()
+  }).strict().default({})
+}).strict().superRefine((v,ctx)=>{
+  if(v.kind==='service'&&v.deal!=='offer')ctx.addIssue({code:'custom',path:['deal'],message:'El servicio debe ser una oferta'});
+  if(v.kind==='product'&&v.deal!=='sale')ctx.addIssue({code:'custom',path:['deal'],message:'Un producto se anuncia en venta'});
+  if(v.kind==='property'&&v.deal==='offer')ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona venta o alquiler'});
+});
+const reportInput=z.object({
+  reason:z.enum(['fraud','prohibited','spam','misleading','other']),
+  details:z.string().trim().max(500).default('')
+}).strict();
+const idOk=id=>/^[1-9]\d{0,15}$/.test(String(id||''));
+
+let schemaReady=null;
+const DDL=[
+  "CREATE TABLE IF NOT EXISTS marketplace_listings (id BIGSERIAL PRIMARY KEY, seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('product','service','property')), deal TEXT NOT NULL CHECK(deal IN ('sale','rent','offer')), title VARCHAR(120) NOT NULL, description VARCHAR(4000) NOT NULL, category VARCHAR(65) NOT NULL, city VARCHAR(100) NOT NULL, price_cents BIGINT NOT NULL CHECK(price_cents>=0), image_urls JSONB NOT NULL DEFAULT '[]'::jsonb, details JSONB NOT NULL DEFAULT '{}'::jsonb, status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','reserved','sold','paused')), moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','hidden')), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+  'CREATE INDEX IF NOT EXISTS idx_marketplace_discover ON marketplace_listings(kind,created_at DESC,id DESC) WHERE status=\'active\' AND moderation_status=\'published\'',
+  'CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON marketplace_listings(seller_id,created_at DESC)',
+  'CREATE TABLE IF NOT EXISTS marketplace_favorites (user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, listing_id BIGINT NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(user_id,listing_id))',
+  'CREATE TABLE IF NOT EXISTS marketplace_reports (id BIGSERIAL PRIMARY KEY, listing_id BIGINT NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE, reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, reason TEXT NOT NULL CHECK(reason IN (\'fraud\',\'prohibited\',\'spam\',\'misleading\',\'other\')), details VARCHAR(500) NOT NULL DEFAULT \'\', resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(listing_id,reporter_id))',
+  'CREATE INDEX IF NOT EXISTS idx_marketplace_reports_pending ON marketplace_reports(created_at DESC) WHERE resolved_at IS NULL'
+];
+async function ensureMarketplaceSchema(){
+  if(!schemaReady){
+    schemaReady=(async()=>{for(const sql of DDL)await db.query(sql);})().catch(err=>{schemaReady=null;throw err;});
+  }
+  return schemaReady;
+}
+const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
+router.use(requireAuth);
+router.use(wrap(async()=>{await ensureMarketplaceSchema();}));
+
+const cardFields="l.id,l.seller_id,l.kind,l.deal,l.title,l.description,l.category,l.city,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.avatar_url AS seller_avatar,EXISTS(SELECT 1 FROM marketplace_favorites mf WHERE mf.listing_id=l.id AND mf.user_id=$1) AS is_favorite";
+const joins=' FROM marketplace_listings l JOIN users u ON u.id=l.seller_id ';
+const visibleToUser='u.status=\'active\' AND l.moderation_status=\'published\' AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=l.seller_id) OR (b.blocked_id=$1 AND b.blocker_id=l.seller_id))';
+
+router.get('/',wrap(async(req,res)=>{
+  const kind=KINDS.includes(req.query.kind)?req.query.kind:null;
+  const query=String(req.query.q||'').trim().slice(0,100);
+  const city=String(req.query.city||'').trim().slice(0,80);
+  const maxPrice=String(req.query.maxPrice||'').trim();
+  const page=Math.min(20,Math.max(1,Number.parseInt(req.query.page,10)||1));
+  const args=[req.user.id];
+  const clauses=[visibleToUser,"l.status='active'"];
+  if(kind){args.push(kind);clauses.push('l.kind=$'+args.length);}
+  if(query){args.push('%'+query+'%');clauses.push('(l.title ILIKE $'+args.length+' OR l.description ILIKE $'+args.length+' OR l.category ILIKE $'+args.length+')');}
+  if(city){args.push('%'+city+'%');clauses.push('l.city ILIKE $'+args.length);}
+  if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
+  args.push(24,(page-1)*24);
+  const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY l.created_at DESC,l.id DESC LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
+  res.json({ok:true,items:items.rows,page,hasMore:items.rows.length===24});
+}));
+
+router.get('/mine',wrap(async(req,res)=>{
+  const result=await db.query('SELECT '+cardFields+joins+' WHERE l.seller_id=$1 ORDER BY l.created_at DESC LIMIT 200',[req.user.id]);
+  res.json({ok:true,items:result.rows});
+}));
+router.get('/favorites',wrap(async(req,res)=>{
+  const result=await db.query('SELECT '+cardFields+joins+' JOIN marketplace_favorites fav ON fav.listing_id=l.id AND fav.user_id=$1 WHERE '+visibleToUser+' AND l.status=\'active\' ORDER BY fav.created_at DESC LIMIT 200',[req.user.id]);
+  res.json({ok:true,items:result.rows});
+}));
+
+router.get('/admin/reports',wrap(async(req,res)=>{
+  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
+  const rows=await db.query('SELECT r.id,r.reason,r.details,r.created_at,r.listing_id,l.title,l.moderation_status,reporter.username AS reporter FROM marketplace_reports r JOIN marketplace_listings l ON l.id=r.listing_id JOIN users reporter ON reporter.id=r.reporter_id WHERE r.resolved_at IS NULL ORDER BY r.created_at DESC LIMIT 100');
+  res.json({ok:true,reports:rows.rows});
+}));
+router.post('/admin/:id/moderate',wrap(async(req,res)=>{
+  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const action=req.body?.action;
+  if(!['hide','restore','resolve'].includes(action))return res.status(400).json({error:'invalid_action'});
+  if(action==='resolve'){
+    await db.query('UPDATE marketplace_reports SET resolved_at=now() WHERE listing_id=$1 AND resolved_at IS NULL',[req.params.id]);
+  }else{
+    const status=action==='hide'?'hidden':'published';
+    const result=await db.query('UPDATE marketplace_listings SET moderation_status=$2,updated_at=now() WHERE id=$1 RETURNING id',[req.params.id,status]);
+    if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+    await db.query('UPDATE marketplace_reports SET resolved_at=now() WHERE listing_id=$1 AND resolved_at IS NULL',[req.params.id]);
+  }
+  res.json({ok:true});
+}));
+
+router.get('/:id',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const result=await db.query('SELECT '+cardFields+joins+' WHERE l.id=$2 AND (l.seller_id=$1 OR $3::boolean OR ('+visibleToUser+" AND l.status IN ('active','reserved','sold')))",[req.user.id,req.params.id,!!req.user.isAdmin]);
+  if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true,item:result.rows[0]});
+}));
+
+router.post('/',rateLimit({windowMs:60*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),wrap(async(req,res)=>{
+  const parsed=listingInput.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
+  const v=parsed.data;
+  const r=await db.query('INSERT INTO marketplace_listings (seller_id,kind,deal,title,description,category,city,price_cents,image_urls,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb) RETURNING id',[req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details)]);
+  res.status(201).json({ok:true,id:r.rows[0].id});
+}));
+
+router.patch('/:id',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const parsed=listingInput.extend({status:z.enum(STATUSES)}).strict().safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
+  const v=parsed.data;
+  const r=await db.query("UPDATE marketplace_listings SET kind=$3,deal=$4,title=$5,description=$6,category=$7,city=$8,price_cents=$9,image_urls=$10::jsonb,details=$11::jsonb,status=$12,updated_at=now() WHERE id=$1 AND seller_id=$2 RETURNING id",[req.params.id,req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details),v.status]);
+  if(!r.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true});
+}));
+
+router.delete('/:id',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const result=await db.query('DELETE FROM marketplace_listings WHERE id=$1 AND seller_id=$2 RETURNING id',[req.params.id,req.user.id]);
+  if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true});
+}));
+router.post('/:id/favorite',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const result=await db.query('INSERT INTO marketplace_favorites(user_id,listing_id) SELECT $1,l.id FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$2 AND l.seller_id<>$1 AND '+visibleToUser+" AND l.status='active' ON CONFLICT DO NOTHING RETURNING listing_id",[req.user.id,req.params.id]);
+  if(!result.rowCount){
+    const check=await db.query('SELECT 1 FROM marketplace_favorites WHERE user_id=$1 AND listing_id=$2',[req.user.id,req.params.id]);
+    if(!check.rowCount)return res.status(404).json({error:'listing_not_available'});
+  }
+  res.json({ok:true});
+}));
+router.delete('/:id/favorite',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  await db.query('DELETE FROM marketplace_favorites WHERE user_id=$1 AND listing_id=$2',[req.user.id,req.params.id]);
+  res.json({ok:true});
+}));
+router.post('/:id/report',rateLimit({windowMs:60*60*1000,max:25,standardHeaders:true,legacyHeaders:false}),wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const parsed=reportInput.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_report'});
+  const result=await db.query('INSERT INTO marketplace_reports(listing_id,reporter_id,reason,details) SELECT id,$2,$3,$4 FROM marketplace_listings WHERE id=$1 AND seller_id<>$2 ON CONFLICT (listing_id,reporter_id) DO UPDATE SET reason=EXCLUDED.reason,details=EXCLUDED.details,created_at=now(),resolved_at=NULL RETURNING id',[req.params.id,req.user.id,parsed.data.reason,parsed.data.details]);
+  if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true});
+}));
+
+router.use((err,_req,res,_next)=>{
+  console.error('Marketplace error:',err);
+  if(!res.headersSent)res.status(500).json({error:'marketplace_unavailable'});
+});
+module.exports=router;
+module.exports.ensureMarketplaceSchema=ensureMarketplaceSchema;
+module.exports.DDL=DDL;
