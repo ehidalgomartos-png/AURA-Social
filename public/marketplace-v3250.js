@@ -31,10 +31,12 @@ const errorMessage={authentication_required:'Inicia sesión para continuar.',inv
 function note(s){$('#notice').textContent=s||'';}
 function updateMarketplaceAuth(status){
  state.authStatus=status;state.authenticated=status==='signed-in';
+ document.body.classList.toggle('market-guest',status==='guest');
  const button=$('#newListing'),banner=$('#authNotice');
  button.disabled=status==='checking'||status==='unavailable';
  button.textContent=status==='signed-in'?'+ Publicar anuncio':status==='checking'?'Comprobando sesión…':status==='guest'?'Inicia sesión para publicar':'No se puede comprobar la sesión';
- banner.classList.toggle('hidden',status==='signed-in'||status==='checking');
+ // Visitors use a single public-catalogue link, not the private search and login notice.
+ banner.classList.toggle('hidden',status!=='unavailable');
  $('#authNoticeText').textContent=status==='guest'
   ?'Para publicar, borrar o guardar anuncios, necesitas iniciar sesión. Puedes explorar los anuncios públicos sin una cuenta.'
   :'No hemos podido comprobar tu sesión. Revisa la conexión y vuelve a intentarlo.';
@@ -161,7 +163,7 @@ async function load(reset=true){
   const f=new FormData($('#filters'));
   path+='?'+new URLSearchParams({kind:state.kind,deal:state.deal,q:String(f.get('q')||''),city:String(f.get('city')||''),province:String(f.get('province')||''),category:String(f.get('category')||''),maxPrice:String(f.get('maxPrice')||''),sort:String(f.get('sort')||'recent'),page:String(state.page)});
  }
- if(!state.authenticated){$('#list').innerHTML='';$('#more').classList.add('hidden');note('Inicia sesión para usar tus anuncios y favoritos, o consulta el catálogo público.');return;}
+ if(!state.authenticated){$('#list').innerHTML='';$('#more').classList.add('hidden');note(state.authStatus==='guest'?'':'No se han podido cargar los anuncios. Reinténtalo.');return;}
  const data=await request(path);
  if(!data.ok){note(errorMessage[data.error]||'No se pudo cargar. Vuelve a intentarlo.');return;}
  if(state.mode==='reports'){
@@ -473,7 +475,7 @@ async function init(){
    updateMarketplaceAuth(me.status===401?'guest':'unavailable');
    $('#list').innerHTML='';
    $('#more').classList.add('hidden');
-   note(me.status===401?'Puedes consultar anuncios públicos. Inicia sesión para publicar, guardar o gestionar tus anuncios.':'No se ha podido comprobar tu sesión.');
+   note(me.status===401?'':'No se ha podido comprobar tu sesión.');
    const contactId=new URLSearchParams(location.search).get('listing');
    if(me.status===401&&/^[1-9]\d{0,15}$/.test(String(contactId||''))){
     const box=$('#contactContext');
