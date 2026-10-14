@@ -43,3 +43,5 @@
 .market-deals button.active{background:#136a61;border-color:#136a61;color:#fff}
 #listingPriceHint{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:3px;font-weight:400}
 @media(max-width:600px){.market-deals{margin:0 0 12px}.market-deals button{padding:9px 13px}}
+
+.market-deals a{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--navy);padding:10px 15px;font-weight:750;text-decoration:none;white-space:nowrap}.market-deals a:hover{background:#e6f5f1}
