@@ -99,6 +99,7 @@ function priceLabel(item){return (item.deal==='buy'?'Presupuesto máximo: ':'')+
 function firstImage(item){const url=(item.image_urls||[])[0];return typeof url==='string'&&/^\/uploads\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(url)?url:null;}
 function card(item){
  const img=firstImage(item),own=state.mode==='mine';
+ const isOwner=window.currentUserId!=null&&String(item.seller_id)===String(window.currentUserId);
  const publicOK=item.status==='active'&&item.moderation_status==='published'&&item.seller_discoverable===true;
  const url='/marketplace/p/'+encodeURIComponent(item.id)+'/'+slugifyMarket(item.title);
  const sellerOK=item.seller_discoverable===true&&/^[A-Za-z0-9_.-]+$/.test(String(item.seller_username||''));
@@ -114,9 +115,17 @@ function card(item){
  (publicOK?'<button type="button" data-share="'+esc(item.id)+'">Compartir</button>':'')+
  (own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':
  state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':
- '<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button>'+
- (String(item.seller_id)===String(window.currentUserId)?'':'<button data-report="'+esc(item.id)+'">Denunciar</button>'))+
+ isOwner?'<button type="button" data-manage="'+esc(item.id)+'">Gestionar mi anuncio</button>':
+ '<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button><button data-report="'+esc(item.id)+'">Denunciar</button>')+
  '</div></div></article>';
+}
+function emptyMarketplaceState(){
+ if(state.mode==='mine')return '<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">📦</div><h2>Todavía no tienes anuncios</h2><p>Publica un producto, ofrece un servicio o anuncia un inmueble.</p><button type="button" class="primary" data-empty-create>Publicar mi primer anuncio</button></div>';
+ if(state.mode==='favorites')return '<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">♡</div><h2>Aún no tienes favoritos</h2><p>Explora el Marketplace y guarda los anuncios que te interesen.</p><button type="button" class="primary" data-empty-explore>Explorar anuncios</button></div>';
+ const searching=Boolean(state.kind||state.deal||[...new FormData($('#filters')).values()].some(v=>String(v).trim()));
+ return searching
+  ?'<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">⌕</div><h2>No hay resultados con estos filtros</h2><p>Prueba otra ubicación, categoría o precio.</p><button type="button" class="secondary" data-empty-clear>Quitar filtros</button></div>'
+  :'<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">🛍️</div><h2>Aún no hay anuncios</h2><p>¿Quieres ser la primera persona en publicar?</p><button type="button" class="primary" data-empty-create>Publicar anuncio</button></div>';
 }
 async function load(reset=true){
  if(reset)state.page=1;
@@ -138,13 +147,19 @@ async function load(reset=true){
  }
  const items=data.items||[];
  state.items=reset?items:[...state.items,...items];
- $('#list').innerHTML=state.items.map(card).join('');
+ $('#list').innerHTML=state.items.length?state.items.map(card).join(''):emptyMarketplaceState();
  $('#more').classList.toggle('hidden',state.mode!=='discover'||!data.hasMore);
- note(state.items.length?'':'Todavía no hay anuncios con estos filtros. ¡Puedes publicar el primero!');
+ note('');
 }
 function setDeal(d){state.deal=d;$$('[data-deal]').forEach(b=>b.classList.toggle('active',b.dataset.deal===d));load();}
 function setKind(k){state.kind=k;$$('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===k));load();}
-function setMode(mode){state.mode=mode;$$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$('#filters').classList.toggle('hidden',mode!=='discover');load();}
+function setMode(mode){
+ state.mode=mode;
+ $$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+ $$('.tabs,.market-deals').forEach(nav=>nav.classList.toggle('hidden',mode!=='discover'));
+ $('#filters').classList.toggle('hidden',mode!=='discover');
+ load();
+}
 function syncKind(){
  const kind=$('#listingForm [name=kind]').value,deal=$('#listingForm [name=deal]');
  const allowed=kind==='property'?['sale','rent','buy']:kind==='service'?['offer']:['sale','buy'];
@@ -410,6 +425,14 @@ $('#listingForm [name=category]').addEventListener('input',populateSuggestions);
 $('#reportForm').addEventListener('submit',submitReport);
 document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
+ if(b.hasAttribute('data-empty-create')){openEditor();return;}
+ if(b.hasAttribute('data-empty-explore')){setMode('discover');return;}
+ if(b.hasAttribute('data-empty-clear')){
+  $('#filters').reset();state.kind='';state.deal='';
+  $$('[data-kind],[data-deal]').forEach(filter=>filter.classList.toggle('active',filter.dataset.kind===''||filter.dataset.deal===''));
+  load();return;
+ }
+ if(b.dataset.manage){setMode('mine');return;}
  if(b.dataset.close){closeDialog(b.dataset.close);return;}
  if(b.dataset.removePhoto!==undefined){state.images.splice(Number(b.dataset.removePhoto),1);renderPhotos();return;}
  if(b.dataset.removePending!==undefined){
