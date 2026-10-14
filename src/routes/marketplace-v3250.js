@@ -11,6 +11,7 @@ const router=express.Router();
 const KINDS=['product','service','property'];
 const DEALS=['sale','rent','offer','buy'];
 const STATUSES=['active','reserved','sold','paused'];
+const SORTS={recent:'l.created_at DESC,l.id DESC',price_asc:'l.price_cents ASC,l.id DESC',price_desc:'l.price_cents DESC,l.id DESC'};
 const picture=z.string().trim().regex(/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i);
 const listingBase=z.object({
   kind:z.enum(KINDS),
@@ -96,6 +97,7 @@ router.get('/',wrap(async(req,res)=>{
   const province=String(req.query.province||'').trim().slice(0,100);
   const category=String(req.query.category||'').trim().slice(0,65);
   const maxPrice=String(req.query.maxPrice||'').trim();
+  const sort=Object.hasOwn(SORTS,req.query.sort)?req.query.sort:'recent';
   const page=Math.min(20,Math.max(1,Number.parseInt(req.query.page,10)||1));
   const args=[req.user.id];
   const clauses=[visibleToUser,"l.status='active'"];
@@ -107,7 +109,7 @@ router.get('/',wrap(async(req,res)=>{
   if(category){args.push(category);clauses.push('l.category=$'+args.length);}
   if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
   args.push(24,(page-1)*24);
-  const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY l.created_at DESC,l.id DESC LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
+  const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY '+SORTS[sort]+' LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
   res.json({ok:true,items:items.rows,page,hasMore:items.rows.length===24});
 }));
 
@@ -166,6 +168,15 @@ router.patch('/:id',wrap(async(req,res)=>{
   res.json({ok:true});
 }));
 
+// Owner-only quick status actions: preserve moderation status.
+router.patch('/:id/status',wrap(async(req,res)=>{
+ if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+ const parsed=z.object({status:z.enum(STATUSES)}).strict().safeParse(req.body);
+ if(!parsed.success)return res.status(400).json({error:'invalid_status'});
+ const row=await db.query('UPDATE marketplace_listings SET status=$3,updated_at=now() WHERE id=$1 AND seller_id=$2 RETURNING id,status',[req.params.id,req.user.id,parsed.data.status]);
+ if(!row.rowCount)return res.status(404).json({error:'listing_not_found'});
+ res.json({ok:true,id:row.rows[0].id,status:row.rows[0].status});
+}));
 router.delete('/:id',wrap(async(req,res)=>{
   if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
   const result=await db.query('DELETE FROM marketplace_listings WHERE id=$1 AND seller_id=$2 RETURNING id',[req.params.id,req.user.id]);

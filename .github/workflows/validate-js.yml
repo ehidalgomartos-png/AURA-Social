@@ -170,7 +170,9 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
-      - name: V3.2.56 Marketplace direct contact, public seller pages and favorite UX
+      - name: V3.2.57 Marketplace search, related listings and seller status tests
+        run: npm run test:marketplace-search
+      - name: V3.2.57 Marketplace direct contact, public seller pages and favorite UX
         run: npm run test:marketplace-contact
       - name: V3.2.54 Marketplace sharing, filters and trust regressions
         run: npm run test:marketplace-discovery

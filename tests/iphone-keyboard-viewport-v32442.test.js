@@ -41,7 +41,7 @@ test('Back button, message send and version wiring remain intact',()=>{
  assert.match(js,/if\(currentAppRouteV32441\(\)\?\.chat===String\(activeConversationId\)\)/);
  assert.match(js,/\$\('#messageForm'\)\.onsubmit=sendMessage/);
  assert.match(js,/await openConversation\(activeConversationId\)/);
- assert.match(html,/\/social\.js\?v=3\.2\.56/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.56');
+ assert.match(html,/\/social\.js\?v=3\.2\.57/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.57');
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:iphone-keyboard/);
 });
