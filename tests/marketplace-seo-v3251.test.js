@@ -76,5 +76,5 @@ test('crawler routes, XML sitemap and internal discovery are wired',()=>{
  assert.match(market,/market-seo-link/);
  assert.match(market,/\$\$\('\[data-kind\]'\)\.forEach/);
  assert.match(market,/contactName/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.53');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.54');
 });

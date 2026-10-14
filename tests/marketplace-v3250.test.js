@@ -5,11 +5,11 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
-test('V3.2.53 mounts marketplace without replacing existing social routes',()=>{
+test('V3.2.54 mounts marketplace without replacing existing social routes',()=>{
  const server=read('server.js');
  assert.match(server,/app\.use\('\/api\/marketplace',marketplaceRoutes\)/);
  assert.match(server,/app\.get\('\/marketplace',sendHtmlShell\('marketplace\.html'\)\)/);
- assert.match(server,/const APP_VERSION='3\.2\.53'/);
+ assert.match(server,/const APP_VERSION='3\.2\.54'/);
  assert.match(server,/app\.use\('\/api\/messages', messageRoutes\)/);
 });
 
