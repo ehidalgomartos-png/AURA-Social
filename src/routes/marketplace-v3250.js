@@ -24,6 +24,8 @@ const listingBase=z.object({
   images:z.array(picture).max(6).default([]),
   details:z.object({
     condition:z.enum(['new','used']).optional(),
+    serviceMode:z.enum(['in_person','remote','both']).optional(),
+    serviceArea:z.string().trim().max(100).optional(),
     areaM2:z.number().int().positive().max(100000).optional(),
     rooms:z.number().int().min(0).max(100).optional(),
     subtype:z.string().trim().max(60).optional(),
