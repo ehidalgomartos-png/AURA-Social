@@ -158,7 +158,7 @@ function setMode(mode){
  $$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
  $$('.tabs,.market-deals').forEach(nav=>nav.classList.toggle('hidden',mode!=='discover'));
  $('#filters').classList.toggle('hidden',mode!=='discover');
- load();
+ return load();
 }
 function syncKind(){
  const kind=$('#listingForm [name=kind]').value,deal=$('#listingForm [name=deal]');
@@ -302,10 +302,7 @@ async function saveListing(event){
       listingError(errorText,field);return;
     }
     closeDialog('editor');
-    state.mode='mine';
-    $$('[data-mode]').forEach(button=>button.classList.toggle('active',button.dataset.mode==='mine'));
-    $('#filters').classList.add('hidden');
-    await load();
+    await setMode('mine');
     note('Anuncio guardado correctamente.');
   }catch(error){
     console.error('Marketplace save failed',error);
@@ -375,7 +372,7 @@ async function showDetail(id){
  if(item)details(item);else note('Este anuncio ya no está disponible.');
 }
 async function contactListing(id){
- if(!/^[1-9]\\d{0,15}$/.test(String(id||'')))return note('Este anuncio no está disponible.');
+ if(!/^[1-9]\d{0,15}$/.test(String(id||'')))return note('Este anuncio no está disponible.');
  const result=await request('/api/marketplace/'+encodeURIComponent(id));
  const item=result.item;
  if(!result.ok||!item||item.status!=='active'||item.moderation_status!=='published'){
@@ -403,7 +400,7 @@ async function init(){
    $('#more').classList.add('hidden');
    note(me.status===401?'Puedes consultar anuncios públicos. Inicia sesión para publicar, guardar o gestionar tus anuncios.':'No se ha podido comprobar tu sesión.');
    const contactId=new URLSearchParams(location.search).get('listing');
-   if(me.status===401&&/^[1-9]\\d{0,15}$/.test(String(contactId||''))){
+   if(me.status===401&&/^[1-9]\d{0,15}$/.test(String(contactId||''))){
     const box=$('#contactContext');
     box.classList.remove('hidden');
     box.innerHTML='<h2>¿Quieres contactar por este anuncio?</h2><p>Necesitas iniciar sesión. Después vuelve a abrir el anuncio para contactar con seguridad.</p><a class="primary market-seller-more" href="/">Iniciar sesión</a>';
@@ -421,7 +418,7 @@ async function init(){
  const contactName=params.get('contact'),listingId=params.get('listing');
  if(contactName&&/^[A-Za-z0-9_.-]{3,30}$/.test(contactName)){
   const box=$('#contactContext');
-  if(listingId&&/^[1-9]\\d{0,15}$/.test(listingId)){
+  if(listingId&&/^[1-9]\d{0,15}$/.test(listingId)){
    const listing=await request('/api/marketplace/'+encodeURIComponent(listingId));
    const item=listing.item;
    if(listing.ok&&item&&String(item.seller_username).toLowerCase()===contactName.toLowerCase()
