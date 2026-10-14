@@ -1,14 +1,15 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.51.3",
+  "version": "3.2.52",
   "private": true,
-  "description": "RedLibertad V3.2.51.3 — Marketplace Price & Cards Hotfix",
+  "description": "RedLibertad V3.2.52 — Marketplace Fotos y Acceso",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
+    "test:marketplace-media": "node --test tests/marketplace-media-v3252.test.js",
     "test:marketplace-cards": "node --test tests/marketplace-price-card-v32513.test.js",
     "test:marketplace-next": "node --test tests/marketplace-next-v32512.test.js",
     "test:marketplace-save": "node --test tests/marketplace-save-v32511.test.js",

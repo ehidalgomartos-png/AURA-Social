@@ -170,6 +170,8 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
+      - name: V3.2.52 Marketplace camera, photo gallery and login-gate tests
+        run: npm run test:marketplace-media
       - name: V3.2.51.3 Marketplace prices and responsive card layout
         run: npm run test:marketplace-cards
       - name: V3.2.51.2 Marketplace API schema next() regression tests
