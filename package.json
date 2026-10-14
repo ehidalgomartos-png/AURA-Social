@@ -1,14 +1,15 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.58.1",
+  "version": "3.2.59",
   "private": true,
-  "description": "RedLibertad V3.2.58.1 — Marketplace Search & Related Listings",
+  "description": "RedLibertad V3.2.59 — Independent Marketplace PWA & Kind-specific XML",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
+    "test:marketplace-app": "node --test tests/marketplace-app-v3259.test.js",
     "test:marketplace-clean": "node --test tests/marketplace-clean-v32581.test.js",
     "test:marketplace-growth": "node --test tests/marketplace-growth-v3258.test.js",
     "test:marketplace-search": "node --test tests/marketplace-search-v3257.test.js",
