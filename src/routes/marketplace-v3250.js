@@ -25,7 +25,9 @@ const listingBase=z.object({
     condition:z.enum(['new','used']).optional(),
     areaM2:z.number().int().positive().max(100000).optional(),
     rooms:z.number().int().min(0).max(100).optional(),
-    subtype:z.string().trim().max(60).optional()
+    subtype:z.string().trim().max(60).optional(),
+    subcategory:z.string().trim().max(65).optional(),
+    province:z.string().trim().max(100).optional()
   }).strict().default({})
 }).strict();
 function checkKindDeal(v,ctx){
@@ -82,7 +84,7 @@ function marketplaceSchemaMiddleware(ensureSchema=ensureMarketplaceSchema){
 }
 router.use(marketplaceSchemaMiddleware());
 
-const cardFields="l.id,l.seller_id,l.kind,l.deal,l.title,l.description,l.category,l.city,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.avatar_url AS seller_avatar,EXISTS(SELECT 1 FROM marketplace_favorites mf WHERE mf.listing_id=l.id AND mf.user_id=$1) AS is_favorite";
+const cardFields="l.id,l.seller_id,l.kind,l.deal,l.title,l.description,l.category,l.city,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.avatar_url AS seller_avatar,u.discoverable AS seller_discoverable,EXISTS(SELECT 1 FROM marketplace_favorites mf WHERE mf.listing_id=l.id AND mf.user_id=$1) AS is_favorite";
 const joins=' FROM marketplace_listings l JOIN users u ON u.id=l.seller_id ';
 const visibleToUser='u.status=\'active\' AND l.moderation_status=\'published\' AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=l.seller_id) OR (b.blocked_id=$1 AND b.blocker_id=l.seller_id))';
 
@@ -91,6 +93,8 @@ router.get('/',wrap(async(req,res)=>{
   const deal=DEALS.includes(req.query.deal)?req.query.deal:null;
   const query=String(req.query.q||'').trim().slice(0,100);
   const city=String(req.query.city||'').trim().slice(0,80);
+  const province=String(req.query.province||'').trim().slice(0,100);
+  const category=String(req.query.category||'').trim().slice(0,65);
   const maxPrice=String(req.query.maxPrice||'').trim();
   const page=Math.min(20,Math.max(1,Number.parseInt(req.query.page,10)||1));
   const args=[req.user.id];
@@ -99,6 +103,8 @@ router.get('/',wrap(async(req,res)=>{
   if(deal){args.push(deal);clauses.push('l.deal=$'+args.length);}
   if(query){args.push('%'+query+'%');clauses.push('(l.title ILIKE $'+args.length+' OR l.description ILIKE $'+args.length+' OR l.category ILIKE $'+args.length+')');}
   if(city){args.push('%'+city+'%');clauses.push('l.city ILIKE $'+args.length);}
+  if(province){args.push('%'+province+'%');clauses.push("COALESCE(l.details->>'province','') ILIKE $"+args.length);}
+  if(category){args.push(category);clauses.push('l.category=$'+args.length);}
   if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
   args.push(24,(page-1)*24);
   const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY l.created_at DESC,l.id DESC LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
