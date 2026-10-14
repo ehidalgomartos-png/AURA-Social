@@ -49,3 +49,11 @@
 .market-related>p{color:var(--muted);margin:0 0 16px}
 @media(max-width:850px){.market-public-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.market-public-filters button,.market-clear-filters{width:100%}}
 @media(max-width:430px){.market-public-filters{gap:9px}.market-public-filters label:first-child{grid-column:1/-1}.market-related .cards{grid-template-columns:1fr}}
+
+/* V3.2.58 — factual recent labels and typed detail summaries */
+.market-new-chip{display:inline-flex;margin-left:7px;background:#fff2cf;color:#72500d;font-size:11px;vertical-align:middle}
+.market-seo-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.market-seo-facts>div{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#f5f9f8}
+.market-seo-facts dt{font-size:12px;color:var(--muted);font-weight:650;margin-bottom:5px}
+.market-seo-facts dd{font-size:15px;font-weight:800;color:var(--navy);margin:0;overflow-wrap:anywhere}
+@media(max-width:480px){.market-seo-facts{grid-template-columns:minmax(0,1fr)}}

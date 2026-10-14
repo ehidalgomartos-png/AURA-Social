@@ -39,7 +39,7 @@ test('Inicio pone publicaciones antes de paneles secundarios y elimina la secci�
   assert.ok(html.includes('id="homeGrowthHeadlineV3224"'));
   assert.ok(html.includes('editorial-interleave-v3224.js?v=3.2.24'));
   assert.ok(html.indexOf('/editorial-interleave-v3224.js?v=3.2.24') <
-    html.indexOf('/editorial-home-v324.js?v=3.2.57'));
+    html.indexOf('/editorial-home-v324.js?v=3.2.58'));
 });
 test('las noticias son tarjetas en el feed, no publicaciones falsas ni imágenes externas',()=>{
   const script=read('public/editorial-home-v324.js');
@@ -89,8 +89,8 @@ test('onboarding ligero no pierde herramientas ni muestra destacados vacíos',()
   assert.ok(css.includes('@media(max-width:760px)'));
 });
 test('release and existing RSS/video privacy gates unchanged',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.57');
-  assert.ok(read('server.js').includes("APP_VERSION='3.2.57'"));
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.58');
+  assert.ok(read('server.js').includes("APP_VERSION='3.2.58'"));
   assert.ok(read('src/routes/editorial-social-v324.js').includes("p.unpublished_at IS NULL AND ep.status='ready'"));
   assert.ok(read('src/services/editorial-v320.js').includes('CHECK(NOT auto_publish_enabled)'));
 });

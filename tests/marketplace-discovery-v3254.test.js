@@ -14,7 +14,7 @@ const sample={
  seller_status:'active',seller_discoverable:true,seller_username:'hidalgoValencia',seller_name:'Hidalgo Valencia',
  created_at:'2026-10-14T09:00:00Z',updated_at:'2026-10-14T09:00:00Z'
 };
-test('V3.2.57 accepts optional province and subcategory without changing legacy listings',()=>{
+test('V3.2.58 accepts optional province and subcategory without changing legacy listings',()=>{
  const fields={kind:'product',deal:'sale',title:'Sofá en Valencia',description:'Sofá de dos plazas, disponible en Valencia y en buen estado.',category:'Hogar y muebles',city:'Valencia',priceCents:30000,images:[]};
  assert.equal(api.listingInput.safeParse(fields).success,true);
  assert.equal(api.listingInput.safeParse({...fields,details:{province:'Valencia',subcategory:'Sofás'}}).success,true);
@@ -64,7 +64,7 @@ test('Existing wanted ads are still demand rather than merchant offers',()=>{
  assert.equal(schema.offers,undefined);
  assert.match(seo.listingHtml(wanted),/BUSCO COMPRAR/);
 });
-test('Mobile editor category suggestions, old details retention and Spanish reporting are wired',()=>{
+test('Mobile editor category suggestions, typed details persistence and Spanish reporting are wired',()=>{
  const html=read('public/marketplace.html'),js=read('public/marketplace-v3250.js');
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.match(html,/name="province"/);
@@ -72,8 +72,9 @@ test('Mobile editor category suggestions, old details retention and Spanish repo
  assert.match(html,/name="category" list="listingCategories"/);
  assert.match(html,/id="reportDialog"/);
  assert.match(html,/value="fraud">Posible estafa/);
- assert.match(js,/const previous=state\.editing\?\.details\|\|\{\}/);
- assert.match(js,/details:\{\.\.\.previous,\.\.\.parsed\.data\.details\}/);
+ assert.match(js,/const payload=\{\.\.\.parsed\.data,images:\[\.\.\.state\.images\]\}/);
+ assert.match(js,/f\('areaM2'\)\.value=item\.details\?\.areaM2/);
+ assert.match(js,/f\('serviceMode'\)\.value=item\.details\?\.serviceMode/);
  assert.match(js,/const reportId=new URLSearchParams/);
  assert.match(js,/\/perfil\//);
  assert.match(js,/navigator\.share/);
@@ -87,12 +88,12 @@ test('Public copy-link script restricts to our Marketplace URL',()=>{
  assert.match(src,/navigator\.clipboard/);
  assert.match(src,/window\.prompt/);
 });
-test('Version and frontend caches match V3.2.57',()=>{
+test('Version and frontend caches match V3.2.58',()=>{
  const html=read('public/marketplace.html');
- assert.equal(JSON.parse(read('package.json')).version,'3.2.57');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.57'/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.57/);
- assert.match(html,/marketplace-v3250\.css\?v=3\.2\.57/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.58');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.58'/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.58/);
+ assert.match(html,/marketplace-v3250\.css\?v=3\.2\.58/);
  const seoSource=read('src/routes/marketplace-seo-v3251.js');
- assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.57/);
+ assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.58/);
 });

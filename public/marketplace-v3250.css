@@ -102,3 +102,23 @@ body>.site-foot{margin-top:auto}
 .card .actions [data-quick-status]{min-height:44px;border-color:#cbd9de}
 @media(max-width:780px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.filters label{min-width:0}.filters label:has([name="sort"]){grid-column:1/-1}}
 @media(max-width:500px){.card .actions button,.card .actions a{min-height:44px}}
+
+/* V3.2.58 — mobile-first quick actions and guided listing fields */
+.market-quick-start{margin:16px 0 18px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:17px}
+.market-quick-start p{font-size:14px;font-weight:800;color:var(--navy);margin:0 0 10px}
+.market-quick-start>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.market-quick-start button{border:1px solid #c8dedb;background:#f0f8f6;border-radius:12px;padding:12px 8px;min-height:49px;color:#145d55;font-size:14px;font-weight:750}
+.market-quick-start button:focus-visible{outline:3px solid #16877e;outline-offset:2px}
+.market-editor-hint{margin:0 0 13px;border-radius:10px;background:#eff8f6;padding:12px;color:#145a54;font-size:13px;line-height:1.5}
+.market-extra-fields{border:1px solid #d8e4e4;border-radius:13px;padding:13px;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0}
+.market-extra-fields legend{font-size:13px;font-weight:850;color:var(--navy);padding:0 6px}
+.market-extra-fields label{min-width:0}
+.market-new-chip{background:#fff2cf;color:#72500d;margin-left:6px;vertical-align:middle}
+.market-publish-success{border:1px solid #afd8c3;background:#eaf8f0;border-radius:16px;padding:17px;margin:15px 0;color:#145a44}
+.market-publish-success strong{font-size:16px}
+.market-share-inline{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.market-share-inline a,.market-share-inline button{text-decoration:none;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.market-facts{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.market-facts>div{padding:7px 11px;border:1px solid var(--border);border-radius:10px;background:#f5f9f8;font-size:13px}
+@media(max-width:780px){.market-quick-start>div{grid-template-columns:repeat(2,minmax(0,1fr))}.market-share-inline{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.market-share-inline>*{min-width:0;text-align:center}}
+@media(max-width:420px){.market-quick-start{padding:12px}.market-quick-start button{font-size:12px;padding:10px 6px}.market-extra-fields{grid-template-columns:1fr;padding:10px}}

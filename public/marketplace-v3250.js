@@ -93,6 +93,26 @@ async function request(url,options={}){
   if(response.status===401){updateMarketplaceAuth('guest');return {ok:false,status:401,error:'authentication_required'};}
   return {...data,ok:response.ok,status:response.status,error:response.ok?null:(data.error||'unknown_response')};
 }
+const RECENT_MS=7*24*60*60*1000;
+function isRecentListing(item,now=Date.now()){
+ const ms=Date.parse(item?.created_at||'');
+ return item?.status==='active'&&item?.moderation_status==='published'&&Number.isFinite(ms)&&now>=ms&&now-ms<=RECENT_MS;
+}
+const SERVICE_MODE_LABELS={in_person:'Presencial',remote:'A distancia',both:'Presencial y a distancia'};
+function listingFacts(item){
+ const d=item?.details||{},facts=[];
+ if(item.kind==='product'&&['new','used'].includes(d.condition))facts.push('Estado: '+(d.condition==='new'?'Nuevo':'Usado'));
+ if(item.kind==='property'){
+  if(Number.isInteger(d.areaM2)&&d.areaM2>0&&d.areaM2<=100000)facts.push('Superficie: '+d.areaM2+' m²');
+  if(Number.isInteger(d.rooms)&&d.rooms>=0&&d.rooms<=100)facts.push('Habitaciones: '+d.rooms);
+  if(typeof d.subtype==='string'&&d.subtype.trim())facts.push('Tipo: '+d.subtype.slice(0,60));
+ }
+ if(item.kind==='service'){
+  if(Object.hasOwn(SERVICE_MODE_LABELS,d.serviceMode))facts.push('Modalidad: '+SERVICE_MODE_LABELS[d.serviceMode]);
+  if(typeof d.serviceArea==='string'&&d.serviceArea.trim())facts.push('Zona: '+d.serviceArea.slice(0,100));
+ }
+ return facts;
+}
 function slugifyMarket(value){return String(value||'anuncio').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,75)||'anuncio';}
 function currency(cents){return (Number(cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
 function priceLabel(item){return (item.deal==='buy'?'Presupuesto máximo: ':'')+currency(item.price_cents)+(item.deal==='rent'?' / mes':'');}
@@ -111,7 +131,7 @@ function card(item){
     '<button type="button" data-quick-status="'+esc(item.id)+'" data-to="active">Reactivar anuncio</button>'):'';
  const more=item.details?.subcategory?'<p class="muted market-subcategory">'+esc(item.category)+' · '+esc(item.details.subcategory)+'</p>':'';
  return '<article class="card"><div class="thumb">'+(img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>')+
- '</div><div class="cardbody"><span class="chip market-deal-'+esc(item.deal)+'">'+esc(badge)+'</span><h3>'+esc(item.title)+'</h3>'+more+'<div class="price">'+priceLabel(item)+'</div>'+
+ '</div><div class="cardbody"><span class="chip market-deal-'+esc(item.deal)+'">'+esc(badge)+'</span>'+(isRecentListing(item)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h3>'+esc(item.title)+'</h3>'+more+'<div class="price">'+priceLabel(item)+'</div>'+
  '<p class="muted">📍 '+esc(location)+' · '+seller+'</p>'+
  (own?'<span class="market-state market-state-'+esc(item.status)+'">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
  '<div class="actions">'+(quickStatuses)+ (publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
@@ -169,21 +189,39 @@ function syncKind(){
  [...deal.options].forEach(opt=>opt.hidden=!allowed.includes(opt.value));
  if(!allowed.includes(deal.value))deal.value=allowed[0];
  populateSuggestions();
+ for(const [key,selector] of [['product','#productExtra'],['service','#serviceExtra'],['property','#propertyExtra']]){
+  $(selector).classList.toggle('hidden',kind!==key);
+ }
+ $('#listingKindHint').textContent=kind==='product'?'Añade título, precio y fotos. El estado del producto es opcional.':kind==='service'?'Explica qué servicio ofreces y dónde lo prestas.':'Indica el inmueble, ubicación y precio. La superficie y las habitaciones son opcionales.';
+ $('#listingForm [name=title]').placeholder=kind==='service'?'Ej. Pintura y reformas en Valencia':kind==='property'?'Ej. Piso de 3 habitaciones en Valencia':'Ej. Taza personalizada nueva';
  const budget=deal.value==='buy';
  $('#listingPriceLabel').textContent=budget?'Presupuesto máximo en euros':'Precio en euros';
  $('#listingPriceHint').textContent=budget?'Indica cuánto pagarías como máximo (0 € si está por negociar).':'Indica el precio del anuncio.';
 }
-function openEditor(item=null){
+function openEditor(item=null,preset=null){
  if(!state.authenticated){updateMarketplaceAuth('guest');return;}
  resetPendingPhotos();
  state.editing=item||null;state.images=item?[...(item.image_urls||[])]:[];
  const form=$('#listingForm');form.reset();
+ $('#publishSuccess').classList.add('hidden');
  const f=n=>form.elements.namedItem(n);
+ if(!item&&preset&&['product','service','property'].includes(preset.kind)){
+  f('kind').value=preset.kind;
+  const valid={product:['sale','buy'],service:['offer'],property:['sale','rent','buy']};
+  f('deal').value=valid[preset.kind].includes(preset.deal)?preset.deal:valid[preset.kind][0];
+ }
+ $('#listingStatusField').classList.toggle('hidden',!item);
  if(item){
    for(const n of ['kind','deal','title','description','category','city','status'])f(n).value=n==='status'?item.status:(item[n]||'');
    f('price').value=(Number(item.price_cents)/100).toFixed(2);
    f('province').value=item.details?.province||'';
    f('subcategory').value=item.details?.subcategory||'';
+   f('condition').value=item.details?.condition||'';
+   f('serviceMode').value=item.details?.serviceMode||'';
+   f('serviceArea').value=item.details?.serviceArea||'';
+   f('areaM2').value=item.details?.areaM2??'';
+   f('rooms').value=item.details?.rooms??'';
+   f('subtype').value=item.details?.subtype||'';
  }
  syncKind();renderPhotos();$('#formError').textContent='';
  $('#editorTitle').textContent=item?'Editar anuncio':'Publicar anuncio';$('#editor').showModal();
@@ -218,7 +256,25 @@ function listingFormData(form){
   const province=field('province'),subcategory=field('subcategory');
   if(province.length>100)return invalid('province','La provincia no debe superar 100 caracteres.');
   if(subcategory.length>65)return invalid('subcategory','La subcategoría no debe superar 65 caracteres.');
-  return {data:{kind,deal,title,description,category,city,priceCents,images:[],details:{...(province?{province}:{}),...(subcategory?{subcategory}:{})}},status:field('status')};
+  const extra={};
+  if(kind==='product'&&['new','used'].includes(field('condition')))extra.condition=field('condition');
+  if(kind==='service'){
+    const mode=field('serviceMode'),area=field('serviceArea');
+    if(mode&&!Object.hasOwn(SERVICE_MODE_LABELS,mode))return invalid('serviceMode','Selecciona una modalidad válida.');
+    if(area.length>100)return invalid('serviceArea','La zona no debe superar 100 caracteres.');
+    if(mode)extra.serviceMode=mode;
+    if(area)extra.serviceArea=area;
+  }
+  if(kind==='property'){
+    const area=field('areaM2'),rooms=field('rooms'),subtype=field('subtype');
+    if(area&&(!/^\d{1,6}$/.test(area)||Number(area)<1||Number(area)>100000))return invalid('areaM2','La superficie debe ser un número de 1 a 100.000.');
+    if(rooms&&(!/^\d{1,3}$/.test(rooms)||Number(rooms)>100))return invalid('rooms','Indica entre 0 y 100 habitaciones.');
+    if(subtype.length>60)return invalid('subtype','El tipo de inmueble no debe superar 60 caracteres.');
+    if(area)extra.areaM2=Number(area);
+    if(rooms)extra.rooms=Number(rooms);
+    if(subtype)extra.subtype=subtype;
+  }
+  return {data:{kind,deal,title,description,category,city,priceCents,images:[],details:{...(province?{province}:{}),...(subcategory?{subcategory}:{}),...extra}},status:field('status')};
 }
 function listingError(message,fieldName){
   const error=$('#formError');
@@ -279,10 +335,8 @@ async function saveListing(event){
       renderPhotos();
     }
     btn.textContent=state.editing?'Actualizando anuncio…':'Publicando anuncio…';
-    const previous=state.editing?.details||{};
-    const payload={...parsed.data,images:[...state.images],details:{...previous,...parsed.data.details}};
-    if(!parsed.data.details.province)delete payload.details.province;
-    if(!parsed.data.details.subcategory)delete payload.details.subcategory;
+    // Build optional metadata only from visible fields to avoid stale values after changing kind.
+    const payload={...parsed.data,images:[...state.images]};
     if(state.editing)payload.status=parsed.status;
     const response=await request('/api/marketplace'+(state.editing?'/'+encodeURIComponent(state.editing.id):''),{
       method:state.editing?'PATCH':'POST',body:JSON.stringify(payload)
@@ -304,8 +358,14 @@ async function saveListing(event){
         : 'No se pudo publicar el anuncio ('+String(response.error||response.status||'desconocido')+').';
       listingError(errorText,field);return;
     }
+    const savedId=String(response.id||state.editing?.id||'');
+    const savedTitle=parsed.data.title;
     closeDialog('editor');
     await setMode('mine');
+    const saved=state.items.find(item=>String(item.id)===savedId);
+    if(saved&&saved.status==='active'&&saved.moderation_status==='published'&&saved.seller_discoverable===true){
+      showPublishShare(savedId,savedTitle);
+    }
     note('Anuncio guardado correctamente.');
   }catch(error){
     console.error('Marketplace save failed',error);
@@ -316,6 +376,18 @@ async function saveListing(event){
   }
 }
 
+function showPublishShare(id,title){
+ if(!/^[1-9]\d{0,15}$/.test(String(id)))return;
+ const url=location.origin+'/marketplace/p/'+encodeURIComponent(id)+'/'+slugifyMarket(title);
+ const message='Mira este anuncio en RedLibertad: '+title+' '+url;
+ const box=$('#publishSuccess');
+ box.innerHTML='<strong>¡Tu anuncio está listo para compartir!</strong><div class="market-share-inline">'+
+  '<a class="primary" href="'+esc('https://api.whatsapp.com/send?text='+encodeURIComponent(message))+'" target="_blank" rel="noopener noreferrer">WhatsApp</a>'+
+  '<a class="secondary" href="'+esc('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url))+'" target="_blank" rel="noopener noreferrer">Facebook</a>'+
+  '<a class="secondary" href="'+esc(url)+'">Ver anuncio</a>'+
+  '<button type="button" class="secondary" data-copy-published="'+esc(url)+'">Copiar enlace</button></div>';
+ box.classList.remove('hidden');
+}
 function details(item){
  const images=(item.image_urls||[]).filter(u=>/^\/uploads\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(u));
  const mine=String(item.seller_id)===String(window.currentUserId);
@@ -326,7 +398,7 @@ function details(item){
  (images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+
  '</div><p><span class="chip market-deal-'+esc(item.deal)+'">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO')+'</span></p>'+
  '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc([item.city,item.details?.province].filter(Boolean).join(' · '))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
- '<p>'+esc(item.description)+'</p><p class="muted">Publicado por '+seller+'</p><div class="actions">'+
+ '<p>'+esc(item.description)+'</p>'+(listingFacts(item).length?'<div class="market-facts">'+listingFacts(item).map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>':'')+'<p class="muted">Publicado por '+seller+'</p><div class="actions">'+
  (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button>':'')+
  (mine?'':'<button class="primary" type="button" data-contact-id="'+esc(item.id)+'">Contactar por chat</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
  (publicOK&&sellerOK?'<a class="market-seller-more" href="/marketplace/vendedor/'+encodeURIComponent(item.seller_username)+'">Ver otros anuncios de esta persona</a>':'')+
@@ -462,6 +534,8 @@ $('#listingForm [name=category]').addEventListener('input',populateSuggestions);
 $('#reportForm').addEventListener('submit',submitReport);
 document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.startKind){openEditor(null,{kind:b.dataset.startKind,deal:b.dataset.startDeal});return;}
+ if(b.dataset.copyPublished){try{await navigator.clipboard.writeText(b.dataset.copyPublished);note('Enlace copiado para compartir.');}catch{window.prompt('Copia el enlace:',b.dataset.copyPublished);}return;}
  if(b.hasAttribute('data-empty-create')){openEditor();return;}
  if(b.hasAttribute('data-empty-explore')){setMode('discover');return;}
  if(b.hasAttribute('data-empty-clear')){
