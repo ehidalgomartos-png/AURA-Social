@@ -4,7 +4,8 @@ const express=require('express');
 const crypto=require('node:crypto');
 const rateLimit=require('express-rate-limit');
 const db=require('../db');
-const {listingInput}=require('./marketplace-v3250');
+// Resolve schema on request, after the parent Marketplace router is fully initialized.
+const listingSchema=()=>require('./marketplace-v3250').listingInput;
 const {csvRecords,parseProduct,importOptions,MAX_CSV_BYTES}=require('../services/marketplace-woocommerce-csv-v3260');
 const {saveImages,eraseFiles}=require('../services/marketplace-import-photos-v3260');
 const router=express.Router();
@@ -46,7 +47,7 @@ router.post('/preview',limiter,async(req,res,next)=>{
    const item=parseProduct(r,parsed.data);
    if(item.key&&seen.has(item.key)){item.state='duplicate';item.error='SKU o ID repetido dentro del archivo';}
    else if(item.key)seen.add(item.key);
-   const checked=listingInput.safeParse(item.listing);
+   const checked=listingSchema().safeParse(item.listing);
    if(!checked.success&&item.state==='pending'){item.state='invalid';item.error='Campos del anuncio incompatibles';}
    return item;
   });
@@ -104,7 +105,7 @@ router.post('/:id/step',stepsLimiter,async(req,res,next)=>{
   else{
    try{
     const photos=await saveImages(item.urls);files=photos.files;
-    const validate=listingInput.safeParse({...item.listing,images:photos.paths});
+    const validate=listingSchema().safeParse({...item.listing,images:photos.paths});
     if(!validate.success)throw new Error('invalid_import_listing');
     const v=validate.data;
     const saved=await client.query('INSERT INTO marketplace_listings(seller_id,kind,deal,title,description,category,city,price_cents,image_urls,details) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb) RETURNING id',[req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details)]);
