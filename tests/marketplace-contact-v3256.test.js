@@ -102,6 +102,6 @@ test('Seller identity, profile and transaction safety remain visible in public l
  assert.match(html,/\/marketplace\/vendedor\/ejemplo/);
  assert.match(html,/\/marketplace\?contact=ejemplo&amp;listing=25/);
  assert.match(html,/\/perfil\/ejemplo/);
- assert.match(html,/RedLibertad no interviene|Las transacciones no se realizan dentro de RedLibertad/);
+ assert.match(html,/RedLibertad no interviene|Las transacciones no se realizan dentro de RedLibertad|RedLibertad no procesa pagos ni garantiza las transacciones/);
  assert.doesNotMatch(html,/aggregateRating/);
 });
