@@ -56,16 +56,16 @@ test('image failures preserve draft ID and do not attempt publication',async()=>
   }}),error=>error.candidateId==='12'&&error.stage==='generar ilustración IA');
  assert.equal(calls,2);
 });
-test('UI calls existing V3.2.57 review-to-publication preview, not direct publish',()=>{
+test('UI calls existing V3.2.58 review-to-publication preview, not direct publish',()=>{
  const admin=read('public/admin.js'),html=read('public/admin.html'),css=read('public/admin.css');
  assert.match(html,/id="editorialAiUrlV3246"/);
  assert.match(html,/id="editorialAiPrepareV3246"/);
  assert.match(html,/id="editorialAiGenerateDraftV3246"/);
  assert.match(html,/id="editorialAiPaidConfirmV3246"/);
- assert.match(html,/editorial-ai-publisher-v3246\.js\?v=3\.2\.57/);
+ assert.match(html,/editorial-ai-publisher-v3246\.js\?v=3\.2\.58/);
  assert.match(admin,/editorialAiPublisherV3246\.prepare/);
  assert.match(admin,/editorialQuickPublishV3245.*click/);
  assert.match(css,/\.editorial-ai-fast-v3246/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.57');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.58');
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-one-screen/);
 });
