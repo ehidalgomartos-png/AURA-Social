@@ -176,6 +176,7 @@ async function saveListing(event){
   event.preventDefault();
   const btn=$('#saveListing'),form=$('#listingForm');
   if(btn.disabled)return;
+  if(!state.authenticated){listingError('Inicia sesión antes de publicar.');return;}
   const originalLabel=btn.textContent;
   btn.disabled=true;
   $('#formError').textContent='';
@@ -183,38 +184,34 @@ async function saveListing(event){
   try{
     const parsed=listingFormData(form);
     if(parsed.error){listingError(parsed.error,parsed.field);return;}
-    const pics=[...form.elements.namedItem('photos').files];
-    if(pics.length+state.images.length>6){listingError('Solo puedes añadir hasta 6 fotografías.','photos');return;}
-    for(const pic of pics){
-      if(!['image/jpeg','image/png','image/webp'].includes(pic.type)){
-        listingError('La fotografía "'+pic.name+'" no es JPG, PNG o WebP.','photos');return;
-      }
-      if(pic.size>15*1024*1024){
-        listingError('La fotografía "'+pic.name+'" supera el límite de 15 MB.','photos');return;
-      }
-      if(pic.size<=0){listingError('El archivo "'+pic.name+'" está vacío.','photos');return;}
+    const pics=state.pendingPhotos.slice();
+    if(pics.length+state.images.length>MAX_MARKET_PHOTOS){
+      listingError('Solo puedes añadir hasta 6 fotografías.','photos');return;
     }
-    const images=[...state.images];
+    for(const entry of pics){
+      const error=photoValidation(entry.file);
+      if(error){listingError(error,'photos');return;}
+    }
     for(let index=0;index<pics.length;index++){
-      const photo=pics[index];
+      const entry=pics[index],photo=entry.file;
       btn.textContent='Subiendo foto '+(index+1)+' de '+pics.length+'…';
       const body=new FormData();body.set('file',photo,photo.name);
       const result=await request('/api/media/upload',{method:'POST',body});
       if(!result.ok||!result.media?.url){
-        listingError(uploadErrorText(result,photo),'photos');
-        return;
+        listingError(uploadErrorText(result,photo),'photos');return;
       }
       const url=result.media.url;
       if(!/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(url)){
-        listingError('La fotografía se subió, pero su dirección no es compatible con Marketplace. Contacta con soporte.','photos');
-        return;
+        listingError('La fotografía se subió, pero su dirección no es compatible con Marketplace. Contacta con soporte.','photos');return;
       }
-      images.push(url);
+      state.images.push(url);
+      const position=state.pendingPhotos.indexOf(entry);
+      if(position>=0)state.pendingPhotos.splice(position,1);
+      URL.revokeObjectURL(entry.previewUrl);
+      renderPhotos();
     }
-    // Preserve uploaded photos when a later validation/database error requires retrying.
-    if(pics.length){state.images=images;form.elements.namedItem('photos').value='';renderPhotos();}
     btn.textContent=state.editing?'Actualizando anuncio…':'Publicando anuncio…';
-    const payload={...parsed.data,images};
+    const payload={...parsed.data,images:[...state.images]};
     if(state.editing)payload.status=parsed.status;
     const response=await request('/api/marketplace'+(state.editing?'/'+encodeURIComponent(state.editing.id):''),{
       method:state.editing?'PATCH':'POST',body:JSON.stringify(payload)
@@ -247,7 +244,7 @@ async function saveListing(event){
     listingError('Ha ocurrido un error al guardar. Los datos siguen en el formulario. '+String(error?.message||'Inténtalo de nuevo.'));
   }finally{
     btn.textContent=originalLabel;
-    btn.disabled=false;
+    btn.disabled=!state.authenticated;
   }
 }
 
@@ -268,7 +265,16 @@ async function contact(username){
  location.href='/app?view=messages&conversation='+encodeURIComponent(result.conversationId);
 }
 async function init(){
- const me=await request('/api/auth/me');if(!me.ok){note('Inicia sesión en RedLibertad para acceder a Marketplace.');$('#list').innerHTML='<a class="primary" href="/">Iniciar sesión</a>';return;}
+ updateMarketplaceAuth('checking');
+ const me=await request('/api/auth/me');
+ if(!me.ok){
+   updateMarketplaceAuth(me.status===401?'guest':'unavailable');
+   $('#list').innerHTML='';
+   $('#more').classList.add('hidden');
+   note(me.status===401?'Puedes consultar anuncios públicos. Inicia sesión para publicar, guardar o gestionar tus anuncios.':'No se ha podido comprobar tu sesión.');
+   return;
+ }
+ updateMarketplaceAuth('signed-in');
  window.currentUserId=me.user?.id??me.id;
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
  $('#reportsTab').classList.toggle('hidden',!state.admin);
@@ -284,16 +290,42 @@ $$('[data-kind]').forEach(b=>b.onclick=()=>setKind(b.dataset.kind));
 $$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('#filters').onsubmit=e=>{e.preventDefault();setMode('discover');};
 $('#more').onclick=()=>{state.page++;load(false);};
-$('#newListing').onclick=()=>openEditor();
+$('#newListing').onclick=()=>{if(!state.authenticated){location.href='/';return;}openEditor();};
+$('#authRetry').onclick=()=>init();
+$('#photoAddGallery').onclick=()=>$('#listingForm [name=photos]').click();
+$('#photoTakeCamera').onclick=()=>$('#listingForm [name=cameraPhoto]').click();
+$('#listingForm [name=photos]').addEventListener('change',event=>{
+ addPendingPhotos(event.target.files);event.target.value='';
+});
+$('#listingForm [name=cameraPhoto]').addEventListener('change',event=>{
+ addPendingPhotos(event.target.files);event.target.value='';
+});
+$('#editor').addEventListener('close',()=>{resetPendingPhotos();});
 $('#listingForm [name=kind]').onchange=syncKind;
 $('#listingForm').addEventListener('submit',saveListing);
 document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.close){closeDialog(b.dataset.close);return;}
  if(b.dataset.removePhoto!==undefined){state.images.splice(Number(b.dataset.removePhoto),1);renderPhotos();return;}
+ if(b.dataset.removePending!==undefined){
+  const entry=state.pendingPhotos.splice(Number(b.dataset.removePending),1)[0];
+  if(entry)URL.revokeObjectURL(entry.previewUrl);
+  renderPhotos();return;
+ }
  if(b.dataset.open){await showDetail(b.dataset.open);return;}
  if(b.dataset.edit){const item=state.items.find(x=>String(x.id)===b.dataset.edit);if(item)openEditor(item);return;}
- if(b.dataset.delete){if(confirm('¿Eliminar definitivamente este anuncio?')){const r=await request('/api/marketplace/'+encodeURIComponent(b.dataset.delete),{method:'DELETE'});if(r.ok)await load();else note('No se pudo eliminar.');}return;}
+ if(b.dataset.delete){
+  if(!state.authenticated){updateMarketplaceAuth('guest');return;}
+  const item=state.items.find(x=>String(x.id)===String(b.dataset.delete));
+  if(!item||state.mode!=='mine')return;
+  const message='¿Eliminar definitivamente «'+item.title+'»?\n\nEl anuncio desaparecerá de Marketplace y se retirará del sitemap. Esta acción no se puede deshacer.';
+  if(!confirm(message))return;
+  b.disabled=true;b.textContent='Eliminando…';
+  const result=await request('/api/marketplace/'+encodeURIComponent(b.dataset.delete),{method:'DELETE'});
+  if(result.ok){await load();note('Anuncio eliminado correctamente.');}
+  else{b.disabled=false;b.textContent='Eliminar anuncio';note(result.status===401?'Tu sesión ha caducado. Inicia sesión para borrar anuncios.':'No se pudo eliminar el anuncio. Inténtalo de nuevo.');}
+  return;
+ }
  if(b.dataset.fav){const item=state.items.find(x=>String(x.id)===b.dataset.fav);if(!item)return;const r=await request('/api/marketplace/'+encodeURIComponent(item.id)+'/favorite',{method:item.is_favorite?'DELETE':'POST'});if(r.ok)await load();return;}
  if(b.dataset.contact){await contact(b.dataset.contact);return;}
  if(b.dataset.report){const reason=prompt('Motivo: fraud, prohibited, spam, misleading u other','misleading');if(!reason)return;const r=await request('/api/marketplace/'+encodeURIComponent(b.dataset.report)+'/report',{method:'POST',body:JSON.stringify({reason,details:''})});alert(r.ok?'Denuncia enviada a moderación.':'No se pudo enviar la denuncia.');return;}
