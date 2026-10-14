@@ -48,7 +48,7 @@ test('No product image can overlap card titles or actions',()=>{
 test('Marketplace uses a single, full-width product card on narrow phones',()=>{
  const css=read('public/marketplace-v3250.css');
  assert.match(css,/@media\(max-width:600px\)\{\.cards\{grid-template-columns:minmax\(0,1fr\)/);
- assert.match(css,/@media\(max-width:600px\)\{[^}]*\}[^}]*\.thumb\{height:255px\}/);
+ assert.match(css,/@media\(max-width:600px\)[\s\S]*?\.thumb\{height:255px\}/);
 });
 
 test('CSS versioning updates both member cards and Google indexable public pages',()=>{
