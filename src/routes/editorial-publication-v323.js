@@ -307,7 +307,7 @@ function page({title,description,pathname,body,noindex=false,imageUrl=null}){
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
     (safeLocalImageV3222(imageUrl)?'<meta property="og:image" content="'+esc(base+imageUrl)+'"><meta name="twitter:card" content="summary_large_image">':'')+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.56"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.57"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
     '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi perfil" href="/app">Entrar</a></nav></header>'+
@@ -443,7 +443,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
         '<a id="edLoginCta" class="ed-login-cta" href="/app" hidden>Entra en RedLibertad para participar en la conversación →</a>'+
         '<div id="edComments" class="ed-discussion" aria-live="polite">Cargando comentarios…</div></div></section>'+
       '</article>'+relatedHtml+'<p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
-    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.56" defer></script></body></html>'));
+    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.57" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
 module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};

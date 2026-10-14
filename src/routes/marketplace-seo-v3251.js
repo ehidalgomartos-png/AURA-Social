@@ -55,8 +55,8 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
  '<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.56"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.56&amp;nav=1">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.56" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.57"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.57&amp;nav=1">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.57" defer></script></head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/">RedLibertad</a><a class="headname" href="/marketplace">Mi Marketplace</a></header>'+
  '<main>'+body+'</main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
