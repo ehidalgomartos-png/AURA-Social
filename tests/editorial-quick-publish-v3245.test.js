@@ -88,9 +88,9 @@ test('integrated editor and mobile preview remain explicit and cache-busted',()=
  assert.match(html,/id="editorialQuickConfirmV3245"/);
  assert.match(admin,/editorialQuickPublishV3245\.run/);
  assert.match(admin,/renderEditorialOriginalityV32171/);
- assert.match(html,/editorial-quick-publish-v3245\.js\?v=3\.2\.58\.1/);
+ assert.match(html,/editorial-quick-publish-v3245\.js\?v=3\.2\.59/);
  assert.match(css,/\.editorial-quick-preview-v3245/);
  const pkg=JSON.parse(read('package.json'));
- assert.equal(pkg.version,'3.2.58.1');
+ assert.equal(pkg.version,'3.2.59');
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-quick-publish/);
 });
