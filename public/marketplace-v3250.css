@@ -45,3 +45,21 @@
 @media(max-width:600px){.market-deals{margin:0 0 12px}.market-deals button{padding:9px 13px}}
 
 .market-deals a{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--navy);padding:10px 15px;font-weight:750;text-decoration:none;white-space:nowrap}.market-deals a:hover{background:#e6f5f1}
+
+
+/* V3.2.54: clearer category/region filters and buyer/seller trust actions */
+.filters{grid-template-columns:2fr 1fr 1fr 1fr 1fr auto}
+.market-subcategory{margin:0 0 8px}
+.seller-profile-link{font-weight:700;color:#11695f;text-underline-offset:3px}
+.market-deal-sale{background:#e0f3ee;color:#105b4f}
+.market-deal-buy{background:#e9e6fa;color:#4c357f}
+.market-deal-rent{background:#e5effc;color:#245b8c}
+.card .actions button[data-report]{color:#8b3730}
+#reportDialog{width:min(480px,calc(100vw - 24px))}
+#reportForm{display:grid;gap:15px}
+#reportForm>p{margin:0;line-height:1.5}
+#reportForm footer{gap:10px}
+#reportError:not(:empty){color:#b42318;background:#fff3f2;border-radius:10px;padding:10px}
+@media(min-width:781px) and (max-width:1100px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.filters label:first-child{grid-column:span 2}}
+@media(max-width:780px){.filters{grid-template-columns:1fr 1fr}.filters label:first-child{grid-column:1/-1}.filters button{grid-column:1/-1}}
+@media(max-width:430px){.filters{grid-template-columns:1fr 1fr}.filters label:nth-child(4){grid-column:1/-1}}
