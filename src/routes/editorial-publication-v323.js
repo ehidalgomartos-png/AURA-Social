@@ -44,6 +44,7 @@ const confirmation=({revision,confirm})=>Number.isSafeInteger(revision)&&revisio
 const publicationPath=id=>'/noticias/p/'+encodeURIComponent(id);
 const {categoryLabel:categoryLabelV3247}=require('../../public/editorial-category-v3247');
 const discoveryV3248=require('../../public/editorial-discovery-v3248');
+const {sourceLabel:sourceLabelV3249}=require('../../public/editorial-source-v3249');
 async function assertApprovedForPublication(client,id,revision){
   const r=await client.query(
     "SELECT c.*,s.name AS source_name,s.status AS source_status,s.rights_mode,s.rights_reference,s.profile_id AS source_profile_id,s.category AS source_category,p.id AS profile_exists,p.status AS profile_status,p.category AS profile_category,p.community_id,sp.status AS source_profile_status,sp.category AS source_profile_category,qa.decision AS quality_decision,qa.candidate_revision AS quality_candidate_revision FROM editorial_candidates c JOIN editorial_sources s ON s.id=c.source_id JOIN editorial_profiles p ON p.id=c.profile_id LEFT JOIN editorial_profiles sp ON sp.id=s.profile_id LEFT JOIN editorial_quality_assessments qa ON qa.candidate_id=c.id WHERE c.id=$1 FOR UPDATE OF c",[id]
@@ -306,7 +307,7 @@ function page({title,description,pathname,body,noindex=false,imageUrl=null}){
     '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
     (safeLocalImageV3222(imageUrl)?'<meta property="og:image" content="'+esc(base+imageUrl)+'"><meta name="twitter:card" content="summary_large_image">':'')+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.48.1"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.49.1"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
     '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi perfil" href="/app">Entrar</a></nav></header>'+
@@ -336,7 +337,7 @@ function card(row){
     '<h2><a href="'+publicationPath(row.id)+'">'+esc(row.title)+'</a></h2>'+photo+'<p>'+esc(row.summary)+'</p>'+
     '<div class="ed-card-actions-v3248"><a class="ed-card-read-v3245" href="'+publicationPath(row.id)+'">Leer noticia completa →</a>'+
     '<a class="ed-card-discuss-v3248" href="'+publicationPath(row.id)+'#edDiscussion">Comentar noticia →</a></div>'+
-    '<p class="ed-source">Por <a href="'+profilePath+'">'+esc(row.profile_name)+'</a> · Fuente: '+esc(row.source_name)+'</p></article>';
+    '<p class="ed-source">Por <a href="'+profilePath+'">'+esc(row.profile_name)+'</a> · Fuente: '+esc(sourceLabelV3249(row.source_name,row.source_url))+'</p></article>';
 }
 async function liveItems(extra='',params=[],limit=50){
   const maxRows=limit===3?3:50;
@@ -405,7 +406,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
     const p=r.rows[0];
     // Only live publications and ready editorial profiles.
     const related=await liveItems('AND pub.category=$1 AND pub.id<>$2',[p.category,id],3);
-    const relatedHtml=discoveryV3248.relatedNews(related.rows,p.category);
+    const relatedHtml=discoveryV3248.relatedNews(related.rows,p.category,{safeImage:safeLocalImageV3222});
     const community=p.community_name&&p.community_id?'<p class="ed-community">Participa en la <a href="/comunidad/'+encodeURIComponent(p.community_id)+'">'+esc(p.community_name)+'</a>.</p>':'';
     const publishedDate=new Date(p.published_at);
     const readableDate=publishedDate.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Madrid'});
@@ -424,7 +425,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
       (safeLocalImageV3222(p.image_url)?'<figure class="ed-photo ed-article-photo"><img src="'+esc(p.image_url)+'" alt="'+esc(p.image_alt||p.title)+'" loading="eager" decoding="async"><figcaption>'+(p.image_origin==='ai'?'Imagen ilustrativa generada con IA':'Imagen: '+esc(p.image_credit||'Crédito identificado'))+'</figcaption></figure>':'')+
       '<p class="ed-summary">'+esc(p.summary)+'</p>'+
       '<div class="ed-attribution"><span class="ed-source-icon" aria-hidden="true">↗</span><div class="ed-attribution-body">'+
-      '<b>Fuente: '+esc(p.source_name)+'</b><p>'+linkOut(p.source_url,'Leer información original ↗')+'</p>'+
+      '<b>Fuente: '+esc(sourceLabelV3249(p.source_name,p.source_url))+'</b><p>'+linkOut(p.source_url,'Leer información original ↗')+'</p>'+
       '<small>Resumen propio elaborado a partir de una fuente identificada. Consulta el medio para conocer la fecha y el contexto originales.</small>'+
       '</div></div>'+community+'</div>'+
       '<section class="ed-social" id="editorialSocial" data-article-id="'+esc(id)+'" data-community-id="'+(p.community_name&&p.community_id?esc(p.community_id):'')+'">'+
@@ -442,7 +443,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
         '<a id="edLoginCta" class="ed-login-cta" href="/app" hidden>Entra en RedLibertad para participar en la conversación →</a>'+
         '<div id="edComments" class="ed-discussion" aria-live="polite">Cargando comentarios…</div></div></section>'+
       '</article>'+relatedHtml+'<p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
-    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.11" defer></script></body></html>'));
+    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.49" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
 module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};

@@ -252,3 +252,26 @@ a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid va
  .ed-related-card-v3248 p{-webkit-line-clamp:2}
  #edDiscussion{scroll-margin-top:75px}
 }
+
+
+/* V3.2.49 — consistent related cards on desktop and mobile. */
+.ed-related-grid-v3248{grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
+.ed-related-card-v3248{display:flex;flex-direction:column;overflow:hidden;padding:0;border-radius:15px;box-shadow:0 2px 12px rgba(10,35,50,.045);transition:transform .16s ease,box-shadow .16s ease}
+.ed-related-card-v3248:focus-within{outline:2px solid #1a9389;outline-offset:2px}
+.ed-related-card-v3248:hover{transform:translateY(-2px);box-shadow:0 7px 20px rgba(10,35,50,.10)}
+.ed-related-photo-v3249{display:block;position:relative;overflow:hidden;background:#ecf3f2;aspect-ratio:16/9;flex:none}
+.ed-related-photo-v3249 img{display:block;width:100%;height:100%;object-fit:contain}
+.ed-related-photo-v3249 span{position:absolute;bottom:6px;left:6px;background:rgba(13,34,56,.88);color:white;padding:4px 7px;border-radius:5px;font-size:10px;font-weight:750}
+.ed-related-content-v3249{padding:14px;display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
+.ed-related-topic-v3249{font-size:10px;font-weight:850;color:#24635d}
+.ed-related-card-v3248 .ed-related-title-v3249{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.ed-related-card-v3248 .ed-related-content-v3249 p{margin:0;color:#53636b;font-size:12px;line-height:1.5}
+.ed-related-card-v3248 .ed-related-read-v3249{display:inline-flex;align-items:center;min-height:44px;align-self:flex-start;margin-top:auto;color:#0f746c;font-size:12px;font-weight:800;text-decoration:underline}
+@media(max-width:740px){
+ .ed-related-card-v3248{border-radius:14px}
+ .ed-related-content-v3249{padding:12px 14px}
+ .ed-related-card-v3248 .ed-related-title-v3249{font-size:15px}
+ .ed-related-photo-v3249{aspect-ratio:16/8}
+ .ed-related-card-v3248:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){.ed-related-card-v3248{transition:none}}

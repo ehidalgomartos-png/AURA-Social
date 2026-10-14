@@ -54,7 +54,8 @@
       const result=await request('/api/editorial-social/'+encodeURIComponent(id)+'/overview');
       if(!result.ok)throw Error('No se pueden mostrar las interacciones de esta noticia');
       $('#edLikeCount').textContent=Number(result.data.likes||0)+' Me gusta';
-      $('#edCommentCount').textContent=Number(result.data.commentCount||0)+' comentarios · Opiniones de usuarios reales';
+      const commentCount=Math.max(0,Number(result.data.commentCount)||0);
+      $('#edCommentCount').textContent=commentCount+' '+(commentCount===1?'comentario':'comentarios')+' · Opiniones de usuarios reales';
       $('#edLikeLabel').textContent=liked?'Te gusta':'Me gusta';
       $('#edLike').setAttribute('aria-pressed',String(liked));
       $('#edLike').classList.toggle('is-liked',liked);
