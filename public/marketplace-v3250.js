@@ -116,7 +116,7 @@ function card(item){
  (own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':
  state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':
  isOwner?'<button type="button" data-manage="'+esc(item.id)+'">Gestionar mi anuncio</button>':
- '<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button><button data-report="'+esc(item.id)+'">Denunciar</button>')+
+ '<button class="market-contact-action" type="button" data-contact-id="'+esc(item.id)+'">Contactar</button><button data-fav="'+esc(item.id)+'" aria-label="'+(item.is_favorite?'Quitar de favoritos':'Guardar en favoritos')+'">'+(item.is_favorite?(state.mode==='favorites'?'♥ Quitar de favoritos':'♥ Guardado'):'♡ Guardar')+'</button><button data-report="'+esc(item.id)+'">Denunciar</button>')+
  '</div></div></article>';
 }
 function emptyMarketplaceState(){
@@ -328,7 +328,8 @@ function details(item){
  '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc([item.city,item.details?.province].filter(Boolean).join(' · '))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
  '<p>'+esc(item.description)+'</p><p class="muted">Publicado por '+seller+'</p><div class="actions">'+
  (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button>':'')+
- (mine?'':'<button class="primary" data-contact="'+esc(item.seller_username)+'">Enviar mensaje</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
+ (mine?'':'<button class="primary" type="button" data-contact-id="'+esc(item.id)+'">Contactar por chat</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
+ (publicOK&&sellerOK?'<a class="market-seller-more" href="/marketplace/vendedor/'+encodeURIComponent(item.seller_username)+'">Ver otros anuncios de esta persona</a>':'')+
  '</div><small>RedLibertad no interviene en el pago, envío ni en los acuerdos.</small>';
  $('#detail').showModal();
 }
@@ -373,6 +374,21 @@ async function showDetail(id){
  if(!item){const r=await request('/api/marketplace/'+encodeURIComponent(id));item=r.item;}
  if(item)details(item);else note('Este anuncio ya no está disponible.');
 }
+async function contactListing(id){
+ if(!/^[1-9]\\d{0,15}$/.test(String(id||'')))return note('Este anuncio no está disponible.');
+ const result=await request('/api/marketplace/'+encodeURIComponent(id));
+ const item=result.item;
+ if(!result.ok||!item||item.status!=='active'||item.moderation_status!=='published'){
+  note('Este anuncio no está disponible para contactar.');return;
+ }
+ if(String(item.seller_id)===String(window.currentUserId)){
+  note('Este anuncio es tuyo. Puedes gestionarlo desde «Mis anuncios».');return;
+ }
+ if(!/^[A-Za-z0-9_.-]{3,30}$/.test(String(item.seller_username||''))){
+  note('No es posible contactar con este anunciante.');return;
+ }
+ return contact(item.seller_username);
+}
 async function contact(username){
  const result=await request('/api/messages/conversations',{method:'POST',body:JSON.stringify({username})});
  if(!result.ok){alert('No se puede contactar con este usuario. Puede tener restringidos los mensajes.');return;}
@@ -386,6 +402,12 @@ async function init(){
    $('#list').innerHTML='';
    $('#more').classList.add('hidden');
    note(me.status===401?'Puedes consultar anuncios públicos. Inicia sesión para publicar, guardar o gestionar tus anuncios.':'No se ha podido comprobar tu sesión.');
+   const contactId=new URLSearchParams(location.search).get('listing');
+   if(me.status===401&&/^[1-9]\\d{0,15}$/.test(String(contactId||''))){
+    const box=$('#contactContext');
+    box.classList.remove('hidden');
+    box.innerHTML='<h2>¿Quieres contactar por este anuncio?</h2><p>Necesitas iniciar sesión. Después vuelve a abrir el anuncio para contactar con seguridad.</p><a class="primary market-seller-more" href="/">Iniciar sesión</a>';
+   }
    return;
  }
  updateMarketplaceAuth('signed-in');
@@ -395,11 +417,26 @@ async function init(){
  await load();
  const reportId=new URLSearchParams(location.search).get('report');
  if(/^[1-9]\d{0,15}$/.test(String(reportId||'')))openReport(reportId);
- const contactName=new URLSearchParams(location.search).get('contact');
- if(contactName&&/^[A-Za-z0-9_.]{3,30}$/.test(contactName)){
-  const msg=document.createElement('button');msg.type='button';msg.className='primary';msg.textContent='Abrir conversación con @'+contactName;
-  $('#notice').textContent='Para consultar este anuncio, puedes conversar con su anunciante. ';
-  $('#notice').append(msg);msg.onclick=()=>contact(contactName);
+ const params=new URLSearchParams(location.search);
+ const contactName=params.get('contact'),listingId=params.get('listing');
+ if(contactName&&/^[A-Za-z0-9_.-]{3,30}$/.test(contactName)){
+  const box=$('#contactContext');
+  if(listingId&&/^[1-9]\\d{0,15}$/.test(listingId)){
+   const listing=await request('/api/marketplace/'+encodeURIComponent(listingId));
+   const item=listing.item;
+   if(listing.ok&&item&&String(item.seller_username).toLowerCase()===contactName.toLowerCase()
+      &&String(item.seller_id)!==String(window.currentUserId)
+      &&item.status==='active'&&item.moderation_status==='published'){
+    box.classList.remove('hidden');
+    box.innerHTML='<h2>Consulta sobre este anuncio</h2><p><strong>'+esc(item.title)+'</strong> · '+priceLabel(item)+'</p>'+
+     '<p>Hablarás por el chat privado de RedLibertad. No se envía ningún mensaje automáticamente.</p>'+
+     '<button type="button" class="primary" data-contact-id="'+esc(item.id)+'">Abrir conversación con '+esc(item.seller_name||item.seller_username)+'</button>';
+   }else note('Este anuncio no está disponible para contactar.');
+  }else{
+   box.classList.remove('hidden');
+   box.innerHTML='<h2>Contactar con el anunciante</h2><p>Elige el anuncio desde el catálogo para contactar con su propietario.</p>'+
+    '<a class="secondary market-seller-more" href="/marketplace/explorar">Explorar anuncios</a>';
+  }
  }
 }
 $$('[data-kind]').forEach(b=>b.onclick=()=>setKind(b.dataset.kind));
@@ -455,7 +492,16 @@ document.addEventListener('click',async e=>{
   return;
  }
  if(b.dataset.share){const item=state.items.find(x=>String(x.id)===String(b.dataset.share));if(item)await shareListing(item);return;}
- if(b.dataset.fav){const item=state.items.find(x=>String(x.id)===b.dataset.fav);if(!item)return;const r=await request('/api/marketplace/'+encodeURIComponent(item.id)+'/favorite',{method:item.is_favorite?'DELETE':'POST'});if(r.ok)await load();return;}
+ if(b.dataset.fav){
+  const item=state.items.find(x=>String(x.id)===b.dataset.fav);if(!item)return;
+  b.disabled=true;
+  const removing=!!item.is_favorite;
+  const r=await request('/api/marketplace/'+encodeURIComponent(item.id)+'/favorite',{method:removing?'DELETE':'POST'});
+  if(r.ok){await load();note(removing?'Anuncio retirado de tus favoritos.':'Anuncio guardado en tus favoritos.');}
+  else{b.disabled=false;note('No se pudieron actualizar los favoritos. Inténtalo de nuevo.');}
+  return;
+ }
+ if(b.dataset.contactId){b.disabled=true;try{await contactListing(b.dataset.contactId);}finally{b.disabled=false;}return;}
  if(b.dataset.contact){await contact(b.dataset.contact);return;}
  if(b.dataset.report){openReport(b.dataset.report);return;}
  if(b.dataset.mod){const action=prompt('Acción: hide, restore o resolve','hide');if(!action)return;const r=await request('/api/marketplace/admin/'+encodeURIComponent(b.dataset.mod)+'/moderate',{method:'POST',body:JSON.stringify({action})});if(r.ok)await load();else note('No se pudo moderar.');}
