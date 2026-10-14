@@ -1,14 +1,15 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.51",
+  "version": "3.2.51.1",
   "private": true,
-  "description": "RedLibertad V3.2.51 — Marketplace SEO",
+  "description": "RedLibertad V3.2.51.1 — Marketplace SEO",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
+    "test:marketplace-save": "node --test tests/marketplace-save-v32511.test.js",
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:startup-router": "node --test tests/server-router-wiring-v32421.test.js",
