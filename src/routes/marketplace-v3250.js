@@ -91,6 +91,8 @@ const cardFields="l.id,l.seller_id,l.kind,l.deal,l.title,l.description,l.categor
 const joins=' FROM marketplace_listings l JOIN users u ON u.id=l.seller_id ';
 const visibleToUser='u.status=\'active\' AND l.moderation_status=\'published\' AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=l.seller_id) OR (b.blocked_id=$1 AND b.blocker_id=l.seller_id))';
 
+router.use('/import',require('./marketplace-import-v3260').router);
+
 router.get('/',wrap(async(req,res)=>{
   const kind=KINDS.includes(req.query.kind)?req.query.kind:null;
   const deal=DEALS.includes(req.query.deal)?req.query.deal:null;
