@@ -63,3 +63,23 @@
 @media(min-width:781px) and (max-width:1100px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.filters label:first-child{grid-column:span 2}}
 @media(max-width:780px){.filters{grid-template-columns:1fr 1fr}.filters label:first-child{grid-column:1/-1}.filters button{grid-column:1/-1}}
 @media(max-width:430px){.filters{grid-template-columns:1fr 1fr}.filters label:nth-child(4){grid-column:1/-1}}
+
+/* V3.2.55 — mobile-first navigation, clearer empty states and anchored footer */
+body{min-height:100dvh;display:flex;flex-direction:column}
+body>main{flex:1;width:100%;margin:0 auto}
+body>.site-foot{margin-top:auto}
+.market-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:30px 18px;margin:6px 0 14px;background:#fff;border:1px solid var(--border);border-radius:18px;min-height:220px}
+.market-empty-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:#e3f3ef;color:#11685e;font-size:27px}
+.market-empty h2{font-size:19px;margin:0;color:var(--navy)}
+.market-empty p{margin:0 0 6px;color:var(--muted);line-height:1.55;max-width:370px}
+.market-empty button,.market-empty a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:44px}
+@media(max-width:600px){
+ .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;margin:16px 0 12px}
+ .tabs button{min-width:0;min-height:44px;white-space:normal;padding:10px 8px}
+ .market-deals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:7px}
+ .market-deals button{min-width:0;min-height:44px;white-space:normal;padding:9px 6px;font-size:12px;line-height:1.2}
+ .subnav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:6px;margin:16px 0}
+ .subnav button{min-width:0;min-height:44px;padding:10px 5px;white-space:normal;font-size:13px}
+ .market-empty{padding:25px 14px;min-height:200px}
+}
+@media(max-width:360px){.market-deals{grid-template-columns:repeat(2,minmax(0,1fr))}}
