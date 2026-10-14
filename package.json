@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.51",
+  "version": "3.2.51.1",
   "private": true,
-  "description": "RedLibertad V3.2.51 — Marketplace SEO",
+  "description": "RedLibertad V3.2.51.1 — Marketplace SEO",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
