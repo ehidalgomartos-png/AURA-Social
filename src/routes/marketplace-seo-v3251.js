@@ -19,6 +19,26 @@ function seoDescription(row){return String(row.description||'').replace(/(?:\s*(
 function locality(row){return [row.city,row.details?.province].filter(Boolean).join(' · ');}
 function price(row){return (Number(row.price_cents||0)/100).toFixed(2);}
 function displayPrice(row){return (Number(row.price_cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
+const RECENT_MS=7*24*60*60*1000;
+function recentListing(row,now=Date.now()){
+ const created=Date.parse(row?.created_at||'');
+ return row?.status!=='paused'&&Number.isFinite(created)&&now>=created&&now-created<=RECENT_MS;
+}
+function listingFacts(row){
+ const d=row?.details||{},facts=[];
+ if(row.kind==='product'&&['new','used'].includes(d.condition))facts.push(['Estado',d.condition==='new'?'Nuevo':'Usado']);
+ if(row.kind==='service'){
+  const modes={in_person:'Presencial',remote:'A distancia',both:'Presencial y a distancia'};
+  if(Object.hasOwn(modes,d.serviceMode))facts.push(['Modalidad',modes[d.serviceMode]]);
+  if(typeof d.serviceArea==='string'&&d.serviceArea.trim())facts.push(['Zona de servicio',d.serviceArea.trim().slice(0,100)]);
+ }
+ if(row.kind==='property'){
+  if(Number.isInteger(d.areaM2)&&d.areaM2>0&&d.areaM2<=100000)facts.push(['Superficie',d.areaM2+' m²']);
+  if(Number.isInteger(d.rooms)&&d.rooms>=0&&d.rooms<=100)facts.push(['Habitaciones',String(d.rooms)]);
+  if(typeof d.subtype==='string'&&d.subtype.trim())facts.push(['Tipo',d.subtype.trim().slice(0,60)]);
+ }
+ return facts;
+}
 function eligible(row){return !!row&&row.status==='active'&&row.moderation_status==='published'&&row.seller_status==='active'&&row.seller_discoverable===true;}
 function entitySchema(row,url,images){
  const data={ '@context':'https://schema.org',name:row.title,description:seoDescription(row).slice(0,3000),url};
@@ -34,7 +54,7 @@ function entitySchema(row,url,images){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
    return {...data,'@type':'Product',offers:offer};
  }
- if(row.kind==='service')return {...data,'@type':'Service',serviceType:row.category,areaServed:{'@type':'City',name:row.city},offers:offer};
+ if(row.kind==='service')return {...data,'@type':'Service',serviceType:row.category,areaServed:{'@type':'Place',name:details.serviceArea||row.city},offers:offer};
  const home={'@type':'Accommodation',name:row.title};
  if(Number.isInteger(details.areaM2)&&details.areaM2>0)home.floorSize={'@type':'QuantitativeValue',value:details.areaM2,unitCode:'MTK'};
  if(Number.isInteger(details.rooms)&&details.rooms>=0)home.numberOfRooms=details.rooms;
@@ -78,11 +98,12 @@ function listingHtml(row,related=[]){
  const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
  const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
  const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(row.category)+'</nav>'+
- '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span><h1>'+esc(row.title)+'</h1>'+
+ '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h1>'+esc(row.title)+'</h1>'+
  '<p class="muted">'+esc(category)+' · '+esc(location)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
  gallery+'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>'+
  '<section><h2>Descripción</h2><p class="market-seo-description">'+esc(row.description)+'</p></section>'+
  '<section><h2>Ubicación</h2><p>'+esc(location)+'</p></section>'+
+ (listingFacts(row).length?'<section class="market-fact-section"><h2>Datos del anuncio</h2><dl class="market-seo-facts">'+listingFacts(row).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl></section>':'')+
  '<section><h2>'+(row.deal==='buy'?'Persona que busca':'Vendedor o anunciante')+'</h2><p><a class="seller-profile-link" href="'+esc(sellerLink)+'">'+esc(row.seller_name||row.seller_username)+'</a></p><p><a class="market-seller-more" href="'+esc(otherAdsLink)+'">Ver otros anuncios de esta persona →</a></p></section>'+
  '<div class="market-seo-actions"><a class="primary" href="/marketplace?contact='+encodeURIComponent(row.seller_username)+'&amp;listing='+encodeURIComponent(row.id)+'">'+(row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante')+'</a><a class="secondary" href="/marketplace/explorar">Ver más anuncios</a></div>'+
  '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
@@ -101,7 +122,7 @@ router.get('/marketplace/p/:id/:slug?',async(req,res,next)=>{
   res.setHeader('Cache-Control','public,max-age=60');
   // Related listings never include this ad, paused/hidden ads or private sellers.
   const related=await db.query(
-   "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id<>$1 AND l.kind=$2 AND (l.category=$3 OR l.city=$4) AND l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true ORDER BY CASE WHEN l.category=$3 THEN 0 ELSE 1 END,l.created_at DESC,l.id DESC LIMIT 4",
+   "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id<>$1 AND l.kind=$2 AND (l.category=$3 OR l.city=$4) AND l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true ORDER BY CASE WHEN l.category=$3 THEN 0 ELSE 1 END,l.created_at DESC,l.id DESC LIMIT 4",
    [row.id,row.kind,row.category,row.city]);
   return res.status(200).type('html').send(listingHtml(row,related.rows));
  }catch(error){next(error);}
@@ -121,7 +142,7 @@ router.get('/marketplace/imagen/:id/:index',async(req,res,next)=>{
 });
 function listingCard(row){
  const url=listingPath(row),image=imagePaths(row)[0];
- return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span><h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(locality(row))+'</p></div></a></article>';
+ return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(locality(row))+'</p></div></a></article>';
 }
 // Public seller collections must never expose hidden, inactive or non-discoverable content.
 router.get('/marketplace/vendedor/:username',async(req,res,next)=>{
@@ -174,7 +195,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   };
   const args=[operation,kind,q?'%'+q+'%':null,city?'%'+city+'%':null,(page-1)*24];
   const result=await db.query(
-    "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
+    "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
     "WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true "+
     "AND ($1::text IS NULL OR l.deal=$1) AND ($2::text IS NULL OR l.kind=$2) "+
     "AND ($3::text IS NULL OR l.title ILIKE $3 OR l.description ILIKE $3 OR l.category ILIKE $3) "+
