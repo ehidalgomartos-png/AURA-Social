@@ -15,11 +15,13 @@ function slugify(value){return String(value||'anuncio').normalize('NFD').replace
 function listingPath(row){return '/marketplace/p/'+encodeURIComponent(row.id)+'/'+slugify(row.title);}
 function imagePath(row,index){return '/marketplace/imagen/'+encodeURIComponent(row.id)+'/'+index;}
 function imagePaths(row){return (Array.isArray(row.image_urls)?row.image_urls:[]).slice(0,6).map((v,i)=>validImage(v)?ORIGIN+imagePath(row,i):null).filter(Boolean);}
+function seoDescription(row){return String(row.description||'').replace(/(?:\s*(?:WhatsApp|Facebook|Twitter)){2,}\s*$/i,'').replace(/\s+/g,' ').trim();}
+function locality(row){return [row.city,row.details?.province].filter(Boolean).join(' · ');}
 function price(row){return (Number(row.price_cents||0)/100).toFixed(2);}
 function displayPrice(row){return (Number(row.price_cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
 function eligible(row){return !!row&&row.status==='active'&&row.moderation_status==='published'&&row.seller_status==='active'&&row.seller_discoverable===true;}
 function entitySchema(row,url,images){
- const data={ '@context':'https://schema.org',name:row.title,description:String(row.description||'').slice(0,3000),url};
+ const data={ '@context':'https://schema.org',name:row.title,description:seoDescription(row).slice(0,3000),url};
  if(images.length)data.image=images;
  if(row.category)data.category=row.category;
  if(row.deal==='buy'){
@@ -53,8 +55,8 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
  '<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.53"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.53">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'</head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.54"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.54">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.54" defer></script></head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/">RedLibertad</a><a class="headname" href="/marketplace">Mi Marketplace</a></header>'+
  '<main>'+body+'</main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
@@ -71,16 +73,22 @@ function listingHtml(row){
  const url=ORIGIN+listingPath(row),images=imagePaths(row);
  const gallery=images.length?'<section class="gallery" aria-label="Fotografías del anuncio">'+images.map((image,i)=>'<img loading="'+(i?'lazy':'eager')+'" src="'+esc(image)+'" alt="'+esc('Fotografía '+(i+1)+' de '+row.title)+'">').join('')+'</section>':'';
  const date=new Date(row.created_at).toISOString(),updated=new Date(row.updated_at).toISOString();
+ const location=locality(row),sellerLink='/perfil/'+encodeURIComponent(row.seller_username);
+ const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
+ const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
  const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(row.category)+'</nav>'+
- '<article class="market-seo-item"><header><span class="chip">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'Servicio':'Producto')+'</span><h1>'+esc(row.title)+'</h1>'+
- '<p class="muted">'+esc(row.category)+' · '+esc(row.city)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
+ '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span><h1>'+esc(row.title)+'</h1>'+
+ '<p class="muted">'+esc(category)+' · '+esc(location)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
  gallery+'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>'+
  '<section><h2>Descripción</h2><p class="market-seo-description">'+esc(row.description)+'</p></section>'+
- '<section><h2>Ubicación</h2><p>'+esc(row.city)+'</p></section>'+
- '<section><h2>'+(row.deal==='buy'?'Persona que busca':'Vendedor o anunciante')+'</h2><p>'+esc(row.seller_name||row.seller_username)+'</p></section>'+
+ '<section><h2>Ubicación</h2><p>'+esc(location)+'</p></section>'+
+ '<section><h2>'+(row.deal==='buy'?'Persona que busca':'Vendedor o anunciante')+'</h2><p><a class="seller-profile-link" href="'+esc(sellerLink)+'">'+esc(row.seller_name||row.seller_username)+'</a></p></section>'+
  '<div class="market-seo-actions"><a class="primary" href="/marketplace?contact='+encodeURIComponent(row.seller_username)+'">'+(row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante')+'</a><a class="secondary" href="/marketplace/explorar">Ver más anuncios</a></div>'+
+ '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
  '<p class="muted">Comprueba los datos y evita anticipos inseguros. Las transacciones no se realizan dentro de RedLibertad.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>';
- return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+' en '+row.city+' | RedLibertad Marketplace').slice(0,155),description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+String(row.description||'').replace(/\s+/g,' ')).slice(0,155),canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images)});
+ return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+' en '+location+' | RedLibertad Marketplace').slice(0,155),
+ description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
+ canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images)});
 }
 router.get('/marketplace/p/:id/:slug?',async(req,res,next)=>{
  try{
@@ -107,7 +115,7 @@ router.get('/marketplace/imagen/:id/:index',async(req,res,next)=>{
 });
 function listingCard(row){
  const url=listingPath(row),image=imagePaths(row)[0];
- return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span><h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(row.city)+'</p></div></a></article>';
+ return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span><h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(locality(row))+'</p></div></a></article>';
 }
 router.get('/marketplace/explorar',async(req,res,next)=>{
  try{
@@ -115,7 +123,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   const input=Number(req.query.pagina||1),page=Number.isSafeInteger(input)&&input>=1&&input<=1000?input:1;
   const operation=['sale','buy'].includes(req.query.operacion)?req.query.operacion:null;
   const pageLink=n=>'/marketplace/explorar'+(operation?'?operacion='+operation+(n>1?'&pagina='+n:''):(n>1?'?pagina='+n:''));
-  const r=await db.query("SELECT l.id,l.title,l.kind,l.deal,l.city,l.price_cents,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true AND ($1::text IS NULL OR l.deal=$1) ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET $2",[operation,(page-1)*24]);
+  const r=await db.query("SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true AND ($1::text IS NULL OR l.deal=$1) ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET $2",[operation,(page-1)*24]);
   const cards=r.rows.slice(0,24).map(listingCard).join('');
   const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace">Publicar anuncio</a></section>'+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
@@ -153,4 +161,4 @@ router.get('/sitemap-marketplace-:page.xml',async(req,res,next)=>{
   return res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'+urls.join('')+'</urlset>');
  }catch(error){next(error);}
 });
-module.exports={router,slugify,listingPath,eligible,entitySchema,jsonLd,listingHtml,imagePaths};
+module.exports={router,slugify,listingPath,eligible,entitySchema,jsonLd,listingHtml,imagePaths,seoDescription,locality};
