@@ -44,14 +44,14 @@ test('Save form bypasses silent native constraint blocking and displays errors',
   assert.match(client,/scrollIntoView/);
   assert.match(client,/btn\.textContent='Subiendo foto '/);
   assert.match(client,/btn\.textContent=state\.editing\?/);
-  assert.match(client,/btn\.disabled=false/);
+  assert.match(client,/btn\.disabled=!state\.authenticated/);
   assert.match(client,/const parsed=listingFormData\(form\)/);
 });
 test('Media upload expects existing API contract and reports errors',()=>{
   const media=read('src/routes/media.js');
   assert.match(client,/\/api\/media\/upload/);
   assert.match(client,/result\.media\?\.url/);
-  assert.match(client,/state\.images=images/);
+  assert.match(client,/state\.images\.push\(url\)/);
   assert.match(client,/response\.details\?\.fieldErrors/);
   assert.match(client,/request_timeout/);
   assert.match(client,/media_upload_failed/);
