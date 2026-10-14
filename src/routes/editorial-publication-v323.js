@@ -443,7 +443,7 @@ publicRouter.get('/p/:id',async(req,res)=>{
         '<a id="edLoginCta" class="ed-login-cta" href="/app" hidden>Entra en RedLibertad para participar en la conversación →</a>'+
         '<div id="edComments" class="ed-discussion" aria-live="polite">Cargando comentarios…</div></div></section>'+
       '</article>'+relatedHtml+'<p class="ed-article-back"><a href="/noticias">← Volver a Noticias</a></p>';
-    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.49" defer></script></body></html>'));
+    res.type('html').send(page({title:p.title,description:p.summary,pathname:publicationPath(id),body,imageUrl:p.image_url}) .replace('</body></html>','<script src="/editorial-social-v324.js?v=3.2.49.1" defer></script></body></html>'));
   }catch(e){console.error('Public editorial article failed:',e);res.status(503).send('No disponible');}
 });
 module.exports={admin,publicRouter,ensurePublicationSchema,esc,safeId,page,assertApprovedForPublication,confirmation};
