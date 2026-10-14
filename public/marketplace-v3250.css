@@ -83,3 +83,13 @@ body>.site-foot{margin-top:auto}
  .market-empty{padding:25px 14px;min-height:200px}
 }
 @media(max-width:360px){.market-deals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* V3.2.56 — contact context and clear mobile actions */
+.market-contact-context{margin:16px 0;padding:18px;border:1px solid #afd5cb;border-radius:17px;background:#eff9f5;color:var(--navy)}
+.market-contact-context h2{font-size:19px;margin:0 0 8px}
+.market-contact-context p{line-height:1.5;margin:6px 0 12px}
+.market-contact-context .primary,.market-seller-more{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:44px}
+.market-contact-context .primary{padding:11px 14px;border-radius:12px}
+.market-seller-more{padding:8px 10px;color:#125f57;font-weight:700}
+.market-contact-action{background:#e1f4ee!important;border-color:#b7dfd3!important;color:#115c54!important}
+@media(max-width:600px){.market-contact-context .primary{width:100%;text-align:center}.card .actions .market-contact-action{min-height:44px}}

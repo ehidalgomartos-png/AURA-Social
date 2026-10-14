@@ -32,3 +32,8 @@
 @media(max-width:360px){
  .market-deals a:last-child{grid-column:1/-1}
 }
+
+/* V3.2.56 — seller navigation and safe mobile CTAs */
+.market-seller-more{display:inline-flex;align-items:center;color:#12685d;text-underline-offset:3px;font-weight:750;min-height:44px}
+.market-seller-intro{margin:17px 0;font-weight:700;color:#14665b}
+.market-seo-actions a{min-height:44px}

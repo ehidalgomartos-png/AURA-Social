@@ -86,7 +86,7 @@ test('related cards use full width, optional protected images and AI disclosure'
  assert.match(css,/min-height:44px/);
  assert.match(read('src/routes/editorial-publication-v323.js'),/safeImage:safeLocalImageV3222/);
 });
-test('V3.2.55 preserves public filters, conversations and stable publishing',()=>{
+test('V3.2.56 preserves public filters, conversations and stable publishing',()=>{
  const routes=read('src/routes/editorial-publication-v323.js');
  assert.match(routes,/discoveryV3248\.filter\(req\.query\.categoria\)/);
  assert.match(routes,/AND pub\.category=\$1/);
@@ -94,8 +94,8 @@ test('V3.2.55 preserves public filters, conversations and stable publishing',()=
  assert.match(routes,/AND pub\.id<>\$2/);
  assert.match(routes,/sourceLabelV3249/);
  assert.match(routes,/pub\.unpublished_at IS NULL AND ep\.status='ready'/);
- assert.match(routes,/editorial-social-v324\.js\?v=3\.2\.55/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.55');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.55'/);
+ assert.match(routes,/editorial-social-v324\.js\?v=3\.2\.56/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.56');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.56'/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-social-polish/);
 });
