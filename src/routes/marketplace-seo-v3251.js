@@ -113,15 +113,18 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
  try{
   await ensureMarketplaceSchema();
   const input=Number(req.query.pagina||1),page=Number.isSafeInteger(input)&&input>=1&&input<=1000?input:1;
-  const r=await db.query("SELECT l.id,l.title,l.kind,l.deal,l.city,l.price_cents,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET $1",[(page-1)*24]);
+  const operation=['sale','buy'].includes(req.query.operacion)?req.query.operacion:null;
+  const pageLink=n=>'/marketplace/explorar'+(operation?'?operacion='+operation+(n>1?'&pagina='+n:''):(n>1?'?pagina='+n:''));
+  const r=await db.query("SELECT l.id,l.title,l.kind,l.deal,l.city,l.price_cents,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true AND ($1::text IS NULL OR l.deal=$1) ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET $2",[operation,(page-1)*24]);
   const cards=r.rows.slice(0,24).map(listingCard).join('');
   const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace">Publicar anuncio</a></section>'+
-   '<div class="market-seo-intro"><h2>Últimos anuncios</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con vendedores necesitas una cuenta.</p></div>'+
+   '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
+   '<div class="market-seo-intro"><h2>Últimos anuncios</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con anunciantes necesitas una cuenta.</p></div>'+
    '<section class="cards" aria-label="Anuncios públicos">'+(cards||'<p>Todavía no hay anuncios públicos.</p>')+'</section>'+
-   '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="/marketplace/explorar'+(page>2?'?pagina='+(page-1):'')+'">← Anteriores</a>':'')+
-   (r.rows.length>24?'<a class="secondary" href="/marketplace/explorar?pagina='+(page+1)+'">Siguientes →</a>':'')+'</nav>';
+   '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+pageLink(page-1)+'">← Anteriores</a>':'')+
+   (r.rows.length>24?'<a class="secondary" href="'+pageLink(page+1)+'">Siguientes →</a>':'')+'</nav>';
   res.setHeader('Cache-Control','public,max-age=60');
-  return res.type('html').send(shell({title:'Marketplace: productos, servicios e inmobiliaria | RedLibertad',description:'Descubre productos, servicios e inmuebles publicados en RedLibertad.',canonical:ORIGIN+'/marketplace/explorar'+(page>1?'?pagina='+page:''),body}));
+  return res.type('html').send(shell({title:'Marketplace: productos, servicios e inmobiliaria | RedLibertad',description:'Descubre productos, servicios e inmuebles publicados en RedLibertad.',canonical:ORIGIN+pageLink(page),body}));
  }catch(error){next(error);}
 });
 router.get('/sitemap-marketplace.xml',async(_req,res,next)=>{
