@@ -78,7 +78,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.58.1';
+const APP_VERSION='3.2.59';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -1207,7 +1207,7 @@ app.get('/sitemap-hashtags.xml',async(req,res)=>{
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-1.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-1.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-productos.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-servicios.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-inmuebles.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -1253,6 +1253,9 @@ app.get('/robots.txt',(req,res)=>{
     `Sitemap: ${origin}/sitemap-topics.xml`,
     `Sitemap: ${origin}/sitemap-guias.xml`,
     `Sitemap: ${origin}/sitemap-marketplace.xml`,
+    `Sitemap: ${origin}/sitemap-marketplace-productos.xml`,
+    `Sitemap: ${origin}/sitemap-marketplace-servicios.xml`,
+    `Sitemap: ${origin}/sitemap-marketplace-inmuebles.xml`,
     `Sitemap: ${origin}/noticias/sitemap.xml`
   ].join('\n'));
 });

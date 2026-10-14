@@ -4,6 +4,7 @@ const express=require('express');
 const path=require('path');
 const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
+const {icon:marketplaceIcon}=require('../marketplace-icons-v3259');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const PAGE_SIZE=2000;
@@ -74,11 +75,14 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<link rel="canonical" href="'+esc(canonical)+'"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="website">'+
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
- '<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.58.1"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.58.1&amp;nav=1">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.58.1" defer></script></head>'+
- '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/">RedLibertad</a><a class="headname" href="/marketplace">Mi Marketplace</a></header>'+
- '<main>'+body+'</main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
+ '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
+ '<link rel="manifest" href="/marketplace/manifest.webmanifest"><link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
+ '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.59"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.59&amp;nav=1">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.59" defer></script>'+
+ '<script src="/marketplace-pwa-v3259.js?v=3.2.59" defer></script></head>'+
+ '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
+ '<main>'+body+'<aside id="marketPwaInstall" class="market-pwa-install" hidden><div><img src="/marketplace/icon-192.png" width="40" height="40" alt=""><span><strong>Marketplace en tu móvil</strong><small>Instala un acceso directo independiente.</small></span></div><button id="marketPwaInstallButton" type="button">Instalar Marketplace</button><p id="marketPwaInstallHelp" role="status"></p></aside></main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
 async function publicListing(id){
  await ensureMarketplaceSchema();
@@ -113,6 +117,18 @@ function listingHtml(row,related=[]){
  description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
  canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images)});
 }
+
+const MARKETPLACE_MANIFEST={"id":"/marketplace","name":"Marketplace · RedLibertad","short_name":"Marketplace","description":"Compra, vende y encuentra productos, servicios e inmuebles. Comparte tu cuenta con RedLibertad.","start_url":"/marketplace/explorar","scope":"/marketplace","display":"standalone","background_color":"#f7f4ee","theme_color":"#0d3e4a","lang":"es","icons":[{"src":"/marketplace/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"/marketplace/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]};
+router.get('/marketplace/manifest.webmanifest',(_req,res)=>{
+ res.setHeader('Cache-Control','public,max-age=3600');
+ res.type('application/manifest+json').send(JSON.stringify(MARKETPLACE_MANIFEST));
+});
+router.get('/marketplace/icon-:size.png',(req,res)=>{
+ const size=Number(req.params.size);
+ if(![192,512].includes(size)||!/^(192|512)$/.test(req.params.size))return res.sendStatus(404);
+ res.setHeader('Cache-Control','public,max-age=604800,immutable');
+ res.type('image/png').send(marketplaceIcon(size));
+});
 router.get('/marketplace/p/:id/:slug?',async(req,res,next)=>{
  try{
   if(!safeId(req.params.id))return unavailable(res);
@@ -219,7 +235,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
     '</select></label>'+
     '<button type="submit" class="secondary">Aplicar filtros</button>'+
     '<a class="market-clear-filters" href="/marketplace/explorar">Limpiar</a></div></details></form>';
-  const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace">Publicar anuncio</a></section>'+
+  const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace?publicar=1">Publicar anuncio</a></section>'+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
    filterBox+
    '<div class="market-seo-intro"><h2>'+(params.size?'Resultados de búsqueda':'Últimos anuncios')+'</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con anunciantes necesitas una cuenta.</p></div>'+
@@ -246,6 +262,35 @@ router.get('/sitemap-marketplace.xml',async(_req,res,next)=>{
   return res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+entries+'</sitemapindex>');
  }catch(error){next(error);}
 });
+const MARKETPLACE_KINDS={productos:'product',servicios:'service',inmuebles:'property'};
+const MARKETPLACE_XML_WHERE=" FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true AND l.kind=$1";
+for(const [label,kind] of Object.entries(MARKETPLACE_KINDS)){
+ router.get('/sitemap-marketplace-'+label+'.xml',async(_req,res,next)=>{
+  try{
+   await ensureMarketplaceSchema();
+   const count=await db.query('SELECT count(*)::integer AS total'+MARKETPLACE_XML_WHERE,[kind]);
+   const pages=Math.max(1,Math.ceil(Number(count.rows[0]?.total||0)/PAGE_SIZE));
+   const entries=Array.from({length:pages},(_v,i)=>'<sitemap><loc>'+esc(ORIGIN+'/sitemap-marketplace-'+label+'-'+(i+1)+'.xml')+'</loc></sitemap>').join('');
+   res.setHeader('Cache-Control','public,max-age=300');
+   return res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+entries+'</sitemapindex>');
+  }catch(error){next(error);}
+ });
+ router.get('/sitemap-marketplace-'+label+'-:page.xml',async(req,res,next)=>{
+  try{
+   const page=Number(req.params.page);
+   if(!Number.isSafeInteger(page)||page<1||page>50000)return res.sendStatus(404);
+   await ensureMarketplaceSchema();
+   const listings=await db.query('SELECT l.id,l.title,l.image_urls,l.updated_at'+MARKETPLACE_XML_WHERE+' ORDER BY l.created_at DESC,l.id DESC LIMIT $2 OFFSET $3',[kind,PAGE_SIZE,(page-1)*PAGE_SIZE]);
+   if(page>1&&!listings.rowCount)return res.sendStatus(404);
+   const entries=listings.rows.map(row=>{
+    const image=imagePaths(row)[0];
+    return '<url><loc>'+esc(ORIGIN+listingPath(row))+'</loc><lastmod>'+new Date(row.updated_at).toISOString()+'</lastmod>'+(image?'<image:image><image:loc>'+esc(image)+'</image:loc></image:image>':'')+'</url>';
+   });
+   res.setHeader('Cache-Control','public,max-age=300');
+   return res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'+entries.join('')+'</urlset>');
+  }catch(error){next(error);}
+ });
+}
 router.get('/sitemap-marketplace-:page.xml',async(req,res,next)=>{
  try{
   const page=Number(req.params.page);

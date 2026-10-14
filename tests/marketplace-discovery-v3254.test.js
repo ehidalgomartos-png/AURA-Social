@@ -14,7 +14,7 @@ const sample={
  seller_status:'active',seller_discoverable:true,seller_username:'hidalgoValencia',seller_name:'Hidalgo Valencia',
  created_at:'2026-10-14T09:00:00Z',updated_at:'2026-10-14T09:00:00Z'
 };
-test('V3.2.58.1 accepts optional province and subcategory without changing legacy listings',()=>{
+test('V3.2.59 accepts optional province and subcategory without changing legacy listings',()=>{
  const fields={kind:'product',deal:'sale',title:'Sofá en Valencia',description:'Sofá de dos plazas, disponible en Valencia y en buen estado.',category:'Hogar y muebles',city:'Valencia',priceCents:30000,images:[]};
  assert.equal(api.listingInput.safeParse(fields).success,true);
  assert.equal(api.listingInput.safeParse({...fields,details:{province:'Valencia',subcategory:'Sofás'}}).success,true);
@@ -88,12 +88,12 @@ test('Public copy-link script restricts to our Marketplace URL',()=>{
  assert.match(src,/navigator\.clipboard/);
  assert.match(src,/window\.prompt/);
 });
-test('Version and frontend caches match V3.2.58.1',()=>{
+test('Version and frontend caches match V3.2.59',()=>{
  const html=read('public/marketplace.html');
- assert.equal(JSON.parse(read('package.json')).version,'3.2.58.1');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.58\.1'/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.58\.1/);
- assert.match(html,/marketplace-v3250\.css\?v=3\.2\.58\.1/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.59');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.59'/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.59/);
+ assert.match(html,/marketplace-v3250\.css\?v=3\.2\.59/);
  const seoSource=read('src/routes/marketplace-seo-v3251.js');
- assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.58\.1/);
+ assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.59/);
 });

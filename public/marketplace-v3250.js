@@ -472,6 +472,12 @@ async function init(){
  updateMarketplaceAuth('checking');
  const me=await request('/api/auth/me');
  if(!me.ok){
+   const params=new URLSearchParams(location.search);
+   const explicitIntent=['publicar','contact','listing','report'].some(key=>params.has(key));
+   if(me.status===401&&!explicitIntent){
+     // Anonymous /marketplace now opens the actual public catalogue; no empty landing.
+     location.replace('/marketplace/explorar');return;
+   }
    updateMarketplaceAuth(me.status===401?'guest':'unavailable');
    $('#list').innerHTML='';
    $('#more').classList.add('hidden');
@@ -489,6 +495,7 @@ async function init(){
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
  $('#reportsTab').classList.toggle('hidden',!state.admin);
  await load();
+ if(new URLSearchParams(location.search).get('publicar')==='1')openEditor();
  const reportId=new URLSearchParams(location.search).get('report');
  if(/^[1-9]\d{0,15}$/.test(String(reportId||'')))openReport(reportId);
  const params=new URLSearchParams(location.search);
