@@ -78,3 +78,13 @@ test('crawler routes, XML sitemap and internal discovery are wired',()=>{
  assert.match(market,/contactName/);
  assert.equal(JSON.parse(read('package.json')).version,'3.2.55');
 });
+
+test('Public Marketplace mobile operation filters never clip the last link',()=>{
+ const css=read('public/marketplace-seo-v3251.css');
+ const source=read('src/routes/marketplace-seo-v3251.js');
+ assert.match(css,/@media\(max-width:600px\)\{\s*\.market-deals a\{/);
+ assert.match(css,/\.market-deals a\{[^}]*min-width:0;[^}]*width:100%;[^}]*white-space:normal;[^}]*text-align:center;[^}]*\}/s);
+ assert.match(css,/@media\(max-width:360px\)\{[^}]*\.market-deals a:last-child\{grid-column:1\/-1\}/s);
+ assert.match(source,/marketplace-seo-v3251\.css\?v=3\.2\.55&amp;nav=1/);
+ assert.match(source,/Compra · Busco/);
+});
