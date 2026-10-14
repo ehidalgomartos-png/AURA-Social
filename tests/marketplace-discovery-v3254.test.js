@@ -64,7 +64,7 @@ test('Existing wanted ads are still demand rather than merchant offers',()=>{
  assert.equal(schema.offers,undefined);
  assert.match(seo.listingHtml(wanted),/BUSCO COMPRAR/);
 });
-test('Mobile editor category suggestions, old details retention and Spanish reporting are wired',()=>{
+test('Mobile editor category suggestions, typed details persistence and Spanish reporting are wired',()=>{
  const html=read('public/marketplace.html'),js=read('public/marketplace-v3250.js');
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.match(html,/name="province"/);
@@ -72,8 +72,9 @@ test('Mobile editor category suggestions, old details retention and Spanish repo
  assert.match(html,/name="category" list="listingCategories"/);
  assert.match(html,/id="reportDialog"/);
  assert.match(html,/value="fraud">Posible estafa/);
- assert.match(js,/const previous=state\.editing\?\.details\|\|\{\}/);
- assert.match(js,/details:\{\.\.\.previous,\.\.\.parsed\.data\.details\}/);
+ assert.match(js,/const payload=\{\.\.\.parsed\.data,images:\[\.\.\.state\.images\]\}/);
+ assert.match(js,/f\('areaM2'\)\.value=item\.details\?\.areaM2/);
+ assert.match(js,/f\('serviceMode'\)\.value=item\.details\?\.serviceMode/);
  assert.match(js,/const reportId=new URLSearchParams/);
  assert.match(js,/\/perfil\//);
  assert.match(js,/navigator\.share/);
