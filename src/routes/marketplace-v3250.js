@@ -9,10 +9,10 @@ const {requireAuth}=require('../middleware/auth');
 const router=express.Router();
 
 const KINDS=['product','service','property'];
-const DEALS=['sale','rent','offer'];
+const DEALS=['sale','rent','offer','buy'];
 const STATUSES=['active','reserved','sold','paused'];
 const picture=z.string().trim().regex(/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i);
-const listingInput=z.object({
+const listingBase=z.object({
   kind:z.enum(KINDS),
   deal:z.enum(DEALS),
   title:z.string().trim().min(6).max(120),
@@ -27,11 +27,16 @@ const listingInput=z.object({
     rooms:z.number().int().min(0).max(100).optional(),
     subtype:z.string().trim().max(60).optional()
   }).strict().default({})
-}).strict().superRefine((v,ctx)=>{
+}).strict();
+function checkKindDeal(v,ctx){
   if(v.kind==='service'&&v.deal!=='offer')ctx.addIssue({code:'custom',path:['deal'],message:'El servicio debe ser una oferta'});
-  if(v.kind==='product'&&v.deal!=='sale')ctx.addIssue({code:'custom',path:['deal'],message:'Un producto se anuncia en venta'});
-  if(v.kind==='property'&&v.deal==='offer')ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona venta o alquiler'});
-});
+  if(v.kind==='product'&&!['sale','buy'].includes(v.deal))ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona Venta o Compra / Busco'});
+  if(v.kind==='property'&&!['sale','rent','buy'].includes(v.deal))ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona venta, alquiler o compra'});
+}
+// Zod v3: superRefine returns ZodEffects, which cannot be extended.
+// Both create and edit must refine the unwrapped base object independently.
+const listingInput=listingBase.superRefine(checkKindDeal);
+const listingUpdateInput=listingBase.extend({status:z.enum(STATUSES)}).superRefine(checkKindDeal);
 const reportInput=z.object({
   reason:z.enum(['fraud','prohibited','spam','misleading','other']),
   details:z.string().trim().max(500).default('')
@@ -40,7 +45,20 @@ const idOk=id=>/^[1-9]\d{0,15}$/.test(String(id||''));
 
 let schemaReady=null;
 const DDL=[
-  "CREATE TABLE IF NOT EXISTS marketplace_listings (id BIGSERIAL PRIMARY KEY, seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('product','service','property')), deal TEXT NOT NULL CHECK(deal IN ('sale','rent','offer')), title VARCHAR(120) NOT NULL, description VARCHAR(4000) NOT NULL, category VARCHAR(65) NOT NULL, city VARCHAR(100) NOT NULL, price_cents BIGINT NOT NULL CHECK(price_cents>=0), image_urls JSONB NOT NULL DEFAULT '[]'::jsonb, details JSONB NOT NULL DEFAULT '{}'::jsonb, status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','reserved','sold','paused')), moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','hidden')), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+  "CREATE TABLE IF NOT EXISTS marketplace_listings (id BIGSERIAL PRIMARY KEY, seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('product','service','property')), deal TEXT NOT NULL CHECK(deal IN ('sale','rent','offer','buy')), title VARCHAR(120) NOT NULL, description VARCHAR(4000) NOT NULL, category VARCHAR(65) NOT NULL, city VARCHAR(100) NOT NULL, price_cents BIGINT NOT NULL CHECK(price_cents>=0), image_urls JSONB NOT NULL DEFAULT '[]'::jsonb, details JSONB NOT NULL DEFAULT '{}'::jsonb, status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','reserved','sold','paused')), moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','hidden')), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+  // Existing deployments already have the original PostgreSQL CHECK constraint.
+  // Upgrade it in place, keeping all existing listings intact and allowing 'buy'.
+  \`DO $$ BEGIN
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint
+       WHERE conrelid='marketplace_listings'::regclass
+         AND conname='marketplace_listings_deal_check'
+         AND pg_get_constraintdef(oid) LIKE '%buy%'
+     ) THEN
+       ALTER TABLE marketplace_listings DROP CONSTRAINT IF EXISTS marketplace_listings_deal_check;
+       ALTER TABLE marketplace_listings ADD CONSTRAINT marketplace_listings_deal_check CHECK (deal IN ('sale','rent','offer','buy'));
+     END IF;
+   END $$\`,
   'CREATE INDEX IF NOT EXISTS idx_marketplace_discover ON marketplace_listings(kind,created_at DESC,id DESC) WHERE status=\'active\' AND moderation_status=\'published\'',
   'CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON marketplace_listings(seller_id,created_at DESC)',
   'CREATE TABLE IF NOT EXISTS marketplace_favorites (user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, listing_id BIGINT NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(user_id,listing_id))',
@@ -70,6 +88,7 @@ const visibleToUser='u.status=\'active\' AND l.moderation_status=\'published\' A
 
 router.get('/',wrap(async(req,res)=>{
   const kind=KINDS.includes(req.query.kind)?req.query.kind:null;
+  const deal=DEALS.includes(req.query.deal)?req.query.deal:null;
   const query=String(req.query.q||'').trim().slice(0,100);
   const city=String(req.query.city||'').trim().slice(0,80);
   const maxPrice=String(req.query.maxPrice||'').trim();
@@ -77,6 +96,7 @@ router.get('/',wrap(async(req,res)=>{
   const args=[req.user.id];
   const clauses=[visibleToUser,"l.status='active'"];
   if(kind){args.push(kind);clauses.push('l.kind=$'+args.length);}
+  if(deal){args.push(deal);clauses.push('l.deal=$'+args.length);}
   if(query){args.push('%'+query+'%');clauses.push('(l.title ILIKE $'+args.length+' OR l.description ILIKE $'+args.length+' OR l.category ILIKE $'+args.length+')');}
   if(city){args.push('%'+city+'%');clauses.push('l.city ILIKE $'+args.length);}
   if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
@@ -132,7 +152,7 @@ router.post('/',rateLimit({windowMs:60*60*1000,max:10,standardHeaders:true,legac
 
 router.patch('/:id',wrap(async(req,res)=>{
   if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
-  const parsed=listingInput.extend({status:z.enum(STATUSES)}).strict().safeParse(req.body);
+  const parsed=listingUpdateInput.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
   const v=parsed.data;
   const r=await db.query("UPDATE marketplace_listings SET kind=$3,deal=$4,title=$5,description=$6,category=$7,city=$8,price_cents=$9,image_urls=$10::jsonb,details=$11::jsonb,status=$12,updated_at=now() WHERE id=$1 AND seller_id=$2 RETURNING id",[req.params.id,req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details),v.status]);
@@ -177,4 +197,7 @@ module.exports=router;
 module.exports.ensureMarketplaceSchema=ensureMarketplaceSchema;
 module.exports.DDL=DDL;
 module.exports.marketplaceSchemaMiddleware=marketplaceSchemaMiddleware;
+module.exports.listingInput=listingInput;
+module.exports.listingUpdateInput=listingUpdateInput;
+module.exports.checkKindDeal=checkKindDeal;
 
