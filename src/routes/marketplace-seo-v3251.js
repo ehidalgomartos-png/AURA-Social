@@ -78,9 +78,9 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="manifest" href="/marketplace/manifest.webmanifest"><link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.59"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.59&amp;nav=1">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.59" defer></script>'+
- '<script src="/marketplace-pwa-v3259.js?v=3.2.59" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.60"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.60&amp;nav=1">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.60" defer></script>'+
+ '<script src="/marketplace-pwa-v3259.js?v=3.2.60" defer></script></head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
  '<main>'+body+'<aside id="marketPwaInstall" class="market-pwa-install" hidden><div><img src="/marketplace/icon-192.png" width="40" height="40" alt=""><span><strong>Marketplace en tu móvil</strong><small>Instala un acceso directo independiente.</small></span></div><button id="marketPwaInstallButton" type="button">Instalar Marketplace</button><p id="marketPwaInstallHelp" role="status"></p></aside></main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
@@ -128,6 +128,10 @@ router.get('/marketplace/icon-:size.png',(req,res)=>{
  if(![192,512].includes(size)||!/^(192|512)$/.test(req.params.size))return res.sendStatus(404);
  res.setHeader('Cache-Control','public,max-age=604800,immutable');
  res.type('image/png').send(marketplaceIcon(size));
+});
+router.get('/marketplace/importar',(_req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ res.type('html').sendFile(path.join(__dirname,'..','..','public','marketplace-import-v3260.html'));
 });
 router.get('/marketplace/p/:id/:slug?',async(req,res,next)=>{
  try{
