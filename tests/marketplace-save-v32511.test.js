@@ -39,28 +39,28 @@ test('Invalid title and description present field-specific messages',()=>{
 test('Save form bypasses silent native constraint blocking and displays errors',()=>{
   assert.match(html,/<form method="dialog" id="listingForm" novalidate>/);
   assert.match(html,/id="formError" role="alert" aria-live="assertive"/);
-  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.51\.3/);
+  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.52/);
   assert.match(client,/function listingError\(/);
   assert.match(client,/scrollIntoView/);
   assert.match(client,/btn\.textContent='Subiendo foto '/);
   assert.match(client,/btn\.textContent=state\.editing\?/);
-  assert.match(client,/btn\.disabled=false/);
+  assert.match(client,/btn\.disabled=!state\.authenticated/);
   assert.match(client,/const parsed=listingFormData\(form\)/);
 });
 test('Media upload expects existing API contract and reports errors',()=>{
   const media=read('src/routes/media.js');
   assert.match(client,/\/api\/media\/upload/);
   assert.match(client,/result\.media\?\.url/);
-  assert.match(client,/state\.images=images/);
+  assert.match(client,/state\.images\.push\(url\)/);
   assert.match(client,/response\.details\?\.fieldErrors/);
   assert.match(client,/request_timeout/);
   assert.match(client,/media_upload_failed/);
   assert.match(media,/upload\.single\('file'\)/);
   assert.match(media,/media: \{/);
 });
-test('Version is V3.2.51.3 and existing marketplace routes are unchanged',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.51.3');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.51\.3'/);
+test('Version is V3.2.52 and existing marketplace routes are unchanged',()=>{
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.52');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.52'/);
   assert.match(read('src/routes/marketplace-v3250.js'),/router\.post\('\/',rateLimit/);
   assert.match(read('src/routes/marketplace-v3250.js'),/listingInput\.safeParse/);
 });

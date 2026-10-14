@@ -54,9 +54,9 @@ test('Marketplace uses a single, full-width product card on narrow phones',()=>{
 test('CSS versioning updates both member cards and Google indexable public pages',()=>{
  const member=read('public/marketplace.html');
  const seoCode=read('src/routes/marketplace-seo-v3251.js');
- assert.match(member,/marketplace-v3250\.css\?v=3\.2\.51\.3/);
- assert.match(seoCode,/marketplace-v3250\.css\?v=3\.2\.51\.3/);
- assert.match(seoCode,/marketplace-seo-v3251\.css\?v=3\.2\.51\.3/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.51.3');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.51\.3'/);
+ assert.match(member,/marketplace-v3250\.css\?v=3\.2\.52/);
+ assert.match(seoCode,/marketplace-v3250\.css\?v=3\.2\.52/);
+ assert.match(seoCode,/marketplace-seo-v3251\.css\?v=3\.2\.52/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.52');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.52'/);
 });
