@@ -8,3 +8,27 @@
 #marketCopyNotice{color:#136a61;font-size:13px;min-height:18px}
 .seller-profile-link{color:#146b63;font-weight:800;text-underline-offset:3px}
 @media(max-width:600px){.market-share-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.market-share-actions a,.market-share-actions button{min-width:0;text-align:center}}
+
+
+/* V3.2.55 mobile public catalogue: links must fit without horizontal clipping.
+   Scope this override to the public (SEO) stylesheet, not the signed-in editor. */
+@media(max-width:600px){
+ .market-deals a{
+  box-sizing:border-box;
+  min-width:0;
+  width:100%;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 5px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  text-align:center;
+  font-size:12px;
+  line-height:1.25;
+ }
+}
+@media(max-width:360px){
+ .market-deals a:last-child{grid-column:1/-1}
+}
