@@ -55,8 +55,8 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
  '<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.54"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.54">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.54" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.55"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.55">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.55" defer></script></head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/">RedLibertad</a><a class="headname" href="/marketplace">Mi Marketplace</a></header>'+
  '<main>'+body+'</main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
@@ -128,7 +128,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace">Publicar anuncio</a></section>'+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
    '<div class="market-seo-intro"><h2>Últimos anuncios</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con anunciantes necesitas una cuenta.</p></div>'+
-   '<section class="cards" aria-label="Anuncios públicos">'+(cards||'<p>Todavía no hay anuncios públicos.</p>')+'</section>'+
+   '<section class="cards" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">🛍️</div><h2>Todavía no hay anuncios públicos</h2><p>Sé la primera persona en compartir un producto, servicio o inmueble.</p><a href="/marketplace" class="primary">Publicar el primer anuncio</a></div>')+'</section>'+
    '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+pageLink(page-1)+'">← Anteriores</a>':'')+
    (r.rows.length>24?'<a class="secondary" href="'+pageLink(page+1)+'">Siguientes →</a>':'')+'</nav>';
   res.setHeader('Cache-Control','public,max-age=60');
