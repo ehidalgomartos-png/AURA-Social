@@ -106,12 +106,15 @@ function card(item){
  const seller=sellerOK?'<a class="seller-profile-link" href="/perfil/'+encodeURIComponent(item.seller_username)+'">'+esc(item.seller_name||item.seller_username)+'</a>':esc(item.seller_name||item.seller_username);
  const location=[item.city,item.details?.province].filter(Boolean).join(' · ');
  const badge=item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO';
+ const quickStatuses=own&&item.moderation_status!=='hidden'?
+  (item.status==='active'?'<button type="button" data-quick-status="'+esc(item.id)+'" data-to="reserved">Reservar</button><button type="button" data-quick-status="'+esc(item.id)+'" data-to="sold">Marcar vendido</button><button type="button" data-quick-status="'+esc(item.id)+'" data-to="paused">Pausar</button>':
+    '<button type="button" data-quick-status="'+esc(item.id)+'" data-to="active">Reactivar anuncio</button>'):'';
  const more=item.details?.subcategory?'<p class="muted market-subcategory">'+esc(item.category)+' · '+esc(item.details.subcategory)+'</p>':'';
  return '<article class="card"><div class="thumb">'+(img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>')+
  '</div><div class="cardbody"><span class="chip market-deal-'+esc(item.deal)+'">'+esc(badge)+'</span><h3>'+esc(item.title)+'</h3>'+more+'<div class="price">'+priceLabel(item)+'</div>'+
  '<p class="muted">📍 '+esc(location)+' · '+seller+'</p>'+
- (own?'<span class="muted">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
- '<div class="actions">'+(publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
+ (own?'<span class="market-state market-state-'+esc(item.status)+'">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
+ '<div class="actions">'+(quickStatuses)+ (publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
  (publicOK?'<button type="button" data-share="'+esc(item.id)+'">Compartir</button>':'')+
  (own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':
  state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':
@@ -136,7 +139,7 @@ async function load(reset=true){
  else if(state.mode==='reports')path+='/admin/reports';
  else{
   const f=new FormData($('#filters'));
-  path+='?'+new URLSearchParams({kind:state.kind,deal:state.deal,q:String(f.get('q')||''),city:String(f.get('city')||''),province:String(f.get('province')||''),category:String(f.get('category')||''),maxPrice:String(f.get('maxPrice')||''),page:String(state.page)});
+  path+='?'+new URLSearchParams({kind:state.kind,deal:state.deal,q:String(f.get('q')||''),city:String(f.get('city')||''),province:String(f.get('province')||''),category:String(f.get('category')||''),maxPrice:String(f.get('maxPrice')||''),sort:String(f.get('sort')||'recent'),page:String(state.page)});
  }
  if(!state.authenticated){$('#list').innerHTML='';$('#more').classList.add('hidden');note('Inicia sesión para usar tus anuncios y favoritos, o consulta el catálogo público.');return;}
  const data=await request(path);
@@ -476,6 +479,18 @@ document.addEventListener('click',async e=>{
  }
  if(b.dataset.open){await showDetail(b.dataset.open);return;}
  if(b.dataset.edit){const item=state.items.find(x=>String(x.id)===b.dataset.edit);if(item)openEditor(item);return;}
+ if(b.dataset.quickStatus){
+  if(state.mode!=='mine'||!state.authenticated)return;
+  const item=state.items.find(x=>String(x.id)===String(b.dataset.quickStatus));
+  const status=String(b.dataset.to||'');
+  if(!item||!['active','reserved','sold','paused'].includes(status)||String(item.seller_id)!==String(window.currentUserId))return;
+  if(status==='sold'&&!confirm('¿Marcar este anuncio como vendido o finalizado? Dejará de aparecer en la búsqueda pública.'))return;
+  b.disabled=true;
+  const result=await request('/api/marketplace/'+encodeURIComponent(item.id)+'/status',{method:'PATCH',body:JSON.stringify({status})});
+  if(result.ok){await load();note('Estado del anuncio actualizado: '+(label[status]||status)+'.');}
+  else{b.disabled=false;note('No se pudo cambiar el estado del anuncio. Inténtalo de nuevo.');}
+  return;
+ }
  if(b.dataset.delete){
   if(!state.authenticated){updateMarketplaceAuth('guest');return;}
   const item=state.items.find(x=>String(x.id)===String(b.dataset.delete));

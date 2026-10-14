@@ -93,3 +93,12 @@ body>.site-foot{margin-top:auto}
 .market-seller-more{padding:8px 10px;color:#125f57;font-weight:700}
 .market-contact-action{background:#e1f4ee!important;border-color:#b7dfd3!important;color:#115c54!important}
 @media(max-width:600px){.market-contact-context .primary{width:100%;text-align:center}.card .actions .market-contact-action{min-height:44px}}
+
+/* V3.2.57 — clear owner statuses and tap-safe controls on phones */
+.market-state{display:inline-flex;align-items:center;align-self:flex-start;border-radius:999px;padding:6px 10px;font-weight:750;font-size:12px;background:#e2f1ec;color:#105b51}
+.market-state-reserved{background:#fff3d7;color:#72500e}
+.market-state-sold{background:#e7e9ee;color:#485366}
+.market-state-paused{background:#edf0f2;color:#58636e}
+.card .actions [data-quick-status]{min-height:44px;border-color:#cbd9de}
+@media(max-width:780px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.filters label{min-width:0}.filters label:has([name="sort"]){grid-column:1/-1}}
+@media(max-width:500px){.card .actions button,.card .actions a{min-height:44px}}
