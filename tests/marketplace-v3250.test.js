@@ -29,7 +29,7 @@ test('marketplace backend validates ownership and filters blocked users',()=>{
 test('marketplace exposes products services and property with no payment capture',()=>{
  const html=read('public/marketplace.html');
  const js=read('public/marketplace-v3250.js');
- for(const term of ['Productos','Servicios','Inmobiliaria','Mis anuncios','Favoritos','Publicar anuncio','Enviar mensaje']){
+ for(const term of ['Productos','Servicios','Inmobiliaria','Mis anuncios','Favoritos','Publicar anuncio','Contactar por chat']){
   assert.ok((html+js).includes(term),term);
  }
  assert.match(js,/\/api\/messages\/conversations/);
