@@ -170,6 +170,8 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
+      - name: V3.2.51.2 Marketplace API schema next() regression tests
+        run: npm run test:marketplace-next
       - name: V3.2.51.1 Marketplace save form, upload and validation hotfix
         run: npm run test:marketplace-save
       - name: V3.2.51 Marketplace public SEO and sitemap safety tests
