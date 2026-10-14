@@ -48,7 +48,7 @@ const DDL=[
   "CREATE TABLE IF NOT EXISTS marketplace_listings (id BIGSERIAL PRIMARY KEY, seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('product','service','property')), deal TEXT NOT NULL CHECK(deal IN ('sale','rent','offer','buy')), title VARCHAR(120) NOT NULL, description VARCHAR(4000) NOT NULL, category VARCHAR(65) NOT NULL, city VARCHAR(100) NOT NULL, price_cents BIGINT NOT NULL CHECK(price_cents>=0), image_urls JSONB NOT NULL DEFAULT '[]'::jsonb, details JSONB NOT NULL DEFAULT '{}'::jsonb, status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','reserved','sold','paused')), moderation_status TEXT NOT NULL DEFAULT 'published' CHECK(moderation_status IN ('published','hidden')), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
   // Existing deployments already have the original PostgreSQL CHECK constraint.
   // Upgrade it in place, keeping all existing listings intact and allowing 'buy'.
-  \`DO $$ BEGIN
+  `DO $$ BEGIN
      IF NOT EXISTS (
        SELECT 1 FROM pg_constraint
        WHERE conrelid='marketplace_listings'::regclass
@@ -58,7 +58,7 @@ const DDL=[
        ALTER TABLE marketplace_listings DROP CONSTRAINT IF EXISTS marketplace_listings_deal_check;
        ALTER TABLE marketplace_listings ADD CONSTRAINT marketplace_listings_deal_check CHECK (deal IN ('sale','rent','offer','buy'));
      END IF;
-   END $$\`,
+   END $$`,
   'CREATE INDEX IF NOT EXISTS idx_marketplace_discover ON marketplace_listings(kind,created_at DESC,id DESC) WHERE status=\'active\' AND moderation_status=\'published\'',
   'CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON marketplace_listings(seller_id,created_at DESC)',
   'CREATE TABLE IF NOT EXISTS marketplace_favorites (user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, listing_id BIGINT NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(user_id,listing_id))',
