@@ -5,11 +5,11 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
-test('V3.2.53 mounts marketplace without replacing existing social routes',()=>{
+test('V3.2.54 mounts marketplace without replacing existing social routes',()=>{
  const server=read('server.js');
  assert.match(server,/app\.use\('\/api\/marketplace',marketplaceRoutes\)/);
  assert.match(server,/app\.get\('\/marketplace',sendHtmlShell\('marketplace\.html'\)\)/);
- assert.match(server,/const APP_VERSION='3\.2\.53'/);
+ assert.match(server,/const APP_VERSION='3\.2\.54'/);
  assert.match(server,/app\.use\('\/api\/messages', messageRoutes\)/);
 });
 
@@ -29,7 +29,7 @@ test('marketplace backend validates ownership and filters blocked users',()=>{
 test('marketplace exposes products services and property with no payment capture',()=>{
  const html=read('public/marketplace.html');
  const js=read('public/marketplace-v3250.js');
- for(const term of ['Productos','Servicios','Inmobiliaria','Mis anuncios','Favoritos','Publicar anuncio','Enviar mensaje al vendedor']){
+ for(const term of ['Productos','Servicios','Inmobiliaria','Mis anuncios','Favoritos','Publicar anuncio','Enviar mensaje']){
   assert.ok((html+js).includes(term),term);
  }
  assert.match(js,/\/api\/messages\/conversations/);
