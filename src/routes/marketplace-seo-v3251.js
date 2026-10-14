@@ -16,7 +16,7 @@ function listingPath(row){return '/marketplace/p/'+encodeURIComponent(row.id)+'/
 function imagePath(row,index){return '/marketplace/imagen/'+encodeURIComponent(row.id)+'/'+index;}
 function imagePaths(row){return (Array.isArray(row.image_urls)?row.image_urls:[]).slice(0,6).map((v,i)=>validImage(v)?ORIGIN+imagePath(row,i):null).filter(Boolean);}
 function price(row){return (Number(row.price_cents||0)/100).toFixed(2);}
-function displayPrice(row){return Number(row.price_cents||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
+function displayPrice(row){return (Number(row.price_cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
 function eligible(row){return !!row&&row.status==='active'&&row.moderation_status==='published'&&row.seller_status==='active'&&row.seller_discoverable===true;}
 function entitySchema(row,url,images){
  const data={ '@context':'https://schema.org',name:row.title,description:String(row.description||'').slice(0,3000),url};
@@ -49,7 +49,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
  '<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css"><link rel="stylesheet" href="/marketplace-seo-v3251.css">'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.51.3"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.51.3">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'</head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/">RedLibertad</a><a class="headname" href="/marketplace">Mi Marketplace</a></header>'+
  '<main>'+body+'</main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
