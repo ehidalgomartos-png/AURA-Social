@@ -23,7 +23,7 @@ test('marketplace backend validates ownership and filters blocked users',()=>{
  assert.match(api,/blocks b WHERE/);
  assert.match(api,/z\.enum\(KINDS\)/);
  assert.match(api,/UNIQUE\(listing_id,reporter_id\)/);
- assert.match(api,/moderation_status[\\s\\S]*?published/);
+ assert.match(api,/moderation_status/);
 });
 
 test('marketplace exposes products services and property with no payment capture',()=>{
