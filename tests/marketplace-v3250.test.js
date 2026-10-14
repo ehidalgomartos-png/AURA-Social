@@ -16,7 +16,7 @@ test('V3.2.50 mounts marketplace without replacing existing social routes',()=>{
 test('marketplace backend validates ownership and filters blocked users',()=>{
  const api=read('src/routes/marketplace-v3250.js');
  for(const op of ["router.get('/')","router.get('/mine'","router.get('/favorites'","router.post('/')","router.patch('/:id'","router.delete('/:id'","router.post('/:id/report'","router.post('/admin/:id/moderate'"]){
-  assert.ok(api.includes(op),op);
+  assert.ok(api.includes(op.slice(0,-1)+','),op);
  }
  assert.match(api,/requireAuth/);
  assert.match(api,/seller_id=\$2/);
