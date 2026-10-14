@@ -118,7 +118,7 @@ async function init(){
   $('#notice').append(msg);msg.onclick=()=>contact(contactName);
  }
 }
-$('[data-kind]').forEach(b=>b.onclick=()=>setKind(b.dataset.kind));
+$$('[data-kind]').forEach(b=>b.onclick=()=>setKind(b.dataset.kind));
 $$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('#filters').onsubmit=e=>{e.preventDefault();setMode('discover');};
 $('#more').onclick=()=>{state.page++;load(false);};
