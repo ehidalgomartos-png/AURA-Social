@@ -1,8 +1,8 @@
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const label={product:'Producto',service:'Servicio',property:'Inmueble',sale:'Venta',rent:'Alquiler',offer:'Servicio',active:'Activo',reserved:'Reservado',sold:'Finalizado',paused:'Pausado'};
-const state={kind:'',mode:'discover',page:1,items:[],editing:null,images:[],pendingPhotos:[],admin:false,authenticated:false,authStatus:'checking'};
+const label={product:'Producto',service:'Servicio',property:'Inmueble',sale:'Venta',rent:'Alquiler',offer:'Servicio',buy:'Compra · Busco',active:'Activo',reserved:'Reservado',sold:'Finalizado',paused:'Pausado'};
+const state={kind:'',mode:'discover',page:1,items:[],deal:'',editing:null,images:[],pendingPhotos:[],admin:false,authenticated:false,authStatus:'checking'};
 const MAX_MARKET_PHOTOS=6;
 const MAX_MARKET_IMAGE_BYTES=15*1024*1024;
 const errorMessage={authentication_required:'Inicia sesión para continuar.',invalid_session:'Tu sesión ha caducado.',invalid_listing:'Revisa los campos del anuncio.',listing_not_found:'Este anuncio ya no está disponible.',listing_not_available:'El anuncio ya no está disponible.',marketplace_unavailable:'Marketplace no disponible. Prueba de nuevo.'};
@@ -73,10 +73,11 @@ async function request(url,options={}){
 }
 function slugifyMarket(value){return String(value||'anuncio').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,75)||'anuncio';}
 function currency(cents){return (Number(cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
+function priceLabel(item){return (item.deal==='buy'?'Presupuesto máximo: ':'')+currency(item.price_cents)+(item.deal==='rent'?' / mes':'');}
 function firstImage(item){const url=(item.image_urls||[])[0];return typeof url==='string'&&/^\/uploads\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(url)?url:null;}
 function card(item){
  const img=firstImage(item),own=state.mode==='mine';
- return '<article class="card"><div class="thumb">'+(img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>')+'</div><div class="cardbody"><span class="chip">'+esc(label[item.kind]||item.kind)+'</span><h3>'+esc(item.title)+'</h3><div class="price">'+currency(item.price_cents)+(item.deal==='rent'?' / mes':'')+'</div><p class="muted">📍 '+esc(item.city)+' · '+esc(item.seller_name||item.seller_username)+'</p>'+(own?'<span class="muted">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+'<div class="actions">'+((item.status==='active'&&item.moderation_status==='published')?'<a class="market-seo-link" href="/marketplace/p/'+esc(item.id)+'/'+slugifyMarket(item.title)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+(own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':'<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button>')+'</div></div></article>';
+ return '<article class="card"><div class="thumb">'+(img?'<img loading="lazy" src="'+esc(img)+'" alt="">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>')+'</div><div class="cardbody"><span class="chip">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':label[item.kind]||item.kind)+'</span><h3>'+esc(item.title)+'</h3><div class="price">'+priceLabel(item)+'</div><p class="muted">📍 '+esc(item.city)+' · '+esc(item.seller_name||item.seller_username)+'</p>'+(own?'<span class="muted">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+'<div class="actions">'+((item.status==='active'&&item.moderation_status==='published')?'<a class="market-seo-link" href="/marketplace/p/'+esc(item.id)+'/'+slugifyMarket(item.title)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+(own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':'<button data-fav="'+esc(item.id)+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button>')+'</div></div></article>';
 }
 async function load(reset=true){
  if(reset)state.page=1;
@@ -87,7 +88,7 @@ async function load(reset=true){
  else if(state.mode==='reports')path+='/admin/reports';
  else{
   const f=new FormData($('#filters'));
-  path+='?'+new URLSearchParams({kind:state.kind,q:String(f.get('q')||''),city:String(f.get('city')||''),maxPrice:String(f.get('maxPrice')||''),page:String(state.page)});
+  path+='?'+new URLSearchParams({kind:state.kind,deal:state.deal,q:String(f.get('q')||''),city:String(f.get('city')||''),maxPrice:String(f.get('maxPrice')||''),page:String(state.page)});
  }
  if(!state.authenticated){$('#list').innerHTML='';$('#more').classList.add('hidden');note('Inicia sesión para usar tus anuncios y favoritos, o consulta el catálogo público.');return;}
  const data=await request(path);
@@ -102,13 +103,17 @@ async function load(reset=true){
  $('#more').classList.toggle('hidden',state.mode!=='discover'||!data.hasMore);
  note(state.items.length?'':'Todavía no hay anuncios con estos filtros. ¡Puedes publicar el primero!');
 }
+function setDeal(d){state.deal=d;$$('[data-deal]').forEach(b=>b.classList.toggle('active',b.dataset.deal===d));load();}
 function setKind(k){state.kind=k;$$('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===k));load();}
 function setMode(mode){state.mode=mode;$$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));$('#filters').classList.toggle('hidden',mode!=='discover');load();}
 function syncKind(){
  const kind=$('#listingForm [name=kind]').value,deal=$('#listingForm [name=deal]');
- const allowed=kind==='property'?['sale','rent']:kind==='service'?['offer']:['sale'];
+ const allowed=kind==='property'?['sale','rent','buy']:kind==='service'?['offer']:['sale','buy'];
  [...deal.options].forEach(opt=>opt.hidden=!allowed.includes(opt.value));
  if(!allowed.includes(deal.value))deal.value=allowed[0];
+ const budget=deal.value==='buy';
+ $('#listingPriceLabel').textContent=budget?'Presupuesto máximo en euros':'Precio en euros';
+ $('#listingPriceHint').textContent=budget?'Indica cuánto pagarías como máximo (0 € si está por negociar).':'Indica el precio del anuncio.';
 }
 function openEditor(item=null){
  if(!state.authenticated){updateMarketplaceAuth('guest');return;}
@@ -142,7 +147,7 @@ function listingFormData(form){
   const kind=field('kind'),deal=field('deal'),priceText=field('price').replace(',','.');
   const invalid=(name,message)=>({error:message,field:name});
   if(!['product','service','property'].includes(kind))return invalid('kind','Selecciona el tipo de anuncio.');
-  if((kind==='product'&&deal!=='sale')||(kind==='service'&&deal!=='offer')||(kind==='property'&&!['sale','rent'].includes(deal)))return invalid('deal','Revisa la operación seleccionada.');
+  if((kind==='product'&&!['sale','buy'].includes(deal))||(kind==='service'&&deal!=='offer')||(kind==='property'&&!['sale','rent','buy'].includes(deal)))return invalid('deal','Revisa la operación seleccionada.');
   if(title.length<6||title.length>120)return invalid('title','El título debe tener entre 6 y 120 caracteres.');
   if(description.length<25||description.length>4000)return invalid('description','La descripción debe tener entre 25 y 4.000 caracteres.');
   if(category.length<2||category.length>65)return invalid('category','Introduce una categoría válida.');
@@ -251,7 +256,7 @@ async function saveListing(event){
 function details(item){
  const images=(item.image_urls||[]).filter(u=>/^\/uploads\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(u));
  const mine=String(item.seller_id)===String(window.currentUserId);
- $('#detailContent').innerHTML='<h2>'+esc(item.title)+'</h2><div class="gallery">'+(images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+'</div><p><span class="chip">'+esc(label[item.kind]||'Anuncio')+'</span></p><div class="price">'+currency(item.price_cents)+(item.deal==='rent'?' / mes':'')+'</div><p>📍 '+esc(item.city)+' · '+esc(item.category)+'</p><p>'+esc(item.description)+'</p><p class="muted">Publicado por @'+esc(item.seller_username)+'</p><div class="actions">'+(mine?'':'<button class="primary" data-contact="'+esc(item.seller_username)+'">Enviar mensaje al vendedor</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+'</div><small>RedLibertad no interviene en el pago, envío ni en los acuerdos.</small>';
+ $('#detailContent').innerHTML='<h2>'+esc(item.title)+'</h2><div class="gallery">'+(images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+'</div><p><span class="chip">'+esc(label[item.kind]||'Anuncio')+'</span></p><div class="price">'+priceLabel(item)+'</div><p>📍 '+esc(item.city)+' · '+esc(item.category)+'</p><p>'+esc(item.description)+'</p><p class="muted">Publicado por @'+esc(item.seller_username)+'</p><div class="actions">'+(mine?'':'<button class="primary" data-contact="'+esc(item.seller_username)+'">Enviar mensaje al vendedor</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+'</div><small>RedLibertad no interviene en el pago, envío ni en los acuerdos.</small>';
  $('#detail').showModal();
 }
 async function showDetail(id){
@@ -287,6 +292,7 @@ async function init(){
  }
 }
 $$('[data-kind]').forEach(b=>b.onclick=()=>setKind(b.dataset.kind));
+$$('[data-deal]').forEach(b=>b.onclick=()=>setDeal(b.dataset.deal));
 $$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('#filters').onsubmit=e=>{e.preventDefault();setMode('discover');};
 $('#more').onclick=()=>{state.page++;load(false);};
@@ -302,6 +308,7 @@ $('#listingForm [name=cameraPhoto]').addEventListener('change',event=>{
 });
 $('#editor').addEventListener('close',()=>{resetPendingPhotos();});
 $('#listingForm [name=kind]').onchange=syncKind;
+$('#listingForm [name=deal]').onchange=syncKind;
 $('#listingForm').addEventListener('submit',saveListing);
 document.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
