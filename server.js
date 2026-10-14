@@ -46,6 +46,7 @@ const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
 const {publicProfileSeo,safeJsonLd}=require('./src/services/public-profile-seo-v302');
 const {createGrowthCenterRouter}=require('./src/routes/admin-growth-v219');
 const marketplaceRoutes = require('./src/routes/marketplace-v3250');
+const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
@@ -77,7 +78,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.50';
+const APP_VERSION='3.2.51';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -244,6 +245,7 @@ app.use('/api/admin/editorial', adminEditorialInboxV321Routes);
 app.use('/api/admin/editorial', adminEditorialV320Routes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace',marketplaceRoutes);
+app.use(marketplaceSeoV3251.router);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/messages', messageRoutes);
@@ -1205,7 +1207,7 @@ app.get('/sitemap-hashtags.xml',async(req,res)=>{
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -1233,6 +1235,7 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /guias/',
     'Allow: /noticias',
     'Allow: /noticias/',
+    'Allow: /marketplace/',
     'Allow: /historias',
     'Allow: /historia/',
     'Disallow: /app',
@@ -1249,6 +1252,7 @@ app.get('/robots.txt',(req,res)=>{
     `Sitemap: ${origin}/sitemap-reels.xml`,
     `Sitemap: ${origin}/sitemap-topics.xml`,
     `Sitemap: ${origin}/sitemap-guias.xml`,
+    `Sitemap: ${origin}/sitemap-marketplace.xml`,
     `Sitemap: ${origin}/noticias/sitemap.xml`
   ].join('\n'));
 });
@@ -1281,6 +1285,7 @@ app.get('/sitemap.xml',async(req,res)=>{
       `<url><loc>${escapeHtml(origin+'/multimedia')}</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/buscar')}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/descubrir')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/marketplace/explorar')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/temas')}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/legal/')}</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/privacy/')}</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>`,
