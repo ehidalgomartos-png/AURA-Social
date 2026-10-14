@@ -1,1 +1,6 @@
 .side-nav .marketplace-side-link-v3250{display:flex;align-items:center;gap:8px;padding:13px 14px;border-radius:14px;text-decoration:none;color:var(--muted);font-weight:700;font-size:15px}.side-nav .marketplace-side-link-v3250:hover{background:var(--ivory);color:var(--navy)}.marketplace-explore-entry-v3250{margin:12px 0 17px}.marketplace-explore-entry-v3250 a{display:block;padding:15px 16px;background:#def3ed;border-radius:14px;color:#115d56;text-decoration:none;font-weight:800}@media(max-width:760px){.marketplace-explore-entry-v3250{margin:4px 6px 16px}}
+/* V3.2.58.1: visible return route for people opening RedLibertad from Marketplace */
+.market-return-link-v32581{display:flex;align-items:center;gap:8px;width:fit-content;min-height:44px;margin:12px 16px 6px;padding:9px 14px;border:1px solid #bfdcd4;border-radius:12px;background:#e6f5f0;color:#126257;font-weight:800;font-size:13px;text-decoration:none}
+.market-return-link-v32581.hidden{display:none!important}
+.market-return-link-v32581:focus-visible{outline:3px solid #147d70;outline-offset:2px}
+@media(max-width:600px){.market-return-link-v32581{margin:10px 12px 8px;width:calc(100% - 24px);justify-content:center}}
