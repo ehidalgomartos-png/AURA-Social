@@ -473,7 +473,7 @@ async function showDetail(id){
  if(!item){const r=await request('/api/marketplace/'+encodeURIComponent(id));item=r.item;}
  if(item)details(item);else note('Este anuncio ya no está disponible.');
 }
-async function contactListing(id){
+async function contactListing(id,expectedSeller=''){
  if(!/^[1-9]\d{0,15}$/.test(String(id||'')))return note('Este anuncio no está disponible.');
  const result=await request('/api/marketplace/'+encodeURIComponent(id));
  const item=result.item;
@@ -483,15 +483,19 @@ async function contactListing(id){
  if(String(item.seller_id)===String(window.currentUserId)){
   note('Este anuncio es tuyo. Puedes gestionarlo desde «Mis anuncios».');return;
  }
+ if(expectedSeller&&String(item.seller_username||'').toLowerCase()!==String(expectedSeller).toLowerCase()){
+  note('El anunciante de este producto ha cambiado. Vuelve a la ficha para comprobarlo.');return;
+ }
  if(!/^[A-Za-z0-9_.-]{3,30}$/.test(String(item.seller_username||''))){
   note('No es posible contactar con este anunciante.');return;
  }
- return contact(item.seller_username);
+ return contact(item.seller_username,id);
 }
-async function contact(username){
+async function contact(username,listingId=null){
  const result=await request('/api/messages/conversations',{method:'POST',body:JSON.stringify({username})});
  if(!result.ok){alert('No se puede contactar con este usuario. Puede tener restringidos los mensajes.');return;}
- location.href='/app?view=messages&conversation='+encodeURIComponent(result.conversationId);
+ location.href='/app?view=messages&conversation='+encodeURIComponent(result.conversationId)+(listingId&&/^[1-9]\d{0,15}$/.test(String(listingId))?'&marketListing='+encodeURIComponent(listingId):'');
+ return true;
 }
 function marketplaceLoginEntry(username,id){
  if(!/^[A-Za-z0-9_.-]{3,30}$/.test(String(username||''))||!/^[1-9]\d{0,15}$/.test(String(id||'')))return '/';
@@ -530,6 +534,14 @@ async function init(){
  window.currentUserId=me.user?.id??me.id;
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
  $('#reportsTab').classList.toggle('hidden',!state.admin);
+ // The public product CTA and post-login return both express an explicit contact intent.
+ // Recheck the listing, seller, owner and publication status before redirecting to chat.
+ const contactParams=new URLSearchParams(location.search);
+ const wantedSeller=contactParams.get('contact'),wantedListing=contactParams.get('listing');
+ if(/^[A-Za-z0-9_.-]{3,30}$/.test(String(wantedSeller||''))&&/^[1-9]\\d{0,15}$/.test(String(wantedListing||''))){
+  const opened=await contactListing(wantedListing,wantedSeller);
+  if(opened)return;
+ }
  await load();
  if(new URLSearchParams(location.search).get('publicar')==='1')openEditor();
  const reportId=new URLSearchParams(location.search).get('report');
