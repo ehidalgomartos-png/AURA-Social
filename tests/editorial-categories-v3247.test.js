@@ -56,15 +56,15 @@ test('public detail labels correspond to verified category, never a fixed Actual
  assert.match(pub,/esc\(categoryLabelV3247\(p.category\)/);
  assert.match(read('public/admin.js'),/editorialCategoryV3247\?\.suggest/);
  assert.match(read('public/admin.html'),/id="editorialAiCategorySuggestionV3247"/);
- assert.match(read('public/admin.html'),/editorial-category-v3247\.js\?v=3\.2\.63\.1/);
+ assert.match(read('public/admin.html'),/editorial-category-v3247\.js\?v=3\.2\.63\.2/);
  assert.match(read('public/admin.js'),/editorialAiCategoryV3246'\)\?\.addEventListener\('change'/);
  assert.match(read('public/admin.css'),/editorial-category-suggestion-v3247/);
 });
 test('new version is wired into GitHub tests without altering manual publication',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63.1');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.1'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.2'/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-categories/);
- assert.match(read('public/admin.html'),/admin\.js\?v=3\.2\.63\.1/);
+ assert.match(read('public/admin.html'),/admin\.js\?v=3\.2\.63\.2/);
  assert.match(read('src/routes/admin-editorial-ai-v3242.js'),/category:z\.enum\(CATEGORIES\)\.optional\(\)/);
  assert.match(read('src/routes/admin-editorial-ai-v3242.js'),/c.category/);
 });
