@@ -68,6 +68,8 @@ const viewScrollPositions=new Map();
 let connectivityHideTimer=null;
 let currentFileMedia = null;
 let marketplaceChatListingPendingV32632=null;
+// Prevent the Marketplace consultation draft from returning on chat refresh after sending.
+const marketplaceChatDraftedSessionsV32633=new Set();
 let marketplaceChatTargetConversationV32632=null;
 let activeConversationId = null;
 let activeConversationOther = null;
@@ -7909,7 +7911,7 @@ function groupParticipantsSummary(group){
 
 // Marketplace V3.2.63.2: contextual draft only after revalidating a live product,
 // and only inside the conversation belonging to its seller. Never auto-send.
-async function showMarketplaceChatContextV32632(conversationId,other,isGroup){
+async function showMarketplaceChatContextV32632(conversationId,other,isGroup,messageHistory=[]){
  const listingId=marketplaceChatListingPendingV32632;
  if(!listingId||isGroup||marketplaceChatTargetConversationV32632&&marketplaceChatTargetConversationV32632!==String(conversationId))return;
  if(!/^[1-9]\d{0,15}$/.test(listingId))return;
@@ -7935,8 +7937,15 @@ async function showMarketplaceChatContextV32632(conversationId,other,isGroup){
  thread.before(card);
  chat.classList.add('market-chat-open-v32632');
  if(!composer.value.trim()){
-  composer.value='Hola, me interesa «'+String(item.title||'').slice(0,120)+'» de '+euro+' que he visto en Marketplace. ¿Sigue disponible? https://redlibertad.com/marketplace/p/'+item.id;
-  composer.dispatchEvent(new Event('input',{bubbles:true}));
+  const draftKey=String(conversationId)+':'+listingId;
+  // An existing inquiry in the conversation is authoritative, even after a page reload.
+  const productReference=new RegExp('/marketplace/p/'+String(item.id)+'(?:/|\\b)');
+  const alreadyDiscussed=Array.isArray(messageHistory)&&messageHistory.some(m=>typeof m?.body==='string'&&productReference.test(m.body));
+  if(!marketplaceChatDraftedSessionsV32633.has(draftKey)&&!alreadyDiscussed){
+   composer.value='Hola, me interesa «'+String(item.title||'').slice(0,120)+'» de '+euro+' que he visto en Marketplace. ¿Sigue disponible? https://redlibertad.com/marketplace/p/'+item.id;
+   marketplaceChatDraftedSessionsV32633.add(draftKey);
+   composer.dispatchEvent(new Event('input',{bubbles:true}));
+  }
  }
  // Draft only: the buyer must still explicitly tap "Enviar".
 }
@@ -8048,7 +8057,7 @@ async function openConversation(id) {
   };
 
   $('#messageForm').onsubmit=sendMessage;
-  if(marketplaceChatListingPendingV32632)await showMarketplaceChatContextV32632(conversationId,d.other,isGroup);
+  if(marketplaceChatListingPendingV32632)await showMarketplaceChatContextV32632(conversationId,d.other,isGroup,d.messages);
   bindMessageActions($('#messageThread'));
   bindTypingPresence();
   autosizeMessageBody();
@@ -8358,11 +8367,13 @@ async function sendMessage(e) {
   try {
     const feedback=$('#messageSendFeedbackV3244');
     if(feedback)feedback.textContent='';
+    const submittedConversation=String(activeConversationId);
+    const submittedBody=$('#messageBody').value;
     const file = $('#messageFile').files[0];
     const media = await uploadFile(file);
 
     const payload = {
-      body: $('#messageBody').value,
+      body: submittedBody,
       contentLevel: $('#messageLevel').value,
       replyToMessageId:activeMessageReply?.id || null,
       ...(media ? {
@@ -8375,7 +8386,7 @@ async function sendMessage(e) {
     };
 
     const { r, d } = await api(
-      `/api/messages/conversations/${activeConversationId}/messages`,
+      `/api/messages/conversations/${submittedConversation}/messages`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -8395,7 +8406,11 @@ async function sendMessage(e) {
       throw new Error(message);
     }
 
-    // The server has confirmed persistence at this point.
+    // Clear only after persistence succeeds. Never reintroduce this draft on refresh.
+    if(String(activeConversationId)===submittedConversation){
+      const input=form.querySelector('#messageBody');
+      if(input&&input.value===submittedBody){input.value='';autosizeMessageBody();}
+    }
     clearTimeout(typingClearTimer);
     sendChatPresence({typing:false});
     toast('Mensaje enviado');
@@ -8403,8 +8418,10 @@ async function sendMessage(e) {
     clearMessagePreview();
 
     try {
-      await openConversation(activeConversationId);
-      loadCommunityConversations();
+      if(String(activeConversationId)===submittedConversation){
+        await openConversation(submittedConversation);
+        loadCommunityConversations();
+      }
     } catch (refreshError) {
       console.error('Message sent, but chat refresh failed:', refreshError);
       toast('Mensaje enviado. Recarga la conversación para verlo.');
