@@ -22,6 +22,8 @@ jobs:
         run: npm run check:syntax
       - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
         run: npm run test:marketplace-chat-polish
+      - name: V3.2.64 seller product identifiers and Google readiness
+        run: npm run test:marketplace-google
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests
