@@ -71,7 +71,7 @@ test('Public catalogue search is compact and keeps parameterized safe filters',a
  assert.ok(publicSeo.includes('class="market-public-search"'));
  assert.ok(publicSeo.includes('<details class="market-public-advanced"'));
  assert.ok(publicSeo.includes("advanced?' open'"));
- assert.ok(publicSeo.includes('const searching=Boolean(q||city||kind||sort'));
+ assert.ok(publicSeo.includes('const searching=Boolean(q||city||kind||category||nationalOnly||maxPrice!==null||sort'));
  const fn=route('/marketplace/explorar');assert.equal(typeof fn,'function');
  const original=db.query;
  db.query=async()=>({rowCount:0,rows:[]});
