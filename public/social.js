@@ -10362,7 +10362,9 @@ async function prepareMarketplaceCommunityShareV3269(id){
  // Copy the listing photo into the normal upload flow. This is an editable draft,
  // not a server-side publication or a blind reference to someone else's media.
  const photo=String(d.item.imageUrl||'');
- if(/^\\/uploads\\/[A-Za-z0-9._-]{1,180}\\.(?:jpe?g|png|webp)$/i.test(photo)){
+ const photoName=photo.startsWith('/uploads/')?photo.slice('/uploads/'.length):'';
+ const safePhoto=photoName.length>=5 && photoName.length<=180 && /^[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(photoName);
+ if(safePhoto){
   try{
    const response=await fetch(photo,{credentials:'same-origin'});
    if(!response.ok)throw new Error('image_unavailable');
@@ -10370,10 +10372,10 @@ async function prepareMarketplaceCommunityShareV3269(id){
    if(!blob.type.startsWith('image/')||blob.size>12*1024*1024)throw new Error('invalid_image');
    const extension=photo.split('.').pop().toLowerCase();
    const file=new File([blob],'anuncio-'+id+'.'+extension,{type:blob.type});
-   const transfer=new DataTransfer();
-   transfer.items.add(file);
    const input=$('#mediaFile');
-   if(input){
+   if(input && !input.files?.length && !currentFileMedia){
+    const transfer=new DataTransfer();
+    transfer.items.add(file);
     input.files=transfer.files;
     input.dispatchEvent(new Event('change',{bubbles:true}));
    }
