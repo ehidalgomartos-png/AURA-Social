@@ -47,7 +47,7 @@ async function process(){
   const r=await api('/api/marketplace/import/'+encodeURIComponent(state.id)+'/step',{method:'POST',body:'{}'});
   if(!r.ok){msg(errorText[r.error]||'Se ha interrumpido la importación. Puedes pulsar Continuar para reanudarla.');break;}
   displaySummary(r.summary);
-  if(r.processed?.state==='failed')msg('El producto «'+r.processed.title+'» no pudo importarse: '+r.processed.error);
+  if(r.processed?.state==='failed')msg('El producto «'+r.processed.title+'» no pudo importarse: '+(r.processed.error||'error desconocido')+'. Comprueba que la imagen original sea accesible por HTTPS.');
   if(r.done)break;
  }
  state.running=false;

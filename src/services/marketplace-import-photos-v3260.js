@@ -7,7 +7,7 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const UPLOADS=process.env.UPLOAD_DIR||path.join(__dirname,'..','..','uploads');
-const MAX_IMAGE=5*1024*1024,MAX_PHOTOS=6;
+const MAX_IMAGE=5*1024*1024,MAX_PHOTOS=6,MAX_REDIRECTS=2;
 function publicIPv4(ip){
  if(net.isIP(ip)!==4)return false;
  const [a,b,c]=ip.split('.').map(Number);
@@ -36,7 +36,17 @@ function sniff(bytes){
  if(bytes.length>=12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')return '.webp';
  throw new Error('image_unsupported_format');
 }
-async function downloadImage(raw){
+// Node.js 22 may request lookup({all:true}) when autoSelectFamily is enabled.
+// Return the shape actually requested, while keeping the already validated
+// public IPv4 address pinned to defeat DNS rebinding.
+function pinnedIPv4Lookup(address){
+ if(net.isIP(address)!==4)throw new Error('image_invalid_pinned_ip');
+ return (_hostname,options,done)=>{
+  if(options&&typeof options==='object'&&options.all===true)done(null,[{address,family:4}]);
+  else done(null,address,4);
+ };
+}
+async function downloadImage(raw,redirects=0){
  const url=safeHost(raw);
  const addresses=await dns.lookup(url.hostname,{all:true,family:4,verbatim:true});
  if(!addresses.length||addresses.some(x=>!publicIPv4(x.address)))throw new Error('image_private_address');
@@ -48,9 +58,21 @@ async function downloadImage(raw){
    agent:false,
    timeout:6500,
    headers:{Accept:'image/jpeg,image/png,image/webp','User-Agent':'RedLibertad-MarketplaceImporter/1.0'},
-   lookup:(_host,_opts,done)=>done(null,address,4)
+   lookup:pinnedIPv4Lookup(address)
   },response=>{
    const code=response.statusCode||0;
+   // WooCommerce and its CDN may redirect images. Revalidate HTTPS, hostname and
+   // DNS on EVERY hop instead of forwarding requests to arbitrary destinations.
+   if([301,302,303,307,308].includes(code)){
+    response.resume();
+    if(redirects>=MAX_REDIRECTS)return fail(new Error('image_too_many_redirects'));
+    let target;
+    try{target=new URL(response.headers.location||'',url).href;}catch{return fail(new Error('image_invalid_redirect'));}
+    if(!response.headers.location)return fail(new Error('image_invalid_redirect'));
+    finished=true;
+    downloadImage(target,redirects+1).then(resolve,reject);
+    return;
+   }
    if(code<200||code>=300){response.resume();return fail(new Error('image_http_'+code));}
    const length=Number(response.headers['content-length']||0);
    if(length>MAX_IMAGE){response.destroy();return fail(new Error('image_too_large'));}
@@ -73,6 +95,17 @@ async function downloadImage(raw){
   request.on('error',fail);request.end();
  });
 }
+// Map operating-system, TLS and DNS errors to safe, actionable import statuses.
+function imageFailureCode(error){
+ const message=String(error?.message||'');
+ if(/^image_[a-z0-9_]+$/.test(message))return message;
+ const code=String(error?.code||'');
+ if(['ENOSPC','EACCES','EPERM','EROFS'].includes(code))return 'image_storage_error';
+ if(['ENOTFOUND','EAI_AGAIN'].includes(code))return 'image_dns_error';
+ if(['ETIMEDOUT','ESOCKETTIMEDOUT'].includes(code))return 'image_timeout';
+ if(/^(?:CERT_|ERR_TLS_)/.test(code)||/certificate/i.test(message))return 'image_tls_error';
+ return 'image_connection_error';
+}
 async function saveImages(urls){
  if(!Array.isArray(urls)||!urls.length||urls.length>MAX_PHOTOS)throw new Error('image_urls_required');
  await fs.mkdir(UPLOADS,{recursive:true});
@@ -94,4 +127,4 @@ async function saveImages(urls){
 async function eraseFiles(paths){
  await Promise.allSettled((paths||[]).map(p=>fs.unlink(p)));
 }
-module.exports={safeHost,publicIPv4,sniff,saveImages,eraseFiles,MAX_IMAGE,MAX_PHOTOS};
+module.exports={safeHost,publicIPv4,pinnedIPv4Lookup,sniff,saveImages,eraseFiles,imageFailureCode,MAX_IMAGE,MAX_PHOTOS,MAX_REDIRECTS};
