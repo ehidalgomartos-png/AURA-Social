@@ -13,7 +13,7 @@ test('V3.2.62 JS syntax, version, cache and smoke wiring',()=>{
  const pkg=JSON.parse(read('package.json'));
  assert.equal(pkg.version,'3.2.65');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.65'/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.64/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.65/);
  assert.match(read('public/marketplace.html'),/id="contactContext"/);
  assert.match(routeSource,/marketplace-seo-v3251\.css\?v=3\.2\.63\.2/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:marketplace-contact/);

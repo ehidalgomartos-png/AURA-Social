@@ -20,7 +20,7 @@ function res(){
 test('Hotfix release version, caches, scripts are valid',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.65');
  assert.ok(read('server.js').includes("APP_VERSION='3.2.65'"));
- assert.ok(market.includes('/marketplace-v3250.js?v=3.2.64'));
+ assert.ok(market.includes('/marketplace-v3250.js?v=3.2.65'));
  assert.ok(app.includes('/social.css?v=3.2.63.3'));
  assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.63.2'));
  assert.doesNotThrow(()=>new vm.Script(script));
