@@ -108,7 +108,7 @@ test('version and CI are updated without touching the previous PWA and SW',()=>{
   assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
   assert.match(read('server.js'),/editorialMediaV3242Admin/);
   assert.match(read('server.js'),/editorialAiV3242Admin/);
-  assert.match(html,/\/admin\.js\?v=3\.2\.60/);
-  assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.60/);
+  assert.match(html,/\/admin\.js\?v=3\.2\.61/);
+  assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.61/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-assistant/);
 });

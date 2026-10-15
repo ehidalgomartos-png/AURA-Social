@@ -61,7 +61,7 @@ test('low-friction conversation affordances are actual deep-links, never generat
 test('maintain release version and preserve current home news cadence',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
- assert.match(read('src/routes/editorial-publication-v323.js'),/editorial-v323\.css\?v=3\.2\.60/);
+ assert.match(read('src/routes/editorial-publication-v323.js'),/editorial-v323\.css\?v=3\.2\.61/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-discovery/);
  const home=read('tests/home-clean-v3224.test.js');
  assert.match(home,/2 publicaciones|2 social posts|two posts|dos publicaciones|2 publicaciones sociales/i);
