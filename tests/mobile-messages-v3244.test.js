@@ -36,9 +36,9 @@ test('mobile chat is fixed to the visual viewport, not below community suggestio
 test('message send stays in same conversation, keeps draft on failure and reports inline',()=>{
  assert.match(js,/id="messageSendFeedbackV3244" role="status" aria-live="polite"/);
  assert.match(js,/if\(feedback\)feedback\.textContent=\(err\?\.message\|\|'No se pudo enviar el mensaje\.'\)/);
- assert.match(js,/const payload = \{\s*body: \$\('#messageBody'\)\.value/);
+ assert.match(js,/const payload = \{\s*body: submittedBody/);
  assert.match(js,/if \(!r\.ok\)/);
- assert.match(js,/await openConversation\(activeConversationId\)/);
+ assert.match(js,/await openConversation\(submittedConversation\)/);
  assert.match(js,/messageSendInFlight = false/);
 });
 test('recipient search accepts visible display name and exact username without bypassing privacy',()=>{

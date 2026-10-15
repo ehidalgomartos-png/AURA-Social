@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
+        run: npm run test:marketplace-chat-polish
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests
@@ -172,8 +174,6 @@ jobs:
         run: npm run test:observability
       - name: V3.2.63.2 Direct Marketplace contact, contextual chat and editable draft
         run: npm run test:marketplace-chat-context
-      - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
-        run: npm run test:marketplace-chat-polish
       - name: V3.2.63.1 Single visible Marketplace CTA, safe login return and contact context
         run: npm run test:marketplace-contact-return
       - name: V3.2.63 Marketplace product detail gallery, mobile contact and SEO safety
