@@ -22,11 +22,11 @@ test('share preview is a read-only authenticated route with public-only visibili
  assert.equal(typeof preview,'function');
  assert.ok(marketplace.stack.some(x=>x.handle?.name==='requireAuth'||String(x.handle).includes('requireAuth')));
  const existing=db.query,requests=[],response=res();
- db.query=async(sql,args)=>{requests.push({sql,args});return {rowCount:1,rows:[{id:31,title:'Armario Turín blanco'}]};};
+ db.query=async(sql,args)=>{requests.push({sql,args});return {rowCount:1,rows:[{id:31,title:'Armario Turín blanco',price_cents:23500,image_urls:[]}]};};
  try{await preview({params:{id:'31'},user:{id:8}},response,e=>{throw e;});}
  finally{db.query=existing;}
  assert.equal(response.statusCode,200);
- assert.deepEqual(response.body,{ok:true,item:{id:31,title:'Armario Turín blanco',url:'/marketplace/p/31'}});
+ assert.deepEqual(response.body,{ok:true,item:{id:31,title:'Armario Turín blanco',priceCents:23500,imageUrl:null,url:'/marketplace/p/31'}});
  assert.equal(response.headers['Cache-Control'],'private,no-store');
  assert.equal(requests.length,1);
  assert.deepEqual(requests[0].args,['31',8]);
