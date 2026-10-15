@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const state={id:null,confirmed:false,summary:null,page:1,running:false,stop:false};
 const labels={pending:'Listo',invalid:'Error',duplicate:'Duplicado',imported:'Importado',failed:'Fallido'};
-const errorText={csv_too_large:'El CSV supera el límite de 1 MB.',csv_no_products:'El CSV no contiene productos.',csv_not_woocommerce:'No se detectan las columnas de nombre de WooCommerce.',csv_too_many_rows:'El máximo es 250 productos por archivo.',invalid_import_options:'Indica tu ciudad.',preview_expired:'La vista previa ha caducado. Sube de nuevo el CSV.',confirmation_required:'Confirma primero la importación.',import_unavailable:'No se pudo procesar la importación. Inténtalo más tarde.',request_timeout:'La importación tarda demasiado. Puedes reanudar el lote sin volver a subir el archivo.'};
+const errorText={csv_invalid_header:'No se reconoce el separador del CSV. Exporta directamente desde WooCommerce → Productos → Exportar. Se aceptan coma, punto y coma, tabulador y barra vertical. Si persiste, envíame el CSV para revisar su formato.',csv_invalid_encoding:'Codificación no reconocida. Exporta en UTF-8 o UTF-16.',csv_empty:'El CSV está vacío.',csv_unclosed_quote:'El CSV tiene comillas sin cerrar; vuelve a exportarlo.',csv_too_large:'El CSV supera el límite de 1 MB.',csv_no_products:'El CSV no contiene productos.',csv_not_woocommerce:'No encuentro una columna Nombre, Name o Nombre del producto. Exporta desde WooCommerce → Productos → Exportar.',csv_too_many_rows:'El máximo es 250 productos por archivo.',invalid_import_options:'Indica tu ciudad.',preview_expired:'La vista previa ha caducado. Sube de nuevo el CSV.',confirmation_required:'Confirma primero la importación.',import_unavailable:'No se pudo procesar la importación. Inténtalo más tarde.',request_timeout:'La importación tarda demasiado. Puedes reanudar el lote sin volver a subir el archivo.'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function msg(text){$('message').textContent=text||'';}
 async function api(url,options={}){
@@ -64,7 +64,15 @@ $('importForm').addEventListener('submit',async e=>{
  if(city.length<2||city.length>100||province.length>100){msg('Revisa la ciudad y provincia.');return;}
  $('previewBtn').disabled=true;msg('Leyendo y validando el archivo…');
  try{
-  const csv=await file.text();
+  // File.text() assumes UTF-8 and misreads Excel's UTF-16 CSV exports.
+  const bytes=await file.arrayBuffer(),view=new Uint8Array(bytes);
+  const isLe=view[0]===0xff&&view[1]===0xfe;
+  const isBe=view[0]===0xfe&&view[1]===0xff;
+  let csv;
+  if(isLe||isBe)csv=new TextDecoder(isLe?'utf-16le':'utf-16be',{fatal:true}).decode(bytes);
+  else csv=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+  if(!csv.trim()){msg('El CSV está vacío.');return;}
+  if(csv.includes('\u0000')){msg(errorText.csv_invalid_encoding);return;}
   const saleScope=$('importSaleScope').value;
   const options={city,province,...(saleScope?{saleScope}:{})};
   const r=await api('/api/marketplace/import/preview',{method:'POST',body:JSON.stringify({csv,options})});
@@ -73,7 +81,7 @@ $('importForm').addEventListener('submit',async e=>{
   $('progress').hidden=true;$('startBtn').disabled=false;
   msg('Vista previa lista. Comprueba los productos y confirma cuando quieras.');
   await page(1);$('preview').scrollIntoView({behavior:'smooth'});
- }catch{msg('No se pudo leer el archivo.');}
+ }catch{msg('No se pudo leer el archivo. Comprueba que sea CSV en UTF-8 o UTF-16.');}
  finally{$('previewBtn').disabled=false;}
 });
 $('confirmBtn').addEventListener('click',async()=>{
