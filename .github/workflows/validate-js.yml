@@ -170,6 +170,8 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
+      - name: V3.2.62 Marketplace uncluttered home, seller import access and PWA footer regression
+        run: npm run test:marketplace-home-polish
       - name: V3.2.61 Marketplace nationwide coverage and SEO regression
         run: npm run test:marketplace-coverage
       - name: V3.2.60 WooCommerce CSV preview, importer safety and image SSRF tests
