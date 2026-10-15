@@ -23,7 +23,7 @@ test('Version and front-end JavaScript are V3.2.60',()=>{
  assert.doesNotThrow(()=>new vm.Script(ui));
  assert.ok(read('public/marketplace.html').includes('name="sort"'));
  assert.ok(read('public/marketplace.html').includes('marketplace-v3250.js?v=3.2.66'));
- assert.ok(src.includes('marketplace-seo-v3251.css?v=3.2.63.2'));
+ assert.ok(src.includes('marketplace-seo-v3251.css?v=3.2.66'));
 });
 test('Authenticated search uses an allowlist for price sorting',()=>{
  assert.ok(api.includes("const SORTS={recent:"));
