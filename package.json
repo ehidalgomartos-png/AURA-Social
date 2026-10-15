@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.67",
+  "version": "3.2.68",
   "private": true,
-  "description": "RedLibertad V3.2.67 — Product Readability & Descriptions",
+  "description": "RedLibertad V3.2.68 — Marketplace Product Discovery & Search",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -33,6 +33,7 @@
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
+    "test:marketplace-public-discovery": "node --test tests/marketplace-public-discovery-v3268.test.js",
     "test:marketplace-readability": "node --test tests/marketplace-readability-v3267.test.js",
     "test:marketplace-mobile-clean": "node --test tests/marketplace-mobile-clean-v3266.test.js",
     "test:marketplace-catalog": "node --test tests/marketplace-catalog-v3265.test.js",
