@@ -1,6 +1,7 @@
 'use strict';
 // WooCommerce CSV -> safe internal Marketplace preview records; no changes until confirmation.
 const {z}=require('zod');
+const {validGtin}=require('./marketplace-google-v3264');
 const MAX_ROWS=250,MAX_CSV_BYTES=1024*1024;
 function csvRecords(csv){
  if(typeof csv!=='string'||Buffer.byteLength(csv,'utf8')>MAX_CSV_BYTES)throw new Error('csv_too_large');
@@ -69,7 +70,13 @@ function parseProduct(row,opts){
  if(!urls.length)errors.push('El producto necesita al menos una imagen HTTPS');
  if(urls.some(u=>!/^https:\/\/[^\s]+$/i.test(u)||u.length>2000))errors.push('Las imágenes deben tener URL HTTPS válida');
  const condition=/nuevo|new/i.test(get(row,'Condition','Estado'))?'new':undefined;
- const listing={kind:'product',deal:'sale',title,description,category,city:opts.city,priceCents,images:[],details:{...(opts.province?{province:opts.province}:{}),...(condition?{condition}:{}),...(opts.saleScope?{saleScope:opts.saleScope}:{})}};
+ const brand=clean(get(row,'Brands','Brand','Marca'));
+ const gtin=get(row,'GTIN, UPC, EAN, or ISBN','GTIN','EAN','UPC','Global Unique ID').replace(/\s+/g,'');
+ const mpn=clean(get(row,'MPN','Manufacturer Part Number','Referencia del fabricante'));
+ if(brand.length>80)errors.push('Marca demasiado larga');
+ if(gtin&&!validGtin(gtin))errors.push('EAN/GTIN no válido');
+ if(mpn&&(mpn.length>70||!/^[A-Za-z0-9][A-Za-z0-9 ._\/-]*$/.test(mpn)))errors.push('Referencia de fabricante no válida');
+ const listing={kind:'product',deal:'sale',title,description,category,city:opts.city,priceCents,images:[],details:{...(opts.province?{province:opts.province}:{}),...(condition?{condition}:{}),...(brand&&brand.length<=80?{brand}:{}),...(gtin&&validGtin(gtin)?{gtin}:{}),...(mpn&&mpn.length<=70?{mpn}:{}),...(opts.saleScope?{saleScope:opts.saleScope}:{})}};
  return {line:row.line,key,title,priceCents,urls,listing,error:errors.join('; '),state:errors.length?'invalid':'pending'};
 }
 module.exports={csvRecords,parseProduct,importOptions,cents,MAX_ROWS,MAX_CSV_BYTES};

@@ -6,6 +6,7 @@ const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const {icon:marketplaceIcon}=require('../marketplace-icons-v3259');
 const {publicLocation,originLocation,coverageLabel,nationalSale}=require('../services/marketplace-coverage-v3261');
+const {validGtin}=require('../services/marketplace-google-v3264');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const PAGE_SIZE=2000;
@@ -29,6 +30,9 @@ function recentListing(row,now=Date.now()){
 function listingFacts(row){
  const d=row?.details||{},facts=[];
  if(row.kind==='product'&&['new','used'].includes(d.condition))facts.push(['Estado',d.condition==='new'?'Nuevo':'Usado']);
+ if(row.kind==='product'&&typeof d.brand==='string'&&d.brand.trim())facts.push(['Marca',d.brand.trim().slice(0,80)]);
+ if(row.kind==='product'&&validGtin(d.gtin))facts.push(['EAN / GTIN',d.gtin]);
+ if(row.kind==='product'&&typeof d.mpn==='string'&&d.mpn.trim())facts.push(['Referencia del fabricante',d.mpn.trim().slice(0,70)]);
  if(row.kind==='service'){
   const modes={in_person:'Presencial',remote:'A distancia',both:'Presencial y a distancia'};
   if(Object.hasOwn(modes,d.serviceMode))facts.push(['Modalidad',modes[d.serviceMode]]);
@@ -55,7 +59,11 @@ function entitySchema(row,url,images){
  if(row.kind==='product'){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
    if(nationalSale(row))offer.areaServed={'@type':'Country',name:'España'};
-   return {...data,'@type':'Product',offers:offer};
+   const product={...data,'@type':'Product',offers:offer};
+   if(typeof details.brand==='string'&&details.brand.trim())product.brand={'@type':'Brand',name:details.brand.trim().slice(0,80)};
+   if(validGtin(details.gtin))product['gtin'+details.gtin.length]=details.gtin;
+   if(typeof details.mpn==='string'&&details.mpn.trim())product.mpn=details.mpn.trim().slice(0,70);
+   return product;
  }
  if(row.kind==='service')return {...data,'@type':'Service',serviceType:row.category,areaServed:{'@type':'Place',name:details.serviceArea||row.city},offers:offer};
  const home={'@type':'Accommodation',name:row.title};

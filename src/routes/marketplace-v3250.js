@@ -6,6 +6,7 @@ const {z}=require('zod');
 const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {requireAuth}=require('../middleware/auth');
+const googleV3264=require('../services/marketplace-google-v3264');
 const router=express.Router();
 
 const KINDS=['product','service','property'];
@@ -24,6 +25,9 @@ const listingBase=z.object({
   images:z.array(picture).max(6).default([]),
   details:z.object({
     condition:z.enum(['new','used']).optional(),
+    brand:z.string().trim().min(1).max(80).optional(),
+    mpn:z.string().trim().min(1).max(70).regex(/^[A-Za-z0-9][A-Za-z0-9 ._\/-]*$/).optional(),
+    gtin:z.string().trim().refine(googleV3264.validGtin,{message:'EAN/GTIN no válido'}).optional(),
     serviceMode:z.enum(['in_person','remote','both']).optional(),
     serviceArea:z.string().trim().max(100).optional(),
     areaM2:z.number().int().positive().max(100000).optional(),
@@ -35,6 +39,7 @@ const listingBase=z.object({
   }).strict().default({})
 }).strict();
 function checkKindDeal(v,ctx){
+  if(v.kind!=='product'&&['brand','mpn','gtin'].some(x=>v.details?.[x]))ctx.addIssue({code:'custom',path:['details'],message:'Los identificadores corresponden solo a productos'});
   if(v.details?.saleScope && !(v.kind==='product'&&v.deal==='sale'))ctx.addIssue({code:'custom',path:['details','saleScope'],message:'La zona de venta se aplica solo a productos en venta'});
   if(v.kind==='service'&&v.deal!=='offer')ctx.addIssue({code:'custom',path:['deal'],message:'El servicio debe ser una oferta'});
   if(v.kind==='product'&&!['sale','buy'].includes(v.deal))ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona Venta o Compra / Busco'});
@@ -119,6 +124,14 @@ router.get('/',wrap(async(req,res)=>{
   res.json({ok:true,items:items.rows,page,hasMore:items.rows.length===24});
 }));
 
+// Private diagnostics for this signed-in seller: not a public Merchant feed.
+router.get('/google-readiness',wrap(async(req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ const rows=await db.query("SELECT l.id,l.kind,l.deal,l.title,l.description,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,u.status AS seller_status,u.discoverable AS seller_discoverable FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.seller_id=$1 ORDER BY l.updated_at DESC LIMIT 251",[req.user.id]);
+ const items=rows.rows.slice(0,250).map(googleV3264.auditProduct);
+ res.json({ok:true,merchantFeedEnabled:false,merchantCheckoutAvailable:false,partial:rows.rows.length>250,
+   summary:googleV3264.summary(items),items});
+}));
 router.get('/mine',wrap(async(req,res)=>{
   const result=await db.query('SELECT '+cardFields+joins+' WHERE l.seller_id=$1 ORDER BY l.created_at DESC LIMIT 200',[req.user.id]);
   res.json({ok:true,items:result.rows});
