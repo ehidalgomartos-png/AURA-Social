@@ -10,8 +10,8 @@ test('V3.2.63.3: mobile grid gives product a short second row and thread remaini
  assert.match(css,/#messagesView \.messages-layout\.chat-open \.chat-panel\.market-chat-open-v32632/);
  assert.match(css,/grid-template-rows:auto auto minmax\(0,1fr\) auto/);
  assert.match(css,/\.chat-panel\.market-chat-open-v32632 \.message-thread\{min-height:0;overflow-y:auto\}/);
- assert.match(fs.readFileSync('public/app.html','utf8'),/social\.css\?v=3\.2\.63\.3/);
- assert.match(fs.readFileSync('public/app.html','utf8'),/social\.js\?v=3\.2\.63\.3/);
+ assert.match(fs.readFileSync('public/app.html','utf8'),/social\.css\?v=3\.2\.69/);
+ assert.match(fs.readFileSync('public/app.html','utf8'),/social\.js\?v=3\.2\.69/);
 });
 
 test('V3.2.63.3: consult draft is offered once, not regenerated after message sent',async()=>{
