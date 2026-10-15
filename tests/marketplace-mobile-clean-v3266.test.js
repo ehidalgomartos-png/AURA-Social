@@ -7,11 +7,11 @@ const source=read('src/routes/marketplace-seo-v3251.js');
 const publicCss=read('public/marketplace-seo-v3251.css');
 const authPage=read('public/marketplace.html');
 const retire=read('public/marketplace-pwa-retire-v3266.js');
-test('V3.2.68 is consistently declared in package, health and HTML caches',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.68');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.68'/);
- assert.match(authPage,/marketplace-v3250\.css\?v=3\.2\.68/);
- assert.match(source,/marketplace-seo-v3251\.css\?v=3\.2\.68/);
+test('V3.2.69 is consistently declared in package, health and HTML caches',()=>{
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
+ assert.match(authPage,/marketplace-v3250\.css\?v=3\.2\.69/);
+ assert.match(source,/marketplace-seo-v3251\.css\?v=3\.2\.69/);
 });
 test('Guest catalogue has a clear product link and a useful back action',()=>{
  assert.match(source,/market-card-cta/);

@@ -181,3 +181,7 @@
 @media(max-width:600px){.market-public-quick{margin:4px -2px 6px}.market-public-quick a{font-size:12px;padding-inline:11px}.market-public-extra{grid-template-columns:repeat(2,minmax(0,1fr))}.market-public-extra label:nth-child(3){grid-column:auto}}
 @media(max-width:365px){.market-public-extra{grid-template-columns:minmax(0,1fr)}.market-public-extra>label{grid-column:auto!important}}
 
+
+/* V3.2.69 — Voluntary sharing into the existing community composer. */
+.market-share-actions .market-community-link-v3269{background:#0a7569;color:#fff;border-color:#0a7569}
+.market-share-actions .market-community-link-v3269:focus-visible{outline:3px solid #1c9a87;outline-offset:2px}

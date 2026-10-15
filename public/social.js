@@ -1992,7 +1992,13 @@ async function loadSavedPostIds() {
 }
 
 async function loadMe() {
-  const { d } = await api('/api/profiles/me/summary');
+  const { r,d } = await api('/api/profiles/me/summary');
+  const marketId=new URLSearchParams(location.search).get('compartirAnuncio');
+  if(r.status===401 && /^[1-9]\d{0,15}$/.test(String(marketId||''))){
+    const next='/app?view=feed&compartirAnuncio='+marketId;
+    location.replace('/?'+new URLSearchParams({entry:'marketplace_share',entryKey:marketId,next}).toString());
+    throw new Error('marketplace_share_login_required');
+  }
   me = d.profile;
   const quickAvatar = $('#quickAvatar');
   if (quickAvatar) quickAvatar.innerHTML = avatarHTML(me);
@@ -9920,6 +9926,7 @@ all('[data-composer-tab]').forEach(tab=>{
 });
 
 async function openModal(mode='post') {
+  $('#marketShareComposerHintV3269')?.classList.add('hidden');
   tapFeedback();
   const audience=$('#createForm [name="audience"]');
   const storyAudience=$('#storyForm [name="audience"]');
@@ -10330,6 +10337,31 @@ $('#logout').onclick = async () => {
 
 // The shared /pwa.js handles installability and mobile guidance for all visitors.
 
+/* V3.2.69 — Member explicitly chooses whether to publish a Marketplace link. */
+async function prepareMarketplaceCommunityShareV3269(id){
+ if(!/^[1-9]\d{0,15}$/.test(String(id||''))||!me)return;
+ const caption=$('#createForm [name="caption"]');
+ if(!caption)return;
+ if(caption.value.trim()){
+  toast('Ya tienes una publicación empezada. Termínala o borra el texto antes de compartir un anuncio.');
+  return;
+ }
+ const {r,d}=await api('/api/marketplace/share-preview/'+encodeURIComponent(id));
+ if(!r.ok||!d?.item||String(d.item.id)!==String(id)||
+    typeof d.item.title!=='string'||!/^\/marketplace\/p\/[1-9]\d{0,15}$/.test(String(d.item.url||''))){
+  toast('Este anuncio no está disponible para compartir.');
+  return;
+ }
+ await openModal('post');
+ if(caption.value.trim())return;
+ caption.value=('Mira este anuncio en RedLibertad: '+d.item.title+'\n'+location.origin+d.item.url).slice(0,2200);
+ caption.dispatchEvent(new Event('input',{bubbles:true}));
+ const hint=$('#marketShareComposerHintV3269');
+ const back=$('#marketShareComposerBackV3269');
+ if(back)back.href=d.item.url;
+ if(hint)hint.classList.remove('hidden');
+}
+
 async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
@@ -10338,6 +10370,7 @@ async function handleInitialDeepLink() {
   const view = params.get('view');
   const conversation = params.get('conversation');
   const trust = params.get('trust');
+  const marketShareId = params.get('compartirAnuncio');
 
   if (profile) {
     await openPublicProfile(profile);
@@ -10356,6 +10389,10 @@ async function handleInitialDeepLink() {
 
   if(view && ['feed','explore','communities','reels','messages','notifications','profile'].includes(view)){
     showView(view);
+    if(view==='feed' && /^[1-9]\d{0,15}$/.test(String(marketShareId||''))){
+      await prepareMarketplaceCommunityShareV3269(marketShareId);
+      return;
+    }
     // A news visitor entering their authenticated communities retains a safe
     // one-click return to the original article, never to an external domain.
     const editorialBack=String(params.get('volver')||'');

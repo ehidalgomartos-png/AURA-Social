@@ -259,3 +259,6 @@ body>.site-foot{margin-top:auto}
 .market-private-description details{white-space:normal}
 .market-private-description details summary{min-height:44px;display:inline-flex;align-items:center;cursor:pointer;font-weight:800;color:#086c60}
 .market-private-description details p{white-space:pre-wrap}
+
+/* V3.2.69 — Community sharing is opt-in, never an automatic post. */
+.market-catalog-card .market-community-link-v3269,.market-share-inline .market-community-link-v3269,.detail-shell .market-community-link-v3269{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid #bddbd3;background:#edf7f3;color:#10594f;text-decoration:none;font-size:13px;font-weight:750}

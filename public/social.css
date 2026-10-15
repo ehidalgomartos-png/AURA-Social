@@ -7789,3 +7789,7 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   .market-chat-context-v32632 .market-chat-product-thumb{width:46px;height:46px;flex-basis:46px}
   .market-chat-context-v32632 .market-chat-view-product{flex-shrink:0}
 }
+
+/* V3.2.69: opt-in Marketplace sharing uses the existing publication editor. */
+.market-share-compose-hint-v3269{margin:4px 0 13px;padding:12px 13px;border:1px solid #a7d7ca;border-radius:12px;background:#eaf8f2;color:#124f47;font-size:13px;line-height:1.5}
+.market-share-compose-hint-v3269 a{display:inline-flex;min-height:44px;align-items:center;font-weight:800;color:#0b665b}

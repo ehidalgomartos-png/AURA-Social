@@ -64,6 +64,6 @@ test('V3.2.63.2 mobile guest contact is focused, readable and has an explicit ba
  assert.match(marketplace,/Volver a la ficha del anuncio/);
  assert.match(marketplace,/me\.status===401&&\/\^\[1-9\]/);
  const index=read('public/index.html');
- assert.match(index,/\/app\.js\?v=3\.2\.63\.2/);
+ assert.match(index,/\/app\.js\?v=3\.2\.69/);
  assert.match(index,/\/styles\.css\?v=3\.2\.63\.2/);
 });
