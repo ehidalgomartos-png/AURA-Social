@@ -92,10 +92,10 @@ test('Public copy-link script restricts to our Marketplace URL',()=>{
 });
 test('Version and frontend caches match V3.2.60',()=>{
  const html=read('public/marketplace.html');
- assert.equal(JSON.parse(read('package.json')).version,'3.2.68');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.68'/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.68/);
- assert.match(html,/marketplace-v3250\.css\?v=3\.2\.68/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.69/);
+ assert.match(html,/marketplace-v3250\.css\?v=3\.2\.69/);
  const seoSource=read('src/routes/marketplace-seo-v3251.js');
  assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.63\.2/);
 });
