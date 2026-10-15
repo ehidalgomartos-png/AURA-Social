@@ -69,8 +69,8 @@ test('owner delete action remains authenticated, server-owned, and confirmed',()
  assert.match(app,/Eliminar anuncio/);
 });
 test('version and image preview style are current',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.64.2');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.2'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.64.3');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.3'/);
  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.64/);
  assert.match(html,/marketplace-v3250\.css\?v=3\.2\.63\.2/);
  const css=read('public/marketplace-v3250.css');

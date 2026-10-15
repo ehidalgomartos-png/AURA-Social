@@ -2,6 +2,7 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label={product:'Producto',service:'Servicio',property:'Inmueble',sale:'Venta',rent:'Alquiler',offer:'Servicio',buy:'Compra · Busco',active:'Activo',reserved:'Reservado',sold:'Finalizado',paused:'Pausado'};
+let marketplaceLoadRequestV32643=0;
 const state={kind:'',mode:'discover',page:1,items:[],deal:'',editing:null,images:[],pendingPhotos:[],admin:false,authenticated:false,authStatus:'checking',reportId:null};
 const CATEGORY_SUGGESTIONS={
  product:['Hogar y muebles','Moda y accesorios','Tecnología','Vehículos','Deportes y ocio','Libros y coleccionismo','Tazas','Otros'],
@@ -170,6 +171,7 @@ function emptyMarketplaceState(){
   :'<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">🛍️</div><h2>Aún no hay anuncios</h2><p>¿Quieres ser la primera persona en publicar?</p><button type="button" class="primary" data-empty-create>Publicar anuncio</button></div>';
 }
 async function load(reset=true){
+ const requestId=++marketplaceLoadRequestV32643;
  if(reset)state.page=1;
  note('Cargando anuncios…');
  let path='/api/marketplace';
@@ -182,6 +184,8 @@ async function load(reset=true){
  }
  if(!state.authenticated){$('#list').innerHTML='';$('#more').classList.add('hidden');note(state.authStatus==='guest'?'':'No se han podido cargar los anuncios. Reinténtalo.');return;}
  const data=await request(path);
+ // Do not render a previous tab's async result after selecting another tab.
+ if(requestId!==marketplaceLoadRequestV32643)return;
  if(!data.ok){note(errorMessage[data.error]||'No se pudo cargar. Vuelve a intentarlo.');return;}
  if(state.mode==='reports'){
    $('#list').innerHTML=(data.reports||[]).map(x=>'<article class="card"><div class="cardbody"><h3>'+esc(x.title)+'</h3><p>Motivo: '+esc(x.reason)+'</p><p>'+esc(x.details)+'</p><p class="muted">Denunciante: '+esc(x.reporter)+'</p><div class="actions"><button data-mod="'+esc(x.listing_id)+'">Gestionar</button></div></div></article>').join('');
@@ -198,7 +202,7 @@ function setKind(k){state.kind=k;$$('[data-kind]').forEach(b=>b.classList.toggle
 function setMode(mode){
  state.mode=mode;
  $('#marketSellerTools').hidden=!state.authenticated||mode!=='mine';
- $('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+ $$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
  $$('.tabs,.market-deals').forEach(nav=>nav.classList.toggle('hidden',mode!=='discover'));
  $('#filters').classList.toggle('hidden',mode!=='discover');
  return load();

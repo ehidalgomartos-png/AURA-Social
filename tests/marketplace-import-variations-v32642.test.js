@@ -93,6 +93,6 @@ test('Acknowledgment for photos is checked again by the server before importing'
  assert.match(client,/Padre omitido/);
  assert.match(server,/ON CONFLICT DO NOTHING/);
  assert.match(server,/marketplace_import_links/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.64.2');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.2'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.64.3');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.3'/);
 });
