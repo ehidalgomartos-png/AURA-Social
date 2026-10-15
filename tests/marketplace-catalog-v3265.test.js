@@ -49,6 +49,29 @@ test('nationwide quick filter is handled by backend and preserves origin',()=>{
  assert.match(html,/data-market-quick="national"/);
  assert.match(html,/id="marketAppliedFilters"/);
 });
+test('quick filter buttons really update the state and do not repeat the single-element selector bug',()=>{
+ const snippet=extract('function updateQuickFiltersV3265(){','function setDeal(d){');
+ const state={kind:'',deal:'',nationalOnly:false};
+ const make=(dataset)=>({dataset,classList:{active:false,toggle(_c,on){this.active=on;}},setAttribute(key,value){this[key]=value;}});
+ const shortcuts=['all','products','national'].map(marketQuick=>make({marketQuick}));
+ const kinds=['','product','service','property'].map(kind=>make({kind}));
+ const deals=['','sale','buy','offer'].map(deal=>make({deal}));
+ let resets=0,loads=0;
+ const form={reset(){resets++;}};
+ const notice={textContent:''};
+ const ctx={state,$:id=>id==='#filters'?form:id==='#marketAppliedFilters'?notice:null,
+  $$:id=>id==='[data-market-quick]'?shortcuts:id==='[data-kind]'?kinds:id==='[data-deal]'?deals:[],
+  FormData:class{get(){return '';}},load(){loads++;},Set};
+ vm.createContext(ctx);vm.runInContext(snippet,ctx);
+ ctx.quickFilterV3265('national');
+ assert.equal(state.kind,'product');assert.equal(state.deal,'sale');assert.equal(state.nationalOnly,true);
+ assert.equal(shortcuts[2].classList.active,true);assert.match(notice.textContent,/Toda España/);
+ ctx.quickFilterV3265('products');
+ assert.equal(state.deal,'');assert.equal(state.nationalOnly,false);assert.equal(shortcuts[1].classList.active,true);
+ ctx.quickFilterV3265('all');
+ assert.equal(state.kind,'');assert.equal(resets,1);assert.equal(loads,3);
+ assert.equal(shortcuts[0].classList.active,true);
+});
 test('mobile accessible controls and cache-busting release are aligned',()=>{
  assert.match(css,/\.market-catalog-card \.thumb\{position:relative;aspect-ratio:4\/3/);
  assert.match(css,/\.market-catalog-shortcuts button\{flex:none;min-height:44px/);
