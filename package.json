@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.64.2",
+  "version": "3.2.64.3",
   "private": true,
-  "description": "RedLibertad V3.2.64.2 — WooCommerce Variation Import",
+  "description": "RedLibertad V3.2.64.3 — Marketplace Tab Navigation Hotfix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -32,6 +32,7 @@
     "test:marketplace-save": "node --test tests/marketplace-save-v32511.test.js",
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
+    "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
     "test:startup-router": "node --test tests/server-router-wiring-v32421.test.js",
     "test:legal": "node --test tests/legal-consent-timeline.test.js tests/legal-consent-receipt.test.js tests/legal-consent-readable.test.js tests/legal-consent-filters.test.js tests/legal-status-overview.test.js",
     "test:smoke": "node --test tests/stability-*.test.js",

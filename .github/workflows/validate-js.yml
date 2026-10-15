@@ -26,6 +26,8 @@ jobs:
         run: npm run test:marketplace-google
       - name: V3.2.64.2 WooCommerce variants with parent metadata and image safety
         run: npm run test:marketplace-variations
+      - name: V3.2.64.3 Marketplace Explore / My Listings / Favorites tab switch regression
+        run: npm run test:marketplace-tabs
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests
