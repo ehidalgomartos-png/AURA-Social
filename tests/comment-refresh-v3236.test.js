@@ -94,8 +94,8 @@ test('refresh does not touch drafts, post audiences or notification endpoints',(
   assert.match(js,/saveCommentDraftV3235/);
   assert.match(js,/restoreCommentDraftV3235/);
   assert.match(js,/parentCommentId:commentReplyId/);
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.64.1');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.1'/);
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.64.2');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.2'/);
   assert.match(html,/\/social\.js\?v=3\.2\.63\.3/);
   assert.match(html,/\/social\.css\?v=3\.2\.63\.3/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:comment-refresh/);

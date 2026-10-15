@@ -1,8 +1,8 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const state={id:null,confirmed:false,summary:null,page:1,running:false,stop:false};
-const labels={pending:'Listo',invalid:'Error',duplicate:'Duplicado',imported:'Importado',failed:'Fallido'};
-const errorText={csv_invalid_header:'No se reconoce el separador del CSV. Exporta directamente desde WooCommerce → Productos → Exportar. Se aceptan coma, punto y coma, tabulador y barra vertical. Si persiste, envíame el CSV para revisar su formato.',csv_invalid_encoding:'Codificación no reconocida. Exporta en UTF-8 o UTF-16.',csv_empty:'El CSV está vacío.',csv_unclosed_quote:'El CSV tiene comillas sin cerrar; vuelve a exportarlo.',csv_too_large:'El CSV supera el límite de 1 MB.',csv_no_products:'El CSV no contiene productos.',csv_not_woocommerce:'No encuentro una columna Nombre, Name o Nombre del producto. Exporta desde WooCommerce → Productos → Exportar.',csv_too_many_rows:'El máximo es 250 productos por archivo.',invalid_import_options:'Indica tu ciudad.',preview_expired:'La vista previa ha caducado. Sube de nuevo el CSV.',confirmation_required:'Confirma primero la importación.',import_unavailable:'No se pudo procesar la importación. Inténtalo más tarde.',request_timeout:'La importación tarda demasiado. Puedes reanudar el lote sin volver a subir el archivo.'};
+const labels={pending:'Listo',invalid:'Error',duplicate:'Duplicado',imported:'Importado',failed:'Fallido',skipped:'Padre omitido'};
+const errorText={csv_invalid_header:'No se reconoce el separador del CSV. Exporta directamente desde WooCommerce → Productos → Exportar. Se aceptan coma, punto y coma, tabulador y barra vertical. Si persiste, envíame el CSV para revisar su formato.',csv_invalid_encoding:'Codificación no reconocida. Exporta en UTF-8 o UTF-16.',csv_empty:'El CSV está vacío.',csv_unclosed_quote:'El CSV tiene comillas sin cerrar; vuelve a exportarlo.',csv_too_large:'El CSV supera el límite de 1 MB.',csv_no_products:'El CSV no contiene productos.',csv_not_woocommerce:'No encuentro una columna Nombre, Name o Nombre del producto. Exporta desde WooCommerce → Productos → Exportar.',csv_too_many_rows:'El máximo es 250 productos por archivo.',invalid_import_options:'Indica tu ciudad.',preview_expired:'La vista previa ha caducado. Sube de nuevo el CSV.',confirmation_required:'Confirma primero la importación.',variant_image_confirmation_required:'Debes revisar y confirmar las fotos heredadas de los productos padre antes de importar.',import_unavailable:'No se pudo procesar la importación. Inténtalo más tarde.',request_timeout:'La importación tarda demasiado. Puedes reanudar el lote sin volver a subir el archivo.'};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function msg(text){$('message').textContent=text||'';}
 async function api(url,options={}){
@@ -17,7 +17,9 @@ async function api(url,options={}){
 function displaySummary(s){
  if(!s)return;
  state.summary=s;
- $('summary').textContent='Total: '+s.total+' · Por importar: '+s.pending+' · Importados: '+s.imported+' · Duplicados: '+s.duplicate+' · No válidos: '+s.invalid+' · Fallidos: '+s.failed;
+ $('confirmVariantPhotosRow').hidden=!(s.inheritedPhotos>0);
+ if(s.inheritedPhotos===0)$('confirmVariantPhotos').checked=false;
+ $('summary').textContent='Total: '+s.total+' · Por importar: '+s.pending+' · Importados: '+s.imported+' · Duplicados: '+s.duplicate+' · No válidos: '+s.invalid+' · Fallidos: '+s.failed+' · Padres omitidos: '+(s.skipped||0)+(s.inheritedPhotos?' · Variantes con foto heredada: '+s.inheritedPhotos:'');
  const completed=s.total-s.pending;
  $('bar').value=s.total?Math.round(completed*100/s.total):100;
  $('progressText').textContent=completed+' de '+s.total+' revisados · '+s.imported+' publicados correctamente'+(s.pending?'':' · Proceso terminado.');
@@ -30,7 +32,7 @@ async function page(n){
  state.page=n;displaySummary(result.summary);
  const list=$('previewList');
  list.innerHTML=result.items.map(item=>'<article class="row"><span class="number">#'+Number(item.line)+'</span>'+
-  '<div><strong>'+esc(item.title||'Producto sin nombre')+'</strong><p>'+esc((item.priceCents!=null?(item.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}):'Precio no válido')+' · '+(item.photos||0)+' fotos')+(item.error?' · '+item.error:'')+'</p></div>'+
+  '<div><strong>'+esc(item.title||'Producto sin nombre')+'</strong><p>'+esc((item.priceCents!=null?(item.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}):'Sin precio individual')+' · '+(item.photos||0)+' fotos')+(item.error?' · '+item.error:'')+'</p>'+((item.warnings||[]).length?'<p class="market-import-variation-warning">'+esc(item.warnings.join(' · '))+'</p>':'')+'</div>'+
   '<span class="state state-'+esc(item.state)+'">'+esc(labels[item.state]||item.state)+'</span></article>').join('');
  $('pageInfo').textContent='Página '+n+' de '+Math.max(1,Math.ceil(result.summary.total/50));
  $('prev').disabled=n<=1;
@@ -77,7 +79,7 @@ $('importForm').addEventListener('submit',async e=>{
   const options={city,province,...(saleScope?{saleScope}:{})};
   const r=await api('/api/marketplace/import/preview',{method:'POST',body:JSON.stringify({csv,options})});
   if(!r.ok){msg(errorText[r.error]||'No se pudo previsualizar el archivo ('+(r.error||r.status)+').');return;}
-  state.id=r.id;state.confirmed=false;state.page=1;$('confirmRights').checked=false;
+  state.id=r.id;state.confirmed=false;state.page=1;$('confirmRights').checked=false;$('confirmVariantPhotos').checked=false;
   $('progress').hidden=true;$('startBtn').disabled=false;
   msg('Vista previa lista. Comprueba los productos y confirma cuando quieras.');
   await page(1);$('preview').scrollIntoView({behavior:'smooth'});
@@ -87,8 +89,9 @@ $('importForm').addEventListener('submit',async e=>{
 $('confirmBtn').addEventListener('click',async()=>{
  if(!state.id)return;
  if(!$('confirmRights').checked){msg('Confirma que tienes derecho a publicar los productos y sus fotografías.');return;}
+ if(state.summary?.inheritedPhotos>0&&!$('confirmVariantPhotos').checked){msg('Comprueba los acabados de las variantes que heredan fotografías y marca la confirmación correspondiente.');return;}
  if(!confirm('Se publicarán los productos válidos y se copiarán sus fotografías al VPS. ¿Confirmas la importación?'))return;
- $('confirmBtn').disabled=true;const r=await api('/api/marketplace/import/'+encodeURIComponent(state.id)+'/confirm',{method:'POST',body:'{}'});
+ $('confirmBtn').disabled=true;const r=await api('/api/marketplace/import/'+encodeURIComponent(state.id)+'/confirm',{method:'POST',body:JSON.stringify({ackInheritedPhotos:state.summary?.inheritedPhotos>0&&$('confirmVariantPhotos').checked})});
  if(!r.ok){$('confirmBtn').disabled=false;msg(errorText[r.error]||'No se pudo confirmar.');return;}
  state.confirmed=true;displaySummary(r.summary);
  $('confirmArea').hidden=true;$('progress').hidden=false;

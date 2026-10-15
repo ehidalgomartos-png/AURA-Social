@@ -66,8 +66,8 @@ test('recipient choices display safe text, never HTML, and do not open somebody 
  assert.match(css,/\.message-recipient-choice-v3244:focus-visible/);
 });
 test('V3.2.62 version, cache-busting and CI contract',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.64.1');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.1'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.64.2');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.2'/);
  assert.match(html,/\/social\.js\?v=3\.2\.63\.3/);
  assert.match(html,/\/social\.css\?v=3\.2\.63\.3/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-messages/);
