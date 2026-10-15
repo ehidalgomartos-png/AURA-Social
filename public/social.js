@@ -10362,7 +10362,7 @@ async function prepareMarketplaceCommunityShareV3269(id){
  // Copy the listing photo into the normal upload flow. This is an editable draft,
  // not a server-side publication or a blind reference to someone else's media.
  const photo=String(d.item.imageUrl||'');
- if(/^\\/uploads\\/[A-Za-z0-9._-]{1,180}\\.(?:jpe?g|png|webp)$/i.test(photo)){
+ if(/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(photo)){
   try{
    const response=await fetch(photo,{credentials:'same-origin'});
    if(!response.ok)throw new Error('image_unavailable');
