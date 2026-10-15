@@ -10354,8 +10354,31 @@ async function prepareMarketplaceCommunityShareV3269(id){
  }
  await openModal('post');
  if(caption.value.trim())return;
- caption.value=('Mira este anuncio en RedLibertad: '+d.item.title+'\n'+location.origin+d.item.url).slice(0,2200);
+ const price=Number.isSafeInteger(d.item.priceCents)&&d.item.priceCents>=0
+  ? ' · '+(d.item.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'})
+  : '';
+ caption.value=('Mira este anuncio en RedLibertad: '+d.item.title+price+'\n'+location.origin+d.item.url).slice(0,2200);
  caption.dispatchEvent(new Event('input',{bubbles:true}));
+ // Copy the listing photo into the normal upload flow. This is an editable draft,
+ // not a server-side publication or a blind reference to someone else's media.
+ const photo=String(d.item.imageUrl||'');
+ if(/^\\/uploads\\/[A-Za-z0-9._-]{1,180}\\.(?:jpe?g|png|webp)$/i.test(photo)){
+  try{
+   const response=await fetch(photo,{credentials:'same-origin'});
+   if(!response.ok)throw new Error('image_unavailable');
+   const blob=await response.blob();
+   if(!blob.type.startsWith('image/')||blob.size>12*1024*1024)throw new Error('invalid_image');
+   const extension=photo.split('.').pop().toLowerCase();
+   const file=new File([blob],'anuncio-'+id+'.'+extension,{type:blob.type});
+   const transfer=new DataTransfer();
+   transfer.items.add(file);
+   const input=$('#mediaFile');
+   if(input){
+    input.files=transfer.files;
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+   }
+  }catch(_){toast('El anuncio está preparado, pero no se pudo adjuntar la foto. Puedes añadirla manualmente.');}
+ }
  const hint=$('#marketShareComposerHintV3269');
  const back=$('#marketShareComposerBackV3269');
  if(back)back.href=d.item.url;
