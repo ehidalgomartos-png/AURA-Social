@@ -42,7 +42,7 @@ test('six existing push categories remain operable and only Account modal stylin
 });
 
 test('hotfix has a new release version and busts social CSS cache without changing PWA assets',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
   assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.2'/);
   assert.match(html,/\/social\.css\?v=3\.2\.63\.2/);
   assert.match(html,/\/social\.js\?v=3\.2\.63\.2/);
