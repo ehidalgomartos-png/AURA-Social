@@ -124,9 +124,9 @@ test('admin has fourth image mode and full draft requires confirmation',()=>{
 });
 test('3.2.60 is wired with new release assets and CI tests without modifying PWA worker',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.2'/);
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.3'/);
  assert.match(html,/\/admin\.js\?v=3\.2\.63\.2/);
- assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.63\.2/);
+ assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.63\.3/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-full-ai/);
  assert.match(read('package.json'),/test:editorial-full-ai/);
 });
