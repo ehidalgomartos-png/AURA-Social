@@ -67,6 +67,8 @@ window.addEventListener('popstate',event=>{
 const viewScrollPositions=new Map();
 let connectivityHideTimer=null;
 let currentFileMedia = null;
+let marketplaceChatListingPendingV32632=null;
+let marketplaceChatTargetConversationV32632=null;
 let activeConversationId = null;
 let activeConversationOther = null;
 let activeConversationMeta = null;
@@ -7905,6 +7907,39 @@ function groupParticipantsSummary(group){
   return extra ? `${visible.join(', ')} y ${extra} más` : visible.join(', ');
 }
 
+// Marketplace V3.2.63.2: contextual draft only after revalidating a live product,
+// and only inside the conversation belonging to its seller. Never auto-send.
+async function showMarketplaceChatContextV32632(conversationId,other,isGroup){
+ const listingId=marketplaceChatListingPendingV32632;
+ if(!listingId||isGroup||marketplaceChatTargetConversationV32632&&marketplaceChatTargetConversationV32632!==String(conversationId))return;
+ if(!/^[1-9]\d{0,15}$/.test(listingId))return;
+ marketplaceChatTargetConversationV32632=String(conversationId);
+ let response;
+ try{response=await api('/api/marketplace/'+encodeURIComponent(listingId));}catch(_){return;}
+ if(String(activeConversationId)!==String(conversationId)||!response?.r?.ok)return;
+ const item=response.d?.item;
+ if(!item||item.kind!=='product'||item.deal!=='sale'||item.status!=='active'
+    ||item.moderation_status!=='published'||!other?.username
+    ||String(item.seller_username||'').toLowerCase()!==String(other.username).toLowerCase()
+    ||String(item.seller_id)===String(me?.id))return;
+ const chat=$('#chatPanel'),thread=$('#messageThread'),composer=$('#messageBody');
+ if(!chat||!thread||!composer)return;
+ const euro=(Number(item.price_cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+ const photo=Array.isArray(item.image_urls)&&/^\/uploads\/[a-zA-Z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(item.image_urls[0]||'')
+   ? '<img src="/marketplace/imagen/'+encodeURIComponent(item.id)+'/0" alt="" loading="lazy">':'';
+ const card=document.createElement('section');
+ card.id='marketChatContextV32632';
+ card.className='market-chat-context-v32632';
+ card.setAttribute('aria-label','Producto consultado en Marketplace');
+ card.innerHTML='<div class="market-chat-product-thumb">'+photo+'</div><div class="market-chat-product-copy"><small>Consulta desde Marketplace</small><strong>'+esc(item.title)+'</strong><span>'+esc(euro)+'</span></div><a href="/marketplace/p/'+encodeURIComponent(item.id)+'" class="market-chat-view-product">Ver producto</a>';
+ thread.before(card);
+ if(!composer.value.trim()){
+  composer.value='Hola, me interesa «'+String(item.title||'').slice(0,120)+'» de '+euro+' que he visto en Marketplace. ¿Sigue disponible?';
+  composer.dispatchEvent(new Event('input',{bubbles:true}));
+ }
+ // Draft only: the buyer must still explicitly tap "Enviar".
+}
+
 let openConversationSequenceV3244=0;
 async function openConversation(id) {
   const sequence=++openConversationSequenceV3244;
@@ -7981,10 +8016,13 @@ async function openConversation(id) {
   <div id="messageThread" class="message-thread">${messages || '<div class="empty-state"><p>Empieza la conversación.</p></div>'}</div>
   <form id="messageForm" class="message-form">
     <div id="messageReplyComposer" class="message-reply-composer hidden"></div>
-    <div class="message-options">
-      <label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label>
-      <label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label>
-    </div>
+    <details class="message-attachment-tools-v32632">
+      <summary>＋ Foto o vídeo · Opciones</summary>
+      <div class="message-options">
+        <label>Archivo<input id="messageFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label>
+        <label>Tipo<select id="messageLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label>
+      </div>
+    </details>
     <div id="messagePreview" class="message-preview hidden"></div>
     <div class="message-compose"><textarea id="messageBody" maxlength="4000" placeholder="${isGroup ? 'Escribe al grupo…' : 'Escribe un mensaje…'}"></textarea><button class="primary" type="submit">Enviar</button></div>
     <small class="message-hint">${isGroup ? 'Cada persona decide si acepta el contenido sensible de cada remitente.' : 'El destinatario tendrá que aceptar antes de ver archivos sensibles enviados por ti.'}</small>
@@ -8009,6 +8047,7 @@ async function openConversation(id) {
   };
 
   $('#messageForm').onsubmit=sendMessage;
+  if(marketplaceChatListingPendingV32632)await showMarketplaceChatContextV32632(conversationId,d.other,isGroup);
   bindMessageActions($('#messageThread'));
   bindTypingPresence();
   autosizeMessageBody();
@@ -10309,6 +10348,9 @@ async function handleInitialDeepLink() {
       if(safe)editorialReturn.href=editorialBack;
     }
     if(view==='messages' && conversation){
+      const marketListing=String(params.get('marketListing')||'');
+      marketplaceChatListingPendingV32632=/^[1-9]\\d{0,15}$/.test(marketListing)?marketListing:null;
+      marketplaceChatTargetConversationV32632=null;
       await loadConversations(conversation);
     }
     if(view==='profile' && trust==='1'){
