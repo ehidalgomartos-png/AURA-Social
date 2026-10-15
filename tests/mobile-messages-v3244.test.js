@@ -36,9 +36,9 @@ test('mobile chat is fixed to the visual viewport, not below community suggestio
 test('message send stays in same conversation, keeps draft on failure and reports inline',()=>{
  assert.match(js,/id="messageSendFeedbackV3244" role="status" aria-live="polite"/);
  assert.match(js,/if\(feedback\)feedback\.textContent=\(err\?\.message\|\|'No se pudo enviar el mensaje\.'\)/);
- assert.match(js,/const payload = \{\s*body: \$\('#messageBody'\)\.value/);
+ assert.match(js,/const payload = \{\s*body: submittedBody/);
  assert.match(js,/if \(!r\.ok\)/);
- assert.match(js,/await openConversation\(activeConversationId\)/);
+ assert.match(js,/await openConversation\(submittedConversation\)/);
  assert.match(js,/messageSendInFlight = false/);
 });
 test('recipient search accepts visible display name and exact username without bypassing privacy',()=>{
@@ -66,9 +66,9 @@ test('recipient choices display safe text, never HTML, and do not open somebody 
  assert.match(css,/\.message-recipient-choice-v3244:focus-visible/);
 });
 test('V3.2.62 version, cache-busting and CI contract',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.2'/);
- assert.match(html,/\/social\.js\?v=3\.2\.63\.2/);
- assert.match(html,/\/social\.css\?v=3\.2\.63\.2/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.3'/);
+ assert.match(html,/\/social\.js\?v=3\.2\.63\.3/);
+ assert.match(html,/\/social\.css\?v=3\.2\.63\.3/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-messages/);
 });

@@ -76,7 +76,7 @@ test('crawler routes, XML sitemap and internal discovery are wired',()=>{
  assert.match(market,/market-seo-link/);
  assert.match(market,/\$\$\('\[data-kind\]'\)\.forEach/);
  assert.match(market,/contactName/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
 });
 
 test('Public Marketplace mobile operation filters never clip the last link',()=>{

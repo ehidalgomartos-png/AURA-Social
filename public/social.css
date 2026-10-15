@@ -7776,3 +7776,16 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 
 /* V3.2.63.2: product context adds a row, keeping the message thread scrollable. */
 .chat-panel.market-chat-open-v32632{grid-template-rows:auto auto minmax(0,1fr) auto}
+
+/* V3.2.63.3: the mobile chat's ID-specific three-row grid otherwise stretches the product card. */
+#messagesView .messages-layout.chat-open .chat-panel.market-chat-open-v32632,
+body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-chat-open-v32632{
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+}
+.chat-panel.market-chat-open-v32632 .market-chat-context-v32632{align-self:start;min-height:0}
+.chat-panel.market-chat-open-v32632 .message-thread{min-height:0;overflow-y:auto}
+@media(max-width:760px){
+  #messagesView .chat-panel.market-chat-open-v32632 .market-chat-context-v32632{padding:8px 10px;margin:6px 8px 2px;gap:8px}
+  .market-chat-context-v32632 .market-chat-product-thumb{width:46px;height:46px;flex-basis:46px}
+  .market-chat-context-v32632 .market-chat-view-product{flex-shrink:0}
+}

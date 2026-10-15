@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.63.2",
+  "version": "3.2.63.3",
   "private": true,
-  "description": "RedLibertad V3.2.63.2 — Marketplace Direct Chat & Product Context",
+  "description": "RedLibertad V3.2.63.3 — Marketplace Chat Polish & Google Merchant Readiness",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,6 +10,7 @@
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
     "test:marketplace-chat-context": "node --test tests/marketplace-chat-context-v32632.test.js",
+    "test:marketplace-chat-polish": "node --test tests/marketplace-chat-polish-v32633.test.js",
     "test:marketplace-contact-return": "node --test tests/marketplace-contact-return-v32631.test.js",
     "test:marketplace-product-detail": "node --test tests/marketplace-product-detail-v3263.test.js",
     "test:marketplace-home-polish": "node --test tests/marketplace-home-polish-v3262.test.js",

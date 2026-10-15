@@ -59,8 +59,8 @@ test('Media upload expects existing API contract and reports errors',()=>{
   assert.match(media,/media: \{/);
 });
 test('Version is V3.2.60 and existing marketplace routes are unchanged',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.2'/);
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.3'/);
   assert.match(read('src/routes/marketplace-v3250.js'),/router\.post\('\/',rateLimit/);
   assert.match(read('src/routes/marketplace-v3250.js'),/listingInput\.safeParse/);
 });
