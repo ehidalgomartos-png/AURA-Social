@@ -171,7 +171,7 @@ router.get('/share-preview/:id',wrap(async(req,res)=>{
  res.setHeader('Cache-Control','private,no-store');
  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
  const result=await db.query(
-  "SELECT l.id,l.title FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
+  "SELECT l.id,l.title,l.image_urls FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
   "WHERE l.id=$1 AND l.status='active' AND l.moderation_status='published' "+
   "AND u.status='active' AND u.discoverable=true "+
   "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$2 AND b.blocked_id=l.seller_id) OR "+
@@ -179,7 +179,10 @@ router.get('/share-preview/:id',wrap(async(req,res)=>{
   [req.params.id,req.user.id]);
  if(!result.rowCount)return res.status(404).json({error:'listing_not_available'});
  const row=result.rows[0];
- return res.json({ok:true,item:{id:row.id,title:row.title,url:'/marketplace/p/'+row.id}});
+ const photoIndex=Array.isArray(row.image_urls)?row.image_urls.slice(0,6)
+  .findIndex(url=>/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(String(url||''))):-1;
+ const imageUrl=photoIndex>=0?'/marketplace/imagen/'+row.id+'/'+photoIndex:null;
+ return res.json({ok:true,item:{id:row.id,title:row.title,url:'/marketplace/p/'+row.id,imageUrl}});
 }));
 
 router.get('/:id',wrap(async(req,res)=>{

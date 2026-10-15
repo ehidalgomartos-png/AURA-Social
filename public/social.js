@@ -10060,8 +10060,8 @@ $('#createForm').addEventListener('submit', async e => {
     }
 
     let media = null;
-    if (file) {
-      msg.textContent = 'Subiendo archivo...';
+    if (file || currentFileMedia) {
+      msg.textContent = file ? 'Subiendo archivo...' : 'Preparando imagen del anuncio...';
       media = await ensureUpload();
     }
 
@@ -10360,6 +10360,248 @@ async function prepareMarketplaceCommunityShareV3269(id){
  const back=$('#marketShareComposerBackV3269');
  if(back)back.href=d.item.url;
  if(hint)hint.classList.remove('hidden');
+ // Use the same publicly gated image as the listing, not a duplicate upload.
+ // The existing composer submit still requires an explicit user action.
+ const photoUrl=String(d.item.imageUrl||'');
+ const expected=new RegExp('^/marketplace/imagen/'+id+'/[0-5] {
+  const params = new URLSearchParams(location.search);
+  const profile = params.get('profile');
+  const post = params.get('post');
+  const story = params.get('story');
+  const view = params.get('view');
+  const conversation = params.get('conversation');
+  const trust = params.get('trust');
+  const marketShareId = params.get('compartirAnuncio');
+
+  if (profile) {
+    await openPublicProfile(profile);
+    return;
+  }
+
+  if (post) {
+    await openPostFocus(post);
+    return;
+  }
+
+  if(story){
+    await openSharedStory(story);
+    return;
+  }
+
+  if(view && ['feed','explore','communities','reels','messages','notifications','profile'].includes(view)){
+    showView(view);
+    if(view==='feed' && /^[1-9]\d{0,15}$/.test(String(marketShareId||''))){
+      await prepareMarketplaceCommunityShareV3269(marketShareId);
+      return;
+    }
+    // A news visitor entering their authenticated communities retains a safe
+    // one-click return to the original article, never to an external domain.
+    const editorialBack=String(params.get('volver')||'');
+    const editorialReturn=document.getElementById('editorialCommunityReturn');
+    if(editorialReturn){
+      const safe=/^\/noticias(?:\/p\/[1-9][0-9]{0,14}|\/perfil\/[a-z0-9-]{1,60})?$/.test(editorialBack);
+      editorialReturn.hidden=view!=='communities'||!safe;
+      if(safe)editorialReturn.href=editorialBack;
+    }
+    if(view==='messages' && conversation){
+      const marketListing=String(params.get('marketListing')||'');
+      marketplaceChatListingPendingV32632=/^[1-9]\d{0,15}$/.test(marketListing)?marketListing:null;
+      marketplaceChatTargetConversationV32632=null;
+      await loadConversations(conversation);
+    }
+    if(view==='profile' && trust==='1'){
+      await openTrustModal();
+    }
+  }
+}
+
+(async () => {
+  try {
+    await loadPublicConfig();
+    await loadMe();
+    installAppHistoryV32441();
+    await loadReleaseFlags();
+    await loadSavedPostIds();
+    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel(), loadCommunityReturn()]);
+    startLiveActivity();
+    startPresenceHeartbeat();
+    syncVisualViewport();
+    setConnectivityStatus(navigator.onLine,{initial:true});
+    await handleInitialDeepLink();
+  } catch (e) { console.error(e); }
+})();
+
+
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-ui-retry]');
+  if(!button)return;
+  event.preventDefault();
+  const action=button.dataset.uiRetry;
+  button.disabled=true;
+  try{
+    if(action==='feed')await loadFeed(currentMode);
+    else if(action==='notifications')await loadNotifications();
+    else if(action==='conversations')await loadConversations();
+    else if(action==='consents')await loadConsents();
+    else if(action==='people')await loadPeopleSuggestions(activeExploreInterest,{page:peopleDiscoveryRetryPage});
+    else if(action==='people-search')await searchPeople($('#peopleSearchInput')?.value);
+  }finally{
+    if(button.isConnected)button.disabled=false;
+  }
+});
+
+// =========================================================
+// RedLibertad V1.67 — Accessibility & UX Quality 2.0
+// =========================================================
+const a11yDialogReturnFocus=new WeakMap();
+
+function visibleFocusable(root){
+  if(!root)return[];
+  const selector='a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  return [...root.querySelectorAll(selector)].filter(el=>{
+    const style=getComputedStyle(el);
+    return style.visibility!=='hidden' && style.display!=='none' && el.getClientRects().length>0;
+  });
+}
+
+function openA11yModal(){
+  return [...document.querySelectorAll('.modal:not(.hidden)')].pop()||null;
+}
+
+function syncModalAccessibility(modal,{focus=false}={}){
+  if(!modal)return;
+  const open=!modal.classList.contains('hidden');
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-modal','true');
+  modal.setAttribute('aria-hidden',open?'false':'true');
+
+  const heading=modal.querySelector('h1,h2,h3');
+  if(heading){
+    if(!heading.id)heading.id=(modal.id||'dialog')+'Title';
+    modal.setAttribute('aria-labelledby',heading.id);
+  }else if(!modal.hasAttribute('aria-label')){
+    modal.setAttribute('aria-label','Ventana de RedLibertad');
+  }
+
+  modal.querySelectorAll('.modal-close').forEach(button=>{
+    if(!button.getAttribute('aria-label'))button.setAttribute('aria-label','Cerrar ventana');
+  });
+
+  const shell=document.querySelector('.social-shell');
+  const anyOpen=Boolean(openA11yModal());
+  if(shell){
+    if(anyOpen)shell.setAttribute('inert','');
+    else shell.removeAttribute('inert');
+  }
+
+  if(open&&focus){
+    if(!a11yDialogReturnFocus.has(modal) && document.activeElement instanceof HTMLElement){
+      a11yDialogReturnFocus.set(modal,document.activeElement);
+    }
+    queueMicrotask(()=>{
+      if(modal.classList.contains('hidden'))return;
+      if(modal.contains(document.activeElement))return;
+      if(heading){
+        heading.tabIndex=-1;
+        heading.focus({preventScroll:true});
+      }else{
+        visibleFocusable(modal)[0]?.focus({preventScroll:true});
+      }
+    });
+  }
+
+  if(!open){
+    const previous=a11yDialogReturnFocus.get(modal);
+    if(previous instanceof HTMLElement && previous.isConnected && !openA11yModal()){
+      queueMicrotask(()=>previous.focus({preventScroll:true}));
+    }
+    a11yDialogReturnFocus.delete(modal);
+  }
+}
+
+function initializeAccessibility(){
+  document.querySelectorAll('.view').forEach(view=>{
+    view.setAttribute('aria-hidden',view.classList.contains('hidden')?'true':'false');
+  });
+  document.querySelectorAll('[data-view]').forEach(button=>{
+    const current=button.classList.contains('active');
+    if(current)button.setAttribute('aria-current','page');
+    else button.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.modal').forEach(modal=>syncModalAccessibility(modal));
+  document.querySelectorAll('img:not([alt])').forEach(img=>img.setAttribute('alt',''));
+
+  const observer=new MutationObserver(records=>{
+    for(const record of records){
+      const modal=record.target;
+      if(modal instanceof HTMLElement && modal.classList.contains('modal')){
+        syncModalAccessibility(modal,{focus:!modal.classList.contains('hidden')});
+      }
+    }
+  });
+  document.querySelectorAll('.modal').forEach(modal=>observer.observe(modal,{attributes:true,attributeFilter:['class']}));
+}
+
+document.addEventListener('keydown',event=>{
+  const modal=openA11yModal();
+  if(!modal)return;
+
+  if(event.key==='Escape'){
+    const close=modal.querySelector('.modal-close');
+    if(close instanceof HTMLElement){
+      event.preventDefault();
+      close.click();
+    }
+    return;
+  }
+
+  const formField=event.target instanceof HTMLElement && (
+    ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName) ||
+    event.target.isContentEditable
+  );
+  if(modal.id==='storyViewerModal' && !formField && (event.key==='ArrowLeft'||event.key==='ArrowRight')){
+    const button=event.key==='ArrowLeft' ? $('#storyPrev') : $('#storyNext');
+    if(button && !button.disabled){
+      event.preventDefault();
+      button.click();
+    }
+    return;
+  }
+
+  if(event.key!=='Tab')return;
+  const items=visibleFocusable(modal);
+  if(!items.length){
+    event.preventDefault();
+    return;
+  }
+  const first=items[0],last=items[items.length-1];
+  if(!items.includes(document.activeElement)){
+    event.preventDefault();
+    (event.shiftKey?last:first).focus();
+  }else if(event.shiftKey && document.activeElement===first){
+    event.preventDefault();
+    last.focus();
+  }else if(!event.shiftKey && document.activeElement===last){
+    event.preventDefault();
+    first.focus();
+  }
+});
+
+initializeAccessibility();
+);
+ if(photoUrl && expected.test(photoUrl) && !$('#mediaFile')?.files?.length && !currentFileMedia){
+  const mediaPreview=$('#preview'),mediaFile=$('#mediaFile');
+  if(mediaPreview&&mediaFile){
+   const img=document.createElement('img');
+   img.src=photoUrl;
+   img.alt='Foto principal de '+d.item.title;
+   mediaPreview.replaceChildren(img);
+   mediaPreview.classList.remove('hidden');
+   $('#uploadText')?.classList.add('hidden');
+   $('#removePostMedia')?.classList.remove('hidden');
+   currentFileMedia={url:photoUrl,mediaType:'image',provider:'local',externalId:null,playbackUrl:null};
+  }
+ }
 }
 
 async function handleInitialDeepLink() {

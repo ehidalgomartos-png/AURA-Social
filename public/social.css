@@ -7793,3 +7793,6 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 /* V3.2.69: opt-in Marketplace sharing uses the existing publication editor. */
 .market-share-compose-hint-v3269{margin:4px 0 13px;padding:12px 13px;border:1px solid #a7d7ca;border-radius:12px;background:#eaf8f2;color:#124f47;font-size:13px;line-height:1.5}
 .market-share-compose-hint-v3269 a{display:inline-flex;min-height:44px;align-items:center;font-weight:800;color:#0b665b}
+
+/* V3.2.69.1 — Marketplace photo uses the existing composer image preview. */
+.preview img[src^="/marketplace/imagen/"]{display:block;max-width:100%;width:auto;height:auto;max-height:240px;margin-inline:auto;object-fit:contain;border-radius:11px}
