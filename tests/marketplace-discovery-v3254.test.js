@@ -33,7 +33,9 @@ test('Authenticated listing filters accept category and province as parameterize
 });
 test('Public listing displays province, real profile and WhatsApp/Facebook/copy links',()=>{
  const rendered=seo.listingHtml(sample);
- assert.match(rendered,/Valencia · Valencia/);
+ assert.match(rendered,/en Valencia/);
+ assert.doesNotMatch(rendered,/Valencia · Valencia/);
+ assert.match(seo.listingHtml({...sample,details:{...sample.details,province:'Castellón'}}),/Valencia · Castellón/);
  assert.match(rendered,/Tazas · Personalizadas/);
  assert.match(rendered,/href="\/perfil\/hidalgoValencia"/);
  assert.match(rendered,/api\.whatsapp\.com\/send\?text=/);
@@ -90,10 +92,10 @@ test('Public copy-link script restricts to our Marketplace URL',()=>{
 });
 test('Version and frontend caches match V3.2.60',()=>{
  const html=read('public/marketplace.html');
- assert.equal(JSON.parse(read('package.json')).version,'3.2.60');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.60'/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.60/);
- assert.match(html,/marketplace-v3250\.css\?v=3\.2\.60/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.61/);
+ assert.match(html,/marketplace-v3250\.css\?v=3\.2\.61/);
  const seoSource=read('src/routes/marketplace-seo-v3251.js');
- assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.60/);
+ assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.61/);
 });

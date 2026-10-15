@@ -30,10 +30,12 @@ const listingBase=z.object({
     rooms:z.number().int().min(0).max(100).optional(),
     subtype:z.string().trim().max(60).optional(),
     subcategory:z.string().trim().max(65).optional(),
-    province:z.string().trim().max(100).optional()
+    province:z.string().trim().max(100).optional(),
+    saleScope:z.enum(['local','national']).optional()
   }).strict().default({})
 }).strict();
 function checkKindDeal(v,ctx){
+  if(v.details?.saleScope && !(v.kind==='product'&&v.deal==='sale'))ctx.addIssue({code:'custom',path:['details','saleScope'],message:'La zona de venta se aplica solo a productos en venta'});
   if(v.kind==='service'&&v.deal!=='offer')ctx.addIssue({code:'custom',path:['deal'],message:'El servicio debe ser una oferta'});
   if(v.kind==='product'&&!['sale','buy'].includes(v.deal))ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona Venta o Compra / Busco'});
   if(v.kind==='property'&&!['sale','rent','buy'].includes(v.deal))ctx.addIssue({code:'custom',path:['deal'],message:'Selecciona venta, alquiler o compra'});

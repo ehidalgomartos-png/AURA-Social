@@ -187,3 +187,6 @@ body>.site-foot{margin-top:auto}
 .market-import-link a{display:block;border:1px solid #a9d8d1;background:#eff9f6;padding:12px 14px;min-height:45px;border-radius:12px;text-decoration:none;font-weight:800;color:#12665c}
 .market-import-link a:focus-visible{outline:3px solid #12766d;outline-offset:2px}
 .market-guest .market-import-link{display:none}
+
+/* V3.2.61: nationwide sale options are visible and touch-friendly. */
+#listingSaleScopeField{min-width:0}#listingSaleScopeField select{min-height:46px;width:100%;max-width:100%}#listingSaleScopeField small{display:block;margin-top:6px;line-height:1.55;color:var(--muted,#516572);font-weight:400}

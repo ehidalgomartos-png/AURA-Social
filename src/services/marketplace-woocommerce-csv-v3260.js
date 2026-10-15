@@ -43,7 +43,7 @@ function cents(value){
  const [whole,dec='']=n.split('.');const v=Number(whole)*100+Number(dec.padEnd(2,'0'));
  return Number.isSafeInteger(v)&&v<=99999999900?v:null;
 }
-const importOptions=z.object({city:z.string().trim().min(2).max(100),province:z.string().trim().max(100).optional().default('')}).strict();
+const importOptions=z.object({city:z.string().trim().min(2).max(100),province:z.string().trim().max(100).optional().default(''),saleScope:z.enum(['local','national']).optional()}).strict();
 function parseProduct(row,opts){
  const type=get(row,'Type','Tipo').toLowerCase().trim();
  const sku=get(row,'SKU');const wcId=get(row,'ID');
@@ -69,7 +69,7 @@ function parseProduct(row,opts){
  if(!urls.length)errors.push('El producto necesita al menos una imagen HTTPS');
  if(urls.some(u=>!/^https:\/\/[^\s]+$/i.test(u)||u.length>2000))errors.push('Las imágenes deben tener URL HTTPS válida');
  const condition=/nuevo|new/i.test(get(row,'Condition','Estado'))?'new':undefined;
- const listing={kind:'product',deal:'sale',title,description,category,city:opts.city,priceCents,images:[],details:{...(opts.province?{province:opts.province}:{}),...(condition?{condition}:{})}};
+ const listing={kind:'product',deal:'sale',title,description,category,city:opts.city,priceCents,images:[],details:{...(opts.province?{province:opts.province}:{}),...(condition?{condition}:{}),...(opts.saleScope?{saleScope:opts.saleScope}:{})}};
  return {line:row.line,key,title,priceCents,urls,listing,error:errors.join('; '),state:errors.length?'invalid':'pending'};
 }
 module.exports={csvRecords,parseProduct,importOptions,cents,MAX_ROWS,MAX_CSV_BYTES};
