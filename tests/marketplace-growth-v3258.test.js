@@ -20,11 +20,11 @@ const listing={
  image_urls:[],details:{condition:'new'},created_at:new Date().toISOString(),
  updated_at:new Date().toISOString(),seller_name:'Persona vendedora',seller_username:'ventas'
 };
-test('V3.2.60 cache bust, syntax, version and regression script',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.60');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.60'"));
- assert.ok(html.includes('marketplace-v3250.js?v=3.2.60'));
- assert.ok(source.includes('marketplace-seo-v3251.css?v=3.2.60'));
+test('V3.2.61 cache bust, syntax, version and regression script',()=>{
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.61'"));
+ assert.ok(html.includes('marketplace-v3250.js?v=3.2.61'));
+ assert.ok(source.includes('marketplace-seo-v3251.css?v=3.2.61'));
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.ok(read('.github/workflows/validate-js.yml').includes('test:marketplace-growth'));
 });

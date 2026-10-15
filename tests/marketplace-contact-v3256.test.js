@@ -8,11 +8,11 @@ const seo=require('../src/routes/marketplace-seo-v3251');
 const read=p=>fs.readFileSync(p,'utf8');
 const js=read('public/marketplace-v3250.js');
 const routeSource=read('src/routes/marketplace-seo-v3251.js');
-test('V3.2.60 JS syntax, version, cache and smoke wiring',()=>{
+test('V3.2.61 JS syntax, version, cache and smoke wiring',()=>{
  assert.doesNotThrow(()=>new vm.Script(js));
  const pkg=JSON.parse(read('package.json'));
- assert.equal(pkg.version,'3.2.60');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.60'/);
+ assert.equal(pkg.version,'3.2.61');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
  assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.60/);
  assert.match(read('public/marketplace.html'),/id="contactContext"/);
  assert.match(routeSource,/marketplace-seo-v3251\.css\?v=3\.2\.60/);
