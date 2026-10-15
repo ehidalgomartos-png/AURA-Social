@@ -19,7 +19,7 @@ test('V3.2.62 JS syntax, version, cache and smoke wiring',()=>{
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:marketplace-contact/);
 });
 test('Contact by listing ID checks active status, ownership and seller before creating a chat',async()=>{
- const start=js.indexOf('async function contactListing(id){');
+ const start=js.indexOf('async function contactListing(id,expectedSeller=');
  const end=js.indexOf('async function init(){',start);
  assert.ok(start>=0&&end>start);
  const calls=[],messages=[];
