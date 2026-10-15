@@ -76,9 +76,9 @@ test('mobile accessible controls and cache-busting release are aligned',()=>{
  assert.match(css,/\.market-catalog-card \.thumb\{position:relative;aspect-ratio:4\/3/);
  assert.match(css,/\.market-catalog-shortcuts button\{flex:none;min-height:44px/);
  assert.match(css,/@media\(max-width:600px\)/);
- assert.match(html,/marketplace-v3250\.css\?v=3\.2\.69/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.69/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
+ assert.match(html,/marketplace-v3250\.css\?v=3\.2\.70\.1/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.70\.1/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.70.1');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.70\.1'/);
  assert.doesNotThrow(()=>new vm.Script(js));
 });

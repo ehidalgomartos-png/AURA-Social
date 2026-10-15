@@ -114,12 +114,12 @@ test('safety on unavailable listing leaves the composer untouched',async()=>{
  assert.deepEqual(calls,['error']);
 });
 test('release wiring and media safety are intact',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
- assert.match(read('public/app.html'),/social\.js\?v=3\.2\.69/);
- assert.match(read('public/index.html'),/app\.js\?v=3\.2\.69/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.69/);
- assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.69/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.70.1');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.70\.1'/);
+ assert.match(read('public/app.html'),/social\.js\?v=3\.2\.70\.1/);
+ assert.match(read('public/index.html'),/app\.js\?v=3\.2\.70\.1/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.70\.1/);
+ assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.70\.1/);
  assert.match(read('public/manifest.webmanifest'),/"id": "\/app"/);
  assert.match(read('public/marketplace.html'),/marketSellerTools/);
 });
