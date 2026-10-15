@@ -89,7 +89,7 @@ test('refresher accounts for actual new IDs and keeps previous list / drafts',()
 test('version and CI updated without new server routes',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
- assert.match(html,/\/social\.js\?v=3\.2\.60/);
- assert.match(html,/\/social\.css\?v=3\.2\.60/);
+ assert.match(html,/\/social\.js\?v=3\.2\.61/);
+ assert.match(html,/\/social\.css\?v=3\.2\.61/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:new-comment-navigation/);
 });
