@@ -81,7 +81,7 @@ test('restoration notice is non-intrusive and version is wired',()=>{
   assert.match(css,/#commentsModal \.comment-draft-hint-v3235/);
   assert.match(css,/\.comment-draft-hint-v3235\.hidden\{display:none!important\}/);
   assert.equal(JSON.parse(read('package.json')).version,'3.2.64.1');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.64'/);
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.64\.1'/);
   assert.match(html,/\/social\.js\?v=3\.2\.63\.3/);
   assert.match(html,/\/social\.css\?v=3\.2\.63\.3/);
   assert.match(read('.github/workflows/validate-js.yml'),/npm run test:comment-drafts/);
