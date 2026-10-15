@@ -17,7 +17,9 @@ async function api(url,options={}){
 function displaySummary(s){
  if(!s)return;
  state.summary=s;
- $('summary').textContent='Total: '+s.total+' · Por importar: '+s.pending+' · Importados: '+s.imported+' · Duplicados: '+s.duplicate+' · No válidos: '+s.invalid+' · Fallidos: '+s.failed+' · Padres omitidos: '+(s.skipped||0);
+ $('confirmVariantPhotosRow').hidden=!(s.inheritedPhotos>0);
+ if(s.inheritedPhotos===0)$('confirmVariantPhotos').checked=false;
+ $('summary').textContent='Total: '+s.total+' · Por importar: '+s.pending+' · Importados: '+s.imported+' · Duplicados: '+s.duplicate+' · No válidos: '+s.invalid+' · Fallidos: '+s.failed+' · Padres omitidos: '+(s.skipped||0)+(s.inheritedPhotos?' · Variantes con foto heredada: '+s.inheritedPhotos:'');
  const completed=s.total-s.pending;
  $('bar').value=s.total?Math.round(completed*100/s.total):100;
  $('progressText').textContent=completed+' de '+s.total+' revisados · '+s.imported+' publicados correctamente'+(s.pending?'':' · Proceso terminado.');
@@ -77,7 +79,7 @@ $('importForm').addEventListener('submit',async e=>{
   const options={city,province,...(saleScope?{saleScope}:{})};
   const r=await api('/api/marketplace/import/preview',{method:'POST',body:JSON.stringify({csv,options})});
   if(!r.ok){msg(errorText[r.error]||'No se pudo previsualizar el archivo ('+(r.error||r.status)+').');return;}
-  state.id=r.id;state.confirmed=false;state.page=1;$('confirmRights').checked=false;
+  state.id=r.id;state.confirmed=false;state.page=1;$('confirmRights').checked=false;$('confirmVariantPhotos').checked=false;
   $('progress').hidden=true;$('startBtn').disabled=false;
   msg('Vista previa lista. Comprueba los productos y confirma cuando quieras.');
   await page(1);$('preview').scrollIntoView({behavior:'smooth'});
@@ -87,6 +89,7 @@ $('importForm').addEventListener('submit',async e=>{
 $('confirmBtn').addEventListener('click',async()=>{
  if(!state.id)return;
  if(!$('confirmRights').checked){msg('Confirma que tienes derecho a publicar los productos y sus fotografías.');return;}
+ if(state.summary?.inheritedPhotos>0&&!$('confirmVariantPhotos').checked){msg('Comprueba los acabados de las variantes que heredan fotografías y marca la confirmación correspondiente.');return;}
  if(!confirm('Se publicarán los productos válidos y se copiarán sus fotografías al VPS. ¿Confirmas la importación?'))return;
  $('confirmBtn').disabled=true;const r=await api('/api/marketplace/import/'+encodeURIComponent(state.id)+'/confirm',{method:'POST',body:'{}'});
  if(!r.ok){$('confirmBtn').disabled=false;msg(errorText[r.error]||'No se pudo confirmar.');return;}

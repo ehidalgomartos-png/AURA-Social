@@ -23,8 +23,10 @@ async function ensureImportSchema(){
 const limiter=rateLimit({windowMs:60*60*1000,max:30,standardHeaders:true,legacyHeaders:false});
 const stepsLimiter=rateLimit({windowMs:60*60*1000,max:500,standardHeaders:true,legacyHeaders:false});
 function summary(items){
- const counts={total:items.length,ready:0,invalid:0,duplicate:0,imported:0,failed:0,pending:0,skipped:0};
- for(const i of items){const key=i.state;if(key in counts)counts[key]++;if(key==='pending')counts.ready++;}
+ const counts={total:items.length,ready:0,invalid:0,duplicate:0,imported:0,failed:0,pending:0,skipped:0,inheritedPhotos:0};
+ for(const i of items){const key=i.state;if(key in counts)counts[key]++;if(key==='pending')counts.ready++;
+  if(key==='pending'&&i.warnings?.some(w=>w.startsWith('Fotografía heredada')))counts.inheritedPhotos++;
+ }
  counts.completed=counts.invalid+counts.duplicate+counts.imported+counts.failed+counts.skipped;
  return counts;
 }
