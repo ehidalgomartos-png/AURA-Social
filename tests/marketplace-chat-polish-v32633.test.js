@@ -32,7 +32,7 @@ test('V3.2.63.3: consult draft is offered once, not regenerated after message se
  assert.match(composer.value,/Taza Stitch Navideño/);
  assert.equal(composer.dispatched,1);
  assert.equal(inserted.length,1);
- assert.equal(chat.active,'market-chat-open-v32632');
+ assert.equal(chat.classList.active,'market-chat-open-v32632');
  composer.value='';
  await sandbox.showMarketplaceChatContextV32632('30',{username:'mundotaza'},false,[]);
  assert.equal(composer.value,'');
