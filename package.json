@@ -2,7 +2,7 @@
   "name": "redlibertad-social",
   "version": "3.2.66",
   "private": true,
-  "description": "RedLibertad V3.2.65 — Marketplace 4.0 Mobile Catalog",
+  "description": "RedLibertad V3.2.66 — Marketplace Public Mobile Cleanup",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

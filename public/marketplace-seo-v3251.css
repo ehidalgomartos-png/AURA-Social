@@ -121,3 +121,28 @@
 .market-seo-cardlink:focus-visible{outline:3px solid #087d71;outline-offset:3px}
 .market-seo-pagination{margin:18px 0 12px}
 @media(max-width:600px){.market-public-footer{padding:12px 10px 16px;gap:6px 16px}.market-public-footer span{flex-basis:100%;text-align:center}.market-seo-cardlink .market-card-cta{margin-top:0}}
+
+/* V3.2.66 — Two compact catalogue columns on common phones; full images and readable details. */
+.market-public-catalog{min-height:0}
+.market-public-catalog>main{flex:none;padding-bottom:12px}
+.market-public-catalog>.market-public-footer{margin-top:0}
+.market-public-grid .market-seo-cardlink{display:flex;flex-direction:column;height:100%}
+.market-public-grid .cardbody{display:flex;flex-direction:column;flex:1}
+.market-public-grid .market-card-cta{margin-top:auto}
+@media(max-width:600px){
+ .market-public-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .market-public-grid .card{min-width:0}
+ .market-public-grid .thumb{aspect-ratio:4/3;height:auto;min-height:0}
+ .market-public-grid .thumb img{display:block;width:100%;height:100%;object-fit:contain}
+ .market-public-grid .cardbody{padding:10px;gap:4px;min-width:0}
+ .market-public-grid .cardbody h2{font-size:13px;line-height:1.32;margin:5px 0 2px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+ .market-public-grid .market-seo-cardlink .price{font-size:18px;margin:3px 0}
+ .market-public-grid .cardbody .muted{font-size:11px;line-height:1.35;margin:3px 0 5px;overflow-wrap:anywhere}
+ .market-public-grid .market-seo-cardlink .market-card-cta{font-size:12px;min-height:38px}
+ .market-seo-pagination{margin:15px 0 8px}
+}
+@media(max-width:359px){
+ .market-public-grid{grid-template-columns:minmax(0,1fr)}
+ .market-public-grid .thumb{height:185px;aspect-ratio:auto}
+ .market-public-grid .cardbody h2{font-size:15px}
+}

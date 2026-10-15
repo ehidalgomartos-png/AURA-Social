@@ -43,3 +43,14 @@ test('SEO public discovery and product identity remain intact',()=>{
  assert.match(authPage,/marketSellerTools/);
  assert.match(authPage,/marketplace\/importar/);
 });
+
+test('Public catalogues use compact image-safe cards on mobile without altering listing detail',()=>{
+ assert.match(source,/class="cards market-public-grid"/);
+ assert.match(source,/bodyClass:'market-public-catalog'/);
+ assert.match(publicCss,/\.market-public-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:10px\}/);
+ assert.match(publicCss,/\.market-public-grid \.thumb\{aspect-ratio:4\/3;height:auto/);
+ assert.match(publicCss,/\.market-public-grid \.thumb img\{[^}]*object-fit:contain/);
+ assert.match(publicCss,/@media\(max-width:359px\)/);
+ assert.match(publicCss,/\.market-public-catalog>main\{flex:none/);
+ assert.match(source,/market-card-cta/);
+});

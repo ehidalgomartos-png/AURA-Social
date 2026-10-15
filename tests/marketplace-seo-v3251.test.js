@@ -85,6 +85,6 @@ test('Public Marketplace mobile operation filters never clip the last link',()=>
  assert.match(css,/@media\(max-width:600px\)\{\s*\.market-deals a\{/);
  assert.match(css,/\.market-deals a\{[^}]*min-width:0;[^}]*width:100%;[^}]*white-space:normal;[^}]*text-align:center;[^}]*\}/s);
  assert.match(css,/@media\(max-width:360px\)\{[^}]*\.market-deals a:last-child\{grid-column:1\/-1\}/s);
- assert.match(source,/marketplace-seo-v3251\.css\?v=3\.2\.63\.2&amp;nav=1/);
+ assert.match(source,/marketplace-seo-v3251\.css\?v=3\.2\.66/);
  assert.match(source,/Compra · Busco/);
 });
