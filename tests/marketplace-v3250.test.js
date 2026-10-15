@@ -9,7 +9,7 @@ test('V3.2.60 mounts marketplace without replacing existing social routes',()=>{
  const server=read('server.js');
  assert.match(server,/app\.use\('\/api\/marketplace',marketplaceRoutes\)/);
  assert.match(server,/app\.get\('\/marketplace',sendHtmlShell\('marketplace\.html'\)\)/);
- assert.match(server,/const APP_VERSION='3\.2\.66'/);
+ assert.match(server,/const APP_VERSION='3\.2\.67'/);
  assert.match(server,/app\.use\('\/api\/messages', messageRoutes\)/);
 });
 
