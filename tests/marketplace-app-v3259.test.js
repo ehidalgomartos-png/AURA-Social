@@ -9,8 +9,8 @@ const read=p=>fs.readFileSync(p,'utf8');
 const route=p=>seo.router.stack.find(x=>x.route?.path===p)?.route.stack[0].handle;
 const response=()=>({statusCode:200,body:null,headers:{},setHeader(k,v){this.headers[k]=v;return this;},type(v){this.contentType=v;return this;},send(v){this.body=v;return this;},status(v){this.statusCode=v;return this;},sendStatus(v){this.statusCode=v;return this;}});
 test('The Marketplace standalone installer is retired without altering the RedLibertad root PWA',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.67');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.67'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.68');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.68'"));
  const publicPage=read('src/routes/marketplace-seo-v3251.js');
  const signedPage=read('public/marketplace.html');
  assert.doesNotMatch(publicPage,/<link rel="manifest" href="\/marketplace\/manifest\.webmanifest">/);
