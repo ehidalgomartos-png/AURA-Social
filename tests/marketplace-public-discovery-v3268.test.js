@@ -8,7 +8,9 @@ const sample={
  id:40,title:'Armario Turin',kind:'product',deal:'sale',city:'Valencia',
  category:'Hogar y muebles',details:{province:'Comunidad Valenciana',saleScope:'national'},
  image_urls:['/uploads/armario.jpg'],price_cents:23500,
- created_at:'2026-10-15T17:00:00Z'
+ description:'Armario para organizar el hogar, con tres puertas y cajones.',
+ seller_username:'muebles',seller_name:'Muebles',status:'active',moderation_status:'published',seller_status:'active',seller_discoverable:true,
+ created_at:'2026-10-15T17:00:00Z',updated_at:'2026-10-15T17:00:00Z'
 };
 function response(){
  return {statusCode:200,html:'',setHeader(){return this;},type(){return this;},
