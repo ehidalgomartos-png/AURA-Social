@@ -10349,7 +10349,7 @@ async function handleInitialDeepLink() {
     }
     if(view==='messages' && conversation){
       const marketListing=String(params.get('marketListing')||'');
-      marketplaceChatListingPendingV32632=/^[1-9]\\d{0,15}$/.test(marketListing)?marketListing:null;
+      marketplaceChatListingPendingV32632=/^[1-9]\d{0,15}$/.test(marketListing)?marketListing:null;
       marketplaceChatTargetConversationV32632=null;
       await loadConversations(conversation);
     }
