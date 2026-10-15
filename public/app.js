@@ -35,10 +35,12 @@ function validPublicEntry(value){
     reel:{key:/^\d+$/,path:/^\/reel\/\d+(?:\/[a-z0-9-]{1,100})?$/},
     topic:{key:/^[a-z0-9-]{1,80}$/,path:/^\/tema\/[a-z0-9-]{1,80}$/},
     guide:{key:/^[a-z0-9-]{1,80}$/,path:/^\/guias\/[a-z0-9-]{1,80}$/},
-    story:{key:/^\d+$/,path:/^\/historia\/\d+$/}
+    story:{key:/^\d+$/,path:/^\/historia\/\d+$/},
+    marketplace_contact:{key:/^[1-9]\d{0,15}$/,path:/^\/marketplace\?contact=[A-Za-z0-9_.-]{3,30}&listing=[1-9]\d{0,15}$/}
   };
   const rule=patterns[type];
-  return rule&&rule.key.test(key)&&rule.path.test(path)&&
+  const validKeyPath=type!=='marketplace_contact'||path.endsWith('&listing='+key);
+  return rule&&rule.key.test(key)&&rule.path.test(path)&&validKeyPath&&
     (type!=='guide'||path==='/guias/'+key)?{type,key,path,ts:ts||Date.now()}:null;
 }
 function loadPublicEntry(){
@@ -51,6 +53,19 @@ function loadPublicEntry(){
   try{return validPublicEntry(JSON.parse(sessionStorage.getItem(PUBLIC_ENTRY_STORAGE)||'null'));}catch{return null;}
 }
 const publicEntry=loadPublicEntry();
+// Keep the listing in context and make existing login prominent after a Marketplace click.
+if(publicEntry?.type==='marketplace_contact'&&login){
+ const context=document.createElement('p');
+ context.className='marketplace-auth-return';
+ context.textContent='Accede para continuar tu consulta al vendedor. Volverás al mismo anuncio.';
+ login.insertBefore(context,login.querySelector('input'));
+ const back=document.createElement('a');
+ back.className='marketplace-auth-back';
+ back.href='/marketplace/p/'+encodeURIComponent(publicEntry.key);
+ back.textContent='← Volver al anuncio sin iniciar sesión';
+ login.appendChild(back);
+}
+
 function finishPublicEntry(serverPath=''){
   const path=publicEntry&&(!serverPath||serverPath===publicEntry.path)?publicEntry.path:'';
   if(path){
@@ -88,7 +103,7 @@ if(login)login.addEventListener('submit',async e=>{e.preventDefault();await subm
   const hiddenToken=register.querySelector('[name="referralToken"]');
   const notice=qs('#inviteNotice');
   if(notice&&publicEntry){
-    const labels={profile:'un perfil',post:'una publicación',community:'una comunidad',event:'un evento',reel:'un Reel',topic:'un tema',guide:'una guía',story:'una historia'};
+    const labels={profile:'un perfil',post:'una publicación',community:'una comunidad',event:'un evento',reel:'un Reel',topic:'un tema',guide:'una guía',story:'una historia',marketplace_contact:'la consulta del anuncio en Marketplace'};
     notice.innerHTML='<span class="invite-notice-avatar">↩</span><span>Continúa donde estabas.<small>Después de entrar o crear tu cuenta volverás a '+esc(labels[publicEntry.type]||'ese contenido')+'.</small></span>';
     notice.classList.remove('hidden');
   }
