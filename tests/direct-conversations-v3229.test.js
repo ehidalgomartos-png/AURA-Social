@@ -97,8 +97,8 @@ test('Notification toolbar and comments modal remain accessible on narrow screen
  assert.ok(css.includes('#commentsModal .comments-heading-v3229'));
  assert.ok(css.includes('min-height:44px'));
  assert.ok(css.includes('@media(max-width:420px)'));
- assert.ok(html.includes('/social.js?v=3.2.63.3'));
- assert.ok(html.includes('/social.css?v=3.2.63.3'));
+ assert.ok(html.includes('/social.js?v=3.2.69'));
+ assert.ok(html.includes('/social.css?v=3.2.69'));
 });
 test('Release, creator and 2:1 editorial feed remain unaffected',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
