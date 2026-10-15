@@ -125,6 +125,6 @@ test('el panel muestra las consecuencias y requiere confirmación escrita, tambi
  assert.ok(css.includes('editorial-source-removal-v3219'));
  assert.ok(css.includes('@media(max-width:620px)'));
  assert.ok(html.includes('/admin.js?v=3.2.63.2'));
- assert.ok(read('server.js').includes("APP_VERSION='3.2.69'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.70.1'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.70.1');
 });
