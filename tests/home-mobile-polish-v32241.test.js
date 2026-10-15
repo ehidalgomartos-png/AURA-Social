@@ -118,8 +118,8 @@ test('reglas CSS aplican solo al Inicio y en móvil, sin tocar publicaciones',()
  assert.ok(css.includes('@media(max-width:760px)'));
  assert.ok(css.includes('@media(max-width:390px)'));
  const app=read('public/app.html');
- assert.ok(app.includes('/social.css?v=3.2.63.3'));
- assert.ok(app.includes('/social.js?v=3.2.63.3'));
+ assert.ok(app.includes('/social.css?v=3.2.69'));
+ assert.ok(app.includes('/social.js?v=3.2.69'));
  assert.ok(app.includes('/editorial-home-v324.js?v=3.2.63.2'));
  assert.ok(app.includes('id="homeGrowthDetailsV3224"'));
 });
