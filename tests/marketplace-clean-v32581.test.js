@@ -18,11 +18,11 @@ function res(){
  type(){return this;},send(v){this.body=v;return this;}};
 }
 test('Hotfix release version, caches, scripts are valid',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.67');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.67'"));
- assert.ok(market.includes('/marketplace-v3250.js?v=3.2.67'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.68');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.68'"));
+ assert.ok(market.includes('/marketplace-v3250.js?v=3.2.68'));
  assert.ok(app.includes('/social.css?v=3.2.63.3'));
- assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.67'));
+ assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.68'));
  assert.doesNotThrow(()=>new vm.Script(script));
  assert.doesNotThrow(()=>new vm.Script(returnScript));
 });
@@ -71,7 +71,7 @@ test('Public catalogue search is compact and keeps parameterized safe filters',a
  assert.ok(publicSeo.includes('class="market-public-search"'));
  assert.ok(publicSeo.includes('<details class="market-public-advanced"'));
  assert.ok(publicSeo.includes("advanced?' open'"));
- assert.ok(publicSeo.includes('const searching=Boolean(q||city||kind||sort'));
+ assert.ok(publicSeo.includes('const searching=Boolean(q||city||kind||category||nationalOnly||maxPrice!==null||sort'));
  const fn=route('/marketplace/explorar');assert.equal(typeof fn,'function');
  const original=db.query;
  db.query=async()=>({rowCount:0,rows:[]});

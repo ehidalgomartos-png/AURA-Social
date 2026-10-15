@@ -29,4 +29,11 @@ function publicLocation(row){
  return [text(row?.city),text(row?.details?.province)]
   .filter((v,i,a)=>v&&a.findIndex(x=>normalize(x)===normalize(v))===i).join(' · ');
 }
-module.exports={isSpain,nationalSale,originLocation,coverageLabel,publicLocation};
+// Card label only; details retain origin and full sale coverage.
+function catalogLocation(row){
+ if(nationalSale(row))return coverageLabel(row);
+ const city=text(row?.city);
+ if(city&&!isSpain(city))return city;
+ return originLocation(row)||publicLocation(row);
+}
+module.exports={isSpain,nationalSale,originLocation,coverageLabel,publicLocation,catalogLocation};

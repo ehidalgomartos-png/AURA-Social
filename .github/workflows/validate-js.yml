@@ -34,6 +34,8 @@ jobs:
         run: npm run test:marketplace-mobile-clean
       - name: V3.2.67 mobile product labels and descriptions
         run: npm run test:marketplace-readability
+      - name: V3.2.68 public categories, nationwide sale and search quality
+        run: npm run test:marketplace-public-discovery
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests
