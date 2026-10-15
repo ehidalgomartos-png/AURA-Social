@@ -538,7 +538,7 @@ async function init(){
  // Recheck the listing, seller, owner and publication status before redirecting to chat.
  const contactParams=new URLSearchParams(location.search);
  const wantedSeller=contactParams.get('contact'),wantedListing=contactParams.get('listing');
- if(/^[A-Za-z0-9_.-]{3,30}$/.test(String(wantedSeller||''))&&/^[1-9]\\d{0,15}$/.test(String(wantedListing||''))){
+ if(/^[A-Za-z0-9_.-]{3,30}$/.test(String(wantedSeller||''))&&/^[1-9]\d{0,15}$/.test(String(wantedListing||''))){
   const opened=await contactListing(wantedListing,wantedSeller);
   if(opened)return;
  }
