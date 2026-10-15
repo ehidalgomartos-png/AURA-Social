@@ -7,7 +7,7 @@ const db=require('../db');
 // Resolve schema on request, after the parent Marketplace router is fully initialized.
 const listingSchema=()=>require('./marketplace-v3250').listingInput;
 const {csvRecords,parseProduct,importOptions,MAX_CSV_BYTES}=require('../services/marketplace-woocommerce-csv-v3260');
-const {saveImages,eraseFiles}=require('../services/marketplace-import-photos-v3260');
+const {saveImages,eraseFiles,imageFailureCode}=require('../services/marketplace-import-photos-v3260');
 const router=express.Router();
 let prepared=null;
 async function ensureImportSchema(){
@@ -114,7 +114,7 @@ router.post('/:id/step',stepsLimiter,async(req,res,next)=>{
     if(!linked.rowCount){await client.query('DELETE FROM marketplace_listings WHERE id=$1 AND seller_id=$2',[id,req.user.id]);item.state='duplicate';item.error='Producto importado en otra sesión';}
     else{item.state='imported';item.listingId=id;}
    }catch(e){
-    if(/^(image_|invalid_import_listing)/.test(e.message)){item.state='failed';item.error='No se pudo importar: '+e.message.slice(0,80);}
+    if(e.message==='invalid_import_listing'||!String(e.code||'').startsWith('PG')){item.state='failed';item.error='No se pudo importar: '+(e.message==='invalid_import_listing'?'invalid_import_listing':imageFailureCode(e));}
     else throw e;
    }
   }
@@ -126,6 +126,7 @@ router.post('/:id/step',stepsLimiter,async(req,res,next)=>{
  }catch(e){
   if(client)await client.query('ROLLBACK').catch(()=>{});
   if(files.length)await eraseFiles(files);
+  console.error('Marketplace CSV step error:',{code:e.code||'unknown',message:e.message,batchId:req.params.id});
   next(e);
  }finally{client?.release();}
 });
