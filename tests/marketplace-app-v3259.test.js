@@ -8,21 +8,22 @@ const {icon}=require('../src/marketplace-icons-v3259');
 const read=p=>fs.readFileSync(p,'utf8');
 const route=p=>seo.router.stack.find(x=>x.route?.path===p)?.route.stack[0].handle;
 const response=()=>({statusCode:200,body:null,headers:{},setHeader(k,v){this.headers[k]=v;return this;},type(v){this.contentType=v;return this;},send(v){this.body=v;return this;},status(v){this.statusCode=v;return this;},sendStatus(v){this.statusCode=v;return this;}});
-test('Independent marketplace release: separate manifest and valid PWA scripts',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.65');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.65'"));
- for(const file of ['public/marketplace-pwa-v3259.js','public/marketplace-sw-v3259.js'])assert.doesNotThrow(()=>new vm.Script(read(file)));
+test('The Marketplace standalone installer is retired without altering the RedLibertad root PWA',()=>{
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.66');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.66'"));
+ const publicPage=read('src/routes/marketplace-seo-v3251.js');
+ const signedPage=read('public/marketplace.html');
+ assert.doesNotMatch(publicPage,/<link rel="manifest" href="\/marketplace\/manifest\.webmanifest">/);
+ assert.doesNotMatch(signedPage,/<link rel="manifest" href="\/marketplace\/manifest\.webmanifest">/);
+ assert.doesNotMatch(publicPage,/<script src="\/marketplace-pwa-v3259\.js/);
+ assert.doesNotMatch(signedPage,/<script src="\/marketplace-pwa-v3259\.js/);
  assert.ok(read('public/manifest.webmanifest').includes('"id": "/app"'));
- assert.ok(read('public/marketplace.html').includes('href="/marketplace/manifest.webmanifest"'));
- assert.ok(read('src/routes/marketplace-seo-v3251.js').includes('<link rel="manifest" href="/marketplace/manifest.webmanifest"'));
- const out=response();route('/marketplace/manifest.webmanifest')({},out);
- const manifest=JSON.parse(out.body);
- assert.equal(manifest.id,'/marketplace');assert.equal(manifest.scope,'/marketplace');
- assert.equal(manifest.start_url,'/marketplace/explorar');assert.equal(manifest.display,'standalone');
- assert.equal(manifest.short_name,'Marketplace');
- assert.deepEqual(manifest.icons.map(i=>i.sizes),['192x192','512x512']);
- assert.ok(manifest.icons.every(i=>i.src.startsWith('/marketplace/icon-')&&i.type==='image/png'));
- assert.ok(read('public/marketplace-pwa-v3259.js').includes("scope:'/marketplace'"));
+ assert.match(publicPage,/marketplace-pwa-retire-v3266\.js/);
+ assert.match(signedPage,/marketplace-pwa-retire-v3266\.js/);
+ const retired=read('public/marketplace-pwa-retire-v3266.js');
+ assert.doesNotThrow(()=>new vm.Script(retired));
+ assert.match(retired,/registration\.scope===oldScope/);
+ assert.match(retired,/registration\.unregister\(\)/);
 });
 test('Marketplace icon endpoints produce true 192/512 PNG with unique icon data',()=>{
  const handler=route('/marketplace/icon-:size.png');assert.equal(typeof handler,'function');
