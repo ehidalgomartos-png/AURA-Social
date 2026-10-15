@@ -78,3 +78,6 @@
 .market-publish-actions{display:grid;gap:8px}
 .market-publish-actions a{display:inline-flex;justify-content:center;align-items:center;min-height:44px;text-decoration:none;text-align:center}
 .market-publish-actions .secondary{border:1px solid #bad7d3;color:#12675b;background:white;border-radius:11px;padding:10px 12px;font-weight:800;font-size:13px}
+
+/* V3.2.61: origin and sale coverage remain legible on narrow screens. */
+.market-seo-item section>p strong{font-weight:750}
