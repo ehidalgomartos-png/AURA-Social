@@ -58,7 +58,7 @@ test('Gallery, other chats, privacy and accessibility remain intact',()=>{
  assert.match(social,/if\(!listingId\|\|isGroup/);
  assert.match(social,/marketplaceChatTargetConversationV32632!==String\(conversationId\)/);
  assert.match(social,/if\(String\(activeConversationId\)!==String\(conversationId\)/);
- assert.match(social,/class="market-chat-context-v32632"/);
+ assert.match(social,/card\.className='market-chat-context-v32632'/);
  assert.match(social,/data-conversation-setting/);
  assert.match(social,/class="message-attachment-tools-v32632"/);
  assert.match(social,/id="messageFile"/);
