@@ -86,6 +86,7 @@ router.post('/:id/confirm',limiter,async(req,res,next)=>{
   await ensureImportSchema();const b=await batch(req,res);if(!b)return;
   if(new Date(b.expires_at)<new Date())return res.status(410).json({error:'preview_expired'});
   if(!b.items.some(i=>i.state==='pending'))return res.status(400).json({error:'no_products_to_import'});
+  if(summary(b.items).inheritedPhotos>0&&req.body?.ackInheritedPhotos!==true)return res.status(400).json({error:'variant_image_confirmation_required'});
   await db.query('UPDATE marketplace_import_batches SET confirmed=true WHERE id=$1 AND seller_id=$2',[b.id,req.user.id]);
   res.json({ok:true,id:b.id,summary:summary(b.items)});
  }catch(e){next(e);}
