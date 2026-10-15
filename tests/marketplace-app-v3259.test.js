@@ -9,8 +9,8 @@ const read=p=>fs.readFileSync(p,'utf8');
 const route=p=>seo.router.stack.find(x=>x.route?.path===p)?.route.stack[0].handle;
 const response=()=>({statusCode:200,body:null,headers:{},setHeader(k,v){this.headers[k]=v;return this;},type(v){this.contentType=v;return this;},send(v){this.body=v;return this;},status(v){this.statusCode=v;return this;},sendStatus(v){this.statusCode=v;return this;}});
 test('Independent marketplace release: separate manifest and valid PWA scripts',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63.1');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.63.1'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.63.2'"));
  for(const file of ['public/marketplace-pwa-v3259.js','public/marketplace-sw-v3259.js'])assert.doesNotThrow(()=>new vm.Script(read(file)));
  assert.ok(read('public/manifest.webmanifest').includes('"id": "/app"'));
  assert.ok(read('public/marketplace.html').includes('href="/marketplace/manifest.webmanifest"'));
