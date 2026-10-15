@@ -11,15 +11,15 @@ const routeSource=read('src/routes/marketplace-seo-v3251.js');
 test('V3.2.62 JS syntax, version, cache and smoke wiring',()=>{
  assert.doesNotThrow(()=>new vm.Script(js));
  const pkg=JSON.parse(read('package.json'));
- assert.equal(pkg.version,'3.2.63.1');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.1'/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.63\.1/);
+ assert.equal(pkg.version,'3.2.63.2');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.2'/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.63\.2/);
  assert.match(read('public/marketplace.html'),/id="contactContext"/);
- assert.match(routeSource,/marketplace-seo-v3251\.css\?v=3\.2\.63\.1/);
+ assert.match(routeSource,/marketplace-seo-v3251\.css\?v=3\.2\.63\.2/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:marketplace-contact/);
 });
 test('Contact by listing ID checks active status, ownership and seller before creating a chat',async()=>{
- const start=js.indexOf('async function contactListing(id){');
+ const start=js.indexOf('async function contactListing(id,expectedSeller=');
  const end=js.indexOf('async function init(){',start);
  assert.ok(start>=0&&end>start);
  const calls=[],messages=[];
@@ -39,7 +39,7 @@ test('Contact by listing ID checks active status, ownership and seller before cr
  vm.runInContext(extracted,sandbox);
  await vm.runInContext('contactListing("25")',sandbox);
  assert.deepEqual(calls.map(a=>a[0]),['/api/marketplace/25','/api/messages/conversations']);
- assert.match(sandbox.location.href,/conversation=41$/);
+ assert.equal(sandbox.location.href,'/app?view=messages&conversation=41&marketListing=25');
  calls.length=0;item.seller_id=8;sandbox.location.href='';
  await vm.runInContext('contactListing("25")',sandbox);
  assert.deepEqual(calls.map(a=>a[0]),['/api/marketplace/25']);

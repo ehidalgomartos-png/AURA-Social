@@ -170,6 +170,8 @@ jobs:
         run: npm run test:recovery
       - name: Observability and reliability regression tests
         run: npm run test:observability
+      - name: V3.2.63.2 Direct Marketplace contact, contextual chat and editable draft
+        run: npm run test:marketplace-chat-context
       - name: V3.2.63.1 Single visible Marketplace CTA, safe login return and contact context
         run: npm run test:marketplace-contact-return
       - name: V3.2.63 Marketplace product detail gallery, mobile contact and SEO safety

@@ -6,7 +6,7 @@ const seo=require('../src/routes/marketplace-seo-v3251');
 const read=path=>fs.readFileSync(path,'utf8');
 const example={id:5,title:'Taza Roblox',description:'Taza del videojuego Roblox para regalar a aficionados de los personajes.',kind:'product',deal:'sale',category:'Tazas',city:'España',price_cents:1599,details:{province:'España'},image_urls:[],seller_username:'mundotaza',seller_name:'Mundotaza',status:'active',moderation_status:'published',seller_status:'active',seller_discoverable:true,created_at:'2026-10-15T09:00:00.000Z',updated_at:'2026-10-15T09:00:00.000Z'};
 
-test('V3.2.63.1 shows only one contact CTA: sticky fallback is hidden until the primary leaves viewport',()=>{
+test('V3.2.63.2 shows only one contact CTA: sticky fallback is hidden until the primary leaves viewport',()=>{
  const html=seo.listingHtml(example);
  assert.match(html,/class="primary market-product-contact" href="\/marketplace\?contact=mundotaza&amp;listing=5"/);
  assert.match(html,/class="market-mobile-contact" aria-label="Consulta sobre el producto" hidden/);
@@ -19,7 +19,7 @@ test('V3.2.63.1 shows only one contact CTA: sticky fallback is hidden until the 
  assert.match(js,/observer\.observe\(primary\)/);
  assert.doesNotThrow(()=>new vm.Script(js));
 });
-test('V3.2.63.1 strictly validates contact return path, seller and listing; rejects foreign and mismatched destinations',()=>{
+test('V3.2.63.2 strictly validates contact return path, seller and listing; rejects foreign and mismatched destinations',()=>{
  const js=read('public/app.js');
  const start=js.indexOf('function validPublicEntry(value){'),end=js.indexOf('function loadPublicEntry(){',start);
  assert.ok(start>=0&&end>start);
@@ -34,7 +34,7 @@ test('V3.2.63.1 strictly validates contact return path, seller and listing; reje
  assert.equal(valid('5','/marketplace?contact=mundotaza&listing=5&other=1'),null);
  assert.equal(valid('0','/marketplace?contact=mundotaza&listing=0'),null);
 });
-test('V3.2.63.1 seller and listing are preserved through signup and login, but never auto-send a message',()=>{
+test('V3.2.63.2 seller and listing are preserved through signup and login, but never auto-send a message',()=>{
  const auth=read('src/routes/auth.js');
  assert.match(auth,/PUBLIC_ENTRY_TYPES=new Set\(\[[^\]]*'marketplace_contact'/);
  assert.match(auth,/type==='marketplace_contact'&&!path\.endsWith\('&listing='\+key\)/);
@@ -54,7 +54,7 @@ test('V3.2.63.1 seller and listing are preserved through signup and login, but n
  assert.doesNotThrow(()=>new vm.Script(client));
  assert.doesNotThrow(()=>new vm.Script(marketplace));
 });
-test('V3.2.63.1 mobile guest contact is focused, readable and has an explicit back link',()=>{
+test('V3.2.63.2 mobile guest contact is focused, readable and has an explicit back link',()=>{
  const css=read('public/marketplace-v3250.css');
  assert.match(css,/\.market-contact-context \.market-contact-login:visited/);
  assert.match(css,/color:#fff!important/);
@@ -64,6 +64,6 @@ test('V3.2.63.1 mobile guest contact is focused, readable and has an explicit ba
  assert.match(marketplace,/Volver a la ficha del anuncio/);
  assert.match(marketplace,/me\.status===401&&\/\^\[1-9\]/);
  const index=read('public/index.html');
- assert.match(index,/\/app\.js\?v=3\.2\.63\.1/);
- assert.match(index,/\/styles\.css\?v=3\.2\.63\.1/);
+ assert.match(index,/\/app\.js\?v=3\.2\.63\.2/);
+ assert.match(index,/\/styles\.css\?v=3\.2\.63\.2/);
 });

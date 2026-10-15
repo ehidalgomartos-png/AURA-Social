@@ -18,11 +18,11 @@ function res(){
  type(){return this;},send(v){this.body=v;return this;}};
 }
 test('Hotfix release version, caches, scripts are valid',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63.1');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.63.1'"));
- assert.ok(market.includes('/marketplace-v3250.js?v=3.2.63.1'));
- assert.ok(app.includes('/social.css?v=3.2.63.1'));
- assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.63.1'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.63.2');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.63.2'"));
+ assert.ok(market.includes('/marketplace-v3250.js?v=3.2.63.2'));
+ assert.ok(app.includes('/social.css?v=3.2.63.2'));
+ assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.63.2'));
  assert.doesNotThrow(()=>new vm.Script(script));
  assert.doesNotThrow(()=>new vm.Script(returnScript));
 });
@@ -55,7 +55,7 @@ test('Marketplace -> RedLibertad -> Marketplace navigation is explicit',()=>{
  assert.ok(market.includes('view=explore&amp;marketReturn=1'));
  assert.ok(app.includes('id="marketReturnLink"'));
  assert.ok(app.includes('href="/marketplace">← Volver al Marketplace'));
- assert.ok(app.includes('/marketplace-return-v32581.js?v=3.2.63.1'));
+ assert.ok(app.includes('/marketplace-return-v32581.js?v=3.2.63.2'));
  assert.ok(appStyle.includes('.market-return-link-v32581'));
  assert.ok(returnScript.includes("params.get('marketReturn')!=='1'"));
  const target={classList:{removed:[],remove(x){this.removed.push(x);}}};

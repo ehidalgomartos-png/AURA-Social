@@ -1,0 +1,75 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+const read=p=>fs.readFileSync(p,'utf8');
+const js=read('public/marketplace-v3250.js'),social=read('public/social.js');
+test('Marketplace V3.2.63.2: buyer intent validates listing then opens its seller chat directly',async()=>{
+ const start=js.indexOf('async function contactListing(id,expectedSeller=');
+ const end=js.indexOf('function marketplaceLoginEntry(',start);
+ assert.ok(start>=0&&end>start);
+ const calls=[];
+ const item={id:5,kind:'product',deal:'sale',seller_id:12,seller_username:'mundotaza',status:'active',moderation_status:'published'};
+ const sandbox={window:{currentUserId:4},location:{href:''},note(){},alert(){},
+  encodeURIComponent,request:async(url,opts)=>{
+   calls.push([url,opts?.method||'GET']);
+   if(url==='/api/marketplace/5')return {ok:true,item};
+   if(url==='/api/messages/conversations')return {ok:true,conversationId:30};
+   return {ok:false};
+  }};
+ vm.createContext(sandbox);vm.runInContext(js.slice(start,end),sandbox);
+ await vm.runInContext("contactListing('5','mundotaza')",sandbox);
+ assert.deepEqual(calls.map(x=>x[0]),['/api/marketplace/5','/api/messages/conversations']);
+ assert.equal(sandbox.location.href,'/app?view=messages&conversation=30&marketListing=5');
+ calls.length=0;sandbox.location.href='';
+ await vm.runInContext("contactListing('5','other_seller')",sandbox);
+ assert.deepEqual(calls.map(x=>x[0]),['/api/marketplace/5']);
+ assert.equal(sandbox.location.href,'');
+ calls.length=0;item.seller_id=4;
+ await vm.runInContext("contactListing('5','mundotaza')",sandbox);
+ assert.equal(calls.length,1);
+ calls.length=0;item.seller_id=12;item.status='paused';
+ await vm.runInContext("contactListing('5','mundotaza')",sandbox);
+ assert.equal(calls.length,1);
+});
+test('Authenticated Marketplace contact flow redirects before loading unrelated listing tools',()=>{
+ const start=js.indexOf('async function init(){'),end=js.indexOf("$$('[data-kind]')",start);
+ const body=js.slice(start,end);
+ assert.ok(body.includes('const opened=await contactListing(wantedListing,wantedSeller);'));
+ assert.ok(body.indexOf('if(opened)return;')<body.indexOf('await load();'));
+ assert.match(body,/updateMarketplaceAuth\('signed-in'\)/);
+ assert.match(body,/marketplaceLoginEntry\(contactSeller,contactId\)/);
+});
+test('Chat context is server-validated, not built from URL text and never auto-sends',()=>{
+ const helper=social.slice(social.indexOf('async function showMarketplaceChatContextV32632('),social.indexOf('let openConversationSequenceV3244=',social.indexOf('async function showMarketplaceChatContextV32632(')));
+ assert.match(helper,/api\('\/api\/marketplace\/'\+encodeURIComponent\(listingId\)\)/);
+ assert.match(helper,/item\.status!=='active'/);
+ assert.match(helper,/item\.moderation_status!=='published'/);
+ assert.match(helper,/String\(item\.seller_username\|\|''\)\.toLowerCase\(\)!==String\(other\.username\)\.toLowerCase\(\)/);
+ assert.match(helper,/String\(item\.seller_id\)===String\(me\?\.id\)/);
+ assert.match(helper,/if\(!composer\.value\.trim\(\)\)/);
+ assert.match(helper,/composer\.value='Hola, me interesa/);
+ assert.match(helper,/marketplace\/p\/'\+item\.id/);
+ assert.doesNotMatch(helper,/\/api\/messages\/conversations\/.*\/messages/);
+ assert.match(helper,/Draft only: the buyer must still explicitly tap "Enviar"/);
+ assert.match(social,/marketplaceChatListingPendingV32632=\/\^\[1-9\]\\d\{0,15\}\$\/\.test\(marketListing\)/);
+});
+test('Gallery, other chats, privacy and accessibility remain intact',()=>{
+ assert.match(social,/if\(!listingId\|\|isGroup/);
+ assert.match(social,/marketplaceChatTargetConversationV32632!==String\(conversationId\)/);
+ assert.match(social,/if\(String\(activeConversationId\)!==String\(conversationId\)/);
+ assert.match(social,/card\.className='market-chat-context-v32632'/);
+ assert.match(social,/data-conversation-setting/);
+ assert.match(social,/class="message-attachment-tools-v32632"/);
+ assert.match(social,/id="messageFile"/);
+ assert.match(social,/id="messageLevel"/);
+ assert.match(social,/id="messagePreview"/);
+ assert.match(social,/id="messageBody"/);
+ assert.match(social,/id="messageSendFeedbackV3244"/);
+ assert.match(social,/\$\('#messageForm'\)\.onsubmit=sendMessage/);
+ assert.doesNotThrow(()=>new vm.Script(social));
+ const css=read('public/social.css');
+ assert.match(css,/\.market-chat-context-v32632/);
+ assert.match(css,/\.message-attachment-tools-v32632>summary/);
+ assert.match(css,/@media\(max-width:760px\)/);
+});
