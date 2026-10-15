@@ -84,6 +84,6 @@ test('navigation integration preserves existing chat, draft and logout behavior'
 test('V3.2.60 has its own cache key and CI smoke gate',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
- assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.60/);
+ assert.match(read('public/app.html'),/\/social\.js\?v=3\.2\.61/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-browser-back/);
 });

@@ -68,7 +68,7 @@ test('recipient choices display safe text, never HTML, and do not open somebody 
 test('V3.2.61 version, cache-busting and CI contract',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
- assert.match(html,/\/social\.js\?v=3\.2\.60/);
- assert.match(html,/\/social\.css\?v=3\.2\.60/);
+ assert.match(html,/\/social\.js\?v=3\.2\.61/);
+ assert.match(html,/\/social\.css\?v=3\.2\.61/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:mobile-messages/);
 });
