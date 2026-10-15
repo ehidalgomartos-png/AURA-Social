@@ -65,7 +65,9 @@ $('importForm').addEventListener('submit',async e=>{
  $('previewBtn').disabled=true;msg('Leyendo y validando el archivo…');
  try{
   const csv=await file.text();
-  const r=await api('/api/marketplace/import/preview',{method:'POST',body:JSON.stringify({csv,options:{city,province}})});
+  const saleScope=$('importSaleScope').value;
+  const options={city,province,...(saleScope?{saleScope}:{})};
+  const r=await api('/api/marketplace/import/preview',{method:'POST',body:JSON.stringify({csv,options})});
   if(!r.ok){msg(errorText[r.error]||'No se pudo previsualizar el archivo ('+(r.error||r.status)+').');return;}
   state.id=r.id;state.confirmed=false;state.page=1;$('confirmRights').checked=false;
   $('progress').hidden=true;$('startBtn').disabled=false;
