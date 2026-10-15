@@ -39,7 +39,7 @@ test('Inicio pone publicaciones antes de paneles secundarios y elimina la secci√
   assert.ok(html.includes('id="homeGrowthHeadlineV3224"'));
   assert.ok(html.includes('editorial-interleave-v3224.js?v=3.2.24'));
   assert.ok(html.indexOf('/editorial-interleave-v3224.js?v=3.2.24') <
-    html.indexOf('/editorial-home-v324.js?v=3.2.61'));
+    html.indexOf('/editorial-home-v324.js?v=3.2.62'));
 });
 test('las noticias son tarjetas en el feed, no publicaciones falsas ni im√°genes externas',()=>{
   const script=read('public/editorial-home-v324.js');
