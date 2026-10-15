@@ -33,7 +33,9 @@ test('Authenticated listing filters accept category and province as parameterize
 });
 test('Public listing displays province, real profile and WhatsApp/Facebook/copy links',()=>{
  const rendered=seo.listingHtml(sample);
- assert.match(rendered,/Valencia · Valencia/);
+ assert.match(rendered,/en Valencia/);
+ assert.doesNotMatch(rendered,/Valencia · Valencia/);
+ assert.match(seo.listingHtml({...sample,details:{...sample.details,province:'Castellón'}}),/Valencia · Castellón/);
  assert.match(rendered,/Tazas · Personalizadas/);
  assert.match(rendered,/href="\/perfil\/hidalgoValencia"/);
  assert.match(rendered,/api\.whatsapp\.com\/send\?text=/);
