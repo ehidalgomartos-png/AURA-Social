@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.64.3",
+  "version": "3.2.65",
   "private": true,
-  "description": "RedLibertad V3.2.64.3 — Marketplace Tab Navigation Hotfix",
+  "description": "RedLibertad V3.2.65 — Marketplace 4.0 Mobile Catalog",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -33,6 +33,7 @@
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
+    "test:marketplace-catalog": "node --test tests/marketplace-catalog-v3265.test.js",
     "test:startup-router": "node --test tests/server-router-wiring-v32421.test.js",
     "test:legal": "node --test tests/legal-consent-timeline.test.js tests/legal-consent-receipt.test.js tests/legal-consent-readable.test.js tests/legal-consent-filters.test.js tests/legal-status-overview.test.js",
     "test:smoke": "node --test tests/stability-*.test.js",

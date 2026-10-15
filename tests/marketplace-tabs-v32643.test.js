@@ -21,7 +21,7 @@ test('All three Marketplace tabs update UI state and request the correct content
  const end=src.indexOf('function syncKind(){',start);
  assert.ok(start>0&&end>start);
  const calls=[];
- const context={state,$,$$,load:()=>{calls.push(state.mode);return Promise.resolve();}};
+ const context={state,$,$$,updateQuickFiltersV3265:()=>{},load:()=>{calls.push(state.mode);return Promise.resolve();}};
  vm.createContext(context);
  vm.runInContext(src.slice(start,end),context);
  for(const [mode,visibleTools,hiddenFilters] of [
@@ -43,8 +43,8 @@ test('Marketplace async responses cannot overwrite a newer tab',()=>{
  assert.match(src,/if\(state.mode==='reports'\)/);
 });
 test('Client bundle cache is invalidated for V3.2.64.3 and release version matches',()=>{
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.64\.3/);
- assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version,'3.2.64.3');
- assert.match(fs.readFileSync('server.js','utf8'),/APP_VERSION='3\.2\.64\.3'/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.65/);
+ assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version,'3.2.65');
+ assert.match(fs.readFileSync('server.js','utf8'),/APP_VERSION='3\.2\.65'/);
  assert.doesNotThrow(()=>new vm.Script(src));
 });
