@@ -50,9 +50,9 @@ test('Discovery filters are hidden in personal tabs and empty states have CTAs',
  assert.match(seo,/Todavía no hay anuncios públicos/);
 });
 test('Version and cache invalidation stay aligned',()=>{
- assert.equal(require('../package.json').version,'3.2.63');
- assert.match(fs.readFileSync('server.js','utf8'),/APP_VERSION='3\.2\.63'/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.63/);
- assert.match(html,/marketplace-v3250\.css\?v=3\.2\.63/);
- assert.match(seo,/marketplace-share-v3254\.js\?v=3\.2\.63/);
+ assert.equal(require('../package.json').version,'3.2.63.1');
+ assert.match(fs.readFileSync('server.js','utf8'),/APP_VERSION='3\.2\.63\.1'/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.63\.1/);
+ assert.match(html,/marketplace-v3250\.css\?v=3\.2\.63\.1/);
+ assert.match(seo,/marketplace-share-v3254\.js\?v=3\.2\.63\.1/);
 });
