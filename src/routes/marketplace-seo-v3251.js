@@ -102,7 +102,7 @@ function listingHtml(row,related=[]){
  const location=locality(row),origin=originLocation(row),coverage=coverageLabel(row),sellerLink='/perfil/'+encodeURIComponent(row.seller_username);
  const isProductSale=row.kind==='product'&&row.deal==='sale';
  const contactHref='/marketplace?contact='+encodeURIComponent(row.seller_username)+'&listing='+encodeURIComponent(row.id);
- const contactText=row.deal==='buy'?'Contactar con quien busca':'Consultar al vendedor';
+ const contactText=row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante';
  const otherAdsLink='/marketplace/vendedor/'+encodeURIComponent(row.seller_username);
  const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
  const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
