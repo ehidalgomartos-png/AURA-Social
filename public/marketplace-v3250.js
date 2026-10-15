@@ -465,6 +465,15 @@ function showPublishShare(id,title){
   '<button type="button" class="secondary" data-copy-published="'+esc(url)+'">Copiar enlace</button></div>';
  box.classList.remove('hidden');
 }
+function marketDescriptionHtmlV3267(value){
+ const text=String(value??'').replace(/\r\n?/g,'\n').replace(/\\r\\n|\\n|\\r/g,'\n').trim();
+ if(text.length<=650)return '<p class="market-private-description">'+esc(text)+'</p>';
+ const chunk=text.slice(0,530),space=chunk.lastIndexOf(' '),line=chunk.lastIndexOf('\n');
+ const at=line>=290?line:space>=340?space:530;
+ return '<div class="market-private-description"><p>'+esc(text.slice(0,at).trimEnd())+'</p>'+
+  '<details><summary>Leer descripción completa</summary><p>'+esc(text.slice(at).trimStart())+'</p></details></div>';
+}
+
 function details(item){
  const images=(item.image_urls||[]).filter(u=>/^\/uploads\/[A-Za-z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(u));
  const mine=String(item.seller_id)===String(window.currentUserId);
@@ -475,7 +484,7 @@ function details(item){
  (images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+
  '</div><p><span class="chip market-deal-'+esc(item.deal)+'">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO')+'</span></p>'+
  '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc(marketDisplayLocation(item))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
- '<p>'+esc(item.description)+'</p>'+(listingFacts(item).length?'<div class="market-facts">'+listingFacts(item).map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>':'')+'<p class="muted">Publicado por '+seller+'</p><div class="actions">'+
+ marketDescriptionHtmlV3267(item.description)+(listingFacts(item).length?'<div class="market-facts">'+listingFacts(item).map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>':'')+'<p class="muted">Publicado por '+seller+'</p><div class="actions">'+
  (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button>':'')+
  (mine?'':'<button class="primary" type="button" data-contact-id="'+esc(item.id)+'">Contactar por chat</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
  (publicOK&&sellerOK?'<a class="market-seller-more" href="/marketplace/vendedor/'+encodeURIComponent(item.seller_username)+'">Ver otros anuncios de esta persona</a>':'')+
