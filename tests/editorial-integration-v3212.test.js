@@ -62,7 +62,7 @@ test('explorar desde Inicio son tarjetas editoriales y solo llevan a noticias ex
   assert.match(social,/@media\(max-width:790px\)/);
   const app=read('public/app.html');
   assert.match(app,/id="editorialHomeBlock"/);
-  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.60/);
+  assert.match(app,/editorial-home-v324\.js\?v=3\.2\.61/);
 });
 test('comentarios sociales siguen con moderación, identidad real y mejora de legibilidad móvil',()=>{
   const client=read('public/editorial-social-v324.js');
