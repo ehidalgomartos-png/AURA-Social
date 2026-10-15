@@ -81,3 +81,32 @@
 
 /* V3.2.61: origin and sale coverage remain legible on narrow screens. */
 .market-seo-item section>p strong{font-weight:750}
+
+
+/* V3.2.63: accessible product photo navigation and conversion-focused detail. */
+.market-listing-gallery{min-width:0;margin:15px 0}
+.market-listing-gallery .gallery{margin:0;scroll-padding-inline:0;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+.market-listing-gallery .gallery img{margin:0}
+.market-gallery-controls{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 4px}
+.market-gallery-controls button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:48px;padding:8px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--navy);font-size:21px;cursor:pointer}
+.market-gallery-controls button:disabled{opacity:.4;cursor:default}
+.market-gallery-controls button:focus-visible,.market-product-contact:focus-visible,.market-mobile-contact a:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.market-gallery-controls output{font-size:13px;font-weight:750;color:var(--muted)}
+.market-product-offer{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 16px;border:1px solid var(--border);border-radius:16px;background:#f6faf9;padding:16px 18px;margin:14px 0 20px}
+.market-product-offer-label{display:block;font-size:12px;color:var(--muted);font-weight:750}
+.market-product-offer .price{margin:3px 0 0;font-size:31px}
+.market-product-contact{min-height:48px;text-align:center;white-space:normal;line-height:1.3}
+.market-contact-note{grid-column:1/-1;color:var(--muted);font-size:12px;line-height:1.5;margin:0}
+.market-mobile-contact{display:none}
+@media(max-width:600px){
+ .market-listing-gallery{margin:12px 0}
+ .market-listing-gallery .gallery img{height:260px;min-height:0}
+ .market-product-offer{grid-template-columns:1fr;padding:14px}
+ .market-product-contact{width:100%}
+ .market-product-offer .price{font-size:29px}
+ .market-mobile-contact{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:6;align-items:center;gap:11px;justify-content:space-between;background:#fff;border-top:1px solid #d3e1df;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 25px #102b3916}
+ .market-mobile-contact span{font-size:18px;white-space:nowrap;font-weight:850;color:var(--navy)}
+ .market-mobile-contact a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:9px 13px;flex:1;max-width:280px;text-decoration:none;text-align:center;border-radius:12px;background:#0d8074;color:#fff;font-size:13px;font-weight:800;line-height:1.25}
+ main:has(.market-mobile-contact){padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:360px){.market-mobile-contact a{font-size:12px;padding:8px}.market-mobile-contact span{font-size:16px}}
