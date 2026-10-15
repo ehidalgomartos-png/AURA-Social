@@ -24,7 +24,7 @@ test('V3.2.63.3: consult draft is offered once, not regenerated after message se
  const draftSet=new Set();
  const item={id:5,kind:'product',deal:'sale',status:'active',moderation_status:'published',seller_username:'mundotaza',seller_id:12,title:'Taza Stitch Navideño',price_cents:1599,image_urls:['/uploads/taza.jpg']};
  const sandbox={marketplaceChatListingPendingV32632:'5',marketplaceChatTargetConversationV32632:null,marketplaceChatDraftedSessionsV32633:draftSet,activeConversationId:'30',me:{id:4},encodeURIComponent,
- api:async()=>({r:{ok:true},d:{item}}),document:{createElement:()=>({})},
+ api:async()=>({r:{ok:true},d:{item}}),document:{createElement:()=>({setAttribute(){}})},
  '$':k=>el[k],esc:s=>String(s),Event:class Event{},String,Array,Number,Set,RegExp};
  vm.createContext(sandbox);
  vm.runInContext(social.slice(start,end),sandbox);
