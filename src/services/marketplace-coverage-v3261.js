@@ -17,7 +17,7 @@ function originLocation(row){
  return [city,province].filter((v,i,a)=>v&&!isSpain(v)&&a.findIndex(x=>normalize(x)===normalize(v))===i).join(' · ');
 }
 function coverageLabel(row){
- if(nationalSale(row))return 'Venta y envíos a toda España';
+ if(nationalSale(row))return 'Venta disponible en toda España';
  if(row?.kind==='product'&&row?.deal==='sale'&&row.details?.saleScope==='local')return 'Venta en la zona indicada';
  return '';
 }
