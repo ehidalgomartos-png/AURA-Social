@@ -118,7 +118,10 @@ router.get('/',wrap(async(req,res)=>{
   if(query){args.push('%'+query+'%');clauses.push('(l.title ILIKE $'+args.length+' OR l.description ILIKE $'+args.length+' OR l.category ILIKE $'+args.length+')');}
   if(city){args.push('%'+city+'%');clauses.push('l.city ILIKE $'+args.length);}
   if(province){args.push('%'+province+'%');clauses.push("COALESCE(l.details->>'province','') ILIKE $"+args.length);}
-  if(category){args.push(category);clauses.push('l.category=
+  if(category){args.push(category);clauses.push('l.category=$'+args.length);}
+  if(nationwide){
+    clauses.push("l.kind='product' AND l.deal='sale' AND (l.details->>'saleScope'='national' OR (COALESCE(l.details->>'saleScope','')='' AND LOWER(l.city) IN ('españa','espana') AND LOWER(COALESCE(l.details->>'province','')) IN ('españa','espana')))");
+  }
   if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
   args.push(24,(page-1)*24);
   const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY '+SORTS[sort]+' LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
