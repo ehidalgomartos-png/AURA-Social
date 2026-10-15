@@ -5,6 +5,7 @@ const path=require('path');
 const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const {icon:marketplaceIcon}=require('../marketplace-icons-v3259');
+const {publicLocation,originLocation,coverageLabel,nationalSale}=require('../services/marketplace-coverage-v3261');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const PAGE_SIZE=2000;
@@ -17,7 +18,7 @@ function listingPath(row){return '/marketplace/p/'+encodeURIComponent(row.id)+'/
 function imagePath(row,index){return '/marketplace/imagen/'+encodeURIComponent(row.id)+'/'+index;}
 function imagePaths(row){return (Array.isArray(row.image_urls)?row.image_urls:[]).slice(0,6).map((v,i)=>validImage(v)?ORIGIN+imagePath(row,i):null).filter(Boolean);}
 function seoDescription(row){return String(row.description||'').replace(/(?:\s*(?:WhatsApp|Facebook|Twitter)){2,}\s*$/i,'').replace(/\s+/g,' ').trim();}
-function locality(row){return [row.city,row.details?.province].filter(Boolean).join(' · ');}
+function locality(row){return publicLocation(row);}
 function price(row){return (Number(row.price_cents||0)/100).toFixed(2);}
 function displayPrice(row){return (Number(row.price_cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
 const RECENT_MS=7*24*60*60*1000;
@@ -53,6 +54,7 @@ function entitySchema(row,url,images){
  const details=row.details&&typeof row.details==='object'?row.details:{};
  if(row.kind==='product'){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
+   if(nationalSale(row))offer.areaServed={'@type':'Country',name:'España'};
    return {...data,'@type':'Product',offers:offer};
  }
  if(row.kind==='service')return {...data,'@type':'Service',serviceType:row.category,areaServed:{'@type':'Place',name:details.serviceArea||row.city},offers:offer};
@@ -97,7 +99,7 @@ function listingHtml(row,related=[]){
  const url=ORIGIN+listingPath(row),images=imagePaths(row);
  const gallery=images.length?'<section class="gallery" aria-label="Fotografías del anuncio">'+images.map((image,i)=>'<img loading="'+(i?'lazy':'eager')+'" src="'+esc(image)+'" alt="'+esc('Fotografía '+(i+1)+' de '+row.title)+'">').join('')+'</section>':'';
  const date=new Date(row.created_at).toISOString(),updated=new Date(row.updated_at).toISOString();
- const location=locality(row),sellerLink='/perfil/'+encodeURIComponent(row.seller_username);
+ const location=locality(row),origin=originLocation(row),coverage=coverageLabel(row),sellerLink='/perfil/'+encodeURIComponent(row.seller_username);
  const otherAdsLink='/marketplace/vendedor/'+encodeURIComponent(row.seller_username);
  const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
  const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
@@ -106,14 +108,15 @@ function listingHtml(row,related=[]){
  '<p class="muted">'+esc(category)+' · '+esc(location)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
  gallery+'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>'+
  '<section><h2>Descripción</h2><p class="market-seo-description">'+esc(row.description)+'</p></section>'+
- '<section><h2>Ubicación</h2><p>'+esc(location)+'</p></section>'+
+ '<section><h2>'+(coverage?'Origen y ámbito de venta':'Ubicación')+'</h2>'+(
+   coverage?(origin?'<p><strong>Origen:</strong> '+esc(origin)+'</p>':'')+'<p><strong>Ámbito de venta:</strong> '+esc(coverage)+'</p>':'<p>'+esc(location)+'</p>')+'</section>'+
  (listingFacts(row).length?'<section class="market-fact-section"><h2>Datos del anuncio</h2><dl class="market-seo-facts">'+listingFacts(row).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl></section>':'')+
  '<section><h2>'+(row.deal==='buy'?'Persona que busca':'Vendedor o anunciante')+'</h2><p><a class="seller-profile-link" href="'+esc(sellerLink)+'">'+esc(row.seller_name||row.seller_username)+'</a></p><p><a class="market-seller-more" href="'+esc(otherAdsLink)+'">Ver otros anuncios de esta persona →</a></p></section>'+
  '<div class="market-seo-actions"><a class="primary" href="/marketplace?contact='+encodeURIComponent(row.seller_username)+'&amp;listing='+encodeURIComponent(row.id)+'">'+(row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante')+'</a><a class="secondary" href="/marketplace/explorar">Ver más anuncios</a></div>'+
  '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
  '<p class="muted">Consulta el perfil público del anunciante y confirma la información antes de acordar un pago o envío. RedLibertad no procesa pagos ni garantiza las transacciones.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>'+
  (related.length?'<section class="market-related" aria-label="Anuncios relacionados"><h2>También te puede interesar</h2><p>Otros anuncios públicos de una categoría o ubicación similar.</p><div class="cards">'+related.map(listingCard).join('')+'</div></section>':'');
- return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+' en '+location+' | RedLibertad Marketplace').slice(0,155),
+ return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+(nationalSale(row)?' | Venta en toda España':' en '+location)+' | RedLibertad Marketplace').slice(0,155),
  description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
  canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images)});
 }
