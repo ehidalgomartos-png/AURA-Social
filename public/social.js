@@ -10363,7 +10363,25 @@ async function prepareMarketplaceCommunityShareV3269(id){
  // Use the same publicly gated image as the listing, not a duplicate upload.
  // The existing composer submit still requires an explicit user action.
  const photoUrl=String(d.item.imageUrl||'');
- const expected=new RegExp('^/marketplace/imagen/'+id+'/[0-5] {
+ const prefix='/marketplace/imagen/'+id+'/';
+ const photoIndex=photoUrl.startsWith(prefix)?photoUrl.slice(prefix.length):'';
+ const safePhoto=photoIndex.length===1 && '012345'.includes(photoIndex);
+ if(safePhoto && !$('#mediaFile')?.files?.length && !currentFileMedia){
+  const mediaPreview=$('#preview'),mediaFile=$('#mediaFile');
+  if(mediaPreview&&mediaFile){
+   const img=document.createElement('img');
+   img.src=photoUrl;
+   img.alt='Foto principal de '+d.item.title;
+   mediaPreview.replaceChildren(img);
+   mediaPreview.classList.remove('hidden');
+   $('#uploadText')?.classList.add('hidden');
+   $('#removePostMedia')?.classList.remove('hidden');
+   currentFileMedia={url:photoUrl,mediaType:'image',provider:'local',externalId:null,playbackUrl:null};
+  }
+ }
+}
+
+async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
   const post = params.get('post');
