@@ -205,3 +205,15 @@ body>.site-foot{margin-top:auto}
 .market-utility-menu .market-pwa-install{margin:0;border:0;background:transparent;box-shadow:none;padding:5px 0;gap:10px}
 .market-utility-menu .market-pwa-install button{font-size:13px}
 @media(max-width:560px){.market-seller-tools{align-items:flex-start;flex-direction:column;gap:2px}.market-seller-import-link{width:100%}.market-utility-menu .market-pwa-install{grid-template-columns:1fr}}
+
+
+/* V3.2.63.1: focused Marketplace guest contact with legible actions. */
+.market-contact-context .market-contact-login,
+.market-contact-context .market-contact-login:link,
+.market-contact-context .market-contact-login:visited{display:flex;width:100%;align-items:center;justify-content:center;text-align:center;min-height:50px;border:0;border-radius:12px;background:#087d71!important;color:#fff!important;font-size:16px;font-weight:850;text-decoration:none;line-height:1.4}
+.market-contact-context .market-contact-login:hover{background:#096c62!important}
+.market-contact-context .market-contact-login:focus-visible,
+.market-contact-context .market-contact-back:focus-visible{outline:3px solid #0d2238;outline-offset:3px}
+.market-contact-back{display:flex;min-height:44px;align-items:center;justify-content:center;text-align:center;color:#0d655c;font-size:14px;font-weight:750;margin-top:8px;text-underline-offset:3px}
+.market-contact-guest .hero,.market-contact-guest #marketQuickStart,.market-contact-guest .market-seo-catalog-link{display:none!important}
+.market-contact-guest .market-contact-context{margin-top:12px}
