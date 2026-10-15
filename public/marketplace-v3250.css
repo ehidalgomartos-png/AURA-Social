@@ -253,3 +253,9 @@ body>.site-foot{margin-top:auto}
 
 /* V3.2.66 — Keep seller tools and ordinary footer, remove retired standalone install spacing. */
 .site-foot:not(.market-public-footer){padding-top:14px;padding-bottom:18px}
+
+/* V3.2.67 — seller-side detail keeps full product text easy to read. */
+.market-private-description{line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.market-private-description details{white-space:normal}
+.market-private-description details summary{min-height:44px;display:inline-flex;align-items:center;cursor:pointer;font-weight:800;color:#086c60}
+.market-private-description details p{white-space:pre-wrap}

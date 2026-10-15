@@ -45,6 +45,7 @@ function csvRecords(csv){
  if(!['nombre','name','product name','nombre del producto','titulo','titulo del producto'].some(name=>cols.includes(name)))throw new Error('csv_not_woocommerce');
  return records.map((cells,i)=>({line:i+2,cells,columns:cols}));
 }
+const {readableDescription}=require('./marketplace-description-v3267');
 function normalize(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[¿?]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
 function get(row,...names){for(const n of names){const i=row.columns.indexOf(normalize(n));if(i>=0)return String(row.cells[i]||'').trim();}return '';}
 function clean(v){return String(v||'').replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/\s+/g,' ').trim();}
@@ -95,8 +96,8 @@ function parseProduct(row,opts,parents=null){
  const ownName=clean(get(row,'Name','Nombre','Product name','Nombre del producto','Título','Titulo','Título del producto'));
  const parentName=parent?clean(get(parent,'Name','Nombre','Product name','Nombre del producto')):'';
  const title=ownName||parentName;
- const ownDescription=clean(get(row,'Description','Descripción')||get(row,'Short description','Descripción corta'));
- const parentDescription=parent?clean(get(parent,'Description','Descripción')||get(parent,'Short description','Descripción corta')):'';
+ const ownDescription=clean(readableDescription(get(row,'Description','Descripción')||get(row,'Short description','Descripción corta')));
+ const parentDescription=parent?clean(readableDescription(get(parent,'Description','Descripción')||get(parent,'Short description','Descripción corta'))):'';
  const suffix=parentName&&title.toLowerCase().startsWith(parentName.toLowerCase())
    ?title.slice(parentName.length).replace(/^[\s–—-]+/,'').trim():title;
  const warnings=[];

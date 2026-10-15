@@ -76,5 +76,5 @@ test('decode happens before metadata extraction with existing network limits and
  assert.match(source,/decodeHtmlBufferV32491\(Buffer\.concat\(chunks\),mime\)/);
  for(const guard of ['pinnedAddressLookup(ip)','MAX_PAGE_BYTES','res.statusCode','image_is_metadata_only',
   "'Accept-Encoding':'identity'"])assert.ok(source.includes(guard),guard);
- assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname,'../package.json'),'utf8')).version,'3.2.66');
+ assert.equal(JSON.parse(fs.readFileSync(path.join(__dirname,'../package.json'),'utf8')).version,'3.2.67');
 });

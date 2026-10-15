@@ -146,3 +146,25 @@
  .market-public-grid .thumb{height:185px;aspect-ratio:auto}
  .market-public-grid .cardbody h2{font-size:15px}
 }
+
+/* V3.2.67 — Larger readable card titles, compact horizontal badges, full images. */
+.market-public-grid .market-card-labels{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-height:22px}
+.market-public-grid .market-card-labels .chip{margin:0;padding:4px 7px;font-size:10px;line-height:1.25}
+.market-public-grid .market-seo-cardlink .cardbody h2{overflow-wrap:anywhere}
+.market-description-section{margin:20px 0}
+.market-description-section>h2{margin:0 0 10px}
+.market-description-section .market-seo-description{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.58;margin:0}
+.market-description-expand{margin-top:9px}
+.market-description-expand>summary{cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:8px 13px;border:1px solid #b8ded5;border-radius:11px;color:#095f55;background:#edf8f4;font-size:14px;font-weight:800;list-style:revert}
+.market-description-expand[open]>summary{margin-bottom:12px}
+.market-description-expand>summary:focus-visible{outline:3px solid #0f7d72;outline-offset:2px}
+@media(max-width:600px){
+ .market-public-grid .cardbody{padding:11px;gap:5px}
+ .market-public-grid .cardbody h2{font-size:15px;line-height:1.32;margin:6px 0 3px;-webkit-line-clamp:4}
+ .market-public-grid .market-seo-cardlink .price{font-size:19px;line-height:1.25}
+ .market-public-grid .cardbody .muted{font-size:12px;line-height:1.45}
+ .market-public-grid .market-seo-cardlink .market-card-cta{font-size:13px;min-height:44px}
+ .market-related .cards.market-public-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:359px){.market-related .cards.market-public-grid{grid-template-columns:minmax(0,1fr)}}
+
