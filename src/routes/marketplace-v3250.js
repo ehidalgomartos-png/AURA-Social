@@ -109,6 +109,7 @@ router.get('/',wrap(async(req,res)=>{
   const category=String(req.query.category||'').trim().slice(0,65);
   const maxPrice=String(req.query.maxPrice||'').trim();
   const sort=Object.hasOwn(SORTS,req.query.sort)?req.query.sort:'recent';
+  const nationwide=req.query.saleScope==='national';
   const page=Math.min(20,Math.max(1,Number.parseInt(req.query.page,10)||1));
   const args=[req.user.id];
   const clauses=[visibleToUser,"l.status='active'"];
@@ -117,7 +118,130 @@ router.get('/',wrap(async(req,res)=>{
   if(query){args.push('%'+query+'%');clauses.push('(l.title ILIKE $'+args.length+' OR l.description ILIKE $'+args.length+' OR l.category ILIKE $'+args.length+')');}
   if(city){args.push('%'+city+'%');clauses.push('l.city ILIKE $'+args.length);}
   if(province){args.push('%'+province+'%');clauses.push("COALESCE(l.details->>'province','') ILIKE $"+args.length);}
-  if(category){args.push(category);clauses.push('l.category=$'+args.length);}
+  if(category){args.push(category);clauses.push('l.category=
+  if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
+  args.push(24,(page-1)*24);
+  const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY '+SORTS[sort]+' LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
+  res.json({ok:true,items:items.rows,page,hasMore:items.rows.length===24});
+}));
+
+// Private diagnostics for this signed-in seller: not a public Merchant feed.
+router.get('/google-readiness',wrap(async(req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ const rows=await db.query("SELECT l.id,l.kind,l.deal,l.title,l.description,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,u.status AS seller_status,u.discoverable AS seller_discoverable FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.seller_id=$1 ORDER BY l.updated_at DESC LIMIT 251",[req.user.id]);
+ const items=rows.rows.slice(0,250).map(googleV3264.auditProduct);
+ res.json({ok:true,merchantFeedEnabled:false,merchantCheckoutAvailable:false,partial:rows.rows.length>250,
+   summary:googleV3264.summary(items),items});
+}));
+router.get('/mine',wrap(async(req,res)=>{
+  const result=await db.query('SELECT '+cardFields+joins+' WHERE l.seller_id=$1 ORDER BY l.created_at DESC LIMIT 200',[req.user.id]);
+  res.json({ok:true,items:result.rows});
+}));
+router.get('/favorites',wrap(async(req,res)=>{
+  const result=await db.query('SELECT '+cardFields+joins+' JOIN marketplace_favorites fav ON fav.listing_id=l.id AND fav.user_id=$1 WHERE '+visibleToUser+' AND l.status=\'active\' ORDER BY fav.created_at DESC LIMIT 200',[req.user.id]);
+  res.json({ok:true,items:result.rows});
+}));
+
+router.get('/admin/reports',wrap(async(req,res)=>{
+  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
+  const rows=await db.query('SELECT r.id,r.reason,r.details,r.created_at,r.listing_id,l.title,l.moderation_status,reporter.username AS reporter FROM marketplace_reports r JOIN marketplace_listings l ON l.id=r.listing_id JOIN users reporter ON reporter.id=r.reporter_id WHERE r.resolved_at IS NULL ORDER BY r.created_at DESC LIMIT 100');
+  res.json({ok:true,reports:rows.rows});
+}));
+router.post('/admin/:id/moderate',wrap(async(req,res)=>{
+  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const action=req.body?.action;
+  if(!['hide','restore','resolve'].includes(action))return res.status(400).json({error:'invalid_action'});
+  if(action==='resolve'){
+    await db.query('UPDATE marketplace_reports SET resolved_at=now() WHERE listing_id=$1 AND resolved_at IS NULL',[req.params.id]);
+  }else{
+    const status=action==='hide'?'hidden':'published';
+    const result=await db.query('UPDATE marketplace_listings SET moderation_status=$2,updated_at=now() WHERE id=$1 RETURNING id',[req.params.id,status]);
+    if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+    await db.query('UPDATE marketplace_reports SET resolved_at=now() WHERE listing_id=$1 AND resolved_at IS NULL',[req.params.id]);
+  }
+  res.json({ok:true});
+}));
+
+router.get('/:id',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const result=await db.query('SELECT '+cardFields+joins+' WHERE l.id=$2 AND (l.seller_id=$1 OR $3::boolean OR ('+visibleToUser+" AND l.status IN ('active','reserved','sold')))",[req.user.id,req.params.id,!!req.user.isAdmin]);
+  if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true,item:result.rows[0]});
+}));
+
+router.post('/',rateLimit({windowMs:60*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),wrap(async(req,res)=>{
+  const parsed=listingInput.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
+  const v=parsed.data;
+  const r=await db.query('INSERT INTO marketplace_listings (seller_id,kind,deal,title,description,category,city,price_cents,image_urls,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb) RETURNING id',[req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details)]);
+  res.status(201).json({ok:true,id:r.rows[0].id});
+}));
+
+router.patch('/:id',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const parsed=listingUpdateInput.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
+  const v=parsed.data;
+  const r=await db.query("UPDATE marketplace_listings SET kind=$3,deal=$4,title=$5,description=$6,category=$7,city=$8,price_cents=$9,image_urls=$10::jsonb,details=$11::jsonb,status=$12,updated_at=now() WHERE id=$1 AND seller_id=$2 RETURNING id",[req.params.id,req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details),v.status]);
+  if(!r.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true});
+}));
+
+// Owner-only quick status actions: preserve moderation status.
+router.patch('/:id/status',wrap(async(req,res)=>{
+ if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+ const parsed=z.object({status:z.enum(STATUSES)}).strict().safeParse(req.body);
+ if(!parsed.success)return res.status(400).json({error:'invalid_status'});
+ const row=await db.query('UPDATE marketplace_listings SET status=$3,updated_at=now() WHERE id=$1 AND seller_id=$2 RETURNING id,status',[req.params.id,req.user.id,parsed.data.status]);
+ if(!row.rowCount)return res.status(404).json({error:'listing_not_found'});
+ res.json({ok:true,id:row.rows[0].id,status:row.rows[0].status});
+}));
+router.delete('/:id',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const result=await db.query('DELETE FROM marketplace_listings WHERE id=$1 AND seller_id=$2 RETURNING id',[req.params.id,req.user.id]);
+  if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true});
+}));
+router.post('/:id/favorite',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const result=await db.query('INSERT INTO marketplace_favorites(user_id,listing_id) SELECT $1,l.id FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$2 AND l.seller_id<>$1 AND '+visibleToUser+" AND l.status='active' ON CONFLICT DO NOTHING RETURNING listing_id",[req.user.id,req.params.id]);
+  if(!result.rowCount){
+    const check=await db.query('SELECT 1 FROM marketplace_favorites WHERE user_id=$1 AND listing_id=$2',[req.user.id,req.params.id]);
+    if(!check.rowCount)return res.status(404).json({error:'listing_not_available'});
+  }
+  res.json({ok:true});
+}));
+router.delete('/:id/favorite',wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  await db.query('DELETE FROM marketplace_favorites WHERE user_id=$1 AND listing_id=$2',[req.user.id,req.params.id]);
+  res.json({ok:true});
+}));
+router.post('/:id/report',rateLimit({windowMs:60*60*1000,max:25,standardHeaders:true,legacyHeaders:false}),wrap(async(req,res)=>{
+  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+  const parsed=reportInput.safeParse(req.body);
+  if(!parsed.success)return res.status(400).json({error:'invalid_report'});
+  const result=await db.query('INSERT INTO marketplace_reports(listing_id,reporter_id,reason,details) SELECT id,$2,$3,$4 FROM marketplace_listings WHERE id=$1 AND seller_id<>$2 ON CONFLICT (listing_id,reporter_id) DO UPDATE SET reason=EXCLUDED.reason,details=EXCLUDED.details,created_at=now(),resolved_at=NULL RETURNING id',[req.params.id,req.user.id,parsed.data.reason,parsed.data.details]);
+  if(!result.rowCount)return res.status(404).json({error:'listing_not_found'});
+  res.json({ok:true});
+}));
+
+router.use((err,_req,res,_next)=>{
+  console.error('Marketplace error:',err);
+  if(!res.headersSent)res.status(500).json({error:'marketplace_unavailable'});
+});
+module.exports=router;
+module.exports.ensureMarketplaceSchema=ensureMarketplaceSchema;
+module.exports.DDL=DDL;
+module.exports.marketplaceSchemaMiddleware=marketplaceSchemaMiddleware;
+module.exports.listingInput=listingInput;
+module.exports.listingUpdateInput=listingUpdateInput;
+module.exports.checkKindDeal=checkKindDeal;
+
++args.length);}
+  if(nationwide){
+    clauses.push("l.kind='product' AND l.deal='sale' AND (l.details->>'saleScope'='national' OR (COALESCE(l.details->>'saleScope','')='' AND LOWER(l.city) IN ('españa','espana') AND LOWER(COALESCE(l.details->>'province','')) IN ('españa','espana')))");
+  }
   if(maxPrice && /^\d{1,9}$/.test(maxPrice)){args.push(Number(maxPrice)*100);clauses.push('l.price_cents<=$'+args.length);}
   args.push(24,(page-1)*24);
   const items=await db.query('SELECT '+cardFields+joins+' WHERE '+clauses.join(' AND ')+' ORDER BY '+SORTS[sort]+' LIMIT $'+(args.length-1)+' OFFSET $'+args.length,args);
