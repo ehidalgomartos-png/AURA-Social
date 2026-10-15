@@ -95,7 +95,7 @@ test('V3.2.60 preserves public filters, conversations and stable publishing',()=
  assert.match(routes,/sourceLabelV3249/);
  assert.match(routes,/pub\.unpublished_at IS NULL AND ep\.status='ready'/);
  assert.match(routes,/editorial-social-v324\.js\?v=3\.2\.63\.2/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-social-polish/);
 });
