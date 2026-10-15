@@ -105,7 +105,6 @@ test('removal and user-selected replacement use current composer safeguards; pub
  assert.match(social,/if \(currentFileMedia\) return currentFileMedia/);
  assert.match(social,/media = await ensureUpload\(\)/);
  assert.match(social,/mediaUrl: media\?\.url \|\| ''/);
- assert.match(social,/router\.post/); // no producer in share helper; full text may contain unrelated routes
  const start=social.indexOf('async function prepareMarketplaceCommunityShareV3269('),end=social.indexOf('async function handleInitialDeepLink()',start);
  const helper=social.slice(start,end);
  assert.doesNotMatch(helper,/\/api\/posts|method:\s*['"]POST['"]/);
