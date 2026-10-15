@@ -119,6 +119,21 @@ function slugifyMarket(value){return String(value||'anuncio').normalize('NFD').r
 function currency(cents){return (Number(cents||0)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});}
 function priceLabel(item){return (item.deal==='buy'?'Presupuesto máximo: ':'')+currency(item.price_cents)+(item.deal==='rent'?' / mes':'');}
 function firstImage(item){const url=(item.image_urls||[])[0];return typeof url==='string'&&/^\/uploads\/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp)$/i.test(url)?url:null;}
+function marketSpain(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()==='espana';}
+function marketOrigin(item){
+ const city=String(item?.city||'').trim(),province=String(item?.details?.province||'').trim();
+ if(!city||marketSpain(city))return '';
+ return city+(!province||marketSpain(province)||city.localeCompare(province,'es',{sensitivity:'base'})===0?'':' · '+province);
+}
+function marketNational(item){
+ return item?.kind==='product'&&item?.deal==='sale'&&(item.details?.saleScope==='national'||(!item.details?.saleScope&&marketSpain(item.city)&&marketSpain(item.details?.province)));
+}
+function marketSaleArea(item){return marketNational(item)?'Venta disponible en toda España':item?.kind==='product'&&item?.deal==='sale'&&item.details?.saleScope==='local'?'Venta en la zona indicada':'';}
+function marketDisplayLocation(item){
+ const origin=marketOrigin(item),coverage=marketSaleArea(item);
+ if(origin&&coverage)return origin+' · '+coverage;
+ return coverage||origin||[item?.city,item?.details?.province].filter((v,i,a)=>v&&a.findIndex(x=>String(x).toLowerCase()===String(v).toLowerCase())===i).join(' · ');
+}
 function card(item){
  const img=firstImage(item),own=state.mode==='mine';
  const isOwner=window.currentUserId!=null&&String(item.seller_id)===String(window.currentUserId);
@@ -126,7 +141,7 @@ function card(item){
  const url='/marketplace/p/'+encodeURIComponent(item.id)+'/'+slugifyMarket(item.title);
  const sellerOK=item.seller_discoverable===true&&/^[A-Za-z0-9_.-]+$/.test(String(item.seller_username||''));
  const seller=sellerOK?'<a class="seller-profile-link" href="/perfil/'+encodeURIComponent(item.seller_username)+'">'+esc(item.seller_name||item.seller_username)+'</a>':esc(item.seller_name||item.seller_username);
- const location=[item.city,item.details?.province].filter(Boolean).join(' · ');
+ const location=marketDisplayLocation(item);
  const badge=item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO';
  const quickStatuses=own&&item.moderation_status!=='hidden'?
   (item.status==='active'?'<button type="button" data-quick-status="'+esc(item.id)+'" data-to="reserved">Reservar</button><button type="button" data-quick-status="'+esc(item.id)+'" data-to="sold">Marcar vendido</button><button type="button" data-quick-status="'+esc(item.id)+'" data-to="paused">Pausar</button>':
@@ -194,6 +209,7 @@ function syncKind(){
  for(const [key,selector] of [['product','#productExtra'],['service','#serviceExtra'],['property','#propertyExtra']]){
   $(selector).classList.toggle('hidden',kind!==key);
  }
+ $('#listingSaleScopeField').classList.toggle('hidden',kind!=='product'||deal.value!=='sale');
  $('#listingKindHint').textContent=kind==='product'?'Añade título, precio y fotos. El estado del producto es opcional.':kind==='service'?'Explica qué servicio ofreces y dónde lo prestas.':'Indica el inmueble, ubicación y precio. La superficie y las habitaciones son opcionales.';
  $('#listingForm [name=title]').placeholder=kind==='service'?'Ej. Pintura y reformas en Valencia':kind==='property'?'Ej. Piso de 3 habitaciones en Valencia':'Ej. Taza personalizada nueva';
  const budget=deal.value==='buy';
@@ -219,6 +235,7 @@ function openEditor(item=null,preset=null){
    f('province').value=item.details?.province||'';
    f('subcategory').value=item.details?.subcategory||'';
    f('condition').value=item.details?.condition||'';
+   f('saleScope').value=item.details?.saleScope||(marketNational(item)?'national':'');
    f('serviceMode').value=item.details?.serviceMode||'';
    f('serviceArea').value=item.details?.serviceArea||'';
    f('areaM2').value=item.details?.areaM2??'';
@@ -260,6 +277,11 @@ function listingFormData(form){
   if(subcategory.length>65)return invalid('subcategory','La subcategoría no debe superar 65 caracteres.');
   const extra={};
   if(kind==='product'&&['new','used'].includes(field('condition')))extra.condition=field('condition');
+  if(kind==='product'&&deal==='sale'){
+    const scope=field('saleScope');
+    if(scope&&!['local','national'].includes(scope))return invalid('saleScope','Selecciona una zona de venta válida.');
+    if(scope)extra.saleScope=scope;
+  }
   if(kind==='service'){
     const mode=field('serviceMode'),area=field('serviceArea');
     if(mode&&!Object.hasOwn(SERVICE_MODE_LABELS,mode))return invalid('serviceMode','Selecciona una modalidad válida.');
@@ -399,7 +421,7 @@ function details(item){
  $('#detailContent').innerHTML='<h2>'+esc(item.title)+'</h2><div class="gallery">'+
  (images.length?images.map(u=>'<img src="'+esc(u)+'" alt="Fotografía del anuncio">').join(''):'<div class="thumb" style="width:100%">📦</div>')+
  '</div><p><span class="chip market-deal-'+esc(item.deal)+'">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO')+'</span></p>'+
- '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc([item.city,item.details?.province].filter(Boolean).join(' · '))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
+ '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc(marketDisplayLocation(item))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
  '<p>'+esc(item.description)+'</p>'+(listingFacts(item).length?'<div class="market-facts">'+listingFacts(item).map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>':'')+'<p class="muted">Publicado por '+seller+'</p><div class="actions">'+
  (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button>':'')+
  (mine?'':'<button class="primary" type="button" data-contact-id="'+esc(item.id)+'">Contactar por chat</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
