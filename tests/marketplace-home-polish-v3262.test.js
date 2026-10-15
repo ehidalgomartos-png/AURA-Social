@@ -28,7 +28,7 @@ test('V3.2.62: WooCommerce importer is accessible only in seller tools tab',()=>
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/router\.get\('\/marketplace\/importar'/);
  assert.match(read('public/marketplace-import-v3260.html'),/id="importForm"/);
 });
-test('V3.2.69: signed-in footer no longer advertises a separate installation',()=>{
+test('V3.2.69.1: signed-in footer no longer advertises a separate installation',()=>{
  const doc=html();
  const footer=doc.slice(doc.indexOf('<footer class="site-foot">'));
  assert.doesNotMatch(footer,/marketPwaInstall|market-utility-menu|Cómo instalar en iPhone/);
