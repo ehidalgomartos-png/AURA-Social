@@ -7933,6 +7933,7 @@ async function showMarketplaceChatContextV32632(conversationId,other,isGroup){
  card.setAttribute('aria-label','Producto consultado en Marketplace');
  card.innerHTML='<div class="market-chat-product-thumb">'+photo+'</div><div class="market-chat-product-copy"><small>Consulta desde Marketplace</small><strong>'+esc(item.title)+'</strong><span>'+esc(euro)+'</span></div><a href="/marketplace/p/'+encodeURIComponent(item.id)+'" class="market-chat-view-product">Ver producto</a>';
  thread.before(card);
+ chat.classList.add('market-chat-open-v32632');
  if(!composer.value.trim()){
   composer.value='Hola, me interesa «'+String(item.title||'').slice(0,120)+'» de '+euro+' que he visto en Marketplace. ¿Sigue disponible? https://redlibertad.com/marketplace/p/'+item.id;
   composer.dispatchEvent(new Event('input',{bubbles:true}));
