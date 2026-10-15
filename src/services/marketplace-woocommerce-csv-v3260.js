@@ -5,12 +5,25 @@ const {validGtin}=require('./marketplace-google-v3264');
 const MAX_ROWS=250,MAX_CSV_BYTES=1024*1024;
 function csvRecords(csv){
  if(typeof csv!=='string'||Buffer.byteLength(csv,'utf8')>MAX_CSV_BYTES)throw new Error('csv_too_large');
- const text=csv.replace(/^\uFEFF/,'');if(!text.trim())throw new Error('csv_empty');
- const headerLine=text.split(/\r?\n/,1)[0];
- const separators=[',',';','\t'];
- const countOutside=(str,sep)=>{let q=false,n=0;for(let i=0;i<str.length;i++){if(str[i]==='"'){if(q&&str[i+1]==='"')i++;else q=!q;}else if(!q&&str[i]===sep)n++;}return n;};
- const delimiter=separators.sort((a,b)=>countOutside(headerLine,b)-countOutside(headerLine,a))[0];
- if(!countOutside(headerLine,delimiter))throw new Error('csv_invalid_header');
+ let text=csv.replace(/^\uFEFF/,'');
+ if(!text.trim())throw new Error('csv_empty');
+ if(text.includes('\u0000'))throw new Error('csv_invalid_encoding');
+ // Excel and other CSV exporters may prepend "sep=;" or "sep=,".
+ text=text.replace(/^(?:[ \t]*\r?\n){0,3}/,'');
+ const preamble=/^sep=([,;\t|])\r?\n/i.exec(text);
+ if(preamble)text=text.slice(preamble[0].length);
+ const header=text.split(/\r\n|\n|\r/,1)[0];
+ const separators=[',',';','\t','|'];
+ const countOutside=(str,sep)=>{
+  let quoted=false,count=0;
+  for(let i=0;i<str.length;i++){
+   if(str[i]==='"'){if(quoted&&str[i+1]==='"')i++;else quoted=!quoted;}
+   else if(!quoted&&str[i]===sep)count++;
+  }
+  return count;
+ };
+ const delimiter=preamble?preamble[1]:separators.reduce((best,sep)=>countOutside(header,sep)>countOutside(header,best)?sep:best,separators[0]);
+ if(!countOutside(header,delimiter))throw new Error('csv_invalid_header');
  const records=[];let record=[],field='',quoted=false;
  for(let i=0;i<text.length;i++){
   const ch=text[i];
@@ -29,7 +42,7 @@ function csvRecords(csv){
  if(records.length<2)throw new Error('csv_no_products');
  if(records.length>MAX_ROWS+1)throw new Error('csv_too_many_rows');
  const cols=records.shift().map(normalize);
- if(!cols.includes('nombre')&&!cols.includes('name'))throw new Error('csv_not_woocommerce');
+ if(!['nombre','name','product name','nombre del producto','titulo','titulo del producto'].some(name=>cols.includes(name)))throw new Error('csv_not_woocommerce');
  return records.map((cells,i)=>({line:i+2,cells,columns:cols}));
 }
 function normalize(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[¿?]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
@@ -49,7 +62,7 @@ function parseProduct(row,opts){
  const type=get(row,'Type','Tipo').toLowerCase().trim();
  const sku=get(row,'SKU');const wcId=get(row,'ID');
  const key=sku?'sku:'+sku.toLowerCase():/^[1-9]\d{0,14}$/.test(wcId)?'id:'+wcId:'';
- const title=clean(get(row,'Name','Nombre'));
+ const title=clean(get(row,'Name','Nombre','Product name','Nombre del producto','Título','Titulo','Título del producto'));
  const description=clean(get(row,'Description','Descripción')||get(row,'Short description','Descripción corta'));
  const rawCategory=get(row,'Categories','Categorías','Categorias').split(',')[0].split('>')[0].trim();
  const category=clean(rawCategory)||'Otros';

@@ -53,7 +53,7 @@ test('WooCommerce import preserves real identifiers',()=>{
 });
 test('V3.2.64 mobile seller dashboard is private and text-safe',()=>{
  const html=read('public/marketplace.html'),js=read('public/marketplace-v3250.js');
- assert.match(html,/href="\/marketplace\/google"/);
+ assert.doesNotMatch(html,/href="\/marketplace\/google"/);
  assert.match(html,/name="gtin"/);
  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.64/);
  assert.match(js,/f\('gtin'\)\.value=item\.details\?\.gtin/);
@@ -63,5 +63,5 @@ test('V3.2.64 mobile seller dashboard is private and text-safe',()=>{
  assert.doesNotMatch(dashboard,/innerHTML/);
  assert.match(read('server.js'),/app.get\('\/marketplace\/google'/);
  assert.match(read('public/marketplace-google-v3264.html'),/noindex,nofollow/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.64');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.64.1');
 });
