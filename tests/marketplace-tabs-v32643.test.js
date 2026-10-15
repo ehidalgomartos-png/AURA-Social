@@ -21,7 +21,7 @@ test('All three Marketplace tabs update UI state and request the correct content
  const end=src.indexOf('function syncKind(){',start);
  assert.ok(start>0&&end>start);
  const calls=[];
- const context={state,$,$$,load:()=>{calls.push(state.mode);return Promise.resolve();}};
+ const context={state,$,$$,updateQuickFiltersV3265:()=>{},load:()=>{calls.push(state.mode);return Promise.resolve();}};
  vm.createContext(context);
  vm.runInContext(src.slice(start,end),context);
  for(const [mode,visibleTools,hiddenFilters] of [
