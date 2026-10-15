@@ -185,3 +185,11 @@
 /* V3.2.69 — Voluntary sharing into the existing community composer. */
 .market-share-actions .market-community-link-v3269{background:#0a7569;color:#fff;border-color:#0a7569}
 .market-share-actions .market-community-link-v3269:focus-visible{outline:3px solid #1c9a87;outline-offset:2px}
+
+/* V3.2.69.1 — Keep the share button legible on hover, tap, and keyboard focus. */
+.market-share-actions .market-community-link-v3269:link,
+.market-share-actions .market-community-link-v3269:visited{background:#0a7569;color:#fff;border-color:#0a7569}
+.market-share-actions .market-community-link-v3269:hover,
+.market-share-actions .market-community-link-v3269:active,
+.market-share-actions .market-community-link-v3269:focus-visible{background:#07574f;color:#fff;border-color:#07574f}
+.market-share-actions .market-community-link-v3269:focus-visible{outline:3px solid #1c9a87;outline-offset:2px}

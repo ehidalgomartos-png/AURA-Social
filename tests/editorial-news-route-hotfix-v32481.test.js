@@ -92,6 +92,6 @@ test('version label is 3.2.62 and the route uses the injected req variable',()=>
  const route=read('src/routes/editorial-publication-v323.js');
  assert.match(route,/publicRouter.get\('\/',async\(req,res\)=>\{/);
  assert.doesNotMatch(route,/publicRouter.get\('\/',async\(_req,res\)=>\{/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
 });

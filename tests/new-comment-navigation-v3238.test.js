@@ -87,9 +87,9 @@ test('refresher accounts for actual new IDs and keeps previous list / drafts',()
  assert.match(css,/#commentsModal \.comment-item\.comment-new-arrival-v3238/);
 });
 test('version and CI updated without new server routes',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
- assert.match(html,/\/social\.js\?v=3\.2\.69/);
- assert.match(html,/\/social\.css\?v=3\.2\.69/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
+ assert.match(html,/\/social\.js\?v=3\.2\.69\.1/);
+ assert.match(html,/\/social\.css\?v=3\.2\.69\.1/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:new-comment-navigation/);
 });

@@ -22,11 +22,11 @@ test('share preview is a read-only authenticated route with public-only visibili
  assert.equal(typeof preview,'function');
  assert.ok(marketplace.stack.some(x=>x.handle?.name==='requireAuth'||String(x.handle).includes('requireAuth')));
  const existing=db.query,requests=[],response=res();
- db.query=async(sql,args)=>{requests.push({sql,args});return {rowCount:1,rows:[{id:31,title:'Armario Turín blanco'}]};};
+ db.query=async(sql,args)=>{requests.push({sql,args});return {rowCount:1,rows:[{id:31,title:'Armario Turín blanco',price_cents:23500,image_urls:[]}]};};
  try{await preview({params:{id:'31'},user:{id:8}},response,e=>{throw e;});}
  finally{db.query=existing;}
  assert.equal(response.statusCode,200);
- assert.deepEqual(response.body,{ok:true,item:{id:31,title:'Armario Turín blanco',url:'/marketplace/p/31'}});
+ assert.deepEqual(response.body,{ok:true,item:{id:31,title:'Armario Turín blanco',priceCents:23500,imageUrl:null,url:'/marketplace/p/31'}});
  assert.equal(response.headers['Cache-Control'],'private,no-store');
  assert.equal(requests.length,1);
  assert.deepEqual(requests[0].args,['31',8]);
@@ -114,12 +114,12 @@ test('safety on unavailable listing leaves the composer untouched',async()=>{
  assert.deepEqual(calls,['error']);
 });
 test('release wiring and media safety are intact',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69'/);
- assert.match(read('public/app.html'),/social\.js\?v=3\.2\.69/);
- assert.match(read('public/index.html'),/app\.js\?v=3\.2\.69/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.69/);
- assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.69/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
+ assert.match(read('public/app.html'),/social\.js\?v=3\.2\.69\.1/);
+ assert.match(read('public/index.html'),/app\.js\?v=3\.2\.69\.1/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.69\.1/);
+ assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.69\.1/);
  assert.match(read('public/manifest.webmanifest'),/"id": "\/app"/);
  assert.match(read('public/marketplace.html'),/marketSellerTools/);
 });
