@@ -26,7 +26,7 @@ test('share preview is a read-only authenticated route with public-only visibili
  try{await preview({params:{id:'31'},user:{id:8}},response,e=>{throw e;});}
  finally{db.query=existing;}
  assert.equal(response.statusCode,200);
- assert.deepEqual(response.body,{ok:true,item:{id:31,title:'Armario Turín blanco',url:'/marketplace/p/31'}});
+ assert.deepEqual(response.body,{ok:true,item:{id:31,title:'Armario Turín blanco',url:'/marketplace/p/31',imageUrl:null}});
  assert.equal(response.headers['Cache-Control'],'private,no-store');
  assert.equal(requests.length,1);
  assert.deepEqual(requests[0].args,['31',8]);

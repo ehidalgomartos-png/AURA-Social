@@ -38,6 +38,8 @@ jobs:
         run: npm run test:marketplace-public-discovery
       - name: V3.2.69 opt-in Marketplace community sharing
         run: npm run test:marketplace-community
+      - name: V3.2.69.1 Marketplace image preview, no automatic publishing, contrast
+        run: npm run test:marketplace-photo-share
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests
