@@ -39,7 +39,7 @@ test('Contact by listing ID checks active status, ownership and seller before cr
  vm.runInContext(extracted,sandbox);
  await vm.runInContext('contactListing("25")',sandbox);
  assert.deepEqual(calls.map(a=>a[0]),['/api/marketplace/25','/api/messages/conversations']);
- assert.match(sandbox.location.href,/conversation=41$/);
+ assert.equal(sandbox.location.href,'/app?view=messages&conversation=41&marketListing=25');
  calls.length=0;item.seller_id=8;sandbox.location.href='';
  await vm.runInContext('contactListing("25")',sandbox);
  assert.deepEqual(calls.map(a=>a[0]),['/api/marketplace/25']);
