@@ -202,7 +202,7 @@ function setKind(k){state.kind=k;$$('[data-kind]').forEach(b=>b.classList.toggle
 function setMode(mode){
  state.mode=mode;
  $('#marketSellerTools').hidden=!state.authenticated||mode!=='mine';
- $('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+ $$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
  $$('.tabs,.market-deals').forEach(nav=>nav.classList.toggle('hidden',mode!=='discover'));
  $('#filters').classList.toggle('hidden',mode!=='discover');
  return load();
