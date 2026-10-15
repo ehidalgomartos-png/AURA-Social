@@ -86,12 +86,12 @@ test('GET /noticias/p/:id still loads live-only article and up to 3 related publ
   assert.match(calls[1].sql,/pub.unpublished_at IS NULL AND ep.status='ready'/);
  }finally{db.query=old;}
 });
-test('version label is 3.2.61 and the route uses the injected req variable',()=>{
+test('version label is 3.2.62 and the route uses the injected req variable',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
  const route=read('src/routes/editorial-publication-v323.js');
  assert.match(route,/publicRouter.get\('\/',async\(req,res\)=>\{/);
  assert.doesNotMatch(route,/publicRouter.get\('\/',async\(_req,res\)=>\{/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.61');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.61'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.62');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.62'/);
 });

@@ -80,11 +80,11 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="manifest" href="/marketplace/manifest.webmanifest"><link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.61"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.61&amp;nav=1">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.61" defer></script>'+
- '<script src="/marketplace-pwa-v3259.js?v=3.2.61" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.62"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.62&amp;nav=1">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.62" defer></script>'+
+ '<script src="/marketplace-pwa-v3259.js?v=3.2.62" defer></script></head>'+
  '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
- '<main>'+body+'<aside id="marketPwaInstall" class="market-pwa-install" hidden><div><img src="/marketplace/icon-192.png" width="40" height="40" alt=""><span><strong>Marketplace en tu móvil</strong><small>Instala un acceso directo independiente.</small></span></div><button id="marketPwaInstallButton" type="button">Instalar Marketplace</button><p id="marketPwaInstallHelp" role="status"></p></aside></main><footer class="site-foot"><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
+ '<main>'+body+'</main><footer class="site-foot"><details class="market-utility-menu"><summary>Ayuda y opciones</summary><div><p>Acceso directo al Marketplace</p><aside id="marketPwaInstall" class="market-pwa-install" hidden><div><img src="/marketplace/icon-192.png" width="40" height="40" alt=""><span><strong>Marketplace en tu móvil</strong><small>Instala un acceso directo independiente.</small></span></div><button id="marketPwaInstallButton" type="button">Instalar Marketplace</button><p id="marketPwaInstallHelp" role="status"></p></aside></div></details><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
 async function publicListing(id){
  await ensureMarketplaceSchema();

@@ -190,3 +190,18 @@ body>.site-foot{margin-top:auto}
 
 /* V3.2.61: nationwide sale options are visible and touch-friendly. */
 #listingSaleScopeField{min-width:0}#listingSaleScopeField select{min-height:46px;width:100%;max-width:100%}#listingSaleScopeField small{display:block;margin-top:6px;line-height:1.55;color:var(--muted,#516572);font-weight:400}
+
+
+/* V3.2.62: keep the commercial landing compact, tools seller-only. */
+.market-seller-tools[hidden]{display:none!important}
+.market-seller-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:11px 14px;border:1px solid var(--border);border-radius:13px;background:#fff}
+.market-seller-tools strong{font-size:13px;color:var(--navy)}
+.market-seller-import-link{font-size:13px;color:#08695e;font-weight:750;min-height:44px;display:inline-flex;align-items:center;text-underline-offset:3px}
+.market-seller-import-link:focus-visible,.market-utility-menu>summary:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.market-utility-menu{flex:0 0 100%;width:min(100%,600px);margin:0 auto;text-align:left;color:#50646c;border-top:1px solid var(--border);padding-top:8px}
+.market-utility-menu>summary{list-style:revert;cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:12px;font-weight:750;color:#46616b}
+.market-utility-menu>div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px;margin-top:5px}
+.market-utility-menu>div>p{margin:0 0 8px;font-size:13px;font-weight:650}
+.market-utility-menu .market-pwa-install{margin:0;border:0;background:transparent;box-shadow:none;padding:5px 0;gap:10px}
+.market-utility-menu .market-pwa-install button{font-size:13px}
+@media(max-width:560px){.market-seller-tools{align-items:flex-start;flex-direction:column;gap:2px}.market-seller-import-link{width:100%}.market-utility-menu .market-pwa-install{grid-template-columns:1fr}}

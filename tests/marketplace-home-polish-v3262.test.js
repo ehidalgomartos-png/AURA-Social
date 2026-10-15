@@ -1,0 +1,57 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+const seo=require('../src/routes/marketplace-seo-v3251');
+const read=path=>fs.readFileSync(path,'utf8');
+const html=()=>read('public/marketplace.html');
+test('V3.2.62: commercial homepage has no large app or WooCommerce import callouts',()=>{
+ const doc=html(),main=doc.split('</main>')[0];
+ assert.doesNotMatch(main,/id="marketPwaInstall"/);
+ assert.doesNotMatch(main,/class="market-import-link"/);
+ assert.match(main,/<section class="hero"/);
+ assert.match(main,/id="marketQuickStart"/);
+ assert.match(main,/class="subnav"/);
+ assert.match(main,/id="filters"/);
+});
+test('V3.2.62: WooCommerce importer is accessible only in seller tools tab',()=>{
+ const doc=html(),seller=doc.indexOf('id="marketSellerTools"');
+ assert.ok(seller>doc.indexOf('class="subnav"'));
+ assert.ok(seller<doc.indexOf('id="filters"'));
+ assert.match(doc,/id="marketSellerTools"[^>]*\shidden/);
+ assert.equal((doc.match(/href="\/marketplace\/importar"/g)||[]).length,1);
+ assert.match(doc,/Importar productos desde WooCommerce/);
+ const js=read('public/marketplace-v3250.js');
+ assert.match(js,/sellerTools\.hidden=!state\.authenticated\|\|state\.mode!=='mine'/);
+ assert.match(js,/\$\('#marketSellerTools'\)\.hidden=!state\.authenticated\|\|mode!=='mine'/);
+ assert.doesNotThrow(()=>new vm.Script(js));
+ assert.match(read('src/routes/marketplace-seo-v3251.js'),/router\.get\('\/marketplace\/importar'/);
+ assert.match(read('public/marketplace-import-v3260.html'),/id="importForm"/);
+});
+test('V3.2.62: install remains functional but only inside closed footer options',()=>{
+ const doc=html();
+ const footer=doc.slice(doc.indexOf('<footer class="site-foot">'));
+ assert.ok(doc.indexOf('id="marketPwaInstall"')>doc.indexOf('</main>'));
+ assert.equal((doc.match(/id="marketPwaInstall"/g)||[]).length,1);
+ assert.match(footer,/<details class="market-utility-menu"><summary>Ayuda y opciones<\/summary>/);
+ assert.match(footer,/id="marketPwaInstallButton"/);
+ assert.doesNotMatch(footer,/<details class="market-utility-menu" open/);
+ const pwa=read('public/marketplace-pwa-v3259.js');
+ assert.match(pwa,/beforeinstallprompt/);
+ assert.match(pwa,/appinstalled/);
+ assert.match(pwa,/promptEvent/);
+ assert.match(pwa,/serviceWorker\.register/);
+ assert.doesNotThrow(()=>new vm.Script(pwa));
+});
+test('V3.2.62: public SEO detail keeps install away from product content',()=>{
+ const row={id:5,title:'Taza Roblox',description:'Taza de videojuego con diseños especiales para regalar a personas aficionadas.',category:'Tazas',kind:'product',deal:'sale',city:'Valencia',price_cents:1599,image_urls:[],details:{province:'Valencia',saleScope:'national'},seller_username:'mundotaza',seller_name:'MundoTaza',status:'active',moderation_status:'published',seller_status:'active',seller_discoverable:true,created_at:'2026-10-15T09:00:00.000Z',updated_at:'2026-10-15T09:00:00.000Z'};
+ const page=seo.listingHtml(row,[]);
+ const product=page.slice(page.indexOf('<main>'),page.indexOf('</main>'));
+ const footer=page.slice(page.indexOf('<footer class="site-foot">'));
+ assert.doesNotMatch(product,/marketPwaInstall/);
+ assert.match(product,/Taza Roblox/);
+ assert.match(footer,/<details class="market-utility-menu">/);
+ assert.match(footer,/id="marketPwaInstall"/);
+ assert.match(page,/application\/ld\+json/);
+ assert.match(page,/rel="canonical"/);
+});

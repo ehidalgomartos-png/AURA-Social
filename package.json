@@ -1,14 +1,15 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.61",
+  "version": "3.2.62",
   "private": true,
-  "description": "RedLibertad V3.2.61 — Marketplace Nationwide Sale Coverage & Product SEO",
+  "description": "RedLibertad V3.2.62 — Marketplace Home Mobile Clean-up",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node db/init.js",
     "check:syntax": "node scripts/check-syntax.js",
+    "test:marketplace-home-polish": "node --test tests/marketplace-home-polish-v3262.test.js",
     "test:marketplace-coverage": "node --test tests/marketplace-coverage-v3261.test.js",
     "test:marketplace-import": "node --test tests/marketplace-import-v3260.test.js tests/marketplace-import-hotfix-v32601.test.js",
     "test:marketplace-app": "node --test tests/marketplace-app-v3259.test.js",
