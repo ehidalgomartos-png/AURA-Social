@@ -46,5 +46,5 @@ test('Marketplace requests route through middleware to existing CRUD handlers',(
   "router.post('/',rateLimit","router.patch('/:id',","router.delete('/:id',"
  ])assert.ok(api.includes(route),route);
  assert.equal(JSON.parse(read('package.json')).version,'3.2.66');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.65'/);
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.66'/);
 });
