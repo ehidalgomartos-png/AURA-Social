@@ -84,7 +84,7 @@ test('pagination retains filters and active buttons without exposing raw HTML',a
 test('catalogue uses compact origin while detail keeps its full location',()=>{
  const local={...sample,details:{province:'Comunidad Valenciana',saleScope:'local'}};
  assert.equal(catalogLocation(local),'Valencia');
- assert.equal(publicLocation(local),'Valencia · Venta en la zona indicada');
+ assert.equal(publicLocation(local),'Valencia · Comunidad Valenciana · Venta en la zona indicada');
  assert.equal(catalogLocation(sample),'Venta disponible en toda España');
  const detail=seo.listingHtml(local);
  assert.match(detail,/Comunidad Valenciana/);
