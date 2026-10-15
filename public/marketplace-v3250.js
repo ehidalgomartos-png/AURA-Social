@@ -493,12 +493,18 @@ async function contact(username){
  if(!result.ok){alert('No se puede contactar con este usuario. Puede tener restringidos los mensajes.');return;}
  location.href='/app?view=messages&conversation='+encodeURIComponent(result.conversationId);
 }
+function marketplaceLoginEntry(username,id){
+ if(!/^[A-Za-z0-9_.-]{3,30}$/.test(String(username||''))||!/^[1-9]\d{0,15}$/.test(String(id||'')))return '/';
+ const path='/marketplace?contact='+encodeURIComponent(username)+'&listing='+encodeURIComponent(id);
+ return '/?'+new URLSearchParams({entry:'marketplace_contact',entryKey:String(id),next:path}).toString();
+}
 async function init(){
  updateMarketplaceAuth('checking');
  const me=await request('/api/auth/me');
  if(!me.ok){
    const params=new URLSearchParams(location.search);
    const explicitIntent=['publicar','contact','listing','report'].some(key=>params.has(key));
+   document.body.classList.remove('market-contact-guest');
    if(me.status===401&&!explicitIntent){
      // Anonymous /marketplace now opens the actual public catalogue; no empty landing.
      location.replace('/marketplace/explorar');return;
@@ -507,14 +513,19 @@ async function init(){
    $('#list').innerHTML='';
    $('#more').classList.add('hidden');
    note(me.status===401?'':'No se ha podido comprobar tu sesión.');
-   const contactId=new URLSearchParams(location.search).get('listing');
-   if(me.status===401&&/^[1-9]\d{0,15}$/.test(String(contactId||''))){
+   const guestParams=new URLSearchParams(location.search);
+   const contactId=guestParams.get('listing'),contactSeller=guestParams.get('contact');
+   if(me.status===401&&/^[1-9]\d{0,15}$/.test(String(contactId||''))&&/^[A-Za-z0-9_.-]{3,30}$/.test(String(contactSeller||''))){
+    document.body.classList.add('market-contact-guest');
     const box=$('#contactContext');
     box.classList.remove('hidden');
-    box.innerHTML='<h2>¿Quieres contactar por este anuncio?</h2><p>Necesitas iniciar sesión. Después vuelve a abrir el anuncio para contactar con seguridad.</p><a class="primary market-seller-more" href="/">Iniciar sesión</a>';
+    box.innerHTML='<h2>Consulta sobre este anuncio</h2><p>Inicia sesión o crea tu cuenta para consultar al vendedor. Al terminar volverás a esta consulta.</p>'+
+      '<a class="primary market-contact-login" href="'+esc(marketplaceLoginEntry(contactSeller,contactId))+'">Iniciar sesión y continuar →</a>'+
+      '<a class="market-contact-back" href="/marketplace/p/'+encodeURIComponent(contactId)+'">← Volver a la ficha del anuncio</a>';
    }
    return;
  }
+ document.body.classList.remove('market-contact-guest');
  updateMarketplaceAuth('signed-in');
  window.currentUserId=me.user?.id??me.id;
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
