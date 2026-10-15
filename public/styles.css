@@ -360,3 +360,8 @@ body{
 .editorial-home-photo{margin:10px 0;overflow:hidden;border-radius:12px;background:#e9eff3}
 .editorial-home-photo img{width:100%;height:auto;max-height:240px;aspect-ratio:16/9;object-fit:cover;display:block}
 .editorial-home-photo figcaption{font-size:12px;padding:7px 10px;color:#31495a}
+
+/* V3.2.63.1: return-to-Marketplace context on RedLibertad login. */
+.marketplace-auth-return{border-left:4px solid #22a89c;padding:9px 12px!important;margin:12px 0!important;background:#eaf8f6!important;border-radius:8px;color:#083d37!important;font-size:14px;font-weight:700;line-height:1.5}
+.marketplace-auth-back{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:10px;margin:12px auto 0;color:inherit;font-weight:750;text-underline-offset:3px}
+.marketplace-auth-back:focus-visible{outline:3px solid #22a89c;outline-offset:3px}
