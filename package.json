@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.69",
+  "version": "3.2.70.1",
   "private": true,
-  "description": "RedLibertad V3.2.69 — Marketplace Community Sharing",
+  "description": "RedLibertad V3.2.70.1 — Marketplace Photo Composer Hotfix",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -33,6 +33,7 @@
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
+    "test:marketplace-photo-hotfix": "node --test tests/marketplace-photo-hotfix-v32701.test.js",
     "test:marketplace-community": "node --test tests/marketplace-community-v3269.test.js",
     "test:marketplace-public-discovery": "node --test tests/marketplace-public-discovery-v3268.test.js",
     "test:marketplace-readability": "node --test tests/marketplace-readability-v3267.test.js",
