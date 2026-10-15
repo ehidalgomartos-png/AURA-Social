@@ -36,6 +36,8 @@ jobs:
         run: npm run test:marketplace-readability
       - name: V3.2.68 public categories, nationwide sale and search quality
         run: npm run test:marketplace-public-discovery
+      - name: V3.2.69 opt-in Marketplace community sharing
+        run: npm run test:marketplace-community
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests
