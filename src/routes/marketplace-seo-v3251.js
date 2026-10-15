@@ -89,7 +89,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.69"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.69">'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.69"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.70.1">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.63.2" defer></script>'+
  '<script src="/marketplace-pwa-retire-v3266.js?v=3.2.69" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
