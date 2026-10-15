@@ -113,3 +113,11 @@
 
 /* V3.2.63.1: the floating CTA never duplicates the in-view main CTA. */
 .market-mobile-contact[hidden]{display:none!important}
+
+/* V3.2.66 — Compact public footer, clear single product link, no excessive empty footer. */
+.market-public-footer{gap:12px 20px;padding:16px 12px 20px;margin-top:0;align-items:center}
+.market-public-footer a{font-weight:700;min-height:44px;display:inline-flex;align-items:center}
+.market-seo-cardlink .market-card-cta{display:inline-flex;align-items:center;min-height:32px;margin-top:4px;color:#086e62;font-size:13px;font-weight:800}
+.market-seo-cardlink:focus-visible{outline:3px solid #087d71;outline-offset:3px}
+.market-seo-pagination{margin:18px 0 12px}
+@media(max-width:600px){.market-public-footer{padding:12px 10px 16px;gap:6px 16px}.market-public-footer span{flex-basis:100%;text-align:center}.market-seo-cardlink .market-card-cta{margin-top:0}}
