@@ -29,7 +29,7 @@ test('V3.2.63: gallery with 3 locally-proxied images has accessible navigation a
  assert.match(html,/data-market-counter>1 de 3/);
  for(let i=0;i<3;i++)assert.match(html,new RegExp('/marketplace/imagen/5/'+i));
  assert.doesNotMatch(html,/src="https:\/\/shop.example.com/);
- assert.match(html,/marketplace-gallery-v3263\.js\?v=3\.2\.63/);
+ assert.match(html,/marketplace-gallery-v3263\.js\?v=3\.2\.63\.1/);
  const gallery=read('public/marketplace-gallery-v3263.js');
  assert.doesNotThrow(()=>new vm.Script(gallery));
  for(const marker of ["addEventListener('scroll'","scrollTo({left,behavior:'smooth'})","output",'requestAnimationFrame'])if(marker!=='output')assert.ok(gallery.includes(marker),marker);
