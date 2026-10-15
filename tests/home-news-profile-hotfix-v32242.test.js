@@ -108,8 +108,8 @@ test('reviewed-only discovery has a bigger rotation pool but keeps max 3 cards i
   assert.deepEqual(mixer.slots(10,12,3),[2,4,6]);
 });
 test('release versions and cache busters point to the new hotfix assets',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.65');
-  assert.ok(read('server.js').includes("APP_VERSION='3.2.65'"));
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.66');
+  assert.ok(read('server.js').includes("APP_VERSION='3.2.66'"));
   assert.ok(read('public/index.html').includes('/app.js?v=3.2.63.2'));
   assert.ok(read('public/app.html').includes('/editorial-home-v324.js?v=3.2.63.2'));
 });

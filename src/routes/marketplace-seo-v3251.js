@@ -79,20 +79,20 @@ function structuredData(row,url,images){
  ]}]};
 }
 const ogDefault=ORIGIN+'/assets/og-redlibertad.png';
-function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,robots='index,follow,max-image-preview:large'}){
+function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,robots='index,follow,max-image-preview:large',backHref='/marketplace/explorar',bodyClass=''}){
  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
  '<title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+esc(robots)+'">'+
  '<link rel="canonical" href="'+esc(canonical)+'"><meta property="og:site_name" content="RedLibertad"><meta property="og:type" content="website">'+
  '<meta property="og:title" content="'+esc(title)+'"><meta property="og:description" content="'+esc(description)+'">'+
  '<meta property="og:url" content="'+esc(canonical)+'"><meta property="og:image" content="'+esc(ogImage)+'">'+
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
- '<link rel="manifest" href="/marketplace/manifest.webmanifest"><link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
+ '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.65"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.63.2&amp;nav=1">'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.66"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.66">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.63.2" defer></script>'+
- '<script src="/marketplace-pwa-v3259.js?v=3.2.63.2" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
- '<body><header class="bar"><a class="back" href="/marketplace/explorar" aria-label="Volver al catálogo">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
- '<main>'+body+'</main><footer class="site-foot"><details class="market-utility-menu"><summary>Ayuda y opciones</summary><div><p>Acceso directo al Marketplace</p><aside id="marketPwaInstall" class="market-pwa-install" hidden><div><img src="/marketplace/icon-192.png" width="40" height="40" alt=""><span><strong>Marketplace en tu móvil</strong><small>Instala un acceso directo independiente.</small></span></div><button id="marketPwaInstallButton" type="button">Instalar Marketplace</button><p id="marketPwaInstallHelp" role="status"></p></aside></div></details><a href="/marketplace/explorar">Explorar anuncios</a><a href="/marketplace">Publicar en Marketplace</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
+ '<script src="/marketplace-pwa-retire-v3266.js?v=3.2.66" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
+ '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
+ '<main>'+body+'</main><footer class="site-foot market-public-footer"><a href="/app?view=explore&amp;marketReturn=1">Volver a RedLibertad</a><a href="/marketplace?publicar=1">Publicar anuncio</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
 async function publicListing(id){
  await ensureMarketplaceSchema();
@@ -177,7 +177,7 @@ router.get('/marketplace/imagen/:id/:index',async(req,res,next)=>{
 });
 function listingCard(row){
  const url=listingPath(row),image=imagePaths(row)[0];
- return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(locality(row))+'</p></div></a></article>';
+ return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(locality(row))+'</p><span class="market-card-cta" aria-hidden="true">Ver anuncio →</span></div></a></article>';
 }
 // Public seller collections must never expose hidden, inactive or non-discoverable content.
 router.get('/marketplace/vendedor/:username',async(req,res,next)=>{
@@ -197,13 +197,13 @@ router.get('/marketplace/vendedor/:username',async(req,res,next)=>{
   const cards=result.rows.slice(0,24).map(listingCard).join('');
   const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS DEL ANUNCIANTE</small><h1>Anuncios de '+esc(seller.seller_name||seller.seller_username)+'</h1><p>Solo se muestran sus anuncios activos y públicos.</p></div><a class="primary" href="/perfil/'+encodeURIComponent(seller.seller_username)+'">Ver perfil</a></section>'+
    '<p class="market-seller-intro"><a href="/marketplace/explorar">← Volver a todos los anuncios</a></p>'+
-   '<section class="cards" aria-label="Anuncios públicos de este usuario">'+cards+'</section>'+
+   '<section class="cards market-public-grid" aria-label="Anuncios públicos de este usuario">'+cards+'</section>'+
    '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+esc(pageLink(page-1))+'">← Anteriores</a>':'')+
    (result.rows.length>24?'<a class="secondary" href="'+esc(pageLink(page+1))+'">Siguientes →</a>':'')+'</nav>';
   res.setHeader('Cache-Control','public,max-age=60');
   return res.type('html').send(shell({title:'Anuncios de '+(seller.seller_name||seller.seller_username)+' | RedLibertad Marketplace',
    description:'Productos, servicios e inmuebles anunciados públicamente en RedLibertad.',canonical:ORIGIN+pageLink(page),
-   robots:'noindex,follow',body}));
+   robots:'noindex,follow',body,bodyClass:'market-public-catalog'}));
  }catch(error){next(error);}
 });
 // Accessible public discovery: all query values are bounded, and sorting is allowlisted.
@@ -242,7 +242,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   const filterBox='<form class="market-public-filters" action="/marketplace/explorar" method="get" role="search">'+
    (operation?'<input type="hidden" name="operacion" value="'+esc(operation)+'">':'')+
    '<div class="market-public-search">'+
-     '<label>Buscar anuncios<input name="q" type="search" maxlength="80" value="'+esc(q)+'" placeholder="¿Qué estás buscando?"></label>'+
+     '<label>Buscar productos o anuncios<input name="q" type="search" maxlength="80" value="'+esc(q)+'" placeholder="Producto, servicio o inmueble…"></label>'+
      '<button type="submit" class="primary">Buscar</button></div>'+
    '<details class="market-public-advanced"'+(advanced?' open':'')+'><summary>Más filtros</summary>'+
     '<div class="market-public-extra"><label>Ciudad<input name="ciudad" maxlength="80" value="'+esc(city)+'" placeholder="Ej. Valencia"></label>'+
@@ -258,16 +258,17 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
    filterBox+
    '<div class="market-seo-intro"><h2>'+(params.size?'Resultados de búsqueda':'Últimos anuncios')+'</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con anunciantes necesitas una cuenta.</p></div>'+
-   '<section class="cards" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><h2>No hay anuncios con estos criterios</h2><p>Prueba otra búsqueda o cambia los filtros.</p><a href="/marketplace/explorar" class="primary">Ver todos los anuncios</a></div>')+'</section>'+
+   '<section class="cards market-public-grid" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><h2>No hay anuncios con estos criterios</h2><p>Prueba otra búsqueda o cambia los filtros.</p><a href="/marketplace/explorar" class="primary">Ver todos los anuncios</a></div>')+'</section>'+
    '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+esc(pageLink(page-1))+'">← Anteriores</a>':'')+
    (result.rows.length>24?'<a class="secondary" href="'+esc(pageLink(page+1))+'">Siguientes →</a>':'')+'</nav>';
   const searching=Boolean(q||city||kind||sort!=='recent');
   res.setHeader('Cache-Control','public,max-age=60');
   return res.type('html').send(shell({
+   backHref:'/app?view=explore&marketReturn=1',
    title:'Marketplace: productos, servicios e inmobiliaria | RedLibertad',
    description:'Descubre productos, servicios e inmuebles publicados en RedLibertad.',
    canonical:ORIGIN+(searching?'/marketplace/explorar':pageLink(page)),
-   robots:searching?'noindex,follow':'index,follow,max-image-preview:large',body
+   robots:searching?'noindex,follow':'index,follow,max-image-preview:large',body,bodyClass:'market-public-catalog'
   }));
  }catch(error){next(error);}
 });

@@ -28,30 +28,24 @@ test('V3.2.62: WooCommerce importer is accessible only in seller tools tab',()=>
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/router\.get\('\/marketplace\/importar'/);
  assert.match(read('public/marketplace-import-v3260.html'),/id="importForm"/);
 });
-test('V3.2.62: install remains functional but only inside closed footer options',()=>{
+test('V3.2.66: signed-in footer no longer advertises a separate installation',()=>{
  const doc=html();
  const footer=doc.slice(doc.indexOf('<footer class="site-foot">'));
- assert.ok(doc.indexOf('id="marketPwaInstall"')>doc.indexOf('</main>'));
- assert.equal((doc.match(/id="marketPwaInstall"/g)||[]).length,1);
- assert.match(footer,/<details class="market-utility-menu"><summary>Ayuda y opciones<\/summary>/);
- assert.match(footer,/id="marketPwaInstallButton"/);
- assert.doesNotMatch(footer,/<details class="market-utility-menu" open/);
- const pwa=read('public/marketplace-pwa-v3259.js');
- assert.match(pwa,/beforeinstallprompt/);
- assert.match(pwa,/appinstalled/);
- assert.match(pwa,/promptEvent/);
- assert.match(pwa,/serviceWorker\.register/);
- assert.doesNotThrow(()=>new vm.Script(pwa));
+ assert.doesNotMatch(footer,/marketPwaInstall|market-utility-menu|Cómo instalar en iPhone/);
+ assert.doesNotMatch(doc,/<link rel="manifest" href="\/marketplace\/manifest\.webmanifest"/);
+ const retire=read('public/marketplace-pwa-retire-v3266.js');
+ assert.match(retire,/registration\.scope===oldScope/);
+ assert.doesNotThrow(()=>new vm.Script(retire));
 });
 test('V3.2.62: public SEO detail keeps install away from product content',()=>{
  const row={id:5,title:'Taza Roblox',description:'Taza de videojuego con diseños especiales para regalar a personas aficionadas.',category:'Tazas',kind:'product',deal:'sale',city:'Valencia',price_cents:1599,image_urls:[],details:{province:'Valencia',saleScope:'national'},seller_username:'mundotaza',seller_name:'MundoTaza',status:'active',moderation_status:'published',seller_status:'active',seller_discoverable:true,created_at:'2026-10-15T09:00:00.000Z',updated_at:'2026-10-15T09:00:00.000Z'};
  const page=seo.listingHtml(row,[]);
  const product=page.slice(page.indexOf('<main>'),page.indexOf('</main>'));
- const footer=page.slice(page.indexOf('<footer class="site-foot">'));
+ const footer=page.slice(page.indexOf('<footer class="site-foot'));
  assert.doesNotMatch(product,/marketPwaInstall/);
  assert.match(product,/Taza Roblox/);
- assert.match(footer,/<details class="market-utility-menu">/);
- assert.match(footer,/id="marketPwaInstall"/);
+ assert.match(footer,/market-public-footer/);
+ assert.doesNotMatch(footer,/marketPwaInstall|market-utility-menu/);
  assert.match(page,/application\/ld\+json/);
  assert.match(page,/rel="canonical"/);
 });
