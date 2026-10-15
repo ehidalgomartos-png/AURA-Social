@@ -31,6 +31,8 @@ const errorMessage={authentication_required:'Inicia sesión para continuar.',inv
 function note(s){$('#notice').textContent=s||'';}
 function updateMarketplaceAuth(status){
  state.authStatus=status;state.authenticated=status==='signed-in';
+ const sellerTools=$('#marketSellerTools');
+ if(sellerTools)sellerTools.hidden=!state.authenticated||state.mode!=='mine';
  document.body.classList.toggle('market-guest',status==='guest');
  const button=$('#newListing'),banner=$('#authNotice');
  button.disabled=status==='checking'||status==='unavailable';
@@ -195,7 +197,8 @@ function setDeal(d){state.deal=d;$$('[data-deal]').forEach(b=>b.classList.toggle
 function setKind(k){state.kind=k;$$('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===k));load();}
 function setMode(mode){
  state.mode=mode;
- $$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+ $('#marketSellerTools').hidden=!state.authenticated||mode!=='mine';
+ $('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
  $$('.tabs,.market-deals').forEach(nav=>nav.classList.toggle('hidden',mode!=='discover'));
  $('#filters').classList.toggle('hidden',mode!=='discover');
  return load();
