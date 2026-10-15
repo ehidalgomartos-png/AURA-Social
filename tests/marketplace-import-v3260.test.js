@@ -16,8 +16,8 @@ const sample=[
 function route(p,method='post'){const r=importer.router.stack.find(x=>x.route?.path===p&&x.route?.methods[method]);return r?.route.stack.at(-1)?.handle;}
 function res(){return {statusCode:200,body:null,status(v){this.statusCode=v;return this;},json(v){this.body=v;return this;},send(v){this.body=v;return this;}};}
 test('V3.2.60 syntax, UI navigation, routes and release metadata',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.63.3'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.64');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.64'"));
  assert.doesNotThrow(()=>new vm.Script(read('public/marketplace-import-v3260.js')));
  assert.doesNotThrow(()=>new vm.Script(read('public/marketplace-v3250.js')));
  const html=read('public/marketplace-import-v3260.html');
