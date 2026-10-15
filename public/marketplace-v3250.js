@@ -208,7 +208,7 @@ async function load(reset=true){
 }
 function updateQuickFiltersV3265(){
  const presets={all:!state.kind&&!state.deal&&!state.nationalOnly,products:state.kind==='product'&&!state.deal&&!state.nationalOnly,national:state.nationalOnly};
- $('[data-market-quick]').forEach(button=>{const selected=!!presets[button.dataset.marketQuick];button.classList.toggle('active',selected);button.setAttribute('aria-pressed',String(selected));});
+ $$('[data-market-quick]').forEach(button=>{const selected=!!presets[button.dataset.marketQuick];button.classList.toggle('active',selected);button.setAttribute('aria-pressed',String(selected));});
  const notice=$('#marketAppliedFilters');
  if(!notice)return;
  const f=$('#filters');
@@ -225,13 +225,13 @@ function quickFilterV3265(value){
  else if(value==='products'){state.kind='product';state.deal='';state.nationalOnly=false;}
  else if(value==='national'){state.kind='product';state.deal='sale';state.nationalOnly=true;}
  else return;
- $('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===state.kind));
- $('[data-deal]').forEach(b=>b.classList.toggle('active',b.dataset.deal===state.deal));
+ $$('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===state.kind));
+ $$('[data-deal]').forEach(b=>b.classList.toggle('active',b.dataset.deal===state.deal));
  updateQuickFiltersV3265();
  load();
 }
-function setDeal(d){state.deal=d;if(d!=='sale')state.nationalOnly=false;$('[data-deal]').forEach(b=>b.classList.toggle('active',b.dataset.deal===d));updateQuickFiltersV3265();load();}
-function setKind(k){state.kind=k;if(k!=='product')state.nationalOnly=false;$('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===k));updateQuickFiltersV3265();load();}
+function setDeal(d){state.deal=d;if(d!=='sale')state.nationalOnly=false;$$('[data-deal]').forEach(b=>b.classList.toggle('active',b.dataset.deal===d));updateQuickFiltersV3265();load();}
+function setKind(k){state.kind=k;if(k!=='product')state.nationalOnly=false;$$('[data-kind]').forEach(b=>b.classList.toggle('active',b.dataset.kind===k));updateQuickFiltersV3265();load();}
 function setMode(mode){
  state.mode=mode;
  $('#marketSellerTools').hidden=!state.authenticated||mode!=='mine';
@@ -619,8 +619,8 @@ async function init(){
  }
 }
 $$('[data-kind]').forEach(b=>b.onclick=()=>setKind(b.dataset.kind));
-$('[data-deal]').forEach(b=>b.onclick=()=>setDeal(b.dataset.deal));
-$('[data-market-quick]').forEach(b=>b.onclick=()=>quickFilterV3265(b.dataset.marketQuick));
+$$('[data-deal]').forEach(b=>b.onclick=()=>setDeal(b.dataset.deal));
+$$('[data-market-quick]').forEach(b=>b.onclick=()=>quickFilterV3265(b.dataset.marketQuick));
 $$('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 $('#filters').onsubmit=e=>{e.preventDefault();updateQuickFiltersV3265();setMode('discover');};
 $('#more').onclick=()=>{state.page++;load(false);};
