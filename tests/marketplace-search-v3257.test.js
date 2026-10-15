@@ -18,12 +18,12 @@ const fixture={
  created_at:'2026-10-14T10:00:00Z',updated_at:'2026-10-14T11:00:00Z'
 };
 test('Version and front-end JavaScript are V3.2.60',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.63');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.63'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.63.1');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.63.1'"));
  assert.doesNotThrow(()=>new vm.Script(ui));
  assert.ok(read('public/marketplace.html').includes('name="sort"'));
- assert.ok(read('public/marketplace.html').includes('marketplace-v3250.js?v=3.2.63'));
- assert.ok(src.includes('marketplace-seo-v3251.css?v=3.2.63'));
+ assert.ok(read('public/marketplace.html').includes('marketplace-v3250.js?v=3.2.63.1'));
+ assert.ok(src.includes('marketplace-seo-v3251.css?v=3.2.63.1'));
 });
 test('Authenticated search uses an allowlist for price sorting',()=>{
  assert.ok(api.includes("const SORTS={recent:"));
