@@ -104,8 +104,8 @@ test('AI proposes constrained original output and checks insufficient evidence',
     else process.env.OPENAI_API_KEY=old;}
 });
 test('version and CI are updated without touching the previous PWA and SW',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.63.3');
-  assert.match(read('server.js'),/APP_VERSION='3\.2\.63\.3'/);
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.64');
+  assert.match(read('server.js'),/APP_VERSION='3\.2\.64'/);
   assert.match(read('server.js'),/editorialMediaV3242Admin/);
   assert.match(read('server.js'),/editorialAiV3242Admin/);
   assert.match(html,/\/admin\.js\?v=3\.2\.63\.2/);
