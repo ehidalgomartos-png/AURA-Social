@@ -6,7 +6,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 // Resolve schema on request, after the parent Marketplace router is fully initialized.
 const listingSchema=()=>require('./marketplace-v3250').listingInput;
-const {csvRecords,parseProduct,importOptions,MAX_CSV_BYTES}=require('../services/marketplace-woocommerce-csv-v3260');
+const {csvRecords,parseProduct,indexVariationParents,importOptions,MAX_CSV_BYTES}=require('../services/marketplace-woocommerce-csv-v3260');
 const {saveImages,eraseFiles,imageFailureCode}=require('../services/marketplace-import-photos-v3260');
 const router=express.Router();
 let prepared=null;
@@ -23,9 +23,9 @@ async function ensureImportSchema(){
 const limiter=rateLimit({windowMs:60*60*1000,max:30,standardHeaders:true,legacyHeaders:false});
 const stepsLimiter=rateLimit({windowMs:60*60*1000,max:500,standardHeaders:true,legacyHeaders:false});
 function summary(items){
- const counts={total:items.length,ready:0,invalid:0,duplicate:0,imported:0,failed:0,pending:0};
+ const counts={total:items.length,ready:0,invalid:0,duplicate:0,imported:0,failed:0,pending:0,skipped:0};
  for(const i of items){const key=i.state;if(key in counts)counts[key]++;if(key==='pending')counts.ready++;}
- counts.completed=counts.invalid+counts.duplicate+counts.imported+counts.failed;
+ counts.completed=counts.invalid+counts.duplicate+counts.imported+counts.failed+counts.skipped;
  return counts;
 }
 const idOk=id=>/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(String(id||''));
@@ -43,12 +43,14 @@ router.post('/preview',limiter,async(req,res,next)=>{
   const csv=req.body?.csv;
   if(typeof csv!=='string'||Buffer.byteLength(csv,'utf8')>MAX_CSV_BYTES)return res.status(413).json({error:'csv_too_large'});
   const records=csvRecords(csv);
-  const seen=new Set(),items=records.map(r=>{
-   const item=parseProduct(r,parsed.data);
+  const seen=new Set(),parents=indexVariationParents(records),items=records.map(r=>{
+   const item=parseProduct(r,parsed.data,parents);
    if(item.key&&seen.has(item.key)){item.state='duplicate';item.error='SKU o ID repetido dentro del archivo';}
    else if(item.key)seen.add(item.key);
-   const checked=listingSchema().safeParse(item.listing);
-   if(!checked.success&&item.state==='pending'){item.state='invalid';item.error='Campos del anuncio incompatibles';}
+   if(item.state==='pending'){
+    const checked=listingSchema().safeParse(item.listing);
+    if(!checked.success){item.state='invalid';item.error='Campos del anuncio incompatibles';}
+   }
    return item;
   });
   const keys=items.filter(i=>i.key&&i.state==='pending').map(i=>i.key);
@@ -59,7 +61,7 @@ router.post('/preview',limiter,async(req,res,next)=>{
   }
   const id=crypto.randomUUID();
   await db.query('INSERT INTO marketplace_import_batches(id,seller_id,items) VALUES($1,$2,$3::jsonb)',[id,req.user.id,JSON.stringify(items)]);
-  res.status(201).json({ok:true,id,summary:summary(items),items:items.slice(0,40).map(i=>({line:i.line,title:i.title,priceCents:i.priceCents,photos:i.urls.length,state:i.state,error:i.error}))});
+  res.status(201).json({ok:true,id,summary:summary(items),items:items.slice(0,40).map(i=>({line:i.line,title:i.title,priceCents:i.priceCents,photos:i.urls.length,state:i.state,error:i.error,warnings:i.warnings||[]}))});
  }catch(e){if(/^csv_/.test(e.message))return res.status(400).json({error:e.message});next(e);}
 });
 router.get('/latest',async(req,res,next)=>{
@@ -74,7 +76,7 @@ router.get('/:id',async(req,res,next)=>{
  try{
   await ensureImportSchema();const b=await batch(req,res);if(!b)return;
   const page=Math.min(10,Math.max(1,Number.parseInt(req.query.page,10)||1));
-  res.json({ok:true,id:b.id,confirmed:b.confirmed,summary:summary(b.items),items:b.items.slice((page-1)*50,page*50).map(i=>({line:i.line,title:i.title,priceCents:i.priceCents,photos:i.urls.length,state:i.state,error:i.error,listingId:i.listingId})),page});
+  res.json({ok:true,id:b.id,confirmed:b.confirmed,summary:summary(b.items),items:b.items.slice((page-1)*50,page*50).map(i=>({line:i.line,title:i.title,priceCents:i.priceCents,photos:i.urls.length,state:i.state,error:i.error,warnings:i.warnings||[],listingId:i.listingId})),page});
  }catch(e){next(e);}
 });
 router.post('/:id/confirm',limiter,async(req,res,next)=>{
