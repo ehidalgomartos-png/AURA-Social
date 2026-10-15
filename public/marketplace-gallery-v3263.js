@@ -40,3 +40,18 @@ document.querySelectorAll('[data-market-gallery]').forEach(root=>{
  window.addEventListener('resize',nearest,{passive:true});
  render();
 });
+
+/* V3.2.63.1: Only one consult button in the visible viewport.
+   Progressive enhancement: if IntersectionObserver is unsupported,
+   the main offer CTA still works and the floating duplicate stays hidden. */
+(function(){
+ const primary=document.querySelector('.market-product-contact');
+ const floating=document.querySelector('.market-mobile-contact');
+ if(!primary||!floating||typeof IntersectionObserver!=='function')return;
+ const observer=new IntersectionObserver(entries=>{
+  const entry=entries[0];
+  if(!entry)return;
+  floating.hidden=entry.isIntersecting;
+ },{threshold:0});
+ observer.observe(primary);
+})();
