@@ -166,6 +166,22 @@ router.post('/admin/:id/moderate',wrap(async(req,res)=>{
   res.json({ok:true});
 }));
 
+// V3.2.69 — Read-only share preview, no publishing side effects.
+router.get('/share-preview/:id',wrap(async(req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
+ const result=await db.query(
+  "SELECT l.id,l.title FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
+  "WHERE l.id=$1 AND l.status='active' AND l.moderation_status='published' "+
+  "AND u.status='active' AND u.discoverable=true "+
+  "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$2 AND b.blocked_id=l.seller_id) OR "+
+  "(b.blocked_id=$2 AND b.blocker_id=l.seller_id)) LIMIT 1",
+  [req.params.id,req.user.id]);
+ if(!result.rowCount)return res.status(404).json({error:'listing_not_available'});
+ const row=result.rows[0];
+ return res.json({ok:true,item:{id:row.id,title:row.title,url:'/marketplace/p/'+row.id}});
+}));
+
 router.get('/:id',wrap(async(req,res)=>{
   if(!idOk(req.params.id))return res.status(400).json({error:'invalid_id'});
   const result=await db.query('SELECT '+cardFields+joins+' WHERE l.id=$2 AND (l.seller_id=$1 OR $3::boolean OR ('+visibleToUser+" AND l.status IN ('active','reserved','sold')))",[req.user.id,req.params.id,!!req.user.isAdmin]);

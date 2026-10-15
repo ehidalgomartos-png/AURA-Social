@@ -163,7 +163,7 @@ function card(item){
  '<p class="muted market-seller-location">📍 '+esc(location)+' · '+seller+'</p>'+
  (own?'<span class="market-state market-state-'+esc(item.status)+'">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
  '<div class="actions">'+(quickStatuses)+ (publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
- (publicOK?'<button type="button" data-share="'+esc(item.id)+'">Compartir</button>':'')+
+ (publicOK?'<button type="button" data-share="'+esc(item.id)+'">Compartir</button><a class="market-community-link-v3269" href="/app?view=feed&amp;compartirAnuncio='+esc(item.id)+'">Publicar en RedLibertad</a>':'')+
  (own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':
  state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':
  isOwner?'<button type="button" data-manage="'+esc(item.id)+'">Gestionar mi anuncio</button>':
@@ -462,6 +462,7 @@ function showPublishShare(id,title){
   '<a class="primary" href="'+esc('https://api.whatsapp.com/send?text='+encodeURIComponent(message))+'" target="_blank" rel="noopener noreferrer">WhatsApp</a>'+
   '<a class="secondary" href="'+esc('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url))+'" target="_blank" rel="noopener noreferrer">Facebook</a>'+
   '<a class="secondary" href="'+esc(url)+'">Ver anuncio</a>'+
+  '<a class="secondary market-community-link-v3269" href="/app?view=feed&amp;compartirAnuncio='+esc(id)+'">Publicar en RedLibertad</a>'+
   '<button type="button" class="secondary" data-copy-published="'+esc(url)+'">Copiar enlace</button></div>';
  box.classList.remove('hidden');
 }
@@ -485,7 +486,7 @@ function details(item){
  '</div><p><span class="chip market-deal-'+esc(item.deal)+'">'+esc(item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO')+'</span></p>'+
  '<div class="price">'+priceLabel(item)+'</div><p>📍 '+esc(marketDisplayLocation(item))+' · '+esc(item.category)+(item.details?.subcategory?' · '+esc(item.details.subcategory):'')+'</p>'+
  marketDescriptionHtmlV3267(item.description)+(listingFacts(item).length?'<div class="market-facts">'+listingFacts(item).map(f=>'<div>'+esc(f)+'</div>').join('')+'</div>':'')+'<p class="muted">Publicado por '+seller+'</p><div class="actions">'+
- (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button>':'')+
+ (publicOK?'<button data-share="'+esc(item.id)+'">Compartir anuncio</button><a class="market-community-link-v3269" href="/app?view=feed&amp;compartirAnuncio='+esc(item.id)+'">Publicar en RedLibertad</a>':'')+
  (mine?'':'<button class="primary" type="button" data-contact-id="'+esc(item.id)+'">Contactar por chat</button><button data-report="'+esc(item.id)+'">Denunciar anuncio</button>')+
  (publicOK&&sellerOK?'<a class="market-seller-more" href="/marketplace/vendedor/'+encodeURIComponent(item.seller_username)+'">Ver otros anuncios de esta persona</a>':'')+
  '</div><small>RedLibertad no interviene en el pago, envío ni en los acuerdos.</small>';
