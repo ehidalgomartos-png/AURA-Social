@@ -103,8 +103,10 @@ router.post('/:id/step',stepsLimiter,async(req,res,next)=>{
   const existing=await client.query('SELECT listing_id FROM marketplace_import_links WHERE seller_id=$1 AND source_key=$2',[req.user.id,item.key]);
   if(existing.rowCount){item.state='duplicate';item.error='Producto importado previamente';}
   else{
+   let phase='images';
    try{
     const photos=await saveImages(item.urls);files=photos.files;
+    phase='listing';
     const validate=listingSchema().safeParse({...item.listing,images:photos.paths});
     if(!validate.success)throw new Error('invalid_import_listing');
     const v=validate.data;
@@ -114,7 +116,7 @@ router.post('/:id/step',stepsLimiter,async(req,res,next)=>{
     if(!linked.rowCount){await client.query('DELETE FROM marketplace_listings WHERE id=$1 AND seller_id=$2',[id,req.user.id]);item.state='duplicate';item.error='Producto importado en otra sesión';}
     else{item.state='imported';item.listingId=id;}
    }catch(e){
-    if(e.message==='invalid_import_listing'||!String(e.code||'').startsWith('PG')){item.state='failed';item.error='No se pudo importar: '+(e.message==='invalid_import_listing'?'invalid_import_listing':imageFailureCode(e));}
+    if(phase==='images'||e.message==='invalid_import_listing'){item.state='failed';item.error='No se pudo importar: '+(phase==='images'?imageFailureCode(e):'invalid_import_listing');}
     else throw e;
    }
   }
