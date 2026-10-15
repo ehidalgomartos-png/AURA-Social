@@ -57,6 +57,6 @@ test('CSS versioning updates both member cards and Google indexable public pages
  assert.match(member,/marketplace-v3250\.css\?v=3\.2\.65/);
  assert.match(seoCode,/marketplace-v3250\.css\?v=3\.2\.65/);
  assert.match(seoCode,/marketplace-seo-v3251\.css\?v=3\.2\.63\.2/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.65');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.66');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.65'/);
 });
