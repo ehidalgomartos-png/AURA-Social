@@ -1,0 +1,67 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const read=p=>fs.readFileSync(p,'utf8');
+const google=require('../src/services/marketplace-google-v3264');
+const seo=require('../src/routes/marketplace-seo-v3251');
+const product={id:5,title:'Taza Stitch Navideño',description:'Taza de cerámica con diseño navideño, fabricada con materiales resistentes y apta para regalo.',category:'Tazas',kind:'product',deal:'sale',city:'Valencia',price_cents:1599,details:{condition:'new',saleScope:'national',brand:'MundoTaza',gtin:'4006381333931',mpn:'MT-123'},image_urls:['/uploads/taza.webp'],status:'active',moderation_status:'published',seller_status:'active',seller_discoverable:true,seller_username:'mundotaza',created_at:'2026-10-15T10:00:00Z',updated_at:'2026-10-15T10:00:00Z'};
+test('GTIN checksums and manufacturer details are optional but validated',()=>{
+ assert.equal(google.validGtin('4006381333931'),true);
+ assert.equal(google.validGtin('4006381333932'),false);
+ assert.equal(google.validGtin('123'),false);
+ const {listingInput}=require('../src/routes/marketplace-v3250');
+ const valid={kind:'product',deal:'sale',title:product.title,description:product.description,category:'Tazas',city:'Valencia',priceCents:1599,images:[],details:product.details};
+ assert.equal(listingInput.safeParse(valid).success,true);
+ assert.equal(listingInput.safeParse({...valid,details:{...valid.details,gtin:'4006381333932'}}).success,false);
+ assert.equal(listingInput.safeParse({...valid,kind:'service',deal:'offer'}).success,false);
+});
+test('Readiness endpoint is owner-only and no Merchant feed is published',()=>{
+ const route=read('src/routes/marketplace-v3250.js');
+ assert.match(route,/router.use\(requireAuth\)/);
+ assert.match(route,/router.get\('\/google-readiness'/);
+ assert.match(route,/WHERE l.seller_id=\$1/);
+ assert.match(route,/merchantFeedEnabled:false/);
+ const audit=google.auditProduct(product);
+ assert.equal(audit.publicOnGoogle,true);
+ assert.equal(audit.merchantReady,false);
+ assert.deepEqual(audit.issues,[]);
+ assert.equal(google.auditProduct({...product,status:'paused'}).publicOnGoogle,false);
+ assert.equal(google.auditProduct({...product,deal:'buy'}).publicOnGoogle,false);
+ assert.equal(google.auditProduct({...product,kind:'service',deal:'offer'}).publicOnGoogle,false);
+ assert.ok(google.auditProduct({...product,image_urls:[]}).issues.includes('no_image'));
+});
+test('Structured data has factual brand EAN MPN EUR and nationwide distribution',()=>{
+ const schema=seo.entitySchema(product,'https://redlibertad.com'+seo.listingPath(product),seo.imagePaths(product));
+ assert.equal(schema.brand.name,'MundoTaza');
+ assert.equal(schema.gtin13,'4006381333931');
+ assert.equal(schema.mpn,'MT-123');
+ assert.equal(schema.offers.price,'15.99');
+ assert.equal(schema.offers.areaServed.name,'España');
+ assert.equal(seo.entitySchema({...product,details:{}},'https://redlibertad.com/test',[]).brand,undefined);
+ const page=seo.listingHtml(product);
+ assert.match(page,/EAN \/ GTIN/);
+ assert.match(page,/MundoTaza/);
+ assert.doesNotMatch(page,/aggregateRating/);
+});
+test('WooCommerce import preserves real identifiers',()=>{
+ const csv=require('../src/services/marketplace-woocommerce-csv-v3260');
+ const row={line:2,columns:['tipo','sku','nombre','descripcion','precio normal','publicado','en inventario','imagenes','marca','ean','mpn'],cells:['simple','T-1','Taza Stitch Navideño','Taza con detalles originales y apta para regalar a una persona','15.99','1','1','https://example.com/taza.png','MundoTaza','4006381333931','MT-123']};
+ const result=csv.parseProduct(row,{city:'Valencia',province:'Valencia',saleScope:'national'});
+ assert.equal(result.state,'pending');
+ assert.equal(result.listing.details.brand,'MundoTaza');
+ assert.equal(result.listing.details.gtin,'4006381333931');
+ assert.equal(result.listing.details.mpn,'MT-123');
+});
+test('V3.2.64 mobile seller dashboard is private and text-safe',()=>{
+ const html=read('public/marketplace.html'),js=read('public/marketplace-v3250.js');
+ assert.match(html,/href="\/marketplace\/google"/);
+ assert.match(html,/name="gtin"/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.64/);
+ assert.match(js,/f\('gtin'\)\.value=item\.details\?\.gtin/);
+ const dashboard=read('public/marketplace-google-v3264.js');
+ assert.doesNotThrow(()=>new vm.Script(dashboard));
+ assert.match(dashboard,/textContent/);
+ assert.doesNotMatch(dashboard,/innerHTML/);
+ assert.match(read('server.js'),/app.get\('\/marketplace\/google'/);
+ assert.match(read('public/marketplace-google-v3264.html'),/noindex,nofollow/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.64');
+});

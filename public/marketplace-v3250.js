@@ -238,6 +238,9 @@ function openEditor(item=null,preset=null){
    f('province').value=item.details?.province||'';
    f('subcategory').value=item.details?.subcategory||'';
    f('condition').value=item.details?.condition||'';
+   f('brand').value=item.details?.brand||'';
+   f('gtin').value=item.details?.gtin||'';
+   f('mpn').value=item.details?.mpn||'';
    f('saleScope').value=item.details?.saleScope||(marketNational(item)?'national':'');
    f('serviceMode').value=item.details?.serviceMode||'';
    f('serviceArea').value=item.details?.serviceArea||'';
@@ -280,6 +283,15 @@ function listingFormData(form){
   if(subcategory.length>65)return invalid('subcategory','La subcategoría no debe superar 65 caracteres.');
   const extra={};
   if(kind==='product'&&['new','used'].includes(field('condition')))extra.condition=field('condition');
+  if(kind==='product'){
+    const brand=field('brand'),gtin=field('gtin'),mpn=field('mpn');
+    if(brand.length>80)return invalid('brand','La marca no puede superar 80 caracteres.');
+    if(gtin&&!/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/.test(gtin))return invalid('gtin','Indica un EAN/GTIN de 8, 12, 13 o 14 dígitos.');
+    if(mpn&&(mpn.length>70||!/^[A-Za-z0-9][A-Za-z0-9 ._\/-]*$/.test(mpn)))return invalid('mpn','Revisa la referencia del fabricante.');
+    if(brand)extra.brand=brand;
+    if(gtin)extra.gtin=gtin;
+    if(mpn)extra.mpn=mpn;
+  }
   if(kind==='product'&&deal==='sale'){
     const scope=field('saleScope');
     if(scope&&!['local','national'].includes(scope))return invalid('saleScope','Selecciona una zona de venta válida.');

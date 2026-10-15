@@ -78,7 +78,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.63.3';
+const APP_VERSION='3.2.64';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -1315,6 +1315,7 @@ function sendHtmlShell(file){
   };
 }
 app.get('/marketplace',sendHtmlShell('marketplace.html'));
+app.get('/marketplace/google',(_req,res)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex,nofollow');res.sendFile(path.join(__dirname,'public','marketplace-google-v3264.html'));});
 app.get('/app', sendHtmlShell('app.html'));
 app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
