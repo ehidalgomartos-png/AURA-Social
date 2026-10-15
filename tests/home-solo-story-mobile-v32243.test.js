@@ -71,6 +71,6 @@ test('solo se versionan assets de Inicio y no se toca la mezcla de noticias ni l
  assert.ok(html.includes('/social.js?v=3.2.63.3'));
  assert.ok(html.includes('/editorial-home-v324.js?v=3.2.63.2'));
  assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.66');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.66'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.67');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.67'"));
 });
