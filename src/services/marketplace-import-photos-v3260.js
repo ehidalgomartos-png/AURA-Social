@@ -36,6 +36,16 @@ function sniff(bytes){
  if(bytes.length>=12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')return '.webp';
  throw new Error('image_unsupported_format');
 }
+// Node.js 22 may request lookup({all:true}) when autoSelectFamily is enabled.
+// Return the shape actually requested, while keeping the already validated
+// public IPv4 address pinned to defeat DNS rebinding.
+function pinnedIPv4Lookup(address){
+ if(net.isIP(address)!==4)throw new Error('image_invalid_pinned_ip');
+ return (_hostname,options,done)=>{
+  if(options&&typeof options==='object'&&options.all===true)done(null,[{address,family:4}]);
+  else done(null,address,4);
+ };
+}
 async function downloadImage(raw,redirects=0){
  const url=safeHost(raw);
  const addresses=await dns.lookup(url.hostname,{all:true,family:4,verbatim:true});
@@ -48,7 +58,7 @@ async function downloadImage(raw,redirects=0){
    agent:false,
    timeout:6500,
    headers:{Accept:'image/jpeg,image/png,image/webp','User-Agent':'RedLibertad-MarketplaceImporter/1.0'},
-   lookup:(_host,_opts,done)=>done(null,address,4)
+   lookup:pinnedIPv4Lookup(address)
   },response=>{
    const code=response.statusCode||0;
    // WooCommerce and its CDN may redirect images. Revalidate HTTPS, hostname and
@@ -117,4 +127,4 @@ async function saveImages(urls){
 async function eraseFiles(paths){
  await Promise.allSettled((paths||[]).map(p=>fs.unlink(p)));
 }
-module.exports={safeHost,publicIPv4,sniff,saveImages,eraseFiles,imageFailureCode,MAX_IMAGE,MAX_PHOTOS,MAX_REDIRECTS};
+module.exports={safeHost,publicIPv4,pinnedIPv4Lookup,sniff,saveImages,eraseFiles,imageFailureCode,MAX_IMAGE,MAX_PHOTOS,MAX_REDIRECTS};
