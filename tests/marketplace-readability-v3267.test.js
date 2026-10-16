@@ -64,7 +64,7 @@ test('private detail, version, cache and health are consistent',()=>{
  assert.match(read('public/marketplace-v3250.js'),/marketDescriptionHtmlV3267\(item.description\)/);
  assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.75/);
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.75/);
- assert.match(read('server.js'),/APP_VERSION='3\.2\.75'/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.75');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.76'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.76');
 });
 

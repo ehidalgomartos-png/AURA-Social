@@ -59,8 +59,8 @@ test('mobile styles, versioned resources, and no-auto-publish safeguards remain'
  assert.match(css,/@media\(max-width:760px\)[\s\S]*?\.caption-marketplace-link-v3271\{min-height:40px/);
  assert.match(read('public/app.html'),/social\.js\?v=3\.2\.75/);
  assert.match(read('public/app.html'),/social\.css\?v=3\.2\.75/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.75');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.75'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.76');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.76'/);
  assert.ok(source.includes('async function prepareMarketplaceCommunityShareV3269'));
  assert.ok(source.includes("await api('/api/posts'"));
 });

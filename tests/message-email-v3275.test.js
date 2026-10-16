@@ -112,8 +112,8 @@ test('existing chat, push, account settings and deployment configuration are all
  assert.match(social,/\/api\/messages\/email-preferences/);
  assert.match(read('.env.example'),/MESSAGE_EMAIL_ENABLED=false/);
  assert.match(read('.env.example'),/MESSAGE_EMAIL_FROM=avisos@redlibertad\.com/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.75');
- assert.match(server,/APP_VERSION='3\.2\.75'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.76');
+ assert.match(server,/APP_VERSION='3\.2\.76'/);
 });
 test('Marketplace Professional remains a proposal, no live payments or Google feed are enabled',()=>{
  const doc=read('docs/marketplace-profesional-v3275-plan.md');
