@@ -163,6 +163,7 @@ router.get('/marketplace/icon-:size.png',(req,res)=>{
  res.setHeader('Cache-Control','public,max-age=604800,immutable');
  res.type('image/png').send(marketplaceIcon(size));
 });
+router.get('/marketplace/tiendas',(_req,res)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex,nofollow');res.sendFile(path.join(__dirname,'..','..','public','marketplace-professional-v3276.html'));});
 router.get('/marketplace/importar',(_req,res)=>{
  res.setHeader('Cache-Control','no-store');
  res.type('html').sendFile(path.join(__dirname,'..','..','public','marketplace-import-v3260.html'));
