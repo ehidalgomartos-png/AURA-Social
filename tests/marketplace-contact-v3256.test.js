@@ -11,11 +11,11 @@ const routeSource=read('src/routes/marketplace-seo-v3251.js');
 test('V3.2.62 JS syntax, version, cache and smoke wiring',()=>{
  assert.doesNotThrow(()=>new vm.Script(js));
  const pkg=JSON.parse(read('package.json'));
- assert.equal(pkg.version,'3.2.73');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.73'/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.73/);
+ assert.equal(pkg.version,'3.2.74');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.74'/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.74/);
  assert.match(read('public/marketplace.html'),/id="contactContext"/);
- assert.match(routeSource,/marketplace-seo-v3251\.css\?v=3\.2\.73/);
+ assert.match(routeSource,/marketplace-seo-v3251\.css\?v=3\.2\.74/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:marketplace-contact/);
 });
 test('Contact by listing ID checks active status, ownership and seller before creating a chat',async()=>{

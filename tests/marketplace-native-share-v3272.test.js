@@ -52,7 +52,7 @@ test('SEO detail offers native sharing, retains all previous channels and catego
  assert.match(html,/data-copy-url=/);
  assert.match(html,/market-more-category-v3272/);
  assert.match(html,/\/marketplace\/explorar\?tipo=product&amp;categoria=Hogar%20y%20muebles/);
- assert.match(html,/marketplace-share-v3254\.js\?v=3\.2\.73/);
+ assert.match(html,/marketplace-share-v3254\.js\?v=3\.2\.74/);
  assert.match(html,/property="og:image"/);
  assert.match(html,/\/marketplace\/imagen\/77\/0/);
 });
@@ -105,8 +105,8 @@ test('no DB schema or PWA changes, release and responsive assets updated',()=>{
  const css=read('public/marketplace-seo-v3251.css');
  assert.match(css,/\.market-native-share-v3272/);
  assert.match(css,/@media\(max-width:600px\)/);
- assert.match(read('server.js'),/APP_VERSION='3\.2\.73'/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.73');
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.73/);
- assert.match(read('public/app.html'),/social\.js\?v=3\.2\.73/);
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.74'/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.74');
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.74/);
+ assert.match(read('public/app.html'),/social\.js\?v=3\.2\.74/);
 });

@@ -11,6 +11,12 @@ const {readableDescription,descriptionParts}=require('../services/marketplace-de
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
+// Preset sections retain the unchanged V3.2.74 taxonomy, ordered by listing type.
+const MARKET_CATEGORY_GROUPS_V3274={
+ product:GENERAL_MARKET_CATEGORIES_V3273.slice(0,22),
+ service:GENERAL_MARKET_CATEGORIES_V3273.slice(22,33),
+ property:GENERAL_MARKET_CATEGORIES_V3273.slice(33)
+};
 const PAGE_SIZE=2000;
 const safeId=value=>/^[1-9]\d{0,15}$/.test(String(value||''));
 const validImage=value=>/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(String(value||''));
@@ -90,9 +96,9 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.73"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.73">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.73" defer></script>'+
- '<script src="/marketplace-pwa-retire-v3266.js?v=3.2.73" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.74"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.74">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.74" defer></script>'+
+ '<script src="/marketplace-category-filter-v3274.js?v=3.2.74" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.74" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
  '<main>'+body+'</main><footer class="site-foot market-public-footer"><a href="/app?view=explore&amp;marketReturn=1">Volver a RedLibertad</a><a href="/marketplace?publicar=1">Publicar anuncio</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
@@ -245,18 +251,38 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
    return '/marketplace/explorar'+(values.size?'?'+values.toString():'');
   };
   // Categories use only public, active ads, including categories imported from WooCommerce.
+  // A category is only shown under its real listing type. Private, hidden, and inactive listings never contribute.
   const categoryResult=await db.query(
-   "SELECT MIN(BTRIM(l.category)) AS category FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
+   "SELECT MIN(BTRIM(l.category)) AS category, l.kind AS kind FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
    "WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true "+
-   "AND LENGTH(BTRIM(l.category)) BETWEEN 2 AND 65 GROUP BY LOWER(BTRIM(l.category)) ORDER BY LOWER(BTRIM(l.category)) LIMIT 50");
-  // Presets are always browsable; published categories (including WooCommerce) remain intact.
-  const publishedCategories=[...new Set((categoryResult.rows||[]).map(row=>String(row.category||'').trim()).filter(Boolean))];
-  const categories=[],seen=new Set();
-  for(const name of [...GENERAL_MARKET_CATEGORIES_V3273,...publishedCategories,category]){
-    const key=name.trim().toLocaleLowerCase('es');
-    if(key&&!seen.has(key)){seen.add(key);categories.push(name);}
+   "AND LENGTH(BTRIM(l.category)) BETWEEN 2 AND 65 GROUP BY l.kind, LOWER(BTRIM(l.category)) ORDER BY LOWER(BTRIM(l.category)) LIMIT 150");
+  const grouped={product:new Map(),service:new Map(),property:new Map(),other:new Map()};
+  const normalizeCategory=value=>String(value||'').trim().toLocaleLowerCase('es');
+  const addCategory=(group,value)=>{
+    const label=String(value||'').trim().slice(0,65),key=normalizeCategory(label);
+    if(key && !grouped[group].has(key))grouped[group].set(key,label);
+  };
+  for(const [group,values] of Object.entries(MARKET_CATEGORY_GROUPS_V3274))
+    for(const name of values)addCategory(group,name);
+  const publishedCategories=[];
+  for(const row of categoryResult.rows||[]){
+    const name=String(row.category||'').trim(),group=['product','service','property'].includes(row.kind)?row.kind:'other';
+    if(!name)continue;
+    publishedCategories.push(name);
+    // Existing WooCommerce categories are never reclassified or renamed.
+    const match=Object.keys(MARKET_CATEGORY_GROUPS_V3274).find(type=>grouped[type].has(normalizeCategory(name)));
+    addCategory(match||group,name);
   }
-  categories.sort((a,b)=>a.localeCompare(b,'es'));
+  // Preserve previously shared category URLs even if no current public advert exists.
+  if(category&&!Object.values(grouped).some(map=>map.has(normalizeCategory(category))))
+    addCategory(kind||'other',category);
+  const categoryGroupLabel={product:'Productos',service:'Servicios',property:'Inmobiliaria',other:'Otras categorías publicadas'};
+  const categoryGroupsHtml=Object.entries(grouped).map(([group,values])=>{
+    if(!values.size)return '';
+    const options=[...values.values()].sort((a,b)=>a.localeCompare(b,'es')).map(value=>
+      '<option value="'+esc(value)+'"'+(normalizeCategory(category)===normalizeCategory(value)?' selected':'')+'>'+esc(value)+'</option>').join('');
+    return '<optgroup label="'+esc(categoryGroupLabel[group])+'" data-market-kind-v3274="'+esc(group)+'">'+options+'</optgroup>';
+  }).join('');
   const args=[operation,kind,q?'%'+q+'%':null,city?'%'+city+'%':null,(page-1)*24,category||null,nationalOnly,maxPrice];
   const result=await db.query(
    "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
@@ -304,7 +330,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
      [['','Todos'],['product','Productos'],['service','Servicios'],['property','Inmobiliaria']].map(([value,label])=>'<option value="'+value+'"'+(kind===value||(!kind&&!value)?' selected':'')+'>'+label+'</option>').join('')+
     '</select></label>'+
     '<label>Categoría<select name="categoria"><option value="">Todas las categorías</option>'+
-     categories.map(value=>'<option value="'+esc(value)+'"'+(category.toLowerCase()===value.toLowerCase()?' selected':'')+'>'+esc(value)+'</option>').join('')+
+     categoryGroupsHtml+
     '</select><small class="market-category-help-v3273">Algunas categorías todavía no tienen anuncios.</small></label>'+
     '<label>Precio máximo (€)<input name="precio_max" type="text" inputmode="decimal" maxlength="18" value="'+esc(maxPrice!==null?maxInput:'')+'" placeholder="Ej. 250"></label>'+
     '<label>Ordenar<select name="orden">'+
