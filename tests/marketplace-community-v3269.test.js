@@ -114,7 +114,7 @@ test('safety on unavailable listing leaves the composer untouched',async()=>{
  assert.deepEqual(calls,['error']);
 });
 test('release wiring and media safety are intact',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
  assert.match(read('public/app.html'),/social\.js\?v=3\.2\.69\.1/);
  assert.match(read('public/index.html'),/app\.js\?v=3\.2\.69\.1/);

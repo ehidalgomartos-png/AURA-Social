@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.69.1",
+  "version": "3.2.71",
   "private": true,
-  "description": "RedLibertad V3.2.69.1 — Marketplace Photo Share Recovery",
+  "description": "RedLibertad V3.2.71 — Enlaces inteligentes en publicaciones",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -34,6 +34,7 @@
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
     "test:marketplace-share-recovery": "node --test tests/marketplace-share-recovery-v32691.test.js",
+    "test:smart-links": "node --test tests/smart-links-v3271.test.js",
     "test:marketplace-community": "node --test tests/marketplace-community-v3269.test.js",
     "test:marketplace-public-discovery": "node --test tests/marketplace-public-discovery-v3268.test.js",
     "test:marketplace-readability": "node --test tests/marketplace-readability-v3267.test.js",

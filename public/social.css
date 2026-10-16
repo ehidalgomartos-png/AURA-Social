@@ -7793,3 +7793,21 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 /* V3.2.69: opt-in Marketplace sharing uses the existing publication editor. */
 .market-share-compose-hint-v3269{margin:4px 0 13px;padding:12px 13px;border:1px solid #a7d7ca;border-radius:12px;background:#eaf8f2;color:#124f47;font-size:13px;line-height:1.5}
 .market-share-compose-hint-v3269 a{display:inline-flex;min-height:44px;align-items:center;font-weight:800;color:#0b665b}
+
+/* V3.2.71 — smart links rendered from saved captions, including older posts. */
+.caption-marketplace-link-v3271{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  max-width:100%;margin:3px 0;padding:7px 11px;
+  border:1px solid #0a7569;border-radius:10px;
+  background:#0a7569;color:#fff;font:inherit;font-size:.92em;font-weight:800;
+  line-height:1.35;text-decoration:none;vertical-align:middle;white-space:normal;
+  overflow-wrap:anywhere;
+}
+.caption-marketplace-link-v3271:hover,
+.caption-marketplace-link-v3271:focus-visible{background:#07574f;border-color:#07574f;color:#fff;text-decoration:none}
+.caption-marketplace-link-v3271:focus-visible{outline:3px solid #1c9a87;outline-offset:2px}
+.caption-web-link-v3271{color:var(--teal);font-weight:700;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;word-break:break-word}
+.caption-web-link-v3271:hover,.caption-web-link-v3271:focus-visible{color:#07574f}
+@media(max-width:760px){
+  .caption-marketplace-link-v3271{min-height:40px;padding:8px 11px;font-size:13px}
+}
