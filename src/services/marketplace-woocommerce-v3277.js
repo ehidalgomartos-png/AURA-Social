@@ -111,6 +111,6 @@ async function getProduct(store,credentials,id,deps){
  return normalizeProduct(store.store_url,data);
 }
 function publicError(e){
- return /^woocommerce_[a-z_]+$/.test(e?.message||'')?e.message:'woocommerce_connection_failed';
+ return /^(?:woocommerce_[a-z_]+|invalid_import_options|invalid_import_listing)$/.test(e?.message||'')?e.message:'woocommerce_connection_failed';
 }
 module.exports={DDL,MAX_PAGE_SIZE,secretKey,encryptCredentials,decryptCredentials,normalizeProduct,apiPath,requestWoo,listProducts,getProduct,publicError};
