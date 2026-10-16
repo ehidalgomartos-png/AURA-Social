@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/social.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-entry-v3250.css">
+  <link rel="stylesheet" href="/social.css?v=3.2.75"><link rel="stylesheet" href="/community-compose-polish-v32771.css?v=3.2.77.1"><link rel="stylesheet" href="/marketplace-entry-v3250.css">
   <link rel="stylesheet" href="/pwa-install.css?v=3.2.39">
   <link rel="stylesheet" href="/creator-ops.css">
 </head>
@@ -370,15 +370,32 @@
         </section>
 
         <section id="communityComposeSection" class="community-compose hidden">
-          <div class="community-section-head"><div><b>Publicar en la comunidad</b><small>Visible dentro de este espacio.</small></div></div>
-          <form id="communityPostForm">
-            <div class="mention-field-wrap"><textarea name="body" maxlength="2200" placeholder="Comparte algo con la comunidad…"></textarea><div id="communityMentionSuggestions" class="mention-suggestions hidden"></div></div>
-            <div class="form-row">
-              <label>Foto o vídeo<input id="communityPostFile" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label>
-              <label>Clasificación<select name="contentLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select></label>
+          <div class="community-section-head community-compose-head">
+            <div><b>Publicar en la comunidad</b><small>Visible dentro de este espacio.</small></div>
+          </div>
+          <form id="communityPostForm" class="community-compose-form">
+            <label class="community-compose-label" for="communityPostBody">Tu publicación</label>
+            <div class="mention-field-wrap community-compose-text-wrap">
+              <textarea id="communityPostBody" name="body" rows="4" maxlength="2200" placeholder="¿Qué quieres compartir con la comunidad?"></textarea>
+              <div id="communityMentionSuggestions" class="mention-suggestions hidden"></div>
             </div>
-            <button class="primary" type="submit">Publicar</button>
-            <p id="communityPostStatus" class="status"></p>
+            <div class="community-compose-meta"><small>Comparte una idea, fotografía o vídeo</small><output id="communityPostLength" for="communityPostBody">0 / 2200</output></div>
+            <div class="community-compose-options">
+              <div class="community-compose-upload">
+                <button type="button" id="communityPostPickFile" class="community-compose-file-btn">📷 Añadir foto o vídeo</button>
+                <input id="communityPostFile" type="file" hidden accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime">
+              </div>
+              <label class="community-compose-classification" for="communityPostContentLevel"><span>Clasificación</span>
+                <select id="communityPostContentLevel" name="contentLevel"><option value="normal">Normal</option><option value="sensitive">Sensible</option><option value="nudity">Desnudez</option></select>
+              </label>
+            </div>
+            <div id="communityPostMediaPreview" class="community-compose-media-preview hidden" aria-live="polite">
+              <img id="communityPostMediaThumbnail" class="hidden" alt="Vista previa de la fotografía seleccionada">
+              <div class="community-compose-media-copy"><strong id="communityPostMediaName"></strong><small id="communityPostMediaDetails"></small></div>
+              <button id="communityPostRemoveFile" class="community-compose-remove-file" type="button" aria-label="Quitar archivo seleccionado">Quitar</button>
+            </div>
+            <button class="primary community-compose-submit" type="submit">Publicar en la comunidad</button>
+            <p id="communityPostStatus" class="status" role="status" aria-live="polite"></p>
           </form>
         </section>
 
@@ -1549,5 +1566,5 @@
 </div>
 
 <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="/marketplace-return-v32581.js?v=3.2.63.2" defer></script><script src="/pwa.js?v=3.2.39"></script><script src="/social.js?v=3.2.75"></script><script src="/creator-ops.js"></script><script src="/feed-new-activity-v3226.js?v=3.2.26" defer></script><script src="/editorial-interleave-v3224.js?v=3.2.24" defer></script><script src="/editorial-home-v324.js?v=3.2.63.2" defer></script>
+<script src="/marketplace-return-v32581.js?v=3.2.63.2" defer></script><script src="/pwa.js?v=3.2.39"></script><script src="/social.js?v=3.2.75"></script><script src="/community-compose-polish-v32771.js?v=3.2.77.1" defer></script><script src="/creator-ops.js"></script><script src="/feed-new-activity-v3226.js?v=3.2.26" defer></script><script src="/editorial-interleave-v3224.js?v=3.2.24" defer></script><script src="/editorial-home-v324.js?v=3.2.63.2" defer></script>
 </body></html>
