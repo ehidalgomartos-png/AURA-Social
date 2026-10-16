@@ -202,18 +202,34 @@ function card(item){
  const imageMarkup=img?'<img loading="lazy" decoding="async" width="640" height="480" src="'+esc(img)+'" alt="'+esc(item.title)+'">':'<span aria-hidden="true">'+({product:'📦',service:'🛠️',property:'🏠'}[item.kind]||'▣')+'</span>';
  const cover=publicOK?'<a class="market-photo-link" href="'+esc(url)+'" aria-label="Ver '+esc(item.title)+'">'+imageMarkup+'</a>':imageMarkup;
  const more=item.details?.subcategory?'<p class="muted market-subcategory">'+esc(item.category)+' · '+esc(item.details.subcategory)+'</p>':'';
+ const compactActions=publicOK&&!own&&state.mode!=='reports'&&!isOwner
+  ? '<div class="actions market-card-actions-v32772">'+
+    '<a class="market-seo-link market-card-main-v32772" href="'+esc(url)+'">Ver anuncio</a>'+
+    '<button class="market-contact-action market-card-main-v32772" type="button" data-contact-id="'+esc(item.id)+'">Contactar</button>'+
+    '<div class="market-card-utility-row-v32772">'+
+      '<button class="market-card-quiet-v32772" type="button" data-fav="'+esc(item.id)+'" aria-label="'+(item.is_favorite?'Quitar de favoritos':'Guardar en favoritos')+'">'+(item.is_favorite?'♥ Guardado':'♡ Guardar')+'</button>'+
+      '<button class="market-card-quiet-v32772" type="button" data-share="'+esc(item.id)+'">↗ Compartir</button>'+
+      '<details class="market-card-extra-v32772"><summary aria-label="Más opciones del anuncio">⋯ Más</summary><div class="market-card-extra-panel-v32772">'+
+        '<a class="market-community-link-v3269" href="/app?view=feed&amp;compartirAnuncio='+esc(item.id)+'">Publicar en RedLibertad</a>'+
+        '<button type="button" data-report="'+esc(item.id)+'">Denunciar anuncio</button>'+
+      '</div></details>'+
+    '</div></div>'
+  : null;
  return '<article class="card market-catalog-card"><div class="thumb">'+cover+photoBadge+
  '</div><div class="cardbody"><span class="chip market-deal-'+esc(item.deal)+'">'+esc(badge)+'</span>'+(isRecentListing(item)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h3>'+esc(item.title)+'</h3>'+more+'<div class="price">'+priceLabel(item)+'</div>'+
  (info.length?'<p class="market-product-facts">'+info.map(esc).join(' · ')+'</p>':'')+
  '<p class="muted market-seller-location">📍 '+esc(location)+' · '+seller+'</p>'+
  (own?'<span class="market-state market-state-'+esc(item.status)+'">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
+ (compactActions||(
  '<div class="actions">'+(quickStatuses)+ (publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
  (publicOK?'<button type="button" data-share="'+esc(item.id)+'">Compartir</button><a class="market-community-link-v3269" href="/app?view=feed&amp;compartirAnuncio='+esc(item.id)+'">Publicar en RedLibertad</a>':'')+
  (own?'<button data-edit="'+esc(item.id)+'">Editar</button><button class="danger-action" data-delete="'+esc(item.id)+'">Eliminar anuncio</button>':
  state.mode==='reports'?'<button data-mod="'+esc(item.id)+'">Moderar</button>':
  isOwner?'<button type="button" data-manage="'+esc(item.id)+'">Gestionar mi anuncio</button>':
  '<button class="market-contact-action" type="button" data-contact-id="'+esc(item.id)+'">Contactar</button><button data-fav="'+esc(item.id)+'" aria-label="'+(item.is_favorite?'Quitar de favoritos':'Guardar en favoritos')+'">'+(item.is_favorite?(state.mode==='favorites'?'♥ Quitar de favoritos':'♥ Guardado'):'♡ Guardar')+'</button><button data-report="'+esc(item.id)+'">Denunciar</button>')+
- '</div></div></article>';
+
+ '</div>'))+
+ '</div></article>';
 }
 function emptyMarketplaceState(){
  if(state.mode==='mine')return '<div class="market-empty"><div class="market-empty-icon" aria-hidden="true">📦</div><h2>Todavía no tienes anuncios</h2><p>Publica un producto, ofrece un servicio o anuncia un inmueble.</p><button type="button" class="primary" data-empty-create>Publicar mi primer anuncio</button></div>';
