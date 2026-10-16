@@ -11,7 +11,7 @@ const {readableDescription,descriptionParts}=require('../services/marketplace-de
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
-// Preset sections retain the unchanged V3.2.74 taxonomy, ordered by listing type.
+// Preset sections retain the unchanged V3.2.75 taxonomy, ordered by listing type.
 const MARKET_CATEGORY_GROUPS_V3274={
  product:GENERAL_MARKET_CATEGORIES_V3273.slice(0,22),
  service:GENERAL_MARKET_CATEGORIES_V3273.slice(22,33),
@@ -96,9 +96,9 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.74"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.74">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.74" defer></script>'+
- '<script src="/marketplace-category-filter-v3274.js?v=3.2.74" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.74" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.75">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.75" defer></script>'+
+ '<script src="/marketplace-category-filter-v3274.js?v=3.2.75" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.75" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
  '<main>'+body+'</main><footer class="site-foot market-public-footer"><a href="/app?view=explore&amp;marketReturn=1">Volver a RedLibertad</a><a href="/marketplace?publicar=1">Publicar anuncio</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
