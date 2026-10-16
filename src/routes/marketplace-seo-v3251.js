@@ -10,6 +10,7 @@ const {validGtin}=require('../services/marketplace-google-v3264');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
+const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
 const PAGE_SIZE=2000;
 const safeId=value=>/^[1-9]\d{0,15}$/.test(String(value||''));
 const validImage=value=>/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(String(value||''));
@@ -89,9 +90,9 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.72"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.72">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.72" defer></script>'+
- '<script src="/marketplace-pwa-retire-v3266.js?v=3.2.72" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.73"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.73">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.73" defer></script>'+
+ '<script src="/marketplace-pwa-retire-v3266.js?v=3.2.73" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
  '<main>'+body+'</main><footer class="site-foot market-public-footer"><a href="/app?view=explore&amp;marketReturn=1">Volver a RedLibertad</a><a href="/marketplace?publicar=1">Publicar anuncio</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
@@ -131,7 +132,7 @@ function listingHtml(row,related=[]){
  (listingFacts(row).length?'<section class="market-fact-section"><h2>Datos del anuncio</h2><dl class="market-seo-facts">'+listingFacts(row).map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd></div>').join('')+'</dl></section>':'')+
  '<section><h2>'+(row.deal==='buy'?'Persona que busca':'Vendedor o anunciante')+'</h2><p><a class="seller-profile-link" href="'+esc(sellerLink)+'">'+esc(row.seller_name||row.seller_username)+'</a></p><p><a class="market-seller-more" href="'+esc(otherAdsLink)+'">Ver otros anuncios de esta persona →</a></p></section>'+
  '<div class="market-seo-actions">'+(!isProductSale?'<a class="primary" href="'+esc(contactHref)+'">'+esc(contactText)+'</a>':'')+'<a class="secondary" href="/marketplace/explorar">Ver más anuncios</a></div>'+
- '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><button type="button" class="market-native-share-v3272" data-market-native-share="'+esc(url)+'" data-market-share-title="'+esc(row.title)+'">Compartir desde el móvil ↗</button><a class="market-community-link-v3269" href="/app?view=feed&amp;compartirAnuncio='+encodeURIComponent(row.id)+'">Publicar en RedLibertad</a><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
+ '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><button type="button" class="market-native-share-v3272" data-market-native-share="'+esc(url)+'" data-market-share-title="'+esc(row.title)+'">Compartir desde el móvil ↗</button><a class="market-community-link-v3269" data-market-community-share-v3273 hidden href="/app?view=feed&amp;compartirAnuncio='+encodeURIComponent(row.id)+'">Publicar en RedLibertad</a><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
  '<p class="market-category-more-v3272"><a class="market-more-category-v3272" href="'+esc(categoryBrowse)+'">Ver más anuncios de '+esc(row.category)+' →</a></p>'+ 
  '<p class="muted">Consulta el perfil público del anunciante y confirma la información antes de acordar un pago o envío. RedLibertad no procesa pagos ni garantiza las transacciones.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>'+
  (isProductSale?'<nav class="market-mobile-contact" aria-label="Consulta sobre el producto" hidden><span>'+esc(displayPrice(row))+'</span><a href="'+esc(contactHref)+'">Consultar al vendedor →</a></nav>':'')+
@@ -248,8 +249,14 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
    "SELECT MIN(BTRIM(l.category)) AS category FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
    "WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true "+
    "AND LENGTH(BTRIM(l.category)) BETWEEN 2 AND 65 GROUP BY LOWER(BTRIM(l.category)) ORDER BY LOWER(BTRIM(l.category)) LIMIT 50");
-  const categories=[...new Set((categoryResult.rows||[]).map(row=>String(row.category||'').trim()).filter(Boolean))];
-  if(category&&!categories.some(value=>value.toLowerCase()===category.toLowerCase()))categories.push(category);
+  // Presets are always browsable; published categories (including WooCommerce) remain intact.
+  const publishedCategories=[...new Set((categoryResult.rows||[]).map(row=>String(row.category||'').trim()).filter(Boolean))];
+  const categories=[],seen=new Set();
+  for(const name of [...GENERAL_MARKET_CATEGORIES_V3273,...publishedCategories,category]){
+    const key=name.trim().toLocaleLowerCase('es');
+    if(key&&!seen.has(key)){seen.add(key);categories.push(name);}
+  }
+  categories.sort((a,b)=>a.localeCompare(b,'es'));
   const args=[operation,kind,q?'%'+q+'%':null,city?'%'+city+'%':null,(page-1)*24,category||null,nationalOnly,maxPrice];
   const result=await db.query(
    "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id "+
@@ -279,7 +286,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
    '<a href="/marketplace/explorar"'+(!params.size?' aria-current="page"':'')+'>Todos</a>'+
    '<a href="'+esc(quickLink({tipo:'product',nacional:null}))+'"'+(kind==='product'&&!nationalOnly?' aria-current="page"':'')+'>Productos</a>'+
    '<a href="'+esc(quickLink({tipo:'product',operacion:'sale',ciudad:null,nacional:'1'}))+'"'+(nationalOnly?' aria-current="page"':'')+'>Venta en toda España</a>'+
-   categories.slice(0,5).map(value=>'<a href="'+esc(quickLink({categoria:value,nacional:null}))+'"'+(category.toLowerCase()===value.toLowerCase()?' aria-current="page"':'')+'>'+esc(value)+'</a>').join('')+
+   publishedCategories.slice(0,5).map(value=>'<a href="'+esc(quickLink({categoria:value,nacional:null}))+'"'+(category.toLowerCase()===value.toLowerCase()?' aria-current="page"':'')+'>'+esc(value)+'</a>').join('')+
    '</nav>';
   const activeLabels=[q?'Búsqueda: '+q:'',category?'Categoría: '+category:'',nationalOnly?'Venta en toda España':'',maxPrice!==null?'Hasta '+maxInput+' €':''].filter(Boolean);
   const selectedSummary=activeLabels.length?'<div class="market-filter-summary" aria-label="Filtros activos">'+
@@ -295,7 +302,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
     '<div class="market-public-extra"><label>Ciudad<input name="ciudad" maxlength="80" value="'+esc(city)+'" placeholder="Ej. Valencia"></label>'+
     '<label>Tipo de anuncio<select name="tipo">'+
      [['','Todos'],['product','Productos'],['service','Servicios'],['property','Inmobiliaria']].map(([value,label])=>'<option value="'+value+'"'+(kind===value||(!kind&&!value)?' selected':'')+'>'+label+'</option>').join('')+
-    '</select></label>'+
+    '</select><small class="market-category-help-v3273">Algunas categorías todavía no tienen anuncios.</small></label>'+
     '<label>Categoría<select name="categoria"><option value="">Todas las categorías</option>'+
      categories.map(value=>'<option value="'+esc(value)+'"'+(category.toLowerCase()===value.toLowerCase()?' selected':'')+'>'+esc(value)+'</option>').join('')+
     '</select></label>'+

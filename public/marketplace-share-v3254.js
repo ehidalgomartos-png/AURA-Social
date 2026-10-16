@@ -1,5 +1,5 @@
 'use strict';
-// V3.2.72 — Native mobile sharing of public Marketplace listings.
+// V3.2.73 — Native mobile sharing of public Marketplace listings.
 // No credentials, database writes, or automatic publication.
 function safePublicListingShareUrlV3272(raw) {
   try {
@@ -41,3 +41,18 @@ document.addEventListener('click', async event => {
   }
   await copyPublicListingV3272(url, status);
 });
+
+// V3.2.73: only signed-in active members can publish a community post.
+async function revealMarketplaceCommunityShareV3273() {
+  const links=Array.from(document.querySelectorAll?.('[data-market-community-share-v3273]') || []);
+  if(!links.length)return;
+  for(const link of links)link.hidden=true;
+  try {
+    const response=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    if(!response.ok)return;
+    const data=await response.json();
+    if(!data?.user?.id || data.user.status!=='active')return;
+    for(const link of links)link.hidden=false;
+  } catch (_) { /* Guests, offline or expired sessions stay hidden. */ }
+}
+void revealMarketplaceCommunityShareV3273();

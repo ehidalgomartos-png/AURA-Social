@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.72",
+  "version": "3.2.73",
   "private": true,
-  "description": "RedLibertad V3.2.72 — Enlaces inteligentes en publicaciones",
+  "description": "RedLibertad V3.2.73 — Enlaces inteligentes en publicaciones",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -33,6 +33,7 @@
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
+    "test:marketplace-category-session": "node --test tests/marketplace-category-session-v3273.test.js",
     "test:marketplace-native-share": "node --test tests/marketplace-native-share-v3272.test.js",
     "test:marketplace-share-recovery": "node --test tests/marketplace-share-recovery-v32691.test.js",
     "test:smart-links": "node --test tests/smart-links-v3271.test.js",
