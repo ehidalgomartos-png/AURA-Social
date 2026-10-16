@@ -22,6 +22,8 @@ jobs:
         run: npm run check:syntax
       - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
         run: npm run test:marketplace-chat-polish
+      - name: V3.2.76 professional storefront admin-only access regression
+        run: npm run test:marketplace-professional-admin-access
       - name: V3.2.76 professional shops and secure external product links
         run: npm run test:marketplace-professional
       - name: V3.2.64 seller product identifiers and Google readiness
