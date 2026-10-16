@@ -18,11 +18,11 @@ function res(){
  type(){return this;},send(v){this.body=v;return this;}};
 }
 test('Hotfix release version, caches, scripts are valid',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.72');
- assert.ok(read('server.js').includes("APP_VERSION='3.2.72'"));
- assert.ok(market.includes('/marketplace-v3250.js?v=3.2.72'));
- assert.ok(app.includes('/social.css?v=3.2.72'));
- assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.72'));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.73');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.73'"));
+ assert.ok(market.includes('/marketplace-v3250.js?v=3.2.73'));
+ assert.ok(app.includes('/social.css?v=3.2.73'));
+ assert.ok(publicSeo.includes('marketplace-seo-v3251.css?v=3.2.73'));
  assert.doesNotThrow(()=>new vm.Script(script));
  assert.doesNotThrow(()=>new vm.Script(returnScript));
 });
