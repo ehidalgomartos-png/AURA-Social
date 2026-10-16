@@ -41,7 +41,7 @@ test('public category list and offers derive only from visible published listing
  assert.match(categories.sql,/l.status='active'/);
  assert.match(categories.sql,/l.moderation_status='published'/);
  assert.match(categories.sql,/u.discoverable=true/);
- assert.match(categories.sql,/LIMIT 50/);
+ assert.match(categories.sql,/LIMIT 150/);
 });
 test('category and maximum price use parameters and filtered pages are noindex',async()=>{
  const {out,query}=await render({categoria:'Tazas',precio_max:'250,50',q:'regalo',orden:'price_asc'});
@@ -102,10 +102,10 @@ test('invalid maximum price is ignored safely and no category is invented',async
  assert.match(styles,/\.market-public-grid \.thumb img\{[^}]*object-fit:contain/);
 });
 test('release version, public cache, PWA and seller tools remain aligned',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.73');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.73'/);
- assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.73/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.73/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.74');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.74'/);
+ assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.74/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.74/);
  assert.match(read('public/marketplace.html'),/marketSellerTools/);
  assert.match(read('public/marketplace.html'),/marketplace\/importar/);
  assert.match(read('public/manifest.webmanifest'),/"id": "\/app"/);
