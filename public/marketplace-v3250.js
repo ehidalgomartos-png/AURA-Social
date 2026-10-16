@@ -639,6 +639,17 @@ async function init(){
  window.currentUserId=me.user?.id??me.id;
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
  $('#reportsTab').classList.toggle('hidden',!state.admin);
+ if(state.admin){
+   const tools=$('#marketSellerTools');
+   if(tools&&!tools.querySelector('[data-admin-professional]')){
+     const link=document.createElement('a');
+     link.href='/marketplace/tiendas';
+     link.className='market-seller-import-link';
+     link.dataset.adminProfessional='true';
+     link.textContent='Administrar tiendas profesionales →';
+     tools.appendChild(link);
+   }
+ }
  // The public product CTA and post-login return both express an explicit contact intent.
  // Recheck the listing, seller, owner and publication status before redirecting to chat.
  const contactParams=new URLSearchParams(location.search);

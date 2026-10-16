@@ -28,4 +28,5 @@ document.addEventListener('click',async e=>{
  const r=await api('/api/marketplace/professional/stores/'+encodeURIComponent(b.dataset.submit)+'/submit',{method:'POST',body:'{}'});
  say(r.ok?'Tienda enviada a revisión.':'No se pudo solicitar revisión.');if(r.ok)await load();
 });
-(async()=>{const me=await api('/api/auth/me');if(!me.ok){$('auth').hidden=false;return;}$('controls').hidden=false;await load();})();
+(async()=>{const me=await api('/api/auth/me');const isAdmin=me.user?.is_admin??me.user?.isAdmin??me.is_admin;
+ if(!me.ok||!isAdmin){$('auth').hidden=false;return;}$('controls').hidden=false;await load();})();

@@ -9,6 +9,7 @@ const {publicLocation,originLocation,coverageLabel,nationalSale,catalogLocation}
 const {validGtin}=require('../services/marketplace-google-v3264');
 const {purchaseLink}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
+const {requireAdmin}=require('../middleware/auth');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -163,7 +164,11 @@ router.get('/marketplace/icon-:size.png',(req,res)=>{
  res.setHeader('Cache-Control','public,max-age=604800,immutable');
  res.type('image/png').send(marketplaceIcon(size));
 });
-router.get('/marketplace/tiendas',(_req,res)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex,nofollow');res.sendFile(path.join(__dirname,'..','..','public','marketplace-professional-v3276.html'));});
+router.get('/marketplace/tiendas',requireAdmin,(_req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow');
+ res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-professional-v3276.html'));
+});
 router.get('/marketplace/importar',(_req,res)=>{
  res.setHeader('Cache-Control','no-store');
  res.type('html').sendFile(path.join(__dirname,'..','..','public','marketplace-import-v3260.html'));

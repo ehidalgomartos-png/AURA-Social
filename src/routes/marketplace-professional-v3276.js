@@ -4,6 +4,7 @@ const express=require('express');
 const rateLimit=require('express-rate-limit');
 const {z}=require('zod');
 const db=require('../db');
+const {requireAdmin}=require('../middleware/auth');
 const {PLATFORMS,normalizeStoreUrl,normalizeProductUrl,DDL}=require('../services/marketplace-professional-v3276');
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -12,6 +13,8 @@ function ensureProfessionalSchema(){
  if(!ready)ready=(async()=>{for(const sql of DDL)await db.query(sql);})().catch(e=>{ready=null;throw e;});
  return ready;
 }
+// The professional program is administered internally until enrollment opens.
+router.use(requireAdmin);
 router.use((_req,_res,next)=>ensureProfessionalSchema().then(()=>next(),next));
 const editLimiter=rateLimit({windowMs:60*60*1000,max:50,standardHeaders:true,legacyHeaders:false});
 const storeInput=z.object({
