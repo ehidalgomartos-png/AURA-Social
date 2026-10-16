@@ -7,10 +7,10 @@ function render(mode='discover',user=99){
  const start=script.indexOf('function card(item){');
  const end=script.indexOf('function emptyMarketplaceState()',start);
  assert.ok(end>start);
- const maker=new Function('state','window','safeListingPhotos','slugifyMarket','esc','marketDisplayLocation','isRecentListing','priceLabel','marketNational','label',script.slice(start,end)+';return card;');
+ const maker=new Function('state','window','safeListingPhotos','slugifyMarket','esc','marketDisplayLocation','isRecentListing','priceLabel','marketNational','marketOrigin','label',script.slice(start,end)+';return card;');
  const card=maker({mode},{currentUserId:user},()=>['/uploads/test.jpg'],()=> 'taza',
   value=>String(value??'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),
-  ()=>'Venta en toda España',()=>false,()=> '15,99 €',()=>true,{active:'Activo'});
+  ()=>'Venta en toda España',()=>false,()=> '15,99 €',()=>true,()=>'',{active:'Activo'});
  return card({id:5,seller_id:1,seller_username:'mundotaza',seller_name:'MundoTaza',seller_discoverable:true,
  title:'Taza Halloween Catrinas',status:'active',moderation_status:'published',
  kind:'product',deal:'sale',details:{condition:'new'},is_favorite:false});
@@ -34,5 +34,5 @@ test('mobile layout is scoped and cache-busted',()=>{
  assert.match(css,/\.market-catalog-card \.actions\.market-card-actions-v32772/);
  assert.match(css,/market-card-extra-v32772\[open\]/);
  assert.match(page,/marketplace-v3250\.css\?v=3\.2\.77\.2/);
- assert.match(page,/marketplace-v3250\.js\?v=3\.2\.77\.2/);
+ assert.match(page,/marketplace-v3250\.js\?v=3\.2\.77\.3/);
 });
