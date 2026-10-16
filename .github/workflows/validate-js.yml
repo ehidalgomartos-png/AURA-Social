@@ -22,6 +22,8 @@ jobs:
         run: npm run check:syntax
       - name: V3.2.77.1 community post composer mobile polish
         run: npm run test:community-compose-polish
+      - name: V3.2.77.3 catalogue origin and seller byline
+        run: npm run test:marketplace-card-byline
       - name: Marketplace catalogue mobile action cleanup
         run: npm run test:marketplace-card-actions-mobile
       - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
