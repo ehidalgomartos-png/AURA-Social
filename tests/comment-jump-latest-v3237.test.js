@@ -72,7 +72,7 @@ test('refresh, reading position and private drafts remain intact',()=>{
   assert.match(js,/parentCommentId:commentReplyId/);
 });
 test('version and workflow registered',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
   assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
   assert.match(html,/\/social\.js\?v=3\.2\.69\.1/);
   assert.match(html,/\/social\.css\?v=3\.2\.69\.1/);
