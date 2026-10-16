@@ -40,6 +40,8 @@ jobs:
         run: npm run test:marketplace-community
       - name: V3.2.69.1 photo attachment and touch contrast recovery
         run: npm run test:marketplace-share-recovery
+      - name: V3.2.71 secure clickable Marketplace and external links in posts
+        run: npm run test:smart-links
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests

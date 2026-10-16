@@ -431,6 +431,29 @@ function avatarHTML(p) {
 function esc(s = '') {
   return String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 }
+function captionLinksHTML(fragment = '') {
+  const source = String(fragment || '');
+  const urls = /https?:\/\/[^\s<>"'\x60]+/gi;
+  let result = '';
+  let offset = 0;
+  for (const match of source.matchAll(urls)) {
+    const original = match[0];
+    const candidate = original.replace(/[.,!?;:)\]}]+$/g, '');
+    if (!candidate) continue;
+    let parsed;
+    try { parsed = new URL(candidate); } catch (_) { continue; }
+    if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) continue;
+    result += esc(source.slice(offset, match.index));
+    const isMarketplace = /^(?:www\.)?redlibertad\.com$/i.test(parsed.hostname)
+      && /^\/marketplace\/p\/[1-9]\d{0,15}(?:\/[a-z0-9._~%-]+)?\/?$/i.test(parsed.pathname);
+    result += isMarketplace
+      ? '<a class="caption-marketplace-link-v3271" href="' + esc(parsed.pathname) + '">Ver anuncio en Marketplace <span aria-hidden="true">↗</span></a>'
+      : '<a class="caption-web-link-v3271" href="' + esc(parsed.href) + '" target="_blank" rel="noopener noreferrer nofollow ugc">' + esc(candidate) + '</a>';
+    result += esc(original.slice(candidate.length));
+    offset = match.index + original.length;
+  }
+  return result + esc(source.slice(offset));
+}
 function captionHTML(value = '') {
   const source = String(value || '');
   const token = /(^|\s)(#[\p{L}\p{N}_]{2,40}|@[a-zA-Z0-9_.]{3,30})/gu;
@@ -439,22 +462,22 @@ function captionHTML(value = '') {
 
   for (const match of source.matchAll(token)) {
     const start = match.index;
-    out += esc(source.slice(last, start));
+    out += captionLinksHTML(source.slice(last, start));
     out += esc(match[1] || '');
 
     const raw = match[2];
     if (raw.startsWith('#')) {
       const tag = raw.slice(1);
-      out += `<button type="button" class="hashtag-link" data-hashtag="${esc(tag)}">#${esc(tag)}</button>`;
+      out += '<button type="button" class="hashtag-link" data-hashtag="' + esc(tag) + '">#' + esc(tag) + '</button>';
     } else {
       const username = raw.slice(1);
-      out += `<button type="button" class="mention-link" data-profile="${esc(username)}">@${esc(username)}</button>`;
+      out += '<button type="button" class="mention-link" data-profile="' + esc(username) + '">@' + esc(username) + '</button>';
     }
 
     last = start + match[0].length;
   }
 
-  out += esc(source.slice(last));
+  out += captionLinksHTML(source.slice(last));
   return out.replace(/\n/g, '<br>');
 }
 
