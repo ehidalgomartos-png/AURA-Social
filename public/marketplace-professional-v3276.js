@@ -7,7 +7,7 @@ function say(s){$('message').textContent=s;}
 async function load(){
  const r=await api('/api/marketplace/professional/mine');
  if(!r.ok){say('No se pudieron cargar tus tiendas.');return;}
- $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>':'')+'</article>').join(''):'<p>Aún no tienes tiendas registradas.</p>';
+ $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>':s.status==='pending'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="approved">Aprobar tras comprobar titularidad</button>':s.status==='approved'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="suspended">Suspender compras externas</button>':'')+'</article>').join(''):'<p>Aún no tienes tiendas registradas.</p>';
  $('storeSelect').innerHTML=r.stores.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join('');
  const woo=r.stores.filter(s=>s.platform==='woocommerce');
  const previous=$('wooStoreSelect').value;
@@ -33,6 +33,16 @@ document.addEventListener('click',async e=>{
  if(!confirm('¿Enviar esta tienda a revisión manual?'))return;
  const r=await api('/api/marketplace/professional/stores/'+encodeURIComponent(b.dataset.submit)+'/submit',{method:'POST',body:'{}'});
  say(r.ok?'Tienda enviada a revisión.':'No se pudo solicitar revisión.');if(r.ok)await load();
+});
+
+document.addEventListener('click',async e=>{
+ const btn=e.target.closest('[data-store-review]');if(!btn)return;
+ const approved=btn.dataset.storeStatus==='approved';
+ if(!confirm(approved?'¿Has verificado manualmente la titularidad de la tienda, las políticas de compra y el dominio del checkout?':'¿Suspender inmediatamente los botones de compra de esta tienda?'))return;
+ const r=await api('/api/marketplace/professional/admin/stores/'+encodeURIComponent(btn.dataset.storeReview)+'/review',{
+  method:'POST',body:JSON.stringify({status:btn.dataset.storeStatus})});
+ say(r.ok?'Estado de tienda actualizado.':'Error: '+(r.error||'error'));
+ if(r.ok)await load();
 });
 
 let wooPage=1,wooRunning=false,wooConnected=false,wooAuto=false,wooApproved=false;
