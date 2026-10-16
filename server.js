@@ -16,6 +16,7 @@ const { createRecoveryAdminRoutes } = require('./src/routes/admin-recovery-v214'
 const { createOperationalAlertService } = require('./src/services/operational-alerts-v215');
 const { createOperationalAlertAdminRoutes } = require('./src/routes/admin-alerts-v215');
 const { createAlertDeliveryService } = require('./src/services/alert-delivery-v216');
+const {messageEmailService}=require('./src/services/message-email-v3275');
 const { createAlertDeliveryAdminRoutes } = require('./src/routes/admin-delivery-v216');
 const { createReleaseVerifier } = require('./src/services/release-verifier-v217');
 const { createReleaseVerificationRoutes } = require('./src/routes/admin-release-verification-v217');
@@ -78,7 +79,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.74';
+const APP_VERSION='3.2.75';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -1332,6 +1333,7 @@ async function gracefulShutdown(signal){
   shuttingDown=true;
   operationalAlerts.stop();
   alertDelivery.stop();
+  messageEmailService.stop();
   console.log(`RedLibertad received ${signal}; shutting down gracefully.`);
 
   const forceTimer=setTimeout(()=>{
@@ -1360,6 +1362,7 @@ process.on('unhandledRejection',error=>console.error('RedLibertad unhandled reje
 
 operationalAlerts.start();
 alertDelivery.start();
+messageEmailService.start();
 
 ensurePerformanceIndexesV168()
   .then(()=>console.log('RedLibertad V1.68 performance indexes ready'))

@@ -42,12 +42,14 @@ jobs:
         run: npm run test:marketplace-share-recovery
       - name: V3.2.71 secure clickable Marketplace and external links in posts
         run: npm run test:smart-links
-      - name: V3.2.74 native sharing and category discovery regression
+      - name: V3.2.75 native sharing and category discovery regression
         run: npm run test:marketplace-native-share
-      - name: V3.2.74 catalogue categories and guest-safe posting
+      - name: V3.2.75 catalogue categories and guest-safe posting
         run: npm run test:marketplace-category-session
-      - name: V3.2.74 Marketplace category groups and mobile filtering
+      - name: V3.2.75 Marketplace category groups and mobile filtering
         run: npm run test:marketplace-category-filter
+      - name: V3.2.75 delayed private message email alerts
+        run: npm run test:message-email
       - name: Startup Express route export smoke test
         run: npm run test:startup-router
       - name: Legal timeline regression tests

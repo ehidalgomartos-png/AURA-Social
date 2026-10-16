@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.74",
+  "version": "3.2.75",
   "private": true,
-  "description": "RedLibertad V3.2.74 — Categorías inteligentes del Marketplace",
+  "description": "RedLibertad V3.2.75 — Avisos de mensajes por email",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -33,6 +33,7 @@
     "test:marketplace-seo": "node --test tests/marketplace-seo-v3251.test.js",
     "test:marketplace": "node --test tests/marketplace-v3250.test.js",
     "test:marketplace-tabs": "node --test tests/marketplace-tabs-v32643.test.js",
+    "test:message-email": "node --test tests/message-email-v3275.test.js",
     "test:marketplace-category-filter": "node --test tests/marketplace-category-filter-v3274.test.js",
     "test:marketplace-category-session": "node --test tests/marketplace-category-session-v3273.test.js",
     "test:marketplace-native-share": "node --test tests/marketplace-native-share-v3272.test.js",

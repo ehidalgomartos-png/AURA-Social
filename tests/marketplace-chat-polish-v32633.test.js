@@ -6,15 +6,15 @@ const vm=require('node:vm');
 const social=fs.readFileSync('public/social.js','utf8');
 const css=fs.readFileSync('public/social.css','utf8');
 
-test('V3.2.74: mobile grid gives product a short second row and thread remaining space',()=>{
+test('V3.2.75: mobile grid gives product a short second row and thread remaining space',()=>{
  assert.match(css,/#messagesView \.messages-layout\.chat-open \.chat-panel\.market-chat-open-v32632/);
  assert.match(css,/grid-template-rows:auto auto minmax\(0,1fr\) auto/);
  assert.match(css,/\.chat-panel\.market-chat-open-v32632 \.message-thread\{min-height:0;overflow-y:auto\}/);
- assert.match(fs.readFileSync('public/app.html','utf8'),/social\.css\?v=3\.2\.74/);
- assert.match(fs.readFileSync('public/app.html','utf8'),/social\.js\?v=3\.2\.74/);
+ assert.match(fs.readFileSync('public/app.html','utf8'),/social\.css\?v=3\.2\.75/);
+ assert.match(fs.readFileSync('public/app.html','utf8'),/social\.js\?v=3\.2\.75/);
 });
 
-test('V3.2.74: consult draft is offered once, not regenerated after message sent',async()=>{
+test('V3.2.75: consult draft is offered once, not regenerated after message sent',async()=>{
  const start=social.indexOf('async function showMarketplaceChatContextV32632(');
  const end=social.indexOf('let openConversationSequenceV3244=',start);
  assert.ok(start>0&&end>start);
@@ -43,7 +43,7 @@ test('V3.2.74: consult draft is offered once, not regenerated after message sent
  assert.equal(composer.dispatched,1);
 });
 
-test('V3.2.74: sent messages clear only after server confirmation; errors retain user text',()=>{
+test('V3.2.75: sent messages clear only after server confirmation; errors retain user text',()=>{
  const i=social.indexOf('async function sendMessage(e) {');
  const end=social.indexOf('\nfunction ',i);
  const fn=social.slice(i,end>i?end:undefined);
@@ -53,5 +53,5 @@ test('V3.2.74: sent messages clear only after server confirmation; errors retain
  assert.match(fn,/String\(activeConversationId\)===submittedConversation/);
  assert.match(fn,/if \(messageSendInFlight\) return/);
  assert.doesNotThrow(()=>new vm.Script(social));
- assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version,'3.2.74');
+ assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version,'3.2.75');
 });

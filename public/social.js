@@ -5575,6 +5575,39 @@ async function togglePushNotifications(){
 
 $('#pushNotificationsToggle')?.addEventListener('click',togglePushNotifications);
 
+async function loadMessageEmailPreferencesV3275(){
+ const form=$('#messageEmailPreferencesForm'),status=$('#messageEmailPreferencesStatus');
+ const button=$('#messageEmailPreferencesSave'),input=form?.elements.namedItem('enabled');
+ if(!form||!input)return;
+ input.disabled=true;if(button)button.disabled=true;
+ if(status)status.textContent='Cargando preferencias…';
+ try{
+  const {r,d}=await api('/api/messages/email-preferences',{dedupe:false});
+  if(!r.ok)throw Error('preferences_unavailable');
+  input.checked=d.enabled===true;input.disabled=false;
+  if(button)button.disabled=false;
+  if(status)status.textContent=d.configured
+   ? 'Recibirás avisos solo de los mensajes que continúen sin leer.'
+   : 'Pendiente de configurar el servicio de correo. Puedes guardar tu preferencia.';
+ }catch(_){if(status)status.textContent='No se pudieron cargar los avisos por email. Reabre Cuenta para reintentar.';}
+}
+$('#messageEmailPreferencesForm')?.addEventListener('submit',async event=>{
+ event.preventDefault();
+ const form=event.currentTarget,button=$('#messageEmailPreferencesSave'),status=$('#messageEmailPreferencesStatus');
+ if(!button||button.disabled)return;
+ const enabled=form.elements.namedItem('enabled')?.checked===true;
+ button.disabled=true;
+ if(status)status.textContent='Guardando…';
+ try{
+  const {r}=await api('/api/messages/email-preferences',{
+   method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});
+  if(!r.ok)throw Error('save_failed');
+  if(status)status.textContent='Preferencia de correo guardada.';
+ }catch(_){if(status)status.textContent='No se pudo guardar. Inténtalo de nuevo.';}
+ finally{button.disabled=false;}
+});
+
+
 async function openAccountModal() {
   const modal = $('#accountModal');
   if (!modal) return;
@@ -5588,6 +5621,7 @@ async function openAccountModal() {
   $('#deleteAccountStatus').textContent = '';
   $('#pushNotificationsStatus').textContent = '';
   loadPushSettings().catch(()=>{});
+  loadMessageEmailPreferencesV3275().catch(()=>{});
   $('#changePasswordForm')?.reset();
   $('#deleteAccountForm')?.reset();
 
