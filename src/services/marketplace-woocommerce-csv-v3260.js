@@ -143,10 +143,13 @@ function parseProduct(row,opts,parents=null){
  if(brand.length>80)errors.push('Marca demasiado larga');
  if(gtin&&!validGtin(gtin))errors.push('EAN/GTIN no válido');
  if(mpn&&(mpn.length>70||!/^[A-Za-z0-9][A-Za-z0-9 ._\/-]*$/.test(mpn)))errors.push('Referencia de fabricante no válida');
+ // WooCommerce's standard CSV may not include a permalink: never invent one.
+ const externalProductUrl=get(row,'Product URL','Product link','Permalink','Product permalink','Enlace del producto','URL del producto');
+ if(externalProductUrl&&!/^https:\/\//i.test(externalProductUrl))errors.push('Enlace de tienda no HTTPS');
  const listing={kind:'product',deal:'sale',title,description,category,city:opts.city,priceCents,images:[],
   details:{...(opts.province?{province:opts.province}:{}),...(condition?{condition}:{}),
    ...(brand&&brand.length<=80?{brand}:{}),...(gtin&&validGtin(gtin)?{gtin}:{}),
-   ...(mpn&&mpn.length<=70?{mpn}:{}),...(opts.saleScope?{saleScope:opts.saleScope}:{})}};
+   ...(mpn&&mpn.length<=70?{mpn}:{}),...(opts.saleScope?{saleScope:opts.saleScope}:{}),...(externalProductUrl?{externalProductUrl}:{})}};
  return {line:row.line,key,title,priceCents,urls,listing,error:errors.join('; '),
   warnings,state:errors.length?'invalid':'pending'};
 }

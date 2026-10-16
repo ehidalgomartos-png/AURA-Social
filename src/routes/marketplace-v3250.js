@@ -7,6 +7,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {requireAuth}=require('../middleware/auth');
 const googleV3264=require('../services/marketplace-google-v3264');
+const {validExternalProductLink,storeProductLink}=require('../services/marketplace-external-store-v3276');
 const router=express.Router();
 
 const KINDS=['product','service','property'];
@@ -35,10 +36,12 @@ const listingBase=z.object({
     subtype:z.string().trim().max(60).optional(),
     subcategory:z.string().trim().max(65).optional(),
     province:z.string().trim().max(100).optional(),
-    saleScope:z.enum(['local','national']).optional()
+    saleScope:z.enum(['local','national']).optional(),
+    externalProductUrl:z.string().trim().max(2048).refine(validExternalProductLink).optional()
   }).strict().default({})
 }).strict();
 function checkKindDeal(v,ctx){
+  if(v.details?.externalProductUrl&&(v.kind!=='product'||v.deal!=='sale'))ctx.addIssue({code:'custom',path:['details','externalProductUrl'],message:'Solo productos en venta'});
   if(v.kind!=='product'&&['brand','mpn','gtin'].some(x=>v.details?.[x]))ctx.addIssue({code:'custom',path:['details'],message:'Los identificadores corresponden solo a productos'});
   if(v.details?.saleScope && !(v.kind==='product'&&v.deal==='sale'))ctx.addIssue({code:'custom',path:['details','saleScope'],message:'La zona de venta se aplica solo a productos en venta'});
   if(v.kind==='service'&&v.deal!=='offer')ctx.addIssue({code:'custom',path:['deal'],message:'El servicio debe ser una oferta'});
@@ -190,10 +193,16 @@ router.get('/:id',wrap(async(req,res)=>{
   res.json({ok:true,item:result.rows[0]});
 }));
 
+async function sellerStoreLinkAllowedV3276(userId,details){
+ if(!details?.externalProductUrl)return true;
+ const r=await db.query("SELECT website_url FROM users WHERE id=$1 AND status='active' LIMIT 1",[userId]);
+ return !!storeProductLink(details.externalProductUrl,r.rows[0]?.website_url);
+}
 router.post('/',rateLimit({windowMs:60*60*1000,max:10,standardHeaders:true,legacyHeaders:false}),wrap(async(req,res)=>{
   const parsed=listingInput.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
   const v=parsed.data;
+  if(!await sellerStoreLinkAllowedV3276(req.user.id,v.details))return res.status(400).json({error:'external_store_url_mismatch'});
   const r=await db.query('INSERT INTO marketplace_listings (seller_id,kind,deal,title,description,category,city,price_cents,image_urls,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb) RETURNING id',[req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details)]);
   res.status(201).json({ok:true,id:r.rows[0].id});
 }));
@@ -203,6 +212,7 @@ router.patch('/:id',wrap(async(req,res)=>{
   const parsed=listingUpdateInput.safeParse(req.body);
   if(!parsed.success)return res.status(400).json({error:'invalid_listing',details:parsed.error.flatten()});
   const v=parsed.data;
+  if(!await sellerStoreLinkAllowedV3276(req.user.id,v.details))return res.status(400).json({error:'external_store_url_mismatch'});
   const r=await db.query("UPDATE marketplace_listings SET kind=$3,deal=$4,title=$5,description=$6,category=$7,city=$8,price_cents=$9,image_urls=$10::jsonb,details=$11::jsonb,status=$12,updated_at=now() WHERE id=$1 AND seller_id=$2 RETURNING id",[req.params.id,req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details),v.status]);
   if(!r.rowCount)return res.status(404).json({error:'listing_not_found'});
   res.json({ok:true});
