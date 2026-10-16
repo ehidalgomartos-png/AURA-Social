@@ -2,6 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const {messageEmailService}=require('../services/message-email-v3275');
 
 const router = express.Router();
 
@@ -82,6 +83,24 @@ router.use(async (_req,res,next)=>{
     console.error('RedLibertad message privacy bootstrap failed:',error);
     res.status(500).json({error:'message_privacy_bootstrap_failed'});
   }
+});
+
+// V3.2.75 — User-controlled private-message email notifications.
+router.get('/email-preferences',async(req,res)=>{
+ try{
+  const enabled=await messageEmailService.preference(req.user.id);
+  res.setHeader('Cache-Control','no-store');
+  res.json({ok:true,enabled,configured:messageEmailService.config.enabled,delayMinutes:15});
+ }catch(_){res.status(503).json({error:'email_preferences_unavailable'});}
+});
+router.put('/email-preferences',async(req,res)=>{
+ if(typeof req.body?.enabled!=='boolean'||Object.keys(req.body).length!==1)
+  return res.status(400).json({error:'invalid_email_preferences'});
+ try{
+  const enabled=await messageEmailService.savePreference(req.user.id,req.body.enabled);
+  res.setHeader('Cache-Control','no-store');
+  res.json({ok:true,enabled,configured:messageEmailService.config.enabled});
+ }catch(_){res.status(503).json({error:'email_preferences_unavailable'});}
 });
 
 async function userRow(id) {
@@ -1586,6 +1605,9 @@ router.post('/conversations/:id/messages', async (req, res) => {
         notificationError?.message || notificationError
       );
     }
+
+    // Email queueing runs only after the committed message and never blocks chat.
+    void messageEmailService.enqueue(id,req.user.id,savedMessage.id);
 
     return res.status(201).json({
       ok:true,
