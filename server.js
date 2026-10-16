@@ -47,6 +47,7 @@ const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
 const {publicProfileSeo,safeJsonLd}=require('./src/services/public-profile-seo-v302');
 const {createGrowthCenterRouter}=require('./src/routes/admin-growth-v219');
 const marketplaceRoutes = require('./src/routes/marketplace-v3250');
+const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/marketplace-woocommerce-sync-v3277');
 const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
@@ -79,7 +80,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const APP_VERSION='3.2.76';
+const APP_VERSION='3.2.77';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -1363,6 +1364,7 @@ process.on('unhandledRejection',error=>console.error('RedLibertad unhandled reje
 operationalAlerts.start();
 alertDelivery.start();
 messageEmailService.start();
+startWooCommerceSyncScheduler();
 
 ensurePerformanceIndexesV168()
   .then(()=>console.log('RedLibertad V1.68 performance indexes ready'))

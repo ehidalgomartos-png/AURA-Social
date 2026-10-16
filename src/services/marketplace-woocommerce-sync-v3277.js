@@ -4,7 +4,7 @@
 const db=require('../db');
 const {saveImages,eraseFiles}=require('./marketplace-import-photos-v3260');
 const {getProduct,decryptCredentials}=require('./marketplace-woocommerce-v3277');
-const {listingInput}=require('../routes/marketplace-v3250');
+const listingInput=()=>require('../routes/marketplace-v3250').listingInput;
 
 const scopeValid=value=>!value||['local','national'].includes(value);
 async function loadConnection(storeId,sellerId){
@@ -35,7 +35,7 @@ async function importProduct(store,credentials,wooId,options={}){
  try{
   const downloaded=await saveImages(product.images);
   pictures=downloaded.paths;files=downloaded.files;
-  const value=listingInput.safeParse({kind:'product',deal:'sale',title:product.title,description:product.description,
+  const value=listingInput().safeParse({kind:'product',deal:'sale',title:product.title,description:product.description,
    category:product.category,city:city.trim(),priceCents:product.priceCents,images:pictures,
    details:{...(province.trim()?{province:province.trim()}:{}),...(saleScope?{saleScope}:{})}});
   if(!value.success)throw new Error('invalid_import_listing');

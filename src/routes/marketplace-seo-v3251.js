@@ -65,7 +65,7 @@ function entitySchema(row,url,images){
   // Wanted ads must not masquerade as merchant product offers in Google.
   return {...data,'@type':'WebPage',about:row.kind==='property'?{'@type':'Accommodation',name:row.title}:{'@type':'Product',name:row.title},description:'Busco comprar. '+data.description};
  }
- const offer={'@type':'Offer',url,price:price(row),priceCurrency:'EUR',availability:'https://schema.org/InStock'};
+ const offer={'@type':'Offer',url,price:price(row),priceCurrency:'EUR',availability:row.external_stock_status==='out_of_stock'?'https://schema.org/OutOfStock':'https://schema.org/InStock'};
  const details=row.details&&typeof row.details==='object'?row.details:{};
  if(row.kind==='product'){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');

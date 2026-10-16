@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.76",
+  "version": "3.2.77",
   "private": true,
-  "description": "RedLibertad V3.2.76 — Marketplace profesional conectado a tiendas",
+  "description": "RedLibertad V3.2.77 — Conector WooCommerce",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,6 +12,7 @@
     "test:marketplace-chat-context": "node --test tests/marketplace-chat-context-v32632.test.js",
     "test:marketplace-chat-polish": "node --test tests/marketplace-chat-polish-v32633.test.js",
     "test:marketplace-professional-admin-access": "node --test tests/marketplace-professional-admin-access-v3276.test.js",
+    "test:marketplace-woocommerce": "node --test tests/marketplace-woocommerce-v3277.test.js",
     "test:marketplace-professional": "node --test tests/marketplace-professional-v3276.test.js",
     "test:marketplace-google": "node --test tests/marketplace-google-v3264.test.js",
     "test:marketplace-contact-return": "node --test tests/marketplace-contact-return-v32631.test.js",
