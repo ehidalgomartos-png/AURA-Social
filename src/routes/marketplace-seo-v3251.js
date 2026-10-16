@@ -302,10 +302,10 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
     '<div class="market-public-extra"><label>Ciudad<input name="ciudad" maxlength="80" value="'+esc(city)+'" placeholder="Ej. Valencia"></label>'+
     '<label>Tipo de anuncio<select name="tipo">'+
      [['','Todos'],['product','Productos'],['service','Servicios'],['property','Inmobiliaria']].map(([value,label])=>'<option value="'+value+'"'+(kind===value||(!kind&&!value)?' selected':'')+'>'+label+'</option>').join('')+
-    '</select><small class="market-category-help-v3273">Algunas categorías todavía no tienen anuncios.</small></label>'+
+    '</select></label>'+
     '<label>Categoría<select name="categoria"><option value="">Todas las categorías</option>'+
      categories.map(value=>'<option value="'+esc(value)+'"'+(category.toLowerCase()===value.toLowerCase()?' selected':'')+'>'+esc(value)+'</option>').join('')+
-    '</select></label>'+
+    '</select><small class="market-category-help-v3273">Algunas categorías todavía no tienen anuncios.</small></label>'+
     '<label>Precio máximo (€)<input name="precio_max" type="text" inputmode="decimal" maxlength="18" value="'+esc(maxPrice!==null?maxInput:'')+'" placeholder="Ej. 250"></label>'+
     '<label>Ordenar<select name="orden">'+
      [['recent','Más recientes'],['price_asc','Precio más bajo'],['price_desc','Precio más alto']].map(([value,label])=>'<option value="'+value+'"'+(sort===value?' selected':'')+'>'+label+'</option>').join('')+
