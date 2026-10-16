@@ -194,7 +194,7 @@
 .market-share-actions .market-community-link-v3269:focus-visible{background:#07574f;color:#fff;border-color:#07574f}
 .market-share-actions .market-community-link-v3269:focus-visible{outline:3px solid #1c9a87;outline-offset:2px}
 
-/* V3.2.72 — Native sharing and unobtrusive category discovery, mobile-first. */
+/* V3.2.73 — Native sharing and unobtrusive category discovery, mobile-first. */
 .market-share-actions .market-native-share-v3272{
  background:#f0f7f5;border-color:#88bfb4;color:#09584f;
 }
@@ -213,3 +213,7 @@
  .market-share-actions .market-native-share-v3272{min-height:44px}
  .market-more-category-v3272{width:100%}
 }
+
+/* V3.2.73 guest-safe sharing and category help */
+.market-share-actions .market-community-link-v3269[hidden]{display:none!important}
+.market-category-help-v3273{display:block;margin-top:6px;color:#536875;font-size:12px;line-height:1.4}

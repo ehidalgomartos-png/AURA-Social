@@ -5,9 +5,54 @@ const label={product:'Producto',service:'Servicio',property:'Inmueble',sale:'Ven
 let marketplaceLoadRequestV32643=0;
 const state={kind:'',mode:'discover',nationalOnly:false,page:1,items:[],deal:'',editing:null,images:[],pendingPhotos:[],admin:false,authenticated:false,authStatus:'checking',reportId:null};
 const CATEGORY_SUGGESTIONS={
- product:['Hogar y muebles','Moda y accesorios','Tecnología','Vehículos','Deportes y ocio','Libros y coleccionismo','Tazas','Otros'],
- service:['Reformas y mantenimiento','Clases y formación','Salud y bienestar','Hogar y limpieza','Profesionales','Otros servicios'],
- property:['Pisos','Casas','Habitaciones','Locales','Terrenos','Garajes','Otros inmuebles']
+ "product": [
+  "Hogar y muebles",
+  "Electrodomésticos",
+  "Decoración",
+  "Jardín y bricolaje",
+  "Moda y accesorios",
+  "Belleza y cuidado personal",
+  "Tecnología",
+  "Móviles y telefonía",
+  "Informática",
+  "Videojuegos",
+  "Vehículos",
+  "Deportes y ocio",
+  "Bebés y niños",
+  "Juguetes y juegos",
+  "Libros y coleccionismo",
+  "Arte y antigüedades",
+  "Mascotas",
+  "Música e instrumentos",
+  "Alimentación",
+  "Regalos y personalización",
+  "Tazas",
+  "Otros productos"
+ ],
+ "service": [
+  "Reformas y mantenimiento",
+  "Clases y formación",
+  "Salud y bienestar",
+  "Hogar y limpieza",
+  "Profesionales",
+  "Transporte y mudanzas",
+  "Informática y reparación",
+  "Eventos y celebraciones",
+  "Belleza y estética",
+  "Cuidado de personas",
+  "Otros servicios"
+ ],
+ "property": [
+  "Pisos",
+  "Casas",
+  "Habitaciones",
+  "Locales",
+  "Terrenos",
+  "Garajes",
+  "Trasteros",
+  "Oficinas",
+  "Otros inmuebles"
+ ]
 };
 const SUBCATEGORY_SUGGESTIONS={
  'Hogar y muebles':['Sofás','Dormitorios','Mesas','Sillas','Decoración','Tazas'],
