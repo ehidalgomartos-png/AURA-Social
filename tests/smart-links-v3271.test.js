@@ -1,5 +1,5 @@
 'use strict';
-// V3.2.71: links are rendered from saved captions; no database migration.
+// V3.2.72: links are rendered from saved captions; no database migration.
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -57,10 +57,10 @@ test('mobile styles, versioned resources, and no-auto-publish safeguards remain'
  const css=read('public/social.css');
  assert.match(css,/\.caption-marketplace-link-v3271:focus-visible/);
  assert.match(css,/@media\(max-width:760px\)[\s\S]*?\.caption-marketplace-link-v3271\{min-height:40px/);
- assert.match(read('public/app.html'),/social\.js\?v=3\.2\.71/);
- assert.match(read('public/app.html'),/social\.css\?v=3\.2\.71/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.71'/);
+ assert.match(read('public/app.html'),/social\.js\?v=3\.2\.72/);
+ assert.match(read('public/app.html'),/social\.css\?v=3\.2\.72/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.72');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.72'/);
  assert.ok(source.includes('async function prepareMarketplaceCommunityShareV3269'));
  assert.ok(source.includes("await api('/api/posts'"));
 });

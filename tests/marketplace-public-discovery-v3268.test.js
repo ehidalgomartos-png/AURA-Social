@@ -102,10 +102,10 @@ test('invalid maximum price is ignored safely and no category is invented',async
  assert.match(styles,/\.market-public-grid \.thumb img\{[^}]*object-fit:contain/);
 });
 test('release version, public cache, PWA and seller tools remain aligned',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.71'/);
- assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.71/);
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.71/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.72');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.72'/);
+ assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.72/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.72/);
  assert.match(read('public/marketplace.html'),/marketSellerTools/);
  assert.match(read('public/marketplace.html'),/marketplace\/importar/);
  assert.match(read('public/manifest.webmanifest'),/"id": "\/app"/);
