@@ -94,7 +94,7 @@ test('Version and frontend caches match V3.2.60',()=>{
  const html=read('public/marketplace.html');
  assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
- assert.match(html,/marketplace-v3250\.js\?v=3\.2\.77\.2/);
+ assert.match(html,/marketplace-v3250\.js\?v=3\.2\.77\.3/);
  assert.match(html,/marketplace-v3250\.css\?v=3\.2\.77\.2/);
  const seoSource=read('src/routes/marketplace-seo-v3251.js');
  assert.match(seoSource,/marketplace-share-v3254\.js\?v=3\.2\.75/);
