@@ -6,11 +6,12 @@ const {z}=require('zod');
 const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {PLATFORMS,normalizeStoreUrl,normalizeProductUrl,DDL}=require('../services/marketplace-professional-v3276');
+const {DDL:wooDDL}=require('../services/marketplace-woocommerce-v3277');
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 let ready=null;
 function ensureProfessionalSchema(){
- if(!ready)ready=(async()=>{for(const sql of DDL)await db.query(sql);})().catch(e=>{ready=null;throw e;});
+ if(!ready)ready=(async()=>{for(const sql of [...DDL,...wooDDL])await db.query(sql);})().catch(e=>{ready=null;throw e;});
  return ready;
 }
 // The professional program is administered internally until enrollment opens.
@@ -30,6 +31,7 @@ const externalInput=z.object({
  stockQuantity:z.number().int().nonnegative().nullable().optional()
 }).strict();
 const idOk=value=>/^[1-9]\d{0,15}$/.test(String(value||''));
+router.use('/woocommerce',require('./marketplace-woocommerce-v3277').router);
 router.get('/mine',wrap(async(req,res)=>{
  res.setHeader('Cache-Control','private,no-store');
  const r=await db.query('SELECT id,name,platform,store_url,status,purchase_enabled,created_at,updated_at FROM marketplace_professional_stores WHERE seller_id=$1 ORDER BY id DESC',[req.user.id]);

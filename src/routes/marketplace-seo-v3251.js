@@ -7,7 +7,7 @@ const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const {icon:marketplaceIcon}=require('../marketplace-icons-v3259');
 const {publicLocation,originLocation,coverageLabel,nationalSale,catalogLocation}=require('../services/marketplace-coverage-v3261');
 const {validGtin}=require('../services/marketplace-google-v3264');
-const {purchaseLink}=require('../services/marketplace-professional-v3276');
+const {purchaseLink,freshWooStock}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const {requireAdmin}=require('../middleware/auth');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
@@ -65,7 +65,7 @@ function entitySchema(row,url,images){
   // Wanted ads must not masquerade as merchant product offers in Google.
   return {...data,'@type':'WebPage',about:row.kind==='property'?{'@type':'Accommodation',name:row.title}:{'@type':'Product',name:row.title},description:'Busco comprar. '+data.description};
  }
- const offer={'@type':'Offer',url,price:price(row),priceCurrency:'EUR',availability:'https://schema.org/InStock'};
+ const offer={'@type':'Offer',url,price:price(row),priceCurrency:'EUR',availability:row.external_source==='api'&&(!freshWooStock(row)||row.external_stock_status!=='in_stock')||row.external_stock_status==='out_of_stock'?'https://schema.org/OutOfStock':'https://schema.org/InStock'};
  const details=row.details&&typeof row.details==='object'?row.details:{};
  if(row.kind==='product'){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
@@ -108,7 +108,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
 async function publicListing(id){
  await ensureMarketplaceSchema();
  await ensureProfessionalSchema();
- const result=await db.query('SELECT l.id,l.title,l.description,l.category,l.city,l.kind,l.deal,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.status AS seller_status,u.discoverable AS seller_discoverable,s.name AS professional_store_name,s.store_url AS store_url,s.status AS store_status,s.purchase_enabled AS purchase_enabled,x.product_url AS external_product_url,x.stock_status AS external_stock_status FROM marketplace_listings l JOIN users u ON u.id=l.seller_id LEFT JOIN marketplace_external_products x ON x.listing_id=l.id AND x.seller_id=l.seller_id LEFT JOIN marketplace_professional_stores s ON s.id=x.store_id AND s.seller_id=l.seller_id WHERE l.id=$1 LIMIT 1',[id]);
+ const result=await db.query('SELECT l.id,l.title,l.description,l.category,l.city,l.kind,l.deal,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.status AS seller_status,u.discoverable AS seller_discoverable,s.name AS professional_store_name,s.store_url AS store_url,s.status AS store_status,s.purchase_enabled AS purchase_enabled,x.product_url AS external_product_url,x.stock_status AS external_stock_status,x.source AS external_source,x.last_checked_at AS external_checked_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id LEFT JOIN marketplace_external_products x ON x.listing_id=l.id AND x.seller_id=l.seller_id LEFT JOIN marketplace_professional_stores s ON s.id=x.store_id AND s.seller_id=l.seller_id WHERE l.id=$1 LIMIT 1',[id]);
  return result.rows[0]||null;
 }
 function unavailable(res,gone=false){
