@@ -10,8 +10,9 @@ const {validGtin}=require('../services/marketplace-google-v3264');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
+const {externalStoreLinkForListing}=require('../services/marketplace-external-store-v3276');
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
-// Preset sections retain the unchanged V3.2.75 taxonomy, ordered by listing type.
+// Preset sections retain the unchanged V3.2.76 taxonomy, ordered by listing type.
 const MARKET_CATEGORY_GROUPS_V3274={
  product:GENERAL_MARKET_CATEGORIES_V3273.slice(0,22),
  service:GENERAL_MARKET_CATEGORIES_V3273.slice(22,33),
@@ -67,7 +68,9 @@ function entitySchema(row,url,images){
  if(row.kind==='product'){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
    if(nationalSale(row))offer.areaServed={'@type':'Country',name:'España'};
-   const product={...data,'@type':'Product',offers:offer};
+   // Seller's external checkout is not an offer made or fulfilled by RedLibertad.
+   // Avoid implying stock or merchant readiness on the marketplace landing page.
+   const product={...data,'@type':'Product',...(externalStoreLinkForListing(row)?{}:{offers:offer})};
    if(typeof details.brand==='string'&&details.brand.trim())product.brand={'@type':'Brand',name:details.brand.trim().slice(0,80)};
    if(validGtin(details.gtin))product['gtin'+details.gtin.length]=details.gtin;
    if(typeof details.mpn==='string'&&details.mpn.trim())product.mpn=details.mpn.trim().slice(0,70);
@@ -96,15 +99,15 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0d3e4a">'+
  '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
- '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.75">'+
- (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.75" defer></script>'+
- '<script src="/marketplace-category-filter-v3274.js?v=3.2.75" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.75" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
+ '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.76"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.76">'+
+ (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.76" defer></script>'+
+ '<script src="/marketplace-category-filter-v3274.js?v=3.2.76" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.76" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
  '<main>'+body+'</main><footer class="site-foot market-public-footer"><a href="/app?view=explore&amp;marketReturn=1">Volver a RedLibertad</a><a href="/marketplace?publicar=1">Publicar anuncio</a><span>RedLibertad no procesa pagos.</span></footer></body></html>';
 }
 async function publicListing(id){
  await ensureMarketplaceSchema();
- const result=await db.query('SELECT l.id,l.title,l.description,l.category,l.city,l.kind,l.deal,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.status AS seller_status,u.discoverable AS seller_discoverable FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1 LIMIT 1',[id]);
+ const result=await db.query('SELECT l.id,l.title,l.description,l.category,l.city,l.kind,l.deal,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.status AS seller_status,u.discoverable AS seller_discoverable,u.website_url AS seller_website_url FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1 LIMIT 1',[id]);
  return result.rows[0]||null;
 }
 function unavailable(res,gone=false){
@@ -122,6 +125,9 @@ function listingHtml(row,related=[]){
  const date=new Date(row.created_at).toISOString(),updated=new Date(row.updated_at).toISOString();
  const location=locality(row),origin=originLocation(row),coverage=coverageLabel(row),sellerLink='/perfil/'+encodeURIComponent(row.seller_username);
  const isProductSale=row.kind==='product'&&row.deal==='sale';
+ const storeLink=externalStoreLinkForListing(row);
+ const storeName=storeLink?new URL(storeLink).hostname.replace(/^www\./,''):'';
+ const storeAction=storeLink?'<a class="market-external-buy-v3276" href="'+esc(storeLink)+'" target="_blank" rel="noopener noreferrer nofollow ugc sponsored">Comprar en la tienda externa ↗</a><p class="market-external-note-v3276">La compra, el envío y las devoluciones se realizan en '+esc(storeName)+', fuera de RedLibertad.</p>':'';
  const contactHref='/marketplace?contact='+encodeURIComponent(row.seller_username)+'&listing='+encodeURIComponent(row.id);
  const contactText=row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante';
  const otherAdsLink='/marketplace/vendedor/'+encodeURIComponent(row.seller_username);
@@ -131,7 +137,7 @@ function listingHtml(row,related=[]){
  const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(row.category)+'</nav>'+
  '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h1>'+esc(row.title)+'</h1>'+
  '<p class="muted">'+esc(category)+' · '+esc(location)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
- gallery+(isProductSale?'<section class="market-product-offer" aria-label="Precio y contacto"><div><span class="market-product-offer-label">Precio anunciado</span><p class="price">'+esc(displayPrice(row))+'</p></div><a class="primary market-product-contact" href="'+esc(contactHref)+'">Consultar al vendedor →</a><p class="market-contact-note">Contacto por el chat de RedLibertad. Para escribir necesitas iniciar sesión. RedLibertad no gestiona pagos ni envíos.</p></section>':'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>')+
+ gallery+(isProductSale?'<section class="market-product-offer" aria-label="Precio y contacto"><div><span class="market-product-offer-label">Precio anunciado</span><p class="price">'+esc(displayPrice(row))+'</p></div>'+storeAction+'<a class="primary market-product-contact" href="'+esc(contactHref)+'">Consultar al vendedor →</a><p class="market-contact-note">Contacto por el chat de RedLibertad. Para escribir necesitas iniciar sesión. RedLibertad no gestiona pagos ni envíos.</p></section>':'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>')+
  listingDescriptionHtml(row)+
  '<section><h2>'+(coverage?'Origen y ámbito de venta':'Ubicación')+'</h2>'+(
    coverage?(origin?'<p><strong>Origen:</strong> '+esc(origin)+'</p>':'')+'<p><strong>Ámbito de venta:</strong> '+esc(coverage)+'</p>':'<p>'+esc(location)+'</p>')+'</section>'+
@@ -141,7 +147,7 @@ function listingHtml(row,related=[]){
  '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><button type="button" class="market-native-share-v3272" data-market-native-share="'+esc(url)+'" data-market-share-title="'+esc(row.title)+'">Compartir desde el móvil ↗</button><a class="market-community-link-v3269" data-market-community-share-v3273 hidden href="/app?view=feed&amp;compartirAnuncio='+encodeURIComponent(row.id)+'">Publicar en RedLibertad</a><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
  '<p class="market-category-more-v3272"><a class="market-more-category-v3272" href="'+esc(categoryBrowse)+'">Ver más anuncios de '+esc(row.category)+' →</a></p>'+ 
  '<p class="muted">Consulta el perfil público del anunciante y confirma la información antes de acordar un pago o envío. RedLibertad no procesa pagos ni garantiza las transacciones.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>'+
- (isProductSale?'<nav class="market-mobile-contact" aria-label="Consulta sobre el producto" hidden><span>'+esc(displayPrice(row))+'</span><a href="'+esc(contactHref)+'">Consultar al vendedor →</a></nav>':'')+
+ (isProductSale?'<nav class="market-mobile-contact" aria-label="Consulta sobre el producto" hidden><span>'+esc(displayPrice(row))+'</span><a href="'+esc(storeLink||contactHref)+'"'+(storeLink?' target="_blank" rel="noopener noreferrer nofollow ugc sponsored"':'')+'>'+(storeLink?'Comprar en tienda ↗':'Consultar al vendedor →')+'</a></nav>':'')+
  (related.length?'<section class="market-related" aria-label="Anuncios relacionados"><h2>También te puede interesar</h2><p>Otros anuncios públicos de una categoría o ubicación similar.</p><div class="cards market-public-grid">'+related.map(listingCard).join('')+'</div></section>':'');
  return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+(nationalSale(row)?' | Venta en toda España':' en '+location)+' | RedLibertad Marketplace').slice(0,155),
  description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),

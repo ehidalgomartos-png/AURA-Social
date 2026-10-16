@@ -1,50 +1,25 @@
-# RedLibertad — Plan Marketplace Profesional (propuesta, octubre de 2026)
+# RedLibertad V3.2.76 — Tiendas externas (nuevo rumbo)
 
-**Estado:** Diseño funcional, **SIN cobros reales** y **SIN activación de Merchant Center** en V3.2.75. La red social y el Marketplace gratuito siguen tal como están. Cualquier precio, contrato, proveedor y lanzamiento requiere autorización expresa.
+**Decisión del propietario:** los vendedores WooCommerce/PrestaShop/Shopify tienen ya checkout. RedLibertad proporciona visibilidad, búsqueda, fotos y chat; el comprador completa pago, envío y devoluciones en la **tienda original del vendedor**, no en RedLibertad.
 
-## Visión
-- **Particular gratuito:** publica anuncios; interesados contactan por chat; sin compra directa.
-- **Profesional de pago mensual:** podrá activar venta directa únicamente cuando su negocio esté verificado y tenga las condiciones de venta completas.
-- La cuota mensual concede funciones comerciales, **no** garantiza aprobación de Google Merchant Center.
-- Sin publicidad automática, comisiones ocultas, publicaciones automáticas ni desplazamiento de los particulares.
+## Alcance V3.2.76
+- Enlace opcional HTTPS a ficha original, solo para productos en venta; el dominio debe coincidir con website_url del perfil del vendedor. No se considera verificación legal de propiedad.
+- Botón marcado «Comprar en la tienda externa», salida transparente a otro dominio. Contacto por chat permanece.
+- Importación CSV: reconoce Product URL, Permalink o Enlace del producto si se incluye la columna. No inventar enlaces a partir de SKU, ID o slug.
+- Anuncios anteriores y sin tienda mantienen su flujo normal. No cobros, pedidos, iframe de tienda ni Stripe Connect.
+- En una fase posterior: verificación formal de la propiedad del dominio, sincronización segura de precios/stock y variaciones, posiblemente exportador/plugin WooCommerce, respetando el consentimiento del vendedor.
 
-## Fase V3.2.76 — Centro vendedor (sin cobrar)
-1. Estado de vendedor: borrador, pendiente de revisión, verificado, suspendido.
-2. Datos legales/comerciales con acceso restringido: identificación de empresa/autónomo, contacto, IVA, dirección fiscal y política de privacidad (evaluación jurídica RGPD).
-3. Reglas por vendedor: envíos y zonas de cobertura, gastos, plazos, devolución y reembolsos; vendedor responsable claramente identificado.
-4. Inventario editable, condición nuevo/usado, GTIN/MPN cuando proceda, fotos, disponibilidad y precio.
-5. Panel de preparación Merchant en modo AUDITORÍA, sin feed público.
+## Requisitos de Google
+- Cada vendedor utiliza Merchant Center con SU dominio verificado y URLs reales de su producto en su tienda; precio, disponibilidad y checkout reales allí.
+- Imitar la apariencia de la tienda dentro de RedLibertad o redirigir externamente no garantiza admisión en Merchant Center.
+- Para publicar productos de varios comerciantes bajo una cuenta de plataforma se requiere evaluación de las estructuras oficiales de marketplace multivendedor (MCA). No generar un feed Merchant de RedLibertad automáticamente.
 
-## Fase V3.2.77 — Suscripción + checkout, modo pruebas
-1. Comparar Stripe Billing (cuotas) + Stripe Connect (identificación/KYC y pagos a vendedores), elegir quién es merchant of record, régimen de impuestos y responsables de disputas. Validación jurídica y económica antes de contratar.
-2. Seller onboarding con cuentas conectadas, webhooks autenticados, idempotentes y auditados.
-3. Suscripción vinculada a capacidad de venta directa, con renovación, fallo, reintento, suspensión, cancelación y recuperación; los anuncios gratuitos no deben borrarse por cancelación.
-4. Checkout HTTPS y compatible con móvil para compradores particulares, idealmente sin registro forzoso, siempre con precio final y costes transparentes.
-5. Pedidos con estados fiables, reserva/ajuste de stock, fraude y prueba de compra; sin almacenar tarjetas en RedLibertad.
-6. Pruebas integrales de pagos, devolución, disputa/contracargo, doble webhook, pago duplicado y caída parcial.
-7. **Sin cobros reales** hasta aprobar términos, políticas, textos legales, comisiones, retenciones y pruebas.
+## Suscripciones posibles — no activadas
+La cuota mensual podría pagar herramientas de promoción, sincronización y estadísticas, nunca obligar al vendedor a migrar su sistema de cobro. Precios, facturación, condiciones y políticas pendientes de decisión expresa.
 
-## Fase V3.2.78 — Merchant Center condicionado
-1. Investigar y solicitar una estructura de **Marketplace Multi-Client Account (MCA)** con cuentas por vendedor o configuración multivendedor adecuada. No tratar a vendedores distintos como un único comercio.
-2. Solo feed de productos comercializables: venta, anuncio público y activo, vendedor habilitado y verificable, stock, precio y disponibilidad sincronizados, checkout funcional y envío elegible.
-3. Información exigida en fichas y checkout: identidad del vendedor, atención al cliente, plazos/costes de envío, devoluciones/reembolsos, métodos de pago y políticas claras.
-4. GTIN/MPN/marca/condición coherentes; datos estructurados y URL canónica con fotografía existente en VPS. No inventar identificadores ni valoraciones.
-5. Descartar del feed anuncios «Busco comprar», servicios, inmuebles y anuncios con condiciones incompletas.
-6. Diagnóstico y rechazo por anuncio, sin afirmar «aprobado» hasta resolución real de Google.
+Fuentes: https://support.google.com/merchants/answer/6324416 ; https://support.google.com/merchants/answer/4752265 ; https://support.google.com/merchants/answer/14228975 .
 
-## Decisiones pendientes del propietario
-- Cuota mensual y periodo de prueba (ningún precio fijado).
-- ¿Quién responde legalmente al comprador? ¿Vendedor autónomo, empresa o plataforma? Validación con asesoría.
-- ¿La plataforma cobra comisión por pedido además de la cuota?
-- Un pedido por vendedor inicialmente o carrito multivendedor.
-- Países y monedas iniciales; impuestos, facturas, logística y atención al cliente.
-- Requisitos de Merchant para terceros y configuración con Google aprobada.
-
-## Fuentes de requisitos (consultadas octubre de 2026)
-- Google Merchant Center: https://support.google.com/merchants/answer/14228975 (estructuras de cuentas para marketplaces).
-- Google Merchant Center: https://support.google.com/merchants/answer/9158778 (checkout y coherencia de producto).
-- Google Merchant Center: https://support.google.com/merchants/answer/15108683 (cuentas multivendedor).
-- Stripe Connect: https://docs.stripe.com/connect
-- Stripe Billing: https://docs.stripe.com/billing
-
-**No implementar en V3.2.75 ninguna suscripción, feed Merchant o venta directa.**
+## Resumen de cumplimiento y compatibilidad
+**Google Merchant Center:** la ficha real pertenece a cada tienda; no hay Merchant Center automático desde RedLibertad.
+**Stripe Connect:** descartado para esta modalidad de tiendas externas, que ya tienen pasarela propia.
+**Sin cobros reales:** ninguna suscripción, comisión ni compra se activa en esta versión.

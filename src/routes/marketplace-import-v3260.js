@@ -6,6 +6,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 // Resolve schema on request, after the parent Marketplace router is fully initialized.
 const listingSchema=()=>require('./marketplace-v3250').listingInput;
+const {storeProductLink}=require('../services/marketplace-external-store-v3276');
 const {csvRecords,parseProduct,indexVariationParents,importOptions,MAX_CSV_BYTES}=require('../services/marketplace-woocommerce-csv-v3260');
 const {saveImages,eraseFiles,imageFailureCode}=require('../services/marketplace-import-photos-v3260');
 const router=express.Router();
@@ -57,6 +58,16 @@ router.post('/preview',limiter,async(req,res,next)=>{
   });
   const keys=items.filter(i=>i.key&&i.state==='pending').map(i=>i.key);
   if(keys.length){
+   if(items.some(i=>i.listing?.details?.externalProductUrl)){
+     const seller=await db.query('SELECT website_url FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+     for(const item of items){
+       const external=item.listing?.details?.externalProductUrl;
+       if(external&&!storeProductLink(external,seller.rows[0]?.website_url)){
+         item.state='invalid';
+         item.error=[item.error,'El enlace debe pertenecer al dominio HTTPS de tu perfil'].filter(Boolean).join('; ');
+       }
+     }
+   }
    const existing=await db.query('SELECT source_key FROM marketplace_import_links WHERE seller_id=$1 AND source_key=ANY($2::text[])',[req.user.id,keys]);
    const taken=new Set(existing.rows.map(r=>r.source_key));
    for(const i of items)if(i.state==='pending'&&taken.has(i.key)){i.state='duplicate';i.error='Producto importado anteriormente';}
@@ -115,6 +126,10 @@ router.post('/:id/step',stepsLimiter,async(req,res,next)=>{
     const validate=listingSchema().safeParse({...item.listing,images:photos.paths});
     if(!validate.success)throw new Error('invalid_import_listing');
     const v=validate.data;
+    if(v.details.externalProductUrl){
+      const owner=await client.query('SELECT website_url FROM users WHERE id=$1 LIMIT 1',[req.user.id]);
+      if(!storeProductLink(v.details.externalProductUrl,owner.rows[0]?.website_url))throw new Error('invalid_import_listing');
+    }
     const saved=await client.query('INSERT INTO marketplace_listings(seller_id,kind,deal,title,description,category,city,price_cents,image_urls,details) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb) RETURNING id',[req.user.id,v.kind,v.deal,v.title,v.description,v.category,v.city,v.priceCents,JSON.stringify(v.images),JSON.stringify(v.details)]);
     const id=saved.rows[0].id;
     const linked=await client.query('INSERT INTO marketplace_import_links(seller_id,source_key,listing_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING listing_id',[req.user.id,item.key,id]);

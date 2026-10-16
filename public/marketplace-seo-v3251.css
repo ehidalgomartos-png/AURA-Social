@@ -194,7 +194,7 @@
 .market-share-actions .market-community-link-v3269:focus-visible{background:#07574f;color:#fff;border-color:#07574f}
 .market-share-actions .market-community-link-v3269:focus-visible{outline:3px solid #1c9a87;outline-offset:2px}
 
-/* V3.2.75 — Native sharing and unobtrusive category discovery, mobile-first. */
+/* V3.2.76 — Native sharing and unobtrusive category discovery, mobile-first. */
 .market-share-actions .market-native-share-v3272{
  background:#f0f7f5;border-color:#88bfb4;color:#09584f;
 }
@@ -214,10 +214,15 @@
  .market-more-category-v3272{width:100%}
 }
 
-/* V3.2.75 guest-safe sharing and category help */
+/* V3.2.76 guest-safe sharing and category help */
 .market-share-actions .market-community-link-v3269[hidden]{display:none!important}
 .market-category-help-v3273{display:block;margin-top:6px;color:#536875;font-size:12px;line-height:1.4}
 
-/* V3.2.75 — clear category groups in the native mobile selector. */
+/* V3.2.76 — clear category groups in the native mobile selector. */
 .market-public-extra select[name="categoria"]{min-height:44px}
 .market-public-extra label:has(select[name="categoria"]) {min-width:0}
+/* V3.2.76 store-owned checkout; non-embedded external link */
+.market-external-buy-v3276{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 16px;background:#08786d;color:#fff!important;border-radius:11px;font-weight:800;text-align:center;text-decoration:none;overflow-wrap:anywhere}
+.market-external-buy-v3276:focus-visible{outline:3px solid #122f45;outline-offset:3px}
+.market-external-note-v3276{width:100%;font-size:13px;line-height:1.45;color:#526977;margin:5px 0 10px}
+@media(max-width:600px){.market-product-offer .market-external-buy-v3276{width:100%}}

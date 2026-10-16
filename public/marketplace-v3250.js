@@ -296,6 +296,7 @@ function syncKind(){
   $(selector).classList.toggle('hidden',kind!==key);
  }
  $('#listingSaleScopeField').classList.toggle('hidden',kind!=='product'||deal.value!=='sale');
+ $('#marketExternalStoreField').classList.toggle('hidden',kind!=='product'||deal.value!=='sale');
  $('#listingKindHint').textContent=kind==='product'?'Añade título, precio y fotos. El estado del producto es opcional.':kind==='service'?'Explica qué servicio ofreces y dónde lo prestas.':'Indica el inmueble, ubicación y precio. La superficie y las habitaciones son opcionales.';
  $('#listingForm [name=title]').placeholder=kind==='service'?'Ej. Pintura y reformas en Valencia':kind==='property'?'Ej. Piso de 3 habitaciones en Valencia':'Ej. Taza personalizada nueva';
  const budget=deal.value==='buy';
@@ -325,6 +326,7 @@ function openEditor(item=null,preset=null){
    f('gtin').value=item.details?.gtin||'';
    f('mpn').value=item.details?.mpn||'';
    f('saleScope').value=item.details?.saleScope||(marketNational(item)?'national':'');
+   f('externalProductUrl').value=item.details?.externalProductUrl||'';
    f('serviceMode').value=item.details?.serviceMode||'';
    f('serviceArea').value=item.details?.serviceArea||'';
    f('areaM2').value=item.details?.areaM2??'';
@@ -345,7 +347,7 @@ function renderPhotos(){
 }
 function closeDialog(id){$('#'+id).close();}
 
-const FIELD_LABELS={kind:'Tipo',deal:'Operación',title:'Título',description:'Descripción',category:'Categoría',city:'Ciudad',price:'Precio'};
+const FIELD_LABELS={externalProductUrl:'Enlace de tienda',kind:'Tipo',deal:'Operación',title:'Título',description:'Descripción',category:'Categoría',city:'Ciudad',price:'Precio'};
 function listingFormData(form){
   const raw=new FormData(form);
   const field=name=>String(raw.get(name)||'').trim();
@@ -374,6 +376,13 @@ function listingFormData(form){
     if(brand)extra.brand=brand;
     if(gtin)extra.gtin=gtin;
     if(mpn)extra.mpn=mpn;
+    const external=field('externalProductUrl');
+    if(external){
+      try{const u=new URL(external);if(u.protocol!=='https:'||u.username||u.password||u.port||u.hash||external.length>2048||!u.hostname.includes('.'))throw Error('invalid');}
+      catch(_){return invalid('externalProductUrl','Introduce la URL HTTPS de un producto en tu tienda.');}
+      if(deal!=='sale')return invalid('externalProductUrl','El enlace de compra solo sirve para productos en venta.');
+      extra.externalProductUrl=external;
+    }
   }
   if(kind==='product'&&deal==='sale'){
     const scope=field('saleScope');
@@ -473,6 +482,8 @@ async function saveListing(event){
         ? 'El servidor tarda demasiado en responder. Consulta «Mis anuncios» antes de repetir la publicación.'
         : response.error==='authentication_required'
         ? 'Tu sesión ha caducado. Entra de nuevo antes de guardar.'
+        : response.error==='external_store_url_mismatch'
+        ? 'El enlace de compra debe tener el mismo dominio HTTPS que la web configurada en Editar perfil. Comprueba ambos enlaces.'
         : response.error==='marketplace_unavailable'
         ? 'Marketplace no está disponible en el servidor. Inténtalo más tarde.'
         : response.error==='network'
