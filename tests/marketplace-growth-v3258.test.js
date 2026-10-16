@@ -23,7 +23,7 @@ const listing={
 test('V3.2.62 cache bust, syntax, version and regression script',()=>{
  assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
  assert.ok(read('server.js').includes("APP_VERSION='3.2.77'"));
- assert.ok(html.includes('marketplace-v3250.js?v=3.2.75'));
+ assert.ok(html.includes('marketplace-v3250.js?v=3.2.77.2'));
  assert.ok(source.includes('marketplace-seo-v3251.css?v=3.2.75'));
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.ok(read('.github/workflows/validate-js.yml').includes('test:marketplace-growth'));

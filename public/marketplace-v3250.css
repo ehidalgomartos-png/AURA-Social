@@ -262,3 +262,92 @@ body>.site-foot{margin-top:auto}
 
 /* V3.2.69 — Community sharing is opt-in, never an automatic post. */
 .market-catalog-card .market-community-link-v3269,.market-share-inline .market-community-link-v3269,.detail-shell .market-community-link-v3269{display:inline-flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid #bddbd3;background:#edf7f3;color:#10594f;text-decoration:none;font-size:13px;font-weight:750}
+
+
+/* Marketplace catalogue — mobile action hierarchy. All actions remain available.
+   Does not change owner/moderation cards or public product landing pages. */
+.market-catalog-card .actions.market-card-actions-v32772{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:stretch;gap:8px;padding-top:11px;min-width:0;
+}
+.market-catalog-card .market-card-actions-v32772>.market-card-main-v32772{
+ min-width:0;min-height:46px;width:100%;margin:0;
+ display:flex;align-items:center;justify-content:center;text-align:center;
+ padding:10px 8px;font-size:13px;line-height:1.25;
+ border:1px solid #bedfd6;border-radius:12px;
+ text-decoration:none;font-weight:800;
+}
+.market-catalog-card .market-card-actions-v32772>.market-seo-link{
+ background:#e5f4ef;color:#0a6057;
+}
+.market-catalog-card .market-card-actions-v32772>.market-contact-action{
+ background:#0e6e65!important;color:#fff!important;border-color:#0e6e65!important;
+}
+.market-catalog-card .market-card-utility-row-v32772{
+ grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:4px;align-items:start;min-width:0;
+ border-top:1px solid #e7eeec;padding-top:5px;margin-top:1px;
+}
+.market-catalog-card .market-card-utility-row-v32772>.market-card-quiet-v32772,
+.market-catalog-card .market-card-extra-v32772>summary{
+ width:100%;min-width:0;min-height:42px;
+ display:flex;align-items:center;justify-content:center;
+ border:0;border-radius:10px;background:transparent;color:#4b6466;
+ font-size:12px;font-weight:750;line-height:1.2;text-align:center;
+ padding:8px 4px;white-space:normal;
+}
+.market-catalog-card .market-card-extra-v32772{min-width:0;grid-column:3;position:relative}
+.market-catalog-card .market-card-extra-v32772>summary{
+ cursor:pointer;list-style:none;
+}
+.market-catalog-card .market-card-extra-v32772>summary::-webkit-details-marker{display:none}
+.market-catalog-card .market-card-extra-v32772[open]>summary{
+ background:#edf6f3;color:#0b665b;
+}
+.market-catalog-card .market-card-extra-panel-v32772{
+ display:grid;gap:6px;grid-column:1/-1;min-width:0;
+ margin-top:5px;padding:9px;
+ background:#f4f8f6;border:1px solid #d5e5df;
+ border-radius:12px;
+}
+.market-catalog-card .market-card-extra-panel-v32772>a,
+.market-catalog-card .market-card-extra-panel-v32772>button{
+ display:flex;width:100%;min-width:0;align-items:center;justify-content:center;
+ padding:10px;min-height:44px;border:1px solid #d3e2dd;
+ border-radius:9px;background:#fff;color:#1d5e55;
+ text-align:center;text-decoration:none;
+ font-size:12px;font-weight:750;line-height:1.3;white-space:normal;
+}
+.market-catalog-card .market-card-extra-panel-v32772>button[data-report]{
+ color:#923b36;border-color:#eddddd;
+}
+.market-catalog-card .market-card-extra-panel-v32772 .market-community-link-v3269{
+ background:#fff;
+}
+.market-catalog-card .market-card-utility-row-v32772>.market-card-quiet-v32772:hover,
+.market-catalog-card .market-card-extra-v32772>summary:hover{background:#eff7f4}
+.market-catalog-card .market-card-utility-row-v32772 :focus-visible{
+ outline:3px solid #087d71;outline-offset:2px;
+}
+@media(max-width:600px){
+ .market-catalog-card .actions.market-card-actions-v32772{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;padding-top:10px;
+ }
+ .market-catalog-card .market-card-utility-row-v32772{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+ .market-catalog-card .market-card-actions-v32772>.market-card-main-v32772{
+  min-height:48px;font-size:13px;
+ }
+ .market-catalog-card .market-card-extra-panel-v32772{grid-column:1/-1}
+}
+@media(max-width:350px){
+ .market-catalog-card .market-card-utility-row-v32772>.market-card-quiet-v32772,
+ .market-catalog-card .market-card-extra-v32772>summary{
+  font-size:11px;padding-inline:2px;
+ }
+}
+
+.market-catalog-card:has(.market-card-extra-v32772[open]){overflow:visible;position:relative;z-index:2}
+.market-catalog-card .market-card-extra-v32772 .market-card-extra-panel-v32772{position:absolute;right:0;top:100%;z-index:5;width:min(270px,calc(100vw - 56px));box-shadow:0 12px 30px rgba(13,34,56,.14)}

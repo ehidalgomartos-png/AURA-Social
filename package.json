@@ -11,6 +11,7 @@
     "check:syntax": "node scripts/check-syntax.js",
     "test:community-compose-polish": "node --test tests/community-compose-polish-v32771.test.js",
     "test:marketplace-chat-context": "node --test tests/marketplace-chat-context-v32632.test.js",
+    "test:marketplace-card-actions-mobile": "node --test tests/marketplace-card-actions-mobile.test.js",
     "test:marketplace-chat-polish": "node --test tests/marketplace-chat-polish-v32633.test.js",
     "test:marketplace-professional-admin-access": "node --test tests/marketplace-professional-admin-access-v3276.test.js",
     "test:marketplace-woocommerce": "node --test tests/marketplace-woocommerce-v3277.test.js",

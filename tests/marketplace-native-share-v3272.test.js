@@ -107,6 +107,6 @@ test('no DB schema or PWA changes, release and responsive assets updated',()=>{
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
  assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
- assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.75/);
+ assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.77\.2/);
  assert.match(read('public/app.html'),/social\.js\?v=3\.2\.75/);
 });

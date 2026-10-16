@@ -39,7 +39,7 @@ test('Invalid title and description present field-specific messages',()=>{
 test('Save form bypasses silent native constraint blocking and displays errors',()=>{
   assert.match(html,/<form method="dialog" id="listingForm" novalidate>/);
   assert.match(html,/id="formError" role="alert" aria-live="assertive"/);
-  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.75/);
+  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.77\.2/);
   assert.match(client,/function listingError\(/);
   assert.match(client,/scrollIntoView/);
   assert.match(client,/btn\.textContent='Subiendo foto '/);
