@@ -18,3 +18,8 @@
 La cuota mensual podría pagar herramientas de promoción, sincronización y estadísticas, nunca obligar al vendedor a migrar su sistema de cobro. Precios, facturación, condiciones y políticas pendientes de decisión expresa.
 
 Fuentes: https://support.google.com/merchants/answer/6324416 ; https://support.google.com/merchants/answer/4752265 ; https://support.google.com/merchants/answer/14228975 .
+
+## Resumen de cumplimiento y compatibilidad
+**Google Merchant Center:** la ficha real pertenece a cada tienda; no hay Merchant Center automático desde RedLibertad.
+**Stripe Connect:** descartado para esta modalidad de tiendas externas, que ya tienen pasarela propia.
+**Sin cobros reales:** ninguna suscripción, comisión ni compra se activa en esta versión.

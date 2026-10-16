@@ -68,7 +68,9 @@ function entitySchema(row,url,images){
  if(row.kind==='product'){
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
    if(nationalSale(row))offer.areaServed={'@type':'Country',name:'España'};
-   const product={...data,'@type':'Product',offers:offer};
+   // Seller's external checkout is not an offer made or fulfilled by RedLibertad.
+   // Avoid implying stock or merchant readiness on the marketplace landing page.
+   const product={...data,'@type':'Product',...(externalStoreLinkForListing(row)?{}:{offers:offer})};
    if(typeof details.brand==='string'&&details.brand.trim())product.brand={'@type':'Brand',name:details.brand.trim().slice(0,80)};
    if(validGtin(details.gtin))product['gtin'+details.gtin.length]=details.gtin;
    if(typeof details.mpn==='string'&&details.mpn.trim())product.mpn=details.mpn.trim().slice(0,70);

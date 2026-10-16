@@ -296,6 +296,7 @@ function syncKind(){
   $(selector).classList.toggle('hidden',kind!==key);
  }
  $('#listingSaleScopeField').classList.toggle('hidden',kind!=='product'||deal.value!=='sale');
+ $('#marketExternalStoreField').classList.toggle('hidden',kind!=='product'||deal.value!=='sale');
  $('#listingKindHint').textContent=kind==='product'?'Añade título, precio y fotos. El estado del producto es opcional.':kind==='service'?'Explica qué servicio ofreces y dónde lo prestas.':'Indica el inmueble, ubicación y precio. La superficie y las habitaciones son opcionales.';
  $('#listingForm [name=title]').placeholder=kind==='service'?'Ej. Pintura y reformas en Valencia':kind==='property'?'Ej. Piso de 3 habitaciones en Valencia':'Ej. Taza personalizada nueva';
  const budget=deal.value==='buy';
@@ -481,6 +482,8 @@ async function saveListing(event){
         ? 'El servidor tarda demasiado en responder. Consulta «Mis anuncios» antes de repetir la publicación.'
         : response.error==='authentication_required'
         ? 'Tu sesión ha caducado. Entra de nuevo antes de guardar.'
+        : response.error==='external_store_url_mismatch'
+        ? 'El enlace de compra debe tener el mismo dominio HTTPS que la web configurada en Editar perfil. Comprueba ambos enlaces.'
         : response.error==='marketplace_unavailable'
         ? 'Marketplace no está disponible en el servidor. Inténtalo más tarde.'
         : response.error==='network'
