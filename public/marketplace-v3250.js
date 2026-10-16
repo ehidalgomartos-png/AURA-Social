@@ -191,6 +191,14 @@ function card(item){
  const sellerOK=item.seller_discoverable===true&&/^[A-Za-z0-9_.-]+$/.test(String(item.seller_username||''));
  const seller=sellerOK?'<a class="seller-profile-link" href="/perfil/'+encodeURIComponent(item.seller_username)+'">'+esc(item.seller_name||item.seller_username)+'</a>':esc(item.seller_name||item.seller_username);
  const location=marketDisplayLocation(item);
+ // For nationwide product sales, the coverage is already displayed above.
+ // Preserve a real city of origin where provided, without repeating "Venta en toda España".
+ const sellerLocation=item.kind==='product'&&item.deal==='sale'&&marketNational(item)
+  ?marketOrigin(item):location;
+ const sellerLine=item.kind==='product'&&item.deal==='sale'
+  ?'<p class="muted market-seller-location market-seller-byline-v32773">'+
+     (sellerLocation?esc(sellerLocation)+' · ':'')+'Vendido por '+seller+'</p>'
+  :'<p class="muted market-seller-location">📍 '+esc(location)+' · '+seller+'</p>';
  const badge=item.deal==='buy'?'BUSCO COMPRAR':item.deal==='sale'?'EN VENTA':item.deal==='rent'?'ALQUILER':'SERVICIO';
  const quickStatuses=own&&item.moderation_status!=='hidden'?
   (item.status==='active'?'<button type="button" data-quick-status="'+esc(item.id)+'" data-to="reserved">Reservar</button><button type="button" data-quick-status="'+esc(item.id)+'" data-to="sold">Marcar vendido</button><button type="button" data-quick-status="'+esc(item.id)+'" data-to="paused">Pausar</button>':
@@ -218,7 +226,7 @@ function card(item){
  return '<article class="card market-catalog-card"><div class="thumb">'+cover+photoBadge+
  '</div><div class="cardbody"><span class="chip market-deal-'+esc(item.deal)+'">'+esc(badge)+'</span>'+(isRecentListing(item)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h3>'+esc(item.title)+'</h3>'+more+'<div class="price">'+priceLabel(item)+'</div>'+
  (info.length?'<p class="market-product-facts">'+info.map(esc).join(' · ')+'</p>':'')+
- '<p class="muted market-seller-location">📍 '+esc(location)+' · '+seller+'</p>'+
+ sellerLine+
  (own?'<span class="market-state market-state-'+esc(item.status)+'">Estado: '+esc(label[item.status]||item.status)+(item.moderation_status==='hidden'?' · Oculto por moderación':'')+'</span>':'')+
  (compactActions||(
  '<div class="actions">'+(quickStatuses)+ (publicOK?'<a class="market-seo-link" href="'+esc(url)+'">Ver anuncio</a>':'<button data-open="'+esc(item.id)+'">Ver anuncio</button>')+
