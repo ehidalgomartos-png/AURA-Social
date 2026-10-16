@@ -7,6 +7,8 @@ const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const {icon:marketplaceIcon}=require('../marketplace-icons-v3259');
 const {publicLocation,originLocation,coverageLabel,nationalSale,catalogLocation}=require('../services/marketplace-coverage-v3261');
 const {validGtin}=require('../services/marketplace-google-v3264');
+const {purchaseLink}=require('../services/marketplace-professional-v3276');
+const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -104,7 +106,8 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
 }
 async function publicListing(id){
  await ensureMarketplaceSchema();
- const result=await db.query('SELECT l.id,l.title,l.description,l.category,l.city,l.kind,l.deal,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.status AS seller_status,u.discoverable AS seller_discoverable FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1 LIMIT 1',[id]);
+ await ensureProfessionalSchema();
+ const result=await db.query('SELECT l.id,l.title,l.description,l.category,l.city,l.kind,l.deal,l.price_cents,l.image_urls,l.details,l.status,l.moderation_status,l.created_at,l.updated_at,u.username AS seller_username,u.display_name AS seller_name,u.status AS seller_status,u.discoverable AS seller_discoverable,s.name AS professional_store_name,s.store_url AS store_url,s.status AS store_status,s.purchase_enabled AS purchase_enabled,x.product_url AS external_product_url,x.stock_status AS external_stock_status FROM marketplace_listings l JOIN users u ON u.id=l.seller_id LEFT JOIN marketplace_external_products x ON x.listing_id=l.id AND x.seller_id=l.seller_id LEFT JOIN marketplace_professional_stores s ON s.id=x.store_id AND s.seller_id=l.seller_id WHERE l.id=$1 LIMIT 1',[id]);
  return result.rows[0]||null;
 }
 function unavailable(res,gone=false){
@@ -122,6 +125,7 @@ function listingHtml(row,related=[]){
  const date=new Date(row.created_at).toISOString(),updated=new Date(row.updated_at).toISOString();
  const location=locality(row),origin=originLocation(row),coverage=coverageLabel(row),sellerLink='/perfil/'+encodeURIComponent(row.seller_username);
  const isProductSale=row.kind==='product'&&row.deal==='sale';
+ const verifiedPurchaseUrl=purchaseLink(row);
  const contactHref='/marketplace?contact='+encodeURIComponent(row.seller_username)+'&listing='+encodeURIComponent(row.id);
  const contactText=row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante';
  const otherAdsLink='/marketplace/vendedor/'+encodeURIComponent(row.seller_username);
