@@ -76,7 +76,7 @@ test('section search, user discovery and editorial feed are left as they were',(
   assert.ok(read('public/editorial-home-v324.js').includes('posts[insertAt[i]-1].after(card)'));
 });
 test('version and CI include V3.2.62',()=>{
-  assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+  assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
   assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
   assert.match(html,/\/social\.js\?v=3\.2\.69\.1/);
   assert.match(html,/\/social\.css\?v=3\.2\.69\.1/);
