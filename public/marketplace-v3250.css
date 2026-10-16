@@ -348,3 +348,6 @@ body>.site-foot{margin-top:auto}
   font-size:11px;padding-inline:2px;
  }
 }
+
+.market-catalog-card:has(.market-card-extra-v32772[open]){overflow:visible;position:relative;z-index:2}
+.market-catalog-card .market-card-extra-v32772 .market-card-extra-panel-v32772{position:absolute;right:0;top:100%;z-index:5;width:min(270px,calc(100vw - 56px));box-shadow:0 12px 30px rgba(13,34,56,.14)}
