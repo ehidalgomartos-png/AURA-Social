@@ -194,7 +194,7 @@ function card(item){
  // For nationwide product sales, the coverage is already displayed above.
  // Preserve a real city of origin where provided, without repeating "Venta en toda España".
  const sellerLocation=item.kind==='product'&&item.deal==='sale'&&marketNational(item)
-  ?marketOrigin(item):location;
+  ?location.replace(/(?:^| · )Venta (?:disponible )?en toda España$/,''):location;
  const sellerLine=item.kind==='product'&&item.deal==='sale'
   ?'<p class="muted market-seller-location market-seller-byline-v32773">'+
      (sellerLocation?esc(sellerLocation)+' · ':'')+'Vendido por '+seller+'</p>'
