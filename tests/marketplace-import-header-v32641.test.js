@@ -39,5 +39,5 @@ test('Importer can detect UTF-16 exports, retains preview-and-confirm safeguards
  assert.doesNotMatch(page,/href="\/marketplace\/google"/);
  assert.match(page,/href="\/marketplace\/importar"/);
  assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.71'/);
 });
