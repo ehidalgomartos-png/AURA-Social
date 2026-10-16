@@ -11,6 +11,7 @@
     "check:syntax": "node scripts/check-syntax.js",
     "test:marketplace-chat-context": "node --test tests/marketplace-chat-context-v32632.test.js",
     "test:marketplace-chat-polish": "node --test tests/marketplace-chat-polish-v32633.test.js",
+    "test:marketplace-professional": "node --test tests/marketplace-professional-v3276.test.js",
     "test:marketplace-google": "node --test tests/marketplace-google-v3264.test.js",
     "test:marketplace-contact-return": "node --test tests/marketplace-contact-return-v32631.test.js",
     "test:marketplace-product-detail": "node --test tests/marketplace-product-detail-v3263.test.js",
