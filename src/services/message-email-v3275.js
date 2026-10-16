@@ -92,7 +92,7 @@ function createMessageEmailService({db=dbDefault,fetchFn=global.fetch,env=proces
  async function claim(){
   return db.query(
    "WITH due AS (SELECT conversation_id,recipient_id FROM message_email_jobs_v3275 "+
-   "WHERE status='pending' AND due_at<=now() AND attempts<$1 "+
+   "WHERE (status='pending' OR (status='sending' AND locked_until<now())) AND due_at<=now() AND attempts<$1 "+
    "AND (locked_until IS NULL OR locked_until<now()) "+
    "ORDER BY due_at FOR UPDATE SKIP LOCKED LIMIT 8) "+
    "UPDATE message_email_jobs_v3275 j SET status='sending',attempts=j.attempts+1,"+
