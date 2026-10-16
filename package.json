@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.75",
+  "version": "3.2.76",
   "private": true,
-  "description": "RedLibertad V3.2.75 — Avisos de mensajes por email",
+  "description": "RedLibertad V3.2.76 — Marketplace profesional conectado a tiendas",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
