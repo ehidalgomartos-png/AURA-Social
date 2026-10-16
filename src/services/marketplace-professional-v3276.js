@@ -31,10 +31,15 @@ function normalizeProductUrl(storeUrl,value){
  const item=safeHttpsUrl(value);
  return item&&productMatchesStore(storeUrl,value)?item.toString():null;
 }
+function freshWooStock(row,now=Date.now()){
+ if(row?.external_source!=='api')return true;
+ const checked=Date.parse(row.external_checked_at||'');
+ return Number.isFinite(checked)&&checked<=now&&now-checked<48*60*60*1000;
+}
 function purchaseLink(row){
  return row&&row.kind==='product'&&row.deal==='sale'&&row.status==='active'&&
   row.moderation_status==='published'&&row.store_status==='approved'&&
-  row.purchase_enabled===true&&row.external_stock_status==='in_stock'&&
+  row.purchase_enabled===true&&row.external_stock_status==='in_stock'&&freshWooStock(row)&&
   normalizeProductUrl(row.store_url,row.external_product_url)||null;
 }
 const DDL=[
@@ -44,4 +49,4 @@ const DDL=[
  "CREATE INDEX IF NOT EXISTS idx_marketplace_external_store ON marketplace_external_products(store_id)",
  "CREATE INDEX IF NOT EXISTS idx_marketplace_external_seller ON marketplace_external_products(seller_id)"
 ];
-module.exports={PLATFORMS,safeHttpsUrl,normalizeStoreUrl,productMatchesStore,normalizeProductUrl,purchaseLink,DDL};
+module.exports={PLATFORMS,safeHttpsUrl,normalizeStoreUrl,productMatchesStore,normalizeProductUrl,purchaseLink,freshWooStock,DDL};

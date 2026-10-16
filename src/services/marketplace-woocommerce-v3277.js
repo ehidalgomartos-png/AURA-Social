@@ -10,8 +10,9 @@ const {readableDescription}=require('./marketplace-description-v3267');
 
 const MAX_PAGE_SIZE=20,MAX_JSON=1024*1024;
 const DDL=[
- "CREATE TABLE IF NOT EXISTS marketplace_woocommerce_connections (store_id BIGINT PRIMARY KEY REFERENCES marketplace_professional_stores(id) ON DELETE CASCADE, credentials_encrypted TEXT NOT NULL, sync_enabled BOOLEAN NOT NULL DEFAULT false, last_sync_at TIMESTAMPTZ, last_attempt_at TIMESTAMPTZ, last_error VARCHAR(70), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+ "CREATE TABLE IF NOT EXISTS marketplace_woocommerce_connections (store_id BIGINT PRIMARY KEY REFERENCES marketplace_professional_stores(id) ON DELETE CASCADE, credentials_encrypted TEXT NOT NULL, sync_enabled BOOLEAN NOT NULL DEFAULT false, sync_offset INTEGER NOT NULL DEFAULT 0, last_sync_at TIMESTAMPTZ, last_attempt_at TIMESTAMPTZ, last_error VARCHAR(70), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
  "CREATE TABLE IF NOT EXISTS marketplace_woocommerce_product_links (store_id BIGINT NOT NULL REFERENCES marketplace_professional_stores(id) ON DELETE CASCADE, woo_id BIGINT NOT NULL, listing_id BIGINT NOT NULL UNIQUE REFERENCES marketplace_listings(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(store_id,woo_id))",
+ "ALTER TABLE marketplace_woocommerce_connections ADD COLUMN IF NOT EXISTS sync_offset INTEGER NOT NULL DEFAULT 0",
  "CREATE INDEX IF NOT EXISTS idx_marketplace_woo_sync ON marketplace_woocommerce_connections(sync_enabled,last_attempt_at)"
 ];
 function secretKey(){

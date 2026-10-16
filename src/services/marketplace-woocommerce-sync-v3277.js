@@ -56,7 +56,12 @@ async function importProduct(store,credentials,wooId,options={}){
  }finally{client?.release();}
 }
 async function syncLinked(store,credentials,{limit=20}={}){
- const rows=await db.query("SELECT w.woo_id FROM marketplace_woocommerce_product_links w JOIN marketplace_external_products x ON x.listing_id=w.listing_id AND x.store_id=w.store_id AND x.source='api' WHERE w.store_id=$1 ORDER BY w.woo_id ASC LIMIT $2",[store.id,Math.min(20,Math.max(1,limit))]);
+ const cursor=await db.query('SELECT sync_offset FROM marketplace_woocommerce_connections WHERE store_id=$1',[store.id]);
+ const offset=Number(cursor.rows[0]?.sync_offset||0);
+ const sql="SELECT w.woo_id FROM marketplace_woocommerce_product_links w JOIN marketplace_external_products x ON x.listing_id=w.listing_id AND x.store_id=w.store_id AND x.source='api' WHERE w.store_id=$1 ORDER BY w.woo_id ASC LIMIT $2 OFFSET $3";
+ let rows=await db.query(sql,[store.id,Math.min(20,Math.max(1,limit)),offset]);
+ let actualOffset=offset;
+ if(!rows.rowCount&&offset>0){rows=await db.query(sql,[store.id,Math.min(20,Math.max(1,limit)),0]);actualOffset=0;}
  let updated=0,unavailable=0,failed=0;
  for(const row of rows.rows){
   try{
@@ -70,7 +75,7 @@ async function syncLinked(store,credentials,{limit=20}={}){
    await db.query("UPDATE marketplace_external_products x SET stock_status='unknown',last_checked_at=now(),updated_at=now() FROM marketplace_woocommerce_product_links w WHERE w.store_id=$1 AND w.woo_id=$2 AND x.listing_id=w.listing_id AND x.store_id=w.store_id AND x.source='api'",[store.id,row.woo_id]);
   }
  }
- await db.query("UPDATE marketplace_woocommerce_connections SET last_sync_at=now(),last_error=$2,updated_at=now() WHERE store_id=$1",[store.id,failed?'woocommerce_partial_failure':null]);
+ await db.query("UPDATE marketplace_woocommerce_connections SET last_sync_at=now(),last_error=$2,sync_offset=$3,updated_at=now() WHERE store_id=$1",[store.id,failed?'woocommerce_partial_failure':null,rows.rowCount>=20?actualOffset+rows.rowCount:0]);
  return {checked:rows.rowCount,updated,unavailable,failed,partial:rows.rowCount>=20};
 }
 let active=false,started=false,timer=null;

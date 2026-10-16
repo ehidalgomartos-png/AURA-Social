@@ -72,3 +72,12 @@ test('professional Woo routes are mounted behind admin auth, do not return crede
  assert.doesNotMatch(sync,/DELETE FROM marketplace_listings/);
  assert.match(fs.readFileSync('server.js','utf8'),/startWooCommerceSyncScheduler\(\)/);
 });
+
+test('API-linked external purchase link expires when WooCommerce stock has not been refreshed for 48 hours',()=>{
+ const p=require('../src/services/marketplace-professional-v3276');
+ const row={kind:'product',deal:'sale',status:'active',moderation_status:'published',store_status:'approved',purchase_enabled:true,
+  external_stock_status:'in_stock',external_source:'api',external_checked_at:new Date().toISOString(),store_url:'https://mundotaza.com/',external_product_url:'https://mundotaza.com/producto/taza/'};
+ assert.equal(p.purchaseLink(row),'https://mundotaza.com/producto/taza/');
+ assert.equal(p.purchaseLink({...row,external_checked_at:new Date(Date.now()-49*3600*1000).toISOString()}),null);
+ assert.equal(p.purchaseLink({...row,external_stock_status:'unknown'}),null);
+});
