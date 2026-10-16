@@ -78,6 +78,6 @@ test('interfaz no permite publicar si hay discrepancia y ofrece solución manual
  assert.ok(js.includes('NO se publicará'));
  assert.ok(css.includes('editorial-assignment-alert-v32181'));
  assert.ok(html.includes('/admin.js?v=3.2.63.2'));
- assert.ok(read('server.js').includes("APP_VERSION='3.2.69.1'"));
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.ok(read('server.js').includes("APP_VERSION='3.2.71'"));
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
 });

@@ -61,7 +61,7 @@ test('public detail labels correspond to verified category, never a fixed Actual
  assert.match(read('public/admin.css'),/editorial-category-suggestion-v3247/);
 });
 test('new version is wired into GitHub tests without altering manual publication',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.69.1');
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.71');
  assert.match(read('server.js'),/APP_VERSION='3\.2\.69\.1'/);
  assert.match(read('.github/workflows/validate-js.yml'),/npm run test:editorial-categories/);
  assert.match(read('public/admin.html'),/admin\.js\?v=3\.2\.63\.2/);
