@@ -5,6 +5,7 @@ const db=require('../db');
 const {saveImages,eraseFiles}=require('./marketplace-import-photos-v3260');
 const {getProduct,decryptCredentials}=require('./marketplace-woocommerce-v3277');
 const listingInput=()=>require('../routes/marketplace-v3250').listingInput;
+const {findMatches,ReconcileError}=require('./marketplace-woocommerce-reconcile-v32776');
 
 const scopeValid=value=>!value||['local','national'].includes(value);
 async function loadConnection(storeId,sellerId){
@@ -27,8 +28,10 @@ async function updateLinked(store,product){
 async function importProduct(store,credentials,wooId,options={}){
  const product=await getProduct(store,credentials,wooId);
  if(product.state!=='ready')return {state:product.state,reason:product.reason};
- const old=await db.query('SELECT listing_id FROM marketplace_woocommerce_product_links WHERE store_id=$1 AND woo_id=$2',[store.id,wooId]);
- if(old.rowCount)return updateLinked(store,product);
+ // Do not turn a historical CSV import into another public listing.
+ const before=await findMatches(store,product);
+ if(before.state==='linked')return {state:'already_linked',listingId:before.existingListingId};
+ if(!before.canImport)throw new ReconcileError('woocommerce_duplicate_candidate');
  const {city,province='',saleScope}=options;
  if(typeof city!=='string'||city.trim().length<2||city.trim().length>100||province.length>100||!scopeValid(saleScope))throw new Error('invalid_import_options');
  let pictures=[],files=[],client=null,committed=false;
@@ -41,6 +44,15 @@ async function importProduct(store,credentials,wooId,options={}){
   if(!value.success)throw new Error('invalid_import_listing');
   client=await db.pool.connect();
   await client.query('BEGIN');
+  // Serialize API import and manual linking per seller; revalidate after photo download.
+  await client.query('SELECT pg_advisory_xact_lock($1::bigint)',[store.seller_id]);
+  const latest=await client.query('SELECT id,seller_id,store_url,status FROM marketplace_professional_stores WHERE id=$1 FOR UPDATE',[store.id]);
+  if(!latest.rowCount||String(latest.rows[0].seller_id)!==String(store.seller_id)||
+      latest.rows[0].status==='suspended'||latest.rows[0].store_url!==store.store_url)
+    throw new ReconcileError('woocommerce_store_changed');
+  const current=await findMatches(latest.rows[0],product,client);
+  if(current.state==='linked')throw new ReconcileError('woocommerce_already_imported');
+  if(!current.canImport)throw new ReconcileError('woocommerce_duplicate_candidate');
   const result=await client.query("INSERT INTO marketplace_listings(seller_id,kind,deal,title,description,category,city,price_cents,image_urls,details) VALUES($1,'product','sale',$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb) RETURNING id",
   [store.seller_id,product.title,product.description,product.category,city.trim(),product.priceCents,JSON.stringify(pictures),JSON.stringify(value.data.details)]);
   const listingId=result.rows[0].id;
