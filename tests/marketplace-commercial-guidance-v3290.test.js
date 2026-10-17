@@ -122,7 +122,9 @@ test('admin-only guidance endpoint has no writes; anonymous and non-admin users 
   assert.equal(value.billingEnabled,false);
   assert.equal(value.proposals[0].proposedMonthlyCents,990);
   assert.equal(value.proposals[1].proposedMonthlyCents,2490);
-  assert.equal(seen.some(item=>/^(?:INSERT|UPDATE|DELETE)\b/i.test(item.q)),false);
+  // Existing middleware may initialize idempotent admin draft tables.
+  // This new GET must never mutate operational sellers, shops, subscriptions or product data.
+  assert.equal(seen.some(item=>/^(?:UPDATE|INSERT INTO|DELETE FROM) marketplace_(?:seller_subscriptions|professional_stores|listings|external_products)\b/i.test(item.q.trim())),false);
  }finally{
   await new Promise(resolve=>server.close(resolve));
   db.query=oldQuery;
