@@ -166,6 +166,8 @@ function subscriptionInfo(obj,c){
   cancelAtPeriodEnd:obj.cancel_at_period_end===true};
 }
 async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connect()}={}){
+ if(!event||event.livemode!==false||event.data?.object?.livemode===true)
+  throw Object.assign(new Error('live_event_rejected'),{status:403});
  const c=config(env);
  if(!c.readyForCheckout)throw Object.assign(new Error('sandbox_not_configured'),{status:503});
  if(!ALLOWED_EVENTS.has(event.type))return {ok:true,ignored:true};
