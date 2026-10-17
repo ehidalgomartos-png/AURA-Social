@@ -97,7 +97,7 @@ test('admin page offers explicit confirmed transfer with a username and no autom
  const js=fs.readFileSync('public/marketplace-professional-v3276.js','utf8');
  const svc=fs.readFileSync('src/services/marketplace-store-owner-v32775.js','utf8');
  const pro=fs.readFileSync('src/routes/marketplace-professional-v3276.js','utf8');
- assert.match(html,/v=3\.2\.77\.5/);
+ assert.match(html,/v=3\.2\.77\.6/);
  assert.match(js,/data-store-owner-transfer/);
  assert.match(js,/expectedSellerId/);
  assert.match(js,/confirm:true/);
