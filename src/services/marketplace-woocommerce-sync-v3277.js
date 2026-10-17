@@ -8,7 +8,7 @@ const listingInput=()=>require('../routes/marketplace-v3250').listingInput;
 
 const scopeValid=value=>!value||['local','national'].includes(value);
 async function loadConnection(storeId,sellerId){
- const r=await db.query("SELECT s.id,s.seller_id,s.store_url,s.status,s.platform,c.credentials_encrypted,c.sync_enabled,c.last_sync_at,c.last_error FROM marketplace_professional_stores s LEFT JOIN marketplace_woocommerce_connections c ON c.store_id=s.id WHERE s.id=$1 AND s.seller_id=$2",[storeId,sellerId]);
+ const r=await db.query("SELECT s.id,s.seller_id,s.store_url,s.status,s.platform,c.credentials_encrypted,c.sync_enabled,c.last_sync_at,c.last_error FROM marketplace_professional_stores s LEFT JOIN marketplace_woocommerce_connections c ON c.store_id=s.id WHERE s.id=$1 AND ($2::bigint IS NULL OR s.seller_id=$2)",[storeId,sellerId]);
  if(!r.rowCount||r.rows[0].platform!=='woocommerce')throw new Error('woocommerce_store_not_found');
  return r.rows[0];
 }

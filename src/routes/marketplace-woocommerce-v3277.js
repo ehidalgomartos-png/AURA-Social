@@ -16,7 +16,9 @@ const importOptions=z.object({confirm:z.literal(true),city:z.string().trim().min
 router.use((_req,res,next)=>{res.setHeader('Cache-Control','private,no-store');next();});
 async function owned(req,res){
  if(!idOK(req.params.id)){res.status(400).json({error:'invalid_store_id'});return null;}
- const store=await loadConnection(req.params.id,req.user.id);
+ // The parent professional router verifies requireAdmin before mounting this route.
+ // Admins may connect shops owned by other RedLibertad users.
+ const store=await loadConnection(req.params.id,null);
  return store;
 }
 function failure(res,e){

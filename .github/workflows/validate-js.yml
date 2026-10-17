@@ -28,6 +28,8 @@ jobs:
         run: npm run test:marketplace-card-actions-mobile
       - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
         run: npm run test:marketplace-chat-polish
+      - name: V3.2.77.4 professional shop visibility for administrators
+        run: npm run test:marketplace-professional-admin-stores
       - name: V3.2.76 professional storefront admin-only access regression
         run: npm run test:marketplace-professional-admin-access
       - name: V3.2.77 encrypted WooCommerce connector, imports and sync safety

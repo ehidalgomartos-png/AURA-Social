@@ -5,9 +5,9 @@ async function api(url,options={}){
 }
 function say(s){$('message').textContent=s;}
 async function load(){
- const r=await api('/api/marketplace/professional/mine');
- if(!r.ok){say('No se pudieron cargar tus tiendas.');return;}
- $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>':s.status==='pending'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="approved">Aprobar tras comprobar titularidad</button>':s.status==='approved'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="suspended">Suspender compras externas</button>':'')+'</article>').join(''):'<p>Aún no tienes tiendas registradas.</p>';
+ const r=await api('/api/marketplace/professional/admin/stores');
+ if(!r.ok){say('No se pudieron cargar las tiendas. Revisa la sesión de administrador.');return;}
+ $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p><p class="muted">Propietario de la tienda: @'+esc(s.username||'sin cuenta')+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>':s.status==='pending'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="approved">Aprobar tras comprobar titularidad</button>':s.status==='approved'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="suspended">Suspender compras externas</button>':'')+'</article>').join(''):'<p>Aún no tienes tiendas registradas.</p>';
  $('storeSelect').innerHTML=r.stores.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join('');
  const woo=r.stores.filter(s=>s.platform==='woocommerce');
  const previous=$('wooStoreSelect').value;
@@ -15,13 +15,16 @@ async function load(){
  if(woo.some(s=>String(s.id)===previous))$('wooStoreSelect').value=previous;
  $('wooPanel').hidden=!woo.length;
  if(woo.length)await wooStatus();
- const p=await api('/api/marketplace/professional/products');
- $('products').innerHTML=p.ok&&p.items.length?p.items.map(x=>'<article class="row"><strong>'+esc(x.title)+'</strong><p>'+esc(x.stock_status)+' · '+esc(x.product_url)+'</p></article>').join(''):'<p>Sin productos vinculados.</p>';
+ const p=await api('/api/marketplace/professional/admin/products');
+ $('products').innerHTML=p.ok&&p.items.length?p.items.map(x=>'<article class="row"><strong>'+esc(x.title)+'</strong><p>@'+esc(x.seller_username||'sin cuenta')+' · '+esc(x.stock_status)+' · '+esc(x.product_url)+'</p></article>').join(''):'<p>Sin productos vinculados.</p>';
 }
 $('storeForm').addEventListener('submit',async e=>{
  e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));
  const r=await api('/api/marketplace/professional/stores',{method:'POST',body:JSON.stringify(data)});
- say(r.ok?'Tienda registrada en borrador. Envíala a revisión.':'No se pudo registrar la tienda: '+(r.error||'error'));if(r.ok){e.currentTarget.reset();await load();}
+ if(r.ok){say('Tienda registrada. Comprueba la cuenta propietaria antes de importar productos.');e.currentTarget.reset();await load();}
+ else if(r.error==='store_already_registered'){
+  await load();say('Esta tienda ya estaba registrada. Comprueba el listado de todas las tiendas y su propietario; no necesitas crearla otra vez.');
+ }else say('No se pudo registrar la tienda: '+(r.error||'error'));
 });
 $('productForm').addEventListener('submit',async e=>{
  e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget)),id=data.listingId;
