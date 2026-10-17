@@ -7,12 +7,13 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {PLATFORMS,normalizeStoreUrl,normalizeProductUrl,DDL}=require('../services/marketplace-professional-v3276');
 const {DDL:wooDDL}=require('../services/marketplace-woocommerce-v3277');
+const {DDL:reconcileDDL}=require('../services/marketplace-woocommerce-reconcile-v32776');
 const {TransferError,transferStoreOwner}=require('../services/marketplace-store-owner-v32775');
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 let ready=null;
 function ensureProfessionalSchema(){
- if(!ready)ready=(async()=>{for(const sql of [...DDL,...wooDDL])await db.query(sql);})().catch(e=>{ready=null;throw e;});
+ if(!ready)ready=(async()=>{for(const sql of [...DDL,...wooDDL,...reconcileDDL])await db.query(sql);})().catch(e=>{ready=null;throw e;});
  return ready;
 }
 // The professional program is administered internally until enrollment opens.
