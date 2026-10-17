@@ -221,3 +221,40 @@
 /* V3.2.75 — clear category groups in the native mobile selector. */
 .market-public-extra select[name="categoria"]{min-height:44px}
 .market-public-extra label:has(select[name="categoria"]) {min-width:0}
+
+
+/* V3.2.77.8 — External purchase CTA appears only when purchaseLink validates
+   store approval, published seller listing, real shop host and fresh stock. */
+.market-product-offer-actions-v32778{
+ display:flex;align-items:stretch;gap:10px;min-width:0;
+}
+.market-product-offer-actions-v32778>a{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:48px;min-width:0;padding:10px 15px;line-height:1.25;
+ border-radius:12px;text-decoration:none;font-weight:800;text-align:center;
+}
+.market-product-offer-actions-v32778 .market-product-buy-v32778{
+ background:#0d8074;border:1px solid #0d8074;color:#fff;
+}
+.market-product-offer-actions-v32778 .market-product-chat-v32778{
+ background:white;border:1px solid #bfd7d3;color:#175a57;
+}
+.market-product-offer-actions-v32778 a:focus-visible{
+ outline:3px solid var(--teal);outline-offset:3px;
+}
+@media(max-width:780px){
+ .market-product-offer:has(.market-product-offer-actions-v32778){
+  grid-template-columns:minmax(0,1fr);
+ }
+ .market-product-offer-actions-v32778{width:100%}
+ .market-product-offer-actions-v32778>a{flex:1}
+}
+@media(max-width:600px){
+ .market-product-offer-actions-v32778{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:8px;
+ }
+ .market-product-offer-actions-v32778>a{width:100%}
+ .market-mobile-contact .market-mobile-buy-v32778{
+  background:#0b6c61;
+ }
+}
