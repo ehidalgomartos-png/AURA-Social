@@ -24,7 +24,8 @@ function build(defined,contractData,commercialData){
    (code==='professional'?
      features.bulkImport===false&&features.wooSync===false:
      features.bulkImport===true&&features.wooSync===true);
-  const external=features?.externalCheckout!==false&&!!features;
+  const external=!!features&&!features.issues?.some(issue=>issue.includes('Compra externa obligatoria'));
+
   const drafting=!!terms&&textFields.every(f=>typeof terms[f]==='string'&&terms[f].trim().length>=20);
   const steps=[
    check('price','Definir el precio propuesto (sin aprobar)',proposedPrice!==null),
