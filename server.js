@@ -207,6 +207,8 @@ const registrationIdentityLimiter=rateLimit({
 app.use(rateLimit({ windowMs: 60 * 1000, max: 240, standardHeaders: true, legacyHeaders: false }));
 app.use('/api/auth/register', registrationNetworkLimiter);
 app.use('/api/auth/login', rateLimit({windowMs:15*60*1000,max:30,standardHeaders:true,legacyHeaders:false,message:{error:'too_many_login_attempts'}}));
+// Stripe sandbox webhook: verifies the original raw body before JSON middleware.
+app.use('/api/marketplace/stripe-test/webhook',require('./src/routes/marketplace-stripe-test-webhook-v3280').router);
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
