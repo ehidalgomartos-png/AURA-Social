@@ -30,3 +30,13 @@ legend{font-weight:700;font-size:.9rem}
 #loading:empty{display:none}
 @media(min-width:690px){.contract-plans{grid-template-columns:repeat(2,minmax(0,1fr))}.contract-plan{display:flex;flex-direction:column}.contract-plan ul{flex:1}}
 @media(prefers-reduced-motion:no-preference){.contract-plan{transition:border-color .14s ease}.contract-plan:focus-within{border-color:#237b95}}
+
+/* V3.2.88 — readable, accessible mobile contract walkthrough */
+.top{flex-wrap:wrap;row-gap:5px;overflow-wrap:anywhere}
+.top a{flex-shrink:0}.top strong{min-width:0}
+.contract-progress{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:14px 0 17px}
+.contract-progress[hidden]{display:none}
+.progress-step{font-size:.79rem;font-weight:650;line-height:1.35;padding:10px 7px;text-align:center;border:1px solid #dae5ec;border-radius:10px;background:#fff;color:#58707c}
+.progress-step[aria-current=step]{background:#e9f5f8;color:#084d65;border-color:#89b4c2;font-weight:750}
+.contract-terms-warning{padding:11px 13px;margin:12px 0;border-radius:10px;background:#f6fafc;border:1px solid #dce7ec;font-size:.87rem;color:#405f70;line-height:1.5}
+@media(max-width:390px){.progress-step{font-size:.72rem;padding:9px 3px}}

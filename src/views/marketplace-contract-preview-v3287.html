@@ -4,9 +4,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d2238">
 <title>Centro de contratación · RedLibertad</title>
-<link rel="stylesheet" href="/marketplace-subscriptions-v3278.css?v=3.2.87">
-<link rel="stylesheet" href="/marketplace-contract-preview-v3287.css?v=3.2.87">
-<script src="/marketplace-contract-preview-v3287.js?v=3.2.87" defer></script>
+<link rel="stylesheet" href="/marketplace-subscriptions-v3278.css?v=3.2.88">
+<link rel="stylesheet" href="/marketplace-contract-preview-v3287.css?v=3.2.88">
+<script src="/marketplace-contract-preview-v3287.js?v=3.2.88" defer></script>
 </head>
 <body>
 <header class="top"><a href="/marketplace/mi-tienda">← Mi tienda</a><strong>Contratación profesional · Vista previa</strong></header>
@@ -20,7 +20,12 @@
   <strong>Sin contratación ni cobros reales</strong>
   <p>No se han aprobado tarifas, impuestos ni condiciones comerciales. No se puede comprar una suscripción desde esta pantalla, ni se recopilan tarjetas o datos de pago.</p>
  </section>
- <p id="loading" role="status" aria-live="polite">Consultando tus modalidades…</p>
+ <nav class="contract-progress" id="contractProgress" aria-label="Etapas de la simulación" hidden>
+ <span class="progress-step" id="progressPlans" aria-current="step">1. Comparar</span>
+ <span class="progress-step" id="progressTerms">2. Revisar</span>
+ <span class="progress-step" id="progressDone">3. Finalizar</span>
+</nav>
+<p id="loading" role="status" aria-live="polite">Consultando tus modalidades…</p>
  <section id="contractArea" hidden>
   <section id="sellerNotice" class="card" aria-label="Situación actual de la cuenta">
    <h2>Tu situación actual</h2><p id="pilotNotice"></p>
@@ -32,9 +37,10 @@
   </section>
   <section id="stageTerms" class="card" hidden>
    <p class="step-label">PASO 2 DE 3 · ENSAYO</p>
-   <h2>Revisión de condiciones antes de contratar</h2>
+   <h2 tabindex="-1">Revisión de condiciones antes de contratar</h2>
    <p id="selectedPlan" class="selected-plan"></p>
    <p class="muted">Al contratar de verdad, el vendedor deberá ver y aceptar condiciones definitivas antes de pagar. Ahora solo comprobamos cómo se entendería el proceso.</p>
+   <p class="contract-terms-warning"><strong>Condiciones aún no publicadas.</strong> La información siguiente es orientativa y no sustituye un documento legal aprobado. Esta pantalla no registra ninguna aceptación contractual.</p>
    <dl id="conditions" class="conditions"></dl>
    <form id="simulationForm" novalidate>
     <fieldset>
@@ -55,7 +61,7 @@
   </section>
   <section id="stageDone" class="card" hidden aria-live="polite">
    <p class="step-label">PASO 3 DE 3 · ENSAYO FINALIZADO</p>
-   <h2>Has completado la simulación</h2>
+   <h2 tabindex="-1">Has completado la simulación</h2>
    <p id="donePlan"></p>
    <p><strong>No se ha generado ninguna suscripción, cargo, factura ni aceptación de términos.</strong></p>
    <p class="muted">Cuando el servicio se apruebe, el proceso futuro podrá conectar con Stripe Billing. El laboratorio Stripe existente sigue reservado a administradores y en modo de prueba.</p>
