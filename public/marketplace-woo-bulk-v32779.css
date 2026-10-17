@@ -25,3 +25,7 @@
  .woo-bulk-review-v32779{padding:12px}
  .woo-bulk-select-v32779{min-height:44px;align-items:center}
 }
+
+.woo-bulk-review-photo-v32779{display:block;width:65px;height:65px;object-fit:cover;border:1px solid #c9ded9;border-radius:9px;margin-top:5px}
+.woo-bulk-results-v32779 a{color:#0b685f;text-decoration:underline;font-weight:750}
+.woo-bulk-results-v32779{margin-top:3px}
