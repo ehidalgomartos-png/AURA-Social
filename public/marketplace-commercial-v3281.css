@@ -43,3 +43,10 @@ ol{padding-left:22px;line-height:1.65;color:#40596a;font-size:.88rem}li{margin-b
 @media(min-width:560px){.preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .preview-grid label[hidden]{display:none}
+
+/* V3.2.85 — compact launch-definition check; mobile-first */
+.decision-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #e4eaf0;font-size:.85rem}
+.decision-row span{color:#526879;max-width:46%}.decision-row strong{max-width:54%;text-align:right;line-height:1.4;font-size:.84rem}
+.policy-form{padding-top:8px}.policy-form label{display:block}.policy-form .muted{margin:8px 0}
+.decision-pending{margin:14px 0 8px;padding:12px;border:1px solid #dce6ec;border-radius:10px;background:#fafcfd;font-size:.84rem}
+.decision-pending ul{margin:8px 0 0;padding-left:20px}.decision-pending li{margin:4px 0;line-height:1.45}

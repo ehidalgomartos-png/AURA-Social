@@ -108,6 +108,7 @@ function planForm(plan){
    main.lastChild.textContent=limit(plan.storeLimit,'tienda(s)')+' · '+limit(plan.productLimit,'producto(s)');
    feedback.textContent='Borrador guardado sin aplicar restricciones comerciales.';
    renderComparison();
+   if(typeof window.dispatchEvent==='function')window.dispatchEvent(new Event('commercial:features-saved'));
   }catch(error){feedback.className='status error';feedback.textContent=error.message;}
   finally{action.disabled=false;}
  });
