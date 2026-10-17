@@ -102,7 +102,7 @@ test('compact accordion keeps proposals/reviews collapsed, shows all saved data 
  }
  assert.match(nodes.drafts.children[0].children[0].textContent,/Sin precio decidido/);
  assert.match(nodes.drafts.children[1].children[0].textContent,/24,90/);
- assert.match(nodes.reviews.children[1].children[1].textContent,/Esperando revisión/);
+ assert.equal(nodes.reviews.children[1].children[1].children[1].children[0].value,'Esperando revisión.');
  const professional=nodes.drafts.children[0];professional.open=true;
  const cost=professional.children[1].children[0].children[0].children[0];
  // label is nested: form -> field -> label -> input.
