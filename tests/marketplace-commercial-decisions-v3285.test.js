@@ -85,6 +85,12 @@ test('readiness stays internal even if proposed prices, policies and six reviews
  assert.equal(report.pendingReviews.length,0);
  assert.equal(decisions.summary(drafts,specs,reviews,undecided).cards[0].issues.includes('Criterio de productos por decidir'),true);
  assert.equal(decisions.summary(drafts,specs,reviews,undecided).pendingReviews.length,2);
+ const simulator=require('../src/services/marketplace-commercial-preview-v3284');
+ const scenario={planCode:'professional',action:'single_product',storeCount:0,productCount:40,requestCount:1};
+ const known=simulator.compute(scenario,specs,[{code:'professional',mode:'unlimited_proposal'}]);
+ assert.match(known.notes.join(' '),/propuesto no limitar/);
+ const pending=simulator.compute(scenario,specs,undecided);
+ assert.match(pending.notes.join(' '),/pendiente de definir/);
  const noCap=decisions.summary(draftPlans,specs,allReviewed,[
   {code:'professional',mode:'unlimited_proposal',reason:'Valor de prueba'},
   {code:'professional_plus',mode:'unlimited_proposal',reason:'Valor de prueba'}
@@ -183,7 +189,7 @@ test('mobile-first UI stays private, accessible, escapes content and only uses a
  const route=fs.readFileSync(path.join(base,'src/routes/marketplace-subscription-commercial-v3281.js'),'utf8');
  assert.match(html,/id="definitionCards"/);assert.match(html,/id="definitionReviews"/);
  assert.match(html,/v=3\.2\.85/);assert.match(html,/noindex,nofollow/);
- assert.match(client,/commercial\/definition/);
+ assert.match(client,/api\('\/definition'/);
  assert.match(client,/window\.confirm/);assert.match(client,/aria-live/);
  assert.match(client,/credentials:'same-origin'/);
  assert.doesNotMatch(client,/\.innerHTML\s*=/);

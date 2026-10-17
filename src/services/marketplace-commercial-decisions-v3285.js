@@ -17,7 +17,7 @@ const DDL=[
  `INSERT INTO marketplace_subscription_commercial_product_policy(plan_code)
     VALUES ('professional'),('professional_plus')
     ON CONFLICT(plan_code) DO NOTHING`
-].map(sql=>sql.replaceAll('\\`','`'));
+];
 let pending=null;
 function ensureSchema(){
  if(!pending)pending=(async()=>{

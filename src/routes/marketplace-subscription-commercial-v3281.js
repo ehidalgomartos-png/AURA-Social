@@ -27,8 +27,9 @@ router.post('/preview',limiter,checkOrigin,wrap(async(req,res)=>{
  try{
   const scenario=simulator.normalize(req.body);
   // proposal.list is SELECT-only. No seller lookups, no operational authorization.
-  const proposals=await proposal.list();
-  res.json(simulator.compute(scenario,proposals.plans));
+  await decisions.ensureSchema();
+  const [proposals,policyRows]=await Promise.all([proposal.list(),decisions.policies()]);
+  res.json(simulator.compute(scenario,proposals.plans,policyRows));
  }catch(error){
   if(error instanceof simulator.PreviewError)return res.status(error.status).json({error:error.code});
   throw error;
