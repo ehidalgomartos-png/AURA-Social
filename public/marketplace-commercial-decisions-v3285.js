@@ -120,6 +120,7 @@ async function refresh(){
  }catch(error){status.className='status error';status.textContent='No se pudieron comprobar los planes: '+error.message;}
  finally{busy=false;}
 }
+window.addEventListener('commercial:policy-saved',refresh);
 window.addEventListener('commercial:price-saved',refresh);
 window.addEventListener('commercial:features-saved',refresh);
 window.addEventListener('commercial:review-saved',refresh);

@@ -25,7 +25,7 @@ async function api(url,options={}){
  if(!response.ok)throw Error(data.error||'Error al consultar los borradores');
  return data;
 }
-let currentDrafts=[],currentPlans=[];
+let currentDrafts=[],currentPlans=[],currentPolicies=[];
 function comparisonRow(title,value){
  const row=node('div',undefined,'comparison-row');
  row.append(node('span',title),node('strong',value));
@@ -41,7 +41,10 @@ function renderComparison(){
   card.append(node('p',euro(draft.proposedMonthlyCents),'comparison-price'));
   if(draft.proposedMonthlyCents===null)card.append(node('p',hints[draft.code],'muted'));
   card.append(comparisonRow('Tiendas conectadas',plan?limit(plan.storeLimit,'tienda(s)'):'—'));
-  card.append(comparisonRow('Productos',plan?limit(plan.productLimit,'producto(s)'):'—'));
+  const policy=currentPolicies.find(x=>x.code===draft.code);
+  const productLabel=plan&&plan.productLimit===null&&policy?.mode==='unlimited_proposal'?
+   'Sin límite (propuesta)':plan?limit(plan.productLimit,'producto(s)'):'—';
+  card.append(comparisonRow('Productos',productLabel));
   card.append(comparisonRow('Alta de productos','Uno a uno'+(plan?.bulkImport?' y por lotes':'')));
   card.append(comparisonRow('Importación CSV/lotes',plan?(plan.bulkImport?'Sí, propuesta Plus':'No; solo de uno en uno'):'—'));
   card.append(comparisonRow('Sincronización automática WooCommerce',plan?(plan.wooSync?'Sí, propuesta Plus':'No; alta manual'):'—'));
@@ -118,11 +121,15 @@ function planForm(plan){
 async function load(){
  const notice=byId('featuresNotice');
  try{
-  const [commercial,specifications]=await Promise.all([api(''),api('/features')]);
+  const [commercial,specifications,definition]=await Promise.all([api(''),api('/features'),api('/definition')]);
   if(!commercial.commercialDraftOnly||commercial.pricesPublished||commercial.enrollmentEnabled||
      !specifications.proposalOnly||specifications.entitlementsEnforced||specifications.pricesPublished||
      specifications.enrollmentEnabled)throw Error('Los planes deben permanecer exclusivamente como borradores.');
+  if(definition.productionReady!==false||definition.billingEnabled!==false||
+     definition.entitlementsEnforced!==false||!definition.pilotProtected)
+   throw Error('Los límites reales deben permanecer desactivados.');
   currentDrafts=commercial.drafts||[];currentPlans=specifications.plans||[];
+  currentPolicies=(definition.cards||[]).map(card=>({code:card.code,mode:card.policy?.mode}));
   byId('proposedFeatures').replaceChildren(...currentPlans.map(planForm));
   renderComparison();
   notice.textContent='';
@@ -131,5 +138,6 @@ async function load(){
  }
 }
 window.addEventListener('commercial:price-saved',load);
+window.addEventListener('commercial:policy-saved',load);
 load();
 })();
