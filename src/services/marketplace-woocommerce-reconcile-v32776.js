@@ -59,8 +59,8 @@ async function findMatches(store,product,client=db){
 class ReconcileError extends Error{
  constructor(code,status=409){super(code);this.status=status;}
 }
-async function linkExisting(store,credentials,wooId,listingId,adminId){
- const product=await getProduct(store,credentials,wooId);
+async function linkExisting(store,credentials,wooId,listingId,adminId,deps={}){
+ const product=await (deps.getProduct||getProduct)(store,credentials,wooId);
  if(product.state!=='ready')throw new ReconcileError('woocommerce_product_not_ready');
  const client=await db.pool.connect();let started=false;
  try{
