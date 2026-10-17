@@ -17,6 +17,7 @@
     "test:marketplace-subscriptions": "node --test tests/marketplace-subscriptions-v3278.test.js",
     "test:marketplace-subscriptions-lifecycle": "node --test tests/marketplace-subscription-lifecycle-v3279.test.js",
     "test:marketplace-stripe-test": "node --test tests/marketplace-stripe-test-v3280.test.js",
+    "test:marketplace-commercial": "node --test tests/marketplace-commercial-v3281.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
