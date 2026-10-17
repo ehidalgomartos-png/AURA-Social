@@ -18,7 +18,7 @@ function reasonFor(row,store,product,keys){
  if(!same)return 'other_owner';
  if(key.startsWith('sku:')&&keys.includes(key))return 'sku';
  if(key.startsWith('id:')&&keys.includes(key))return 'woocommerce_id';
- return 'title_price';
+ return Number(row.price_cents)===Number(product.priceCents)?'title_price':'title_only';
 }
 async function findMatches(store,product,client=db){
  if(!product?.id)return {state:'invalid',matches:[],canImport:false,existingListingId:null};
@@ -29,7 +29,7 @@ async function findMatches(store,product,client=db){
  const keys=sourceKeys(product);
  // Prior Woo CSV import keys live in marketplace_import_links, NOT in listing.details.
  // An ID key is only comparable within this seller; different Woo stores reuse IDs.
- // Title/price alone is a suspicion to show for human review, never a safe automatic match.
+ // Exact title matches also flag prior imports with changed prices; a title alone is never proof of identity.
  const result=await client.query(
   "SELECT l.id,l.seller_id,l.title,l.price_cents,l.category,l.status,l.moderation_status,"+
   " u.username,i.source_key,x.store_id AS external_store_id,x.source AS external_source,"+
@@ -40,9 +40,9 @@ async function findMatches(store,product,client=db){
   " LEFT JOIN marketplace_woocommerce_product_links w ON w.listing_id=l.id"+
   " WHERE l.kind='product' AND l.deal='sale' AND ("+
   " (i.source_key=ANY($2::text[]) AND (l.seller_id=$1 OR i.source_key LIKE 'sku:%'))"+
-  " OR (LOWER(BTRIM(l.title))=LOWER(BTRIM($3)) AND l.price_cents=$4)"+
-  " ) ORDER BY (l.seller_id=$1) DESC,(i.source_key=ANY($2::text[])) DESC,l.id DESC LIMIT $5",
-  [store.seller_id,keys,product.title||'',product.priceCents,MAX_MATCHES+1]);
+  " OR (LOWER(BTRIM(l.title))=LOWER(BTRIM($3)))"+
+  " ) ORDER BY (l.seller_id=$1) DESC,(i.source_key=ANY($2::text[])) DESC,l.id DESC LIMIT $4",
+  [store.seller_id,keys,product.title||'',MAX_MATCHES+1]);
  const exceeds=result.rows.length>MAX_MATCHES;
  const matches=result.rows.slice(0,MAX_MATCHES).map(row=>({
   listingId:row.id,title:row.title,priceCents:Number(row.price_cents),
