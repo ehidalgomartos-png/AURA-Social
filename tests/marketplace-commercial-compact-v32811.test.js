@@ -75,7 +75,7 @@ test('mobile commercial panel uses native accessible summary/details instead of 
  assert.match(html,/<summary class="fold-head">/);
  assert.match(html,/viewport-fit=cover/);
  assert.match(html,/noindex,nofollow/);
- assert.match(html,/3\.2\.81\.1/);
+ assert.match(html,/3\.2\.(?:81\.1|82)/);
  assert.match(css,/summary:focus-visible/);
  assert.match(css,/@media\(max-width:390px\)/);
  assert.match(css,/min-height:60px/);
