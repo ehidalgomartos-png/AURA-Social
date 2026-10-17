@@ -1,6 +1,6 @@
 {
   "name": "redlibertad-social",
-  "version": "3.2.78",
+  "version": "3.2.77",
   "private": true,
   "description": "RedLibertad V3.2.77 — Conector WooCommerce",
   "main": "server.js",
