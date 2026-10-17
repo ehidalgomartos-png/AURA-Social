@@ -14,6 +14,7 @@
     "test:marketplace-card-byline": "node --test tests/marketplace-card-byline-v32773.test.js",
     "test:marketplace-card-actions-mobile": "node --test tests/marketplace-card-actions-mobile.test.js",
     "test:marketplace-chat-polish": "node --test tests/marketplace-chat-polish-v32633.test.js",
+    "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
     "test:marketplace-professional-admin-access": "node --test tests/marketplace-professional-admin-access-v3276.test.js",
     "test:marketplace-woocommerce": "node --test tests/marketplace-woocommerce-v3277.test.js",
     "test:marketplace-professional": "node --test tests/marketplace-professional-v3276.test.js",
