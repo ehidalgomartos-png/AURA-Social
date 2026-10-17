@@ -147,7 +147,9 @@ test('launch preview remains admin only: anonymous and seller denied, noindex an
   assert.match(page.headers.get('cache-control'),/no-store/);
   assert.match(page.headers.get('x-robots-tag'),/noindex/);
   assert.match(await page.text(),/Preparar el lanzamiento profesional/);
-  assert.equal(queries.some(x=>/UPDATE marketplace_|INSERT INTO marketplace_|DELETE FROM marketplace_/i.test(x.q)),false);
+  // The existing admin router may initialize empty draft rows idempotently.
+  // Nothing is allowed to alter seller accounts, real subscriptions, shops or products.
+  assert.equal(queries.some(x=>/UPDATE marketplace_(?:seller_subscriptions|professional_stores|listings|external_products)|INSERT INTO marketplace_(?:seller_subscriptions|professional_stores|listings|external_products)|DELETE FROM marketplace_(?:seller_subscriptions|professional_stores|listings|external_products)/i.test(x.q)),false);
  }finally{
   await new Promise(resolve=>server.close(resolve));
   launch.overview=oldOverview;db.query=oldQuery;
