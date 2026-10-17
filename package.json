@@ -17,6 +17,7 @@
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
     "test:marketplace-professional-admin-access": "node --test tests/marketplace-professional-admin-access-v3276.test.js",
+    "test:marketplace-woo-reconcile": "node --test tests/marketplace-woo-reconcile-v32776.test.js",
     "test:marketplace-woocommerce": "node --test tests/marketplace-woocommerce-v3277.test.js",
     "test:marketplace-professional": "node --test tests/marketplace-professional-v3276.test.js",
     "test:marketplace-google": "node --test tests/marketplace-google-v3264.test.js",

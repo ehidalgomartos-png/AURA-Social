@@ -123,19 +123,55 @@ async function wooPreview(page=1){
  if(!r.ok){wooNote('No se pudo consultar: '+(r.error||'error'));return;}
  wooPage=page;
  const list=$('wooProducts');
- list.innerHTML=(page===1?'':list.innerHTML)+r.products.map(p=>
-  '<article class="row"><div><strong>'+esc(p.title||'Producto sin nombre')+'</strong>'+
-  '<p>'+esc(p.priceCents==null?'Precio pendiente':(p.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}))+
-  ' · '+esc(p.category||'Sin categoría')+' · '+esc(p.stock||'Stock desconocido')+
-  ' · '+esc(p.photoCount||0)+' fotos</p><p class="muted">'+esc(p.descriptionPreview||'')+'</p>'+
-  (p.existingListingId?'<p>Ya importado: #'+esc(p.existingListingId)+'</p>':
-   p.state==='ready'?'<button type="button" data-woo-import="'+esc(p.id)+'">Importar este producto</button>':
-   '<p>No importable: '+esc(p.reason||p.state)+'</p>')+'</div></article>').join('');
+ const stockLabel={in_stock:'Disponible',out_of_stock:'Agotado',unknown:'Sin confirmar'};
+ const reasonLabel={sku:'Mismo SKU del CSV',woocommerce_id:'Mismo ID del CSV',title_price:'Mismo nombre y precio',title_only:'Mismo nombre, precio diferente',other_owner:'Coincidencia en otra cuenta'};
+ list.innerHTML=(page===1?'':list.innerHTML)+r.products.map(p=>{
+  const check=p.duplicate||{state:'new',matches:[],canImport:true};
+  const candidates=Array.isArray(check.matches)?check.matches:[];
+  const image=p.photoUrl?'<img class="woo-preview-thumb-v32776" src="'+esc(p.photoUrl)+'" loading="lazy" referrerpolicy="no-referrer" alt="Fotografía de '+esc(p.title||'producto')+'">':
+   '<div class="woo-preview-thumb-v32776 woo-no-photo-v32776" aria-hidden="true">Sin foto</div>';
+  const count=p.photoCount||0;
+  const duplicateLabel=check.state==='linked'?'Ya vinculado al Marketplace':
+   check.state==='possible_duplicate'?'Ya existe o puede existir en Marketplace':'Sin coincidencias detectadas';
+  const items=candidates.map(c=>
+   '<div class="woo-match-v32776">'+
+    '<span><a target="_blank" rel="noopener noreferrer" href="/marketplace/p/'+esc(c.listingId)+'">Ver anuncio #'+esc(c.listingId)+'</a> · '+esc(c.title)+' · @'+esc(c.username)+' · '+esc(reasonLabel[c.reason]||'Posible coincidencia')+'</span>'+
+    (c.sameOwner&&!c.linkedElsewhere&&c.status==='active'&&c.moderationStatus==='published'&&p.state==='ready'?
+     '<button type="button" data-woo-link="'+esc(p.id)+'" data-listing="'+esc(c.listingId)+'">Vincular existente</button>':
+     '<small>'+(c.sameOwner?'Vínculo no disponible: revisa el estado del anuncio.':'Otra cuenta: no se puede vincular ni importar hasta revisar.')+'</small>')+
+   '</div>').join('');
+  const buttons=check.state==='linked'?'<p class="woo-duplicate-note-v32776">Ya vinculado al anuncio #'+esc(check.existingListingId)+'</p>':
+   !check.canImport?'<p class="woo-duplicate-note-v32776">⚠ '+duplicateLabel+'. Revisa las coincidencias antes de continuar.</p>'+
+     items+(check.truncated?'<p>Demasiadas coincidencias: revisa manualmente.</p>':''):
+   p.state==='ready'?'<button type="button" data-woo-import="'+esc(p.id)+'">Importar nuevo producto</button>':
+    '<p>No importable: '+esc(p.reason||p.state)+'</p>';
+  return '<article class="row woo-preview-card-v32776">'+image+'<div class="woo-preview-info-v32776">'+
+   '<strong>'+esc(p.title||'Producto sin nombre')+'</strong>'+
+   '<p>'+esc(p.priceCents==null?'Precio pendiente':(p.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}))+
+   ' · '+esc(p.category||'Sin categoría')+' · '+esc(stockLabel[p.stock]||'Sin confirmar')+
+   ' · '+esc(count)+' '+(count===1?'foto':'fotos')+'</p>'+
+   '<p class="muted">'+esc(p.descriptionPreview||'')+'</p>'+
+   buttons+'</div></article>';
+ }).join('');
  $('wooNextPage').hidden=!r.hasMore;
  wooNote(r.products.length?'Página '+page+' consultada. Revisa cada producto antes de importar.':'No hay más productos.');
 }
 $('wooPreviewBtn').addEventListener('click',()=>wooPreview(1));
 $('wooNextPage').addEventListener('click',()=>wooPreview(wooPage+1));
+$('wooProducts').addEventListener('click',async e=>{
+ const button=e.target.closest('[data-woo-link]');if(!button||wooRunning)return;
+ const wooProductId=Number(button.dataset.wooLink),listingId=Number(button.dataset.listing);
+ if(!Number.isSafeInteger(wooProductId)||!Number.isSafeInteger(listingId))return;
+ if(!confirm('¿Has comprobado que este producto y el anuncio #'+listingId+' son exactamente el mismo y pertenecen a la cuenta propietaria de esta tienda? Se enlazarán URL y stock de WooCommerce al anuncio existente. No se cambiarán fotografías ni propietario. Una sincronización posterior podrá modificar precio y descripción.'))return;
+ wooRunning=true;button.disabled=true;wooNote('Vinculando al anuncio existente…');
+ const result=await api('/api/marketplace/professional/woocommerce/stores/'+encodeURIComponent(wooId())+'/link-existing/'+encodeURIComponent(wooProductId),{
+  method:'POST',body:JSON.stringify({listingId,confirm:true})});
+ wooRunning=false;
+ wooNote(result.ok?'Vinculado sin duplicar el anuncio #'+result.listingId+'. Repite la vista previa para confirmar.':
+  'No se pudo vincular: '+(result.error||'error')+'. Revisa que sea del mismo vendedor.');
+ if(result.ok){button.textContent='Vinculado';await wooPreview(1);}else button.disabled=false;
+});
+
 $('wooProducts').addEventListener('click',async e=>{
  const b=e.target.closest('[data-woo-import]');if(!b||wooRunning)return;
  const city=$('wooCity').value.trim(),province=$('wooProvince').value.trim(),saleScope=$('wooSaleScope').value;
@@ -146,8 +182,8 @@ $('wooProducts').addEventListener('click',async e=>{
    method:'POST',body:JSON.stringify({confirm:true,city,province,saleScope})});
  wooRunning=false;
  if(!r.ok){b.disabled=false;wooNote('Error al importar: '+(r.error||'error'));return;}
- wooNote('Resultado: '+r.state+(r.listingId?' · Anuncio #'+r.listingId:''));
- if(['imported','updated'].includes(r.state)){b.textContent='Importado';b.disabled=true;}
+ wooNote('Resultado: '+r.state+(r.listingId?' · Anuncio #'+r.listingId:'')+'. Si hay coincidencias, la importación se bloquea sin crear anuncios.');
+ if(['imported','updated','already_linked'].includes(r.state)){b.textContent='Importado';b.disabled=true;}
 });
 $('wooSyncBtn').addEventListener('click',async()=>{
  if(wooRunning||!wooApproved||!confirm('¿Actualizar precios y existencias de los productos conectados?'))return;

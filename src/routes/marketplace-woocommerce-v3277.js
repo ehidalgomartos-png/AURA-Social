@@ -6,12 +6,15 @@ const {z}=require('zod');
 const db=require('../db');
 const {encryptCredentials,decryptCredentials,listProducts,publicError,secretKey}=require('../services/marketplace-woocommerce-v3277');
 const {loadConnection,importProduct,syncLinked}=require('../services/marketplace-woocommerce-sync-v3277');
+const {findMatches,linkExisting,ReconcileError}=require('../services/marketplace-woocommerce-reconcile-v32776');
+const {ensureImportSchema}=require('./marketplace-import-v3260');
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 const limiter=rateLimit({windowMs:60*60*1000,max:35,standardHeaders:true,legacyHeaders:false});
 const idOK=value=>/^[1-9]\d{0,15}$/.test(String(value||''));
 const credentials=z.object({consumerKey:z.string().regex(/^ck_[a-zA-Z0-9]{25,80}$/),
  consumerSecret:z.string().regex(/^cs_[a-zA-Z0-9]{25,80}$/)}).strict();
+const linkOptions=z.object({confirm:z.literal(true),listingId:z.coerce.number().int().positive()}).strict();
 const importOptions=z.object({confirm:z.literal(true),city:z.string().trim().min(2).max(100),province:z.string().trim().max(100).optional().default(''),saleScope:z.enum(['local','national']).optional()}).strict();
 router.use((_req,res,next)=>{res.setHeader('Cache-Control','private,no-store');next();});
 async function owned(req,res){
@@ -22,6 +25,7 @@ async function owned(req,res){
  return store;
 }
 function failure(res,e){
+ if(e instanceof ReconcileError)return res.status(e.status).json({error:e.message});
  const reason=publicError(e);
  const status=reason==='woocommerce_key_not_configured'?503:reason==='woocommerce_auth_failed'?400:
   reason==='woocommerce_store_not_found'?404:reason==='invalid_import_options'||reason==='woocommerce_already_imported'?409:502;
@@ -59,13 +63,15 @@ router.get('/stores/:id/preview',limiter,wrap(async(req,res)=>{
  const page=Number(req.query.page||1);
  if(!Number.isInteger(page)||page<1||page>1000)return res.status(400).json({error:'invalid_page'});
  try{
+  await ensureImportSchema();
   const products=await listProducts(store,decryptCredentials(store.credentials_encrypted),page);
-  const ids=products.map(p=>p.id).filter(Boolean);
-  const exists=ids.length?await db.query("SELECT woo_id,listing_id FROM marketplace_woocommerce_product_links WHERE store_id=$1 AND woo_id=ANY($2::bigint[])",[store.id,ids]):{rows:[]};
-  const existing=new Map(exists.rows.map(row=>[String(row.woo_id),row.listing_id]));
-  const results=products.map(({images,description,...product})=>({
-   ...product,photoCount:images?.length||0,descriptionPreview:description?.slice(0,180)||'',
-   existingListingId:existing.get(String(product.id))||null
+  const matches=await Promise.all(products.map(p=>findMatches(store,p)));
+  const results=products.map(({images,description,...product},index)=>({
+   ...product,photoCount:images?.length||0,
+   photoUrl:images?.[0]||null,
+   descriptionPreview:description?.slice(0,180)||'',
+   existingListingId:matches[index].existingListingId,
+   duplicate:matches[index]
   }));
   res.json({ok:true,storeId:store.id,page,hasMore:products.length===20,products:results});
  }catch(e){return failure(res,e);}
@@ -78,10 +84,26 @@ router.post('/stores/:id/import/:wooId',limiter,wrap(async(req,res)=>{
  if(store.status==='suspended')return res.status(409).json({error:'store_suspended'});
  if(!store.credentials_encrypted)return res.status(409).json({error:'woocommerce_not_connected'});
  try{
+  await ensureImportSchema();
   const result=await importProduct(store,decryptCredentials(store.credentials_encrypted),Number(req.params.wooId),opts.data);
   res.json({ok:true,...result});
  }catch(e){return failure(res,e);}
 }));
+router.post('/stores/:id/link-existing/:wooId',limiter,wrap(async(req,res)=>{
+ const payload=linkOptions.safeParse(req.body);
+ if(!payload.success||!idOK(req.params.wooId))return res.status(400).json({error:'invalid_link_confirmation'});
+ let store;try{store=await owned(req,res);}catch(e){return failure(res,e);}
+ if(!store)return;
+ if(store.status==='suspended')return res.status(409).json({error:'store_suspended'});
+ if(!store.credentials_encrypted)return res.status(409).json({error:'woocommerce_not_connected'});
+ try{
+  await ensureImportSchema();
+  const result=await linkExisting(store,decryptCredentials(store.credentials_encrypted),
+   Number(req.params.wooId),payload.data.listingId,req.user.id);
+  res.json({ok:true,...result});
+ }catch(e){return failure(res,e);}
+}));
+
 router.post('/stores/:id/sync',limiter,wrap(async(req,res)=>{
  let store;try{store=await owned(req,res);}catch(e){return failure(res,e);}
  if(!store)return;

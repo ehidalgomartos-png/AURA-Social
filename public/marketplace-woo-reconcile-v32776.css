@@ -1,0 +1,41 @@
+/* V3.2.77.6 — WooCommerce admin-only product reconciliation preview */
+#wooProducts .woo-preview-card-v32776{
+ display:grid;grid-template-columns:76px minmax(0,1fr);align-items:start;
+ gap:12px;padding:12px;min-width:0;
+}
+#wooProducts .woo-preview-thumb-v32776{
+ display:block;width:76px;height:76px;object-fit:cover;
+ border:1px solid #dbe6e7;border-radius:10px;background:#f1f5f3;
+}
+#wooProducts .woo-no-photo-v32776{
+ display:flex;align-items:center;justify-content:center;text-align:center;
+ font-size:11px;color:#607076;
+}
+#wooProducts .woo-preview-info-v32776{min-width:0;display:grid;gap:5px}
+#wooProducts .woo-preview-info-v32776 strong{font-size:14px;color:#102b39}
+#wooProducts .woo-preview-info-v32776 p{line-height:1.5;margin:0;overflow-wrap:anywhere}
+#wooProducts .woo-preview-info-v32776>button{justify-self:start;max-width:100%}
+#wooProducts .woo-duplicate-note-v32776{
+ background:#fff5e7;border:1px solid #f0d6a9;border-radius:9px;
+ color:#815009;padding:9px 11px;font-weight:650;
+}
+#wooProducts .woo-match-v32776{
+ display:grid;grid-template-columns:minmax(0,1fr);gap:7px;
+ background:#f5f8f7;padding:10px;border:1px solid #dae7e3;border-radius:10px;
+ font-size:12px;line-height:1.5;color:#2a4047;
+}
+#wooProducts .woo-match-v32776 button{
+ justify-self:start;max-width:100%;min-height:44px;border-color:#0b7269;
+ color:#075e56;font-weight:800;
+}
+#wooProducts .woo-match-v32776 small{color:#92522e;font-size:12px}
+@media(max-width:540px){
+ #wooProducts .woo-preview-card-v32776{grid-template-columns:64px minmax(0,1fr);gap:10px}
+ #wooProducts .woo-preview-thumb-v32776{width:64px;height:64px}
+ #wooProducts .woo-match-v32776{grid-column:1/-1}
+ #wooProducts .woo-preview-info-v32776>button{width:100%}
+}
+@media(max-width:340px){
+ #wooProducts .woo-preview-card-v32776{grid-template-columns:minmax(0,1fr)}
+ #wooProducts .woo-preview-thumb-v32776{width:72px;height:72px}
+}
