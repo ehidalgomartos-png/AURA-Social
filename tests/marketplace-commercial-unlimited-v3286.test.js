@@ -54,6 +54,16 @@ test('only a genuine explicit confirmation can request both draft plans',()=>{
   {confirmation:service.CONFIRMATION,sellerId:10}
  ])assert.throws(()=>service.parse(payload),{code:'invalid_unlimited_confirmation'});
 });
+test('PostgreSQL bigint IDs are accepted without precision loss; invalid IDs are rejected',()=>{
+ assert.equal(service.normalizeAdminId('1'),'1');
+ assert.equal(service.normalizeAdminId(57),57);
+ assert.equal(service.normalizeAdminId('9007199254740993'),'9007199254740993');
+ assert.equal(service.normalizeAdminId('9223372036854775807'),'9223372036854775807');
+ for(const id of [undefined,null,'',0,-1,2.4,NaN,1e25,
+  '0','-1','01',' 1','1 ','1.0','1e3','0x10','1;DROP TABLE users',
+  '9223372036854775808',{},true,Number.MAX_SAFE_INTEGER+1])
+  assert.throws(()=>service.normalizeAdminId(id),{code:'invalid_admin'});
+});
 test('migration only adds private audit table; never changes existing stores or payment schemas',()=>{
  const ddl=service.DDL.join('\n');
  assert.match(ddl,/CREATE TABLE IF NOT EXISTS marketplace_subscription_commercial_capacity_audit/);
@@ -69,7 +79,7 @@ test('atomic draft proposal clears both old numeric caps, stores history, and ne
    {plan_code:'professional',proposed_product_limit:500,policy_mode:'capped_proposal',reason:'Límite de 500 provisional'},
    {plan_code:'professional_plus',proposed_product_limit:5000,policy_mode:'capped_proposal',reason:'Límite de 5000 provisional'}
   ]);
-  const response=await service.apply({body:{confirmation:service.CONFIRMATION},adminId:44,pool:fake.pool});
+  const response=await service.apply({body:{confirmation:service.CONFIRMATION},adminId:'44',pool:fake.pool});
   assert.equal(response.ok,true);
   assert.deepEqual(response.changesAppliedToCommercialDrafts,['professional','professional_plus']);
   for(const flag of ['billingEnabled','liveStripeEnabled','pricesPublished','enrollmentEnabled','entitlementsEnforced'])
@@ -82,7 +92,7 @@ test('atomic draft proposal clears both old numeric caps, stores history, and ne
   assert.equal(fake.audits[0][2],'capped_proposal');
   assert.equal(fake.audits[0][3],'Límite de 500 provisional');
   assert.equal(fake.audits[1][1],5000);
-  assert.equal(fake.audits[0][5],44);
+  assert.equal(fake.audits[0][5],'44');
   assert.equal(fake.calls[0].sql,'BEGIN');
   assert.equal(fake.calls.at(-1).sql,'COMMIT');
   assert.equal(fake.released,1);
@@ -94,10 +104,11 @@ test('repeat confirmation is idempotent, produces no extra audit and preserves p
  const orig=db.query;db.query=async()=>({rows:[],rowCount:0});
  try{
   const fake=fakePool();
-  await service.apply({body:{confirmation:service.CONFIRMATION},adminId:2,pool:fake.pool});
+  await service.apply({body:{confirmation:service.CONFIRMATION},adminId:'9007199254740993',pool:fake.pool});
   assert.equal(fake.audits[0][3],'Prueba de guardado V3.2.85');
+  assert.equal(fake.audits[0][5],'9007199254740993');
   const count=fake.audits.length;
-  const second=await service.apply({body:{confirmation:service.CONFIRMATION},adminId:2,pool:fake.pool});
+  const second=await service.apply({body:{confirmation:service.CONFIRMATION},adminId:'9007199254740993',pool:fake.pool});
   assert.equal(second.changesAppliedToCommercialDrafts.length,0);
   assert.equal(fake.audits.length,count);
   assert.equal(fake.released,2);
@@ -132,7 +143,7 @@ test('admin-only endpoint validates origin and body, never operates when unautho
   const s=String(sql);statements.push({sql:s,args});
   if(/FROM users\s+WHERE id=\$1/.test(s)&&/LIMIT 1/.test(s)){
    const id=Number(args[0]);
-   return {rowCount:1,rows:[{id,username:id===1?'admin':'seller',is_admin:id===1,
+   return {rowCount:1,rows:[{id:String(id),username:id===1?'admin':'seller',is_admin:id===1,
     status:'active',auth_token_version:0,age_verified:true,show_sensitive:false}]};
   }
   return {rowCount:0,rows:[]};
@@ -159,6 +170,7 @@ test('admin-only endpoint validates origin and body, never operates when unautho
   assert.equal(saved.entitlementsEnforced,false);
   assert.deepEqual(saved.changesAppliedToCommercialDrafts,['professional','professional_plus']);
   assert.equal(fake.audits.length,2);
+  assert.equal(fake.audits[0][5],'1');
   assert.equal(statements.some(x=>/UPDATE marketplace_(?:professional_stores|seller_subscriptions|subscription_plans|external_products|listings)/i.test(x.sql)),false);
  }finally{
   await new Promise(resolve=>server.close(resolve));

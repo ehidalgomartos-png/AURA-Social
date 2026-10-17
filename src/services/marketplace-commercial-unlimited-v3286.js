@@ -46,9 +46,19 @@ function result(changedCodes){
   explanation:'Propuesta de productos ilimitados guardada únicamente en planificación comercial.'
  };
 }
+// node-postgres returns PostgreSQL BIGINT/BIGSERIAL IDs as decimal strings.
+const PG_BIGINT_MAX=9223372036854775807n;
+function normalizeAdminId(id){
+ if(typeof id==='number'){
+  if(Number.isSafeInteger(id)&&id>0)return id;
+ }else if(typeof id==='string'&&/^[1-9][0-9]{0,18}$/.test(id)){
+  if(BigInt(id)<=PG_BIGINT_MAX)return id;
+ }
+ throw new UnlimitedError('invalid_admin');
+}
 async function apply({body,adminId,pool=db.pool}){
  parse(body);
- if(!Number.isSafeInteger(adminId)||adminId<1)throw new UnlimitedError('invalid_admin');
+ const actorId=normalizeAdminId(adminId);
  await ensureSchema();
  const client=await pool.connect();
  let begun=false;
@@ -70,14 +80,14 @@ async function apply({body,adminId,pool=db.pool}){
     `UPDATE marketplace_subscription_commercial_features
      SET proposed_product_limit=NULL,updated_by=$2,updated_at=now()
      WHERE plan_code=ANY($1::text[]) AND proposed_product_limit IS NOT NULL`,
-    [PLAN_CODES,adminId]
+    [PLAN_CODES,actorId]
    );
    await client.query(
     `UPDATE marketplace_subscription_commercial_product_policy
      SET policy_mode='unlimited_proposal',reason=$2,updated_by=$3,updated_at=now()
      WHERE plan_code=ANY($1::text[])
        AND (policy_mode IS DISTINCT FROM 'unlimited_proposal' OR reason IS DISTINCT FROM $2)`,
-    [PLAN_CODES,REASON,adminId]
+    [PLAN_CODES,REASON,actorId]
    );
    for(const prior of changed){
     await client.query(
@@ -85,7 +95,7 @@ async function apply({body,adminId,pool=db.pool}){
        (plan_code,previous_product_limit,previous_policy_mode,previous_reason,
         next_product_limit,next_policy_mode,next_reason,actor_id)
        VALUES ($1,$2,$3,$4,NULL,'unlimited_proposal',$5,$6)`,
-     [prior.plan_code,prior.proposed_product_limit,prior.policy_mode,prior.reason||'',REASON,adminId]
+     [prior.plan_code,prior.proposed_product_limit,prior.policy_mode,prior.reason||'',REASON,actorId]
     );
    }
   }
@@ -96,4 +106,4 @@ async function apply({body,adminId,pool=db.pool}){
   throw err;
  }finally{client.release();}
 }
-module.exports={PLAN_CODES,CONFIRMATION,REASON,DDL,UnlimitedError,ensureSchema,parse,result,apply};
+module.exports={PLAN_CODES,CONFIRMATION,REASON,DDL,UnlimitedError,ensureSchema,parse,normalizeAdminId,result,apply};
