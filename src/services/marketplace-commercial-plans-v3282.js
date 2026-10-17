@@ -1,8 +1,11 @@
 'use strict';
-// V3.2.82: internal plan proposals, NEVER entitlements or paid subscription plans.
+// V3.2.83: internal plan proposals, NEVER entitlements or paid subscription plans.
+// Basic Professional = one product at a time, no CSV/bulk or automatic WooCommerce ingest.
+// Plus may offer bulk CSV and auto sync after separate commercial approval.
 const db=require('../db');
 const PLANS=Object.freeze(['professional','professional_plus']);
 const FEATURES=Object.freeze([
+ {key:'singleProductEntry',label:'Publicación de productos uno a uno'},
  {key:'storeLimit',label:'Tiendas externas conectadas'},
  {key:'productLimit',label:'Productos sincronizados'},
  {key:'wooSync',label:'Sincronización WooCommerce'},
@@ -23,8 +26,12 @@ const DDL=[
  )`,
  `INSERT INTO marketplace_subscription_commercial_features
    (plan_code,proposed_store_limit,proposed_product_limit,woo_sync,bulk_import,external_checkout)
-   VALUES ('professional',1,NULL,true,true,true),('professional_plus',3,NULL,true,true,true)
-   ON CONFLICT(plan_code) DO NOTHING`
+   VALUES ('professional',1,NULL,false,false,true),('professional_plus',3,NULL,true,true,true)
+   ON CONFLICT(plan_code) DO NOTHING`,
+ // Internal proposed basic plan is manual-only, even for existing draft defaults.
+ `UPDATE marketplace_subscription_commercial_features
+   SET woo_sync=false,bulk_import=false,updated_at=now()
+   WHERE plan_code='professional' AND (woo_sync IS DISTINCT FROM false OR bulk_import IS DISTINCT FROM false)`
 ];
 let ready;
 function ensureSchema(){
@@ -49,6 +56,8 @@ function normalize(planCode,body){
  }
  // Buying products outside RedLibertad is an invariant, never configurable.
  if(body.externalCheckout!==true)throw new ProposalError('external_checkout_required');
+ if(planCode==='professional'&&(body.bulkImport||body.wooSync))
+  throw new ProposalError('basic_plan_individual_only');
  if(body.bulkImport&&!body.wooSync)throw new ProposalError('bulk_import_requires_sync');
  return {
   code:planCode,storeLimit:lim(body.storeLimit,100,'store_limit'),
@@ -58,7 +67,7 @@ function normalize(planCode,body){
 }
 function toView(row){
  return {code:row.plan_code,storeLimit:row.proposed_store_limit,productLimit:row.proposed_product_limit,
-  wooSync:row.woo_sync===true,bulkImport:row.bulk_import===true,externalCheckout:row.external_checkout===true};
+  singleProductEntry:true,wooSync:row.woo_sync===true,bulkImport:row.bulk_import===true,externalCheckout:row.external_checkout===true};
 }
 async function list(query=db.query){
  const result=await query(
