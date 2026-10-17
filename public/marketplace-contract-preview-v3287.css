@@ -1,0 +1,32 @@
+/* V3.2.87 seller contract-preview only; reuses the stable seller dashboard palette. */
+main{max-width:860px}
+.preview-warning{border-left:4px solid #27728b;background:#fffdf9}
+.preview-warning strong{font-size:.98rem}
+.preview-warning p{margin:7px 0 0;color:#425b68;font-size:.9rem}
+.contract-plans{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+.contract-plan{border:1px solid #d8e3e9;border-radius:13px;padding:16px;background:#fafcfd}
+.contract-plan h3{margin:0 0 7px;font-size:1.05rem}
+.contract-plan ul{margin:10px 0 16px;padding-left:21px;line-height:1.6;font-size:.88rem;color:#3f5e6f}
+.contract-plan li{margin:5px 0}
+.contract-price{font-weight:700;color:#143c51}
+.contract-badge{display:inline-block;border-radius:30px;background:#eaf2f5;padding:5px 9px;color:#284f61;font-size:.76rem;font-weight:700}
+.contract-plan button, .contract-actions button{display:inline-flex;align-items:center;justify-content:center;border:1px solid #084962;border-radius:9px;background:#07546d;color:white;min-height:44px;padding:10px 16px;font-size:.89rem;font-weight:700;cursor:pointer}
+.contract-plan button{width:100%}
+.contract-actions{display:flex;flex-wrap:wrap;gap:11px;margin-top:18px;align-items:center}
+.contract-actions .secondary{background:#fff;color:#084e66}
+.contract-actions button:focus-visible,.contract-plan button:focus-visible{outline:3px solid #79bfd6;outline-offset:2px}
+.selected-plan{font-weight:700}
+.step-label{font-size:.72rem;letter-spacing:.07em;color:#4d7280;font-weight:800}
+.conditions{margin:12px 0 17px}
+.conditions div{padding:10px 0;border-bottom:1px solid #e3ebf0}
+.conditions dt{font-weight:700;margin-bottom:4px;font-size:.87rem}
+.conditions dd{margin:0;color:#516a78;line-height:1.55;font-size:.88rem}
+fieldset{border:1px solid #dbe5eb;border-radius:12px;padding:14px 14px 6px;margin:16px 0}
+legend{font-weight:700;font-size:.9rem}
+.check-line{display:flex;align-items:flex-start;gap:10px;margin:12px 0;font-size:.89rem;line-height:1.55;color:#294859}
+.check-line input{width:20px;height:20px;flex-shrink:0;accent-color:#07546d;margin:2px 0 0}
+.form-error{color:#a62d24;font-weight:600}
+.quiet-link{font-size:.9rem;color:#07546d}
+#loading:empty{display:none}
+@media(min-width:690px){.contract-plans{grid-template-columns:repeat(2,minmax(0,1fr))}.contract-plan{display:flex;flex-direction:column}.contract-plan ul{flex:1}}
+@media(prefers-reduced-motion:no-preference){.contract-plan{transition:border-color .14s ease}.contract-plan:focus-within{border-color:#237b95}}

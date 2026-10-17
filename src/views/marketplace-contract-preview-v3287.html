@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d2238">
+<title>Centro de contratación · RedLibertad</title>
+<link rel="stylesheet" href="/marketplace-subscriptions-v3278.css?v=3.2.87">
+<link rel="stylesheet" href="/marketplace-contract-preview-v3287.css?v=3.2.87">
+<script src="/marketplace-contract-preview-v3287.js?v=3.2.87" defer></script>
+</head>
+<body>
+<header class="top"><a href="/marketplace/mi-tienda">← Mi tienda</a><strong>Contratación profesional · Vista previa</strong></header>
+<main>
+ <section class="intro">
+  <span class="eyebrow">MARKETPLACE · VENDEDORES</span>
+  <h1>Explora la contratación profesional</h1>
+  <p>Conoce cómo podrían funcionar los planes y el proceso de suscripción. Esta pantalla es una <strong>simulación</strong>, no una oferta ni una contratación.</p>
+ </section>
+ <section class="card preview-warning" aria-label="Aviso de simulación">
+  <strong>Sin contratación ni cobros reales</strong>
+  <p>No se han aprobado tarifas, impuestos ni condiciones comerciales. No se puede comprar una suscripción desde esta pantalla, ni se recopilan tarjetas o datos de pago.</p>
+ </section>
+ <p id="loading" role="status" aria-live="polite">Consultando tus modalidades…</p>
+ <section id="contractArea" hidden>
+  <section id="sellerNotice" class="card" aria-label="Situación actual de la cuenta">
+   <h2>Tu situación actual</h2><p id="pilotNotice"></p>
+  </section>
+  <section id="stagePlans" class="card">
+   <h2>1. Compara las modalidades</h2>
+   <p class="muted">Son funciones propuestas, no prestaciones contratables ni límites operativos vigentes. Los productos se compran siempre en la tienda del vendedor.</p>
+   <div id="planCards" class="contract-plans"></div>
+  </section>
+  <section id="stageTerms" class="card" hidden>
+   <p class="step-label">PASO 2 DE 3 · ENSAYO</p>
+   <h2>Revisión de condiciones antes de contratar</h2>
+   <p id="selectedPlan" class="selected-plan"></p>
+   <p class="muted">Al contratar de verdad, el vendedor deberá ver y aceptar condiciones definitivas antes de pagar. Ahora solo comprobamos cómo se entendería el proceso.</p>
+   <dl id="conditions" class="conditions"></dl>
+   <form id="simulationForm" novalidate>
+    <fieldset>
+     <legend>Comprobación de lectura (solo simulación)</legend>
+     <label class="check-line"><input id="readTerms" type="checkbox" required>
+      <span>He revisado esta explicación preliminar. No son términos contractuales y esta casilla no constituye una aceptación legal.</span>
+     </label>
+     <label class="check-line"><input id="understandDemo" type="checkbox" required>
+      <span>Comprendo que no se realizará ningún pago, no se activará una suscripción y no se guardará mi consentimiento.</span>
+     </label>
+    </fieldset>
+    <p id="formError" class="form-error" role="alert" hidden></p>
+    <div class="contract-actions">
+     <button id="backPlans" type="button" class="secondary">← Cambiar modalidad</button>
+     <button id="finishSimulation" type="submit">Completar simulación</button>
+    </div>
+   </form>
+  </section>
+  <section id="stageDone" class="card" hidden aria-live="polite">
+   <p class="step-label">PASO 3 DE 3 · ENSAYO FINALIZADO</p>
+   <h2>Has completado la simulación</h2>
+   <p id="donePlan"></p>
+   <p><strong>No se ha generado ninguna suscripción, cargo, factura ni aceptación de términos.</strong></p>
+   <p class="muted">Cuando el servicio se apruebe, el proceso futuro podrá conectar con Stripe Billing. El laboratorio Stripe existente sigue reservado a administradores y en modo de prueba.</p>
+   <div class="contract-actions">
+    <button id="restart" type="button" class="secondary">Simular otra modalidad</button>
+    <a class="quiet-link" href="/marketplace/mi-tienda">Volver a Mi tienda</a>
+   </div>
+  </section>
+  <section class="card" aria-labelledby="workflowTitle">
+   <h2 id="workflowTitle">Cómo será el proceso cuando se apruebe</h2>
+   <ol id="workflow" class="steps"></ol>
+   <p class="muted">Los precios, impuestos, derechos de cancelación, comunicaciones y condiciones finales necesitarán revisión y aprobación antes de permitir pagos reales.</p>
+  </section>
+ </section>
+</main>
+</body>
+</html>
