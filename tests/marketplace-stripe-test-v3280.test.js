@@ -115,8 +115,48 @@ test('only matching sandbox subscriptions and configured prices can be matched',
  const ok=billing.subscriptionInfo(stripeObj,billing.config(testEnv));
  assert.equal(ok.sellerId,'55');assert.equal(ok.cancelAtPeriodEnd,true);
  assert.equal(ok.periodEnd.toISOString(),new Date(1800001234000).toISOString());
+ const scheduledByDate=billing.subscriptionInfo({...stripeObj,cancel_at_period_end:false,cancel_at:2200000000},billing.config(testEnv));
+ assert.equal(scheduledByDate.cancelAtPeriodEnd,true);
+ assert.equal(scheduledByDate.cancelAt.toISOString(),new Date(2200000000*1000).toISOString());
+ const noCancel=billing.subscriptionInfo({...stripeObj,cancel_at_period_end:false,cancel_at:null},billing.config(testEnv));
+ assert.equal(noCancel.cancelAtPeriodEnd,false);
+ assert.equal(noCancel.cancelAt,null);
  assert.equal(billing.subscriptionInfo({...stripeObj,metadata:{seller_id:'55'}},billing.config(testEnv)),null);
  assert.equal(billing.subscriptionInfo({...stripeObj,items:{data:[{price:{id:'price_live_abc'}}]}},billing.config(testEnv)),null);
+});
+test('manual TEST sync reads current Stripe data, validates ownership, restores cancellation and never touches real plans',async()=>{
+ const calls=[];
+ const obj={
+  id:'sub_ABC123',livemode:false,customer:'cus_ABC123',status:'active',
+  metadata:{sandbox:'redlibertad_v3280',seller_id:'55',plan_code:'professional'},
+  items:{data:[{price:{id:testEnv.STRIPE_TEST_PRICE_PROFESSIONAL}}]},
+  current_period_end:2200000000,cancel_at:2200000000,cancel_at_period_end:false
+ };
+ const query=async(sql,args)=>{
+  calls.push({sql,args});
+  if(sql.startsWith('SELECT plan_code,customer_id,subscription_id'))return {rowCount:1,rows:[{plan_code:'professional',customer_id:'cus_ABC123',subscription_id:'sub_ABC123'}]};
+  if(sql.startsWith('UPDATE marketplace_stripe_test_subscriptions'))return {rowCount:1,rows:[{plan_code:'professional',stripe_status:'active',cancel_at_period_end:args[3],cancel_at:args[4]}]};
+  throw Error('Unapproved SQL operation');
+ };
+ let request;
+ const fetcher=async(url,opts)=>{request={url,opts};return {ok:true,json:async()=>obj};};
+ const result=await billing.reconcileTestSubscription({sellerId:55,env:testEnv,query,fetcher});
+ assert.equal(result.ok,true);assert.equal(result.sandboxOnly,true);
+ assert.equal(result.subscription.cancel_at_period_end,true);
+ assert.equal(result.subscription.cancel_at.toISOString(),new Date(2200000000*1000).toISOString());
+ assert.equal(request.url,'https://api.stripe.com/v1/subscriptions/sub_ABC123');
+ assert.equal(request.opts.method,'GET');
+ assert.match(request.opts.headers.Authorization,/^Bearer sk_test_/);
+ assert.ok(calls.some(x=>x.sql.includes('UPDATE marketplace_stripe_test_subscriptions')));
+ assert.equal(calls.some(x=>/UPDATE marketplace_seller_subscriptions|UPDATE marketplace_professional_stores|UPDATE marketplace_external_products|UPDATE marketplace_listings/i.test(x.sql)),false);
+ const before=calls.length;
+ await assert.rejects(billing.reconcileTestSubscription({sellerId:55,env:testEnv,query,
+  fetcher:async()=>({ok:true,json:async()=>({...obj,metadata:{seller_id:'99'}})})}),{message:'stripe_test_subscription_mismatch'});
+ assert.equal(calls.slice(before).some(x=>x.sql.startsWith('UPDATE ')),false);
+ await assert.rejects(billing.reconcileTestSubscription({sellerId:55,env:testEnv,query,
+  fetcher:async()=>({ok:true,json:async()=>({...obj,livemode:true})})}),{message:'invalid_stripe_test_response'});
+ await assert.rejects(billing.fetchCurrentTestSubscription('https://evil.example',{env:testEnv,fetcher}),
+  {message:'invalid_test_subscription_id'});
 });
 test('events are idempotent, auditable and isolated; webhook cannot update the professional seller state',async()=>{
  const calls=[];const seen=new Set();
@@ -162,6 +202,10 @@ test('signed webhook route is isolated, raw before JSON, admin routes deny unaut
   assert.equal((await fetch(base+'/api/marketplace/subscriptions/admin/stripe-test/checkout',{
    method:'POST',headers:{...headers(1),'Content-Type':'application/json',Origin:base},
    body:JSON.stringify({planCode:'professional'})})).status,503);
+  const syncEndpoint=base+'/api/marketplace/subscriptions/admin/stripe-test/sync';
+  assert.equal((await fetch(syncEndpoint,{method:'POST',headers:{...headers(2),'Content-Type':'application/json',Origin:base},body:'{}'})).status,403);
+  assert.equal((await fetch(syncEndpoint,{method:'POST',headers:{...headers(1),'Content-Type':'application/json',Origin:'https://evil.example'},body:'{}'})).status,403);
+  assert.equal((await fetch(syncEndpoint,{method:'POST',headers:{...headers(1),'Content-Type':'application/json',Origin:base},body:'{}'})).status,503);
   assert.equal((await fetch(base+'/api/marketplace/stripe-test/webhook',{
    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(event('checkout.session.completed'))})).status,503);
  }finally{
@@ -181,5 +225,7 @@ test('wiring and mobile interface cannot accidentally enable live billing',()=>{
  assert.doesNotThrow(()=>new (require('node:vm').Script)(ui));
  const sql=billing.DDL.join('\n');
  assert.match(sql,/marketplace_stripe_test_subscriptions/);
+ assert.match(sql,/ADD COLUMN IF NOT EXISTS cancel_at/);
+ assert.match(ui,/api\('sync'/);
  assert.doesNotMatch(sql,/ALTER TABLE marketplace_seller_subscriptions|UPDATE marketplace_professional_stores|DROP TABLE|TRUNCATE/i);
 });

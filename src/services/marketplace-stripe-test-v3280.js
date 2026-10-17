@@ -34,6 +34,7 @@ const DDL=[
    last_event_created BIGINT NOT NULL DEFAULT 0,
    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
  )`,
+ 'ALTER TABLE marketplace_stripe_test_subscriptions ADD COLUMN IF NOT EXISTS cancel_at TIMESTAMPTZ',
  `CREATE TABLE IF NOT EXISTS marketplace_stripe_test_events (
    event_id TEXT PRIMARY KEY,
    event_type TEXT NOT NULL,
@@ -164,9 +165,55 @@ function subscriptionInfo(obj,c){
  const price=obj.items?.data?.[0]?.price?.id;
  if(!c.prices[planCode]||price!==c.prices[planCode])return null;
  const period=Number(obj.current_period_end||obj.items?.data?.[0]?.current_period_end||0);
+ const cancelSeconds=Number(obj.cancel_at||0);
+ const cancelAt=Number.isSafeInteger(cancelSeconds)&&cancelSeconds>0?new Date(cancelSeconds*1000):null;
+ const upcomingCancel=cancelAt!==null&&cancelSeconds*1000>Date.now()&&!['canceled','incomplete_expired'].includes(obj.status);
  return {sellerId,planCode,customerId:obj.customer,subscriptionId:obj.id,
   status:String(obj.status||'unknown').slice(0,40),periodEnd:Number.isSafeInteger(period)&&period>0?new Date(period*1000):null,
-  cancelAtPeriodEnd:obj.cancel_at_period_end===true};
+  cancelAt,cancelAtPeriodEnd:obj.cancel_at_period_end===true||upcomingCancel};
+}
+// On-demand read-through of the canonical current Stripe TEST state. This repairs
+// webhook arrival-order races without replaying, deleting or fabricating events.
+async function fetchCurrentTestSubscription(subscriptionId,{env=process.env,fetcher=fetch}={}){
+ const c=config(env);
+ if(!c.readyForCheckout)throw Object.assign(new Error('sandbox_not_configured'),{status:503});
+ if(!/^sub_[A-Za-z0-9_]+$/.test(String(subscriptionId||'')))
+  throw Object.assign(new Error('invalid_test_subscription_id'),{status:400});
+ const response=await fetcher('https://api.stripe.com/v1/subscriptions/'+subscriptionId,{
+  method:'GET',redirect:'error',signal:AbortSignal.timeout(12000),
+  headers:{Authorization:'Bearer '+c.key}
+ });
+ if(!response.ok)throw Object.assign(new Error('stripe_test_lookup_failed'),{status:502});
+ let obj;
+ try{obj=await response.json();}catch(_){throw Object.assign(new Error('invalid_stripe_test_response'),{status:502});}
+ if(!obj||obj.livemode!==false||obj.id!==subscriptionId)
+  throw Object.assign(new Error('invalid_stripe_test_response'),{status:502});
+ return obj;
+}
+async function reconcileTestSubscription({sellerId,env=process.env,query=db.query,fetcher=fetch}){
+ const c=config(env);
+ if(!c.readyForCheckout)throw Object.assign(new Error('sandbox_not_configured'),{status:503});
+ if(!/^[1-9]\d{0,15}$/.test(String(sellerId||'')))
+  throw Object.assign(new Error('invalid_seller_id'),{status:400});
+ const existing=await query(
+  'SELECT plan_code,customer_id,subscription_id FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',
+  [sellerId]);
+ if(!existing.rowCount)throw Object.assign(new Error('test_subscription_not_found'),{status:404});
+ const record=existing.rows[0];
+ const live=await fetchCurrentTestSubscription(record.subscription_id,{env,fetcher});
+ const info=subscriptionInfo(live,c);
+ if(!info||String(info.sellerId)!==String(sellerId)||info.subscriptionId!==record.subscription_id||
+  info.customerId!==record.customer_id||info.planCode!==record.plan_code)
+  throw Object.assign(new Error('stripe_test_subscription_mismatch'),{status:409});
+ const saved=await query(
+  `UPDATE marketplace_stripe_test_subscriptions SET
+    stripe_status=$2,period_ends_at=$3,cancel_at_period_end=$4,cancel_at=$5,updated_at=now()
+    WHERE seller_id=$1 AND subscription_id=$6 AND customer_id=$7 AND plan_code=$8
+    RETURNING plan_code,stripe_status,period_ends_at,cancel_at_period_end,cancel_at,updated_at`,
+  [sellerId,info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,
+   info.subscriptionId,info.customerId,info.planCode]);
+ if(!saved.rowCount)throw Object.assign(new Error('stripe_test_subscription_mismatch'),{status:409});
+ return {ok:true,sandboxOnly:true,subscription:saved.rows[0]};
 }
 async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connect()}={}){
  if(!event||event.livemode!==false||event.data?.object?.livemode===true)
@@ -203,17 +250,17 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
      if(Number.isSafeInteger(timestamp)&&timestamp>0){
       const result=await client.query(
        `INSERT INTO marketplace_stripe_test_subscriptions
-        (seller_id,plan_code,customer_id,subscription_id,stripe_status,period_ends_at,cancel_at_period_end,last_event_created)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+        (seller_id,plan_code,customer_id,subscription_id,stripe_status,period_ends_at,cancel_at_period_end,cancel_at,last_event_created)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
         ON CONFLICT(seller_id) DO UPDATE SET
          plan_code=EXCLUDED.plan_code,customer_id=EXCLUDED.customer_id,
          subscription_id=EXCLUDED.subscription_id,stripe_status=EXCLUDED.stripe_status,
          period_ends_at=EXCLUDED.period_ends_at,cancel_at_period_end=EXCLUDED.cancel_at_period_end,
-         last_event_created=EXCLUDED.last_event_created,updated_at=now()
+         cancel_at=EXCLUDED.cancel_at,last_event_created=EXCLUDED.last_event_created,updated_at=now()
         WHERE marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created
         RETURNING seller_id`,
        [info.sellerId,info.planCode,info.customerId,info.subscriptionId,
-        info.status,info.periodEnd,info.cancelAtPeriodEnd,timestamp]);
+        info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,timestamp]);
       if(result.rowCount){sellerId=info.sellerId;applied=true;}
      }
     }
@@ -228,4 +275,5 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
  }finally{client.release();}
 }
 module.exports={DDL,ensureSchema,config,publicStatus,validatePlan,webhookEvent,stripeRequest,
- validStripeUrl,createTestCheckout,createTestPortal,subscriptionInfo,recordTestEvent,ALLOWED_EVENTS};
+ validStripeUrl,createTestCheckout,createTestPortal,subscriptionInfo,recordTestEvent,
+ fetchCurrentTestSubscription,reconcileTestSubscription,ALLOWED_EVENTS};

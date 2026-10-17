@@ -20,6 +20,7 @@ function fill(data){
  $('productionNote').textContent='Cobros reales: desactivados. Restricciones del Marketplace: desactivadas.';
  $('notice').textContent=on?'Modo de pruebas disponible':'El laboratorio está cerrado hasta que el administrador configure las variables TEST en Coolify.';
  $('checkout').disabled=false;$('portal').hidden=!data.subscription;
+ $('sync').hidden=!data.subscription;
  const select=$('testPlan');select.replaceChildren(...(data.plans||[]).map(plan=>{
   const option=elem('option',labels[plan.code]||plan.code);
   option.value=plan.code;option.disabled=!plan.configured;return option;
@@ -31,7 +32,9 @@ function fill(data){
   current.append(elem('p','Plan: '+(labels[data.subscription.plan_code]||data.subscription.plan_code)));
   current.append(elem('p','Estado de Stripe TEST: '+data.subscription.stripe_status));
   if(data.subscription.period_ends_at)current.append(elem('p','Período hasta: '+when(data.subscription.period_ends_at)));
-  current.append(elem('p',data.subscription.cancel_at_period_end?'Cancelación de test programada':'Sin cancelación de test programada'));
+  const scheduled=data.subscription.cancel_at_period_end===true;
+  const end=data.subscription.cancel_at||data.subscription.period_ends_at;
+  current.append(elem('p',scheduled?'Cancelación de test programada'+(end?' para '+when(end):''):'Sin cancelación de test programada'));
  }else current.append(elem('p','Todavía no hay suscripción de prueba para esta cuenta.','muted'));
  const attempts=$('checkouts');attempts.replaceChildren(...(data.checkouts||[]).map(x=>elem('div',
   (labels[x.plan_code]||x.plan_code)+' · '+(stateLabels[x.status]||x.status)+' · '+when(x.created_at),'entry')));
@@ -59,4 +62,12 @@ async function submit(path,body){
 }
 $('checkout').addEventListener('click',()=>submit('checkout',{planCode:$('testPlan').value}));
 $('portal').addEventListener('click',()=>submit('portal',{}));
+$('sync').addEventListener('click',async()=>{
+ const button=$('sync'),msg=$('actionResult');button.disabled=true;msg.className='';msg.textContent='Consultando el estado actual en Stripe TEST…';
+ try{
+  await api('sync',{method:'POST',body:JSON.stringify({})});
+  await load();msg.textContent='Estado actualizado desde Stripe TEST. No se han modificado las suscripciones comerciales.';
+ }catch(error){msg.className='bad';msg.textContent=error.message;}
+ finally{button.disabled=false;}
+});
 load();

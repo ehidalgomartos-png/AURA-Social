@@ -19,7 +19,7 @@ router.get('/status',wrap(async(req,res)=>{
  if(c.readyForCheckout){
   await billing.ensureSchema();
   const [sub,ev,cs]=await Promise.all([
-   db.query('SELECT plan_code,stripe_status,period_ends_at,cancel_at_period_end,updated_at FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[req.user.id]),
+   db.query('SELECT plan_code,stripe_status,period_ends_at,cancel_at_period_end,cancel_at,updated_at FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[req.user.id]),
    db.query('SELECT event_type,applied,created_at FROM marketplace_stripe_test_events WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 20',[req.user.id]),
    db.query('SELECT plan_code,status,created_at FROM marketplace_stripe_test_checkouts WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 10',[req.user.id])
   ]);
@@ -41,6 +41,15 @@ router.post('/checkout',limiter,checkOrigin,wrap(async(req,res)=>{
   const c=billing.config();billing.validatePlan(req.body.planCode,c);
   await billing.ensureSchema();
   return res.json(await billing.createTestCheckout({sellerId:req.user.id,planCode:req.body.planCode}));
+ }catch(e){return reject(res,e);}
+}));
+router.post('/sync',limiter,checkOrigin,wrap(async(req,res)=>{
+ try{
+  if(!req.body||typeof req.body!=='object'||Array.isArray(req.body)||Object.keys(req.body).length)
+   return res.status(400).json({error:'invalid_request'});
+  if(!billing.config().readyForCheckout)return res.status(503).json({error:'sandbox_not_configured'});
+  await billing.ensureSchema();
+  res.json(await billing.reconcileTestSubscription({sellerId:req.user.id}));
  }catch(e){return reject(res,e);}
 }));
 router.post('/portal',limiter,checkOrigin,wrap(async(req,res)=>{
