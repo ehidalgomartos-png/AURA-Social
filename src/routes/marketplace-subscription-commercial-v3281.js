@@ -75,6 +75,11 @@ const launch=require('../services/marketplace-launch-readiness-v3289');
 router.get('/launch-readiness',wrap(async(_req,res)=>{
  res.json(await launch.overview());
 }));
+// V3.2.90: private starter text / price orientations, GET-only, no writes.
+const draftingHelp=require('../services/marketplace-commercial-guidance-v3290');
+router.get('/guidance',wrap(async(_req,res)=>{
+ res.json(draftingHelp.guide());
+}));
 router.get('/contract-drafts',wrap(async(_req,res)=>{
  res.json(await contractDrafts.list());
 }));

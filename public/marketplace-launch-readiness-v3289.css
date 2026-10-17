@@ -12,3 +12,6 @@ details{border-bottom:1px solid #e4edf1;padding:11px 0}details:last-child{border
 .preview{border:1px solid #dbe6ec;border-radius:11px;background:#fafcfe;padding:14px;margin:13px 0}.preview h3{margin:0 0 7px;font-size:1rem}.preview p{font-size:.87rem;line-height:1.48;color:#375567}.disabled-cta{width:100%;background:#8097a3;color:white;border:none;border-radius:9px;font-weight:750;padding:12px;cursor:not-allowed}
 #loadStatus{color:#567184;font-size:.87rem}.error{color:#a12629!important}
 @media(min-width:680px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:380px){.stat strong{font-size:1.25rem}.top{gap:5px}.top strong{font-size:.82rem}}
+
+/* V3.2.90 text improvements */
+.price{overflow-wrap:anywhere;line-height:1.4}
