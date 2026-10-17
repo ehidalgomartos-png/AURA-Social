@@ -55,4 +55,5 @@ router.get('/admin/overview',requireAdmin,wrap(async(_req,res)=>{
  })),billingEnabled:false});
 }));
 router.use('/admin/lifecycle',require('./marketplace-subscription-lifecycle-v3279').router);
+router.use('/admin/stripe-test',require('./marketplace-stripe-test-v3280').router);
 module.exports={router};
