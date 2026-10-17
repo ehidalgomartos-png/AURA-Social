@@ -34,6 +34,18 @@ router.post('/preview',limiter,checkOrigin,wrap(async(req,res)=>{
   throw error;
  }
 }));
+// V3.2.85: private product-cap decision record, never applied to live endpoints.
+const decisions=require('../services/marketplace-commercial-decisions-v3285');
+router.get('/definition',wrap(async(_req,res)=>res.json(await decisions.overview())));
+router.post('/definition/product-policy/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
+ try{
+  await decisions.ensureSchema();
+  res.json(await decisions.save({planCode:req.params.planCode,body:req.body,adminId:req.user.id}));
+ }catch(error){
+  if(error instanceof decisions.DecisionError)return res.status(error.status).json({error:error.code});
+  throw error;
+ }
+}));
 router.post('/features/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
  try{
   await proposal.ensureSchema();
