@@ -1,0 +1,27 @@
+/* RedLibertad V3.2.77.9 — Batch WooCommerce import, mobile-first, admin only */
+.woo-bulk-panel-v32779{margin-top:16px;padding:16px;border:1px solid #cbdeda;border-radius:14px;background:#f7fbfa;display:grid;gap:10px;min-width:0}
+.woo-bulk-panel-v32779 h4{margin:0;font-size:17px;color:#153948}
+.woo-bulk-panel-v32779 p{margin:0;line-height:1.55;overflow-wrap:anywhere}
+.woo-bulk-actions-v32779{display:flex;flex-wrap:wrap;gap:10px}
+.woo-bulk-panel-v32779 button{min-height:44px;max-width:100%;white-space:normal}
+.woo-bulk-count-v32779{font-weight:750;color:#225a55}
+.woo-bulk-review-v32779{min-width:0;padding:14px;border:1px solid #b2d7cf;border-radius:12px;background:white;display:grid;gap:12px}
+.woo-bulk-review-v32779[hidden]{display:none}
+.woo-bulk-review-v32779 ul,.woo-bulk-results-v32779{margin:0;padding-left:22px;display:grid;gap:7px}
+.woo-bulk-review-v32779 li,.woo-bulk-results-v32779 li{overflow-wrap:anywhere;line-height:1.5}
+.woo-bulk-results-v32779 li[data-state="imported"]{color:#086b49}
+.woo-bulk-results-v32779 li[data-state="blocked"]{color:#85500a}
+.woo-bulk-results-v32779 li[data-state="failed"]{color:#a12323}
+.woo-bulk-select-v32779{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;font-weight:750;cursor:pointer;color:#115c54}
+.woo-bulk-select-v32779 input{width:20px;height:20px;flex:0 0 auto;accent-color:#0c8475}
+.woo-bulk-select-v32779 input:focus-visible,.woo-bulk-panel-v32779 button:focus-visible{outline:3px solid #007d70;outline-offset:3px}
+.woo-bulk-select-v32779 input:disabled{cursor:not-allowed;opacity:.5}
+.woo-bulk-panel-v32779 [disabled]{opacity:.5;cursor:not-allowed}
+.woo-bulk-card-v32779{position:relative}
+@media(max-width:600px){
+ .woo-bulk-panel-v32779{padding:12px;gap:10px}
+ .woo-bulk-actions-v32779{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .woo-bulk-actions-v32779 button,.woo-bulk-panel-v32779>.action{width:100%}
+ .woo-bulk-review-v32779{padding:12px}
+ .woo-bulk-select-v32779{min-height:44px;align-items:center}
+}
