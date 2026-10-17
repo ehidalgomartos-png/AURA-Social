@@ -20,7 +20,7 @@ test('approved synced product shows external Woo checkout action, original chat 
  const html=seo.listingHtml(item);
  assert.match(html,/15,99/);
  assert.match(html,/Taza Merry Christmas/);
- assert.match(html,/src="\/marketplace\/imagen\/8\/0"/);
+ assert.match(html,/src="https:\/\/redlibertad\.com\/marketplace\/imagen\/8\/0"/);
  assert.equal(html.split('href="'+item.external_product_url+'"').length-1,2);
  assert.match(html,/market-product-offer-actions-v32778/);
  assert.match(html,/class="primary market-product-buy-v32778"/);
@@ -51,7 +51,7 @@ test('pending, inactive, no stock, untrusted domain and stale Woo data hide purc
   assert.equal(purchaseLink(row),null,JSON.stringify(change));
   assert.doesNotMatch(html,/Comprar en la tienda ↗/,JSON.stringify(change));
   assert.doesNotMatch(html,/market-product-buy-v32778/,JSON.stringify(change));
-  assert.match(html,/Consultar al vendedor/);
+  assert.match(html,row.kind==='product'&&row.deal==='sale'?/Consultar al vendedor/:/Contactar con/);
  }
 });
 test('ordinary listings keep their original in-viewport and mobile chat CTAs',()=>{
