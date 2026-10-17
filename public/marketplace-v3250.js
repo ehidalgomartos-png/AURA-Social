@@ -663,6 +663,15 @@ async function init(){
  window.currentUserId=me.user?.id??me.id;
  state.admin=!!(me.user?.is_admin??me.user?.isAdmin??me.is_admin);
  $('#reportsTab').classList.toggle('hidden',!state.admin);
+ const sellerTools=$('#marketSellerTools');
+ if(sellerTools&&!sellerTools.querySelector('[data-seller-subscriptions]')){
+  const link=document.createElement('a');
+  link.href='/marketplace/mi-tienda';
+  link.className='market-seller-import-link';
+  link.dataset.sellerSubscriptions='true';
+  link.textContent='Mi tienda profesional y planes →';
+  sellerTools.appendChild(link);
+ }
  if(state.admin){
    const tools=$('#marketSellerTools');
    if(tools&&!tools.querySelector('[data-admin-professional]')){
