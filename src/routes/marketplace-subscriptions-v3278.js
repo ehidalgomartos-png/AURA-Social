@@ -54,6 +54,7 @@ router.get('/admin/overview',requireAdmin,wrap(async(_req,res)=>{
   periodEndsAt:row.period_ends_at
  })),billingEnabled:false});
 }));
+router.use('/admin/commercial',require('./marketplace-subscription-commercial-v3281').router);
 router.use('/admin/lifecycle',require('./marketplace-subscription-lifecycle-v3279').router);
 router.use('/admin/stripe-test',require('./marketplace-stripe-test-v3280').router);
 module.exports={router};

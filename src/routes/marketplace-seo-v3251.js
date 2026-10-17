@@ -180,6 +180,11 @@ router.get('/marketplace/mi-tienda',requireAuth,(_req,res)=>{
  res.setHeader('X-Robots-Tag','noindex,nofollow');
  res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-subscriptions-v3278.html'));
 });
+router.get('/marketplace/suscripciones/comercial',requireAdmin,(_req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow');
+ res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-commercial-v3281.html'));
+});
 router.get('/marketplace/suscripciones/laboratorio',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','private,no-store');
  res.setHeader('X-Robots-Tag','noindex,nofollow');

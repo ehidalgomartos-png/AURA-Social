@@ -1,0 +1,14 @@
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#142638;background:#f5f7f9;color-scheme:light}*{box-sizing:border-box}body{margin:0}header{background:#0d2238;color:white;display:flex;align-items:center;gap:20px;padding:12px 17px;min-height:56px}header a{color:white;text-decoration:none;font-size:.87rem}header strong{font-size:.95rem}main{max-width:860px;margin:auto;padding:20px 14px 50px}
+.eyebrow{color:#537082;font-size:.7rem;font-weight:700;letter-spacing:.09em}.intro h1{font-size:1.75rem;margin:8px 0}.intro p{color:#536777;line-height:1.6}
+.panel,.notice{border:1px solid #dce4ea;background:#fff;border-radius:16px;padding:17px;margin:14px 0}
+.notice{border-left:4px solid #286985}.notice p{color:#536777;margin:8px 0 0;line-height:1.5}
+h2{font-size:1.13rem;margin:0 0 8px}h3{font-size:1rem;margin:0 0 6px}.muted{font-size:.9rem;color:#546a7a;line-height:1.55}
+.item{border-top:1px solid #e1e8ed;padding:16px 0}.item:first-child{border-top:0}.item p{line-height:1.5}.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.tag{font-size:.75rem;background:#eaf2f5;border-radius:20px;padding:4px 9px;color:#285c73;font-weight:650}
+label{font-size:.87rem;font-weight:650;display:block;margin:13px 0 5px}
+input,textarea,select{display:block;width:100%;min-height:42px;padding:9px;border:1px solid #9fb1bb;border-radius:9px;background:white;color:#142638;font:inherit}
+textarea{min-height:95px;resize:vertical}button{cursor:pointer;border:1px solid #0d5065;border-radius:9px;background:#0d5065;color:white;padding:10px 16px;min-height:42px;font:inherit;font-weight:650;margin-top:13px}
+button:disabled{opacity:.5;cursor:wait}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #2184a3;outline-offset:2px}
+.status{color:#366479;font-size:.88rem;min-height:22px}.error{color:#a32c2c}.small{font-size:.83rem}.field{max-width:360px}
+ol{padding-left:22px;line-height:1.65;color:#40596a}li{margin-bottom:6px}
+@media(min-width:680px){main{padding:28px}.panel,.notice{padding:23px}.intro h1{font-size:2rem}}
