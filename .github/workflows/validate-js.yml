@@ -224,6 +224,8 @@ jobs:
         run: npm run test:marketplace-chat-context
       - name: V3.2.63.1 Single visible Marketplace CTA, safe login return and contact context
         run: npm run test:marketplace-contact-return
+      - name: V3.2.77.8 verified WooCommerce external buy CTA with chat fallback
+        run: npm run test:marketplace-external-buy
       - name: V3.2.63 Marketplace product detail gallery, mobile contact and SEO safety
         run: npm run test:marketplace-product-detail
       - name: V3.2.62 Marketplace uncluttered home, seller import access and PWA footer regression
