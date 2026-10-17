@@ -123,6 +123,9 @@ async function createTestCheckout({sellerId,planCode,env=process.env,query=db.qu
  if(existing.rowCount)throw Object.assign(new Error('test_subscription_exists_use_portal'),{status:409});
  const checkout=await request('/v1/checkout/sessions',{
   mode:'subscription',
+  // Stripe may enable Managed Payments by default on new accounts; opt out on
+  // this TEST session only, keeping the merchant's global settings unchanged.
+  'managed_payments[enabled]':'false',
   'line_items[0][price]':price,'line_items[0][quantity]':'1',
   'client_reference_id':String(sellerId),
   'metadata[sandbox]':'redlibertad_v3280','metadata[seller_id]':String(sellerId),
