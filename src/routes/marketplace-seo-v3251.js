@@ -180,6 +180,12 @@ router.get('/marketplace/mi-tienda',requireAuth,(_req,res)=>{
  res.setHeader('X-Robots-Tag','noindex,nofollow');
  res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-subscriptions-v3278.html'));
 });
+// V3.2.87: seller-only served HTML. Static JS/CSS do not include sensitive data.
+router.get('/marketplace/contratacion',requireAuth,(_req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow');
+ res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-contract-preview-v3287.html'));
+});
 router.get('/marketplace/suscripciones/comercial',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','private,no-store');
  res.setHeader('X-Robots-Tag','noindex,nofollow');

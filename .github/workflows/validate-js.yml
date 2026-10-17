@@ -48,6 +48,8 @@ jobs:
         run: npm run test:marketplace-commercial-decisions
       - name: V3.2.86 atomic proposal for unlimited products, audit, and pilot protection
         run: npm run test:marketplace-commercial-unlimited
+      - name: V3.2.87 seller-facing subscription contracting walkthrough — no payments or consent writes
+        run: npm run test:marketplace-contract-preview
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard

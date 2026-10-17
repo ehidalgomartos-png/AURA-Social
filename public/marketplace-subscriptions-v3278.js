@@ -18,8 +18,8 @@ function renderPlan(plan){
  const box=element('article',undefined,'plan'),description=element('div',undefined,'label');
  description.append(element('strong',plan.name));
  const info=plan.code==='particular'?'Publicaciones particulares sin cuota.':
-  plan.code==='professional'?'Conexión de tienda externa y sincronización, cuando se apruebe.':
-  'Más capacidad para comercios, pendiente de concretar.';
+  plan.code==='professional'?'Productos uno a uno; una tienda propuesta, sin importación masiva.':
+  'Publicación individual y lotes CSV; sincronización automática y hasta tres tiendas propuestas.';
  description.append(element('p',info));
  if(!plan.available)description.append(element('small','Próximamente · no contratable'));
  box.append(description);
