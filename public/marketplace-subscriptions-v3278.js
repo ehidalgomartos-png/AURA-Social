@@ -37,16 +37,21 @@ async function load(){
   const data=await response.json();
   if(!data.ok)throw new Error('No se pudieron cargar tus datos.');
   const titles={particular:'Particular',professional:'Profesional',professional_plus:'Profesional Plus'};
-  const states={free:'Gratuita',pilot:'Piloto sin cuota',trialing:'En prueba',active:'Activa',past_due:'Pago pendiente',canceled:'Cancelada',expired:'Caducada'};
+  const states={free:'Gratuita',pilot:'Piloto sin cuota',trialing:'En prueba',active:'Activa',past_due:'Pago pendiente',canceled:'Cancelada',expired:'Caducada',grace:'Período de gracia',awaiting_review:'Vencida · pendiente de revisión'};
   byId('currentPlan').textContent=titles[data.account.planCode]||'Modalidad sin definir';
   byId('currentState').textContent=states[data.account.status]||'Estado pendiente';
   byId('currentDetail').textContent=data.account.grandfathered?
    'Tu tienda aprobada conserva su funcionamiento actual. No se ha activado ninguna cuota ni fecha de vencimiento.':
    data.account.status==='free'?'Puedes seguir utilizando el Marketplace como particular sin pagar ninguna cuota.':
+   data.account.status==='pilot'?'Tu tienda continúa en piloto sin cuota y sin vencimiento obligatorio.':
    'Este estado es informativo. Los cobros y las limitaciones por plan siguen desactivados.';
   if(data.account.periodEndsAt){
    const dt=new Date(data.account.periodEndsAt);
    if(!Number.isNaN(dt.getTime())){byId('endDate').hidden=false;byId('endDate').textContent='Fin de periodo registrado: '+dt.toLocaleDateString('es-ES');}
+  }
+  if(data.account.graceUntil){
+   const dt=new Date(data.account.graceUntil);
+   if(!Number.isNaN(dt.getTime())){byId('graceDate').hidden=false;byId('graceDate').textContent='Período de gracia hasta: '+dt.toLocaleDateString('es-ES');}
   }
   const stores=byId('stores');
   stores.replaceChildren(...(data.stores||[]).map(renderStore));
