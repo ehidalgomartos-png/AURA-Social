@@ -38,6 +38,17 @@ router.post('/preview',limiter,checkOrigin,wrap(async(req,res)=>{
 // V3.2.85: private product-cap decision record, never applied to live endpoints.
 const decisions=require('../services/marketplace-commercial-decisions-v3285');
 router.get('/definition',wrap(async(_req,res)=>res.json(await decisions.overview())));
+// V3.2.86: one explicit, atomic action to propose uncapped catalogues.
+// This only modifies private commercial drafts and writes an audit trail.
+const unlimited=require('../services/marketplace-commercial-unlimited-v3286');
+router.post('/definition/propose-unlimited',limiter,checkOrigin,wrap(async(req,res)=>{
+ try{
+  res.json(await unlimited.apply({body:req.body,adminId:req.user.id}));
+ }catch(error){
+  if(error instanceof unlimited.UnlimitedError)return res.status(error.status).json({error:error.code});
+  throw error;
+ }
+}));
 router.post('/definition/product-policy/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
  try{
   await decisions.ensureSchema();
