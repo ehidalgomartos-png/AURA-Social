@@ -15,16 +15,18 @@ test('commercial feature proposals are additive; no entitlement, billing or WooC
  const sql=features.DDL.join('\n');
  assert.match(sql,/CREATE TABLE IF NOT EXISTS marketplace_subscription_commercial_features/);
  assert.match(sql,/ON CONFLICT\(plan_code\) DO NOTHING/);
- assert.match(sql,/'professional',1,NULL,true,true,true/);
+ assert.match(sql,/'professional',1,NULL,false,false,true/);
+ assert.match(sql,/UPDATE marketplace_subscription_commercial_features/);
  assert.match(sql,/'professional_plus',3,NULL,true,true,true/);
  assert.doesNotMatch(sql,/DROP |TRUNCATE |DELETE FROM|UPDATE marketplace_subscription_plans|UPDATE marketplace_professional_stores|UPDATE marketplace_seller_subscriptions|UPDATE marketplace_external_products|UPDATE marketplace_listings/i);
  assert.deepEqual(features.PLANS,['professional','professional_plus']);
 });
 test('plan details validate exact fields, numeric limits and external payments always on seller website',()=>{
- const data={storeLimit:1,productLimit:null,wooSync:true,bulkImport:true,externalCheckout:true};
+ const data={storeLimit:1,productLimit:null,wooSync:false,bulkImport:false,externalCheckout:true};
  assert.deepEqual(features.normalize('professional',data),{code:'professional',...data});
- assert.deepEqual(features.normalize('professional_plus',{...data,storeLimit:3,productLimit:2500}),{
-  code:'professional_plus',...data,storeLimit:3,productLimit:2500
+ const plus={...data,wooSync:true,bulkImport:true};
+ assert.deepEqual(features.normalize('professional_plus',{...plus,storeLimit:3,productLimit:2500}),{
+  code:'professional_plus',...plus,storeLimit:3,productLimit:2500
  });
  const errors=[
   ['professional',{...data,storeLimit:0},'invalid_store_limit'],
@@ -32,7 +34,9 @@ test('plan details validate exact fields, numeric limits and external payments a
   ['professional',{...data,productLimit:1000001},'invalid_product_limit'],
   ['professional',{...data,productLimit:'100'},'invalid_product_limit'],
   ['professional',{...data,wooSync:'true'},'invalid_wooSync'],
-  ['professional',{...data,bulkImport:true,wooSync:false},'bulk_import_requires_sync'],
+  ['professional',{...data,bulkImport:true,wooSync:false},'basic_plan_individual_only'],
+  ['professional',{...data,wooSync:true},'basic_plan_individual_only'],
+  ['professional_plus',{...plus,wooSync:false},'bulk_import_requires_sync'],
   ['professional',{...data,externalCheckout:false},'external_checkout_required'],
   ['professional',{...data,enableBilling:true},'invalid_proposal'],
   ['particular',data,'unknown_plan']
@@ -44,7 +48,7 @@ test('overview and save target only isolated commercial table and never touch pr
  const query=async(sql,args=[])=>{
   queries.push({sql,args});
   if(sql.startsWith('SELECT plan_code,proposed_store_limit'))return {rows:[
-   {plan_code:'professional',proposed_store_limit:1,proposed_product_limit:null,woo_sync:true,bulk_import:true,external_checkout:true},
+   {plan_code:'professional',proposed_store_limit:1,proposed_product_limit:null,woo_sync:false,bulk_import:false,external_checkout:true},
    {plan_code:'professional_plus',proposed_store_limit:3,proposed_product_limit:null,woo_sync:true,bulk_import:true,external_checkout:true}
   ]};
   if(sql.startsWith('UPDATE marketplace_subscription_commercial_features'))return {rowCount:1,rows:[{
@@ -126,7 +130,7 @@ test('mobile comparison and editor remain private with proposal-only UI and exte
  const css=fs.readFileSync(path.join(root,'public/marketplace-commercial-v3281.css'),'utf8');
  assert.match(html,/id="planComparison"/);
  assert.match(html,/id="proposedFeatures"/);
- assert.match(html,/v=3\.2\.82/);
+ assert.match(html,/v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(html,/noindex,nofollow/);
  assert.match(js,/commercial:price-saved/);
  assert.match(js,/window\.confirm/);

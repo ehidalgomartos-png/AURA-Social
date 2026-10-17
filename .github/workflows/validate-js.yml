@@ -40,6 +40,8 @@ jobs:
         run: npm run test:marketplace-commercial-compact
       - name: V3.2.82 admin-only professional plan features and comparison
         run: npm run test:marketplace-commercial-plans
+      - name: V3.2.83 manual-only Professional and Plus bulk proposals
+        run: npm run test:marketplace-commercial-plan-tiers
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
