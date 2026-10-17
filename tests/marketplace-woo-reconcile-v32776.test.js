@@ -34,6 +34,9 @@ test('title and price are a review hint, not proof of identical goods',async()=>
  const possible=await findMatches(store,product,mockRead([candidate({source_key:null})]));
  assert.equal(possible.matches[0].reason,'title_price');
  assert.equal(possible.canImport,false);
+ const oldPrice=await findMatches(store,product,mockRead([candidate({source_key:null,price_cents:999})]));
+ assert.equal(oldPrice.matches[0].reason,'title_only');
+ assert.equal(oldPrice.canImport,false);
  const fresh=await findMatches(store,product,mockRead());
  assert.equal(fresh.canImport,true);
  assert.equal(fresh.state,'new');
@@ -45,7 +48,7 @@ test('other seller candidate is never linkable; foreign Woo IDs are not global k
  assert.equal(other.canImport,false);
  const sql=fs.readFileSync('src/services/marketplace-woocommerce-reconcile-v32776.js','utf8');
  assert.match(sql,/l\.seller_id=\$1 OR i\.source_key LIKE 'sku:%'/);
- assert.match(sql,/l\.price_cents=\$4/);
+ assert.match(sql,/LOWER\(BTRIM\(l\.title\)\)=LOWER\(BTRIM\(\$3\)\)/);
 });
 test('previously API-linked item is recognized before checking new matches',async()=>{
  const found=await findMatches(store,product,mockRead([], [{listing_id:33}]));
