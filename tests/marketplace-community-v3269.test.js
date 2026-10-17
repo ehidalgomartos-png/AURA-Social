@@ -119,7 +119,7 @@ test('release wiring and media safety are intact',()=>{
  assert.match(read('public/app.html'),/social\.js\?v=3\.2\.75/);
  assert.match(read('public/index.html'),/app\.js\?v=3\.2\.75/);
  assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.77\.3/);
- assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.75/);
+ assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.77\.8/);
  assert.match(read('public/manifest.webmanifest'),/"id": "\/app"/);
  assert.match(read('public/marketplace.html'),/marketSellerTools/);
 });
