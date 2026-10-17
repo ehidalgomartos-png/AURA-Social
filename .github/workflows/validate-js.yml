@@ -28,6 +28,8 @@ jobs:
         run: npm run test:marketplace-card-actions-mobile
       - name: V3.2.63.3 Marketplace chat layout, send and duplicate draft regression
         run: npm run test:marketplace-chat-polish
+      - name: V3.2.78 seller subscriptions foundation and access control
+        run: npm run test:marketplace-subscriptions
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
