@@ -23,6 +23,7 @@
     "test:marketplace-professional": "node --test tests/marketplace-professional-v3276.test.js",
     "test:marketplace-google": "node --test tests/marketplace-google-v3264.test.js",
     "test:marketplace-contact-return": "node --test tests/marketplace-contact-return-v32631.test.js",
+    "test:marketplace-external-buy": "node --test tests/marketplace-external-buy-v32778.test.js",
     "test:marketplace-product-detail": "node --test tests/marketplace-product-detail-v3263.test.js",
     "test:marketplace-home-polish": "node --test tests/marketplace-home-polish-v3262.test.js",
     "test:marketplace-coverage": "node --test tests/marketplace-coverage-v3261.test.js",
