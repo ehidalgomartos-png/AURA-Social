@@ -31,3 +31,15 @@ ol{padding-left:22px;line-height:1.65;color:#40596a;font-size:.88rem}li{margin-b
 .check-line label{display:flex;align-items:center;flex-direction:row-reverse;justify-content:flex-end;gap:10px;max-width:440px}
 .check-line input{width:19px;height:19px;min-height:19px;flex-shrink:0;margin:0;accent-color:#0d5065}
 @media(min-width:640px){.plan-comparison{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* V3.2.84 — offline policy preview, compact and mobile-first */
+.preview-grid{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0}
+.preview-grid label{font-size:.84rem;font-weight:650;display:block;margin:0}
+.preview-grid label select,.preview-grid label input{margin-top:5px;min-height:44px}
+.preview-grid .preview-wide{grid-column:1/-1}
+.preview-result{border:1px solid #ccdde6;border-radius:10px;background:#f5fafc;padding:13px;margin-top:13px;line-height:1.5}
+.preview-result strong{font-size:.97rem}.preview-result p{margin:6px 0}.preview-notes{padding-left:18px;margin:6px 0 0;font-size:.82rem;color:#536977}
+.preview-result li{margin:4px 0}.preview-submit{margin-top:7px}
+@media(min-width:560px){.preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.preview-grid label[hidden]{display:none}

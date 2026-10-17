@@ -2,9 +2,10 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d2238">
 <title>Planes profesionales · Preparación comercial · RedLibertad</title>
-<link rel="stylesheet" href="/marketplace-commercial-v3281.css?v=3.2.83">
-<script src="/marketplace-commercial-v3281.js?v=3.2.83" defer></script>
-<script src="/marketplace-commercial-features-v3282.js?v=3.2.83" defer></script>
+<link rel="stylesheet" href="/marketplace-commercial-v3281.css?v=3.2.84">
+<script src="/marketplace-commercial-v3281.js?v=3.2.84" defer></script>
+<script src="/marketplace-commercial-features-v3282.js?v=3.2.84" defer></script>
+<script src="/marketplace-commercial-preview-v3284.js?v=3.2.84" defer></script>
 </head><body>
 <header><a href="/marketplace/suscripciones">← Suscripciones</a><strong>Preparación comercial</strong></header>
 <main>
@@ -25,6 +26,35 @@
 <section class="panel" id="comparisonPanel"><div class="panel-top"><h2>Comparativa provisional</h2><span class="tag">No publicada</span></div>
 <p class="section-help">La diferencia principal: alta manual de productos en Profesional y posibilidad de carga masiva en Plus. Ningún precio ni característica activa cuotas o restricciones.</p>
 <div id="planComparison" class="plan-comparison"></div></section>
+<section class="panel" aria-labelledby="simHeading">
+<div class="panel-top"><h2 id="simHeading">Simulador de permisos</h2><span class="tag">Solo vista previa</span></div>
+<p class="section-help">Comprueba qué permitiría cada modalidad comercial sin cambiar las tiendas, importadores o suscripciones. Piloto representa las tiendas aprobadas que mantienen las condiciones actuales.</p>
+<form id="simulator">
+ <div class="preview-grid">
+  <label>Modalidad que quieres simular
+   <select id="simPlan" required>
+    <option value="professional">Profesional — uno a uno</option>
+    <option value="professional_plus">Profesional Plus — incluye lotes</option>
+    <option value="pilot">Piloto existente — sin cuota</option>
+   </select>
+  </label>
+  <label>Operación
+   <select id="simAction" required></select>
+  </label>
+  <label>Tiendas conectadas actualmente (ejemplo)
+   <input id="simStores" type="number" min="0" max="100000" step="1" value="0" required>
+  </label>
+  <label>Productos existentes (ejemplo)
+   <input id="simProducts" type="number" min="0" max="100000000" step="1" value="0" required>
+  </label>
+  <label id="simBatchField" class="preview-wide" hidden>Cantidad de productos de la operación
+   <input id="simBatch" type="number" min="1" max="10000" step="1" value="1" required>
+  </label>
+ </div>
+ <button id="simRun" class="preview-submit" type="submit">Simular operación</button>
+ <div id="simResult" role="status" aria-live="polite" aria-atomic="true"></div>
+</form>
+</section>
 <section class="panel"><div class="panel-top"><h2>Revisiones antes del lanzamiento</h2><span id="reviewProgress" class="muted"></span></div><p class="section-help">Abre únicamente el apartado que quieras revisar. «Revisado internamente» no autoriza cobros ni sustituye la aprobación legal o fiscal.</p><div id="reviews" class="fold-list"></div></section>
 <details class="panel flow-panel"><summary class="fold-head"><span class="fold-main"><strong>Flujo previsto para el vendedor</strong><small>Ver etapas futuras · solo diseño</small></span><span class="chevron" aria-hidden="true"></span></summary><div class="flow-content"><ol>
 <li>Consulta los planes y sus condiciones definitivas cuando estén aprobados.</li>
