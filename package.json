@@ -18,6 +18,7 @@
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
     "test:marketplace-professional-admin-access": "node --test tests/marketplace-professional-admin-access-v3276.test.js",
+    "test:marketplace-woo-bulk": "node --test tests/marketplace-woo-bulk-v32779.test.js",
     "test:marketplace-woo-reconcile": "node --test tests/marketplace-woo-reconcile-v32776.test.js",
     "test:marketplace-woocommerce": "node --test tests/marketplace-woocommerce-v3277.test.js",
     "test:marketplace-professional": "node --test tests/marketplace-professional-v3276.test.js",

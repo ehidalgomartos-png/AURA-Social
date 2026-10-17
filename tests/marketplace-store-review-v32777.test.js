@@ -97,5 +97,5 @@ test('admin storefront uses review states, warns about buy links and refreshes c
  assert.match(js,/data-submit/);
  assert.match(js,/confirmVerified:approved/);
  assert.match(js,/Comprar en la tienda/);
- assert.match(page,/marketplace-professional-v3276\.js\?v=3\.2\.77\.7/);
+ assert.match(page,/marketplace-professional-v3276\.js\?v=3\.2\.77\.9/);
 });
