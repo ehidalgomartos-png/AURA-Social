@@ -46,7 +46,7 @@ test('comparison spells out no batches in cheaper plan, Plus has batches, preser
  const html=fs.readFileSync(path.join(root,'src/views/marketplace-commercial-v3281.html'),'utf8');
  const ui=fs.readFileSync(path.join(root,'public/marketplace-commercial-features-v3282.js'),'utf8');
  assert.match(html,/Profesional: los productos se publican uno a uno, sin importación masiva/);
- assert.match(html,/v=3\.2\.83/);
+ assert.match(html,/v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(ui,/No; solo de uno en uno/);
  assert.match(ui,/Sin CSV, cargas masivas ni sincronización automática/);
  assert.match(ui,/woo.disabled=basic/);

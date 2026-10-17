@@ -41,3 +41,5 @@ ol{padding-left:22px;line-height:1.65;color:#40596a;font-size:.88rem}li{margin-b
 .preview-result strong{font-size:.97rem}.preview-result p{margin:6px 0}.preview-notes{padding-left:18px;margin:6px 0 0;font-size:.82rem;color:#536977}
 .preview-result li{margin:4px 0}.preview-submit{margin-top:7px}
 @media(min-width:560px){.preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.preview-grid label[hidden]{display:none}
