@@ -67,6 +67,23 @@ router.post('/features/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
   throw err;
  }
 }));
+// V3.2.88: internal-only, versioned legal/commercial text drafts.
+// Neither endpoint can publish terms, activate billing or accept seller consent.
+const contractDrafts=require('../services/marketplace-contract-drafts-v3288');
+router.get('/contract-drafts',wrap(async(_req,res)=>{
+ res.json(await contractDrafts.list());
+}));
+router.post('/contract-drafts/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
+ try{
+  res.json(await contractDrafts.save({
+   planCode:req.params.planCode,body:req.body,adminId:req.user.id
+  }));
+ }catch(error){
+  if(error instanceof contractDrafts.ContractDraftError)
+   return res.status(error.status).json({error:error.code});
+  throw error;
+ }
+}));
 router.post('/drafts/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
  try{res.json(await commercial.saveDraft({planCode:req.params.planCode,body:req.body,adminId:req.user.id}));}
  catch(e){return failure(res,e);}
