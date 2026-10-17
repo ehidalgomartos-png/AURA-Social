@@ -25,7 +25,7 @@ test('schema is additive, draft paid plans do not activate billing and no existi
  assert.match(text,/CREATE TABLE IF NOT EXISTS marketplace_seller_subscriptions/);
  assert.match(text,/CREATE TABLE IF NOT EXISTS marketplace_subscription_audit/);
  assert.match(text,/ON CONFLICT \(code\) DO NOTHING/);
- assert.match(text,/'professional',NULL,'draft',false/);
+ assert.match(text,/\('professional','Profesional',NULL,'draft',false/);
  assert.doesNotMatch(text,/DROP TABLE|TRUNCATE|DELETE FROM|ALTER TABLE marketplace_listings|UPDATE marketplace_professional_stores/i);
  const view=planView({code:'professional',name:'Profesional',monthly_price_cents:null,currency:'EUR',pricing_state:'draft',available:false,store_limit:1,product_limit:null});
  assert.equal(view.monthlyPriceCents,null);assert.equal(view.available,false);
