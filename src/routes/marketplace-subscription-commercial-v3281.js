@@ -27,10 +27,23 @@ router.post('/preview',limiter,checkOrigin,wrap(async(req,res)=>{
  try{
   const scenario=simulator.normalize(req.body);
   // proposal.list is SELECT-only. No seller lookups, no operational authorization.
-  const proposals=await proposal.list();
-  res.json(simulator.compute(scenario,proposals.plans));
+  await decisions.ensureSchema();
+  const [proposals,policyRows]=await Promise.all([proposal.list(),decisions.policies()]);
+  res.json(simulator.compute(scenario,proposals.plans,policyRows));
  }catch(error){
   if(error instanceof simulator.PreviewError)return res.status(error.status).json({error:error.code});
+  throw error;
+ }
+}));
+// V3.2.85: private product-cap decision record, never applied to live endpoints.
+const decisions=require('../services/marketplace-commercial-decisions-v3285');
+router.get('/definition',wrap(async(_req,res)=>res.json(await decisions.overview())));
+router.post('/definition/product-policy/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
+ try{
+  await decisions.ensureSchema();
+  res.json(await decisions.save({planCode:req.params.planCode,body:req.body,adminId:req.user.id}));
+ }catch(error){
+  if(error instanceof decisions.DecisionError)return res.status(error.status).json({error:error.code});
   throw error;
  }
 }));

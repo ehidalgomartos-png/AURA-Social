@@ -80,6 +80,7 @@ function checklist(entry,plansData){
    entry.status=status.value;entry.notes=notes.value;
    view.chip.textContent=reviewLabels[entry.status];updateStats(plansData);
    feedback.textContent='Revisión guardada. El lanzamiento sigue bloqueado.';
+   if(typeof window.dispatchEvent==='function')window.dispatchEvent(new Event('commercial:review-saved'));
   }catch(err){feedback.className='status error';feedback.textContent=err.message;}
   finally{save.disabled=false;}
  });

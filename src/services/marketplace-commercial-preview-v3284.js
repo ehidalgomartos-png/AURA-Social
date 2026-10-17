@@ -29,7 +29,7 @@ function normalize(body){
   storeCount:body.storeCount,productCount:body.productCount,requestCount:body.requestCount
  };
 }
-function compute(body,rows){
+function compute(body,rows,policyRows=[]){
  const scenario=normalize(body);
  if(!Array.isArray(rows))throw new PreviewError('missing_plan_proposals',503);
  const {planCode,action,storeCount,productCount,requestCount}=scenario;
@@ -41,13 +41,20 @@ function compute(body,rows){
  let status='proposed_allowed',reason='';
  const notes=['Esta es una simulación administrativa: no aplica restricciones ni concede permisos reales.'];
  const cap=pilot?null:plan.productLimit;
+ const productPolicy=policyRows.find(x=>x.code===planCode)?.mode||'undecided';
+ const capacityNote=()=>{
+  if(cap!==null)return;
+  if(productPolicy==='unlimited_proposal')
+   notes.push('Se ha propuesto no limitar los productos; es una decisión interna sin aprobar.');
+  else notes.push('El límite total de productos está pendiente de definir.');
+ };
  if(pilot){
   reason='Piloto existente sin límites comerciales ni cuotas; conserva su funcionamiento actual.';
  }else if(action==='single_product'){
   reason='El plan contempla el alta manual de productos uno a uno.';
   if(integer(cap,1,1000000)&&productCount+1>cap){
    status='proposed_denied';reason='Se superaría el límite propuesto de productos para este plan.';
-  }else if(cap===null)notes.push('El límite total de productos está pendiente de definir.');
+  }else if(cap===null)capacityNote();
  }else if(action==='bulk_import'){
   if(!plan.bulkImport){
    status='proposed_denied';reason='La importación CSV o por lotes se reserva a Profesional Plus.';
@@ -55,7 +62,7 @@ function compute(body,rows){
    reason='La importación por lotes está prevista para esta modalidad.';
    if(integer(cap,1,1000000)&&productCount+requestCount>cap){
     status='proposed_denied';reason='El lote superaría el máximo de productos propuesto.';
-   }else if(cap===null)notes.push('El límite total de productos está pendiente de definir.');
+   }else if(cap===null)capacityNote();
   }
  }else if(action==='woo_auto_sync'){
   if(!plan.wooSync){
@@ -65,7 +72,7 @@ function compute(body,rows){
    // requestCount is a hypothetical batch size, not an instruction to contact WooCommerce.
    if(integer(cap,1,1000000)&&productCount+requestCount>cap){
     status='proposed_denied';reason='La sincronización propuesta superaría el máximo de productos.';
-   }else if(cap===null)notes.push('El límite total de productos está pendiente de definir.');
+   }else if(cap===null)capacityNote();
   }
  }else if(action==='connect_store'){
   reason='Se podría conectar otra tienda dentro del límite propuesto.';

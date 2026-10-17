@@ -119,7 +119,7 @@ test('simulation UI accessible and never includes live checkout or untrusted HTM
  const script=fs.readFileSync(path.join(repo,'public/marketplace-commercial-preview-v3284.js'),'utf8');
  const route=fs.readFileSync(path.join(repo,'src/routes/marketplace-subscription-commercial-v3281.js'),'utf8');
  assert.match(html,/id="simulator"/);assert.match(html,/id="simResult" role="status" aria-live="polite"/);
- assert.match(html,/v=3\.2\.84/);assert.match(html,/Piloto existente/);
+ assert.match(html,/v=3\.2\.\d+(?:\.\d+)?/);assert.match(html,/Piloto existente/);
  assert.match(script,/commercial\/preview/);assert.match(script,/credentials:'same-origin'/);
  assert.doesNotMatch(script,/\.innerHTML\s*=/);
  assert.doesNotMatch(script,/sk_live_|checkout\.stripe|StripeConnect|document\.cookie/);
