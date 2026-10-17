@@ -72,6 +72,8 @@ test('checkout uses only approved server-side TEST price and creates no real sub
  assert.equal(request.form['subscription_data[metadata][seller_id]'],'44');
  assert.equal(request.form['subscription_data[metadata][sandbox]'],'redlibertad_v3280');
  assert.equal(request.form.mode,'subscription');
+ assert.equal(request.form['managed_payments[enabled]'],'false');
+ assert.equal(new URLSearchParams(request.form).get('managed_payments[enabled]'),'false');
  assert.match(request.headers.key,/^sk_test_/);
  assert.ok(calls.some(x=>x.sql.includes('INSERT INTO marketplace_stripe_test_checkouts')));
  assert.equal(calls.some(x=>x.sql.includes('marketplace_seller_subscriptions')),false);
