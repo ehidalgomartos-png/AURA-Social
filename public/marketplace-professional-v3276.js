@@ -40,7 +40,7 @@ document.addEventListener('click',async e=>{
  const b=e.target.closest('[data-submit]');if(!b)return;
  if(!confirm('¿Enviar esta tienda a revisión manual?'))return;
  const r=await api('/api/marketplace/professional/stores/'+encodeURIComponent(b.dataset.submit)+'/submit',{method:'POST',body:'{}'});
- say(r.ok?'Tienda enviada a revisión.':'No se pudo solicitar revisión.');if(r.ok)await load();
+ say(r.ok?'Tienda enviada a revisión. Comprueba los datos del comercio antes de aprobar.':r.error==='store_not_draft'?'La tienda ya no está en borrador. Actualiza el listado.':'No se pudo solicitar revisión: '+(r.error||'error'));if(r.ok)await load();
 });
 
 document.addEventListener('submit',async e=>{
@@ -79,9 +79,9 @@ document.addEventListener('submit',async e=>{
 document.addEventListener('click',async e=>{
  const btn=e.target.closest('[data-store-review]');if(!btn)return;
  const approved=btn.dataset.storeStatus==='approved';
- if(!confirm(approved?'¿Has verificado manualmente la titularidad de la tienda, las políticas de compra y el dominio del checkout?':'¿Suspender inmediatamente los botones de compra de esta tienda?'))return;
+ if(!confirm(approved?'¿Has verificado manualmente la titularidad, dominio, políticas y checkout externo? Aprobar permitirá mostrar «Comprar en la tienda» en los productos que cumplan los requisitos.':'¿Suspender inmediatamente los botones de compra de esta tienda?'))return;
  const r=await api('/api/marketplace/professional/admin/stores/'+encodeURIComponent(btn.dataset.storeReview)+'/review',{
-  method:'POST',body:JSON.stringify({status:btn.dataset.storeStatus})});
+  method:'POST',body:JSON.stringify({status:btn.dataset.storeStatus,confirmVerified:approved})});
  say(r.ok?'Estado de tienda actualizado.':'Error: '+(r.error||'error'));
  if(r.ok)await load();
 });

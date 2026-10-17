@@ -50,7 +50,9 @@ router.post('/stores',editLimiter,wrap(async(req,res)=>{
 }));
 router.post('/stores/:id/submit',editLimiter,wrap(async(req,res)=>{
  if(!idOk(req.params.id))return res.status(400).json({error:'invalid_store_id'});
- const r=await db.query("UPDATE marketplace_professional_stores SET status='pending',purchase_enabled=false,updated_at=now() WHERE id=$1 AND seller_id=$2 AND status='draft' RETURNING id,status",[req.params.id,req.user.id]);
+ // This entire router is restricted to administrators. After a store owner transfer,
+ // the administering account is intentionally NOT the seller_id.
+ const r=await db.query("UPDATE marketplace_professional_stores SET status='pending',purchase_enabled=false,updated_at=now() WHERE id=$1 AND status='draft' RETURNING id,status",[req.params.id]);
  if(!r.rowCount)return res.status(409).json({error:'store_not_draft'});
  res.json({ok:true,status:'pending'});
 }));
@@ -123,10 +125,19 @@ router.post('/admin/stores/:id/transfer-owner',editLimiter,wrap(async(req,res)=>
 router.post('/admin/stores/:id/review',editLimiter,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
  if(!idOk(req.params.id)||!['approved','suspended','pending'].includes(req.body?.status))return res.status(400).json({error:'invalid_review'});
- // Manual verification of business and domain ownership is a mandatory admin responsibility.
+ // Prevent a draft from skipping owner/domain/checkout review. Approval also
+ // enables eligible external purchase links, so require an explicit attestation.
  const status=req.body.status;
- const r=await db.query('UPDATE marketplace_professional_stores SET status=$2,purchase_enabled=$3,updated_at=now() WHERE id=$1 RETURNING id,status,purchase_enabled',[req.params.id,status,status==='approved']);
- if(!r.rowCount)return res.status(404).json({error:'store_not_found'});
+ if(status==='approved'&&req.body?.confirmVerified!==true)
+  return res.status(400).json({error:'store_review_confirmation_required'});
+ const sourceState={approved:'pending',suspended:'approved',pending:'suspended'}[status];
+ const r=await db.query('UPDATE marketplace_professional_stores SET status=$2,purchase_enabled=$3,updated_at=now() WHERE id=$1 AND status=$4 RETURNING id,status,purchase_enabled',
+  [req.params.id,status,status==='approved',sourceState]);
+ if(!r.rowCount){
+  const existing=await db.query('SELECT status FROM marketplace_professional_stores WHERE id=$1',[req.params.id]);
+  return res.status(existing.rowCount?409:404).json({error:existing.rowCount?'invalid_store_status_transition':'store_not_found'});
+ }
+ res.setHeader('Cache-Control','private,no-store');
  res.json({ok:true,store:r.rows[0]});
 }));
 module.exports={router,ensureProfessionalSchema};
