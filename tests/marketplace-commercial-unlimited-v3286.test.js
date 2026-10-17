@@ -102,6 +102,7 @@ test('repeat confirmation is idempotent, produces no extra audit and preserves p
   assert.equal(fake.audits.length,count);
   assert.equal(fake.released,2);
   assert.equal(fake.calls.filter(x=>x.sql==='COMMIT').length,2);
+ }finally{db.query=orig;}
 });
 test('failed audit rolls back instead of committing a partial change',async()=>{
  const orig=db.query;db.query=async()=>({rows:[],rowCount:0});
