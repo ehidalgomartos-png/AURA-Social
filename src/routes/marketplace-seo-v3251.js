@@ -9,7 +9,7 @@ const {publicLocation,originLocation,coverageLabel,nationalSale,catalogLocation}
 const {validGtin}=require('../services/marketplace-google-v3264');
 const {purchaseLink,freshWooStock}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
-const {requireAdmin}=require('../middleware/auth');
+const {requireAdmin,requireAuth}=require('../middleware/auth');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -174,6 +174,11 @@ router.get('/marketplace/icon-:size.png',(req,res)=>{
  if(![192,512].includes(size)||!/^(192|512)$/.test(req.params.size))return res.sendStatus(404);
  res.setHeader('Cache-Control','public,max-age=604800,immutable');
  res.type('image/png').send(marketplaceIcon(size));
+});
+router.get('/marketplace/mi-tienda',requireAuth,(_req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow');
+ res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-subscriptions-v3278.html'));
 });
 router.get('/marketplace/tiendas',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','private,no-store');

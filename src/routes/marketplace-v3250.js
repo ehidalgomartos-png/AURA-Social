@@ -100,6 +100,7 @@ const visibleToUser='u.status=\'active\' AND l.moderation_status=\'published\' A
 
 router.use('/import',require('./marketplace-import-v3260').router);
 router.use('/professional',require('./marketplace-professional-v3276').router);
+router.use('/subscriptions',require('./marketplace-subscriptions-v3278').router);
 
 router.get('/',wrap(async(req,res)=>{
   const kind=KINDS.includes(req.query.kind)?req.query.kind:null;
