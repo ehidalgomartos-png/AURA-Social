@@ -29,6 +29,16 @@ router.get('/mine',wrap(async(req,res)=>{
   stores:stores.rows,plans:plans.rows.map(planView),billingEnabled:false,enrollmentEnabled:false,
   entitlementsEnforced:false,isAdmin:req.user.isAdmin===true});
 }));
+// Read-only seller contract simulation, scoped to the authenticated user.
+router.get('/contract-preview',wrap(async(req,res)=>{
+ const sellerId=req.user.id;
+ const [stores,subscription]=await Promise.all([
+  db.query('SELECT status FROM marketplace_professional_stores WHERE seller_id=$1',[sellerId]),
+  db.query('SELECT plan_code,status,period_starts_at,period_ends_at,grace_until,cancel_at_period_end FROM marketplace_seller_subscriptions WHERE seller_id=$1',[sellerId])
+ ]);
+ const account=effectiveAccount(subscription.rows[0],stores.rows);
+ res.json(require('../services/marketplace-contract-preview-v3287').preview(account));
+}));
 router.get('/admin/overview',requireAdmin,wrap(async(_req,res)=>{
  // Read-only overview. No endpoint can grant or revoke entitlements or move money.
  const result=await db.query(`SELECT u.id AS seller_id,u.username,
