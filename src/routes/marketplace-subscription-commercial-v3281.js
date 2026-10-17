@@ -21,6 +21,19 @@ router.get('/features',wrap(async(_req,res)=>{
 const limiter=rateLimit({windowMs:60*60*1000,max:30,standardHeaders:true,legacyHeaders:false,
  handler:(_req,res)=>res.status(429).json({error:'rate_limit_exceeded'})});
 function failure(res,err){if(err instanceof commercial.CommercialError)return res.status(err.status).json({error:err.code});throw err;}
+// V3.2.84: admin-only commercial what-if preview. No mutations or seller IDs.
+const simulator=require('../services/marketplace-commercial-preview-v3284');
+router.post('/preview',limiter,checkOrigin,wrap(async(req,res)=>{
+ try{
+  const scenario=simulator.normalize(req.body);
+  // proposal.list is SELECT-only. No seller lookups, no operational authorization.
+  const proposals=await proposal.list();
+  res.json(simulator.compute(scenario,proposals.plans));
+ }catch(error){
+  if(error instanceof simulator.PreviewError)return res.status(error.status).json({error:error.code});
+  throw error;
+ }
+}));
 router.post('/features/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
  try{
   await proposal.ensureSchema();
