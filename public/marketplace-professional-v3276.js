@@ -15,8 +15,8 @@ async function load(){
  if(woo.some(s=>String(s.id)===previous))$('wooStoreSelect').value=previous;
  $('wooPanel').hidden=!woo.length;
  if(woo.length)await wooStatus();
- const p=await api('/api/marketplace/professional/products');
- $('products').innerHTML=p.ok&&p.items.length?p.items.map(x=>'<article class="row"><strong>'+esc(x.title)+'</strong><p>'+esc(x.stock_status)+' · '+esc(x.product_url)+'</p></article>').join(''):'<p>Sin productos vinculados.</p>';
+ const p=await api('/api/marketplace/professional/admin/products');
+ $('products').innerHTML=p.ok&&p.items.length?p.items.map(x=>'<article class="row"><strong>'+esc(x.title)+'</strong><p>@'+esc(x.seller_username||'sin cuenta')+' · '+esc(x.stock_status)+' · '+esc(x.product_url)+'</p></article>').join(''):'<p>Sin productos vinculados.</p>';
 }
 $('storeForm').addEventListener('submit',async e=>{
  e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));
