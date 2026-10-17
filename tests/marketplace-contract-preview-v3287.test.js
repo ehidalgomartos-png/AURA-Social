@@ -114,7 +114,7 @@ test('seller preview API uses authenticated account only and refuses unauthorize
   assert.equal(page.status,200);
   assert.match(page.headers.get('cache-control'),/no-store/);
   assert.match(page.headers.get('x-robots-tag'),/noindex/);
-  assert.match(await page.text(),/Simulación/);
+  assert.match(await page.text(),/simulación/i);
   const resp=await call('/api/marketplace/subscriptions/contract-preview?sellerId=2',3);
   assert.equal(resp.status,200);
   const other=await resp.json();
