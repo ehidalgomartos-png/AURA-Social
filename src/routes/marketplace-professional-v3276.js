@@ -7,6 +7,7 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const {PLATFORMS,normalizeStoreUrl,normalizeProductUrl,DDL}=require('../services/marketplace-professional-v3276');
 const {DDL:wooDDL}=require('../services/marketplace-woocommerce-v3277');
+const {TransferError,transferStoreOwner}=require('../services/marketplace-store-owner-v32775');
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 let ready=null;
@@ -96,6 +97,28 @@ router.get('/admin/stores',wrap(async(req,res)=>{
  const r=await db.query("SELECT s.id,s.seller_id,s.name,s.platform,s.store_url,s.status,s.purchase_enabled,u.username FROM marketplace_professional_stores s JOIN users u ON u.id=s.seller_id ORDER BY s.updated_at DESC LIMIT 200");
  res.json({ok:true,stores:r.rows});
 }));
+router.post('/admin/stores/:id/transfer-owner',editLimiter,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
+ if(!idOk(req.params.id))return res.status(400).json({error:'invalid_store_id'});
+ const input=z.object({
+  username:z.string().trim().min(3).max(30).regex(/^[a-zA-Z0-9_.]+$/),
+  expectedSellerId:z.number().int().positive(),
+  confirm:z.literal(true)
+ }).strict().safeParse(req.body);
+ if(!input.success)return res.status(400).json({error:'invalid_owner_transfer'});
+ res.setHeader('Cache-Control','private,no-store');
+ try{
+  const store=await transferStoreOwner({
+   storeId:req.params.id,targetUsername:input.data.username,
+   expectedSellerId:input.data.expectedSellerId,adminId:req.user.id
+  });
+  res.json({ok:true,store});
+ }catch(err){
+  if(err instanceof TransferError)return res.status(err.status).json({error:err.message});
+  throw err;
+ }
+}));
+
 router.post('/admin/stores/:id/review',editLimiter,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
  if(!idOk(req.params.id)||!['approved','suspended','pending'].includes(req.body?.status))return res.status(400).json({error:'invalid_review'});

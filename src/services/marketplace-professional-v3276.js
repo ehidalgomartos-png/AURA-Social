@@ -47,6 +47,8 @@ const DDL=[
  "CREATE INDEX IF NOT EXISTS idx_marketplace_stores_seller ON marketplace_professional_stores(seller_id)",
  "CREATE TABLE IF NOT EXISTS marketplace_external_products (listing_id BIGINT PRIMARY KEY REFERENCES marketplace_listings(id) ON DELETE CASCADE, store_id BIGINT NOT NULL REFERENCES marketplace_professional_stores(id) ON DELETE CASCADE, seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE, product_url VARCHAR(2048) NOT NULL, sku VARCHAR(150), stock_status TEXT NOT NULL DEFAULT 'in_stock' CHECK(stock_status IN ('in_stock','out_of_stock','unknown')), stock_quantity INTEGER CHECK(stock_quantity>=0), source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('manual','woocommerce_csv','feed','api')), last_checked_at TIMESTAMPTZ, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())",
  "CREATE INDEX IF NOT EXISTS idx_marketplace_external_store ON marketplace_external_products(store_id)",
- "CREATE INDEX IF NOT EXISTS idx_marketplace_external_seller ON marketplace_external_products(seller_id)"
+ "CREATE INDEX IF NOT EXISTS idx_marketplace_external_seller ON marketplace_external_products(seller_id)",
+ "CREATE TABLE IF NOT EXISTS marketplace_professional_owner_audit (id BIGSERIAL PRIMARY KEY,store_id BIGINT NOT NULL REFERENCES marketplace_professional_stores(id) ON DELETE CASCADE,actor_id BIGINT NOT NULL REFERENCES users(id),previous_seller_id BIGINT NOT NULL REFERENCES users(id),new_seller_id BIGINT NOT NULL REFERENCES users(id),created_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+ "CREATE INDEX IF NOT EXISTS idx_marketplace_store_owner_audit ON marketplace_professional_owner_audit(store_id,created_at DESC)"
 ];
 module.exports={PLATFORMS,safeHttpsUrl,normalizeStoreUrl,productMatchesStore,normalizeProductUrl,purchaseLink,freshWooStock,DDL};

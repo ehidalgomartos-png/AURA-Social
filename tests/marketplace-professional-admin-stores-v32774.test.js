@@ -85,6 +85,6 @@ test('admin frontend shows every shop and owner; duplicate registration reloads 
  assert.match(woo,/loadConnection\(req\.params\.id,null\)/);
  assert.match(sync,/\(\$2::bigint IS NULL OR s\.seller_id=\$2\)/);
  assert.match(html,/2\. Todas las tiendas/);
- assert.match(html,/marketplace-professional-v3276\.js\?v=3\.2\.77\.4/);
+ assert.match(html,/marketplace-professional-v3276\.js\?v=3\.2\.77\.5/);
  assert.doesNotMatch(routes,/credentials_encrypted AS/);
 });
