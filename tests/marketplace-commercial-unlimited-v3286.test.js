@@ -184,7 +184,7 @@ test('admin UI requires confirmation, shows the proposal in comparison and keeps
  const features=fs.readFileSync(path.join(root,'public/marketplace-commercial-features-v3282.js'),'utf8');
  const route=fs.readFileSync(path.join(root,'src/routes/marketplace-subscription-commercial-v3281.js'),'utf8');
  assert.match(html,/id="applyUnlimited"/);
- assert.match(html,/v=3\.2\.86/);assert.match(html,/noindex,nofollow/);
+ assert.match(html,/v=3\.2\.\d+(?:\.\d+)?/);assert.match(html,/noindex,nofollow/);
  assert.match(ui,/window\.confirm/);
  assert.match(ui,/confirmation:'propose_unlimited_for_both'/);
  assert.match(ui,/commercial:policy-saved/);

@@ -16,6 +16,12 @@
   plansStage.hidden=step!=='plans';
   termsStage.hidden=step!=='terms';
   doneStage.hidden=step!=='done';
+  for(const [key,id] of [['plans','progressPlans'],['terms','progressTerms'],['done','progressDone']]){
+   const marker=byId(id);
+   if(key===step)marker.setAttribute('aria-current','step');
+   else marker.removeAttribute('aria-current');
+   marker.classList.toggle('progress-active',key===step);
+  }
  }
  function choose(plan){
   chosen=plan;
@@ -75,7 +81,7 @@
   byId('formError').hidden=true;
   // Explicitly local-only. No network request, legal acceptance, card or Stripe customer.
   byId('donePlan').textContent='Has recorrido el ejemplo del plan '+chosen.name+'.';
-  stage('done');window.scrollTo?.({top:0,behavior:'auto'});
+  stage('done');doneStage.querySelector('h2')?.focus?.();window.scrollTo?.({top:0,behavior:'auto'});
  });
  byId('backPlans').addEventListener('click',()=>{chosen=null;stage('plans');});
  byId('restart').addEventListener('click',()=>{chosen=null;read.checked=false;understand.checked=false;stage('plans');});
@@ -91,7 +97,7 @@
    byId('planCards').replaceChildren(...state.plans.map(makePlan));
    byId('workflow').replaceChildren(...state.steps.map(step=>el('li',step)));
    paintPolicy(state.policies);
-   stage('plans');area.hidden=false;loading.textContent='';
+   stage('plans');area.hidden=false;byId('contractProgress').hidden=false;loading.textContent='';
   }catch(error){loading.textContent=error.message||'No se ha podido cargar la vista previa.';}
  }
  load();
