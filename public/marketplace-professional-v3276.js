@@ -124,7 +124,7 @@ async function wooPreview(page=1){
  wooPage=page;
  const list=$('wooProducts');
  const stockLabel={in_stock:'Disponible',out_of_stock:'Agotado',unknown:'Sin confirmar'};
- const reasonLabel={sku:'Mismo SKU del CSV',woocommerce_id:'Mismo ID del CSV',title_price:'Mismo nombre y precio',other_owner:'Coincidencia en otra cuenta'};
+ const reasonLabel={sku:'Mismo SKU del CSV',woocommerce_id:'Mismo ID del CSV',title_price:'Mismo nombre y precio',title_only:'Mismo nombre, precio diferente',other_owner:'Coincidencia en otra cuenta'};
  list.innerHTML=(page===1?'':list.innerHTML)+r.products.map(p=>{
   const check=p.duplicate||{state:'new',matches:[],canImport:true};
   const candidates=Array.isArray(check.matches)?check.matches:[];
