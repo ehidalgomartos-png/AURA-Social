@@ -23,9 +23,15 @@ const DDL=[
  )`,
  `INSERT INTO marketplace_subscription_commercial_drafts(plan_code,summary)
  VALUES
- ('professional','Conexión de una tienda externa y sincronización, pendiente de aprobación comercial.'),
+ ('professional','Publicación individual de productos y una tienda externa (propuesta), sin importación CSV ni sincronización automática. Pendiente de aprobación comercial.'),
  ('professional_plus','Modalidad para comercios con necesidades ampliadas, pendiente de aprobación comercial.')
  ON CONFLICT(plan_code) DO NOTHING`,
+ // V3.2.90.1: repair only the untouched legacy default text. Explicitly preserve
+ // all custom descriptions, prices, updated_by and operational seller records.
+ `UPDATE marketplace_subscription_commercial_drafts
+  SET summary='Publicación individual de productos y una tienda externa (propuesta), sin importación CSV ni sincronización automática. Pendiente de aprobación comercial.'
+  WHERE plan_code='professional'
+    AND summary='Conexión de una tienda externa y sincronización, pendiente de aprobación comercial.'`,
  `CREATE TABLE IF NOT EXISTS marketplace_subscription_commercial_reviews (
   topic TEXT PRIMARY KEY CHECK(topic IN ('pricing','taxes','terms','renewals','cancellations','privacy')),
   review_status TEXT NOT NULL DEFAULT 'pending' CHECK(review_status IN ('pending','in_review','reviewed')),

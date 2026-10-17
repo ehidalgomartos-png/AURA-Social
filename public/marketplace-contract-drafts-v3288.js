@@ -120,7 +120,12 @@
     $('contractDraftLoading').textContent=saved.changed?'Revisión privada guardada y auditada.':'Sin cambios que guardar.';
    }catch(error){
     message.className='status error';
-    message.textContent=error.message==='contract_draft_conflict'?'Otro cambio fue guardado antes. Actualiza la página para revisar la última versión.':error.message;
+    if(error.message==='contract_draft_incomplete')review.value=draft.reviewState;
+    message.textContent=error.message==='contract_draft_conflict'
+     ?'Otro cambio fue guardado antes. Actualiza la página para revisar la última versión.'
+     :error.message==='contract_draft_incomplete'
+      ?'No se puede iniciar la revisión interna. Revisa y sustituye los textos de plantilla de los seis apartados antes de solicitarla. El borrador anterior se ha conservado.'
+      :error.message;
    }finally{button.disabled=false;}
   });
   details.append(form);details.dataset.code=draft.code;

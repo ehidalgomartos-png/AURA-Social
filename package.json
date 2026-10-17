@@ -28,6 +28,7 @@
     "test:marketplace-contract-drafts": "node --test tests/marketplace-contract-drafts-v3288.test.js",
     "test:marketplace-launch-readiness": "node --test tests/marketplace-launch-readiness-v3289.test.js",
     "test:marketplace-commercial-guidance": "node --test tests/marketplace-commercial-guidance-v3290.test.js",
+    "test:marketplace-commercial-hotfix": "node --test tests/marketplace-commercial-hotfix-v32901.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
