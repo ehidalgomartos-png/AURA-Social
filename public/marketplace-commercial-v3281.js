@@ -55,6 +55,7 @@ function proposal(entry){
    await api('/drafts/'+encodeURIComponent(entry.code),{method:'POST',body:JSON.stringify({proposedMonthlyCents:cents,summary:desc.value})});
    entry.proposedMonthlyCents=cents;entry.summary=desc.value;
    view.subtitle.textContent=fmtPrice(cents);
+   if(typeof window.dispatchEvent==='function')window.dispatchEvent(new Event('commercial:price-saved'));
    feedback.textContent='Borrador guardado. Sigue sin estar disponible para contratar.';
   }catch(err){feedback.className='status error';feedback.textContent=err.message;}
   finally{save.disabled=false;}
