@@ -186,6 +186,11 @@ router.get('/marketplace/contratacion',requireAuth,(_req,res)=>{
  res.setHeader('X-Robots-Tag','noindex,nofollow');
  res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-contract-preview-v3287.html'));
 });
+router.get('/marketplace/suscripciones/lanzamiento',requireAdmin,(_req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow');
+ res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-launch-readiness-v3289.html'));
+});
 router.get('/marketplace/suscripciones/comercial',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','private,no-store');
  res.setHeader('X-Robots-Tag','noindex,nofollow');

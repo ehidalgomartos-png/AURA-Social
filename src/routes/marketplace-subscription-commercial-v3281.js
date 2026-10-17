@@ -70,6 +70,11 @@ router.post('/features/:planCode',limiter,checkOrigin,wrap(async(req,res)=>{
 // V3.2.88: internal-only, versioned legal/commercial text drafts.
 // Neither endpoint can publish terms, activate billing or accept seller consent.
 const contractDrafts=require('../services/marketplace-contract-drafts-v3288');
+// V3.2.89: admin-only launch preparation, strictly read-only.
+const launch=require('../services/marketplace-launch-readiness-v3289');
+router.get('/launch-readiness',wrap(async(_req,res)=>{
+ res.json(await launch.overview());
+}));
 router.get('/contract-drafts',wrap(async(_req,res)=>{
  res.json(await contractDrafts.list());
 }));
