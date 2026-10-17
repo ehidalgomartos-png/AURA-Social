@@ -87,6 +87,10 @@ document.addEventListener('click',async e=>{
 });
 
 let wooPage=1,wooRunning=false,wooConnected=false,wooAuto=false,wooApproved=false;
+const WOO_BULK_LIMIT_V32779=10;
+const wooBulkSelection=new Map(),wooBulkCatalog=new Map();
+let wooBulkPageIds=[],wooBulkPlan=null,wooBulkRunning=false,wooBulkStopRequested=false;
+
 const wooId=()=>$('wooStoreSelect').value;
 function wooNote(message){$('wooMessage').textContent=message||'';}
 async function wooStatus(){
@@ -103,7 +107,7 @@ async function wooStatus(){
  $('wooEnableBtn').disabled=!wooConnected||!wooApproved;
  $('wooEnableBtn').textContent=wooAuto?'Desactivar sincronización automática':'Activar sincronización automática';
 }
-$('wooStoreSelect').addEventListener('change',async()=>{$('wooProducts').textContent='';wooPage=1;await wooStatus();});
+$('wooStoreSelect').addEventListener('change',async()=>{$('wooProducts').textContent='';wooPage=1;wooBulkReset(true);await wooStatus();});
 $('wooConnectForm').addEventListener('submit',async e=>{
  e.preventDefault();if(wooRunning||!wooId())return;
  if(!confirm('¿Has creado una clave WooCommerce de solo lectura y autorizado su uso?'))return;
@@ -113,7 +117,7 @@ $('wooConnectForm').addEventListener('submit',async e=>{
   method:'POST',body:JSON.stringify({consumerKey:key,consumerSecret:secret})});
  $('wooKey').value='';$('wooSecret').value='';
  wooNote(r.ok?'Conexión verificada. Credenciales guardadas cifradas.':'Conexión fallida: '+(r.error||'error'));
- wooRunning=false;await wooStatus();
+ wooRunning=false;if(r.ok){$('wooProducts').textContent='';wooPage=1;wooBulkReset(true);}await wooStatus();
 });
 async function wooPreview(page=1){
  if(wooRunning||!wooId())return;
@@ -122,6 +126,14 @@ async function wooPreview(page=1){
  wooRunning=false;$('wooPreviewBtn').disabled=false;
  if(!r.ok){wooNote('No se pudo consultar: '+(r.error||'error'));return;}
  wooPage=page;
+ if(page===1)wooBulkReset(false);
+ wooBulkPageIds=r.products.filter(p=>p.state==='ready'&&p.duplicate?.canImport===true).map(p=>String(p.id));
+ for(const p of r.products){
+  if(p.state==='ready'&&p.duplicate?.canImport===true)wooBulkCatalog.set(String(p.id),{
+   id:Number(p.id),title:String(p.title||'Producto'),priceCents:p.priceCents,
+   category:p.category,photoUrl:p.photoUrl
+  });
+ }
  const list=$('wooProducts');
  const stockLabel={in_stock:'Disponible',out_of_stock:'Agotado',unknown:'Sin confirmar'};
  const reasonLabel={sku:'Mismo SKU del CSV',woocommerce_id:'Mismo ID del CSV',title_price:'Mismo nombre y precio',title_only:'Mismo nombre, precio diferente',other_owner:'Coincidencia en otra cuenta'};
@@ -140,20 +152,25 @@ async function wooPreview(page=1){
      '<button type="button" data-woo-link="'+esc(p.id)+'" data-listing="'+esc(c.listingId)+'">Vincular existente</button>':
      '<small>'+(c.sameOwner?'Vínculo no disponible: revisa el estado del anuncio.':'Otra cuenta: no se puede vincular ni importar hasta revisar.')+'</small>')+
    '</div>').join('');
+  const bulkChoice=p.state==='ready'&&check.canImport?
+   '<label class="woo-bulk-select-v32779"><input type="checkbox" data-woo-bulk-select="'+esc(p.id)+'"'+
+   (wooBulkSelection.has(String(p.id))?' checked':'')+
+   '><span>Seleccionar para importación múltiple</span></label>':'';
   const buttons=check.state==='linked'?'<p class="woo-duplicate-note-v32776">Ya vinculado al anuncio #'+esc(check.existingListingId)+'</p>':
    !check.canImport?'<p class="woo-duplicate-note-v32776">⚠ '+duplicateLabel+'. Revisa las coincidencias antes de continuar.</p>'+
      items+(check.truncated?'<p>Demasiadas coincidencias: revisa manualmente.</p>':''):
    p.state==='ready'?'<button type="button" data-woo-import="'+esc(p.id)+'">Importar nuevo producto</button>':
     '<p>No importable: '+esc(p.reason||p.state)+'</p>';
-  return '<article class="row woo-preview-card-v32776">'+image+'<div class="woo-preview-info-v32776">'+
+  return '<article class="row woo-preview-card-v32776 woo-bulk-card-v32779" data-woo-id="'+esc(p.id)+'">'+image+'<div class="woo-preview-info-v32776">'+
    '<strong>'+esc(p.title||'Producto sin nombre')+'</strong>'+
    '<p>'+esc(p.priceCents==null?'Precio pendiente':(p.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}))+
    ' · '+esc(p.category||'Sin categoría')+' · '+esc(stockLabel[p.stock]||'Sin confirmar')+
    ' · '+esc(count)+' '+(count===1?'foto':'fotos')+'</p>'+
    '<p class="muted">'+esc(p.descriptionPreview||'')+'</p>'+
-   buttons+'</div></article>';
+   bulkChoice+buttons+'</div></article>';
  }).join('');
  $('wooNextPage').hidden=!r.hasMore;
+ wooBulkUpdate();
  wooNote(r.products.length?'Página '+page+' consultada. Revisa cada producto antes de importar.':'No hay más productos.');
 }
 $('wooPreviewBtn').addEventListener('click',()=>wooPreview(1));
@@ -183,7 +200,15 @@ $('wooProducts').addEventListener('click',async e=>{
  wooRunning=false;
  if(!r.ok){b.disabled=false;wooNote('Error al importar: '+(r.error||'error'));return;}
  wooNote('Resultado: '+r.state+(r.listingId?' · Anuncio #'+r.listingId:'')+'. Si hay coincidencias, la importación se bloquea sin crear anuncios.');
- if(['imported','updated','already_linked'].includes(r.state)){b.textContent='Importado';b.disabled=true;}
+ if(['imported','updated','already_linked'].includes(r.state)){
+  b.textContent='Importado';b.disabled=true;
+  wooBulkSelection.delete(String(b.dataset.wooImport));
+  const saved=wooBulkCatalog.get(String(b.dataset.wooImport));
+  if(saved)saved.importable=false;
+  const checkbox=b.closest('[data-woo-id]')?.querySelector('[data-woo-bulk-select]');
+  if(checkbox){checkbox.checked=false;checkbox.disabled=true;}
+  wooBulkInvalidate();wooBulkUpdate();
+ }
 });
 $('wooSyncBtn').addEventListener('click',async()=>{
  if(wooRunning||!wooApproved||!confirm('¿Actualizar precios y existencias de los productos conectados?'))return;
@@ -198,6 +223,200 @@ $('wooEnableBtn').addEventListener('click',async()=>{
   method:'POST',body:JSON.stringify({enabled:!wooAuto})});
  wooNote(r.ok?'Sincronización '+(r.syncEnabled?'automática activada':'automática desactivada'):'No se pudo modificar: '+(r.error||'error'));
  await wooStatus();
+});
+
+
+/* V3.2.77.9: The server remains the authority for eligibility.
+   Batch imports reuse the existing admin-only per-product route so each item is
+   re-read from WooCommerce and duplicate-checked again inside its transaction. */
+function wooBulkInvalidate(){
+ wooBulkPlan=null;
+ $('wooBulkConfirmPanel').hidden=true;
+}
+function wooBulkReset(clearResults=false){
+ wooBulkSelection.clear();wooBulkCatalog.clear();wooBulkPageIds=[];
+ wooBulkInvalidate();
+ if(clearResults){
+  $('wooBulkResults').textContent='';
+  $('wooBulkProgress').textContent='';
+ }
+ wooBulkUpdate();
+}
+function wooBulkUpdate(){
+ const count=wooBulkSelection.size;
+ $('wooBulkCount').textContent=count+' de '+WOO_BULK_LIMIT_V32779+' productos seleccionados.';
+ $('wooBulkReview').disabled=wooRunning||count===0;
+ $('wooBulkClear').disabled=wooRunning||count===0;
+ $('wooBulkSelectPage').disabled=wooRunning||!wooBulkPageIds.length;
+ $('wooBulkStop').hidden=!wooBulkRunning;
+ document.querySelectorAll('[data-woo-bulk-select]').forEach(input=>{
+  const selected=wooBulkSelection.has(input.dataset.wooBulkSelect);
+  input.checked=selected;
+  input.disabled=wooBulkRunning||(!selected&&count>=WOO_BULK_LIMIT_V32779)||
+    wooBulkCatalog.get(input.dataset.wooBulkSelect)?.importable===false;
+ });
+}
+function wooBulkOptions(){
+ return {storeId:String(wooId()),city:$('wooCity').value.trim(),
+  province:$('wooProvince').value.trim(),saleScope:$('wooSaleScope').value};
+}
+function wooBulkFingerprint(opts=wooBulkOptions()){
+ return JSON.stringify([opts.storeId,opts.city,opts.province,opts.saleScope,
+  [...wooBulkSelection.keys()].sort()]);
+}
+function wooBulkResult(name,state,detail,listingId){
+ const li=document.createElement('li');
+ li.dataset.state=state;
+ li.textContent=name+': '+detail;
+ if(Number.isSafeInteger(listingId)&&listingId>0){
+  const a=document.createElement('a');
+  a.href='/marketplace/p/'+listingId;
+  a.target='_blank';a.rel='noopener noreferrer';
+  a.textContent=' · Ver anuncio #'+listingId;
+  li.appendChild(a);
+ }
+ $('wooBulkResults').appendChild(li);
+}
+function wooBulkLock(locked){
+ $('wooStoreSelect').disabled=locked;
+ for(const id of ['wooPreviewBtn','wooNextPage','wooSyncBtn','wooEnableBtn','wooConnectBtn',
+  'wooBulkReview','wooBulkStart','wooBulkBack','wooBulkSelectPage','wooBulkClear',
+  'wooCity','wooProvince','wooSaleScope']){
+  $(id).disabled=locked;
+ }
+ document.querySelectorAll('[data-woo-import],[data-woo-link],[data-woo-bulk-select]')
+  .forEach(el=>{el.disabled=locked;});
+ if(!locked)wooBulkUpdate();
+}
+$('wooProducts').addEventListener('change',e=>{
+ const box=e.target.closest('[data-woo-bulk-select]');
+ if(!box||wooRunning)return;
+ const id=box.dataset.wooBulkSelect,item=wooBulkCatalog.get(id);
+ if(!item||item.importable===false){box.checked=false;return;}
+ if(box.checked){
+  if(wooBulkSelection.size>=WOO_BULK_LIMIT_V32779){
+   box.checked=false;wooNote('Máximo de '+WOO_BULK_LIMIT_V32779+' productos por lote.');
+   return;
+  }
+  wooBulkSelection.set(id,item);
+ }else wooBulkSelection.delete(id);
+ wooBulkInvalidate();wooBulkUpdate();
+});
+$('wooBulkSelectPage').addEventListener('click',()=>{
+ if(wooRunning)return;
+ let added=0;
+ for(const id of wooBulkPageIds){
+  const item=wooBulkCatalog.get(id);
+  if(!item||item.importable===false||wooBulkSelection.has(id))continue;
+  if(wooBulkSelection.size>=WOO_BULK_LIMIT_V32779)break;
+  wooBulkSelection.set(id,item);added++;
+ }
+ wooBulkInvalidate();wooBulkUpdate();
+ wooNote(added?'Seleccionados '+added+' productos nuevos de esta página.':'No hay más productos nuevos seleccionables en esta página o has alcanzado el límite.');
+});
+$('wooBulkClear').addEventListener('click',()=>{
+ if(wooRunning)return;
+ wooBulkSelection.clear();wooBulkInvalidate();wooBulkUpdate();
+});
+for(const id of ['wooCity','wooProvince','wooSaleScope']){
+ $(id).addEventListener('input',()=>{if(!wooBulkRunning)wooBulkInvalidate();});
+ $(id).addEventListener('change',()=>{if(!wooBulkRunning)wooBulkInvalidate();});
+}
+$('wooBulkReview').addEventListener('click',()=>{
+ if(wooRunning||!wooConnected||!wooBulkSelection.size)return;
+ const options=wooBulkOptions();
+ if(options.city.length<2||options.city.length>100||options.province.length>100){
+  wooNote('Indica una ciudad de origen válida y una provincia de hasta 100 caracteres.');
+  return;
+ }
+ if(!['local','national'].includes(options.saleScope)){wooNote('Indica el ámbito de venta.');return;}
+ const products=[...wooBulkSelection.values()].filter(p=>p.importable!==false);
+ if(!products.length||products.length>WOO_BULK_LIMIT_V32779)return;
+ wooBulkPlan={...options,products,fingerprint:wooBulkFingerprint(options)};
+ $('wooBulkDestination').textContent=products.length+' productos para la tienda seleccionada. Origen: '+
+  options.city+(options.province?' · '+options.province:'')+
+  '. Venta: '+(options.saleScope==='national'?'Toda España':'Local')+'.';
+ $('wooBulkSelectedList').innerHTML=products.map(p=>
+  '<li>'+esc(p.title)+' · '+esc(p.category||'Sin categoría')+' · '+
+  esc(p.priceCents==null?'Precio pendiente':(p.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}))+
+  (p.photoUrl?'<img class="woo-bulk-review-photo-v32779" src="'+esc(p.photoUrl)+'" loading="lazy" referrerpolicy="no-referrer" alt="Foto de '+esc(p.title)+'">':'')+
+  '</li>').join('');
+ $('wooBulkConfirmPanel').hidden=false;
+ wooNote('Revisa productos, ciudad y ámbito. No se ha publicado nada todavía.');
+});
+$('wooBulkBack').addEventListener('click',()=>{if(!wooRunning)wooBulkInvalidate();});
+$('wooBulkStop').addEventListener('click',()=>{
+ if(!wooBulkRunning)return;
+ wooBulkStopRequested=true;$('wooBulkStop').disabled=true;
+ $('wooBulkProgress').textContent='Se detendrá después del producto en curso.';
+});
+$('wooBulkStart').addEventListener('click',async()=>{
+ if(wooRunning||!wooBulkPlan||!wooConnected)return;
+ const plan=wooBulkPlan;
+ if(plan.fingerprint!==wooBulkFingerprint()||plan.storeId!==String(wooId())){
+  wooBulkInvalidate();wooNote('La selección o los datos cambiaron. Vuelve a revisarlos.');return;
+ }
+ if(!confirm('¿Confirmas la publicación de hasta '+plan.products.length+
+  ' productos nuevos de esta tienda? Se descargarán sus fotos al VPS. Los ya publicados no se revertirán si otro falla.'))return;
+ wooRunning=true;wooBulkRunning=true;wooBulkStopRequested=false;
+ wooBulkInvalidate();wooBulkLock(true);wooBulkUpdate();
+ $('wooBulkResults').textContent='';
+ const counts={imported:0,blocked:0,failed:0};
+ let processed=0;
+ try{
+  for(const product of plan.products){
+   if(wooBulkStopRequested)break;
+   processed++;
+   $('wooBulkProgress').textContent='Procesando '+processed+' de '+plan.products.length+': '+product.title+'…';
+   const res=await api('/api/marketplace/professional/woocommerce/stores/'+encodeURIComponent(plan.storeId)+
+     '/import/'+encodeURIComponent(product.id),{
+      method:'POST',body:JSON.stringify({confirm:true,city:plan.city,province:plan.province,saleScope:plan.saleScope})
+     });
+   const validId=Number.isSafeInteger(Number(res.listingId))&&Number(res.listingId)>0?Number(res.listingId):null;
+   if(res.ok&&res.state==='imported'){
+    counts.imported++;
+    wooBulkResult(product.title,'imported','Publicado correctamente',validId);
+    wooBulkSelection.delete(String(product.id));
+    const ref=wooBulkCatalog.get(String(product.id));if(ref)ref.importable=false;
+    const card=document.querySelector('[data-woo-id="'+product.id+'"]');
+    if(card){
+     const button=card.querySelector('[data-woo-import]'),check=card.querySelector('[data-woo-bulk-select]');
+     if(button){button.textContent='Importado';button.disabled=true;}
+     if(check){check.checked=false;check.disabled=true;}
+    }
+   }else if((res.ok&&['already_linked','skipped','invalid'].includes(res.state))||
+      ['woocommerce_duplicate_candidate','woocommerce_already_imported'].includes(res.error)){
+    counts.blocked++;
+    wooBulkResult(product.title,'blocked',res.state==='already_linked'?'Ya vinculado: sin nuevo anuncio':
+      res.error==='woocommerce_duplicate_candidate'?'Posible duplicado detectado: no publicado':
+      'No importable o previamente vinculado',validId);
+    wooBulkSelection.delete(String(product.id));
+    const ref=wooBulkCatalog.get(String(product.id));if(ref)ref.importable=false;
+    const card=document.querySelector('[data-woo-id="'+product.id+'"]');
+    if(card){
+     const check=card.querySelector('[data-woo-bulk-select]'),button=card.querySelector('[data-woo-import]');
+     if(check){check.checked=false;check.disabled=true;}
+     if(button)button.disabled=true;
+    }
+   }else{
+    counts.failed++;
+    wooBulkResult(product.title,'failed','Error: '+(res.error||res.reason||res.state||'error desconocido'));
+   }
+  }
+ }finally{
+  wooRunning=false;wooBulkRunning=false;
+  wooBulkLock(false);
+  const stopped=wooBulkStopRequested;
+  $('wooBulkStop').disabled=false;
+  $('wooBulkProgress').textContent=(stopped?'Lote detenido. ':'Lote finalizado. ')+
+   'Procesados: '+processed+'/'+plan.products.length+
+   ' · Publicados: '+counts.imported+' · No importados: '+counts.blocked+
+   ' · Errores: '+counts.failed+
+   '. Los productos ya publicados se conservan.';
+  wooNote('Revisa cada resultado y vuelve a consultar el catálogo antes de seleccionar otro lote.');
+  wooBulkUpdate();
+  await wooStatus();
+ }
 });
 
 (async()=>{const me=await api('/api/auth/me');const isAdmin=me.user?.is_admin??me.user?.isAdmin??me.is_admin;
