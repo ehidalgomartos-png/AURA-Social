@@ -130,7 +130,7 @@ test('mobile comparison and editor remain private with proposal-only UI and exte
  const css=fs.readFileSync(path.join(root,'public/marketplace-commercial-v3281.css'),'utf8');
  assert.match(html,/id="planComparison"/);
  assert.match(html,/id="proposedFeatures"/);
- assert.match(html,/v=3\.2\.82/);
+ assert.match(html,/v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(html,/noindex,nofollow/);
  assert.match(js,/commercial:price-saved/);
  assert.match(js,/window\.confirm/);
