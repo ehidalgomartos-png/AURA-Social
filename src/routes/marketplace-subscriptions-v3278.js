@@ -22,7 +22,7 @@ router.get('/mine',wrap(async(req,res)=>{
  const [seller,stores,subscription,plans]=await Promise.all([
   db.query('SELECT username FROM users WHERE id=$1',[id]),
   db.query('SELECT id,name,platform,store_url,status,purchase_enabled FROM marketplace_professional_stores WHERE seller_id=$1 ORDER BY id DESC',[id]),
-  db.query('SELECT plan_code,status,period_starts_at,period_ends_at,cancel_at_period_end FROM marketplace_seller_subscriptions WHERE seller_id=$1',[id]),
+  db.query('SELECT plan_code,status,period_starts_at,period_ends_at,grace_until,cancel_at_period_end FROM marketplace_seller_subscriptions WHERE seller_id=$1',[id]),
   db.query('SELECT code,name,monthly_price_cents,currency,pricing_state,available,store_limit,product_limit FROM marketplace_subscription_plans ORDER BY sort_order,code')
  ]);
  res.json({ok:true,username:seller.rows[0]?.username||'',account:effectiveAccount(subscription.rows[0],stores.rows),
@@ -54,4 +54,5 @@ router.get('/admin/overview',requireAdmin,wrap(async(_req,res)=>{
   periodEndsAt:row.period_ends_at
  })),billingEnabled:false});
 }));
+router.use('/admin/lifecycle',require('./marketplace-subscription-lifecycle-v3279').router);
 module.exports={router};
