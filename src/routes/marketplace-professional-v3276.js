@@ -84,6 +84,12 @@ router.delete('/products/:listingId',editLimiter,wrap(async(req,res)=>{
  if(!r.rowCount)return res.status(404).json({error:'product_link_not_found'});
  res.json({ok:true});
 }));
+router.get('/admin/products',wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
+ res.setHeader('Cache-Control','private,no-store');
+ const r=await db.query("SELECT x.listing_id,x.store_id,x.product_url,x.sku,x.stock_status,x.stock_quantity,x.source,s.status AS store_status,s.purchase_enabled,s.name AS store_name,l.title,u.username AS seller_username FROM marketplace_external_products x JOIN marketplace_professional_stores s ON s.id=x.store_id JOIN marketplace_listings l ON l.id=x.listing_id JOIN users u ON u.id=x.seller_id ORDER BY x.updated_at DESC LIMIT 200");
+ res.json({ok:true,items:r.rows});
+}));
 router.get('/admin/stores',wrap(async(req,res)=>{
  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
  res.setHeader('Cache-Control','private,no-store');
