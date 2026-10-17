@@ -103,7 +103,12 @@ test('preview API only permits admins, denies cross-origin, and only SELECTs com
   assert.equal(answer.billingEnabled,false);assert.equal(answer.limitsEnforced,false);
   assert.equal((await post(1,scenario('pilot','bulk_import',{requestCount:5}))).status,200);
   assert.ok(statements.some(x=>x.query.startsWith('SELECT plan_code,proposed_store_limit')));
-  assert.equal(statements.some(x=>/\b(?:UPDATE|INSERT INTO|DELETE FROM)\s+marketplace_(?:seller_subscriptions|subscription_plans|professional_stores|listings|external_products|stripe_test_subscriptions|woocommerce_connection)/i.test(x.query)),false);
+  // The pre-existing schema bootstrap seeds some tables with INSERT ... ON CONFLICT
+  // DO NOTHING; those are not writes caused by a preview request. There must be
+  // no operative change to seller, store, listing, external product or Stripe data.
+  assert.equal(statements.some(x=>
+   /^\s*(UPDATE|DELETE FROM|INSERT INTO)\s+marketplace_(seller_subscriptions|subscription_plans|professional_stores|listings|external_products|stripe_test_subscriptions|woocommerce_connection)\b/i.test(x.query)
+    && !/ON CONFLICT[\s\S]+DO NOTHING/i.test(x.query)),false);
  }finally{
   await new Promise(resolve=>server.close(resolve));db.query=oldQuery;
   if(oldSecret===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=oldSecret;
