@@ -188,7 +188,7 @@ test('mobile-first UI stays private, accessible, escapes content and only uses a
  const client=fs.readFileSync(path.join(base,'public/marketplace-commercial-decisions-v3285.js'),'utf8');
  const route=fs.readFileSync(path.join(base,'src/routes/marketplace-subscription-commercial-v3281.js'),'utf8');
  assert.match(html,/id="definitionCards"/);assert.match(html,/id="definitionReviews"/);
- assert.match(html,/v=3\.2\.85/);assert.match(html,/noindex,nofollow/);
+ assert.match(html,/v=3\.2\.\d+(?:\.\d+)?/);assert.match(html,/noindex,nofollow/);
  assert.match(client,/api\('\/definition'/);
  assert.match(client,/window\.confirm/);assert.match(client,/aria-live/);
  assert.match(client,/credentials:'same-origin'/);

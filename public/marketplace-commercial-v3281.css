@@ -50,3 +50,10 @@ ol{padding-left:22px;line-height:1.65;color:#40596a;font-size:.88rem}li{margin-b
 .policy-form{padding-top:8px}.policy-form label{display:block}.policy-form .muted{margin:8px 0}
 .decision-pending{margin:14px 0 8px;padding:12px;border:1px solid #dce6ec;border-radius:10px;background:#fafcfd;font-size:.84rem}
 .decision-pending ul{margin:8px 0 0;padding-left:20px}.decision-pending li{margin:4px 0;line-height:1.45}
+
+/* V3.2.86: explicit draft-only unlimited proposal, mobile first */
+.unlimited-proposal{border:1px solid #cee0e8;border-radius:11px;background:#f7fbfc;margin:10px 0 14px;padding:13px}
+.unlimited-proposal strong{font-size:.92rem}
+.unlimited-proposal .muted{margin:7px 0 10px}
+.unlimited-proposal button{margin-top:3px;max-width:100%;white-space:normal;text-align:left}
+.unlimited-proposal .status{margin:9px 0 0}
