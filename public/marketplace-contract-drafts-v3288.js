@@ -56,6 +56,43 @@
    group.append(caption,area,counter);form.append(group);
    values[key]=area;
   }
+  const insert=el('button','Preparar guía de condiciones en campos vacíos','draft-helper-btn');
+  insert.type='button';
+  const guideHint=el('p','Solo copia textos de trabajo. No sobrescribe apartados escritos ni guarda cambios. Las plantillas necesitan revisión y no cuentan como condiciones completadas.','draft-helper-hint');
+  form.append(insert,guideHint);
+  insert.addEventListener('click',async()=>{
+   const empty=fields.filter(([key])=>!values[key].value.trim());
+   if(!empty.length){
+    message.className='status error';message.textContent='No hay apartados vacíos. La guía no sobrescribe tus textos.';return;
+   }
+   insert.disabled=true;message.className='status';message.textContent='Consultando la guía privada…';
+   try{
+    const res=await fetch('/api/marketplace/subscriptions/admin/commercial/guidance',{
+     credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
+    });
+    if(!res.ok)throw Error('No se pudo cargar la guía privada.');
+    const content=await res.json();
+    if(content.adminOnly!==true||content.privateSuggestion!==true||
+       content.termsApproved!==false||content.billingEnabled!==false||
+       content.liveStripeEnabled!==false||content.consentRecorded!==false||
+       content.pilotProtected!==true)throw Error('Estado inseguro de la guía privada.');
+    const proposal=(content.proposals||[]).find(x=>x.code===draft.code);
+    if(!proposal||proposal.approved!==false||!proposal.terms)throw Error('Guía no disponible.');
+    if(!window.confirm('¿Copiar la guía preliminar solo a los campos vacíos? Seguirá como borrador, sin guardar ni aceptar términos legales.'))return;
+    let count=0;
+    for(const [key] of empty){
+     if(values[key].value.trim())continue;
+     const text=proposal.terms[key];
+     if(typeof text!=='string'||!text.includes('PLANTILLA INTERNA V3.2.90')||text.length>1200)continue;
+     values[key].value=text;
+     values[key].dispatchEvent(new Event('input',{bubbles:true}));
+     count++;
+    }
+    if(count)review.value='draft';
+    message.textContent=count+' apartados preparados en pantalla. Revisa, modifica y guarda cuando lo decidas. El estado permanece en borrador.';
+   }catch(err){message.className='status error';message.textContent=err.message;}
+   finally{insert.disabled=false;}
+  });
   const reviewLabel=el('label','Estado del borrador');
   const review=el('select');
   for(const [value,label] of [['draft','Borrador'],['internal_review','En revisión interna (no aprobado)']]){

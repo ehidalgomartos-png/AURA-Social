@@ -39,10 +39,34 @@ function proposal(entry){
  const cost=el('input');cost.type='number';cost.min='1';cost.max='10000';cost.step='0.01';cost.inputMode='decimal';
  cost.placeholder='Sin precio decidido';cost.value=entry.proposedMonthlyCents===null?'':(entry.proposedMonthlyCents/100).toFixed(2);
  const field=el('div',undefined,'field');label(field,'Precio mensual propuesto (€) — opcional',cost);form.append(field);
+ const suggestion=el('button','Insertar importe orientativo para estudiar','draft-helper-btn');
+ suggestion.type='button';
+ const explain=el('p','Sin guardar ni aprobar. No sustituye un cálculo de IVA ni una decisión comercial.','draft-helper-hint');
+ form.append(suggestion,explain);
  const desc=el('textarea');desc.maxLength=400;desc.minLength=10;desc.required=true;desc.value=entry.summary;
  label(form,'Descripción provisional (10–400 caracteres)',desc);
  const feedback=el('p','', 'status');feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
  const save=el('button','Guardar borrador');save.type='submit';form.append(save,feedback);
+ suggestion.addEventListener('click',async()=>{
+  if(cost.value.trim()){
+   feedback.className='status error';feedback.textContent='Ya hay un importe escrito. Bórralo manualmente antes de insertar otra orientación.';return;
+  }
+  suggestion.disabled=true;feedback.className='status';feedback.textContent='Consultando propuesta privada…';
+  try{
+   const result=await api('/guidance');
+   if(result.adminOnly!==true||result.privateSuggestion!==true||result.billingEnabled!==false||
+      result.pricesApproved!==false||result.liveStripeEnabled!==false||result.pilotProtected!==true)
+    throw Error('La guía privada no está disponible.');
+   const guidance=(result.proposals||[]).find(x=>x.code===entry.code);
+   if(!guidance||!Number.isSafeInteger(guidance.proposedMonthlyCents)||guidance.approved!==false)
+    throw Error('No existe una propuesta orientativa segura para este plan.');
+   if(!window.confirm('¿Insertar un precio solo como borrador editable? No se guardará ni aprobará hasta que lo confirmes por separado.'))return;
+   if(cost.value.trim())throw Error('El precio ya fue modificado; no se sobrescribirá.');
+   cost.value=(guidance.proposedMonthlyCents/100).toFixed(2);
+   feedback.textContent='Importe orientativo insertado. Puedes modificarlo. Usa «Guardar borrador» si decides conservarlo.';
+  }catch(err){feedback.className='status error';feedback.textContent=err.message;}
+  finally{suggestion.disabled=false;}
+ });
  form.addEventListener('submit',async e=>{
   e.preventDefault();
   const raw=cost.value.trim(),cents=raw===''?null:Math.round(Number(raw)*100);

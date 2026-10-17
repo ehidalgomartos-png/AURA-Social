@@ -8,7 +8,7 @@
   if(className)node.className=className;
   return node;
  };
- const money=cents=>Number.isSafeInteger(cents)?(cents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'}):'Por definir';
+ const monthly=cents=>Number.isSafeInteger(cents)?(cents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'})+'/mes':'Precio mensual pendiente de definir';
  let data=null;
  function mark(parent,entry){
   const line=el('div',undefined,'check-row');
@@ -21,14 +21,15 @@
    'Publicación de productos uno a uno',
    plan.bulkImportProposed?'Incluye importación CSV/lotes':'Sin importación CSV/lotes',
    plan.wooSyncProposed?'Sincronización automática WooCommerce prevista':'Sin sincronización automática',
-   plan.storeLimitProposal===null?'Tiendas conectadas por definir':'Hasta '+plan.storeLimitProposal+' tienda(s) propuestas',
+   plan.storeLimitProposal===null?'Tiendas conectadas por definir':
+    plan.storeLimitProposal===1?'1 tienda propuesta':plan.storeLimitProposal+' tiendas propuestas',
    'La compra de cada producto continúa en la web del vendedor'
   ];
  }
  function card(plan){
   const node=el('article',undefined,'plan-card');
   node.append(el('h3',plan.name));
-  node.append(el('div',money(plan.priceProposalCents)+'/mes (propuesta privada)','price'));
+  node.append(el('div',monthly(plan.priceProposalCents)+' · propuesta privada','price'));
   node.append(el('p','Importe no aprobado; IVA y facturación pendientes.','note'));
   const ul=el('ul',undefined,'features');
   features(plan).forEach(value=>ul.append(el('li',value)));
@@ -47,14 +48,15 @@
   if(!plan)return;
   const container=$('planPreview');
   const header=el('h3',plan.name+' · Previsualización administrativa');
-  const caveat=el('p','Precio orientativo: '+money(plan.priceProposalCents)+'/mes. Aún no hay oferta aprobada ni precio publicado.');
+  const caveat=el('p','Precio orientativo: '+monthly(plan.priceProposalCents)+'. Aún no hay oferta aprobada ni precio publicado.');
   const list=el('ul',undefined,'features');
   features(plan).forEach(feature=>list.append(el('li',feature)));
   const title=el('h3','Condiciones de contratación · Borradores privados');
   const texts=plan.termsPreview.map(item=>{
    const details=el('details');
    const content=item.text||'Pendiente de redacción';
-   details.append(el('summary',labels[item.id]||item.id),el('p',content));
+   const template=content.includes('PLANTILLA INTERNA V3.2.90');
+   details.append(el('summary',(labels[item.id]||item.id)+(template?' · plantilla pendiente':'')),el('p',content));
    return details;
   });
   const note=el('p','Revisión '+plan.contractDraftRevision+' · '+(

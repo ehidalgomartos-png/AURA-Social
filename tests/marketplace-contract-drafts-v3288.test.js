@@ -189,7 +189,7 @@ test('seller contracting remains read-only; private text templates stay admin-on
  const css=fs.readFileSync(path.join(root,'public/marketplace-contract-preview-v3287.css'),'utf8');
  const api=fs.readFileSync(path.join(root,'src/routes/marketplace-subscription-commercial-v3281.js'),'utf8');
  assert.match(commercial,/id="contractDraftWorkspace"/);
- assert.match(commercial,/marketplace-contract-drafts-v3288\.js\?v=3\.2\.88/);
+ assert.match(commercial,/marketplace-contract-drafts-v3288\.js\?v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(adminJS,/window\.confirm/);
  assert.match(adminJS,/expectedRevision:draft\.revision/);
  assert.match(adminJS,/contract_draft_conflict/);

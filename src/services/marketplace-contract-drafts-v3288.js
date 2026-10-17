@@ -9,6 +9,8 @@ const PLANS=Object.freeze(['professional','professional_plus']);
 const FIELDS=Object.freeze(['priceDisclosure','taxes','renewals','cancellations','privacy','consent']);
 const STATUSES=Object.freeze(['draft','internal_review']);
 const LIMIT=1200;
+const TEMPLATE_MARKER=require('./marketplace-commercial-guidance-v3290').MARKER;
+function isTemplate(value){return typeof value==='string'&&value.includes(TEMPLATE_MARKER);}
 const DDL=[
  `CREATE TABLE IF NOT EXISTS marketplace_subscription_contract_drafts (
    plan_code TEXT PRIMARY KEY REFERENCES marketplace_subscription_commercial_drafts(plan_code) ON DELETE CASCADE,
@@ -66,7 +68,7 @@ function parse(code,body){
   if(value.length>LIMIT||value.includes('\u0000'))throw new ContractDraftError('invalid_contract_text');
   values[field]=value;
  }
- if(body.reviewState==='internal_review'&&FIELDS.some(f=>values[f].length<20))
+ if(body.reviewState==='internal_review'&&FIELDS.some(f=>values[f].length<20||isTemplate(values[f])))
   throw new ContractDraftError('contract_draft_incomplete');
  return {planCode:code,expectedRevision:body.expectedRevision,reviewState:body.reviewState,...values};
 }
@@ -74,7 +76,7 @@ function view(row){
  const result={code:row.plan_code,revision:row.revision,reviewState:row.review_state,
   updatedAt:row.updated_at||null};
  for(const field of FIELDS)result[field]=row[COLUMN_MAP[field]]||'';
- result.complete=FIELDS.every(field=>result[field].length>=20);
+ result.complete=FIELDS.every(field=>result[field].length>=20&&!isTemplate(result[field]));
  return result;
 }
 function state(){
@@ -134,4 +136,4 @@ async function save({planCode,body,adminId,pool=db.pool}){
   throw err;
  }finally{client.release();}
 }
-module.exports={PLANS,FIELDS,STATUSES,DDL,ContractDraftError,ensureSchema,parse,view,state,list,save};
+module.exports={PLANS,FIELDS,STATUSES,DDL,ContractDraftError,ensureSchema,parse,view,state,list,save,isTemplate};
