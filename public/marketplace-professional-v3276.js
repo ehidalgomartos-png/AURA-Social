@@ -7,7 +7,12 @@ function say(s){$('message').textContent=s;}
 async function load(){
  const r=await api('/api/marketplace/professional/admin/stores');
  if(!r.ok){say('No se pudieron cargar las tiendas. Revisa la sesión de administrador.');return;}
- $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p><p class="muted">Propietario de la tienda: @'+esc(s.username||'sin cuenta')+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>':s.status==='pending'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="approved">Aprobar tras comprobar titularidad</button>':s.status==='approved'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="suspended">Suspender compras externas</button>':'')+'</article>').join(''):'<p>Aún no tienes tiendas registradas.</p>';
+ $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p><p class="muted">Propietario de la tienda: @'+esc(s.username||'sin cuenta')+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>'+
+ '<form data-store-owner-transfer="'+esc(s.id)+'" class="store-owner-transfer" style="margin-top:12px;display:grid;gap:8px">'+
+ '<label>Asignar esta tienda a otro usuario de RedLibertad<input name="username" autocomplete="off" maxlength="30" pattern="[A-Za-z0-9_.]{3,30}" placeholder="Ej.: mundotaza" required></label>'+
+ '<input type="hidden" name="expectedSellerId" value="'+esc(s.seller_id)+'">'+
+ '<button type="submit">Cambiar propietario</button></form>'
+ :s.status==='pending'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="approved">Aprobar tras comprobar titularidad</button>':s.status==='approved'?'<button type="button" data-store-review="'+esc(s.id)+'" data-store-status="suspended">Suspender compras externas</button>':'')+'</article>').join(''):'<p>Aún no tienes tiendas registradas.</p>';
  $('storeSelect').innerHTML=r.stores.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join('');
  const woo=r.stores.filter(s=>s.platform==='woocommerce');
  const previous=$('wooStoreSelect').value;
@@ -36,6 +41,39 @@ document.addEventListener('click',async e=>{
  if(!confirm('¿Enviar esta tienda a revisión manual?'))return;
  const r=await api('/api/marketplace/professional/stores/'+encodeURIComponent(b.dataset.submit)+'/submit',{method:'POST',body:'{}'});
  say(r.ok?'Tienda enviada a revisión.':'No se pudo solicitar revisión.');if(r.ok)await load();
+});
+
+document.addEventListener('submit',async e=>{
+ const form=e.target.closest('[data-store-owner-transfer]');if(!form)return;
+ e.preventDefault();
+ const storeId=form.dataset.storeOwnerTransfer;
+ const values=Object.fromEntries(new FormData(form));
+ const username=String(values.username||'').trim().replace(/^@/,'');
+ const expectedSellerId=Number(values.expectedSellerId);
+ if(!/^[a-zA-Z0-9_.]{3,30}$/.test(username)||!Number.isSafeInteger(expectedSellerId)){
+  say('Introduce un nombre de usuario válido.');return;
+ }
+ if(!confirm('¿Asignar esta tienda a @'+username+'? Los futuros productos importados pertenecerán a esa cuenta. No se trasladarán los anuncios existentes.'))return;
+ const button=form.querySelector('[type="submit"]');if(button)button.disabled=true;
+ try{
+  const r=await api('/api/marketplace/professional/admin/stores/'+encodeURIComponent(storeId)+'/transfer-owner',{
+   method:'POST',body:JSON.stringify({username,expectedSellerId,confirm:true})
+  });
+  if(r.ok){
+   await load();
+   say('Propietario actualizado: @'+r.store.username+'. Ya puedes continuar con WooCommerce.');
+  }else{
+   const errors={
+    store_requires_draft:'Solo pueden cambiarse tiendas en borrador.',
+    store_transfer_has_linked_data:'La tienda tiene productos vinculados o una conexión API guardada. No se ha cambiado el propietario.',
+    target_user_not_found:'No existe un usuario activo con ese nombre.',
+    target_already_has_store:'Ese usuario ya tiene registrada la misma tienda.',
+    store_owner_changed:'La cuenta propietaria ha cambiado. Actualiza la página.',
+    store_already_owned_by_user:'La tienda ya pertenece a ese usuario.'
+   };
+   say(errors[r.error]||'No se pudo cambiar el propietario: '+(r.error||'error'));
+  }
+ }finally{if(button)button.disabled=false;}
 });
 
 document.addEventListener('click',async e=>{
