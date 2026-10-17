@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0d2238">
+<title>Preparación del lanzamiento · RedLibertad</title>
+<link rel="stylesheet" href="/marketplace-launch-readiness-v3289.css?v=3.2.89">
+<script src="/marketplace-launch-readiness-v3289.js?v=3.2.89" defer></script>
+</head>
+<body>
+<header class="top"><a href="/marketplace/suscripciones/comercial">← Preparación comercial</a><strong>Vista previa del lanzamiento</strong></header>
+<main>
+<section class="intro">
+ <span class="eyebrow">ADMINISTRACIÓN · VISTA PRIVADA</span>
+ <h1>Preparar el lanzamiento profesional</h1>
+ <p>Comprueba cómo se presentarían los planes, sus precios propuestos y las condiciones todavía pendientes de aprobación. Esta vista no es una oferta ni habilita contratación.</p>
+</section>
+<section class="notice">
+ <strong>Contratación y cobros reales desactivados</strong>
+ <p>Stripe LIVE, los permisos comerciales y los precios públicos siguen desactivados. MundoTaza conserva su piloto gratuito. Las ventas de productos se pagan en las webs de los vendedores.</p>
+</section>
+<p id="loadStatus" role="status" aria-live="polite">Comprobando la preparación interna…</p>
+<div id="launchWorkspace" hidden>
+ <section class="stats" aria-label="Estado del lanzamiento">
+  <div class="stat"><strong id="taskCount">—</strong><span>Decisiones pendientes</span></div>
+  <div class="stat"><strong id="planCount">2</strong><span>Modalidades propuestas</span></div>
+  <div class="stat"><strong>0</strong><span>Cobros habilitados</span></div>
+ </section>
+ <section class="panel">
+  <div class="panel-header"><h2>Vista previa de los planes</h2><span class="tag">Uso interno</span></div>
+  <p class="hint">Estos importes y prestaciones son propuestas. No aparecen como oferta definitiva en el Centro de contratación del vendedor.</p>
+  <div id="launchPlans" class="cards"></div>
+ </section>
+ <section class="panel">
+  <div class="panel-header"><h2>Revisiones previas al lanzamiento</h2><span class="tag">Sin autorización</span></div>
+  <p class="hint">Las marcas siguientes identifican trabajo interno realizado. Ni siquiera todas completadas constituyen aprobación fiscal o legal.</p>
+  <div id="reviewTasks" class="checks"></div>
+ </section>
+ <section class="panel">
+  <div class="panel-header"><h2>Ensayo del texto que vería el vendedor</h2><span class="tag">Borrador privado</span></div>
+  <p class="hint">Selecciona un plan para comprobar sus prestaciones, el precio propuesto y las seis secciones de condiciones. Ningún borrador se publica al elegirlo.</p>
+  <label class="select-label" for="planSelector">Modalidad para revisar</label>
+  <select id="planSelector">
+   <option value="professional">Profesional</option>
+   <option value="professional_plus">Profesional Plus</option>
+  </select>
+  <div id="planPreview" class="preview" aria-live="polite"></div>
+  <button type="button" disabled class="disabled-cta" aria-label="Contratación no disponible">Contratar (no disponible)</button>
+  <p class="hint">Botón desactivado deliberadamente. No crea Checkout, suscripciones, clientes de Stripe ni aceptaciones legales.</p>
+ </section>
+ <section class="notice">
+  <strong>La activación comercial requerirá otra autorización</strong>
+  <p>Después de completar y revisar los borradores, quedarán pendientes la aprobación fiscal, legal y comercial, la versión definitiva del consentimiento, las pruebas técnicas y una decisión independiente para habilitar Stripe LIVE.</p>
+ </section>
+</div>
+</main>
+</body>
+</html>
