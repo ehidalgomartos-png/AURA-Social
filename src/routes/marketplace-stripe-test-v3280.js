@@ -47,6 +47,7 @@ router.post('/sync',limiter,checkOrigin,wrap(async(req,res)=>{
  try{
   if(!req.body||typeof req.body!=='object'||Array.isArray(req.body)||Object.keys(req.body).length)
    return res.status(400).json({error:'invalid_request'});
+  if(!billing.config().readyForCheckout)return res.status(503).json({error:'sandbox_not_configured'});
   await billing.ensureSchema();
   res.json(await billing.reconcileTestSubscription({sellerId:req.user.id}));
  }catch(e){return reject(res,e);}
