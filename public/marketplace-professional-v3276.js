@@ -135,7 +135,7 @@ async function wooPreview(page=1){
    check.state==='possible_duplicate'?'Ya existe o puede existir en Marketplace':'Sin coincidencias detectadas';
   const items=candidates.map(c=>
    '<div class="woo-match-v32776">'+
-    '<span>Anuncio #'+esc(c.listingId)+' · '+esc(c.title)+' · @'+esc(c.username)+' · '+esc(reasonLabel[c.reason]||'Posible coincidencia')+'</span>'+
+    '<span><a target="_blank" rel="noopener noreferrer" href="/marketplace/p/'+esc(c.listingId)+'">Ver anuncio #'+esc(c.listingId)+'</a> · '+esc(c.title)+' · @'+esc(c.username)+' · '+esc(reasonLabel[c.reason]||'Posible coincidencia')+'</span>'+
     (c.sameOwner&&!c.linkedElsewhere&&c.status==='active'&&c.moderationStatus==='published'&&p.state==='ready'?
      '<button type="button" data-woo-link="'+esc(p.id)+'" data-listing="'+esc(c.listingId)+'">Vincular existente</button>':
      '<small>'+(c.sameOwner?'Vínculo no disponible: revisa el estado del anuncio.':'Otra cuenta: no se puede vincular ni importar hasta revisar.')+'</small>')+
@@ -162,7 +162,7 @@ $('wooProducts').addEventListener('click',async e=>{
  const button=e.target.closest('[data-woo-link]');if(!button||wooRunning)return;
  const wooProductId=Number(button.dataset.wooLink),listingId=Number(button.dataset.listing);
  if(!Number.isSafeInteger(wooProductId)||!Number.isSafeInteger(listingId))return;
- if(!confirm('¿Has comprobado que este producto y el anuncio #'+listingId+' son exactamente el mismo y pertenecen a @mundotaza o al vendedor indicado? Se enlazarán URL y stock de WooCommerce al anuncio existente. No se cambiarán fotografías ni propietario. Una sincronización posterior podrá modificar precio y descripción.'))return;
+ if(!confirm('¿Has comprobado que este producto y el anuncio #'+listingId+' son exactamente el mismo y pertenecen a la cuenta propietaria de esta tienda? Se enlazarán URL y stock de WooCommerce al anuncio existente. No se cambiarán fotografías ni propietario. Una sincronización posterior podrá modificar precio y descripción.'))return;
  wooRunning=true;button.disabled=true;wooNote('Vinculando al anuncio existente…');
  const result=await api('/api/marketplace/professional/woocommerce/stores/'+encodeURIComponent(wooId())+'/link-existing/'+encodeURIComponent(wooProductId),{
   method:'POST',body:JSON.stringify({listingId,confirm:true})});
