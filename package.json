@@ -33,6 +33,7 @@
     "test:marketplace-decision-center": "node --test tests/marketplace-commercial-decision-center-v3292.test.js",
     "test:marketplace-commercial-study": "node --test tests/marketplace-commercial-study-v3293.test.js",
     "test:marketplace-stripe-webhook-hardening": "node --test tests/marketplace-stripe-webhook-hardening-v3294.test.js",
+    "test:marketplace-stripe-checkout-identity": "node --test tests/marketplace-stripe-checkout-identity-v3295.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",

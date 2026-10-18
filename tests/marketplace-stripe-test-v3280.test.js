@@ -169,7 +169,7 @@ test('events are idempotent, auditable and isolated; webhook cannot update the p
   if(sql.includes('UPDATE marketplace_stripe_test_checkouts'))return {rowCount:1,rows:[{seller_id:44}]};
   return {rowCount:1,rows:[]};
  },release:()=>{calls.push({sql:'RELEASE'});}});
- const e=event('checkout.session.completed',{id:'cs_test_ABC123',livemode:false,subscription:'sub_ABC123',customer:'cus_ABC123'});
+ const e=event('checkout.session.completed',{id:'cs_test_ABC123',livemode:false,mode:'subscription',subscription:'sub_ABC123',customer:'cus_ABC123'});
  const opts={env:testEnv,connect};
  assert.deepEqual(await billing.recordTestEvent(e,opts),{ok:true,applied:true});
  assert.deepEqual(await billing.recordTestEvent(e,opts),{ok:true,duplicate:true});
