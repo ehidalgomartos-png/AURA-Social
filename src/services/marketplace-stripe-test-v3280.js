@@ -365,7 +365,17 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
          (marketplace_stripe_test_subscriptions.subscription_id = EXCLUDED.subscription_id
           AND marketplace_stripe_test_subscriptions.customer_id = EXCLUDED.customer_id
           AND marketplace_stripe_test_subscriptions.stripe_status <> 'canceled'
-          AND marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created)
+          AND (
+           marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created
+           OR (
+            -- Stripe timestamps have second precision. A signed terminal
+            -- deletion takes precedence if it shares the last event second.
+            -- Any same-second non-terminal update remains ineligible.
+            marketplace_stripe_test_subscriptions.last_event_created = EXCLUDED.last_event_created
+            AND $10 = 'customer.subscription.deleted'
+            AND EXCLUDED.stripe_status = 'canceled'
+           )
+          ))
          OR
          (marketplace_stripe_test_subscriptions.stripe_status = 'canceled'
           AND marketplace_stripe_test_subscriptions.subscription_id <> EXCLUDED.subscription_id
@@ -386,7 +396,7 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
         )
         RETURNING seller_id`,
        [info.sellerId,info.planCode,info.customerId,info.subscriptionId,
-        info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,timestamp]);
+        info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,timestamp,event.type]);
       if(result.rowCount){sellerId=info.sellerId;applied=true;}
      }
     }

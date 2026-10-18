@@ -54,8 +54,18 @@ test('PostgreSQL preserves canceled TEST history and rejects stale or resurrecti
   assert.deepEqual(current.rows[0],{plan_code:'professional_plus',customer_id:'cus_PLUS456',subscription_id:'sub_PLUS456',stripe_status:'active'});
   assert.deepEqual(await billing.recordTestEvent(event('evt_OLDLATE','customer.subscription.updated',
    'professional','sub_OLD123','cus_OLD123',1800000008),{env,connect}),{ok:true,applied:false});
+  // Stripe events created in one second have the same integer timestamp.
+  // A non-terminal update must NOT take precedence at equal timestamp.
+  assert.deepEqual(await billing.recordTestEvent(event('evt_SAMESECOND_UPDATE','customer.subscription.updated',
+   'professional_plus','sub_PLUS456','cus_PLUS456',1800000002,'past_due'),{env,connect}),{ok:true,applied:false});
+  let beforeCancel=await query('SELECT stripe_status FROM marketplace_stripe_test_subscriptions WHERE seller_id=44');
+  assert.equal(beforeCancel.rows[0].stripe_status,'active');
+  // Terminal cancellation in the SAME second must still be applied.
   assert.deepEqual(await billing.recordTestEvent(event('evt_PLUSCANCELED','customer.subscription.deleted',
-   'professional_plus','sub_PLUS456','cus_PLUS456',1800000020,'canceled'),{env,connect}),{ok:true,applied:true});
+   'professional_plus','sub_PLUS456','cus_PLUS456',1800000002,'canceled'),{env,connect}),{ok:true,applied:true});
+  // Even a newer delayed non-terminal event must never resurrect cancellation.
+  assert.deepEqual(await billing.recordTestEvent(event('evt_PLUSRESURRECT','customer.subscription.updated',
+   'professional_plus','sub_PLUS456','cus_PLUS456',1800000020,'active'),{env,connect}),{ok:true,applied:false});
   assert.deepEqual(await billing.recordTestEvent(event('evt_OLDREPLAY','customer.subscription.updated',
    'professional','sub_OLD123','cus_OLD123',1800000030),{env,connect}),{ok:true,applied:false});
   current=await query('SELECT plan_code,subscription_id,stripe_status FROM marketplace_stripe_test_subscriptions WHERE seller_id=44');
@@ -63,8 +73,11 @@ test('PostgreSQL preserves canceled TEST history and rejects stale or resurrecti
   const archiveAfter=await query('SELECT subscription_id FROM marketplace_stripe_test_subscription_history WHERE seller_id=44');
   assert.deepEqual(archiveAfter.rows,[{subscription_id:'sub_OLD123'}]);
   const events=await query('SELECT event_id,applied FROM marketplace_stripe_test_events ORDER BY event_id');
-  assert.equal(events.rowCount,5);
+  assert.equal(events.rowCount,7);
   assert.equal(events.rows.find(x=>x.event_id==='evt_OLDLATE').applied,false);
   assert.equal(events.rows.find(x=>x.event_id==='evt_OLDREPLAY').applied,false);
+  assert.equal(events.rows.find(x=>x.event_id==='evt_SAMESECOND_UPDATE').applied,false);
+  assert.equal(events.rows.find(x=>x.event_id==='evt_PLUSCANCELED').applied,true);
+  assert.equal(events.rows.find(x=>x.event_id==='evt_PLUSRESURRECT').applied,false);
  }finally{await pool.end();}
 });
