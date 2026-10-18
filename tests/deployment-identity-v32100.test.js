@@ -1,44 +1,43 @@
 'use strict';
-// V3.2.100: deterministic deployment identity, no network, no DB writes.
+// V3.2.100: the deployed commit is distinct from the historic app version label.
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const release=require('../src/services/deployment-identity-v32100');
-const pkg=require('../package.json');
 const sha='c20a4cf89bdc44e5b5123f0a2e4f36107a95cfd8';
 
-test('version derives from the release package, not stale hardcoded server strings',()=>{
- assert.equal(pkg.version,'3.2.100');
- assert.deepEqual(release.releaseInfo({SOURCE_COMMIT:sha}),{version:'3.2.100',commit:sha,commitKnown:true});
- const source=fs.readFileSync('server.js','utf8');
- assert.match(source,/APP_VERSION=require\('\.\/package\.json'\)\.version/);
- assert.doesNotMatch(source,/APP_VERSION='3\.2\.77'/);
- assert.match(source,/app\.get\('\/api\/health'/);
- assert.match(source,/deployedCommit:releaseInfo\(\)\.commit/);
- assert.match(source,/app\.get\('\/api\/public-config'/);
+test('Coolify SOURCE_COMMIT is the only trusted source of deployed SHA',()=>{
+ const output=release.releaseInfo({SOURCE_COMMIT:sha});
+ assert.equal(output.commit,sha);
+ assert.equal(output.commitKnown,true);
+ assert.equal(output.version,require('../package.json').version);
+ assert.equal(release.deployedCommit({SOURCE_COMMIT:' '+sha.toUpperCase()+'\\n'}),null);
+ assert.equal(release.deployedCommit({SOURCE_COMMIT:' '+sha.toUpperCase()+'\n'}),sha);
 });
-test('missing or unrecognized SOURCE_COMMIT is explicitly unknown, never guessed',()=>{
- for(const input of [{}, {SOURCE_COMMIT:''},{SOURCE_COMMIT:'main'},{SOURCE_COMMIT:'abc123'},
-  {SOURCE_COMMIT:'x'.repeat(40)},{SOURCE_COMMIT:'a'.repeat(41)},
-  {SOURCE_COMMIT:'a'.repeat(39)+'/'},{SOURCE_COMMIT:'http://example.test'}]){
-  assert.deepEqual(release.releaseInfo(input),{version:'3.2.100',commit:null,commitKnown:false});
+test('missing or invalid deployed SHA is reported unknown and never guessed',()=>{
+ for(const value of ['', 'main','abc123','x'.repeat(40),'a'.repeat(41),'https://example.test']){
+  const output=release.releaseInfo({SOURCE_COMMIT:value});
+  assert.equal(output.commit,null);
+  assert.equal(output.commitKnown,false);
  }
+ assert.equal(release.deployedCommit({}),null);
 });
-test('valid Coolify 40-character hexadecimal SHA is normalized safely',()=>{
- assert.equal(release.deployedCommit({SOURCE_COMMIT:'  '+sha.toUpperCase()+'\n'}),sha);
- assert.equal(release.deployedCommit({SOURCE_COMMIT:sha}),sha);
+test('health and public config expose validated SHA without changing legacy APP_VERSION',()=>{
+ const server=fs.readFileSync('server.js','utf8');
+ assert.match(server,/const APP_VERSION='3\\.2\\.77'/);
+ assert.match(server,/deployedCommit:releaseInfo\\(\\)\\.commit/);
+ assert.match(server,/app\\.get\\('\\/api\\/health'/);
+ assert.match(server,/app\\.get\\('\\/api\\/public-config'/);
 });
-test('only public release identity is exposed; no env secrets or internal Coolify metadata',()=>{
- const result=release.releaseInfo({SOURCE_COMMIT:sha,STRIPE_TEST_SECRET_KEY:'sk_test_SECRET',
-  DATABASE_URL:'postgres://secret',JWT_SECRET:'hidden',
-  COOLIFY_RESOURCE_UUID:'private-uuid'});
+test('release identity contains no credentials or internal Coolify identifiers',()=>{
+ const result=release.releaseInfo({SOURCE_COMMIT:sha,DATABASE_URL:'private-db',JWT_SECRET:'private-jwt',
+  STRIPE_TEST_SECRET_KEY:'private-stripe',COOLIFY_RESOURCE_UUID:'private-uuid'});
  assert.deepEqual(Object.keys(result).sort(),['commit','commitKnown','version']);
- const serialized=JSON.stringify(result);
- for(const value of ['sk_test_SECRET','postgres://secret','hidden','private-uuid'])
-  assert.equal(serialized.includes(value),false);
+ const output=JSON.stringify(result);
+ for(const secret of ['private-db','private-jwt','private-stripe','private-uuid'])
+  assert.equal(output.includes(secret),false);
 });
-test('deployment identity remains read-only and does not affect Marketplace purchases or subscriptions',()=>{
- const service=fs.readFileSync('src/services/deployment-identity-v32100.js','utf8');
- assert.doesNotMatch(service,/INSERT INTO|UPDATE marketplace_|DELETE FROM|fetch\(|stripeRequest\(|process\.env\.[A-Z_]+\s*=/);
- assert.equal(release.releaseInfo({SOURCE_COMMIT:sha}).commitKnown,true);
+test('deployment fingerprint is read-only and cannot affect billing or seller data',()=>{
+ const source=fs.readFileSync('src/services/deployment-identity-v32100.js','utf8');
+ assert.doesNotMatch(source,/UPDATE marketplace_|INSERT INTO|DELETE FROM|stripeRequest\\(|fetch\\(|process\\.env\\.[A-Z_]+\\s*=/);
 });

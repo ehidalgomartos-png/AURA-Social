@@ -100,4 +100,6 @@ test('versioned public script, mobile style, main release and existing protected
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-category-filter-v3274\.js\?v=3\.2\.75/);
  assert.match(read('public/marketplace-seo-v3251.css'),/market-category-help-v3273/);
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/data-market-community-share-v3273 hidden/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
 });

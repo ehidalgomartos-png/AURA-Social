@@ -63,5 +63,5 @@ test('V3.2.64 mobile seller dashboard is private and text-safe',()=>{
  assert.doesNotMatch(dashboard,/innerHTML/);
  assert.match(read('server.js'),/app.get\('\/marketplace\/google'/);
  assert.match(read('public/marketplace-google-v3264.html'),/noindex,nofollow/);
- // Release identity has its own regression suite; keep this test focused on the Marketplace.
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
 });

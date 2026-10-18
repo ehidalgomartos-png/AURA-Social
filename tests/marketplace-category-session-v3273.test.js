@@ -51,4 +51,6 @@ test('logged-in active user sees voluntary action only after authenticated fetch
 test('cache keys, release metadata and hidden CSS remain aligned',()=>{
  assert.match(read('public/marketplace-seo-v3251.css'),/market-community-link-v3269\[hidden\]\{display:none!important\}/);
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-share-v3254\.js\?v=3\.2\.75/);
+ assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
+ assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
 });

@@ -44,5 +44,7 @@ test('Marketplace async responses cannot overwrite a newer tab',()=>{
 });
 test('Client bundle cache is invalidated for V3.2.64.3 and release version matches',()=>{
  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.77\.3/);
+ assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version,'3.2.77');
+ assert.match(fs.readFileSync('server.js','utf8'),/APP_VERSION='3\.2\.77'/);
  assert.doesNotThrow(()=>new vm.Script(src));
 });
