@@ -80,6 +80,8 @@ jobs:
         run: npm run test:deployment-identity
       - name: V3.2.101 read-only production verification safety regressions
         run: npm run test:production-deploy-verification
+      - name: V3.2.102 Stripe TEST safe reenrollment and history audit
+        run: npm run test:marketplace-stripe-reenrollment
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -324,3 +326,35 @@ jobs:
         run: npm run test:notifications
       - name: V3.2.40 mobile push preferences layout and account safety
         run: npm run test:push-settings-mobile
+
+  stripe-test-postgres:
+    name: Stripe TEST canceled-to-new-Plus PostgreSQL 18
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci_test
+          POSTGRES_PASSWORD: ci_test
+          POSTGRES_DB: redlibertad_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_test -d redlibertad_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      STRIPE_REENROLL_CI_DATABASE_URL: postgresql://ci_test:ci_test@127.0.0.1:5432/redlibertad_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies without lifecycle scripts
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Verify TEST reenrollment and old-webhook protection against real PostgreSQL
+        run: node --test tests/marketplace-stripe-reenrollment-postgres-v32102.test.js

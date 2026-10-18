@@ -59,6 +59,7 @@ test('checkout uses only approved server-side TEST price and creates no real sub
  const query=async(sql,args=[])=>{
   calls.push({sql,args});
   if(sql.startsWith('SELECT subscription_id'))return {rowCount:0,rows:[]};
+  if(sql.startsWith('SELECT 1 FROM marketplace_stripe_test_checkouts'))return {rowCount:0,rows:[]};
   return {rowCount:1,rows:[]};
  };
  let request;

@@ -15,17 +15,18 @@ router.use((_req,res,next)=>{
 });
 router.get('/status',wrap(async(req,res)=>{
  const c=billing.config();
- let sandboxSubscription=null,events=[],checkouts=[];
+ let sandboxSubscription=null,events=[],checkouts=[],history=[];
  if(c.readyForCheckout){
   await billing.ensureSchema();
-  const [sub,ev,cs]=await Promise.all([
+  const [sub,ev,cs,archived]=await Promise.all([
    db.query('SELECT plan_code,stripe_status,period_ends_at,cancel_at_period_end,cancel_at,updated_at FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[req.user.id]),
    db.query('SELECT event_type,applied,created_at FROM marketplace_stripe_test_events WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 20',[req.user.id]),
-   db.query('SELECT plan_code,status,created_at FROM marketplace_stripe_test_checkouts WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 10',[req.user.id])
+   db.query('SELECT plan_code,status,created_at FROM marketplace_stripe_test_checkouts WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 10',[req.user.id]),
+   db.query('SELECT plan_code,stripe_status,archived_at FROM marketplace_stripe_test_subscription_history WHERE seller_id=$1 ORDER BY archived_at DESC LIMIT 10',[req.user.id])
   ]);
-  sandboxSubscription=sub.rows[0]||null;events=ev.rows;checkouts=cs.rows;
+  sandboxSubscription=sub.rows[0]||null;events=ev.rows;checkouts=cs.rows;history=archived.rows;
  }
- res.json({...billing.publicStatus(c),subscription:sandboxSubscription,events,checkouts,
+ res.json({...billing.publicStatus(c),subscription:sandboxSubscription,events,checkouts,history,
   note:'El laboratorio solo acepta claves sk_test y eventos livemode=false. No modifica planes profesionales reales.'});
 }));
 const limiter=rateLimit({windowMs:60*60*1000,max:6,standardHeaders:true,legacyHeaders:false,

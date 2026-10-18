@@ -8,6 +8,10 @@ on:
       - 'scripts/verify-production-deploy-v32101.js'
       - 'tests/production-deploy-verification-v32101.test.js'
       - '.github/workflows/production-readonly-verification-v32101.yml'
+      - 'src/services/marketplace-stripe-test-v3280.js'
+      - 'src/routes/marketplace-stripe-test-v3280.js'
+      - 'public/marketplace-stripe-test-v3280.js'
+      - 'src/views/marketplace-stripe-test-v3280.html'
       - 'src/services/deployment-identity-v32100.js'
       - 'server.js'
 

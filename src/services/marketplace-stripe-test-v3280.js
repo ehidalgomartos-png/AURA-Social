@@ -42,7 +42,21 @@ const DDL=[
    applied BOOLEAN NOT NULL DEFAULT false,
    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
  )`,
- 'CREATE INDEX IF NOT EXISTS idx_stripe_test_events_seller ON marketplace_stripe_test_events(seller_id,created_at DESC)'
+ 'CREATE INDEX IF NOT EXISTS idx_stripe_test_events_seller ON marketplace_stripe_test_events(seller_id,created_at DESC)',
+ `CREATE TABLE IF NOT EXISTS marketplace_stripe_test_subscription_history (
+   seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   plan_code TEXT NOT NULL CHECK(plan_code IN ('professional','professional_plus')),
+   customer_id TEXT NOT NULL,
+   subscription_id TEXT NOT NULL,
+   stripe_status TEXT NOT NULL,
+   period_ends_at TIMESTAMPTZ,
+   cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+   cancel_at TIMESTAMPTZ,
+   last_event_created BIGINT NOT NULL DEFAULT 0,
+   archived_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   PRIMARY KEY(seller_id,subscription_id)
+ )`,
+ 'CREATE INDEX IF NOT EXISTS idx_stripe_test_history_seller ON marketplace_stripe_test_subscription_history(seller_id,archived_at DESC)'
 ];
 let ready=null;
 function ensureSchema(){
@@ -120,8 +134,39 @@ function validStripeUrl(value,kind){
 }
 async function createTestCheckout({sellerId,planCode,env=process.env,query=db.query,request=stripeRequest}){
  const c=config(env),price=validatePlan(planCode,c);
- const existing=await query('SELECT subscription_id FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[sellerId]);
- if(existing.rowCount)throw Object.assign(new Error('test_subscription_exists_use_portal'),{status:409});
+ const existing=await query(
+  'SELECT subscription_id,stripe_status,plan_code,customer_id FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[sellerId]);
+ // A scheduled cancellation is still active; only a completed cancellation
+ // authorizes starting another TEST subscription.
+ if(existing.rowCount&&existing.rows[0].stripe_status!=='canceled')
+  throw Object.assign(new Error('test_subscription_exists_use_portal'),{status:409});
+ if(existing.rowCount){
+  const prior=existing.rows[0];
+  if(!await hasVerifiedTestCheckout({sellerId,planCode:prior.plan_code,
+   customerId:prior.customer_id,subscriptionId:prior.subscription_id,query}))
+   throw Object.assign(new Error('stripe_test_checkout_not_verified'),{status:409});
+ }
+ // Do not create multiple simultaneously payable Stripe TEST Checkout sessions.
+ // Unfinished sessions are still usable for 24 hours and must expire first.
+ const pending=await query(
+  `SELECT 1 FROM marketplace_stripe_test_checkouts
+   WHERE seller_id=$1 AND status='created'
+     AND created_at > now() - interval '24 hours' LIMIT 1`,[sellerId]);
+ if(pending.rowCount)
+  throw Object.assign(new Error('stripe_test_checkout_pending'),{status:409});
+ if(existing.rowCount){
+  // Archive the canceled sandbox row before a new Checkout can replace it.
+  // All earlier signed events and Checkout attempts remain immutable.
+  await query(
+   `INSERT INTO marketplace_stripe_test_subscription_history
+    (seller_id,plan_code,customer_id,subscription_id,stripe_status,
+     period_ends_at,cancel_at_period_end,cancel_at,last_event_created)
+    SELECT seller_id,plan_code,customer_id,subscription_id,stripe_status,
+     period_ends_at,cancel_at_period_end,cancel_at,last_event_created
+    FROM marketplace_stripe_test_subscriptions
+    WHERE seller_id=$1 AND stripe_status='canceled'
+    ON CONFLICT(seller_id,subscription_id) DO NOTHING`,[sellerId]);
+ }
  const checkout=await request('/v1/checkout/sessions',{
   mode:'subscription',
   // Stripe may enable Managed Payments by default on new accounts; opt out on
@@ -313,12 +358,32 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
          subscription_id=EXCLUDED.subscription_id,stripe_status=EXCLUDED.stripe_status,
          period_ends_at=EXCLUDED.period_ends_at,cancel_at_period_end=EXCLUDED.cancel_at_period_end,
          cancel_at=EXCLUDED.cancel_at,last_event_created=EXCLUDED.last_event_created,updated_at=now()
-        -- Do not silently replace an already attached Stripe TEST subscription
-        -- or customer with another pair for the same seller. New subscriptions
-        -- require a separate, explicit sandbox reconciliation workflow.
-        WHERE marketplace_stripe_test_subscriptions.subscription_id = EXCLUDED.subscription_id
+        -- A terminally canceled subscription cannot be resurrected by late
+        -- events. A different TEST identity can replace it only via a newer,
+        -- completed, locally verified Checkout with a newer Stripe event.
+        WHERE (
+         (marketplace_stripe_test_subscriptions.subscription_id = EXCLUDED.subscription_id
           AND marketplace_stripe_test_subscriptions.customer_id = EXCLUDED.customer_id
-          AND marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created
+          AND marketplace_stripe_test_subscriptions.stripe_status <> 'canceled'
+          AND marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created)
+         OR
+         (marketplace_stripe_test_subscriptions.stripe_status = 'canceled'
+          AND marketplace_stripe_test_subscriptions.subscription_id <> EXCLUDED.subscription_id
+          AND marketplace_stripe_test_subscriptions.last_event_created <= EXCLUDED.last_event_created
+          AND EXISTS (
+           SELECT 1 FROM marketplace_stripe_test_checkouts newer
+           WHERE newer.seller_id=EXCLUDED.seller_id
+             AND newer.plan_code=EXCLUDED.plan_code
+             AND newer.subscription_id=EXCLUDED.subscription_id
+             AND newer.customer_id=EXCLUDED.customer_id
+             AND newer.status='completed'
+             AND newer.created_at > COALESCE((
+              SELECT MAX(older.created_at) FROM marketplace_stripe_test_checkouts older
+              WHERE older.seller_id=marketplace_stripe_test_subscriptions.seller_id
+                AND older.subscription_id=marketplace_stripe_test_subscriptions.subscription_id
+             ),'epoch'::timestamptz)
+          ))
+        )
         RETURNING seller_id`,
        [info.sellerId,info.planCode,info.customerId,info.subscriptionId,
         info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,timestamp]);

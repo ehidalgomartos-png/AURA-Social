@@ -19,23 +19,32 @@ function fill(data){
  $('statusDetail').textContent=on?'Preparado para pruebas exclusivamente con claves de test.':'Pendiente de configurar el laboratorio de pruebas.';
  $('productionNote').textContent='Cobros reales: desactivados. Restricciones del Marketplace: desactivadas.';
  $('notice').textContent=on?'Modo de pruebas disponible':'El laboratorio está cerrado hasta que el administrador configure las variables TEST en Coolify.';
- $('checkout').disabled=false;$('portal').hidden=!data.subscription;
+ const canceled=data.subscription?.stripe_status==='canceled';
+ $('checkout').disabled=false;$('portal').hidden=!data.subscription||canceled;
  $('sync').hidden=!data.subscription;
  const select=$('testPlan');select.replaceChildren(...(data.plans||[]).map(plan=>{
   const option=elem('option',labels[plan.code]||plan.code);
   option.value=plan.code;option.disabled=!plan.configured;return option;
  }));
  const first=(data.plans||[]).find(p=>p.configured);if(first)select.value=first.code;
- $('checkout').disabled=!!data.subscription||!first;
+ $('checkout').disabled=(!!data.subscription&&!canceled)||!first;
+ $('checkout').textContent=canceled?'Nueva simulación Stripe TEST ↗':'Abrir Stripe Checkout de prueba ↗';
  const current=$('current');current.replaceChildren();
  if(data.subscription){
   current.append(elem('p','Plan: '+(labels[data.subscription.plan_code]||data.subscription.plan_code)));
   current.append(elem('p','Estado de Stripe TEST: '+data.subscription.stripe_status));
-  if(data.subscription.period_ends_at)current.append(elem('p','Período hasta: '+when(data.subscription.period_ends_at)));
-  const scheduled=data.subscription.cancel_at_period_end===true;
-  const end=data.subscription.cancel_at||data.subscription.period_ends_at;
-  current.append(elem('p',scheduled?'Cancelación de test programada'+(end?' para '+when(end):''):'Sin cancelación de test programada'));
+  if(canceled){
+   current.append(elem('p','Suscripción TEST cancelada definitivamente. Puedes iniciar otra simulación sin modificar la anterior.'));
+  }else{
+   if(data.subscription.period_ends_at)current.append(elem('p','Período hasta: '+when(data.subscription.period_ends_at)));
+   const scheduled=data.subscription.cancel_at_period_end===true;
+   const end=data.subscription.cancel_at||data.subscription.period_ends_at;
+   current.append(elem('p',scheduled?'Cancelación de test programada'+(end?' para '+when(end):''):'Sin cancelación de test programada'));
+  }
  }else current.append(elem('p','Todavía no hay suscripción de prueba para esta cuenta.','muted'));
+ const archived=$('archives');archived.replaceChildren(...(data.history||[]).map(x=>elem('div',
+  (labels[x.plan_code]||x.plan_code)+' · '+x.stripe_status+' · Archivada '+when(x.archived_at),'entry')));
+ if(!(data.history||[]).length)archived.append(elem('p','Sin simulaciones anteriores archivadas.','muted'));
  const attempts=$('checkouts');attempts.replaceChildren(...(data.checkouts||[]).map(x=>elem('div',
   (labels[x.plan_code]||x.plan_code)+' · '+(stateLabels[x.status]||x.status)+' · '+when(x.created_at),'entry')));
  if(!(data.checkouts||[]).length)attempts.append(elem('p','Sin intentos todavía.','muted'));
