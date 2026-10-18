@@ -90,7 +90,7 @@ test('checkout uses only approved server-side TEST price and creates no real sub
   connect:connection(async()=>({rowCount:1,rows:[{subscription_id:'sub_123'}]})),request:async()=>{throw Error('must not call');}
  }),{message:'test_subscription_exists_use_portal'});
  await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional',env:testEnv,
-  query,request:async()=>({livemode:true,id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/example'})
+  connect:connection(query),request:async()=>({livemode:true,id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/example'})
  }),{message:'invalid_stripe_test_session'});
 });
 test('portal can only use the authenticated admin TEST customer, not caller selected customer',async()=>{
