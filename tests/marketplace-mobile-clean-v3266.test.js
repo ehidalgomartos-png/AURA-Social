@@ -7,9 +7,9 @@ const source=read('src/routes/marketplace-seo-v3251.js');
 const publicCss=read('public/marketplace-seo-v3251.css');
 const authPage=read('public/marketplace.html');
 const retire=read('public/marketplace-pwa-retire-v3266.js');
-test('V3.2.75 is consistently declared in package, health and HTML caches',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
+test('Marketplace cache versions stay stable while runtime release follows package version',()=>{
+ assert.match(JSON.parse(read('package.json')).version,/^3\\.2\\.\\d+$/);
+ assert.match(read('server.js'),/APP_VERSION=require\\('\\.\\/package\\.json'\\)\\.version/);
  assert.match(authPage,/marketplace-v3250\.css\?v=3\.2\.77\.2/);
  assert.match(source,/marketplace-seo-v3251\.css\?v=3\.2\.77\.8/);
 });
