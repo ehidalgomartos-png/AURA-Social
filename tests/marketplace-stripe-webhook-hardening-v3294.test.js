@@ -40,10 +40,18 @@ function harness(){
     const record=db.sessions.get(args[0]);if(!record)return {rowCount:0,rows:[]};
     if(record.status!=='created'&&!(args[1]==='completed'&&record.status==='expired'))
      return {rowCount:0,rows:[]};
-    record.status=args[1];return {rowCount:1,rows:[{seller_id:record.seller_id}]};
+    record.status=args[1];
+    if(args[1]==='completed'){record.customer_id=args[2];record.subscription_id=args[3];}
+    return {rowCount:1,rows:[{seller_id:record.seller_id}]};
    }
-   if(line.startsWith('SELECT 1 FROM marketplace_stripe_test_checkouts'))
-    return {rowCount:1,rows:[{'?column?':1}]};
+   if(line.startsWith('SELECT 1 FROM marketplace_stripe_test_checkouts')){
+    const row=db.sessions.get('cs_test_ABC123');
+    const match=line.includes("status='completed'")?
+     row.status==='completed'&&row.seller_id===Number(args[0])&&
+     args[1]==='professional'&&row.customer_id===args[2]&&row.subscription_id===args[3]:
+     row.status!=='completed';
+    return {rowCount:match?1:0,rows:match?[{'?column?':1}]:[]};
+   }
    if(line.startsWith('INSERT INTO marketplace_stripe_test_subscriptions')){
     assert.match(line,/subscription_id = EXCLUDED.subscription_id/);
     assert.match(line,/customer_id = EXCLUDED.customer_id/);
@@ -92,6 +100,7 @@ test('a late completed webhook can supersede earlier expired delivery, once',asy
 });
 test('TEST subscription cannot silently change its Stripe subscription or customer ID',async()=>{
  const h=harness();
+ assert.deepEqual(await billing.recordTestEvent(checkoutEvent('evt_SESSION','checkout.session.completed'),h.opts),{ok:true,applied:true});
  const first=await billing.recordTestEvent(subscriptionEvent('evt_INITIAL',1800000000),h.opts);
  assert.deepEqual(first,{ok:true,applied:true});
  assert.equal(h.db.subscription.subscription,'sub_TEST123');
@@ -110,7 +119,7 @@ test('TEST subscription cannot silently change its Stripe subscription or custom
  const delayed=await billing.recordTestEvent(subscriptionEvent('evt_DELAYED',1800000100),h.opts);
  assert.deepEqual(delayed,{ok:true,applied:false});
  assert.equal(h.db.subscription.status,'past_due');
- assert.equal(h.db.released,5);
+ assert.equal(h.db.released,6);
 });
 test('unknown sessions and mismatched Stripe price cannot mutate a TEST checkout or subscription',async()=>{
  const h=harness();
