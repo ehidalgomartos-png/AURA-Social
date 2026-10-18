@@ -84,7 +84,7 @@ function proposal(entry){
   }catch(err){feedback.className='status error';feedback.textContent=err.message;}
   finally{save.disabled=false;}
  });
- view.fold.append(form);return view.fold;
+ view.fold.setAttribute('data-plan',entry.code); view.fold.append(form);return view.fold;
 }
 function checklist(entry,plansData){
  const view=folded(entry.name,entry.detail,reviewLabels[entry.status]||'Pendiente');
@@ -108,7 +108,7 @@ function checklist(entry,plansData){
   }catch(err){feedback.className='status error';feedback.textContent=err.message;}
   finally{save.disabled=false;}
  });
- view.fold.append(form);return view.fold;
+ view.fold.setAttribute('data-review',entry.code); view.fold.append(form);return view.fold;
 }
 async function load(){
  try{

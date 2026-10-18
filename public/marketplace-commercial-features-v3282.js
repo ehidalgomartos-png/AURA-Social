@@ -120,6 +120,7 @@ function planForm(plan){
   }catch(error){feedback.className='status error';feedback.textContent=error.message;}
   finally{action.disabled=false;}
  });
+ section.setAttribute('data-plan',plan.code);
  section.append(heading,form);
  return section;
 }

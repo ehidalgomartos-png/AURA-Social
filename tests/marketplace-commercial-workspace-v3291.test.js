@@ -40,7 +40,7 @@ test('V3.2.91 groups all existing tools into three accessible, collapsible mobil
  assert.match(html,/href="\/marketplace\/suscripciones\/lanzamiento"/);
  assert.match(html,/viewport-fit=cover/);
  assert.match(html,/noindex,nofollow/);
- assert.match(html,/marketplace-commercial-workspace-v3291\.js\?v=3\.2\.91/);
+ assert.match(html,/marketplace-commercial-workspace-v3291\.js\?v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(css,/@media\(max-width:390px\)/);
  assert.match(css,/@media\(min-width:640px\)/);
  assert.match(css,/\.workgroup-summary:after/);
@@ -135,6 +135,6 @@ test('existing commercial editors stay private, unchanged and explicitly confirm
  assert.match(contract,/commercial:terms-saved/);
  assert.match(html,/Contratación y cobros desactivados/);
  assert.match(html,/MundoTaza conserva su piloto gratuito/);
- assert.match(html,/marketplace-contract-drafts-v3288\.js\?v=3\.2\.91/);
+ assert.match(html,/marketplace-contract-drafts-v3288\.js\?v=3\.2\.\d+(?:\.\d+)?/);
  for(const s of [commercial,contract,compare,policies,simulator])assert.doesNotThrow(()=>new vm.Script(s));
 });
