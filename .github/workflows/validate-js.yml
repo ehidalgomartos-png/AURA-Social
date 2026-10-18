@@ -82,6 +82,8 @@ jobs:
         run: npm run test:production-deploy-verification
       - name: V3.2.102 Stripe TEST safe reenrollment and history audit
         run: npm run test:marketplace-stripe-reenrollment
+      - name: V3.2.103 private inclusive plan audience and legal/tax approval gates
+        run: npm run test:marketplace-commercial-audience
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
