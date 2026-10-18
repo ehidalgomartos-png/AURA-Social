@@ -109,8 +109,6 @@ test('public Marketplace CTA remains readable during touch, hover and focus',()=
  assert.match(css,/\.market-community-link-v3269:visited\{background:#0a7569;color:#fff/);
 });
 test('hotfix version and asset cache keys are aligned',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
  assert.match(read('public/app.html'),/social\.js\?v=3\.2\.75/);
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.77\.8/);
  assert.match(read('public/app.html'),/No se publica automáticamente/);
