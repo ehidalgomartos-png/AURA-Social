@@ -61,7 +61,8 @@ test('private mobile-first preview renders only pending reviews and has no check
  const routes=fs.readFileSync('src/routes/marketplace-subscription-commercial-v3281.js','utf8');
  assert.match(html,/viewport-fit=cover/);
  assert.match(html,/id="audiencePreview"/);
- assert.match(html,/marketplace-launch-readiness-v3289.js\?v=3\.2\.103/);
+ // Cache revision can advance independently without changing the audience policy.
+ assert.match(html,/marketplace-launch-readiness-v3289.js\?v=3\.2\.\d+/);
  assert.match(html,/Contratar \(no disponible\)/);
  assert.match(ui,/audience\.customerTypes/);
  assert.match(ui,/audience\.legalAndTaxReviews/);

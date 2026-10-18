@@ -73,6 +73,16 @@
   audience.legalAndTaxReviews.forEach(item=>tasks.append(el('li',item.label+' · pendiente de aprobación')));
   const warning=el('p','No se han aprobado precios, impuestos, contratos ni cobros reales. Las compras de productos continúan en la web del vendedor.','hint');
   preview.replaceChildren(people,contexts,heading,tasks,warning);
+  const geo=audience.geography;
+  const location=$('countryScopePreview');
+  const regions=el('ul',undefined,'features');
+  geo.taxTerritories.forEach(area=>regions.append(el('li',area.label+' · régimen fiscal pendiente de revisión; sin tipo impositivo aprobado')));
+  location.replaceChildren(
+   el('p','País propuesto para las suscripciones iniciales: '+geo.launchCountryName+' ('+geo.launchCountryCode+').','hint'),
+   el('p','Península, Baleares, Canarias, Ceuta y Melilla están dentro del alcance geográfico. La fiscalidad no es la misma en todos ellos.','hint'),
+   regions,
+   el('p','Sin comprobación por IP ni restricción de acceso al Marketplace. En un futuro Checkout de pago habrá que verificar país y datos de facturación antes de cobrar.','hint')
+  );
   $('taskCount').textContent=result.summary.outstanding;
   $('launchPlans').replaceChildren(...result.plans.map(card));
   $('reviewTasks').replaceChildren(...result.reviewChecklist.map(entry=>{
@@ -103,6 +113,14 @@
       item.audience?.consumerStatusNotInferredFromAccountType!==true||
       item.audience?.billingEnabled!==false||item.audience?.liveStripeEnabled!==false||
       item.audience?.publicEnrollmentEnabled!==false||
+      item.audience?.geography?.launchCountryCode!=='ES'||
+      item.audience?.geography?.initiallyEligibleBillingCountryCodes?.length!==1||
+      item.audience.geography.initiallyEligibleBillingCountryCodes[0]!=='ES'||
+      item.audience?.geography?.taxationReviewed!==false||
+      item.audience?.geography?.noUniversalVatRate!==true||
+      item.audience?.geography?.appliesToPaidSubscriptionsOnly!==true||
+      item.audience?.geography?.doesNotRestrictMarketplaceBrowse!==true||
+      item.audience?.geography?.doesNotRestrictExternalSellerCheckout!==true||
       !Array.isArray(item.audience?.customerTypes)||item.audience.customerTypes.length!==3||
       !Array.isArray(item.audience?.legalAndTaxReviews))
     throw Error('Estado de seguridad inesperado; vista previa desactivada.');
