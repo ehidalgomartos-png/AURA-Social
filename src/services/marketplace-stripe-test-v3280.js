@@ -229,21 +229,32 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
   if(!dedupe.rowCount){await client.query('COMMIT');transaction=false;return {ok:true,duplicate:true};}
   let sellerId=null,applied=false;
   if(event.type==='checkout.session.completed'||event.type==='checkout.session.expired'){
-   // Never use arbitrary client metadata to attach a completed checkout.
-   if(/^cs_test_[A-Za-z0-9_]+$/.test(object.id||'')&&object.livemode===false){
+   // V3.2.95: only a genuine TEST subscription-mode completion can attach
+   // the Stripe customer/subscription pair. Expiration must never write IDs.
+   const completed=event.type==='checkout.session.completed';
+   const validCompletion=object.mode==='subscription'&&
+    typeof object.customer==='string'&&/^cus_[A-Za-z0-9_]+$/.test(object.customer)&&
+    typeof object.subscription==='string'&&/^sub_[A-Za-z0-9_]+$/.test(object.subscription);
+   // Bind solely by the Checkout session created by this server; never trust
+   // client_reference_id or unverified metadata supplied in an event.
+   if(/^cs_test_[A-Za-z0-9_]+$/.test(object.id||'')&&object.livemode===false&&
+    (!completed||validCompletion)){
     const r=await client.query(
      `UPDATE marketplace_stripe_test_checkouts SET
-      status=$2,customer_id=COALESCE($3,customer_id),subscription_id=COALESCE($4,subscription_id),
+      status=$2,
+      customer_id=CASE WHEN $2='completed' THEN $3 ELSE customer_id END,
+      subscription_id=CASE WHEN $2='completed' THEN $4 ELSE subscription_id END,
       updated_at=now()
-      -- V3.2.94: an expired webhook arriving after completion must never
-      -- downgrade a completed TEST Checkout. A late completion may still
-      -- supersede an earlier expiration if delivery was out of order.
+      -- A late expiry cannot downgrade a completion; valid completion can
+      -- supersede expiry. Existing attached IDs may never be replaced.
       WHERE session_id=$1
         AND (status='created' OR ($2='completed' AND status='expired'))
+        AND ($2='expired' OR
+          ((customer_id IS NULL OR customer_id=$3)
+           AND (subscription_id IS NULL OR subscription_id=$4)))
       RETURNING seller_id`,
-     [object.id,event.type.endsWith('expired')?'expired':'completed',
-      typeof object.customer==='string'?object.customer:null,
-      typeof object.subscription==='string'?object.subscription:null]);
+     [object.id,completed?'completed':'expired',
+      completed?object.customer:null,completed?object.subscription:null]);
     if(r.rowCount){sellerId=r.rows[0].seller_id;applied=true;}
    }
   }else if(event.type.startsWith('customer.subscription.')){
