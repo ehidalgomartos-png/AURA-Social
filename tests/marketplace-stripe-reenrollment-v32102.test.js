@@ -8,6 +8,14 @@ const env={APP_ORIGIN:'https://redlibertad.com',STRIPE_TEST_BILLING_ENABLED:'tru
  STRIPE_TEST_SECRET_KEY:'sk_test_1234567890abcdef',STRIPE_TEST_WEBHOOK_SECRET:'whsec_1234567890abcdef',
  STRIPE_TEST_PRICE_PROFESSIONAL:'price_1234567890test',
  STRIPE_TEST_PRICE_PROFESSIONAL_PLUS:'price_abcdef9876543210'};
+const connection=query=>async()=>({
+ async query(sql,args=[]){
+  if(['BEGIN','COMMIT','ROLLBACK'].includes(sql))return {rowCount:0,rows:[]};
+  if(sql.includes('pg_try_advisory_xact_lock'))return {rowCount:1,rows:[{locked:true}]};
+  return query(sql,args);
+ },
+ release(){}
+});
 const old={plan_code:'professional',subscription_id:'sub_OLD123',customer_id:'cus_OLD123',
  stripe_status:'canceled',last_event_created:1800000000};
 function checkoutHarness({prior=old,verified=true,pending=false}={}){
@@ -39,7 +47,7 @@ function checkoutHarness({prior=old,verified=true,pending=false}={}){
 }
 test('terminally canceled and verified Professional can start Professional Plus TEST only',async()=>{
  const h=checkoutHarness();
- const v=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query:h.query,request:h.request});
+ const v=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect:connection(h.query),request:h.request});
  assert.equal(v.sandboxOnly,true);
  assert.equal(v.url,'https://checkout.stripe.com/c/pay/cs_test_PLUSNEW');
  assert.equal(h.archived.length,1);
@@ -54,26 +62,26 @@ test('terminally canceled and verified Professional can start Professional Plus 
 test('active, past_due, and pending cancellation cannot start a second TEST checkout',async()=>{
  for(const status of ['active','past_due','trialing','unpaid','incomplete']){
   const h=checkoutHarness({prior:{...old,stripe_status:status}});
-  await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query:h.query,request:h.request}),
+  await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect:connection(h.query),request:h.request}),
    {message:'test_subscription_exists_use_portal',status:409});
   assert.equal(h.archived.length,0);assert.equal(h.stripe.length,0);
  }
 });
 test('unverified canceled previous identity is rejected without archiving or contacting Stripe',async()=>{
  const h=checkoutHarness({verified:false});
- await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query:h.query,request:h.request}),
+ await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect:connection(h.query),request:h.request}),
   {message:'stripe_test_checkout_not_verified',status:409});
  assert.equal(h.archived.length,0);assert.equal(h.stripe.length,0);
 });
 test('unexpired pending checkout cannot be bypassed by creating a second TEST session',async()=>{
  const h=checkoutHarness({pending:true});
- await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query:h.query,request:h.request}),
+ await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect:connection(h.query),request:h.request}),
   {message:'stripe_test_checkout_pending',status:409});
  assert.equal(h.archived.length,0);assert.equal(h.stripe.length,0);
 });
 test('an entirely new admin can still create a first TEST subscription',async()=>{
  const h=checkoutHarness({prior:null});
- const result=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query:h.query,request:h.request});
+ const result=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect:connection(h.query),request:h.request});
  assert.equal(result.ok,true);assert.equal(h.archived.length,0);
 });
 function evt(id,type,plan,sub,customer,created,status='active'){
