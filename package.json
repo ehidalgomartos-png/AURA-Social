@@ -46,6 +46,7 @@
     "test:marketplace-billing-preflight": "node --test tests/marketplace-billing-preflight-v32105.test.js",
     "test:marketplace-invoice-issuer": "node --test tests/marketplace-invoice-issuer-v32106.test.js",
     "test:marketplace-stripe-event-order": "node --test tests/marketplace-stripe-event-order-v32107.test.js",
+    "test:marketplace-stripe-checkout-atomic": "node --test tests/marketplace-stripe-checkout-atomic-v32108.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
