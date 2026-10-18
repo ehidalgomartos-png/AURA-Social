@@ -100,10 +100,16 @@
   billing.territories.forEach(item=>territories.append(el('li',item.label+' · '+(
    item.scope==='spanish_vat_area'?'ámbito del IVA español':'fuera del ámbito del IVA español')+
    ' · tratamiento sin aprobar')));
+  const issuer=billing.invoiceIssuer;
+  const issuerHeading=el('h3','Emisor previsto de las suscripciones');
+  const issuerDescription=el('p','Persona física · autónomo en España. La identidad fiscal está pendiente de verificar. No se han registrado nombre, NIF ni domicilio.','hint');
+  const issuerTasks=el('ul',undefined,'features');
+  issuer.checklist.forEach(item=>issuerTasks.append(el('li',item.label+' · pendiente')));
   const invoiceHeading=el('h3','Antes de emitir facturas o cobrar');
   const steps=el('ul',undefined,'features');
   billing.checklist.forEach(item=>steps.append(el('li',item.label+' · pendiente')));
-  billingTarget.replaceChildren(buyerCases,territoryHeading,territories,invoiceHeading,steps,
+  billingTarget.replaceChildren(issuerHeading,issuerDescription,issuerTasks,
+   buyerCases,territoryHeading,territories,invoiceHeading,steps,
    el('p','No se recopilan datos fiscales ni se calculan impuestos desde esta vista.','hint'));
   $('taskCount').textContent=result.summary.outstanding;
   $('launchPlans').replaceChildren(...result.plans.map(card));
@@ -143,6 +149,19 @@
       item.billingPreflight?.adminOnly!==true||
       item.billingPreflight?.previewOnly!==true||
       item.billingPreflight?.countryCode!=='ES'||
+      item.billingPreflight?.invoiceIssuer?.legalForm!=='natural_person'||
+      item.billingPreflight?.invoiceIssuer?.businessStatus!=='self_employed'||
+      item.billingPreflight?.invoiceIssuer?.countryCode!=='ES'||
+      item.billingPreflight?.invoiceIssuer?.noLegalPersonCompany!==true||
+      item.billingPreflight?.invoiceIssuer?.legalIdentityVerified!==false||
+      item.billingPreflight?.invoiceIssuer?.fiscalRegistrationVerified!==false||
+      item.billingPreflight?.invoiceIssuer?.invoiceIssuerApproved!==false||
+      item.billingPreflight?.invoiceIssuer?.identityFieldsStored!==false||
+      item.billingPreflight?.invoiceIssuer?.issuerLegalName!==null||
+      item.billingPreflight?.invoiceIssuer?.issuerTaxId!==null||
+      item.billingPreflight?.invoiceIssuer?.issuerFiscalAddress!==null||
+      !Array.isArray(item.billingPreflight?.invoiceIssuer?.checklist)||
+      item.billingPreflight.invoiceIssuer.checklist.some(item=>item.approved!==false)||
       item.billingPreflight?.taxApproved!==false||
       item.billingPreflight?.legalApproved!==false||
       item.billingPreflight?.billingEnabled!==false||
