@@ -74,6 +74,8 @@ jobs:
         run: npm run test:marketplace-stripe-reconcile-identity
       - name: V3.2.98 Stripe TEST price cardinality and remote-safe reconciliation
         run: npm run test:marketplace-stripe-plan-integrity
+      - name: V3.2.99 subscription pre-LIVE safety gate
+        run: npm run test:marketplace-subscription-prelive-gate
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
