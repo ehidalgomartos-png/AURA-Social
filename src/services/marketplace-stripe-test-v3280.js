@@ -260,7 +260,11 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
   }else if(event.type.startsWith('customer.subscription.')){
    const info=subscriptionInfo(object,c);
    if(info){
-    const matches=await client.query('SELECT 1 FROM marketplace_stripe_test_checkouts WHERE seller_id=$1 AND plan_code=$2 LIMIT 1',[info.sellerId,info.planCode]);
+    const matches=await client.query(
+     `SELECT 1 FROM marketplace_stripe_test_checkouts
+      WHERE seller_id=$1 AND plan_code=$2 AND status='completed'
+        AND customer_id=$3 AND subscription_id=$4 LIMIT 1`,
+     [info.sellerId,info.planCode,info.customerId,info.subscriptionId]);
     if(matches.rowCount){
      const timestamp=Number(event.created||0);
      if(Number.isSafeInteger(timestamp)&&timestamp>0){
