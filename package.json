@@ -41,6 +41,7 @@
     "test:deployment-identity": "node --test tests/deployment-identity-v32100.test.js",
     "test:production-deploy-verification": "node --test tests/production-deploy-verification-v32101.test.js",
     "test:marketplace-stripe-reenrollment": "node --test tests/marketplace-stripe-reenrollment-v32102.test.js",
+    "test:marketplace-commercial-audience": "node --test tests/marketplace-commercial-audience-v32103.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",

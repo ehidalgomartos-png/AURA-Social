@@ -64,6 +64,15 @@
   container.replaceChildren(header,caveat,list,title,...texts,note);
  }
  function render(result){
+  const audience=result.audience;
+  const preview=$('audiencePreview');
+  const people=el('p',audience.customerTypes.map(type=>type.label).join(' · '),'hint');
+  const contexts=el('p','La contratación podrá tener finalidad personal o profesional. El tipo de cuenta no determina por sí solo si el cliente tiene derechos de consumidor.','hint');
+  const heading=el('strong','Pendiente de revisión fiscal y legal');
+  const tasks=el('ul',undefined,'features');
+  audience.legalAndTaxReviews.forEach(item=>tasks.append(el('li',item.label+' · pendiente de aprobación')));
+  const warning=el('p','No se han aprobado precios, impuestos, contratos ni cobros reales. Las compras de productos continúan en la web del vendedor.','hint');
+  preview.replaceChildren(people,contexts,heading,tasks,warning);
   $('taskCount').textContent=result.summary.outstanding;
   $('launchPlans').replaceChildren(...result.plans.map(card));
   $('reviewTasks').replaceChildren(...result.reviewChecklist.map(entry=>{
@@ -88,7 +97,14 @@
       item.productionReady!==false||item.releaseAuthorized!==false||item.billingEnabled!==false||
       item.liveStripeEnabled!==false||item.pricesPublished!==false||
       item.consentRecorded!==false||item.entitlementsEnforced!==false||
-      item.pilotProtected!==true||!Array.isArray(item.plans)||item.plans.length!==2)
+      item.pilotProtected!==true||!Array.isArray(item.plans)||item.plans.length!==2||
+      item.audience?.adminOnly!==true||item.audience?.previewOnly!==true||
+      item.audience?.sameProposedPlansForAll!==true||
+      item.audience?.consumerStatusNotInferredFromAccountType!==true||
+      item.audience?.billingEnabled!==false||item.audience?.liveStripeEnabled!==false||
+      item.audience?.publicEnrollmentEnabled!==false||
+      !Array.isArray(item.audience?.customerTypes)||item.audience.customerTypes.length!==3||
+      !Array.isArray(item.audience?.legalAndTaxReviews))
     throw Error('Estado de seguridad inesperado; vista previa desactivada.');
    data=item;render(data);
    $('loadStatus').textContent='Datos internos cargados. No existe autorización para publicar ni cobrar.';
