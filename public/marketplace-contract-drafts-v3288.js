@@ -115,6 +115,7 @@
     const oldOpen=details.open;
     const result=await api('');
     render(result.drafts);
+    if(typeof window.dispatchEvent==='function')window.dispatchEvent(new Event('commercial:terms-saved'));
     const newDetail=[...$('contractDraftList').children].find(x=>x.dataset.code===draft.code);
     if(newDetail)newDetail.open=oldOpen;
     $('contractDraftLoading').textContent=saved.changed?'Revisión privada guardada y auditada.':'Sin cambios que guardar.';

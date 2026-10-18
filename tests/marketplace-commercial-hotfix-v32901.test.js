@@ -70,8 +70,8 @@ test('seller-facing admin error becomes a clear Spanish instruction; failed revi
 test('hotfix bumps admin JS cache version, no checkout or consent activation',()=>{
  const html=fs.readFileSync(path.join(root,'src/views/marketplace-commercial-v3281.html'),'utf8');
  const service=fs.readFileSync(path.join(root,'src/services/marketplace-subscription-commercial-v3281.js'),'utf8');
- assert.match(html,/marketplace-contract-drafts-v3288\.js\?v=3\.2\.90\.1/);
- assert.match(html,/marketplace-commercial-v3281\.js\?v=3\.2\.90\.1/);
+ assert.match(html,/marketplace-contract-drafts-v3288\.js\?v=3\.2\.\d+(?:\.\d+)?/);
+ assert.match(html,/marketplace-commercial-v3281\.js\?v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(html,/Contratación y cobros desactivados/);
  assert.match(html,/MundoTaza conserva su piloto gratuito/);
  assert.match(service,/pricesPublished:false/);

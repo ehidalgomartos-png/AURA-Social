@@ -16,7 +16,12 @@ const label=(parent,title,field)=>{
  tag.append(field);parent.append(tag);
 };
 const euro=n=>Number.isInteger(n)?(n/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'})+' /mes':'Sin importe aprobado';
-const limit=(n,suffix)=>Number.isInteger(n)?n+' '+suffix:'Pendiente de definir';
+const limit=(n,suffix)=>{
+ if(!Number.isInteger(n))return 'Pendiente de definir';
+ if(suffix==='tienda(s)')return n+' '+(n===1?'tienda':'tiendas');
+ if(suffix==='producto(s)')return n+' '+(n===1?'producto':'productos');
+ return n+' '+suffix;
+};
 const booleanText=n=>n?'Sí, propuesto':'No incluido';
 async function api(url,options={}){
  const response=await fetch(base+url,{credentials:'same-origin',cache:'no-store',

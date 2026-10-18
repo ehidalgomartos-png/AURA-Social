@@ -2,13 +2,14 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d2238">
 <title>Planes profesionales · Preparación comercial · RedLibertad</title>
-<link rel="stylesheet" href="/marketplace-commercial-v3281.css?v=3.2.90.1">
-<script src="/marketplace-commercial-v3281.js?v=3.2.90.1" defer></script>
-<script src="/marketplace-commercial-features-v3282.js?v=3.2.90.1" defer></script>
-<script src="/marketplace-commercial-preview-v3284.js?v=3.2.90.1" defer></script>
-<script src="/marketplace-commercial-decisions-v3285.js?v=3.2.90.1" defer></script>
-<script src="/marketplace-commercial-unlimited-v3286.js?v=3.2.90.1" defer></script>
-<script src="/marketplace-contract-drafts-v3288.js?v=3.2.90.1" defer></script>
+<link rel="stylesheet" href="/marketplace-commercial-v3281.css?v=3.2.91">
+<script src="/marketplace-commercial-v3281.js?v=3.2.91" defer></script>
+<script src="/marketplace-commercial-features-v3282.js?v=3.2.91" defer></script>
+<script src="/marketplace-commercial-preview-v3284.js?v=3.2.91" defer></script>
+<script src="/marketplace-commercial-decisions-v3285.js?v=3.2.91" defer></script>
+<script src="/marketplace-commercial-unlimited-v3286.js?v=3.2.91" defer></script>
+<script src="/marketplace-contract-drafts-v3288.js?v=3.2.91" defer></script>
+<script src="/marketplace-commercial-workspace-v3291.js?v=3.2.91" defer></script>
 </head><body>
 <header><a href="/marketplace/suscripciones">← Suscripciones</a><strong>Preparación comercial</strong></header>
 <main>
@@ -21,11 +22,20 @@
  <div class="stat"><strong id="statReviewed">—</strong><span>Revisadas internamente</span></div>
 </div>
 <section class="notice"><strong>Contratación y cobros desactivados</strong><p>Solo borradores privados. Stripe LIVE no está habilitado y MundoTaza conserva su piloto gratuito.</p></section>
-<section class="panel" aria-labelledby="launchPreviewTitle">
-<div class="panel-top"><h2 id="launchPreviewTitle">Vista previa del lanzamiento</h2><span class="tag">Uso interno</span></div>
-<p class="section-help">Consulta las propuestas de precios, la comparación de modalidades, los textos en borrador y las decisiones pendientes antes del lanzamiento. Esta revisión no habilita contratación ni cobros.</p>
-<p><a href="/marketplace/suscripciones/lanzamiento">Abrir preparación del lanzamiento →</a></p>
-</section>
+<nav class="workspace-links" aria-label="Acceso rápido a la preparación comercial">
+ <a class="workspace-jump" href="#workgroup-plans">1. Planes y precios <span aria-hidden="true">↘</span></a>
+ <a class="workspace-jump" href="#workgroup-terms">2. Condiciones y revisiones <span aria-hidden="true">↘</span></a>
+ <a class="workspace-jump" href="#workgroup-tools">3. Herramientas y simulación <span aria-hidden="true">↘</span></a>
+</nav>
+<div class="launch-shortcut" aria-labelledby="launchPreviewTitle">
+ <div><strong id="launchPreviewTitle">Resumen del lanzamiento</strong>
+ <p id="workspaceReadiness" role="status" aria-live="polite">Consulta las decisiones pendientes. Todos los planes y condiciones siguen en borrador.</p></div>
+ <a href="/marketplace/suscripciones/lanzamiento">Ver pendientes →</a>
+</div>
+<details class="workgroup" id="workgroup-plans" open>
+ <summary class="workgroup-summary"><span class="workgroup-title">1. Planes y precios</span>
+ <span class="workgroup-hint">Importes, prestaciones y capacidad · Borradores privados</span></summary>
+ <div class="workgroup-content">
 <section class="panel"><div class="panel-top"><h2>Planes comerciales propuestos</h2><span class="muted">2 borradores privados</span></div><p class="section-help">Pulsa un plan para editar su propuesta. Sus importes nunca se publican ni modifican Stripe.</p><div id="drafts" class="fold-list"></div></section>
 <section class="panel" id="featuresPanel"><div class="panel-top"><h2>Características propuestas</h2><span class="tag">Borrador interno</span></div>
 <p class="section-help">Profesional: los productos se publican uno a uno, sin importación masiva. Plus: añade importación CSV/lotes y sincronización automática. Son propuestas internas; no limitan la actividad real.</p>
@@ -48,6 +58,25 @@
 <div id="definitionReviews" class="decision-pending"></div>
 <p id="definitionStatus" class="status" role="status" aria-live="polite"></p>
 </section>
+ </div>
+</details>
+<details class="workgroup" id="workgroup-terms">
+ <summary class="workgroup-summary"><span class="workgroup-title">2. Condiciones y revisiones</span>
+ <span class="workgroup-hint">Textos de contrato y control previo al lanzamiento</span></summary>
+ <div class="workgroup-content">
+<section class="panel" id="contractDraftWorkspace" aria-labelledby="contractDraftTitle">
+ <div class="panel-top"><h2 id="contractDraftTitle">Condiciones de contratación · Borradores privados</h2><span class="tag">Sin publicar</span></div>
+ <p class="section-help">Prepara por separado la explicación de precio, impuestos, renovaciones, cancelaciones, privacidad y consentimiento de cada plan. Guardar o revisar internamente <strong>no publica condiciones, registra aceptación ni activa Stripe LIVE</strong>.</p>
+ <p class="status" id="contractDraftLoading" role="status" aria-live="polite">Cargando borradores…</p>
+ <div id="contractDraftList" class="fold-list"></div>
+</section>
+<section class="panel"><div class="panel-top"><h2>Revisiones antes del lanzamiento</h2><span id="reviewProgress" class="muted"></span></div><p class="section-help">Abre únicamente el apartado que quieras revisar. «Revisado internamente» no autoriza cobros ni sustituye la aprobación legal o fiscal.</p><div id="reviews" class="fold-list"></div></section>
+ </div>
+</details>
+<details class="workgroup" id="workgroup-tools">
+ <summary class="workgroup-summary"><span class="workgroup-title">3. Herramientas y simulación</span>
+ <span class="workgroup-hint">Simulador de permisos y recorrido futuro del vendedor</span></summary>
+ <div class="workgroup-content">
 <section class="panel" aria-labelledby="simHeading">
 <div class="panel-top"><h2 id="simHeading">Simulador de permisos</h2><span class="tag">Solo vista previa</span></div>
 <p class="section-help">Comprueba qué permitiría cada modalidad comercial sin cambiar las tiendas, importadores o suscripciones. Piloto representa las tiendas aprobadas que mantienen las condiciones actuales.</p>
@@ -77,13 +106,6 @@
  <div id="simResult" role="status" aria-live="polite" aria-atomic="true"></div>
 </form>
 </section>
-<section class="panel" id="contractDraftWorkspace" aria-labelledby="contractDraftTitle">
- <div class="panel-top"><h2 id="contractDraftTitle">Condiciones de contratación · Borradores privados</h2><span class="tag">Sin publicar</span></div>
- <p class="section-help">Prepara por separado la explicación de precio, impuestos, renovaciones, cancelaciones, privacidad y consentimiento de cada plan. Guardar o revisar internamente <strong>no publica condiciones, registra aceptación ni activa Stripe LIVE</strong>.</p>
- <p class="status" id="contractDraftLoading" role="status" aria-live="polite">Cargando borradores…</p>
- <div id="contractDraftList" class="fold-list"></div>
-</section>
-<section class="panel"><div class="panel-top"><h2>Revisiones antes del lanzamiento</h2><span id="reviewProgress" class="muted"></span></div><p class="section-help">Abre únicamente el apartado que quieras revisar. «Revisado internamente» no autoriza cobros ni sustituye la aprobación legal o fiscal.</p><div id="reviews" class="fold-list"></div></section>
 <details class="panel flow-panel"><summary class="fold-head"><span class="fold-main"><strong>Flujo previsto para el vendedor</strong><small>Ver etapas futuras · solo diseño</small></span><span class="chevron" aria-hidden="true"></span></summary><div class="flow-content"><ol>
 <li>Consulta los planes y sus condiciones definitivas cuando estén aprobados.</li>
 <li>Selecciona su modalidad y acepta expresamente precio, renovación y condiciones.</li>
@@ -91,5 +113,7 @@
 <li>El comprador sigue pagando cada producto en la web del vendedor, sin checkout de productos en RedLibertad.</li>
 <li>El vendedor podrá consultar la renovación y cancelar desde su panel.</li>
 </ol><p class="muted">Este recorrido es únicamente de diseño; todavía no existe una contratación pública.</p></div></details>
+ </div>
+</details>
 </section>
 </main></body></html>
