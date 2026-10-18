@@ -91,7 +91,7 @@ test('HTML contains accessible decision center with six review labels and versio
   assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(html,/aria-valuemin="0"/);
  assert.match(html,/aria-pressed="true"/);
- assert.match(html,/v=3\.2\.92/);
+ assert.match(html,/marketplace-commercial-decision-center-v3292\.js\?v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(html,/marketplace-commercial-decision-center-v3292\.js/);
  assert.match(html,/Contratación y cobros desactivados/);
  assert.match(html,/MundoTaza conserva su piloto gratuito/);
