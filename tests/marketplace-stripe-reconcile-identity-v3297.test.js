@@ -28,13 +28,13 @@ function queryHarness(verified){
 const stripeObj={id:'sub_MATCH',livemode:false,customer:'cus_MATCH',status:'active',
  metadata:{sandbox:'redlibertad_v3280',seller_id:'88',plan_code:'professional'},
  items:{data:[{price:{id:env.STRIPE_TEST_PRICE_PROFESSIONAL}}]}};
-test('missing completed checkout blocks manual TEST reconciliation before UPDATE',async()=>{
+test('missing completed checkout blocks remote Stripe lookup and TEST reconciliation',async()=>{
  const h=queryHarness(false);
  let lookups=0;
  await assert.rejects(billing.reconcileTestSubscription({sellerId:88,env,query:h.query,
   fetcher:async()=>{lookups++;return {ok:true,json:async()=>stripeObj};}}),
   {message:'stripe_test_checkout_not_verified',status:409});
- assert.equal(lookups,1);
+ assert.equal(lookups,0); // unverifiable local subscription must not contact Stripe
  assert.equal(h.calls.some(x=>x.sql.startsWith('UPDATE ')),false);
 });
 test('verified completed checkout allows manual TEST reconciliation',async()=>{
