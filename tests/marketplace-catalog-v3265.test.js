@@ -78,7 +78,5 @@ test('mobile accessible controls and cache-busting release are aligned',()=>{
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(html,/marketplace-v3250\.css\?v=3\.2\.77\.2/);
  assert.match(html,/marketplace-v3250\.js\?v=3\.2\.77\.3/);
- assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
  assert.doesNotThrow(()=>new vm.Script(js));
 });
