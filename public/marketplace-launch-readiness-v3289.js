@@ -65,14 +65,14 @@
  }
  function render(result){
   const audience=result.audience;
-  const preview=$('audiencePreview');
+  const audienceContainer=$('audiencePreview');
   const people=el('p',audience.customerTypes.map(type=>type.label).join(' · '),'hint');
   const contexts=el('p','La contratación podrá tener finalidad personal o profesional. El tipo de cuenta no determina por sí solo si el cliente tiene derechos de consumidor.','hint');
   const heading=el('strong','Pendiente de revisión fiscal y legal');
   const tasks=el('ul',undefined,'features');
   audience.legalAndTaxReviews.forEach(item=>tasks.append(el('li',item.label+' · pendiente de aprobación')));
   const warning=el('p','No se han aprobado precios, impuestos, contratos ni cobros reales. Las compras de productos continúan en la web del vendedor.','hint');
-  preview.replaceChildren(people,contexts,heading,tasks,warning);
+  audienceContainer.replaceChildren(people,contexts,heading,tasks,warning);
   const geo=audience.geography;
   const location=$('countryScopePreview');
   const regions=el('ul',undefined,'features');
@@ -83,6 +83,28 @@
    regions,
    el('p','Sin comprobación por IP ni restricción de acceso al Marketplace. En un futuro Checkout de pago habrá que verificar país y datos de facturación antes de cobrar.','hint')
   );
+  const billing=result.billingPreflight;
+  const billingTarget=$('billingPreflightPreview');
+  const buyerCases=el('ul',undefined,'features');
+  billing.cases.forEach(item=>{
+   const row=el('li');
+   const detail=el('details');
+   const questions=el('ul',undefined,'features');
+   item.questions.forEach(question=>questions.append(el('li',question)));
+   detail.append(el('summary',item.label),questions);
+   row.append(detail);
+   buyerCases.append(row);
+  });
+  const territoryHeading=el('h3','Territorios españoles: fiscalidad pendiente');
+  const territories=el('ul',undefined,'features');
+  billing.territories.forEach(item=>territories.append(el('li',item.label+' · '+(
+   item.scope==='spanish_vat_area'?'ámbito del IVA español':'fuera del ámbito del IVA español')+
+   ' · tratamiento sin aprobar')));
+  const invoiceHeading=el('h3','Antes de emitir facturas o cobrar');
+  const steps=el('ul',undefined,'features');
+  billing.checklist.forEach(item=>steps.append(el('li',item.label+' · pendiente')));
+  billingTarget.replaceChildren(buyerCases,territoryHeading,territories,invoiceHeading,steps,
+   el('p','No se recopilan datos fiscales ni se calculan impuestos desde esta vista.','hint'));
   $('taskCount').textContent=result.summary.outstanding;
   $('launchPlans').replaceChildren(...result.plans.map(card));
   $('reviewTasks').replaceChildren(...result.reviewChecklist.map(entry=>{
@@ -118,6 +140,21 @@
       item.audience.geography.initiallyEligibleBillingCountryCodes[0]!=='ES'||
       item.audience?.geography?.taxationReviewed!==false||
       item.audience?.geography?.noUniversalVatRate!==true||
+      item.billingPreflight?.adminOnly!==true||
+      item.billingPreflight?.previewOnly!==true||
+      item.billingPreflight?.countryCode!=='ES'||
+      item.billingPreflight?.taxApproved!==false||
+      item.billingPreflight?.legalApproved!==false||
+      item.billingPreflight?.billingEnabled!==false||
+      item.billingPreflight?.liveStripeEnabled!==false||
+      item.billingPreflight?.invoiceGenerationEnabled!==false||
+      item.billingPreflight?.personalDataCollectionEnabled!==false||
+      item.billingPreflight?.taxRatesConfigured!==false||
+      !Array.isArray(item.billingPreflight?.cases)||
+      item.billingPreflight.cases.length!==4||
+      !Array.isArray(item.billingPreflight?.territories)||
+      item.billingPreflight.territories.length!==3||
+      !Array.isArray(item.billingPreflight?.checklist)||
       item.audience?.geography?.appliesToPaidSubscriptionsOnly!==true||
       item.audience?.geography?.doesNotRestrictMarketplaceBrowse!==true||
       item.audience?.geography?.doesNotRestrictExternalSellerCheckout!==true||
