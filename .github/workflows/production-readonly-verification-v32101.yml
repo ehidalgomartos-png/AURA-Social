@@ -1,0 +1,32 @@
+name: RedLibertad production deployment verification (read only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/verify-production-deploy-v32101.js'
+      - 'tests/production-deploy-verification-v32101.test.js'
+      - '.github/workflows/production-readonly-verification-v32101.yml'
+      - 'src/services/deployment-identity-v32100.js'
+      - 'server.js'
+
+permissions:
+  contents: read
+
+jobs:
+  production-check:
+    name: Verify deployed Git SHA and readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate checker locally without contacting production
+        run: node --test tests/production-deploy-verification-v32101.test.js
+      - name: Probe public read-only production endpoints
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: node scripts/verify-production-deploy-v32101.js
