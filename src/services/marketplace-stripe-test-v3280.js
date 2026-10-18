@@ -178,9 +178,15 @@ function subscriptionInfo(obj,c){
  if(!obj||!/^(sub_)[A-Za-z0-9_]+$/.test(obj.id||'')||!/^cus_[A-Za-z0-9_]+$/.test(obj.customer||''))return null;
  const {seller_id:sellerId,plan_code:planCode,sandbox}=obj.metadata||{};
  if(sandbox!=='redlibertad_v3280'||!/^[1-9]\d{0,15}$/.test(String(sellerId||''))||!PLANS.includes(planCode))return null;
- const price=obj.items?.data?.[0]?.price?.id;
- if(!c.prices[planCode]||price!==c.prices[planCode])return null;
- const period=Number(obj.current_period_end||obj.items?.data?.[0]?.current_period_end||0);
+ // TEST plan must be a single unit of exactly one configured recurring price.
+ // Never interpret a multi-item Stripe subscription as a single RedLibertad plan.
+ const items=obj.items?.data;
+ if(!Array.isArray(items)||items.length!==1||obj.items?.has_more===true)return null;
+ const item=items[0];
+ if(!item||item.quantity!==undefined&&item.quantity!==1)return null;
+ const price=item.price?.id;
+ if(!c.prices[planCode]||price!==c.prices[planCode]||item.price?.livemode===true)return null;
+ const period=Number(obj.current_period_end||item.current_period_end||0);
  const cancelSeconds=Number(obj.cancel_at||0);
  const cancelAt=Number.isSafeInteger(cancelSeconds)&&cancelSeconds>0?new Date(cancelSeconds*1000):null;
  const upcomingCancel=cancelAt!==null&&cancelSeconds*1000>Date.now()&&!['canceled','incomplete_expired'].includes(obj.status);
@@ -216,14 +222,15 @@ async function reconcileTestSubscription({sellerId,env=process.env,query=db.quer
   [sellerId]);
  if(!existing.rowCount)throw Object.assign(new Error('test_subscription_not_found'),{status:404});
  const record=existing.rows[0];
+ // Reject unverifiable local state BEFORE any remote Stripe request.
+ if(!await hasVerifiedTestCheckout({sellerId,planCode:record.plan_code,
+  customerId:record.customer_id,subscriptionId:record.subscription_id,query}))
+  throw Object.assign(new Error('stripe_test_checkout_not_verified'),{status:409});
  const live=await fetchCurrentTestSubscription(record.subscription_id,{env,fetcher});
  const info=subscriptionInfo(live,c);
  if(!info||String(info.sellerId)!==String(sellerId)||info.subscriptionId!==record.subscription_id||
   info.customerId!==record.customer_id||info.planCode!==record.plan_code)
   throw Object.assign(new Error('stripe_test_subscription_mismatch'),{status:409});
- if(!await hasVerifiedTestCheckout({sellerId,planCode:record.plan_code,
-  customerId:record.customer_id,subscriptionId:record.subscription_id,query}))
-  throw Object.assign(new Error('stripe_test_checkout_not_verified'),{status:409});
  const saved=await query(
   `UPDATE marketplace_stripe_test_subscriptions SET
     stripe_status=$2,period_ends_at=$3,cancel_at_period_end=$4,cancel_at=$5,updated_at=now()
