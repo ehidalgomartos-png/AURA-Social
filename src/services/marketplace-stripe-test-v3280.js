@@ -265,6 +265,16 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
       WHERE seller_id=$1 AND plan_code=$2 AND status='completed'
         AND customer_id=$3 AND subscription_id=$4 LIMIT 1`,
      [info.sellerId,info.planCode,info.customerId,info.subscriptionId]);
+    if(!matches.rowCount){
+     // Allow Stripe retries when subscription events arrive before Checkout.
+     const pending=await client.query(
+      `SELECT 1 FROM marketplace_stripe_test_checkouts
+       WHERE seller_id=$1 AND plan_code=$2 AND status IN ('created','expired')
+         AND customer_id IS NULL AND subscription_id IS NULL LIMIT 1`,
+      [info.sellerId,info.planCode]);
+     if(pending.rowCount)
+      throw Object.assign(new Error('stripe_test_checkout_pending'),{status:503});
+    }
     if(matches.rowCount){
      const timestamp=Number(event.created||0);
      if(Number.isSafeInteger(timestamp)&&timestamp>0){
