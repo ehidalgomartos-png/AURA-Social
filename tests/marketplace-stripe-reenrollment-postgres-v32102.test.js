@@ -33,7 +33,7 @@ test('PostgreSQL preserves canceled TEST history and rejects stale or resurrecti
   await query("INSERT INTO marketplace_stripe_test_checkouts (seller_id,plan_code,session_id,status,customer_id,subscription_id,created_at) VALUES(44,'professional','cs_test_OLD123','completed','cus_OLD123','sub_OLD123',now()-interval '2 days')");
   await query("INSERT INTO marketplace_stripe_test_subscriptions (seller_id,plan_code,customer_id,subscription_id,stripe_status,last_event_created) VALUES(44,'professional','cus_OLD123','sub_OLD123','canceled',1800000000)");
   let outbound=0;
-  const checkout=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query,
+  const checkout=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect,
    request:async(path,form)=>{
     outbound++;
     assert.equal(path,'/v1/checkout/sessions');
@@ -79,5 +79,50 @@ test('PostgreSQL preserves canceled TEST history and rejects stale or resurrecti
   assert.equal(events.rows.find(x=>x.event_id==='evt_SAMESECOND_UPDATE').applied,false);
   assert.equal(events.rows.find(x=>x.event_id==='evt_PLUSCANCELED').applied,true);
   assert.equal(events.rows.find(x=>x.event_id==='evt_PLUSRESURRECT').applied,false);
+ }finally{await pool.end();}
+});
+test('PostgreSQL serializes simultaneous TEST Checkouts for one seller but not other sellers',async()=>{
+ const pool=new Pool({connectionString:url,max:4,connectionTimeoutMillis:5000});
+ const query=pool.query.bind(pool),connect=()=>pool.connect();
+ try{
+  await query('INSERT INTO users(id) VALUES(45),(46) ON CONFLICT DO NOTHING');
+  let startFirst;const firstRequested=new Promise(resolve=>{startFirst=resolve;});
+  let releaseFirst;const firstResponse=new Promise(resolve=>{releaseFirst=resolve;});
+  let firstCalls=0,secondCalls=0,otherCalls=0;
+  const first=billing.createTestCheckout({sellerId:45,planCode:'professional',env,connect,
+   request:async()=>{
+    firstCalls++;startFirst();
+    return firstResponse;
+   }});
+  await firstRequested;
+  // The lock is held by the transaction that is contacting Stripe TEST.
+  await assert.rejects(
+   billing.createTestCheckout({sellerId:45,planCode:'professional_plus',env,connect,
+    request:async()=>{secondCalls++;throw Error('second outbound Stripe call forbidden');}}),
+   {message:'stripe_test_checkout_in_progress',status:409}
+  );
+  assert.equal(secondCalls,0);
+  // A different seller has a separate lock and remains usable.
+  const unrelated=await billing.createTestCheckout({sellerId:46,planCode:'professional_plus',env,connect,
+   request:async()=>{
+    otherCalls++;
+    return {livemode:false,id:'cs_test_OTHER108',url:'https://checkout.stripe.com/c/pay/cs_test_OTHER108'};
+   }});
+  assert.equal(unrelated.ok,true);
+  assert.equal(otherCalls,1);
+  releaseFirst({livemode:false,id:'cs_test_FIRST108',url:'https://checkout.stripe.com/c/pay/cs_test_FIRST108'});
+  assert.equal((await first).ok,true);
+  assert.equal(firstCalls,1);
+  const saved=await query(
+   'SELECT seller_id,plan_code,session_id FROM marketplace_stripe_test_checkouts WHERE seller_id IN (45,46) ORDER BY seller_id');
+  assert.equal(saved.rowCount,2);
+  assert.deepEqual(saved.rows.map(x=>String(x.seller_id)),['45','46']);
+  assert.equal(saved.rows[0].session_id,'cs_test_FIRST108');
+  await assert.rejects(
+   billing.createTestCheckout({sellerId:45,planCode:'professional_plus',env,connect,
+    request:async()=>{secondCalls++;throw Error('duplicate outbound call');}}),
+   {message:'stripe_test_checkout_pending',status:409}
+  );
+  assert.equal(secondCalls,0);
  }finally{await pool.end();}
 });

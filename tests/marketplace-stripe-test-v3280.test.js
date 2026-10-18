@@ -8,6 +8,14 @@ const express=require('express');
 const cookieParser=require('cookie-parser');
 const db=require('../src/db');
 const billing=require('../src/services/marketplace-stripe-test-v3280');
+const connection=query=>async()=>({
+ async query(sql,args=[]){
+  if(['BEGIN','COMMIT','ROLLBACK'].includes(sql))return {rowCount:0,rows:[]};
+  if(sql.includes('pg_try_advisory_xact_lock'))return {rowCount:1,rows:[{locked:true}]};
+  return query(sql,args);
+ },
+ release(){}
+});
 const adminRouter=require('../src/routes/marketplace-stripe-test-v3280').router;
 const hookRouter=require('../src/routes/marketplace-stripe-test-webhook-v3280').router;
 const seo=require('../src/routes/marketplace-seo-v3251').router;
@@ -63,7 +71,7 @@ test('checkout uses only approved server-side TEST price and creates no real sub
   return {rowCount:1,rows:[]};
  };
  let request;
- const checkout=await billing.createTestCheckout({sellerId:44,planCode:'professional',env:testEnv,query,
+ const checkout=await billing.createTestCheckout({sellerId:44,planCode:'professional',env:testEnv,connect:connection(query),
   request:async(endpoint,form,headers)=>{request={endpoint,form,headers};return {
    livemode:false,id:'cs_test_1234567890',url:'https://checkout.stripe.com/c/pay/cs_test_1234567890'
   };}});
@@ -79,10 +87,10 @@ test('checkout uses only approved server-side TEST price and creates no real sub
  assert.ok(calls.some(x=>x.sql.includes('INSERT INTO marketplace_stripe_test_checkouts')));
  assert.equal(calls.some(x=>x.sql.includes('marketplace_seller_subscriptions')),false);
  await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional',env:testEnv,
-  query:async()=>({rowCount:1,rows:[{subscription_id:'sub_123'}]}),request:async()=>{throw Error('must not call');}
+  connect:connection(async()=>({rowCount:1,rows:[{subscription_id:'sub_123'}]})),request:async()=>{throw Error('must not call');}
  }),{message:'test_subscription_exists_use_portal'});
  await assert.rejects(billing.createTestCheckout({sellerId:44,planCode:'professional',env:testEnv,
-  query,request:async()=>({livemode:true,id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/example'})
+  connect:connection(query),request:async()=>({livemode:true,id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/example'})
  }),{message:'invalid_stripe_test_session'});
 });
 test('portal can only use the authenticated admin TEST customer, not caller selected customer',async()=>{

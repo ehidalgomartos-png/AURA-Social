@@ -132,8 +132,22 @@ function validStripeUrl(value,kind){
    (kind==='checkout'?url.hostname==='checkout.stripe.com':url.hostname==='billing.stripe.com');
  }catch(_){return false;}
 }
-async function createTestCheckout({sellerId,planCode,env=process.env,query=db.query,request=stripeRequest}){
+async function createTestCheckout({sellerId,planCode,env=process.env,connect=()=>db.pool.connect(),request=stripeRequest}){
  const c=config(env),price=validatePlan(planCode,c);
+ if(!/^[1-9]\d{0,15}$/.test(String(sellerId||'')))
+  throw Object.assign(new Error('invalid_seller_id'),{status:400});
+ const client=await connect();
+ let begun=false;
+ try{
+  await client.query('BEGIN');begun=true;
+  // One TEST Checkout per seller, even across different server processes.
+  // Fail fast rather than holding the request waiting on a DB/Stripe transaction.
+  const lock=await client.query(
+   "SELECT pg_try_advisory_xact_lock(hashtextextended('redlibertad_stripe_test_checkout:' || $1::text,0)) AS locked",
+   [sellerId]);
+  if(lock.rows[0]?.locked!==true)
+   throw Object.assign(new Error('stripe_test_checkout_in_progress'),{status:409});
+  const query=client.query.bind(client);
  const existing=await query(
   'SELECT subscription_id,stripe_status,plan_code,customer_id FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[sellerId]);
  // A scheduled cancellation is still active; only a completed cancellation
@@ -187,9 +201,17 @@ async function createTestCheckout({sellerId,planCode,env=process.env,query=db.qu
  if(checkout.livemode!==false||!/^cs_test_[A-Za-z0-9_]+$/.test(checkout.id||'')||
    !validStripeUrl(checkout.url,'checkout'))
   throw Object.assign(new Error('invalid_stripe_test_session'),{status:502});
- await query('INSERT INTO marketplace_stripe_test_checkouts(seller_id,plan_code,session_id) VALUES($1,$2,$3) ON CONFLICT(session_id) DO NOTHING',
+ const inserted=await query(
+  'INSERT INTO marketplace_stripe_test_checkouts(seller_id,plan_code,session_id) VALUES($1,$2,$3) ON CONFLICT(session_id) DO NOTHING RETURNING session_id',
   [sellerId,planCode,checkout.id]);
+ if(inserted.rowCount!==1)
+  throw Object.assign(new Error('stripe_test_checkout_not_recorded'),{status:409});
+ await client.query('COMMIT');begun=false;
  return {ok:true,sandboxOnly:true,url:checkout.url};
+ }catch(error){
+  if(begun)try{await client.query('ROLLBACK');}catch(_){}
+  throw error;
+ }finally{client.release();}
 }
 // Shared safeguard for admin TEST Portal and manual Stripe reconciliation.
 // Older sandbox rows are not trusted until linked to a completed local Checkout.
