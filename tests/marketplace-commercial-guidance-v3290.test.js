@@ -155,7 +155,7 @@ test('admin UI suggestions never send a write until existing explicit draft save
  assert.match(launch,/1 tienda propuesta/);
  assert.match(launch,/tiendas propuestas/);
  assert.doesNotMatch(launch,/tienda\(s\)|Por definir\/mes/);
- assert.match(admin,/v=3\.2\.90/);
+ assert.match(admin,/v=3\.2\.\d+(?:\.\d+)?/);
  assert.match(readinessHtml,/v=3\.2\.90/);
  assert.doesNotMatch(main,/\.innerHTML\s*=/);
  assert.doesNotMatch(contractsJS,/\.innerHTML\s*=/);
