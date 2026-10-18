@@ -53,6 +53,33 @@ const TERRITORIES=Object.freeze([
   scope:'outside_spanish_vat_area',taxDecision:'pending_professional_review'
  })
 ]);
+// Selected operating form for the future RedLibertad subscription issuer.
+// Keep personal fiscal identifiers OFF the source code and public configuration.
+const ISSUER=Object.freeze({
+ legalForm:'natural_person',
+ businessStatus:'self_employed',
+ countryCode:'ES',
+ selectionStatus:'selected_pending_verification',
+ legalIdentityVerified:false,
+ fiscalRegistrationVerified:false,
+ invoicingSystemApproved:false,
+ stripeMerchantIdentityMatched:false,
+ invoiceIssuerApproved:false,
+ identityFieldsStored:false,
+ issuerLegalName:null,
+ issuerTaxId:null,
+ issuerFiscalAddress:null,
+ noLegalPersonCompany:true,
+ checklist:Object.freeze([
+  Object.freeze({id:'registered_identity',label:'Verificar nombre y apellidos fiscales, NIF y domicilio del emisor con documentación adecuada'}),
+  Object.freeze({id:'registration',label:'Verificar situación censal, actividad declarada y obligaciones aplicables del autónomo'}),
+  Object.freeze({id:'provider',label:'Confirmar que el titular mercantil de Stripe y el emisor de facturas son coherentes'}),
+  Object.freeze({id:'numbering',label:'Revisar series, numeración, fechas de emisión y rectificación de facturas'}),
+  Object.freeze({id:'tax_rules',label:'Aprobar el tratamiento tributario por territorio español y tipo de destinatario'}),
+  Object.freeze({id:'invoicing_tool',label:'Aprobar el programa de facturación y sus obligaciones de registro y conservación'}),
+  Object.freeze({id:'data_protection',label:'Determinar cómo se custodiarán los datos fiscales antes de solicitarlos al usuario'})
+ ])
+});
 const ITEMS=Object.freeze([
  Object.freeze({id:'issuer',label:'Identificar la entidad emisora y sus obligaciones de facturación'}),
  Object.freeze({id:'recipient',label:'Determinar los datos mínimos según finalidad de contratación y factura'}),
@@ -67,6 +94,7 @@ function preview(){
  return {
   adminOnly:true,previewOnly:true,
   countryCode:'ES',countryName:'España',
+  invoiceIssuer:{...ISSUER,checklist:ISSUER.checklist.map(item=>({...item,approved:false}))},
   customerTypes:['individual','self_employed','company'],
   cases:CASES.map(x=>({...x,questions:[...x.questions]})),
   territories:TERRITORIES.map(x=>({...x})),
@@ -80,4 +108,4 @@ function preview(){
   pilotProtected:true,productCheckoutExternal:true
  };
 }
-module.exports={CASES,TERRITORIES,ITEMS,preview};
+module.exports={CASES,TERRITORIES,ISSUER,ITEMS,preview};
