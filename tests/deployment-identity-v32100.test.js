@@ -35,7 +35,7 @@ test('only public release identity is exposed; no env secrets or internal Coolif
  assert.deepEqual(Object.keys(result).sort(),['commit','commitKnown','version']);
  const serialized=JSON.stringify(result);
  for(const value of ['sk_test_SECRET','postgres://secret','hidden','private-uuid'])
-  assert.doesNotMatch(serialized,new RegExp(value.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\$&')));
+  assert.equal(serialized.includes(value),false);
 });
 test('deployment identity remains read-only and does not affect Marketplace purchases or subscriptions',()=>{
  const service=fs.readFileSync('src/services/deployment-identity-v32100.js','utf8');
