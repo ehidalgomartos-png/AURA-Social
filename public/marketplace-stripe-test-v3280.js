@@ -22,11 +22,14 @@ function fill(data){
  const canceled=data.subscription?.stripe_status==='canceled';
  $('checkout').disabled=false;$('portal').hidden=!data.subscription||canceled;
  $('sync').hidden=!data.subscription;
- const select=$('testPlan');select.replaceChildren(...(data.plans||[]).map(plan=>{
+ const select=$('testPlan'),previous=select.value;
+ select.replaceChildren(...(data.plans||[]).map(plan=>{
   const option=elem('option',labels[plan.code]||plan.code);
   option.value=plan.code;option.disabled=!plan.configured;return option;
  }));
- const first=(data.plans||[]).find(p=>p.configured);if(first)select.value=first.code;
+ const first=(data.plans||[]).find(p=>p.configured);
+ const retained=(data.plans||[]).find(p=>p.configured&&p.code===previous);
+ if(retained||first)select.value=(retained||first).code;
  $('checkout').disabled=(!!data.subscription&&!canceled)||!first;
  $('checkout').textContent=canceled?'Nueva simulación Stripe TEST ↗':'Abrir Stripe Checkout de prueba ↗';
  const current=$('current');current.replaceChildren();
