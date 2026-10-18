@@ -2,14 +2,15 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d2238">
 <title>Planes profesionales · Preparación comercial · RedLibertad</title>
-<link rel="stylesheet" href="/marketplace-commercial-v3281.css?v=3.2.91">
-<script src="/marketplace-commercial-v3281.js?v=3.2.91" defer></script>
-<script src="/marketplace-commercial-features-v3282.js?v=3.2.91" defer></script>
-<script src="/marketplace-commercial-preview-v3284.js?v=3.2.91" defer></script>
-<script src="/marketplace-commercial-decisions-v3285.js?v=3.2.91" defer></script>
-<script src="/marketplace-commercial-unlimited-v3286.js?v=3.2.91" defer></script>
-<script src="/marketplace-contract-drafts-v3288.js?v=3.2.91" defer></script>
-<script src="/marketplace-commercial-workspace-v3291.js?v=3.2.91" defer></script>
+<link rel="stylesheet" href="/marketplace-commercial-v3281.css?v=3.2.92">
+<script src="/marketplace-commercial-v3281.js?v=3.2.92" defer></script>
+<script src="/marketplace-commercial-features-v3282.js?v=3.2.92" defer></script>
+<script src="/marketplace-commercial-preview-v3284.js?v=3.2.92" defer></script>
+<script src="/marketplace-commercial-decisions-v3285.js?v=3.2.92" defer></script>
+<script src="/marketplace-commercial-unlimited-v3286.js?v=3.2.92" defer></script>
+<script src="/marketplace-contract-drafts-v3288.js?v=3.2.92" defer></script>
+<script src="/marketplace-commercial-workspace-v3291.js?v=3.2.92" defer></script>
+<script src="/marketplace-commercial-decision-center-v3292.js?v=3.2.92" defer></script>
 </head><body>
 <header><a href="/marketplace/suscripciones">← Suscripciones</a><strong>Preparación comercial</strong></header>
 <main>
@@ -32,6 +33,25 @@
  <p id="workspaceReadiness" role="status" aria-live="polite">Consulta las decisiones pendientes. Todos los planes y condiciones siguen en borrador.</p></div>
  <a href="/marketplace/suscripciones/lanzamiento">Ver pendientes →</a>
 </div>
+<section class="panel decision-center" id="commercialDecisionCenter" aria-labelledby="decisionCenterTitle">
+ <div class="panel-top">
+  <h2 id="decisionCenterTitle">Centro de decisiones comerciales</h2>
+  <span class="tag">Solo administración</span>
+ </div>
+ <p class="section-help">Consulta qué está pendiente y accede directamente al formulario correspondiente. Las comprobaciones se calculan a partir de los borradores guardados: no aprueban precios, términos ni pagos.</p>
+ <div class="decision-center-progress">
+  <strong id="decisionCenterCount" role="status" aria-live="polite">Consultando decisiones…</strong>
+  <div id="decisionCenterProgress" class="decision-center-bar" role="progressbar" aria-label="Revisiones internas completadas" aria-valuemin="0" aria-valuemax="16" aria-valuenow="0"><span id="decisionCenterProgressFill"></span></div>
+ </div>
+ <div class="decision-center-actions">
+  <button type="button" id="decisionCenterPending" class="decision-center-filter" aria-pressed="true">Pendientes</button>
+  <button type="button" id="decisionCenterAll" class="decision-center-filter" aria-pressed="false">Todas</button>
+  <button type="button" id="decisionCenterRefresh" class="decision-center-refresh">Actualizar estado</button>
+ </div>
+ <p id="decisionCenterMessage" class="status" role="status" aria-live="polite"></p>
+ <div id="decisionCenterGroups" class="decision-center-groups"></div>
+ <p class="decision-center-caveat">Incluso con todas las revisiones internas completadas, seguirá pendiente la aprobación legal, fiscal, comercial y técnica. Stripe LIVE y la contratación real permanecen desactivados.</p>
+</section>
 <details class="workgroup" id="workgroup-plans" open>
  <summary class="workgroup-summary"><span class="workgroup-title">1. Planes y precios</span>
  <span class="workgroup-hint">Importes, prestaciones y capacidad · Borradores privados</span></summary>
