@@ -69,3 +69,32 @@ ol{padding-left:22px;line-height:1.65;color:#40596a;font-size:.88rem}li{margin-b
 button.draft-helper-btn{display:block;width:100%;max-width:450px;background:#fff;color:#15536b;border:1px solid #89acbc;margin:12px 0 5px;font-size:.87rem;min-height:44px}
 .draft-helper-hint{font-size:.8rem;color:#576f7e;line-height:1.5;margin:4px 0 12px}
 @media(max-width:460px){button.draft-helper-btn{max-width:none}}
+
+/* V3.2.91 — light, mobile-first progressive disclosure for existing admin tools */
+.workspace-links{display:grid;grid-template-columns:1fr;gap:7px;margin:14px 0 10px}
+.workspace-jump{min-height:44px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+ background:#fff;color:#20556b;border:1px solid #d7e4eb;border-radius:10px;padding:10px 13px;
+ text-decoration:none;font-size:.86rem;font-weight:700;line-height:1.35}
+.workspace-jump:hover{border-color:#7aa7bb}
+.launch-shortcut{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;
+ border:1px solid #cbdfe8;border-radius:12px;background:#f8fbfd;padding:14px;margin:12px 0 16px}
+.launch-shortcut strong{font-size:.96rem}.launch-shortcut p{font-size:.82rem;line-height:1.5;color:#506b7b;margin:4px 0 0}
+.launch-shortcut a{font-size:.85rem;font-weight:700;white-space:nowrap}
+.workgroup{border:1px solid #dce4ea;border-radius:14px;background:#fff;margin:11px 0;overflow:hidden}
+.workgroup-summary{display:flex;flex-direction:column;gap:4px;padding:15px 17px;cursor:pointer;
+ list-style:none;min-height:65px;background:#fff;position:relative;padding-right:43px}
+.workgroup-summary::-webkit-details-marker{display:none}
+.workgroup-summary:after{content:"⌄";position:absolute;right:16px;top:18px;color:#205a74;font-weight:750;font-size:1.2rem}
+.workgroup[open]>.workgroup-summary{background:#f2f8fb;border-bottom:1px solid #dce4ea}
+.workgroup[open]>.workgroup-summary:after{content:"⌃"}
+.workgroup-title{font-size:1.02rem;font-weight:750;color:#113448}
+.workgroup-hint{font-size:.81rem;line-height:1.42;color:#597382}
+.workgroup-content{padding:4px 10px 10px}
+.workgroup-content>.panel{box-shadow:none}
+.workgroup-content>.panel:first-child{margin-top:9px}
+.workgroup>.workgroup-summary:focus-visible,.workspace-jump:focus-visible{
+ outline:3px solid #2184a3;outline-offset:2px}
+@media(min-width:640px){.workspace-links{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .workspace-jump{min-height:54px}.workgroup-content{padding:7px 13px 12px}}
+@media(max-width:390px){.workgroup-summary{padding:14px 35px 14px 12px}
+ .workgroup-title{font-size:.97rem}.workgroup-content{padding:3px 7px 8px}}
