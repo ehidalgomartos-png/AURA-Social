@@ -146,14 +146,30 @@ async function createTestCheckout({sellerId,planCode,env=process.env,query=db.qu
   [sellerId,planCode,checkout.id]);
  return {ok:true,sandboxOnly:true,url:checkout.url};
 }
+// Shared safeguard for admin TEST Portal and manual Stripe reconciliation.
+// Older sandbox rows are not trusted until linked to a completed local Checkout.
+async function hasVerifiedTestCheckout({sellerId,planCode,customerId,subscriptionId,query=db.query}){
+ const result=await query(
+  `SELECT 1 FROM marketplace_stripe_test_checkouts
+   WHERE seller_id=$1 AND plan_code=$2 AND status='completed'
+     AND customer_id=$3 AND subscription_id=$4 LIMIT 1`,
+  [sellerId,planCode,customerId,subscriptionId]);
+ return result.rowCount>0;
+}
 async function createTestPortal({sellerId,env=process.env,query=db.query,request=stripeRequest}){
  const c=config(env);
  if(!c.readyForCheckout)throw Object.assign(new Error('sandbox_not_configured'),{status:503});
- const result=await query('SELECT customer_id FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[sellerId]);
- if(!result.rowCount||!/^cus_[A-Za-z0-9_]+$/.test(result.rows[0].customer_id||''))
+ const result=await query(
+  'SELECT plan_code,customer_id,subscription_id FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',[sellerId]);
+ if(!result.rowCount||!/^cus_[A-Za-z0-9_]+$/.test(result.rows[0].customer_id||'')||
+  !/^sub_[A-Za-z0-9_]+$/.test(result.rows[0].subscription_id||''))
   throw Object.assign(new Error('test_customer_not_found'),{status:404});
+ const record=result.rows[0];
+ if(!await hasVerifiedTestCheckout({sellerId,planCode:record.plan_code,
+  customerId:record.customer_id,subscriptionId:record.subscription_id,query}))
+  throw Object.assign(new Error('stripe_test_checkout_not_verified'),{status:409});
  const portal=await request('/v1/billing_portal/sessions',{
-  customer:result.rows[0].customer_id,return_url:c.origin+'/marketplace/suscripciones'
+  customer:record.customer_id,return_url:c.origin+'/marketplace/suscripciones'
  },{key:c.key,idempotencyKey:crypto.randomUUID()});
  if(!validStripeUrl(portal.url,'portal'))throw Object.assign(new Error('invalid_stripe_test_portal'),{status:502});
  return {ok:true,sandboxOnly:true,url:portal.url};
@@ -205,6 +221,9 @@ async function reconcileTestSubscription({sellerId,env=process.env,query=db.quer
  if(!info||String(info.sellerId)!==String(sellerId)||info.subscriptionId!==record.subscription_id||
   info.customerId!==record.customer_id||info.planCode!==record.plan_code)
   throw Object.assign(new Error('stripe_test_subscription_mismatch'),{status:409});
+ if(!await hasVerifiedTestCheckout({sellerId,planCode:record.plan_code,
+  customerId:record.customer_id,subscriptionId:record.subscription_id,query}))
+  throw Object.assign(new Error('stripe_test_checkout_not_verified'),{status:409});
  const saved=await query(
   `UPDATE marketplace_stripe_test_subscriptions SET
     stripe_status=$2,period_ends_at=$3,cancel_at_period_end=$4,cancel_at=$5,updated_at=now()
@@ -311,4 +330,4 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
 }
 module.exports={DDL,ensureSchema,config,publicStatus,validatePlan,webhookEvent,stripeRequest,
  validStripeUrl,createTestCheckout,createTestPortal,subscriptionInfo,recordTestEvent,
- fetchCurrentTestSubscription,reconcileTestSubscription,ALLOWED_EVENTS};
+ fetchCurrentTestSubscription,reconcileTestSubscription,hasVerifiedTestCheckout,ALLOWED_EVENTS};

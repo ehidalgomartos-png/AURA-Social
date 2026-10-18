@@ -87,7 +87,17 @@ test('checkout uses only approved server-side TEST price and creates no real sub
 test('portal can only use the authenticated admin TEST customer, not caller selected customer',async()=>{
  let payload;
  const data=await billing.createTestPortal({sellerId:15,env:testEnv,
-  query:async(sql,args)=>{assert.deepEqual(args,[15]);return {rowCount:1,rows:[{customer_id:'cus_testAdmin123'}]};},
+  query:async(sql,args)=>{
+   if(sql.startsWith('SELECT plan_code,customer_id,subscription_id')){
+    assert.deepEqual(args,[15]);
+    return {rowCount:1,rows:[{plan_code:'professional',customer_id:'cus_testAdmin123',subscription_id:'sub_testAdmin123'}]};
+   }
+   if(sql.startsWith('SELECT 1 FROM marketplace_stripe_test_checkouts')){
+    assert.deepEqual(args,[15,'professional','cus_testAdmin123','sub_testAdmin123']);
+    return {rowCount:1,rows:[{}]};
+   }
+   throw Error('unexpected portal query');
+  },
   request:async(path,form)=>{payload={path,form};return {url:'https://billing.stripe.com/p/session/test'};}});
  assert.equal(data.ok,true);assert.equal(data.sandboxOnly,true);
  assert.equal(payload.path,'/v1/billing_portal/sessions');
@@ -135,6 +145,10 @@ test('manual TEST sync reads current Stripe data, validates ownership, restores 
  const query=async(sql,args)=>{
   calls.push({sql,args});
   if(sql.startsWith('SELECT plan_code,customer_id,subscription_id'))return {rowCount:1,rows:[{plan_code:'professional',customer_id:'cus_ABC123',subscription_id:'sub_ABC123'}]};
+  if(sql.startsWith('SELECT 1 FROM marketplace_stripe_test_checkouts')){
+   assert.deepEqual(args,[55,'professional','cus_ABC123','sub_ABC123']);
+   return {rowCount:1,rows:[{}]};
+  }
   if(sql.startsWith('UPDATE marketplace_stripe_test_subscriptions'))return {rowCount:1,rows:[{plan_code:'professional',stripe_status:'active',cancel_at_period_end:args[3],cancel_at:args[4]}]};
   throw Error('Unapproved SQL operation');
  };
