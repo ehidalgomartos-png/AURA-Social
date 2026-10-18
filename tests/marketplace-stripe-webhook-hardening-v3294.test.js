@@ -15,7 +15,7 @@ const env={
 };
 function checkoutEvent(id,type,session='cs_test_ABC123'){
  return {id,type,livemode:false,created:1800000000,
-  data:{object:{id:session,livemode:false,mode:'subscription'}}};
+  data:{object:{id:session,livemode:false,mode:'subscription',customer:'cus_TEST123',subscription:'sub_TEST123'}}};
 }
 function subscriptionEvent(id,created,sub='sub_TEST123',customer='cus_TEST123',status='active'){
  return {id,type:'customer.subscription.updated',livemode:false,created,
