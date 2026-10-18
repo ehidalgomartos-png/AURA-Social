@@ -80,6 +80,7 @@ const app = express();
 const runtimeMonitor=createRuntimeMonitor();
 const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
+const {releaseInfo}=require('./src/services/deployment-identity-v32100');
 const APP_VERSION='3.2.77';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
@@ -283,6 +284,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     version: APP_VERSION,
+    deployedCommit:releaseInfo().commit,
     mode: 'redlibertad-social',
     uptimeSeconds:Math.round(process.uptime()),
     environment:config.environment,
@@ -300,7 +302,7 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/public-config',(req,res)=>{
   const origin=String(process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`).replace(/\/$/,'');
-  res.json({origin,version:APP_VERSION});
+  res.json({origin,version:APP_VERSION,deployedCommit:releaseInfo().commit});
 });
 
 app.get('/api/ready', async (req,res)=>{
