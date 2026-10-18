@@ -33,7 +33,7 @@ test('PostgreSQL preserves canceled TEST history and rejects stale or resurrecti
   await query("INSERT INTO marketplace_stripe_test_checkouts (seller_id,plan_code,session_id,status,customer_id,subscription_id,created_at) VALUES(44,'professional','cs_test_OLD123','completed','cus_OLD123','sub_OLD123',now()-interval '2 days')");
   await query("INSERT INTO marketplace_stripe_test_subscriptions (seller_id,plan_code,customer_id,subscription_id,stripe_status,last_event_created) VALUES(44,'professional','cus_OLD123','sub_OLD123','canceled',1800000000)");
   let outbound=0;
-  const checkout=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,query,
+  const checkout=await billing.createTestCheckout({sellerId:44,planCode:'professional_plus',env,connect,
    request:async(path,form)=>{
     outbound++;
     assert.equal(path,'/v1/checkout/sessions');
