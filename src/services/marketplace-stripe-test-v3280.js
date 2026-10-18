@@ -235,7 +235,12 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
      `UPDATE marketplace_stripe_test_checkouts SET
       status=$2,customer_id=COALESCE($3,customer_id),subscription_id=COALESCE($4,subscription_id),
       updated_at=now()
-      WHERE session_id=$1 RETURNING seller_id`,
+      -- V3.2.94: an expired webhook arriving after completion must never
+      -- downgrade a completed TEST Checkout. A late completion may still
+      -- supersede an earlier expiration if delivery was out of order.
+      WHERE session_id=$1
+        AND (status='created' OR ($2='completed' AND status='expired'))
+      RETURNING seller_id`,
      [object.id,event.type.endsWith('expired')?'expired':'completed',
       typeof object.customer==='string'?object.customer:null,
       typeof object.subscription==='string'?object.subscription:null]);
@@ -257,7 +262,12 @@ async function recordTestEvent(event,{env=process.env,connect=()=>db.pool.connec
          subscription_id=EXCLUDED.subscription_id,stripe_status=EXCLUDED.stripe_status,
          period_ends_at=EXCLUDED.period_ends_at,cancel_at_period_end=EXCLUDED.cancel_at_period_end,
          cancel_at=EXCLUDED.cancel_at,last_event_created=EXCLUDED.last_event_created,updated_at=now()
-        WHERE marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created
+        -- Do not silently replace an already attached Stripe TEST subscription
+        -- or customer with another pair for the same seller. New subscriptions
+        -- require a separate, explicit sandbox reconciliation workflow.
+        WHERE marketplace_stripe_test_subscriptions.subscription_id = EXCLUDED.subscription_id
+          AND marketplace_stripe_test_subscriptions.customer_id = EXCLUDED.customer_id
+          AND marketplace_stripe_test_subscriptions.last_event_created < EXCLUDED.last_event_created
         RETURNING seller_id`,
        [info.sellerId,info.planCode,info.customerId,info.subscriptionId,
         info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,timestamp]);
