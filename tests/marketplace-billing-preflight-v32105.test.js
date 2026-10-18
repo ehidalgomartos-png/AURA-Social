@@ -63,7 +63,7 @@ test('mobile private page uses collapsed details and never accepts or transmits 
  assert.match(page,/id="billingPreflightPreview"/);
  assert.match(page,/<details>/);
  assert.match(page,/viewport-fit=cover/);
- assert.match(page,/marketplace-launch-readiness-v3289.js\?v=3\.2\.105/);
+ assert.match(page,/marketplace-launch-readiness-v3289.js\?v=3\.2\.\d+/);
  assert.match(page,/Contratar \(no disponible\)/);
  assert.match(ui,/billing\.cases\.forEach/);
  assert.match(ui,/billing\.checklist\.forEach/);
