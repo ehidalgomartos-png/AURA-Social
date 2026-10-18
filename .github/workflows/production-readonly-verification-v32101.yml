@@ -14,6 +14,7 @@ on:
       - 'src/views/marketplace-stripe-test-v3280.html'
       - 'src/services/marketplace-launch-readiness-v3289.js'
       - 'src/services/marketplace-commercial-audience-v32103.js'
+      - 'src/services/marketplace-billing-preflight-v32105.js'
       - 'public/marketplace-launch-readiness-v3289.js'
       - 'src/views/marketplace-launch-readiness-v3289.html'
       - 'src/services/deployment-identity-v32100.js'

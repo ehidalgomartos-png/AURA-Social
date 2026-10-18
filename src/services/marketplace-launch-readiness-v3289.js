@@ -5,6 +5,7 @@ const definitions=require('./marketplace-commercial-decisions-v3285');
 const contracts=require('./marketplace-contract-drafts-v3288');
 const commercial=require('./marketplace-subscription-commercial-v3281');
 const audience=require('./marketplace-commercial-audience-v32103');
+const billingPreflight=require('./marketplace-billing-preflight-v32105');
 const CODES=Object.freeze(['professional','professional_plus']);
 const names={professional:'Profesional',professional_plus:'Profesional Plus'};
 const reviewTopics=Object.freeze(['pricing','taxes','terms','renewals','cancellations','privacy']);
@@ -58,6 +59,7 @@ function build(defined,contractData,commercialData){
   consentRecorded:false,entitlementsEnforced:false,
   pilotProtected:true,externalProductCheckout:true,
   audience:audience.preview(),
+  billingPreflight:billingPreflight.preview(),
   plans,reviewChecklist:checklist,
   summary:{
    planTasks,internalReviewTasks:checklist.filter(t=>!t.complete).length,
