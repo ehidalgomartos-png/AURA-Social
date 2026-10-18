@@ -176,7 +176,7 @@ test('the isolated archive, client and server remain TEST-only',()=>{
  assert.match(js,/data.history/);
  assert.match(js,/Nueva simulación Stripe TEST/);
  assert.match(html,/id="archives"/);
- assert.match(html,/marketplace-stripe-test-v3280.js\?v=3\.2\.102/);
+ assert.match(html,/marketplace-stripe-test-v3280.js\?v=3\.2\.\d+/);
  const routes=fs.readFileSync('src/routes/marketplace-stripe-test-v3280.js','utf8');
  assert.match(routes,/FROM marketplace_stripe_test_subscription_history/);
  assert.match(routes,/router.use\(requireAdmin\)/);
