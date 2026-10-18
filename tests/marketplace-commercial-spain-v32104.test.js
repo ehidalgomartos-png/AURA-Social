@@ -41,7 +41,7 @@ test('new geographic policy is read-only admin preparation, not checkout enforce
  assert.match(router,/router\.use\(requireAdmin\)/);
  assert.match(page,/id="countryScopePreview"/);
  assert.match(page,/viewport-fit=cover/);
- assert.match(page,/marketplace-launch-readiness-v3289.js\?v=3\.2\.104/);
+ assert.match(page,/marketplace-launch-readiness-v3289.js\?v=3\.2\.\d+/);
  assert.match(page,/Contratar \(no disponible\)/);
  assert.match(client,/audience\.geography/);
  assert.match(client,/doesNotRestrictMarketplaceBrowse!==true/);
