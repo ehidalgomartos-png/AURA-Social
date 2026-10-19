@@ -74,3 +74,37 @@
  .market-public-category-seo .market-category-pagination-v32116 a{min-height:48px;flex:1}
  .market-public-category-seo .market-category-pagination-v32116 span{width:100%;text-align:center;order:-1}
 }
+
+
+/* V3.2.117 — specialist furniture discovery: compact navigation, not a wall of SEO links. */
+.market-public-category-seo .market-furniture-types-v32117{
+ margin:15px 0 21px;padding:15px 17px;border-radius:14px;
+ border:1px solid #d0e3df;background:#eff8f5;
+}
+.market-public-category-seo .market-furniture-types-v32117 h2{
+ margin:0 0 11px;color:#194554;font-size:18px;line-height:1.3;
+}
+.market-public-category-seo .market-furniture-types-v32117>div{
+ display:flex;flex-wrap:wrap;gap:9px;
+}
+.market-public-category-seo .market-furniture-types-v32117 a{
+ display:inline-flex;align-items:center;justify-content:center;max-width:100%;
+ min-height:46px;padding:10px 14px;border-radius:11px;
+ background:#fff;border:1px solid #bcd8d1;color:#0c6b60;
+ font-size:13px;line-height:1.45;font-weight:800;text-decoration:none;
+}
+.market-public-category-seo .market-furniture-types-v32117 a:hover{
+ background:#e1f4ed;border-color:#148274;
+}
+.market-public-category-seo .market-furniture-types-v32117 a:focus-visible{
+ outline:3px solid #ce8c2b;outline-offset:3px;
+}
+@media(max-width:600px){
+ .market-public-category-seo .market-furniture-types-v32117{padding:13px 12px;margin:11px 0 16px}
+ .market-public-category-seo .market-furniture-types-v32117>div{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:7px;
+ }
+ .market-public-category-seo .market-furniture-types-v32117 a{
+  width:100%;justify-content:flex-start;min-height:48px;
+ }
+}
