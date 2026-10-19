@@ -27,7 +27,14 @@
   const container=$('auditExamples');
   clear(container);
   const group=exampleFilter.value;
-  const matches=exampleRows.filter(item=>group==='todos'||item.reviewGroup===group);
+  const matches=exampleRows.filter(item=>{
+   if(group==='todos')return true;
+   const codes=Array.isArray(item.issues)?item.issues:[];
+   if(group==='fotos')return codes.some(code=>['sin_fotos_publicas','referencias_imagen_invalidas','fotografias_duplicadas'].includes(code));
+   if(group==='datos')return codes.some(code=>['titulo_corto','categoria_incompleta'].includes(code));
+   if(group==='descripcion')return codes.includes('descripcion_breve');
+   return false;
+  });
   const visible=matches.slice(0,visibleExamples);
   for(const item of visible){
    const row=element('div','audit-example'),top=element('div','audit-example-head');
