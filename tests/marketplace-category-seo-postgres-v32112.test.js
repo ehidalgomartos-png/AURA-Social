@@ -69,7 +69,8 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   const less=(await client.query(seo.countQuery())).rows[0];
   assert.equal(Number(less.muebles),4);
   assert.equal(seo.canIndex(less,furniture),false);
-  assert.equal(seo.qualifiedCategoryForListing(visible[0],less)?.path,'/marketplace/segunda-mano');
+  // The all-condition furniture collection is now preferable to the broad used collection.
+  assert.equal(seo.qualifiedCategoryForListing(visible[0],less)?.path,'/marketplace/muebles');
   assert.doesNotMatch(seo.sitemapXml(less),/\/marketplace\/muebles-segunda-mano<\/loc>/);
   assert.match(seo.sitemapXml(less),/\/marketplace\/segunda-mano<\/loc>/);
  }finally{await client.end();}
