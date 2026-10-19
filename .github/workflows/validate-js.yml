@@ -100,6 +100,8 @@ jobs:
         run: npm run test:marketplace-stripe-sync-row
       - name: V3.2.111 Marketplace second-hand landing SEO and mobile checks
         run: npm run test:marketplace-seo-landing
+      - name: V3.2.112 public Marketplace category SEO and privacy checks
+        run: npm run test:marketplace-category-seo
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -380,3 +382,5 @@ jobs:
         run: node --test tests/marketplace-stripe-sync-race-postgres-v32109.test.js
       - name: V3.2.110 verify concurrent TEST sync-vs-sync against PostgreSQL 18
         run: node --test tests/marketplace-stripe-sync-row-postgres-v32110.test.js
+      - name: V3.2.112 verify real Marketplace category eligibility against PostgreSQL 18
+        run: node --test tests/marketplace-category-seo-postgres-v32112.test.js
