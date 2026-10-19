@@ -45,6 +45,19 @@ const LABELS=Object.freeze({
  fotografias_duplicadas:'Fotografías repetidas',
  categoria_incompleta:'Sin categoría'
 });
+// V3.2.121: inspection order inside the existing bounded 100-public-ad sample.
+// This is a workflow suggestion, NOT an SEO score or Google indexing signal.
+const REVIEW_GROUP_PRIORITY=Object.freeze({fotos:0,datos:1,descripcion:2});
+function reviewGroup(codes){
+ if(codes.some(code=>['sin_fotos_publicas','referencias_imagen_invalidas','fotografias_duplicadas'].includes(code)))return 'fotos';
+ if(codes.some(code=>['categoria_incompleta','titulo_corto'].includes(code)))return 'datos';
+ return 'descripcion';
+}
+function sortIssues(issues){
+ return issues.map((item,index)=>({...item,reviewGroup:reviewGroup(item.issues),_initialIndex:index}))
+  .sort((a,b)=>REVIEW_GROUP_PRIORITY[a.reviewGroup]-REVIEW_GROUP_PRIORITY[b.reviewGroup]||b.issues.length-a.issues.length||a._initialIndex-b._initialIndex)
+  .map(({_initialIndex,...item})=>item);
+}
 function int(value){const n=Number(value);return Number.isSafeInteger(n)&&n>=0?n:0;}
 function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIndexable,listingPath}={}){
  if(typeof isCategoryIndexable!=='function'||typeof listingPath!=='function')
@@ -60,6 +73,7 @@ function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIn
    url:listingPath(row),issues:codes
   };
  }).filter(Boolean);
+ const prioritized=sortIssues(issues);
  const groups=categories.map(def=>({
   name:String(def.h1),url:String(def.path),
   listings:int(categoryCounts[def.id]),
@@ -69,7 +83,8 @@ function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIn
   ok:true,mode:'preparacion_tecnica',readOnly:true,
   generatedAt:new Date().toISOString(),
   note:'Esta auditoría analiza datos públicos de RedLibertad. No consulta Google Search Console y no confirma qué URLs ha indexado Google.',
-  limits:{recentSample:sample.length,maximumSample:SAMPLE_LIMIT,issueExamples:issues.length},
+  limits:{recentSample:sample.length,maximumSample:SAMPLE_LIMIT,issueExamples:prioritized.length},
+  reviewNote:'Orden orientativo solo dentro de los anuncios públicos recientes de la muestra: primero fotos, después nombres y categorías, y finalmente descripciones originales. No es una clasificación de Google.',
   totals:{
    publicListings:int(metrics.public_total),
    products:int(metrics.products),services:int(metrics.services),properties:int(metrics.properties)
@@ -85,8 +100,8 @@ function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIn
     note:'Los CSV de WooCommerce pueden no contener el campo Estado. No es un error SEO y no permite asumir que el producto es nuevo o usado.'}
   ],
   categories:groups,
-  examples:issues,
+  examples:prioritized,
   issueLabels:LABELS
  };
 }
-module.exports={SAMPLE_LIMIT,PUBLIC_FROM,metricsSql,sampleSql,photosStatus,issueCodes,report,LABELS};
+module.exports={SAMPLE_LIMIT,PUBLIC_FROM,metricsSql,sampleSql,photosStatus,issueCodes,reviewGroup,sortIssues,report,LABELS};

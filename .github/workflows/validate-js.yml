@@ -116,7 +116,7 @@ jobs:
         run: npm run test:marketplace-product-meta
       - name: V3.2.119 Marketplace multi-photo public XML sitemap and privacy checks
         run: npm run test:marketplace-image-sitemap
-      - name: V3.2.120 admin-only SEO audit report and privacy checks
+      - name: V3.2.120–121 admin-only SEO audit, prioritized review and privacy checks
         run: npm run test:marketplace-seo-audit
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner

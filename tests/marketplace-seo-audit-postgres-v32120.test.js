@@ -61,6 +61,9 @@ test('audit reads public marketplace rows only, reports accurate counts and neve
   assert.ok(report.examples.every(x=>!x.issues.includes('estado_no_indicado')));
   assert.ok(report.examples.some(x=>x.id==='1'&&x.issues.includes('sin_fotos_publicas')));
   assert.ok(report.examples.some(x=>x.id==='3'&&x.kind==='service'));
+  assert.deepEqual(report.examples.map(x=>x.id),['3','1']);
+  assert.ok(report.examples.every(x=>x.reviewGroup==='fotos'));
+  assert.match(report.reviewNote,/No es una clasificación de Google/);
   assert.ok(report.categories.every(x=>!x.indexable));
   assert.equal(report.readOnly,true);
   assert.doesNotMatch(JSON.stringify(report),/Anuncio privado nunca publicable|Anuncio oculto nunca publicable|Anuncio de vendedor suspendido/);
