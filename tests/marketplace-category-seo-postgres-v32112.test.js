@@ -53,6 +53,12 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   assert.equal(visible.length,5);
   assert.deepEqual(visible.map(r=>Number(r.id)).sort((a,b)=>a-b),[1,2,3,4,5]);
   assert.equal(visible.every(r=>r.details.condition==='used'),true);
+  // V3.2.113: the very same public inventory enables a factual specialist backlink.
+  assert.equal(seo.qualifiedCategoryForListing(visible[0],counts)?.path,'/marketplace/muebles-segunda-mano');
+  const newProduct=(await client.query('SELECT kind,deal,category,details FROM marketplace_listings WHERE id=8')).rows[0];
+  assert.equal(seo.qualifiedCategoryForListing(newProduct,counts),null);
+  const mobile=(await client.query('SELECT kind,deal,category,details FROM marketplace_listings WHERE id=15')).rows[0];
+  assert.equal(seo.qualifiedCategoryForListing(mobile,counts)?.path,'/marketplace/segunda-mano');
   const xml=seo.sitemapXml(counts);
   assert.match(xml,/\/marketplace\/segunda-mano<\/loc>/);
   assert.match(xml,/\/marketplace\/muebles-segunda-mano<\/loc>/);
@@ -61,6 +67,7 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   const less=(await client.query(seo.countQuery())).rows[0];
   assert.equal(Number(less.muebles),4);
   assert.equal(seo.canIndex(less,furniture),false);
+  assert.equal(seo.qualifiedCategoryForListing(visible[0],less)?.path,'/marketplace/segunda-mano');
   assert.doesNotMatch(seo.sitemapXml(less),/\/marketplace\/muebles-segunda-mano<\/loc>/);
   assert.match(seo.sitemapXml(less),/\/marketplace\/segunda-mano<\/loc>/);
  }finally{await client.end();}
