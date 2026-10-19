@@ -29,7 +29,7 @@ const PREFIXES=Object.freeze([
 // Recognize these bounded furniture subfamilies without accepting arbitrary
 // categories whose names merely contain a furniture keyword.
 const CATEGORY_DETAIL_PREFIXES=Object.freeze([
- 'armarios puertas','armarios puerta','armarios correderas','armarios abatibles',
+ 'armarios puertas','armarios puerta','armarios con puertas','armarios correderas','armarios abatibles',
  'armarios empotrados','armarios roperos','armarios vestidores','armarios esquineros',
  'armarios 1 puerta','armarios 2 puertas','armarios 3 puertas',
  'armarios 4 puertas','armarios 5 puertas','armarios 6 puertas',
