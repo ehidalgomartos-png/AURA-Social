@@ -155,7 +155,7 @@ function listingHtml(row,related=[],categoryDef=null){
  const categoryCrumb=qualifiedCategory?'<a href="'+esc(qualifiedCategory.path)+'">'+esc(qualifiedCategory.h1)+'</a> › '+esc(row.title):esc(row.category);
  const categoryLink=qualifiedCategory?'<nav class="market-qualified-category-v32113" aria-label="Anuncios de la misma categoría"><a href="'+esc(qualifiedCategory.path)+'">Explorar '+esc(qualifiedCategory.h1)+' →</a></nav>':'';
  const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+categoryCrumb+'</nav>'+
- '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h1>'+esc(row.title)+'</h1>'+
+ '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip" title="Publicado recientemente">RECIENTE</span>':'')+'<h1>'+esc(row.title)+'</h1>'+
  '<p class="muted">'+esc(category)+' · '+esc(location)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
  gallery+(isProductSale?'<section class="market-product-offer" aria-label="Precio y contacto"><div><span class="market-product-offer-label">Precio anunciado</span><p class="price">'+esc(displayPrice(row))+'</p></div>'+offerActions+'<p class="market-contact-note">'+purchaseNote+'</p></section>':'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>')+
  listingDescriptionHtml(row)+
@@ -267,7 +267,7 @@ router.get('/marketplace/imagen/:id/:index',async(req,res,next)=>{
 });
 function listingCard(row){
  const url=listingPath(row),image=imagePaths(row)[0];
- return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><div class="market-card-labels"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'</div><h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(catalogLocation(row))+'</p><span class="market-card-cta" aria-hidden="true">Ver anuncio →</span></div></a></article>';
+ return '<article class="card"><a class="market-seo-cardlink" href="'+esc(url)+'">'+(image?'<div class="thumb"><img loading="lazy" src="'+esc(image)+'" alt="'+esc(row.title)+'"></div>':'<div class="thumb" aria-hidden="true">▣</div>')+'<div class="cardbody"><div class="market-card-labels"><span class="chip">'+esc(row.deal==='buy'?'BUSCO':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':'SERVICIO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip" title="Publicado recientemente">RECIENTE</span>':'')+'</div><h2>'+esc(row.title)+'</h2><p class="price">'+esc((row.deal==='buy'?'Presupuesto: ':'')+displayPrice(row))+'</p><p class="muted">'+esc(catalogLocation(row))+'</p><span class="market-card-cta" aria-hidden="true">Ver anuncio →</span></div></a></article>';
 }
 // Public seller collections must never expose hidden, inactive or non-discoverable content.
 router.get('/marketplace/vendedor/:username',async(req,res,next)=>{
@@ -440,29 +440,41 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
 });
 // V3.2.112: finite public category landing pages. Never index thin/empty stock.
 for(const categoryDef of marketplaceCategorySeoV32112.LANDINGS){
- router.get(categoryDef.path,async(_req,res,next)=>{
+ router.get(categoryDef.path,async(req,res,next)=>{
   try{
+   // Reject synthetic, unbounded and duplicate paging links.
+   const rawPage=req.query.pagina===undefined?'1':req.query.pagina;
+   if(!marketplaceCategorySeoV32112.validPage(rawPage))return unavailable(res);
+   const page=Number(rawPage);
    await ensureMarketplaceSchema();
    const countsResult=await db.query(marketplaceCategorySeoV32112.countQuery());
    const counts=countsResult.rows[0]||{};
    const total=marketplaceCategorySeoV32112.totalFor(counts,categoryDef);
+   const lastPage=Math.max(1,Math.ceil(total/marketplaceCategorySeoV32112.CATEGORY_PAGE_SIZE));
+   if(page>lastPage)return unavailable(res);
    const eligibleFromCounts=marketplaceCategorySeoV32112.canIndex(counts,categoryDef);
-   const listings=total?(await db.query(marketplaceCategorySeoV32112.listingQuery(categoryDef))).rows:[];
-   // An advert can be moderated between count and SELECT. Never index a
-   // category with fewer real visible cards than the editorial minimum.
-   const indexable=eligibleFromCounts&&listings.length>=marketplaceCategorySeoV32112.MIN_PUBLIC_ADS;
-   // Both sitemap and listing query exclude hidden, private or inactive ads.
+   const result=total?(await db.query(marketplaceCategorySeoV32112.listingQuery(categoryDef,{page}))).rows:[];
+   const listings=result.slice(0,marketplaceCategorySeoV32112.CATEGORY_PAGE_SIZE);
+   if(page>1&&!listings.length)return unavailable(res);
+   const hasNext=result.length>marketplaceCategorySeoV32112.CATEGORY_PAGE_SIZE;
+   // A moderation change between COUNT and SELECT may remove cards. Never
+   // index an empty later page or an undersized first collection.
+   const minOnPage=page===1?marketplaceCategorySeoV32112.MIN_PUBLIC_ADS:1;
+   const indexable=eligibleFromCounts&&listings.length>=minOnPage;
+   const categoryPath=marketplaceCategorySeoV32112.categoryPath(categoryDef,page);
    const body=marketplaceCategorySeoV32112.content(categoryDef,{
     count:total,indexable,cards:listings.map(listingCard).join(''),
+    page,visibleCount:listings.length,hasNext,
     navigationHtml:marketplaceCategorySeoV32112.navigation(counts,{current:categoryDef.slug})
    });
    res.setHeader('Cache-Control','public,max-age=60');
    if(!indexable)res.setHeader('X-Robots-Tag','noindex, follow');
    return res.type('html').send(shell({
-    title:categoryDef.title,description:categoryDef.description,
-    canonical:ORIGIN+categoryDef.path,
+    title:categoryDef.title+(page>1?' — Página '+page:''),
+    description:categoryDef.description+(page>1?' Página '+page+' de los anuncios disponibles.':''),
+    canonical:ORIGIN+categoryPath,
     robots:indexable?'index,follow,max-image-preview:large':'noindex,follow',
-    schema:indexable?marketplaceCategorySeoV32112.structuredData(categoryDef,listings):null,
+    schema:indexable?marketplaceCategorySeoV32112.structuredData(categoryDef,listings,{page}):null,
     body,bodyClass:'market-public-catalog market-public-category-seo'
    }));
   }catch(error){next(error);}
