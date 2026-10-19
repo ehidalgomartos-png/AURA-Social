@@ -88,6 +88,6 @@ test('SQL and JS share a strict furniture category prefix allowlist without touc
  assert.match(seo.listingQuery(seo.bySlug('muebles')),/armarios puertas %/);
  assert.match(seo.bySlug('muebles-segunda-mano').where,/details->>'condition'='used'/);
  const source=fs.readFileSync('src/routes/marketplace-seo-v3251.js','utf8');
- assert.match(source,/const indexable=eligibleFromCounts&&listings.length>=marketplaceCategorySeoV32112.MIN_PUBLIC_ADS/);
+ assert.match(source,/const indexable=eligibleFromCounts&&listings.length>=minOnPage/);
  assert.match(source,/marketplaceCategorySeoV32112\.sitemapXml/);
 });
