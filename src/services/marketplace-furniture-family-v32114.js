@@ -20,7 +20,7 @@ const CATEGORY_ALIASES=Object.freeze([
 ]);
 const PREFIXES=Object.freeze([
  'muebles de ','mueble de ','muebles para ','mobiliario de ','mobiliario para ',
- 'sofas de ','sillones de ','camas de ','mesas de ','sillas de ','armarios de ',
+ 'sofas de ','sillones de ','camas de ','sillas de ','armarios de ',
  'dormitorios de ','salones de ','comedores de ','muebles y '
 ]);
 // Real WooCommerce taxonomies often add a descriptive qualifier after the
@@ -37,6 +37,8 @@ const CATEGORY_DETAIL_PREFIXES=Object.freeze([
  'sofas chaise longue','sofas rinconeros','sofas modulares',
  'camas nido','camas abatibles','camas juveniles',
  'mesas centro','mesas de centro','mesas comedor','mesas de comedor',
+ 'mesas de cocina','mesas de estudio','mesas de trabajo','mesas de oficina',
+ 'mesas de jardin','mesas de noche','mesas de despacho','mesas de terraza',
  'mesas auxiliares','sillas comedor','sillas de comedor',
  'muebles dormitorio','muebles de dormitorio','muebles salon',
  'muebles de salon','muebles auxiliares'
