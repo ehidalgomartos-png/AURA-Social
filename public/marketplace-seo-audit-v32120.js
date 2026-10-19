@@ -114,6 +114,16 @@
   gscReady=info?.mode==='google_search_console_readonly'&&info?.configured===true;
   gscButton.disabled=!gscReady;
   gscState.textContent=info?.note||'Search Console todavía no está configurado para consultas reales.';
+  const checks=$('auditGscConfigChecks');
+  clear(checks);
+  for(const item of info?.checks||[]){
+   if(typeof item?.label!=='string'||typeof item?.ok!=='boolean')continue;
+   const row=element('div',item.ok?'audit-gsc-check audit-gsc-check-ok':'audit-gsc-check audit-gsc-check-fail');
+   row.append(element('strong',null,(item.ok?'✓ ':'✕ ')+item.label));
+   if(!item.ok&&typeof item.hint==='string')
+    row.append(element('small','audit-muted',item.hint));
+   checks.append(row);
+  }
   if(!gscReady){
    gscResult.hidden=true;
    clear(gscFields);
