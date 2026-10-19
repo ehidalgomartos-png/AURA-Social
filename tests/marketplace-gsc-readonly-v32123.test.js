@@ -259,3 +259,95 @@ test('mobile panel never calls the Google inspection API until an authenticated 
  assert.ok(node('auditGscResultFields').children.some(row=>row.children?.some(c=>c.textContent.includes('Descubierta'))===true)===false);
  assert.match(node('auditGscActionStatus').textContent,/Inspección manual finalizada/);
 });
+
+
+test('V3.2.123.1 safe diagnostics identify exactly which GSC variable fails, without echoing secrets',()=>{
+ const healthy=gsc.status(serviceEnv);
+ assert.equal(healthy.configured,true);
+ assert.equal(healthy.state,'ready');
+ assert.equal(healthy.checks.length,6);
+ assert.ok(healthy.checks.every(x=>x.ok));
+ const cases=[
+  [{...serviceEnv,GSC_READONLY_ENABLED:'false'},'enabled'],
+  [{...serviceEnv,GSC_SITE_URL:'sc-domain:some-other-domain.com'},'validSite'],
+  [{...serviceEnv,GSC_SERVICE_ACCOUNT_EMAIL:'not-a-google-service-account'},'validEmail'],
+  [{...serviceEnv,GSC_SERVICE_ACCOUNT_PRIVATE_KEY:''},'keyPresent'],
+  [{...serviceEnv,GSC_SERVICE_ACCOUNT_PRIVATE_KEY:'private_key_id-not-the-key'},'keyMarkers'],
+  [{...serviceEnv,GSC_SERVICE_ACCOUNT_PRIVATE_KEY:'-----BEGIN PRIVATE KEY-----\nnot-base64\n-----END PRIVATE KEY-----'},'keyReadable']
+ ];
+ for(const [env,failedId] of cases){
+  const status=gsc.status(env),flag=status.checks.find(c=>c.id===failedId);
+  assert.equal(status.configured,false,failedId);
+  assert.equal(status.property,null,failedId);
+  assert.equal(flag.ok,false,failedId);
+  assert.ok(flag.hint.length>10);
+  if(status.enabled)assert.ok(status.note.includes(flag.label));
+  else assert.match(status.note,/desactivada/i);
+  const json=JSON.stringify(status);
+  assert.ok(!json.includes('redlibertad-search-console@'),failedId);
+  assert.ok(!json.includes('-----BEGIN PRIVATE KEY-----'),failedId);
+  assert.ok(!json.includes('-----END PRIVATE KEY-----'),failedId);
+  assert.ok(!json.includes('not-base64'),failedId);
+  assert.ok(!json.includes('private_key_id-not-the-key'),failedId);
+  assert.doesNotMatch(json,/"privateKey"|"email"|"rawValue"|"keyLength"/);
+ }
+});
+
+test('V3.2.123.1 accepts actual Coolify multiline, JSON-escaped, double-escaped and quoted RSA PEM inputs',()=>{
+ const formats=[
+  privateKey,
+  privateKey.replace(/\n/g,'\\n'),
+  privateKey.replace(/\n/g,'\\\\n'),
+  JSON.stringify(privateKey),
+  '"'+privateKey.replace(/\n/g,'\\n')+'"',
+  privateKey.replace(/\n/g,'\r\n'),
+  privateKey.replace(/\n/g,'\\r\\n')
+ ];
+ for(const [i,pem] of formats.entries()){
+  const env={
+   ...serviceEnv,
+   GSC_READONLY_ENABLED:' true ',
+   GSC_SITE_URL:'"sc-domain:redlibertad.com"',
+   GSC_SERVICE_ACCOUNT_EMAIL:"'readonly-test@test-project.iam.gserviceaccount.com'",
+   GSC_SERVICE_ACCOUNT_PRIVATE_KEY:pem
+  };
+  const config=gsc.serviceConfig(env);
+  assert.equal(config.configured,true,'format '+i);
+  assert.equal(config.privateKey,privateKey.trim(),'normalization '+i);
+  assert.equal(gsc.status(env).state,'ready','status '+i);
+  assert.ok(gsc.assertion(config).split('.').length===3);
+ }
+});
+
+test('V3.2.123.1 rejects incomplete, malformed and non-RSA private keys before any Google call',()=>{
+ const ec=crypto.generateKeyPairSync('ec',{namedCurve:'prime256v1'})
+  .privateKey.export({type:'pkcs8',format:'pem'});
+ const malformed=[
+  '-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----',
+  privateKey.replace(/-----END PRIVATE KEY-----/,'-----END BAD KEY-----'),
+  ec
+ ];
+ for(const pem of malformed){
+  const config=gsc.serviceConfig({...serviceEnv,GSC_SERVICE_ACCOUNT_PRIVATE_KEY:pem});
+  assert.equal(config.configured,false);
+  assert.equal(gsc.status({...serviceEnv,GSC_SERVICE_ACCOUNT_PRIVATE_KEY:pem}).state,'needs_configuration');
+  assert.equal(config.readiness.keyReadable,false);
+ }
+ const oversized=gsc.serviceConfig({...serviceEnv,GSC_SERVICE_ACCOUNT_PRIVATE_KEY:'x'.repeat(65537)});
+ assert.equal(oversized.configured,false);
+});
+
+test('V3.2.123.1 private mobile panel clearly presents safe checks without network diagnostics',()=>{
+ const html=fs.readFileSync('src/views/marketplace-seo-audit-v32120.html','utf8');
+ const js=fs.readFileSync('public/marketplace-seo-audit-v32120.js','utf8');
+ const css=fs.readFileSync('public/marketplace-seo-audit-v32120.css','utf8');
+ assert.match(html,/id="auditGscConfigChecks"/);
+ assert.match(html,/Nunca muestra ni transmite las credenciales/);
+ assert.match(html,/v=3\.2\.123\.1/);
+ assert.match(js,/for\(const item of info\?\.checks\|\|\[\]\)/);
+ assert.match(js,/item\.ok\?'✓ ':'✕ '/);
+ assert.match(js,/element\('small','audit-muted',item\.hint\)/);
+ assert.match(css,/@media\(max-width:620px\)/);
+ assert.doesNotMatch(js,/innerHTML\s*=|insertAdjacentHTML|console\.log\(/);
+ assert.doesNotMatch(js,/GSC_SERVICE_ACCOUNT_PRIVATE_KEY|PRIVATE KEY-----/);
+});

@@ -15,28 +15,67 @@ const MAX_TEXT=180;
 class GscError extends Error{
  constructor(code,status=502){super(code);this.code=code;this.status=status;}
 }
-function serviceConfig(env=process.env){
- const enabled=env.GSC_READONLY_ENABLED==='true';
- const email=String(env.GSC_SERVICE_ACCOUNT_EMAIL||'').trim();
- const privateKey=String(env.GSC_SERVICE_ACCOUNT_PRIVATE_KEY||'').replace(/\\n/g,'\n').trim();
- const siteUrl=String(env.GSC_SITE_URL||'').trim();
- const validEmail=/^[^\s@]+@[a-z0-9][a-z0-9-]*\.iam\.gserviceaccount\.com$/i.test(email);
- const validKey=privateKey.startsWith('-----BEGIN PRIVATE KEY-----')&&privateKey.endsWith('-----END PRIVATE KEY-----');
- const validSite=PROPERTY_OPTIONS.includes(siteUrl);
- const configured=enabled&&validEmail&&validKey&&validSite;
- return {enabled,configured,email,privateKey,siteUrl};
+// V3.2.123.1: Never echo environment values, PEM, length or Google tokens.
+// Coolify can store a PEM as real newlines, JSON-escaped \n, double-escaped
+// \\n or as a quoted dotenv value. Normalize only those harmless wrappers.
+function unquote(value){
+ const text=String(value??'').trim();
+ const quote=text[0];
+ if(text.length>1&&(quote==='"'||quote==="'")&&text.endsWith(quote))
+  return text.slice(1,-1).trim();
+ return text;
 }
+function normalizePrivateKey(value){
+ const raw=unquote(value);
+ if(raw.length>65536)return '';
+ return raw.replace(/\\+r\\+n/g,'\n').replace(/\\+n/g,'\n')
+  .replace(/\r\n?/g,'\n').trim();
+}
+function validRsaKey(privateKey){
+ try{
+  return crypto.createPrivateKey({key:privateKey,format:'pem'}).asymmetricKeyType==='rsa';
+ }catch(_){return false;}
+}
+function serviceConfig(env=process.env){
+ const enabled=unquote(env.GSC_READONLY_ENABLED)==='true';
+ const email=unquote(env.GSC_SERVICE_ACCOUNT_EMAIL);
+ const privateKey=normalizePrivateKey(env.GSC_SERVICE_ACCOUNT_PRIVATE_KEY);
+ const siteUrl=unquote(env.GSC_SITE_URL);
+ const validEmail=/^[^\s@]+@[a-z0-9][a-z0-9-]*\.iam\.gserviceaccount\.com$/i.test(email);
+ const keyPresent=privateKey.length>0;
+ const keyMarkers=privateKey.startsWith('-----BEGIN PRIVATE KEY-----')&&
+  privateKey.endsWith('-----END PRIVATE KEY-----');
+ // Checking syntax locally avoids letting administrators debug failed Google
+ // requests. No network request, log output or private key information leaks.
+ const keyReadable=keyMarkers&&validRsaKey(privateKey);
+ const validSite=PROPERTY_OPTIONS.includes(siteUrl);
+ const configured=enabled&&validEmail&&keyReadable&&validSite;
+ return {enabled,configured,email,privateKey,siteUrl,
+  readiness:{enabled,validEmail,keyPresent,keyMarkers,keyReadable,validSite}};
+}
+const SAFE_CHECKS=Object.freeze([
+ {id:'enabled',label:'Conexión activada',hint:'GSC_READONLY_ENABLED debe tener el valor true.'},
+ {id:'validSite',label:'Propiedad de Search Console',hint:'GSC_SITE_URL debe ser sc-domain:redlibertad.com o https://redlibertad.com/.'},
+ {id:'validEmail',label:'Correo de la cuenta de servicio',hint:'Revisa GSC_SERVICE_ACCOUNT_EMAIL. Debe ser una cuenta de servicio de Google Cloud.'},
+ {id:'keyPresent',label:'Clave privada presente',hint:'Falta GSC_SERVICE_ACCOUNT_PRIVATE_KEY en las variables de ejecución de Coolify.'},
+ {id:'keyMarkers',label:'Formato de la clave privada',hint:'Copia private_key del JSON, no private_key_id. Se necesitan BEGIN PRIVATE KEY y END PRIVATE KEY; conserva los saltos de línea.'},
+ {id:'keyReadable',label:'Clave privada RSA válida',hint:'El contenido no puede interpretarse como clave RSA. Comprueba que private_key está completo y no se ha cortado al guardarlo en Coolify.'}
+]);
 function status(env=process.env){
  const c=serviceConfig(env);
+ const checks=SAFE_CHECKS.map(({id,label,hint})=>({
+  id,label,ok:Boolean(c.readiness[id]),hint:c.readiness[id]?'':hint
+ }));
+ const failed=checks.filter(check=>!check.ok).map(check=>check.label);
  return {
   mode:'google_search_console_readonly',enabled:c.enabled,configured:c.configured,
   state:!c.enabled?'disabled':c.configured?'ready':'needs_configuration',
-  property:c.configured?c.siteUrl:null,
+  property:c.configured?c.siteUrl:null,checks,
   note:!c.enabled
-   ?'Conexión con Google desactivada: sin peticiones ni datos de indexación.'
+   ?'Conexión con Google desactivada: no se envían peticiones de indexación.'
    :c.configured
-    ?'Conexión configurada. Los datos reales solo se consultan pulsando Inspeccionar; se requiere acceso de la cuenta de servicio a la propiedad en Google.'
-    :'Completa la cuenta de servicio y la propiedad verificada en Coolify. Nunca pegues la clave privada en un chat o formulario público.'
+    ?'Configuración local válida. Puedes realizar una inspección manual; Google confirmará entonces si la cuenta tiene acceso a la propiedad.'
+    :'Configuración incompleta: '+failed.join(', ')+'. Solo se muestran resultados de validación, nunca valores ni claves.'
  };
 }
 function safeListingId(value){

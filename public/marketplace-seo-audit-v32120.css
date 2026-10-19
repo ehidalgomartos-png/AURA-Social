@@ -115,3 +115,13 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
  .audit-gsc-field{grid-template-columns:minmax(0,1fr)}
  .audit-gsc-pick{width:100%}
 }
+
+
+/* V3.2.123.1: read-only diagnostic; green/red not the only status cue. */
+.audit-gsc-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.audit-gsc-check{padding:10px 12px;border:1px solid #cddeda;background:#f6f9f8;border-radius:10px;min-width:0;overflow-wrap:anywhere}
+.audit-gsc-check strong{font-size:13px;display:block}
+.audit-gsc-check small{font-size:12px;display:block;margin-top:5px}
+.audit-gsc-check-ok{border-color:#b7d9cf}
+.audit-gsc-check-fail{border-color:#e0bdb1;background:#fcf8f5}
+@media(max-width:620px){.audit-gsc-checks{grid-template-columns:minmax(0,1fr)}}
