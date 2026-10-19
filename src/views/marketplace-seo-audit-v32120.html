@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.122">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.122" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.123">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.123" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -51,6 +51,23 @@
    <p class="audit-sitemap-root"><a id="auditRootSitemap" href="/sitemap-index.xml" target="_blank" rel="noopener noreferrer">Abrir sitemap principal ↗</a> · <a id="auditRobots" href="/robots.txt" target="_blank" rel="noopener noreferrer">Abrir robots.txt ↗</a></p>
    <div id="auditSitemapPlan" class="audit-sitemap-list"></div>
    <p id="auditSitemapNote" class="audit-muted"></p>
+  </section>
+  <section aria-labelledby="auditGscTitle" class="audit-gsc-section">
+   <h2 id="auditGscTitle">Google Search Console · Inspección real</h2>
+   <p class="audit-muted">Consulta manualmente el estado de una ficha pública en la versión que Google tiene en su índice. <strong>No inspecciona la versión en directo ni solicita indexación.</strong> La conexión permanece desactivada hasta configurarla con permisos de solo lectura en Coolify.</p>
+   <p id="auditGscState" class="audit-gsc-status" role="status" aria-live="polite">Comprobando configuración de Search Console…</p>
+   <div class="audit-gsc-controls">
+    <label for="auditGscId">Número del anuncio público</label>
+    <input id="auditGscId" type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="16" autocomplete="off" placeholder="Ej.: 120" aria-describedby="auditGscHelp">
+    <button id="auditGscInspect" type="button" disabled>Inspeccionar en Google</button>
+   </div>
+   <p id="auditGscHelp" class="audit-muted">Solo se permite consultar anuncios activos de vendedores públicos. Límite interno: seis inspecciones por hora y administrador. No introduzcas ninguna clave privada aquí.</p>
+   <p id="auditGscActionStatus" role="status" aria-live="polite" class="audit-muted"></p>
+   <div id="auditGscResult" class="audit-gsc-result" hidden>
+    <h3>Última respuesta recibida de Google</h3>
+    <div id="auditGscResultFields"></div>
+    <p class="audit-muted">Este resultado corresponde a la inspección concreta indicada, no al estado de todas las URLs del Marketplace ni a una petición automática de indexación.</p>
+   </div>
   </section>
   <section aria-labelledby="auditExamplesTitle">
    <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
