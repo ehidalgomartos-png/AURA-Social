@@ -49,7 +49,7 @@ test('disabled until explicit Coolify opt-in and full exact Google service accou
  assert.equal(ready.configured,true);
  assert.equal(gsc.status({...serviceEnv,GSC_SITE_URL:'https://redlibertad.com/'}).configured,true);
  assert.doesNotMatch(JSON.stringify(ready),/PRIVATE KEY|readonly-test@/);
- assert.doesNotMatch(JSON.stringify(gsc.serviceConfig({...serviceEnv,GSC_READONLY_ENABLED:'false'})),/PRIVATE KEY-----/);
+ assert.equal(gsc.status({...serviceEnv,GSC_READONLY_ENABLED:'false'}).property,null);
 });
 test('only exact local listing IDs and server-generated canonical Marketplace URLs may be inspected',()=>{
  for(const good of ['1','120','9999999999999999'])assert.equal(gsc.safeListingId(good),true);
