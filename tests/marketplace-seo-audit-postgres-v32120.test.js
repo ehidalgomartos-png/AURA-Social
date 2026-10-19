@@ -4,6 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {Client}=require('pg');
 const audit=require('../src/services/marketplace-seo-audit-v32120');
+const gsc=require('../src/services/marketplace-gsc-readonly-v32123');
 const category=require('../src/marketplace-category-seo-v32112');
 const sitemapPlan=require('../src/services/marketplace-sitemap-plan-v32122');
 const connectionString=process.env.STRIPE_REENROLL_CI_DATABASE_URL||'';
@@ -39,6 +40,17 @@ test('audit reads public marketplace rows only, reports accurate counts and neve
   await add(6,'Anuncio oculto nunca publicable',{moderation:'hidden'});
   await add(7,'Anuncio de vendedor suspendido',{seller:1203});
   await add(8,'Anuncio pausado no indexable',{status:'paused'});
+  // V3.2.123: Google may inspect only an active/published listing from
+  // an active and discoverable seller. Hidden or paused ads must not leak.
+  for(const id of [1,2,3,4]){
+   const eligible=(await db.query(gsc.PUBLIC_LISTING_SQL,[String(id)])).rows;
+   assert.equal(eligible.length,1);
+   assert.equal(Number(eligible[0].id),id);
+  }
+  for(const id of [5,6,7,8]){
+   const privateRow=await db.query(gsc.PUBLIC_LISTING_SQL,[String(id)]);
+   assert.equal(privateRow.rowCount,0);
+  }
   const metrics=(await db.query(audit.metricsSql)).rows[0];
   assert.deepEqual({
    total:Number(metrics.public_total),products:Number(metrics.products),
