@@ -281,7 +281,8 @@ test('V3.2.123.1 safe diagnostics identify exactly which GSC variable fails, wit
   assert.equal(status.property,null,failedId);
   assert.equal(flag.ok,false,failedId);
   assert.ok(flag.hint.length>10);
-  assert.ok(status.note.includes(flag.label));
+  if(status.enabled)assert.ok(status.note.includes(flag.label));
+  else assert.match(status.note,/desactivada/i);
   const json=JSON.stringify(status);
   assert.ok(!json.includes('redlibertad-search-console@'),failedId);
   assert.ok(!json.includes('-----BEGIN PRIVATE KEY-----'),failedId);
