@@ -51,6 +51,7 @@
     "test:marketplace-stripe-sync-row": "node --test tests/marketplace-stripe-sync-row-v32110.test.js",
     "test:marketplace-seo-landing": "node --test tests/marketplace-seo-landing-v32111.test.js",
     "test:marketplace-category-seo": "node --test tests/marketplace-category-seo-v32112.test.js",
+    "test:marketplace-category-links": "node --test tests/marketplace-category-links-v32113.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",

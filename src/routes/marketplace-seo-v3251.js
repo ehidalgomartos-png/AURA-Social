@@ -84,12 +84,14 @@ function entitySchema(row,url,images){
  if(Number.isInteger(details.rooms)&&details.rooms>=0)home.numberOfRooms=details.rooms;
  return {...data,'@type':'RealEstateListing',about:home,datePosted:new Date(row.created_at).toISOString(),offers:{...offer,description:row.deal==='rent'?'Alquiler':'Venta'}};
 }
-function structuredData(row,url,images){
- return {'@context':'https://schema.org','@graph':[entitySchema(row,url,images),{'@type':'BreadcrumbList',itemListElement:[
- {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
- {'@type':'ListItem',position:2,name:'Marketplace',item:ORIGIN+'/marketplace/explorar'},
- {'@type':'ListItem',position:3,name:row.title,item:url}
- ]}]};
+function structuredData(row,url,images,categoryDef=null){
+ const crumbs=[
+  {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
+  {'@type':'ListItem',position:2,name:'Marketplace',item:ORIGIN+'/marketplace/explorar'}
+ ];
+ if(categoryDef)crumbs.push({'@type':'ListItem',position:3,name:categoryDef.h1,item:ORIGIN+categoryDef.path});
+ crumbs.push({'@type':'ListItem',position:crumbs.length+1,name:row.title,item:url});
+ return {'@context':'https://schema.org','@graph':[entitySchema(row,url,images),{'@type':'BreadcrumbList',itemListElement:crumbs}]};
 }
 const ogDefault=ORIGIN+'/assets/og-redlibertad.png';
 function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,robots='index,follow,max-image-preview:large',backHref='/marketplace/explorar',bodyClass=''}){
@@ -104,6 +106,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.77.8">'+
  '<link rel="stylesheet" href="/marketplace-landing-v32111.css?v=3.2.111">'+
  '<link rel="stylesheet" href="/marketplace-category-seo-v32112.css?v=3.2.112">'+
+ '<link rel="stylesheet" href="/marketplace-category-links-v32113.css?v=3.2.113">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.75" defer></script>'+
  '<script src="/marketplace-category-filter-v3274.js?v=3.2.75" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.75" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
@@ -124,7 +127,7 @@ function listingDescriptionHtml(row){
  return '<section class="market-description-section"><h2>Descripción</h2><p class="market-seo-description">'+esc(preview)+'</p>'+
   (more?'<details class="market-description-expand"><summary>Leer descripción completa</summary><p class="market-seo-description">'+esc(more)+'</p></details>':'')+'</section>';
 }
-function listingHtml(row,related=[]){
+function listingHtml(row,related=[],categoryDef=null){
  const url=ORIGIN+listingPath(row),images=imagePaths(row);
  const gallery=images.length?'<div class="market-listing-gallery" data-market-gallery><section class="gallery" tabindex="0" aria-label="Fotografías del anuncio">'+images.map((image,i)=>'<img loading="'+(i?'lazy':'eager')+'" src="'+esc(image)+'" alt="'+esc('Fotografía '+(i+1)+' de '+row.title)+'"'+(i===0?' fetchpriority="high"':'')+'>').join('')+'</section>'+(images.length>1?'<nav class="market-gallery-controls" aria-label="Navegar fotografías"><button type="button" data-market-prev aria-label="Fotografía anterior" disabled>←</button><output aria-live="polite" data-market-counter>1 de '+images.length+'</output><button type="button" data-market-next aria-label="Fotografía siguiente">→</button></nav>':'')+'</div>':'';
  const date=new Date(row.created_at).toISOString(),updated=new Date(row.updated_at).toISOString();
@@ -148,7 +151,10 @@ function listingHtml(row,related=[]){
  const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
  const categoryBrowse='/marketplace/explorar?tipo='+encodeURIComponent(row.kind)+'&categoria='+encodeURIComponent(row.category);
  const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
- const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(row.category)+'</nav>'+
+ const qualifiedCategory=marketplaceCategorySeoV32112.candidateCategories(row).includes(categoryDef)?categoryDef:null;
+ const categoryCrumb=qualifiedCategory?'<a href="'+esc(qualifiedCategory.path)+'">'+esc(qualifiedCategory.h1)+'</a> › '+esc(row.title):esc(row.category);
+ const categoryLink=qualifiedCategory?'<nav class="market-qualified-category-v32113" aria-label="Anuncios de la misma categoría"><a href="'+esc(qualifiedCategory.path)+'">Explorar '+esc(qualifiedCategory.h1)+' →</a></nav>':'';
+ const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+categoryCrumb+'</nav>'+
  '<article class="market-seo-item"><header><span class="chip market-deal-'+esc(row.deal)+'">'+esc(row.deal==='buy'?'BUSCO COMPRAR':row.deal==='sale'?'EN VENTA':row.deal==='rent'?'ALQUILER':row.kind==='service'?'SERVICIO':'PRODUCTO')+'</span>'+(recentListing(row)?'<span class="chip market-new-chip">NUEVO</span>':'')+'<h1>'+esc(row.title)+'</h1>'+
  '<p class="muted">'+esc(category)+' · '+esc(location)+' · <time datetime="'+esc(date)+'">'+esc(new Date(row.created_at).toLocaleDateString('es-ES'))+'</time></p></header>'+
  gallery+(isProductSale?'<section class="market-product-offer" aria-label="Precio y contacto"><div><span class="market-product-offer-label">Precio anunciado</span><p class="price">'+esc(displayPrice(row))+'</p></div>'+offerActions+'<p class="market-contact-note">'+purchaseNote+'</p></section>':'<p class="price">'+esc((row.deal==='buy'?'Presupuesto máximo: ':'')+displayPrice(row)+(row.deal==='rent'?' / mes':''))+'</p>')+
@@ -159,13 +165,13 @@ function listingHtml(row,related=[]){
  '<section><h2>'+(row.deal==='buy'?'Persona que busca':'Vendedor o anunciante')+'</h2><p><a class="seller-profile-link" href="'+esc(sellerLink)+'">'+esc(row.seller_name||row.seller_username)+'</a></p><p><a class="market-seller-more" href="'+esc(otherAdsLink)+'">Ver otros anuncios de esta persona →</a></p></section>'+
  '<div class="market-seo-actions">'+(!isProductSale?'<a class="primary" href="'+esc(contactHref)+'">'+esc(contactText)+'</a>':'')+'<a class="secondary" href="/marketplace/explorar">Ver más anuncios</a></div>'+
  '<section class="market-share"><h2>Compartir anuncio</h2><div class="market-share-actions"><button type="button" class="market-native-share-v3272" data-market-native-share="'+esc(url)+'" data-market-share-title="'+esc(row.title)+'">Compartir desde el móvil ↗</button><a class="market-community-link-v3269" data-market-community-share-v3273 hidden href="/app?view=feed&amp;compartirAnuncio='+encodeURIComponent(row.id)+'">Publicar en RedLibertad</a><a href="https://api.whatsapp.com/send?text='+shareTitle+'" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="https://www.facebook.com/sharer/sharer.php?u='+shareLink+'" target="_blank" rel="noopener noreferrer">Facebook</a><button type="button" data-copy-url="'+esc(url)+'">Copiar enlace</button><a href="/marketplace?report='+encodeURIComponent(row.id)+'">Denunciar anuncio</a></div><p id="marketCopyNotice" role="status" aria-live="polite"></p></section>'+
- '<p class="market-category-more-v3272"><a class="market-more-category-v3272" href="'+esc(categoryBrowse)+'">Ver más anuncios de '+esc(row.category)+' →</a></p>'+ 
+ '<p class="market-category-more-v3272"><a class="market-more-category-v3272" href="'+esc(categoryBrowse)+'">Ver más anuncios de '+esc(row.category)+' →</a></p>'+categoryLink+
  '<p class="muted">Consulta el perfil público del anunciante y confirma la información antes de acordar un pago o envío. RedLibertad no procesa pagos ni garantiza las transacciones.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>'+
  (isProductSale?'<nav class="market-mobile-contact" aria-label="'+(verifiedPurchaseUrl?'Comprar en la tienda':'Consulta sobre el producto')+'" hidden><span>'+esc(displayPrice(row))+'</span>'+mobileAction+'</nav>':'')+
  (related.length?'<section class="market-related" aria-label="Anuncios relacionados"><h2>También te puede interesar</h2><p>Otros anuncios públicos de una categoría o ubicación similar.</p><div class="cards market-public-grid">'+related.map(listingCard).join('')+'</div></section>':'');
  return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+(nationalSale(row)?' | Venta en toda España':' en '+location)+' | RedLibertad Marketplace').slice(0,155),
  description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
- canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images)});
+ canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images,qualifiedCategory)});
 }
 
 const MARKETPLACE_MANIFEST={"id":"/marketplace","name":"Marketplace · RedLibertad","short_name":"Marketplace","description":"Compra, vende y encuentra productos, servicios e inmuebles. Comparte tu cuenta con RedLibertad.","start_url":"/marketplace/explorar","scope":"/marketplace","display":"standalone","background_color":"#f7f4ee","theme_color":"#0d3e4a","lang":"es","icons":[{"src":"/marketplace/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"/marketplace/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]};
@@ -230,7 +236,20 @@ router.get('/marketplace/p/:id/:slug?',async(req,res,next)=>{
   const related=await db.query(
    "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id<>$1 AND l.kind=$2 AND (l.category=$3 OR l.city=$4) AND l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true ORDER BY CASE WHEN l.category=$3 THEN 0 ELSE 1 END,l.created_at DESC,l.id DESC LIMIT 4",
    [row.id,row.kind,row.category,row.city]);
-  return res.status(200).type('html').send(listingHtml(row,related.rows));
+  // A public advert may link back to a qualified SEO category, but must not
+  // advertise thin/noindex pages or classify new store goods as second-hand.
+  let qualifiedCategory=null;
+  if(marketplaceCategorySeoV32112.candidateCategories(row).length){
+   try{
+    const categories=await db.query(marketplaceCategorySeoV32112.countQuery());
+    qualifiedCategory=marketplaceCategorySeoV32112.qualifiedCategoryForListing(row,categories.rows[0]||{});
+   }catch(categoryError){
+    // Category discovery is optional: never break a public product page when
+    // the aggregate query is temporarily unavailable.
+    console.warn('Marketplace SEO category backlink unavailable:',categoryError?.message);
+   }
+  }
+  return res.status(200).type('html').send(listingHtml(row,related.rows,qualifiedCategory));
  }catch(error){next(error);}
 });
 router.get('/marketplace/imagen/:id/:index',async(req,res,next)=>{
