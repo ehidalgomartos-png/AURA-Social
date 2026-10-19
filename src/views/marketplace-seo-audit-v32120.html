@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.123">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.123" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.123.1">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.123.1" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -56,6 +56,9 @@
    <h2 id="auditGscTitle">Google Search Console · Inspección real</h2>
    <p class="audit-muted">Consulta manualmente el estado de una ficha pública en la versión que Google tiene en su índice. <strong>No inspecciona la versión en directo ni solicita indexación.</strong> La conexión permanece desactivada hasta configurarla con permisos de solo lectura en Coolify.</p>
    <p id="auditGscState" class="audit-gsc-status" role="status" aria-live="polite">Comprobando configuración de Search Console…</p>
+   <div id="auditGscConfigChecks" class="audit-gsc-checks" aria-label="Comprobaciones seguras de configuración de Google">
+   </div>
+   <p class="audit-muted">Este diagnóstico solo muestra si cada comprobación se supera. Nunca muestra ni transmite las credenciales. La clave se valida localmente en el servidor.</p>
    <div class="audit-gsc-controls">
     <label for="auditGscId">Número del anuncio público</label>
     <input id="auditGscId" type="text" inputmode="numeric" pattern="[1-9][0-9]*" maxlength="16" autocomplete="off" placeholder="Ej.: 120" aria-describedby="auditGscHelp">
