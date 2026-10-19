@@ -51,3 +51,26 @@
 @media(max-width:350px){
  .market-category-seo-actions{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* V3.2.116: mobile-first category pagination, with safe tap targets. */
+.market-public-category-seo .market-category-pagination-v32116{
+ display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;
+ margin:18px 0 8px;
+}
+.market-public-category-seo .market-category-pagination-v32116 a{
+ min-height:46px;min-width:114px;padding:10px 14px;
+ border:1px solid #badad4;border-radius:11px;background:#fff;color:#09665e;
+ text-decoration:none;font-weight:800;text-align:center;
+}
+.market-public-category-seo .market-category-pagination-v32116 span{
+ color:#52666e;font-size:13px;font-weight:700;
+}
+.market-public-category-seo .market-category-pagination-v32116 a:focus-visible{
+ outline:3px solid #cc8925;outline-offset:3px;
+}
+@media(max-width:600px){
+ .market-public-category-seo .market-category-pagination-v32116{gap:8px}
+ .market-public-category-seo .market-category-pagination-v32116 a{min-height:48px;flex:1}
+ .market-public-category-seo .market-category-pagination-v32116 span{width:100%;text-align:center;order:-1}
+}
