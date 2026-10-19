@@ -456,7 +456,7 @@ for(const categoryDef of marketplaceCategorySeoV32112.LANDINGS){
    const result=total?(await db.query(marketplaceCategorySeoV32112.listingQuery(categoryDef,{page}))).rows:[];
    const listings=result.slice(0,marketplaceCategorySeoV32112.CATEGORY_PAGE_SIZE);
    if(page>1&&!listings.length)return unavailable(res);
-   const hasNext=result.length>marketplaceCategorySeoV32112.CATEGORY_PAGE_SIZE;
+   const hasNext=page<marketplaceCategorySeoV32112.MAX_CATEGORY_PAGES&&result.length>marketplaceCategorySeoV32112.CATEGORY_PAGE_SIZE;
    // A moderation change between COUNT and SELECT may remove cards. Never
    // index an empty later page or an undersized first collection.
    const minOnPage=page===1?marketplaceCategorySeoV32112.MIN_PUBLIC_ADS:1;
