@@ -23,6 +23,24 @@ const PREFIXES=Object.freeze([
  'sofas de ','sillones de ','camas de ','mesas de ','sillas de ','armarios de ',
  'dormitorios de ','salones de ','comedores de ','muebles y '
 ]);
+// Real WooCommerce taxonomies often add a descriptive qualifier after the
+// furniture noun (e.g. 'Armarios Puertas Batientes'). Matching only exact
+// labels made entire imported collections invisible to the SEO page.
+// Recognize these bounded furniture subfamilies without accepting arbitrary
+// categories whose names merely contain a furniture keyword.
+const CATEGORY_DETAIL_PREFIXES=Object.freeze([
+ 'armarios puertas','armarios puerta','armarios correderas','armarios abatibles',
+ 'armarios empotrados','armarios roperos','armarios vestidores','armarios esquineros',
+ 'armarios 1 puerta','armarios 2 puertas','armarios 3 puertas',
+ 'armarios 4 puertas','armarios 5 puertas','armarios 6 puertas',
+ 'sofas 2 plazas','sofas 3 plazas','sofas 4 plazas','sofas cama',
+ 'sofas chaise longue','sofas rinconeros','sofas modulares',
+ 'camas nido','camas abatibles','camas juveniles',
+ 'mesas centro','mesas de centro','mesas comedor','mesas de comedor',
+ 'mesas auxiliares','sillas comedor','sillas de comedor',
+ 'muebles dormitorio','muebles de dormitorio','muebles salon',
+ 'muebles de salon','muebles auxiliares'
+]);
 const GENERIC_BUCKETS=Object.freeze([
  'otros','otros productos','general','sin categoria','uncategorized','tienda',
  'casa','hogar','hogar y decoracion','decoracion','productos','catalogo'
@@ -44,7 +62,8 @@ function normalized(value){
 }
 function categoryMatches(value){
  const name=normalized(value);
- return !!name&&(ALIASES_SET.has(name)||PREFIXES.some(prefix=>name.startsWith(prefix)));
+ return !!name&&(ALIASES_SET.has(name)||PREFIXES.some(prefix=>name.startsWith(prefix))||
+  CATEGORY_DETAIL_PREFIXES.some(prefix=>name===prefix||name.startsWith(prefix+' ')));
 }
 function isFurnitureListing(row){
  if(row?.kind!=='product'||row?.deal!=='sale')return false;
@@ -62,11 +81,13 @@ function sqlPredicate(alias='l'){
  const category=SQL_NORM(alias+'.category');
  const subcategory=SQL_NORM(alias+".details->>'subcategory'");
  const title=SQL_NORM(alias+'.title');
- const aliasMatches=column=>'('+inList(CATEGORY_ALIASES,column)+' OR '+PREFIXES.map(prefix=>column+' LIKE '+quote(prefix+'%')).join(' OR ')+')';
+ const aliasMatches=column=>'('+inList(CATEGORY_ALIASES,column)+' OR '+
+  PREFIXES.map(prefix=>column+' LIKE '+quote(prefix+'%')).join(' OR ')+' OR '+
+  CATEGORY_DETAIL_PREFIXES.map(prefix=>'('+column+' = '+quote(prefix)+' OR '+column+' LIKE '+quote(prefix+' %')+')').join(' OR ')+')';
  const titleStart='^('+TITLE_HEADS.map(h=>h.replace(/ /g,'[[:space:]]+')).join('|')+')([^a-z]|$)';
  return "("+alias+".kind='product' AND "+alias+".deal='sale' AND ("+
   aliasMatches(category)+' OR '+aliasMatches(subcategory)+
   ' OR ('+inList(GENERIC_BUCKETS,category)+' AND '+title+' ~ '+quote(titleStart)+')'+
   '))';
 }
-module.exports={normalized,categoryMatches,isFurnitureListing,sqlPredicate,CATEGORY_ALIASES,PREFIXES,GENERIC_BUCKETS,TITLE_HEADS};
+module.exports={normalized,categoryMatches,isFurnitureListing,sqlPredicate,CATEGORY_ALIASES,PREFIXES,CATEGORY_DETAIL_PREFIXES,GENERIC_BUCKETS,TITLE_HEADS};
