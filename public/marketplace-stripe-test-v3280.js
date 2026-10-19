@@ -79,7 +79,8 @@ $('sync').addEventListener('click',async()=>{
  try{
   await api('sync',{method:'POST',body:JSON.stringify({})});
   await load();msg.textContent='Estado actualizado desde Stripe TEST. No se han modificado las suscripciones comerciales.';
- }catch(error){msg.className='bad';msg.textContent=error.message;}
+ }catch(error){msg.className='bad';msg.textContent=error.message==='stripe_test_sync_conflict'?
+  'Stripe TEST ha cambiado durante la consulta o la suscripción ya está cancelada. Actualiza el panel y vuelve a comprobar el estado; no se han sobrescrito los cambios.':error.message;}
  finally{button.disabled=false;}
 });
 load();
