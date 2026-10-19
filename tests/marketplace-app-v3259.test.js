@@ -78,12 +78,14 @@ test('Typed XML category sitemap routes enforce public visibility and parameteri
   assert.equal(invalid.statusCode,404);
  }finally{db.query=original;}
 });
-test('Sitemaps indexed in robots and sitemap-index; old Marketplace sitemap retained',()=>{
+test('Sitemaps are declared in robots and root index points to the complete Marketplace sitemap index',()=>{
  const s=read('server.js');
  for(const label of ['productos','servicios','inmuebles']){
   assert.ok(s.includes("origin+'/sitemap-marketplace-"+label+".xml'"));
   assert.ok(s.includes('Sitemap: '+String.fromCharCode(36,123)+'origin}/sitemap-marketplace-'+label+'.xml'));
  }
- assert.ok(s.includes("origin+'/sitemap-marketplace-1.xml'"));
+ // V3.2.122: root sitemap must refer to all public shards, not only shard 1.
+ assert.ok(s.includes("origin+'/sitemap-marketplace.xml'"));
+ assert.ok(!s.includes("origin+'/sitemap-marketplace-1.xml'"));
  assert.ok(s.includes('Sitemap: '+String.fromCharCode(36,123)+'origin}/sitemap-marketplace.xml'));
 });
