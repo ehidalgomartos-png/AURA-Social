@@ -19,7 +19,7 @@ test('32 public furniture ads lead to two bounded, distinct crawlable pages',()=
  assert.throws(()=>seo.listingQuery(def,{page:1001}),/invalid_marketplace_category_page/);
  assert.throws(()=>seo.listingQuery(def,{page:-1}),/invalid_marketplace_category_page/);
  assert.throws(()=>seo.categoryPath(def,1001),/invalid_marketplace_category_page/);
- assert.throws(()=>seo.listingQuery({where:'true OR 1=1'},{page:1}),/invalid_marketplace_category_page/);
+ assert.throws(()=>seo.listingQuery({where:'true OR 1=1'},{page:1}),/unknown_marketplace_category/);
 });
 test('invalid and noncanonical page parameters cannot manufacture public paging URLs',()=>{
  for(const value of ['0','-1','1001','99999','2.4','02','2 OR 1=1','',null,2,['2']])
