@@ -15,6 +15,7 @@ const marketplaceLandingV32111=require('../marketplace-landing-v32111');
 const marketplaceCategorySeoV32112=require('../marketplace-category-seo-v32112');
 const marketplaceProductMetaV32118=require('../services/marketplace-product-meta-v32118');
 const marketplaceSeoAuditV32120=require('../services/marketplace-seo-audit-v32120');
+const marketplaceSitemapPlanV32122=require('../services/marketplace-sitemap-plan-v32122');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -24,7 +25,7 @@ const MARKET_CATEGORY_GROUPS_V3274={
  service:GENERAL_MARKET_CATEGORIES_V3273.slice(22,33),
  property:GENERAL_MARKET_CATEGORIES_V3273.slice(33)
 };
-const PAGE_SIZE=2000;
+const PAGE_SIZE=marketplaceSitemapPlanV32122.PAGE_SIZE;
 const safeId=value=>/^[1-9]\d{0,15}$/.test(String(value||''));
 const validImage=value=>/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i.test(String(value||''));
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -230,6 +231,11 @@ router.get('/api/admin/marketplace/seo/auditoria',requireAdmin,async(_req,res,ne
    isCategoryIndexable:marketplaceCategorySeoV32112.canIndex,
    listingPath
   });
+  // Counts already originate from the strict public-only audit queries.
+  // Do not imply these URLs were fetched or verified by Search Console.
+  audit.technicalSitemaps=marketplaceSitemapPlanV32122.summary(
+   metrics.rows[0]||{},categoryCounts.rows[0]||{},marketplaceCategorySeoV32112.LANDINGS,marketplaceCategorySeoV32112.canIndex
+  );
   res.setHeader('Cache-Control','private,no-store');
   res.setHeader('X-Robots-Tag','noindex,nofollow');
   return res.json(audit);
