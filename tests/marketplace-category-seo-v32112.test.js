@@ -18,7 +18,7 @@ test('seven finite meaningful category routes, with distinct intent and no compe
   assert.ok(def.description.length>=90 && def.description.length<190);
   assert.doesNotMatch(def.title+' '+def.description,/Wallapop|Milanuncios|ofertas garantizadas|miles de anuncios|mejor precio/i);
   assert.equal(seo.countQuery().includes(def.id),true);
-  assert.match(seo.listingQuery(def),/ORDER BY l.created_at DESC,l.id DESC LIMIT 24/);
+  assert.match(seo.listingQuery(def),/ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET 0/);
  }
  assert.equal(seo.bySlug('../../secret'),null);
  assert.throws(()=>seo.listingQuery({where:'true OR 1=1'}),/unknown_marketplace_category/);
@@ -100,7 +100,7 @@ test('Express SSR routes, meta robots, sitemap, and mobile discovery are wired i
  assert.match(source,/marketplaceCategorySeoV32112\.canIndex\(counts,categoryDef\)/);
  assert.match(source,/if\(!indexable\)res\.setHeader\('X-Robots-Tag','noindex, follow'\)/);
  assert.match(source,/robots:indexable\?'index,follow,max-image-preview:large':'noindex,follow'/);
- assert.match(source,/schema:indexable\?marketplaceCategorySeoV32112\.structuredData\(categoryDef,listings\):null/);
+ assert.match(source,/schema:indexable\?marketplaceCategorySeoV32112\.structuredData\(categoryDef,listings,\{page\}\):null/);
  assert.match(source,/marketplaceCategorySeoV32112\.navigation\(categoryCounts\)/);
  assert.match(source,/marketplaceCategorySeoV32112\.sitemapXml/);
  assert.match(source,/router\.get\('\/sitemap-marketplace-categorias\.xml'/);

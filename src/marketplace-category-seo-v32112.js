@@ -4,6 +4,8 @@
 const ORIGIN='https://redlibertad.com';
 const furnitureFamily=require('./services/marketplace-furniture-family-v32114');
 const MIN_PUBLIC_ADS=5;
+const CATEGORY_PAGE_SIZE=24;
+const MAX_CATEGORY_PAGES=1000;
 const PUBLIC_FROM=" FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true";
 const LANDINGS=Object.freeze([
  {
@@ -83,10 +85,24 @@ function countQuery(){
  return 'SELECT '+LANDINGS.map(def=>'COUNT(*) FILTER (WHERE ('+def.where+'))::integer AS '+def.id).join(',')+
   ",COUNT(DISTINCT LOWER(BTRIM(l.category))) FILTER (WHERE (l.kind='product' AND l.deal='sale' AND l.details->>'condition'='used'))::integer AS used_category_diversity"+PUBLIC_FROM;
 }
-function listingQuery(def){
+function validPage(value){
+ // Reject parameters that could create duplicate or unbounded crawl URLs.
+ return typeof value==='string'&&/^[1-9][0-9]{0,3}$/.test(value)&&Number(value)<=MAX_CATEGORY_PAGES;
+}
+function categoryPath(def,page=1){
+ if(!LANDINGS.includes(def)||!Number.isSafeInteger(page)||page<1||page>MAX_CATEGORY_PAGES)
+  throw Error('invalid_marketplace_category_page');
+ return def.path+(page>1?'?pagina='+page:'');
+}
+function listingQuery(def,{page=1}={}){
  if(!LANDINGS.includes(def))throw Error('unknown_marketplace_category');
+ if(!Number.isSafeInteger(page)||page<1||page>MAX_CATEGORY_PAGES)
+  throw Error('invalid_marketplace_category_page');
+ // Read an extra public listing to determine whether a real next page exists;
+ // all interpolated integers originate from bounded, checked page numbers.
+ const offset=(page-1)*CATEGORY_PAGE_SIZE;
  return 'SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at,l.updated_at,l.category'+
-  PUBLIC_FROM+' AND ('+def.where+') ORDER BY l.created_at DESC,l.id DESC LIMIT 24';
+  PUBLIC_FROM+' AND ('+def.where+') ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET '+offset;
 }
 function totalFor(counts,def){
  if(!LANDINGS.includes(def))return 0;
@@ -136,18 +152,27 @@ function navigation(counts,{current=null}={}){
  return '<nav class="market-category-seo-nav" aria-label="Más categorías con anuncios"><h2>Más categorías para explorar</h2><div>'+
   options.map(def=>'<a href="'+esc(def.path)+'">'+esc(def.h1)+' →</a>').join('')+'</div></nav>';
 }
-function content(def,{count=0,cards='',indexable=false,navigationHtml=''}={}){
+function content(def,{count=0,cards='',indexable=false,navigationHtml='',page=1,visibleCount=0,hasNext=false}={}){
  if(!LANDINGS.includes(def))throw Error('unknown_marketplace_category');
  const intro='<nav class="market-category-seo-crumb" aria-label="Ruta de navegación">'+
-  '<a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(def.h1)+'</nav>'+
-  '<header class="market-category-seo-hero"><span>ANUNCIOS EN ESPAÑA · REDLIBERTAD</span><h1>'+esc(def.h1)+'</h1>'+
+  '<a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(def.h1)+(page>1?' · Página '+page:'')+'</nav>'+
+  '<header class="market-category-seo-hero"><span>ANUNCIOS EN ESPAÑA · REDLIBERTAD</span><h1>'+esc(def.h1)+(page>1?' — página '+page:'')+'</h1>'+
   '<p>'+esc(def.intro)+'</p><div class="market-category-seo-actions">'+
   '<a class="primary" href="'+esc(def.discover)+'">Explorar anuncios relacionados</a>'+
   '<a class="secondary" href="/marketplace?publicar=1">Publicar un anuncio</a></div></header>';
+ const start=page>1?(page-1)*CATEGORY_PAGE_SIZE+1:1;
+ const end=start+Math.max(0,visibleCount)-1;
+ const summary=visibleCount>0&&count>visibleCount?' Mostrando '+start+'–'+end+' de '+count+'.':'';
+ const pager=indexable&&visibleCount>0&&(page>1||hasNext)?
+  '<nav class="market-seo-pagination market-category-pagination-v32116" aria-label="Páginas de anuncios de '+esc(def.h1)+'">'+
+  (page>1?'<a class="secondary" rel="prev" href="'+esc(categoryPath(def,page-1))+'">← Anteriores</a>':'')+
+  '<span aria-current="page">Página '+page+' de '+Math.max(1,Math.ceil(count/CATEGORY_PAGE_SIZE))+'</span>'+
+  (hasNext?'<a class="secondary" rel="next" href="'+esc(categoryPath(def,page+1))+'">Siguientes →</a>':'')+
+  '</nav>':'';
  const selection=indexable?
   '<section class="market-category-seo-listings" aria-label="Anuncios publicados"><h2>Anuncios disponibles</h2>'+
-  '<p>'+esc(String(count))+' anuncios públicos en esta categoría. Comprueba cada ficha para conocer los detalles actualizados.</p>'+
-  '<div class="cards market-public-grid">'+cards+'</div></section>':
+  '<p>'+esc(String(count))+' anuncios públicos en esta categoría.'+summary+' Comprueba cada ficha para conocer los detalles actualizados.</p>'+
+  '<div class="cards market-public-grid">'+cards+'</div>'+pager+'</section>':
   '<section class="market-category-seo-empty"><h2>Estamos ampliando esta categoría</h2>'+
   '<p>Por ahora hay pocos anuncios públicos de este tipo. Puedes explorar el Marketplace completo o volver más adelante.</p>'+
   (cards?'<div class="cards market-public-grid">'+cards+'</div>':'')+'</section>';
@@ -156,19 +181,19 @@ function content(def,{count=0,cards='',indexable=false,navigationHtml=''}={}){
   '<p>Los anuncios son responsabilidad de quienes los publican. RedLibertad no gestiona los pagos ni los envíos. Si un producto dispone de un enlace de compra verificado, la operación se realiza en la web del vendedor.</p></section>'+
   navigationHtml;
 }
-function structuredData(def,rows){
+function structuredData(def,rows,{page=1}={}){
  if(!LANDINGS.includes(def))throw Error('unknown_marketplace_category');
- const url=ORIGIN+def.path;
- const items=rows.slice(0,24).map((row,index)=>({
-  '@type':'ListItem',position:index+1,name:row.title,url:ORIGIN+'/marketplace/p/'+encodeURIComponent(row.id)+'/'+slugify(row.title)
+ const url=ORIGIN+categoryPath(def,page);
+ const items=rows.slice(0,CATEGORY_PAGE_SIZE).map((row,index)=>({
+  '@type':'ListItem',position:(page-1)*CATEGORY_PAGE_SIZE+index+1,name:row.title,url:ORIGIN+'/marketplace/p/'+encodeURIComponent(row.id)+'/'+slugify(row.title)
  }));
  return {'@context':'https://schema.org','@graph':[
-  {'@type':'CollectionPage','@id':url+'#webpage',url,name:def.title,
+  {'@type':'CollectionPage','@id':url+'#webpage',url,name:def.title+(page>1?' — Página '+page:''),
    description:def.description,inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'}},
   {'@type':'BreadcrumbList','@id':url+'#breadcrumbs',itemListElement:[
    {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
    {'@type':'ListItem',position:2,name:'Marketplace',item:ORIGIN+'/marketplace/explorar'},
-   {'@type':'ListItem',position:3,name:def.h1,item:url}
+   {'@type':'ListItem',position:3,name:def.h1+(page>1?' — página '+page:''),item:url}
   ]},
   {'@type':'ItemList','@id':url+'#anuncios',itemListElement:items}
  ]};
@@ -181,4 +206,4 @@ function sitemapXml(counts){
  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
  qualified(counts).map(def=>'<url><loc>'+esc(ORIGIN+def.path)+'</loc></url>').join('')+'</urlset>';
 }
-module.exports={ORIGIN,MIN_PUBLIC_ADS,LANDINGS,bySlug,countQuery,listingQuery,totalFor,canIndex,qualified,candidateCategories,qualifiedCategoryForListing,navigation,content,structuredData,sitemapXml};
+module.exports={ORIGIN,MIN_PUBLIC_ADS,CATEGORY_PAGE_SIZE,MAX_CATEGORY_PAGES,LANDINGS,bySlug,countQuery,validPage,categoryPath,listingQuery,totalFor,canIndex,qualified,candidateCategories,qualifiedCategoryForListing,navigation,content,structuredData,sitemapXml};
