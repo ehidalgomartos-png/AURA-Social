@@ -28,7 +28,7 @@ function titleFor(row){
  const origin=dedupeLocation(originLocation(row));
  // For country-wide offers without a physical origin we use the truthful
  // coverage indicator, not an invented seller city or shipping guarantee.
- const place=origin||((nationalSale(row))?'España':dedupeLocation(publicLocation(row)));
+ const place=clipped(origin||((nationalSale(row))?'España':dedupeLocation(publicLocation(row))),24);
  const brand='RedLibertad';
  const suffix=' | '+(place?place+' | ':'')+brand;
  const limit=Math.max(25,TITLE_LIMIT-suffix.length);
@@ -41,19 +41,13 @@ function descriptionFor(row,{externalPurchase=false}={}){
  const place=dedupeLocation(originLocation(row))||(
   nationalSale(row)?'Venta anunciada para España':dedupeLocation(publicLocation(row))
  );
- const parts=[
-  title+(amount?' — '+amount+'.':'.'),
-  condition.trim(),
-  place?place+'.':'',
-  externalPurchase?'Compra en la web del vendedor.':'Consulta el anuncio y contacta con el vendedor.'
- ];
- // If there is room, prefer an authentic brief seller description, but avoid
- // boilerplate duplication and never invent condition, stock or shipping.
- const summary=clean(row?.description);
+ const parts=[title+(amount?' — '+amount+'.':'.'),condition.trim(),place?place+'.':''];
  const base=parts.filter(Boolean).join(' ');
- if(summary&&base.length+summary.length+1<=DESCRIPTION_LIMIT)
-  return base+' '+summary;
- return clipped(base,DESCRIPTION_LIMIT);
+ const cta=externalPurchase?'Compra en la web del vendedor.':'Consulta el anuncio y contacta con el vendedor.';
+ const summary=clean(row?.description);
+ const available=DESCRIPTION_LIMIT-base.length-cta.length-2;
+ if(summary&&available>=25)return clipped(base+' '+clipped(summary,available)+' '+cta,DESCRIPTION_LIMIT);
+ return clipped(base+' '+cta,DESCRIPTION_LIMIT);
 }
 function forListing(row,opts={}){
  if(row?.kind!=='product'||row?.deal!=='sale')return null;
