@@ -7,7 +7,7 @@ const marketplace=require('../src/routes/marketplace-seo-v3251');
 const def=seo.bySlug('muebles');
 const listing=id=>({id,title:'Armario Turin '+id,kind:'product',deal:'sale',
  category:'Armarios Puertas Batientes',details:{condition:'new'},city:'Valencia',
- image_urls:[],price_cents:15900,created_at:new Date().toISOString()});
+ image_urls:[],price_cents:15900,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
 test('32 public furniture ads lead to two bounded, distinct crawlable pages',()=>{
  assert.equal(seo.CATEGORY_PAGE_SIZE,24);
  assert.equal(seo.categoryPath(def,1),'/marketplace/muebles');
