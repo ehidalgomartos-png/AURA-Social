@@ -1,0 +1,20 @@
+/* V3.2.113: lightweight qualified-category backlink on public listing details. */
+.market-seo-item .market-qualified-category-v32113{
+ display:block;margin:10px 0 18px;max-width:100%;
+}
+.market-seo-item .market-qualified-category-v32113 a{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:46px;max-width:100%;padding:10px 15px;line-height:1.4;
+ border-radius:12px;border:1px solid #b7dcd5;background:#edf8f4;
+ color:#0b655b;font-weight:800;text-decoration:none;
+ text-align:center;overflow-wrap:anywhere;
+}
+.market-seo-item .market-qualified-category-v32113 a:hover{
+ background:#d9f1ea;border-color:#0f8276;
+}
+.market-seo-item .market-qualified-category-v32113 a:focus-visible{
+ outline:3px solid #cc8925;outline-offset:3px;
+}
+@media(max-width:600px){
+ .market-seo-item .market-qualified-category-v32113 a{width:100%;min-height:48px;font-size:14px}
+}
