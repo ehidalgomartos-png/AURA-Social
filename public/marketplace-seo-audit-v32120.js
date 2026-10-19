@@ -19,8 +19,9 @@
   container.append(box);
  }
  function renderAudit(data){
-  const summary=$('auditMetrics'),checks=$('auditChecks'),categories=$('auditCategories'),examples=$('auditExamples');
-  [summary,checks,categories,examples].forEach(clear);
+  const summary=$('auditMetrics'),checks=$('auditChecks'),optional=$('auditOptional'),
+   categories=$('auditCategories'),examples=$('auditExamples');
+  [summary,checks,optional,categories,examples].forEach(clear);
   card(summary,data.totals.publicListings,'Anuncios públicos','Activos, publicados y de vendedores visibles');
   card(summary,data.totals.products,'Productos');
   card(summary,data.totals.services,'Servicios');
@@ -30,6 +31,15 @@
    box.append(element('strong','audit-check-number',number(check.count)),element('span','audit-check-name',check.name));
    box.append(element('small','audit-muted',check.note));
    checks.append(box);
+  }
+  // Missing new/used condition (common in WooCommerce CSV) is information,
+  // not an SEO issue and must never appear as a per-listing warning.
+  for(const item of data.informational||[]){
+   const box=element('div','audit-optional-card');
+   box.append(element('strong','audit-optional-number',number(item.count)),
+    element('span','audit-optional-name',item.name));
+   box.append(element('small','audit-muted',item.note));
+   optional.append(box);
   }
   for(const category of data.categories){
    const row=element('div','audit-category');

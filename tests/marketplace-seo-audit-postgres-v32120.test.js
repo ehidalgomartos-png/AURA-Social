@@ -56,6 +56,9 @@ test('audit reads public marketplace rows only, reports accurate counts and neve
    listingPath:row=>'/marketplace/p/'+row.id+'/'+row.title.toLowerCase().replace(/\s+/g,'-')
   });
   assert.equal(report.totals.publicListings,4);
+  assert.equal(report.informational.find(x=>x.id==='condition_unset').count,1);
+  assert.equal(report.checks.some(x=>x.id==='condition_unset'),false);
+  assert.ok(report.examples.every(x=>!x.issues.includes('estado_no_indicado')));
   assert.ok(report.examples.some(x=>x.id==='1'&&x.issues.includes('sin_fotos_publicas')));
   assert.ok(report.examples.some(x=>x.id==='3'&&x.kind==='service'));
   assert.ok(report.categories.every(x=>!x.indexable));
