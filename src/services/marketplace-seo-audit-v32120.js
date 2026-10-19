@@ -33,8 +33,6 @@ function issueCodes(row){
  if(images.invalid)issues.push('referencias_imagen_invalidas');
  if(images.duplicates)issues.push('fotografias_duplicadas');
  if(!String(row.category||'').trim())issues.push('categoria_incompleta');
- if(row.kind==='product'&&row.deal==='sale'&&!['new','used'].includes(row.details?.condition))
-  issues.push('estado_no_indicado');
  return issues;
 }
 const LABELS=Object.freeze({
@@ -43,8 +41,7 @@ const LABELS=Object.freeze({
  sin_fotos_publicas:'Sin fotografías locales válidas',
  referencias_imagen_invalidas:'Imagen con formato no permitido',
  fotografias_duplicadas:'Fotografías repetidas',
- categoria_incompleta:'Sin categoría',
- estado_no_indicado:'Estado nuevo/usado no indicado'
+ categoria_incompleta:'Sin categoría'
 });
 function int(value){const n=Number(value);return Number.isSafeInteger(n)&&n>=0?n:0;}
 function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIndexable,listingPath}={}){
@@ -78,8 +75,12 @@ function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIn
   checks:[
    {id:'short_titles',name:'Títulos muy breves',count:int(metrics.short_titles),note:'Umbral editorial: menos de '+SHORT_TITLE+' caracteres'},
    {id:'short_descriptions',name:'Descripciones breves',count:int(metrics.short_descriptions),note:'Umbral editorial: menos de '+SHORT_DESCRIPTION+' caracteres'},
-   {id:'without_images',name:'Sin fotografías',count:int(metrics.without_images),note:'Anuncios con galería vacía'},
-   {id:'condition_unset',name:'Productos sin estado indicado',count:int(metrics.condition_unset),note:'Dato opcional, no implica un error de Google'}
+   {id:'without_images',name:'Sin fotografías',count:int(metrics.without_images),note:'Anuncios con galería vacía'}
+  ],
+  informational:[
+   {id:'condition_unset',name:'Productos sin estado nuevo/usado declarado (dato opcional)',
+    count:int(metrics.condition_unset),
+    note:'Los CSV de WooCommerce pueden no contener el campo Estado. No es un error SEO y no permite asumir que el producto es nuevo o usado.'}
   ],
   categories:groups,
   examples:issues,
