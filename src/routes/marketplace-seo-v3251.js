@@ -16,6 +16,7 @@ const marketplaceCategorySeoV32112=require('../marketplace-category-seo-v32112')
 const marketplaceProductMetaV32118=require('../services/marketplace-product-meta-v32118');
 const marketplaceSeoAuditV32120=require('../services/marketplace-seo-audit-v32120');
 const marketplaceSitemapPlanV32122=require('../services/marketplace-sitemap-plan-v32122');
+const marketplaceGscReadOnlyV32123=require('../services/marketplace-gsc-readonly-v32123');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -236,6 +237,8 @@ router.get('/api/admin/marketplace/seo/auditoria',requireAdmin,async(_req,res,ne
   audit.technicalSitemaps=marketplaceSitemapPlanV32122.summary(
    metrics.rows[0]||{},categoryCounts.rows[0]||{},marketplaceCategorySeoV32112.LANDINGS,marketplaceCategorySeoV32112.canIndex
   );
+  // Configuration metadata only: does not contact Google or reveal secrets.
+  audit.googleSearchConsole=marketplaceGscReadOnlyV32123.status();
   res.setHeader('Cache-Control','private,no-store');
   res.setHeader('X-Robots-Tag','noindex,nofollow');
   return res.json(audit);
@@ -257,6 +260,11 @@ router.get('/marketplace/suscripciones/lanzamiento',requireAdmin,(_req,res)=>{
  res.setHeader('X-Robots-Tag','noindex,nofollow');
  res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-launch-readiness-v3289.html'));
 });
+// V3.2.123: manual read-only Google Search Console requests are strictly
+// separated from the original audit-only GET routes above.
+router.use('/api/admin/marketplace/seo/gsc',require('./marketplace-gsc-v32123').createGscRouter({
+ listingPath,ensureMarketplaceSchema
+}));
 router.get('/marketplace/suscripciones/comercial',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','private,no-store');
  res.setHeader('X-Robots-Tag','noindex,nofollow');

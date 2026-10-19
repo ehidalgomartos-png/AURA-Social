@@ -91,3 +91,27 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
 .audit-sitemap-first,.audit-sitemap-last{display:inline-block;margin:4px 14px 4px 0;font-size:13px}
 .audit-sitemap-root{margin:12px 0;font-size:14px}
 @media(max-width:620px){.audit-sitemap-list{grid-template-columns:minmax(0,1fr)}}
+
+
+/* V3.2.123 — private, manually triggered read-only Search Console inspection. */
+.audit-gsc-section{margin-top:18px}
+.audit-gsc-status{padding:12px 14px;background:#eef3f5;border:1px solid #c8dadd;border-radius:10px;color:#294b55;font-size:14px}
+.audit-gsc-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:14px}
+.audit-gsc-controls label{flex-basis:100%;font-size:14px;font-weight:750}
+.audit-gsc-controls input{font:inherit;font-size:16px;min-height:48px;padding:11px;border:1px solid #8bacaa;border-radius:10px;max-width:220px;width:100%}
+.audit-gsc-controls button,.audit-gsc-pick{font:inherit;border:1px solid #09675e;color:#fff;background:#09675e;border-radius:10px;min-height:48px;padding:10px 16px;font-weight:750;cursor:pointer}
+.audit-gsc-controls button:disabled{cursor:not-allowed;opacity:.55}
+.audit-gsc-pick{min-height:44px;margin-top:12px;font-size:13px;background:#fff;color:#075b55}
+.audit-gsc-result{margin-top:15px;background:#fff;border:1px solid #d2e4df;border-radius:12px;padding:16px}
+.audit-gsc-result[hidden]{display:none}
+.audit-gsc-result h3{font-size:17px;margin:0 0 12px}
+.audit-gsc-field{display:grid;grid-template-columns:minmax(130px,1fr) minmax(0,2fr);gap:7px 18px;padding:10px 0;border-bottom:1px solid #e4edeb;overflow-wrap:anywhere}
+.audit-gsc-field strong{font-size:13px}
+.audit-gsc-field span{font-size:13px}
+@media(max-width:480px){
+ .audit-gsc-controls{display:grid;grid-template-columns:minmax(0,1fr)}
+ .audit-gsc-controls label{flex-basis:auto}
+ .audit-gsc-controls input{width:100%;max-width:none}
+ .audit-gsc-field{grid-template-columns:minmax(0,1fr)}
+ .audit-gsc-pick{width:100%}
+}

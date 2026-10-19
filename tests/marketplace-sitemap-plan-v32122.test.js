@@ -93,7 +93,7 @@ test('V3.2.122 private mobile sitemap summary allows only safe local paths witho
  for(const name of ['auditSitemapPlan','auditSitemapNote','auditRootSitemap','auditRobots'])
   assert.ok(html.includes('id="'+name+'"'));
  assert.match(html,/No confirma que Google haya rastreado o indexado/);
- assert.match(html,/3\.2\.122/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+/);
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.match(js,/renderSitemaps\(data\)/);
  assert.match(js,/sitemapLinkPath/);
