@@ -80,7 +80,14 @@ test('mobile UI has real controls, safe DOM rendering and no write API',()=>{
  assert.match(js,/matches.slice\(0,visibleExamples\)/);
  assert.match(js,/textContent/);
  assert.doesNotMatch(js,/innerHTML|insertAdjacentHTML|eval\(/);
- assert.doesNotMatch(js,/fetch\([^)]*method:\s*'POST'/s);
+ // V3.2.123 permits one explicit read-only Google inspection POST.
+ // The ordinary audit refresh still performs GET only; no automatic Google calls.
+ const refreshStart=js.indexOf('async function refresh(){');
+ assert.ok(refreshStart>0);
+ assert.doesNotMatch(js.slice(refreshStart),/method:\\s*'POST'/);
+ assert.match(js,/gscButton\\.addEventListener\\('click',async\\(\\)=>\\{/);
+ assert.match(js,/fetch\\('\/api\/admin\/marketplace\/seo\/gsc\/inspeccionar'/);
+ assert.doesNotMatch(js,/fetch\\('\/api\/admin\/marketplace\/seo\/auditoria',[\\s\\S]*method:\\s*'POST'/);
  assert.match(css,/@media\(max-width:480px\)/);
  assert.match(css,/min-height:44px/);
  assert.match(css,/min-height:48px/);
