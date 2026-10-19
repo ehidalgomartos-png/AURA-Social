@@ -64,7 +64,7 @@ const SAFE_CHECKS=Object.freeze([
 function status(env=process.env){
  const c=serviceConfig(env);
  const checks=SAFE_CHECKS.map(({id,label,hint})=>({
-  id,label,ok:Boolean(c.readiness[id]),hint
+  id,label,ok:Boolean(c.readiness[id]),hint:c.readiness[id]?'':hint
  }));
  const failed=checks.filter(check=>!check.ok).map(check=>check.label);
  return {
