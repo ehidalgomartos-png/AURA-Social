@@ -96,6 +96,8 @@ jobs:
         run: npm run test:marketplace-stripe-checkout-atomic
       - name: V3.2.109 Stripe TEST manual sync concurrent webhook and canceled-state guard
         run: npm run test:marketplace-stripe-sync-race
+      - name: V3.2.110 Stripe TEST concurrent manual sync row guard
+        run: npm run test:marketplace-stripe-sync-row
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -374,3 +376,5 @@ jobs:
         run: node --test tests/marketplace-stripe-reenrollment-postgres-v32102.test.js
       - name: V3.2.109 verify manual Stripe TEST sync CAS against PostgreSQL 18
         run: node --test tests/marketplace-stripe-sync-race-postgres-v32109.test.js
+      - name: V3.2.110 verify concurrent TEST sync-vs-sync against PostgreSQL 18
+        run: node --test tests/marketplace-stripe-sync-row-postgres-v32110.test.js
