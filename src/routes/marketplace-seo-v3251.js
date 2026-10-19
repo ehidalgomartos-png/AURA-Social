@@ -13,6 +13,7 @@ const {requireAdmin,requireAuth}=require('../middleware/auth');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const marketplaceLandingV32111=require('../marketplace-landing-v32111');
 const marketplaceCategorySeoV32112=require('../marketplace-category-seo-v32112');
+const marketplaceProductMetaV32118=require('../services/marketplace-product-meta-v32118');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -169,8 +170,9 @@ function listingHtml(row,related=[],categoryDef=null){
  '<p class="muted">Consulta el perfil público del anunciante y confirma la información antes de acordar un pago o envío. RedLibertad no procesa pagos ni garantiza las transacciones.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>'+
  (isProductSale?'<nav class="market-mobile-contact" aria-label="'+(verifiedPurchaseUrl?'Comprar en la tienda':'Consulta sobre el producto')+'" hidden><span>'+esc(displayPrice(row))+'</span>'+mobileAction+'</nav>':'')+
  (related.length?'<section class="market-related" aria-label="Anuncios relacionados"><h2>También te puede interesar</h2><p>Otros anuncios públicos de una categoría o ubicación similar.</p><div class="cards market-public-grid">'+related.map(listingCard).join('')+'</div></section>':'');
- return shell({title:((row.deal==='buy'?'Busco comprar: ':'')+row.title+(nationalSale(row)?' | Venta en toda España':' en '+location)+' | RedLibertad Marketplace').slice(0,155),
- description:((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
+ const improvedProductMeta=marketplaceProductMetaV32118.forListing(row,{externalPurchase:Boolean(verifiedPurchaseUrl)});
+ return shell({title:improvedProductMeta?.title||((row.deal==='buy'?'Busco comprar: ':'')+row.title+(nationalSale(row)?' | Venta en toda España':' en '+location)+' | RedLibertad Marketplace').slice(0,155),
+ description:improvedProductMeta?.description||((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
  canonical:url,ogImage:images[0]||ogDefault,body,schema:structuredData(row,url,images,qualifiedCategory)});
 }
 
