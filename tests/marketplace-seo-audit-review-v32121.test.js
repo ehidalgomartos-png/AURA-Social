@@ -33,7 +33,7 @@ test('V3.2.121 prioritize photo issues first, then missing titles/categories, th
   sample(7,{title:'Taza Cuphead'})
  ];
  const result=report(rows);
- assert.deepEqual(result.examples.map(row=>row.id),['3','4','5','2','1']);
+ assert.deepEqual(result.examples.map(row=>row.id),['4','3','5','2','1']); // Invalid+missing references before other photo issues.
  assert.deepEqual(result.examples.map(row=>row.reviewGroup),['fotos','fotos','fotos','datos','descripcion']);
  assert.equal(result.examples.some(row=>row.id==='7'),false);
  assert.match(result.reviewNote,/No es una clasificación de Google/);
