@@ -427,8 +427,11 @@ for(const categoryDef of marketplaceCategorySeoV32112.LANDINGS){
    const countsResult=await db.query(marketplaceCategorySeoV32112.countQuery());
    const counts=countsResult.rows[0]||{};
    const total=marketplaceCategorySeoV32112.totalFor(counts,categoryDef);
-   const indexable=marketplaceCategorySeoV32112.canIndex(counts,categoryDef);
+   const eligibleFromCounts=marketplaceCategorySeoV32112.canIndex(counts,categoryDef);
    const listings=total?(await db.query(marketplaceCategorySeoV32112.listingQuery(categoryDef))).rows:[];
+   // An advert can be moderated between count and SELECT. Never index a
+   // category with fewer real visible cards than the editorial minimum.
+   const indexable=eligibleFromCounts&&listings.length>=marketplaceCategorySeoV32112.MIN_PUBLIC_ADS;
    // Both sitemap and listing query exclude hidden, private or inactive ads.
    const body=marketplaceCategorySeoV32112.content(categoryDef,{
     count:total,indexable,cards:listings.map(listingCard).join(''),
