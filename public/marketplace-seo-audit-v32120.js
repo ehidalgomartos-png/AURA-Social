@@ -3,6 +3,9 @@
 (function(){
  const $=id=>document.getElementById(id);
  const status=$('auditStatus'),results=$('auditResults'),button=$('auditRefresh');
+ const exampleFilter=$('auditExampleFilter'),moreExamples=$('auditMoreExamples'),shownCount=$('auditShownCount');
+ const PAGE_SIZE=20;
+ let exampleRows=[],visibleExamples=PAGE_SIZE;
  const element=(tag,className,text)=>{
   const node=document.createElement(tag);
   if(className)node.className=className;
@@ -18,6 +21,37 @@
   if(description)box.append(element('small','audit-muted',description));
   container.append(box);
  }
+ // V3.2.121: render only 20 recent public ad examples at a time.
+ // All controls act on the bounded server-provided sample; there are no writes.
+ function renderExamples(){
+  const container=$('auditExamples');
+  clear(container);
+  const group=exampleFilter.value;
+  const matches=exampleRows.filter(item=>group==='todos'||item.reviewGroup===group);
+  const visible=matches.slice(0,visibleExamples);
+  for(const item of visible){
+   const row=element('div','audit-example'),top=element('div','audit-example-head');
+   const link=element('a',null,item.title),uri=safeUrl(item.url);
+   if(uri)link.href=uri;
+   top.append(link,element('small','audit-muted',item.category||'Sin categoría'));
+   const tags=element('div','audit-tags');
+   for(const key of item.issues)tags.append(element('span','audit-tag',currentLabels[key]||key));
+   row.append(top,tags);
+   container.append(row);
+  }
+  if(!matches.length)container.append(element('p','audit-muted','No hay avisos de este tipo en la muestra revisada.'));
+  shownCount.textContent='Mostrando '+number(visible.length)+' de '+number(matches.length)+' ejemplos de este filtro';
+  moreExamples.hidden=visible.length>=matches.length;
+ }
+ let currentLabels=Object.create(null);
+ exampleFilter.addEventListener('change',()=>{
+  visibleExamples=PAGE_SIZE;
+  renderExamples();
+ });
+ moreExamples.addEventListener('click',()=>{
+  visibleExamples+=PAGE_SIZE;
+  renderExamples();
+ });
  function renderAudit(data){
   const summary=$('auditMetrics'),checks=$('auditChecks'),optional=$('auditOptional'),
    categories=$('auditCategories'),examples=$('auditExamples');
@@ -53,22 +87,12 @@
    categories.append(row);
   }
   const sample=data.limits.recentSample;
-  $('auditExamplesDescription').textContent='Muestra de los '+number(sample)+' anuncios públicos más recientes. Los avisos mostrados aquí no representan necesariamente todos los casos.';
-  if(!data.examples.length){
-   examples.append(element('p','audit-muted','No se han encontrado avisos en la muestra revisada.'));
-  }else{
-   for(const item of data.examples){
-    const row=element('div','audit-example'),top=element('div','audit-example-head');
-    const link=element('a',null,item.title);
-    const uri=safeUrl(item.url);
-    if(uri)link.href=uri;
-    top.append(link,element('small','audit-muted',item.category||'Sin categoría'));
-    const tags=element('div','audit-tags');
-    for(const key of item.issues)tags.append(element('span','audit-tag',data.issueLabels?.[key]||key));
-    row.append(top,tags);
-    examples.append(row);
-   }
-  }
+  $('auditExamplesDescription').textContent='Se revisan los '+number(sample)+' anuncios públicos más recientes (máximo 100). Los avisos se ordenan dentro de esa muestra: fotos primero, luego nombres/categorías y después descripciones. No es una clasificación de Google ni incluye necesariamente todos los anuncios.';
+  currentLabels=data.issueLabels||Object.create(null);
+  exampleRows=Array.isArray(data.examples)?data.examples:[];
+  visibleExamples=PAGE_SIZE;
+  exampleFilter.value='todos';
+  renderExamples();
   results.hidden=false;
  }
  async function refresh(){
