@@ -22,7 +22,7 @@ const LANDINGS=Object.freeze([
   title:'Muebles nuevos y de segunda mano en España | RedLibertad',
   h1:'Muebles para el hogar: nuevos y de segunda mano',
   description:'Explora muebles para el hogar publicados en RedLibertad: sofás, dormitorios, camas, mesas y armarios, nuevos o usados. Consulta anuncios y vendedores en España.',
-  intro:'Descubre anuncios públicos de muebles en España, incluidos artículos importados por CSV de tiendas WooCommerce. La categoría del vendedor se conserva y el estado del artículo se muestra solo si está indicado.',
+  intro:'Encuentra armarios de puertas batientes y correderas, sofás, mesas, camas y muebles de dormitorio o salón. Explora las fotografías, los precios y la ubicación de los anuncios disponibles.',
   advice:'Compara medidas, materiales, disponibilidad y condiciones de entrega. Si existe enlace de compra verificado, la compra y el pago se completan en la tienda original.',
   discover:'/marketplace/explorar?tipo=product'
  },
