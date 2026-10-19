@@ -5,12 +5,12 @@ const fs=require('node:fs');
 const seo=require('../src/marketplace-category-seo-v32112');
 const marketplace=require('../src/routes/marketplace-seo-v3251');
 const read=p=>fs.readFileSync(p,'utf8');
-const all={...Object.fromEntries(seo.LANDINGS.map(d=>[d.id,10])),used_category_diversity:3};
+const all={...Object.fromEntries(seo.LANDINGS.map(d=>[d.id,10])),muebles_catalogo:20,armarios:6,sofas:6,dormitorios:6,used_category_diversity:3};
 const few={segunda_mano:4,muebles:0,moviles:0,vehiculos:0,servicios:3,inmuebles:1};
-test('seven finite meaningful category routes, with distinct intent and no competitor keyword stuffing',()=>{
- assert.equal(seo.LANDINGS.length,7);
- assert.equal(new Set(seo.LANDINGS.map(d=>d.path)).size,7);
- assert.equal(new Set(seo.LANDINGS.map(d=>d.title)).size,7);
+test('ten finite meaningful category routes, with distinct intent and no competitor keyword stuffing',()=>{
+ assert.equal(seo.LANDINGS.length,10);
+ assert.equal(new Set(seo.LANDINGS.map(d=>d.path)).size,10);
+ assert.equal(new Set(seo.LANDINGS.map(d=>d.title)).size,10);
  for(const def of seo.LANDINGS){
   assert.equal(seo.bySlug(def.slug),def);
   assert.match(def.path,/^\/marketplace\/[a-z-]+$/);
@@ -50,8 +50,8 @@ test('only categories with at least five real public advertisements are indexabl
  assert.equal(seo.canIndex({muebles:5},seo.bySlug('muebles-segunda-mano')),true);
  assert.deepEqual(seo.qualified(few),[]);
  assert.equal(seo.sitemapXml(few).includes('<url>'),false);
- assert.equal(seo.qualified(all).length,7);
- assert.equal((seo.sitemapXml(all).match(/<url>/g)||[]).length,7);
+ assert.equal(seo.qualified(all).length,10);
+ assert.equal((seo.sitemapXml(all).match(/<url>/g)||[]).length,10);
  assert.match(seo.sitemapXml({muebles:5}),/https:\/\/redlibertad\.com\/marketplace\/muebles-segunda-mano/);
  assert.doesNotMatch(seo.sitemapXml({muebles:5}),/marketplace\/inmuebles/);
 });

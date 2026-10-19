@@ -18,7 +18,7 @@ test('screenshot: Armarios Puertas Batientes imported by CSV belongs to furnitur
  const listing=row('Armarios Puertas Batientes',{condition:'new'});
  assert.equal(furniture.categoryMatches(listing.category),true);
  assert.equal(furniture.isFurnitureListing(listing),true);
- assert.equal(seo.candidateCategories(listing)[0].path,'/marketplace/muebles');
+ assert.equal(seo.candidateCategories(listing)[0].path,'/marketplace/armarios');
  assert.equal(seo.canIndex({muebles_catalogo:5},seo.bySlug('muebles')),true);
  assert.equal(seo.qualifiedCategoryForListing(listing,{muebles_catalogo:5})?.path,'/marketplace/muebles');
  assert.equal(seo.qualifiedCategoryForListing(listing,{muebles_catalogo:4}),null);

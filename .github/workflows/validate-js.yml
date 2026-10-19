@@ -110,6 +110,8 @@ jobs:
         run: npm run test:marketplace-furniture-subcategories
       - name: V3.2.116 Marketplace category pagination and recent badge regression
         run: npm run test:marketplace-category-pagination
+      - name: V3.2.117 furniture specialist SEO eligibility, privacy and internal links
+        run: npm run test:marketplace-furniture-specialists
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -398,3 +400,5 @@ jobs:
         run: node --test tests/marketplace-furniture-subcategories-postgres-v32115.test.js
       - name: V3.2.116 verify 32 CSV armarios paginate into 24+8 against PostgreSQL 18
         run: node --test tests/marketplace-category-pagination-postgres-v32116.test.js
+      - name: V3.2.117 verify qualified furniture specialist indexation against PostgreSQL 18
+        run: node --test tests/marketplace-furniture-specialists-postgres-v32117.test.js

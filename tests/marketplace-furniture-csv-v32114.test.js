@@ -56,7 +56,7 @@ test('older CSV imports are recognized without reimport, reclassification writes
  assert.match(general.title,/Muebles nuevos y de segunda mano/);
  assert.doesNotMatch(general.where,/details->>'condition'='used'/);
  assert.match(used.where,/details->>'condition'='used'/);
- assert.deepEqual(seo.candidateCategories(old),[general]);
+ assert.deepEqual(seo.candidateCategories(old),[seo.bySlug('sofas'),general]);
  assert.equal(seo.qualifiedCategoryForListing(old,{muebles_catalogo:6})?.path,general.path);
  assert.equal(seo.qualifiedCategoryForListing(old,{muebles_catalogo:4}),null);
  assert.equal(old.details.condition,undefined);
@@ -65,10 +65,10 @@ test('marked used furniture remains eligible for used-only pages but new or unkn
  const used={...sample('Sofás'),details:{condition:'used'}};
  const fresh={...sample('Sofás'),details:{condition:'new'}};
  const counts={muebles_catalogo:7,muebles:5,segunda_mano:6,used_category_diversity:2};
- assert.deepEqual(seo.candidateCategories(used).map(x=>x.slug),['muebles-segunda-mano','muebles','segunda-mano']);
+ assert.deepEqual(seo.candidateCategories(used).map(x=>x.slug),['muebles-segunda-mano','sofas','muebles','segunda-mano']);
  assert.equal(seo.qualifiedCategoryForListing(used,counts)?.id,'muebles');
  assert.equal(seo.qualifiedCategoryForListing(used,{...counts,muebles:4})?.id,'muebles_catalogo');
- assert.deepEqual(seo.candidateCategories(fresh).map(x=>x.slug),['muebles']);
+ assert.deepEqual(seo.candidateCategories(fresh).map(x=>x.slug),['sofas','muebles']);
  assert.equal(seo.qualifiedCategoryForListing(fresh,counts)?.id,'muebles_catalogo');
  assert.equal(seo.qualifiedCategoryForListing(sample('Sofás'),counts)?.id,'muebles_catalogo');
 });

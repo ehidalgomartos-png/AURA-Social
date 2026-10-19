@@ -20,7 +20,7 @@ function schemaFrom(html){
 }
 test('qualified detailed category outranks general used category and requires five public ads',()=>{
  const counts={muebles:5,segunda_mano:18,used_category_diversity:3};
- assert.deepEqual(categories.candidateCategories(row),[furniture,categories.bySlug('muebles'),categories.bySlug('segunda-mano')]);
+ assert.deepEqual(categories.candidateCategories(row),[furniture,categories.bySlug('sofas'),categories.bySlug('muebles'),categories.bySlug('segunda-mano')]);
  assert.equal(categories.qualifiedCategoryForListing(row,counts),furniture);
  assert.equal(categories.qualifiedCategoryForListing(row,{...counts,muebles:4}),categories.bySlug('segunda-mano'));
  assert.equal(categories.qualifiedCategoryForListing(row,{...counts,muebles:4,segunda_mano:4}),null);
