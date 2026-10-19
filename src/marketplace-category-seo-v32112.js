@@ -95,7 +95,8 @@ function categoryPath(def,page=1){
  return def.path+(page>1?'?pagina='+page:'');
 }
 function listingQuery(def,{page=1}={}){
- if(!LANDINGS.includes(def)||!Number.isSafeInteger(page)||page<1||page>MAX_CATEGORY_PAGES)
+ if(!LANDINGS.includes(def))throw Error('unknown_marketplace_category');
+ if(!Number.isSafeInteger(page)||page<1||page>MAX_CATEGORY_PAGES)
   throw Error('invalid_marketplace_category_page');
  // Read an extra public listing to determine whether a real next page exists;
  // all interpolated integers originate from bounded, checked page numbers.
