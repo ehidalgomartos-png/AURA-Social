@@ -36,7 +36,7 @@ test('advisory SEO heuristics are factual; declared state and public image count
  });
  assert.deepEqual(audit.issueCodes(broken),[
   'titulo_corto','descripcion_breve','referencias_imagen_invalidas',
-  'fotografias_duplicadas','estado_no_indicado'
+  'fotografias_duplicadas'
  ]);
  assert.deepEqual(audit.photosStatus(broken.image_urls),{valid:2,invalid:1,duplicates:1});
  const missing=sample({image_urls:['https://outside.example/img.jpg']});
@@ -58,6 +58,10 @@ test('report contains only public listing links, optional editorial issues and r
  assert.equal(out.readOnly,true);
  assert.equal(out.totals.publicListings,82);
  assert.equal(out.checks.find(x=>x.id==='without_images').count,4);
+ assert.equal(out.checks.some(x=>x.id==='condition_unset'),false);
+ assert.equal(out.informational.find(x=>x.id==='condition_unset').count,18);
+ assert.match(out.informational[0].note,/no es un error SEO/i);
+ assert.equal(out.issueLabels.estado_no_indicado,undefined);
  assert.equal(out.limits.recentSample,2);
  assert.equal(out.examples.length,1);
  assert.equal(out.examples[0].url,'/marketplace/p/120/armario');
@@ -67,6 +71,32 @@ test('report contains only public listing links, optional editorial issues and r
  assert.equal(out.indexedByGoogle,undefined);
  assert.equal(out.examples[0].seller_email,undefined);
  assert.equal(out.examples[0].description,undefined);
+});
+test('WooCommerce CSV products without condition stay in the audit without triggering one misleading warning per item',()=>{
+ const {csvRecords,parseProduct}=require('../src/services/marketplace-woocommerce-csv-v3260');
+ const csv=[
+  'ID,Type,SKU,Name,Published,In stock?,Description,Regular price,Categories,Images',
+  '1,simple,ARM-1,"Armario Turín blanco de tres puertas",1,1,"Armario blanco de tres puertas con cajones, almacenamiento, medidas y características originales.",235.00,"Armarios Puertas Batientes",https://shop.example.com/arm-1.jpg',
+  '2,simple,SOF-2,"Sofá chaiselongue gris de tres plazas",1,1,"Sofá con chaiselongue, tapizado gris y tres plazas, con características y medidas para consultar.",499.00,"Sofás",https://shop.example.com/sof-2.jpg'
+ ].join('\n');
+ const parsed=csvRecords(csv).map(item=>parseProduct(item,{city:'Valencia',province:'Valencia'}));
+ assert.ok(parsed.every(x=>x.state==='pending'));
+ assert.ok(parsed.every(x=>x.listing.details.condition===undefined));
+ const rows=parsed.map((p,i)=>({
+  id:i+1,title:p.listing.title,description:p.listing.description,
+  kind:p.listing.kind,deal:p.listing.deal,category:p.listing.category,
+  image_urls:['/uploads/imported-'+i+'.webp'],details:p.listing.details
+ }));
+ assert.ok(rows.every(r=>audit.issueCodes(r).length===0));
+ const out=audit.report({
+  rows,metrics:{public_total:2,products:2,condition_unset:2},categories:[],
+  isCategoryIndexable:()=>false,listingPath:seo.listingPath
+ });
+ assert.equal(out.examples.length,0);
+ assert.equal(out.informational[0].count,2);
+ assert.equal(out.checks.some(x=>x.id==='condition_unset'),false);
+ assert.doesNotMatch(JSON.stringify(out.issueLabels),/Estado nuevo\/usado no indicado/);
+ assert.deepEqual(rows.map(r=>r.details.condition),[undefined,undefined]);
 });
 test('100-entry bounded sample never invents global Google results',()=>{
  const rows=Array.from({length:160},(_,i)=>sample({id:1000+i,title:'Taza',description:'Breve'}));
@@ -104,6 +134,10 @@ test('private mobile panel escapes all untrusted strings and does not expose use
  assert.match(html,/<meta name="robots" content="noindex,nofollow">/);
  assert.match(html,/No representa|No representa el estado|No representa el estado de indexación/);
  assert.match(html,/auditResults" hidden/);
+ assert.match(html,/id="auditOptional"/);
+ assert.match(html,/no es un error SEO/);
+ assert.match(js,/for\(const item of data.informational\|\|\[\]\)/);
+ assert.match(js,/optional\.append\(box\)/);
  assert.match(js,/textContent/);
  assert.match(js,/replaceChildren/);
  assert.match(js,/credentials:'same-origin'/);
