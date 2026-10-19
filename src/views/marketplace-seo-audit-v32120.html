@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.120.2">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.120.2" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.121">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.121" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -48,7 +48,18 @@
   <section aria-labelledby="auditExamplesTitle">
    <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
    <p id="auditExamplesDescription" class="audit-muted"></p>
+   <div class="audit-review-controls">
+    <label for="auditExampleFilter">Filtrar ejemplos</label>
+    <select id="auditExampleFilter" aria-controls="auditExamples">
+     <option value="todos">Todos los avisos</option>
+     <option value="fotos">Fotografías</option>
+     <option value="datos">Nombres y categorías</option>
+     <option value="descripcion">Descripciones originales</option>
+    </select>
+    <span id="auditShownCount" class="audit-muted" aria-live="polite"></span>
+   </div>
    <div id="auditExamples" class="audit-example-list"></div>
+   <button id="auditMoreExamples" type="button" class="audit-more-button" hidden>Mostrar 20 más</button>
   </section>
   <section class="audit-next">
    <h2>¿Qué conviene hacer después?</h2>
