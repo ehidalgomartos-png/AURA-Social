@@ -285,7 +285,7 @@ async function reconcileTestSubscription({sellerId,env=process.env,query=db.quer
  if(!/^[1-9]\d{0,15}$/.test(String(sellerId||'')))
   throw Object.assign(new Error('invalid_seller_id'),{status:400});
  const existing=await query(
-  'SELECT plan_code,customer_id,subscription_id,last_event_created FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',
+  'SELECT plan_code,customer_id,subscription_id,last_event_created,xmin::text AS row_version FROM marketplace_stripe_test_subscriptions WHERE seller_id=$1',
   [sellerId]);
  if(!existing.rowCount)throw Object.assign(new Error('test_subscription_not_found'),{status:404});
  const record=existing.rows[0];
@@ -301,16 +301,19 @@ async function reconcileTestSubscription({sellerId,env=process.env,query=db.quer
  // V3.2.109: an intervening signed webhook may have advanced the TEST
  // subscription while Stripe was being fetched. Compare-and-swap the
  // webhook event version instead of overwriting that newer local state.
+ // V3.2.110: xmin tracks *every* PostgreSQL row rewrite, including another
+ // manual sync that does not change last_event_created. A stale in-flight
+ // Stripe snapshot must not replace a newer manual reconciliation.
  // A terminally canceled row may never be revived by a stale sync.
  const saved=await query(
   `UPDATE marketplace_stripe_test_subscriptions SET
     stripe_status=$2,period_ends_at=$3,cancel_at_period_end=$4,cancel_at=$5,updated_at=now()
     WHERE seller_id=$1 AND subscription_id=$6 AND customer_id=$7 AND plan_code=$8
-      AND last_event_created=$9
+      AND last_event_created=$9 AND xmin::text=$10
       AND (stripe_status <> 'canceled' OR $2='canceled')
     RETURNING plan_code,stripe_status,period_ends_at,cancel_at_period_end,cancel_at,updated_at`,
   [sellerId,info.status,info.periodEnd,info.cancelAtPeriodEnd,info.cancelAt,
-   info.subscriptionId,info.customerId,info.planCode,String(record.last_event_created??0)]);
+   info.subscriptionId,info.customerId,info.planCode,String(record.last_event_created??0),record.row_version]);
  if(!saved.rowCount)throw Object.assign(new Error('stripe_test_sync_conflict'),{status:409});
  return {ok:true,sandboxOnly:true,subscription:saved.rows[0]};
 }
