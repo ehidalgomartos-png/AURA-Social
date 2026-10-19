@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const seo=require('../src/marketplace-category-seo-v32112');
 const marketplace=require('../src/routes/marketplace-seo-v3251');
 const read=p=>fs.readFileSync(p,'utf8');
-const all=Object.fromEntries(seo.LANDINGS.map(d=>[d.id,10]));
+const all={...Object.fromEntries(seo.LANDINGS.map(d=>[d.id,10])),used_category_diversity:3};
 const few={segunda_mano:4,muebles:0,moviles:0,vehiculos:0,servicios:3,inmuebles:1};
 test('six finite meaningful category routes, with distinct intent and no competitor keyword stuffing',()=>{
  assert.equal(seo.LANDINGS.length,6);
@@ -44,6 +44,8 @@ test('second-hand terms require explicit used condition; seller privacy and mode
 });
 test('only categories with at least five real public advertisements are indexable or in XML sitemap',()=>{
  assert.equal(seo.MIN_PUBLIC_ADS,5);
+ assert.equal(seo.canIndex({segunda_mano:8,used_category_diversity:1},seo.bySlug('segunda-mano')),false);
+ assert.equal(seo.canIndex({segunda_mano:8,used_category_diversity:2},seo.bySlug('segunda-mano')),true);
  assert.equal(seo.canIndex({muebles:4},seo.bySlug('muebles-segunda-mano')),false);
  assert.equal(seo.canIndex({muebles:5},seo.bySlug('muebles-segunda-mano')),true);
  assert.deepEqual(seo.qualified(few),[]);
