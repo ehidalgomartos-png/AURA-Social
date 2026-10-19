@@ -63,3 +63,18 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
 .audit-optional-number{font-size:23px;line-height:1.15;font-variant-numeric:tabular-nums}
 .audit-optional-name{font-weight:700;font-size:13px}
 .audit-optional-card .audit-muted{flex-basis:100%;line-height:1.55}
+
+
+/* V3.2.121 — Compact, accessible actions for reviewing public listing warnings. */
+.audit-review-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:12px 0}
+.audit-review-controls label{font-size:14px;font-weight:700;color:#294a51}
+.audit-review-controls select{font:inherit;font-size:14px;min-height:44px;max-width:100%;min-width:210px;border:1px solid #a7bfbb;background:#fff;color:#173746;border-radius:10px;padding:10px}
+.audit-review-controls #auditShownCount{margin-left:auto}
+.audit-more-button{display:block;font-weight:750;background:#fff;color:#095f5b;border:1px solid #9dbfba;border-radius:10px;min-height:48px;margin:14px auto;padding:10px 20px;cursor:pointer}
+.audit-more-button[hidden]{display:none}
+@media(max-width:480px){
+ .audit-review-controls{display:grid;grid-template-columns:minmax(0,1fr)}
+ .audit-review-controls select{width:100%;min-width:0}
+ .audit-review-controls #auditShownCount{margin-left:0}
+ .audit-more-button{width:100%}
+}
