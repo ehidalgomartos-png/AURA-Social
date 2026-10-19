@@ -69,13 +69,13 @@ test('Property metadata stores positive area, bounded rooms and optional type',(
  assert.ok(htmlOutput.includes('Piso'));
  assert.ok(htmlOutput.includes('QuantitativeValue'));
 });
-test('New listings badge is based on actual creation date and old ads are not labelled new',()=>{
+test('Recent listings badge uses publication date, not the new/used product condition',()=>{
  assert.ok(js.includes('const RECENT_MS=7*24*60*60*1000'));
  assert.ok(js.includes('now>=ms&&now-ms<=RECENT_MS'));
  assert.ok(source.includes('now>=created&&now-created<=RECENT_MS'));
  assert.ok(source.includes('l.image_urls,l.created_at FROM marketplace_listings'));
- assert.ok(seo.listingHtml(listing).includes('NUEVO'));
- assert.ok(!seo.listingHtml({...listing,created_at:'2020-01-01T12:00:00.000Z'}).includes('NUEVO'));
+ assert.ok(seo.listingHtml(listing).includes('RECIENTE'));
+ assert.ok(!seo.listingHtml({...listing,created_at:'2020-01-01T12:00:00.000Z'}).includes('RECIENTE'));
 });
 test('Post-save share appears only for publicly shareable ads',()=>{
  assert.ok(html.includes('id="publishSuccess"'));
