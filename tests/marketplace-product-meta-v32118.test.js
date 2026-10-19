@@ -33,6 +33,8 @@ test('real WooCommerce armario offers distinct, concise Spanish SEO metadata',()
  assert.match(result.description,/contacta con el vendedor/);
  assert.ok(result.description.length<=meta.DESCRIPTION_LIMIT);
  assert.doesNotMatch(result.description,/envío gratis|en stock garantizado|pago en RedLibertad|Milanuncios|Wallapop/i);
+ const legacy=meta.forListing({...base,description:'Armario funcional. WhatsAppFacebookTwitter'});
+ assert.doesNotMatch(legacy.description,/WhatsAppFacebookTwitter/);
  const html=seo.listingHtml(base);
  assert.match(head(html),/Armario Turín/);
  assert.equal(metaContent(html,'description'),result.description);
