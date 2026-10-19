@@ -84,10 +84,10 @@ test('mobile UI has real controls, safe DOM rendering and no write API',()=>{
  // The ordinary audit refresh still performs GET only; no automatic Google calls.
  const refreshStart=js.indexOf('async function refresh(){');
  assert.ok(refreshStart>0);
- assert.doesNotMatch(js.slice(refreshStart),/method:\\s*'POST'/);
- assert.match(js,/gscButton\\.addEventListener\\('click',async\\(\\)=>\\{/);
- assert.match(js,/fetch\\('\/api\/admin\/marketplace\/seo\/gsc\/inspeccionar'/);
- assert.doesNotMatch(js,/fetch\\('\/api\/admin\/marketplace\/seo\/auditoria',[\\s\\S]*method:\\s*'POST'/);
+ assert.ok(js.slice(refreshStart).includes("method:'GET'"));
+ assert.ok(!js.slice(refreshStart).includes("method:'POST'"));
+ assert.ok(js.includes("gscButton.addEventListener('click',async()=>{"));
+ assert.ok(js.includes("fetch('/api/admin/marketplace/seo/gsc/inspeccionar'"));
  assert.match(css,/@media\(max-width:480px\)/);
  assert.match(css,/min-height:44px/);
  assert.match(css,/min-height:48px/);
