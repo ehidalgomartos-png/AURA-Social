@@ -3,6 +3,7 @@
 // This threshold is an editorial quality gate, not an official Google requirement.
 const ORIGIN='https://redlibertad.com';
 const furnitureFamily=require('./services/marketplace-furniture-family-v32114');
+const furnitureSpecialists=require('./services/marketplace-furniture-specialists-v32117');
 const MIN_PUBLIC_ADS=5;
 const CATEGORY_PAGE_SIZE=24;
 const MAX_CATEGORY_PAGES=1000;
@@ -28,6 +29,12 @@ const LANDINGS=Object.freeze([
   advice:'Compara medidas, materiales, disponibilidad y condiciones de entrega. Si existe enlace de compra verificado, la compra y el pago se completan en la tienda original.',
   discover:'/marketplace/explorar?tipo=product'
  },
+ ...furnitureSpecialists.SPECS.map(spec=>({
+  id:spec.id,slug:spec.slug,path:'/marketplace/'+spec.slug,specialistId:spec.id,
+  where:furnitureSpecialists.sqlPredicate(spec,'l'),
+  title:spec.title,h1:spec.h1,description:spec.description,
+  intro:spec.intro,advice:spec.advice,discover:'/marketplace/muebles'
+ })),
  {
   id:'muebles',slug:'muebles-segunda-mano',path:'/marketplace/muebles-segunda-mano',
   where:furnitureFamily.sqlPredicate('l')+" AND l.details->>'condition'='used'",
@@ -111,6 +118,9 @@ function totalFor(counts,def){
 }
 function canIndex(counts,def){
  if(totalFor(counts,def)<MIN_PUBLIC_ADS)return false;
+ // Specialist pages need substantial nonmatching inventory on the parent page
+ // or they would duplicate its entire contents and compete with its canonical.
+ if(def.specialistId&&totalFor(counts,bySlug('muebles'))-totalFor(counts,def)<MIN_PUBLIC_ADS)return false;
  // An all-second-hand page with exactly the same inventory as one specialist
  // category adds little value. Require at least two distinct used categories.
  if(def.id==='segunda_mano')return Number(counts?.used_category_diversity)>=2;
@@ -133,7 +143,12 @@ function candidateCategories(row){
  const used=row.details?.condition==='used';
  const choices=[];
  if(used&&furniture)choices.push(bySlug('muebles-segunda-mano'));
- if(furniture)choices.push(bySlug('muebles'));
+ if(furniture){
+  for(const spec of furnitureSpecialists.SPECS){
+   if(furnitureSpecialists.matches(row,spec))choices.push(bySlug(spec.slug));
+  }
+  choices.push(bySlug('muebles'));
+ }
  if(!used)return choices; // Unknown/new WooCommerce products are not second-hand.
  const category=String(row.category||'').trim().toLocaleLowerCase('es');
  if(!furniture&&USED_MOBILES.has(category))choices.push(bySlug('moviles-segunda-mano'));
@@ -152,10 +167,23 @@ function navigation(counts,{current=null}={}){
  return '<nav class="market-category-seo-nav" aria-label="Más categorías con anuncios"><h2>Más categorías para explorar</h2><div>'+
   options.map(def=>'<a href="'+esc(def.path)+'">'+esc(def.h1)+' →</a>').join('')+'</div></nav>';
 }
-function content(def,{count=0,cards='',indexable=false,navigationHtml='',page=1,visibleCount=0,hasNext=false}={}){
+// Only link to SEO subcollections once they qualify against actual public inventory.
+// Keep the broad furniture entry available even when no specialist is indexable.
+function furnitureNavigation(counts,{current=null}={}){
+ const choices=furnitureSpecialists.SPECS
+  .map(spec=>bySlug(spec.slug)).filter(def=>def&&canIndex(counts,def)&&def.slug!==current);
+ if(!choices.length)return '';
+ return '<nav class="market-furniture-types-v32117" aria-label="Tipos de muebles">'+
+  '<h2>Explora muebles por tipo</h2><div>'+
+  choices.map(def=>'<a href="'+esc(def.path)+'">'+esc(def.h1)+' →</a>').join('')+
+  '</div></nav>';
+}
+function content(def,{count=0,cards='',indexable=false,navigationHtml='',typeNav='',page=1,visibleCount=0,hasNext=false}={}){
  if(!LANDINGS.includes(def))throw Error('unknown_marketplace_category');
  const intro='<nav class="market-category-seo-crumb" aria-label="Ruta de navegación">'+
-  '<a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+esc(def.h1)+(page>1?' · Página '+page:'')+'</nav>'+
+  '<a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+
+  (def.specialistId?'<a href="/marketplace/muebles">Muebles</a> › ':'')+
+  esc(def.h1)+(page>1?' · Página '+page:'')+'</nav>'+
   '<header class="market-category-seo-hero"><span>ANUNCIOS EN ESPAÑA · REDLIBERTAD</span><h1>'+esc(def.h1)+(page>1?' — página '+page:'')+'</h1>'+
   '<p>'+esc(def.intro)+'</p><div class="market-category-seo-actions">'+
   '<a class="primary" href="'+esc(def.discover)+'">Explorar anuncios relacionados</a>'+
@@ -176,7 +204,7 @@ function content(def,{count=0,cards='',indexable=false,navigationHtml='',page=1,
   '<section class="market-category-seo-empty"><h2>Estamos ampliando esta categoría</h2>'+
   '<p>Por ahora hay pocos anuncios públicos de este tipo. Puedes explorar el Marketplace completo o volver más adelante.</p>'+
   (cards?'<div class="cards market-public-grid">'+cards+'</div>':'')+'</section>';
- return intro+selection+
+ return intro+typeNav+selection+
   '<section class="market-category-seo-guide"><h2>Consejos antes de contactar</h2><p>'+esc(def.advice)+'</p>'+
   '<p>Los anuncios son responsabilidad de quienes los publican. RedLibertad no gestiona los pagos ni los envíos. Si un producto dispone de un enlace de compra verificado, la operación se realiza en la web del vendedor.</p></section>'+
   navigationHtml;
@@ -193,7 +221,8 @@ function structuredData(def,rows,{page=1}={}){
   {'@type':'BreadcrumbList','@id':url+'#breadcrumbs',itemListElement:[
    {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
    {'@type':'ListItem',position:2,name:'Marketplace',item:ORIGIN+'/marketplace/explorar'},
-   {'@type':'ListItem',position:3,name:def.h1+(page>1?' — página '+page:''),item:url}
+   ...(def.specialistId?[{'@type':'ListItem',position:3,name:'Muebles',item:ORIGIN+'/marketplace/muebles'}]:[]),
+   {'@type':'ListItem',position:def.specialistId?4:3,name:def.h1+(page>1?' — página '+page:''),item:url}
   ]},
   {'@type':'ItemList','@id':url+'#anuncios',itemListElement:items}
  ]};
@@ -206,4 +235,4 @@ function sitemapXml(counts){
  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
  qualified(counts).map(def=>'<url><loc>'+esc(ORIGIN+def.path)+'</loc></url>').join('')+'</urlset>';
 }
-module.exports={ORIGIN,MIN_PUBLIC_ADS,CATEGORY_PAGE_SIZE,MAX_CATEGORY_PAGES,LANDINGS,bySlug,countQuery,validPage,categoryPath,listingQuery,totalFor,canIndex,qualified,candidateCategories,qualifiedCategoryForListing,navigation,content,structuredData,sitemapXml};
+module.exports={ORIGIN,MIN_PUBLIC_ADS,CATEGORY_PAGE_SIZE,MAX_CATEGORY_PAGES,LANDINGS,bySlug,countQuery,validPage,categoryPath,listingQuery,totalFor,canIndex,qualified,candidateCategories,qualifiedCategoryForListing,navigation,furnitureNavigation,content,structuredData,sitemapXml};
