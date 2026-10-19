@@ -7,10 +7,10 @@ const marketplace=require('../src/routes/marketplace-seo-v3251');
 const read=p=>fs.readFileSync(p,'utf8');
 const all={...Object.fromEntries(seo.LANDINGS.map(d=>[d.id,10])),used_category_diversity:3};
 const few={segunda_mano:4,muebles:0,moviles:0,vehiculos:0,servicios:3,inmuebles:1};
-test('six finite meaningful category routes, with distinct intent and no competitor keyword stuffing',()=>{
+test('seven finite meaningful category routes, with distinct intent and no competitor keyword stuffing',()=>{
  assert.equal(seo.LANDINGS.length,7);
- assert.equal(new Set(seo.LANDINGS.map(d=>d.path)).size,6);
- assert.equal(new Set(seo.LANDINGS.map(d=>d.title)).size,6);
+ assert.equal(new Set(seo.LANDINGS.map(d=>d.path)).size,7);
+ assert.equal(new Set(seo.LANDINGS.map(d=>d.title)).size,7);
  for(const def of seo.LANDINGS){
   assert.equal(seo.bySlug(def.slug),def);
   assert.match(def.path,/^\/marketplace\/[a-z-]+$/);
