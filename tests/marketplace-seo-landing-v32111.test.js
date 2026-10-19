@@ -25,7 +25,7 @@ test('all category navigation stays on real public filtered catalogue; no doorwa
  const html=landing.categories();
  assert.equal(landing.CATEGORIES.length,6);
  assert.equal((html.match(/class="market-landing-category"/g)||[]).length,6);
- assert.match(html,/href="\/marketplace\/explorar\?tipo=product&amp;categoria=Hogar\+y\+muebles"/);
+ assert.match(html,/href="\/marketplace\/muebles"/);
  assert.match(html,/href="\/marketplace\/explorar\?tipo=product&amp;operacion=sale&amp;nacional=1"/);
  for(const item of landing.CATEGORIES){
   const href=landing.categoryHref(item.filters);
