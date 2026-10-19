@@ -78,3 +78,16 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
  .audit-review-controls #auditShownCount{margin-left:0}
  .audit-more-button{width:100%}
 }
+
+
+/* V3.2.122: compact site-owned XML sitemap diagnostic for mobile admins. */
+.audit-sitemap-section{margin-top:18px}
+.audit-sitemap-list{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.audit-sitemap-item{padding:14px 16px;background:#fff;border:1px solid #d8e5e1;border-radius:13px;min-width:0}
+.audit-sitemap-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;align-items:center}
+.audit-sitemap-heading a{font-size:14px;font-weight:750;overflow-wrap:anywhere}
+.audit-sitemap-count{font-size:12px;font-variant-numeric:tabular-nums;color:#485f65}
+.audit-sitemap-item p{margin:5px 0 10px}
+.audit-sitemap-first,.audit-sitemap-last{display:inline-block;margin:4px 14px 4px 0;font-size:13px}
+.audit-sitemap-root{margin:12px 0;font-size:14px}
+@media(max-width:620px){.audit-sitemap-list{grid-template-columns:minmax(0,1fr)}}
