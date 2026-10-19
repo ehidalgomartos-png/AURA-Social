@@ -98,7 +98,7 @@ test('only an inventory-rich catalogue is indexable and sitemap-eligible, not a 
  assert.doesNotMatch(seo.sitemapXml({muebles_catalogo:4}),/\/marketplace\/muebles<\/loc>/);
  assert.match(seo.sitemapXml({muebles_catalogo:5}),/\/marketplace\/muebles<\/loc>/);
  const source=fs.readFileSync('src/routes/marketplace-seo-v3251.js','utf8');
- assert.match(source,/const indexable=eligibleFromCounts&&listings.length>=marketplaceCategorySeoV32112.MIN_PUBLIC_ADS/);
+ assert.match(source,/const indexable=eligibleFromCounts&&listings.length>=minOnPage/);
  assert.match(source,/robots:indexable\?'index,follow,max-image-preview:large':'noindex,follow'/);
  assert.match(source,/router.get\('\/sitemap-marketplace-categorias.xml'/);
 });
@@ -112,5 +112,5 @@ test('SQL furniture rules are allowlisted, read-only and shared by count/listing
  assert.doesNotMatch(sql,/INSERT|UPDATE|DELETE|marketplace_seller_subscriptions|sk_live_/);
  assert.throws(()=>family.sqlPredicate('l; DROP TABLE users'),/invalid_sql_alias/);
  assert.match(seo.countQuery(),/muebles_catalogo/);
- assert.match(seo.listingQuery(seo.bySlug('muebles')),/ORDER BY l.created_at DESC,l.id DESC LIMIT 24/);
+ assert.match(seo.listingQuery(seo.bySlug('muebles')),/ORDER BY l.created_at DESC,l.id DESC LIMIT 25 OFFSET 0/);
 });
