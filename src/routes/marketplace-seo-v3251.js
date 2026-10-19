@@ -151,7 +151,7 @@ function listingHtml(row,related=[],categoryDef=null){
  const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
  const categoryBrowse='/marketplace/explorar?tipo='+encodeURIComponent(row.kind)+'&categoria='+encodeURIComponent(row.category);
  const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
- const qualifiedCategory=marketplaceCategorySeoV32112.LANDINGS.includes(categoryDef)?categoryDef:null;
+ const qualifiedCategory=marketplaceCategorySeoV32112.candidateCategories(row).includes(categoryDef)?categoryDef:null;
  const categoryCrumb=qualifiedCategory?'<a href="'+esc(qualifiedCategory.path)+'">'+esc(qualifiedCategory.h1)+'</a> › '+esc(row.title):esc(row.category);
  const categoryLink=qualifiedCategory?'<nav class="market-qualified-category-v32113" aria-label="Anuncios de la misma categoría"><a href="'+esc(qualifiedCategory.path)+'">Explorar '+esc(qualifiedCategory.h1)+' →</a></nav>':'';
  const body='<nav class="muted" aria-label="Ruta de navegación"><a href="/">Inicio</a> › <a href="/marketplace/explorar">Marketplace</a> › '+categoryCrumb+'</nav>'+
