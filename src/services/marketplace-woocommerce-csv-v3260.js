@@ -112,7 +112,10 @@ function parseProduct(row,opts,parents=null){
   }
  }
  const rawCategory=get(row,'Categories','Categorías','Categorias')||(parent?get(parent,'Categories','Categorías','Categorias'):'');
- const category=clean(rawCategory.split(',')[0].split('>')[0].trim())||'Otros';
+ // Retain real nested WooCommerce labels for NEW CSV imports. Never reimport existing ads.
+ const categoryPath=rawCategory.split(',')[0].split('>').map(part=>clean(part.trim())).filter(Boolean);
+ const category=categoryPath[0]||'Otros';
+ const subcategory=categoryPath.length>1?categoryPath.slice(1).reverse().find(part=>part.length>=2&&part.length<=65):null;
  // Each variation must use its own price, stock, SKU/ID and GTIN/MPN.
  const sale=get(row,'Sale price','Precio rebajado'),normal=get(row,'Regular price','Precio normal');
  const priceCents=cents(sale)??cents(normal);
@@ -144,7 +147,7 @@ function parseProduct(row,opts,parents=null){
  if(gtin&&!validGtin(gtin))errors.push('EAN/GTIN no válido');
  if(mpn&&(mpn.length>70||!/^[A-Za-z0-9][A-Za-z0-9 ._\/-]*$/.test(mpn)))errors.push('Referencia de fabricante no válida');
  const listing={kind:'product',deal:'sale',title,description,category,city:opts.city,priceCents,images:[],
-  details:{...(opts.province?{province:opts.province}:{}),...(condition?{condition}:{}),
+  details:{...(opts.province?{province:opts.province}:{}),...(subcategory?{subcategory}:{}),...(condition?{condition}:{}),
    ...(brand&&brand.length<=80?{brand}:{}),...(gtin&&validGtin(gtin)?{gtin}:{}),
    ...(mpn&&mpn.length<=70?{mpn}:{}),...(opts.saleScope?{saleScope:opts.saleScope}:{})}};
  return {line:row.line,key,title,priceCents,urls,listing,error:errors.join('; '),

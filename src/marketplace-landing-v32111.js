@@ -5,7 +5,7 @@ const URL='https://redlibertad.com/marketplace/explorar';
 const TITLE='Anuncios de segunda mano y compraventa en España | RedLibertad';
 const DESCRIPTION='Explora anuncios de segunda mano, productos nuevos y usados, servicios e inmuebles en España. Busca por categoría o ciudad y contacta con anunciantes en RedLibertad.';
 const CATEGORIES=[
- {icon:'🛋️',name:'Muebles y hogar',copy:'Sofás, decoración, electrodomésticos y artículos para casa.',filters:{tipo:'product',categoria:'Hogar y muebles'}},
+ {icon:'🛋️',name:'Muebles y hogar',copy:'Sofás, mesas, armarios, dormitorios y otros muebles de la comunidad.',href:'/marketplace/muebles',filters:{tipo:'product',categoria:'Hogar y muebles'}},
  {icon:'📱',name:'Móviles y telefonía',copy:'Consulta anuncios de teléfonos y accesorios.',filters:{tipo:'product',categoria:'Móviles y telefonía'}},
  {icon:'🚗',name:'Vehículos',copy:'Explora anuncios de coches y otros vehículos.',filters:{tipo:'product',categoria:'Vehículos'}},
  {icon:'🛠️',name:'Servicios profesionales',copy:'Encuentra anuncios de servicios por ciudad o especialidad.',filters:{tipo:'service'}},
@@ -38,9 +38,9 @@ function categories(){
  return '<section class="market-landing-section" aria-labelledby="marketLandingCategories">'+
   '<div class="market-landing-section-head"><span class="market-landing-kicker">ENCUENTRA LO QUE NECESITAS</span>'+
   '<h2 id="marketLandingCategories">Compra, vende o encuentra anuncios por categoría</h2>'+
-  '<p>De muebles de segunda mano a servicios e inmobiliaria: entra en cada categoría y comprueba los anuncios disponibles.</p></div>'+
+  '<p>De muebles nuevos y de segunda mano a servicios e inmobiliaria: entra en cada categoría y comprueba los anuncios disponibles.</p></div>'+
   '<div class="market-landing-categories">'+CATEGORIES.map(c=>
-   '<a class="market-landing-category" href="'+esc(categoryHref(c.filters))+'">'+
+   '<a class="market-landing-category" href="'+esc(c.href||categoryHref(c.filters))+'">'+
    '<span class="market-landing-icon" aria-hidden="true">'+c.icon+'</span>'+
    '<span class="market-landing-category-text"><strong>'+esc(c.name)+'</strong><span>'+esc(c.copy)+'</span></span>'+
    '<span class="market-landing-arrow" aria-hidden="true">→</span></a>'

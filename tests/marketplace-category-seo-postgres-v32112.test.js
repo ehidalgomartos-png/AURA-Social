@@ -43,6 +43,7 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   assert.equal(Number(counts.segunda_mano),6);
   assert.equal(Number(counts.used_category_diversity),2);
   assert.equal(Number(counts.muebles),5);
+  assert.equal(Number(counts.muebles_catalogo),6);
   assert.equal(Number(counts.moviles),1);
   assert.equal(Number(counts.vehiculos),0);
   assert.equal(Number(counts.servicios),2);
@@ -56,18 +57,20 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   // V3.2.113: the very same public inventory enables a factual specialist backlink.
   assert.equal(seo.qualifiedCategoryForListing(visible[0],counts)?.path,'/marketplace/muebles-segunda-mano');
   const newProduct=(await client.query('SELECT kind,deal,category,details FROM marketplace_listings WHERE id=8')).rows[0];
-  assert.equal(seo.qualifiedCategoryForListing(newProduct,counts),null);
+  assert.equal(seo.qualifiedCategoryForListing(newProduct,counts)?.path,'/marketplace/muebles');
   const mobile=(await client.query('SELECT kind,deal,category,details FROM marketplace_listings WHERE id=15')).rows[0];
   assert.equal(seo.qualifiedCategoryForListing(mobile,counts)?.path,'/marketplace/segunda-mano');
   const xml=seo.sitemapXml(counts);
   assert.match(xml,/\/marketplace\/segunda-mano<\/loc>/);
   assert.match(xml,/\/marketplace\/muebles-segunda-mano<\/loc>/);
+  assert.match(xml,/\/marketplace\/muebles<\/loc>/);
   assert.doesNotMatch(xml,/\/marketplace\/servicios<\/loc>|\/marketplace\/inmuebles<\/loc>|\/marketplace\/moviles-segunda-mano<\/loc>/);
   await client.query("UPDATE marketplace_listings SET status='paused' WHERE id=5");
   const less=(await client.query(seo.countQuery())).rows[0];
   assert.equal(Number(less.muebles),4);
   assert.equal(seo.canIndex(less,furniture),false);
-  assert.equal(seo.qualifiedCategoryForListing(visible[0],less)?.path,'/marketplace/segunda-mano');
+  // The all-condition furniture collection is now preferable to the broad used collection.
+  assert.equal(seo.qualifiedCategoryForListing(visible[0],less)?.path,'/marketplace/muebles');
   assert.doesNotMatch(seo.sitemapXml(less),/\/marketplace\/muebles-segunda-mano<\/loc>/);
   assert.match(seo.sitemapXml(less),/\/marketplace\/segunda-mano<\/loc>/);
  }finally{await client.end();}

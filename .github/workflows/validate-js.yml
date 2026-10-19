@@ -104,6 +104,8 @@ jobs:
         run: npm run test:marketplace-category-seo
       - name: V3.2.113 qualified listing-to-category internal links and breadcrumbs
         run: npm run test:marketplace-category-links
+      - name: V3.2.114 WooCommerce CSV furniture family discovery and truthful condition
+        run: npm run test:marketplace-furniture-csv
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -386,3 +388,5 @@ jobs:
         run: node --test tests/marketplace-stripe-sync-row-postgres-v32110.test.js
       - name: V3.2.112 verify real Marketplace category eligibility against PostgreSQL 18
         run: node --test tests/marketplace-category-seo-postgres-v32112.test.js
+      - name: V3.2.114 verify old CSV furniture category mapping on PostgreSQL 18
+        run: node --test tests/marketplace-furniture-csv-postgres-v32114.test.js

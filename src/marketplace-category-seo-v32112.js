@@ -2,6 +2,7 @@
 // V3.2.112: a finite set of truthful SEO category pages, backed by live public ads.
 // This threshold is an editorial quality gate, not an official Google requirement.
 const ORIGIN='https://redlibertad.com';
+const furnitureFamily=require('./services/marketplace-furniture-family-v32114');
 const MIN_PUBLIC_ADS=5;
 const PUBLIC_FROM=" FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true";
 const LANDINGS=Object.freeze([
@@ -16,8 +17,18 @@ const LANDINGS=Object.freeze([
   discover:'/marketplace/explorar?tipo=product&operacion=sale'
  },
  {
+  id:'muebles_catalogo',slug:'muebles',path:'/marketplace/muebles',
+  where:furnitureFamily.sqlPredicate('l'),
+  title:'Muebles nuevos y de segunda mano en España | RedLibertad',
+  h1:'Muebles para el hogar: nuevos y de segunda mano',
+  description:'Explora muebles para el hogar publicados en RedLibertad: sofás, dormitorios, camas, mesas y armarios, nuevos o usados. Consulta anuncios y vendedores en España.',
+  intro:'Descubre anuncios públicos de muebles en España, incluidos artículos importados por CSV de tiendas WooCommerce. La categoría del vendedor se conserva y el estado del artículo se muestra solo si está indicado.',
+  advice:'Compara medidas, materiales, disponibilidad y condiciones de entrega. Si existe enlace de compra verificado, la compra y el pago se completan en la tienda original.',
+  discover:'/marketplace/explorar?tipo=product'
+ },
+ {
   id:'muebles',slug:'muebles-segunda-mano',path:'/marketplace/muebles-segunda-mano',
-  where:"l.kind='product' AND l.deal='sale' AND l.details->>'condition'='used' AND LOWER(BTRIM(l.category)) IN ('hogar y muebles','muebles')",
+  where:furnitureFamily.sqlPredicate('l')+" AND l.details->>'condition'='used'",
   title:'Muebles de segunda mano en España | RedLibertad',
   h1:'Muebles de segunda mano',
   description:'Consulta anuncios de muebles usados en RedLibertad. Encuentra sofás, mesas y otros muebles publicados, compara precios y pregunta por medidas y recogida.',
@@ -95,19 +106,22 @@ function qualified(counts){return LANDINGS.filter(def=>canIndex(counts,def));}
 // Prefer specialist pages and fall back to the general used-products collection.
 // The same category normalization and deal/condition rules as the SQL predicates
 // must be respected; in particular new WooCommerce products never become "used".
-const USED_FURNITURE=new Set(['hogar y muebles','muebles']);
 const USED_MOBILES=new Set(['móviles y telefonía','moviles y telefonia','móviles','moviles','telefonía','telefonia']);
 const USED_VEHICLES=new Set(['vehículos','vehiculos']);
 function candidateCategories(row){
  if(!row || typeof row!=='object')return [];
  if(row.kind==='service'&&row.deal==='offer')return [bySlug('servicios')];
  if(row.kind==='property'&&['sale','rent'].includes(row.deal))return [bySlug('inmuebles')];
- if(row.kind!=='product'||row.deal!=='sale'||row.details?.condition!=='used')return [];
- const category=String(row.category||'').trim().toLocaleLowerCase('es');
+ if(row.kind!=='product'||row.deal!=='sale')return [];
+ const furniture=furnitureFamily.isFurnitureListing(row);
+ const used=row.details?.condition==='used';
  const choices=[];
- if(USED_FURNITURE.has(category))choices.push(bySlug('muebles-segunda-mano'));
- else if(USED_MOBILES.has(category))choices.push(bySlug('moviles-segunda-mano'));
- else if(USED_VEHICLES.has(category))choices.push(bySlug('vehiculos-segunda-mano'));
+ if(used&&furniture)choices.push(bySlug('muebles-segunda-mano'));
+ if(furniture)choices.push(bySlug('muebles'));
+ if(!used)return choices; // Unknown/new WooCommerce products are not second-hand.
+ const category=String(row.category||'').trim().toLocaleLowerCase('es');
+ if(!furniture&&USED_MOBILES.has(category))choices.push(bySlug('moviles-segunda-mano'));
+ else if(!furniture&&USED_VEHICLES.has(category))choices.push(bySlug('vehiculos-segunda-mano'));
  choices.push(bySlug('segunda-mano'));
  return choices;
 }
