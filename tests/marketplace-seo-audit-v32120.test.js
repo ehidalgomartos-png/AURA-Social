@@ -22,7 +22,8 @@ test('readiness aggregates and samples always exclude hidden, paused and private
   assert.match(sql,/JOIN users u ON u.id=l.seller_id/);
   assert.doesNotMatch(sql,/INSERT INTO |UPDATE marketplace_listings|DELETE FROM/i);
  }
- assert.match(audit.metricsSql,/char_length\(btrim\(l.description\)\) < 70/);
+ assert.match(audit.metricsSql,/char_length\(btrim\(l.description\)\) < 35/);
+ assert.match(audit.metricsSql,/char_length\(btrim\(l.title\)\) < 10/);
  assert.match(audit.metricsSql,/jsonb_array_length\(l.image_urls\)=0/);
  assert.match(audit.sampleSql,/ORDER BY l.updated_at DESC,l.id DESC LIMIT 100/);
  assert.doesNotMatch(audit.sampleSql,/u.email|u.password|u.phone|stripe|session_token/i);
@@ -44,6 +45,43 @@ test('advisory SEO heuristics are factual; declared state and public image count
  assert.ok(audit.issueCodes(missing).includes('referencias_imagen_invalidas'));
  assert.ok(!audit.issueCodes({...broken,kind:'service',deal:'offer'}).includes('estado_no_indicado'));
  assert.ok(!audit.issueCodes({...broken,kind:'property',deal:'rent'}).includes('estado_no_indicado'));
+});
+test('V3.2.120.2: distinctive short WooCommerce names are not falsely marked as SEO problems',()=>{
+ const names=[
+  'Taza Canción','Taza Stitch&Angel Te Amo','Taza Cuphead',
+  'Taza Bob Esponja','Taza Mickey&Minnie','Taza Lucas 21:33',
+  'Taza Spiderman'
+ ];
+ for(const name of names){
+  const ad=sample({title:name,description:'Taza con diseño personalizado de catálogo, con el motivo indicado en el nombre de la ficha.'});
+  assert.ok(!audit.issueCodes(ad).includes('titulo_corto'),name);
+ }
+ const short=sample({title:'Taza',description:'Regalo'});
+ assert.ok(audit.issueCodes(short).includes('titulo_corto'));
+ assert.ok(audit.issueCodes(short).includes('descripcion_breve'));
+ const relevant=sample({title:'Taza Cuphead',description:'Taza con diseño Cuphead para regalo.'});
+ assert.ok(!audit.issueCodes(relevant).includes('descripcion_breve'));
+ const slightlyShort=sample({title:'Taza Spiderman',description:'Taza de cerámica con motivo de Spiderman.'});
+ assert.deepEqual(audit.issueCodes(slightlyShort),[]);
+});
+test('V3.2.120.2: CSV title and description checks do not override the existing generated SEO metadata',()=>{
+ const original=sample({
+  title:'Taza Cuphead',description:'Taza de cerámica con personaje Cuphead.',
+  category:'Dibujos Animados',city:'España',details:{province:'España',saleScope:'national'}
+ });
+ const before=JSON.parse(JSON.stringify(original));
+ assert.deepEqual(audit.issueCodes(original),[]);
+ const meta=require('../src/services/marketplace-product-meta-v32118').forListing(original);
+ assert.match(meta.title,/Taza Cuphead/);
+ assert.match(meta.title,/RedLibertad/);
+ assert.match(meta.description,/Taza Cuphead/);
+ assert.match(meta.description,/contacta con el vendedor/);
+ assert.deepEqual(original,before);
+ const auditReport=audit.report({rows:[original],metrics:{public_total:1},categories:[],
+  isCategoryIndexable:()=>false,listingPath:seo.listingPath});
+ assert.equal(auditReport.examples.length,0);
+ assert.equal(auditReport.checks.find(x=>x.id==='short_titles').count,0);
+ assert.match(auditReport.checks.find(x=>x.id==='short_descriptions').note,/La descripción SEO del producto se genera por separado/);
 });
 test('report contains only public listing links, optional editorial issues and real category eligibility',()=>{
  const rows=[sample({id:120,title:'Armario',description:'Poca descripción',image_urls:[],details:{}}),sample({id:121})];
