@@ -11,6 +11,7 @@ const {purchaseLink,freshWooStock}=require('../services/marketplace-professional
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const {requireAdmin,requireAuth}=require('../middleware/auth');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
+const marketplaceLandingV32111=require('../marketplace-landing-v32111');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -100,6 +101,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<link rel="icon" href="/marketplace/icon-192.png" type="image/png">'+
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
  '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.77.8">'+
+ '<link rel="stylesheet" href="/marketplace-landing-v32111.css?v=3.2.111">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.75" defer></script>'+
  '<script src="/marketplace-category-filter-v3274.js?v=3.2.75" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.75" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
@@ -370,7 +372,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   const selectedSummary=activeLabels.length?'<div class="market-filter-summary" aria-label="Filtros activos">'+
    activeLabels.map(label=>'<span>'+esc(label)+'</span>').join('')+
    '<a href="/marketplace/explorar">Limpiar filtros</a></div>':'';
-  const filterBox='<form class="market-public-filters" action="/marketplace/explorar" method="get" role="search">'+
+  const filterBox='<form id="marketBuscador" class="market-public-filters" action="/marketplace/explorar" method="get" role="search">'+
    (operation?'<input type="hidden" name="operacion" value="'+esc(operation)+'">':'')+
    (nationalOnly?'<input type="hidden" name="nacional" value="1">':'')+
    '<div class="market-public-search">'+
@@ -390,19 +392,24 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
     '</select></label>'+
     '<button type="submit" class="secondary">Aplicar filtros</button>'+
     '<a class="market-clear-filters" href="/marketplace/explorar">Limpiar</a></div></details></form>';
-  const body='<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace?publicar=1">Publicar anuncio</a></section>'+
+  // V3.2.111: upgrade only the existing indexable canonical landing.
+  // Filtered searches remain noindex and pagination retains its existing URLs.
+  const landingHome=page===1&&!params.size;
+  const body=(landingHome?marketplaceLandingV32111.hero():'<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace?publicar=1">Publicar anuncio</a></section>')+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
    filterBox+quickNav+selectedSummary+
    '<div class="market-seo-intro"><h2>'+(params.size?'Resultados de búsqueda':'Últimos anuncios')+'</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con anunciantes necesitas una cuenta.</p></div>'+
-   '<section class="cards market-public-grid" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><h2>No hay anuncios con estos criterios</h2><p>Prueba otra búsqueda o cambia los filtros.</p><a href="/marketplace/explorar" class="primary">Ver todos los anuncios</a></div>')+'</section>'+
+   '<section id="anuncios" class="cards market-public-grid" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><h2>No hay anuncios con estos criterios</h2><p>Prueba otra búsqueda o cambia los filtros.</p><a href="/marketplace/explorar" class="primary">Ver todos los anuncios</a></div>')+'</section>'+
    '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+esc(pageLink(page-1))+'">← Anteriores</a>':'')+
-   (result.rows.length>24?'<a class="secondary" href="'+esc(pageLink(page+1))+'">Siguientes →</a>':'')+'</nav>';
+   (result.rows.length>24?'<a class="secondary" href="'+esc(pageLink(page+1))+'">Siguientes →</a>':'')+'</nav>'+
+   (landingHome?marketplaceLandingV32111.categories()+marketplaceLandingV32111.ending():'');
   const searching=Boolean(q||city||kind||category||nationalOnly||maxPrice!==null||sort!=='recent');
   res.setHeader('Cache-Control','public,max-age=60');
   return res.type('html').send(shell({
    backHref:'/app?view=explore&marketReturn=1',
-   title:'Marketplace: productos, servicios e inmobiliaria | RedLibertad',
-   description:'Descubre productos, servicios e inmuebles publicados en RedLibertad.',
+   title:landingHome?marketplaceLandingV32111.TITLE:'Marketplace: productos, servicios e inmobiliaria | RedLibertad',
+   description:landingHome?marketplaceLandingV32111.DESCRIPTION:'Descubre productos, servicios e inmuebles publicados en RedLibertad.',
+   schema:landingHome?marketplaceLandingV32111.structuredData():null,
    canonical:ORIGIN+(searching?'/marketplace/explorar':pageLink(page)),
    robots:searching?'noindex,follow':'index,follow,max-image-preview:large',body,bodyClass:'market-public-catalog'
   }));
