@@ -59,6 +59,43 @@
   visibleExamples+=PAGE_SIZE;
   renderExamples();
  });
+ // Values from the private audit API are display-only estimates. Keep external
+ // URLs out of this UI and do not run an HTTP probe from the browser.
+ const sitemapLinkPath=value=>/^\/sitemap-marketplace(?:-(?:productos|servicios|inmuebles|categorias))?(?:-[1-9][0-9]*\.xml|\.xml)$/.test(String(value||''))?value:null;
+ function renderSitemaps(data){
+  const list=$('auditSitemapPlan');
+  clear(list);
+  const estimate=data.technicalSitemaps;
+  if(estimate?.kind!=='expected_sitemap_structure'||!Array.isArray(estimate.entries)){
+   list.append(element('p','audit-muted','No se pudo generar una previsión de sitemaps.'));
+   $('auditSitemapNote').textContent='';
+   return;
+  }
+  for(const item of estimate.entries){
+   const card=element('div','audit-sitemap-item');
+   const header=element('div','audit-sitemap-heading');
+   const path=sitemapLinkPath(item.path);
+   const link=element('a',null,item.label);
+   if(path)link.href=path;
+   header.append(link,element('span','audit-sitemap-count',number(item.count)+' anuncios o categorías'));
+   const detail=element('p','audit-muted',item.type==='urlset'?'Listado de categorías aptas':'Índice con '+number(item.pages)+' página(s) XML esperadas');
+   card.append(header,detail);
+   const first=sitemapLinkPath(item.firstPage);
+   if(first){
+    const firstLink=element('a','audit-sitemap-first','Ver primera página ↗');
+    firstLink.href=first;
+    card.append(firstLink);
+   }
+   const last=sitemapLinkPath(item.lastPage);
+   if(last&&last!==first){
+    const lastLink=element('a','audit-sitemap-last','Ver última página prevista ↗');
+    lastLink.href=last;
+    card.append(lastLink);
+   }
+   list.append(card);
+  }
+  $('auditSitemapNote').textContent=String(estimate.note||'');
+ }
  function renderAudit(data){
   const summary=$('auditMetrics'),checks=$('auditChecks'),optional=$('auditOptional'),
    categories=$('auditCategories'),examples=$('auditExamples');
@@ -95,6 +132,7 @@
   }
   const sample=data.limits.recentSample;
   $('auditExamplesDescription').textContent='Se revisan los '+number(sample)+' anuncios públicos más recientes (máximo 100). Los avisos se ordenan dentro de esa muestra: fotos primero, luego nombres/categorías y después descripciones. No es una clasificación de Google ni incluye necesariamente todos los anuncios.';
+  renderSitemaps(data);
   currentLabels=data.issueLabels||Object.create(null);
   exampleRows=Array.isArray(data.examples)?data.examples:[];
   visibleExamples=PAGE_SIZE;
