@@ -69,7 +69,8 @@ const LANDINGS=Object.freeze([
 const BY_SLUG=new Map(LANDINGS.map(def=>[def.slug,def]));
 function bySlug(slug){return BY_SLUG.get(String(slug||''))||null;}
 function countQuery(){
- return 'SELECT '+LANDINGS.map(def=>'COUNT(*) FILTER (WHERE ('+def.where+'))::integer AS '+def.id).join(',')+PUBLIC_FROM;
+ return 'SELECT '+LANDINGS.map(def=>'COUNT(*) FILTER (WHERE ('+def.where+'))::integer AS '+def.id).join(',')+
+  ",COUNT(DISTINCT LOWER(BTRIM(l.category))) FILTER (WHERE (l.kind='product' AND l.deal='sale' AND l.details->>'condition'='used'))::integer AS used_category_diversity"+PUBLIC_FROM;
 }
 function listingQuery(def){
  if(!LANDINGS.includes(def))throw Error('unknown_marketplace_category');
@@ -81,7 +82,13 @@ function totalFor(counts,def){
  const value=Number(counts?.[def.id]);
  return Number.isSafeInteger(value)&&value>=0?value:0;
 }
-function canIndex(counts,def){return totalFor(counts,def)>=MIN_PUBLIC_ADS;}
+function canIndex(counts,def){
+ if(totalFor(counts,def)<MIN_PUBLIC_ADS)return false;
+ // An all-second-hand page with exactly the same inventory as one specialist
+ // category adds little value. Require at least two distinct used categories.
+ if(def.id==='segunda_mano')return Number(counts?.used_category_diversity)>=2;
+ return true;
+}
 function qualified(counts){return LANDINGS.filter(def=>canIndex(counts,def));}
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function navigation(counts,{current=null}={}){
