@@ -52,3 +52,14 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
  .audit-metric,.audit-check{padding:12px}
 }
 @media(max-width:320px){.audit-metrics,.audit-checks{grid-template-columns:minmax(0,1fr)}}
+
+
+/* V3.2.120.1: optional CSV facts are separated from actionable SEO findings. */
+.audit-optional-section{margin-top:12px}
+.audit-optional-info{display:grid;grid-template-columns:minmax(0,1fr);max-width:570px}
+.audit-optional-card{display:flex;flex-wrap:wrap;align-items:center;gap:8px 13px;
+ padding:14px 16px;background:#f6f8f9;border:1px solid #d5e0e4;
+ border-radius:12px;color:#3b5662}
+.audit-optional-number{font-size:23px;line-height:1.15;font-variant-numeric:tabular-nums}
+.audit-optional-name{font-weight:700;font-size:13px}
+.audit-optional-card .audit-muted{flex-basis:100%;line-height:1.55}
