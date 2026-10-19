@@ -33,7 +33,7 @@ test('Authenticated listing filters accept category and province as parameterize
 });
 test('Public listing displays province, real profile and WhatsApp/Facebook/copy links',()=>{
  const rendered=seo.listingHtml(sample);
- assert.match(rendered,/en Valencia/);
+ assert.match(rendered,/<title>[^<]*\| Valencia \| RedLibertad<\/title>/);
  assert.doesNotMatch(rendered,/Valencia · Valencia/);
  assert.match(seo.listingHtml({...sample,details:{...sample.details,province:'Castellón'}}),/Valencia · Castellón/);
  assert.match(rendered,/Tazas · Personalizadas/);
