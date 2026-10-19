@@ -32,6 +32,25 @@ function slugify(value){return String(value||'anuncio').normalize('NFD').replace
 function listingPath(row){return '/marketplace/p/'+encodeURIComponent(row.id)+'/'+slugify(row.title);}
 function imagePath(row,index){return '/marketplace/imagen/'+encodeURIComponent(row.id)+'/'+index;}
 function imagePaths(row){return (Array.isArray(row.image_urls)?row.image_urls:[]).slice(0,6).map((v,i)=>validImage(v)?ORIGIN+imagePath(row,i):null).filter(Boolean);}
+// V3.2.119: the sitemap uses the same public image proxy as listing pages.
+// Include at most six different approved local photos, never raw upload paths
+// or external media links (which might disclose private origins).
+function sitemapImagePaths(row){
+ const images=Array.isArray(row?.image_urls)?row.image_urls.slice(0,6):[];
+ const seen=new Set(),result=[];
+ images.forEach((file,index)=>{
+  if(!validImage(file)||seen.has(file))return;
+  seen.add(file);
+  result.push(ORIGIN+imagePath(row,index));
+ });
+ return result;
+}
+function sitemapListingEntry(row){
+ const pictures=sitemapImagePaths(row).map(url=>
+  '<image:image><image:loc>'+esc(url)+'</image:loc></image:image>').join('');
+ return '<url><loc>'+esc(ORIGIN+listingPath(row))+'</loc><lastmod>'+
+  new Date(row.updated_at).toISOString()+'</lastmod>'+pictures+'</url>';
+}
 function seoDescription(row){return readableDescription(row.description).replace(/(?:\s*(?:WhatsApp|Facebook|Twitter)){2,}\s*$/i,'').replace(/\s+/g,' ').trim();}
 function locality(row){return publicLocation(row);}
 function price(row){return (Number(row.price_cents||0)/100).toFixed(2);}
@@ -522,10 +541,7 @@ for(const [label,kind] of Object.entries(MARKETPLACE_KINDS)){
    await ensureMarketplaceSchema();
    const listings=await db.query('SELECT l.id,l.title,l.image_urls,l.updated_at'+MARKETPLACE_XML_WHERE+' ORDER BY l.created_at DESC,l.id DESC LIMIT $2 OFFSET $3',[kind,PAGE_SIZE,(page-1)*PAGE_SIZE]);
    if(page>1&&!listings.rowCount)return res.sendStatus(404);
-   const entries=listings.rows.map(row=>{
-    const image=imagePaths(row)[0];
-    return '<url><loc>'+esc(ORIGIN+listingPath(row))+'</loc><lastmod>'+new Date(row.updated_at).toISOString()+'</lastmod>'+(image?'<image:image><image:loc>'+esc(image)+'</image:loc></image:image>':'')+'</url>';
-   });
+   const entries=listings.rows.map(sitemapListingEntry);
    res.setHeader('Cache-Control','public,max-age=300');
    return res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'+entries.join('')+'</urlset>');
   }catch(error){next(error);}
@@ -538,13 +554,10 @@ router.get('/sitemap-marketplace-:page.xml',async(req,res,next)=>{
   await ensureMarketplaceSchema();
   const r=await db.query("SELECT l.id,l.title,l.image_urls,l.updated_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true ORDER BY l.created_at DESC,l.id DESC LIMIT $1 OFFSET $2",[PAGE_SIZE,(page-1)*PAGE_SIZE]);
   if(page>1&&!r.rowCount)return res.sendStatus(404);
-  const urls=r.rows.map(row=>{
-    const image=imagePaths(row)[0];
-    return '<url><loc>'+esc(ORIGIN+listingPath(row))+'</loc><lastmod>'+new Date(row.updated_at).toISOString()+'</lastmod>'+(image?'<image:image><image:loc>'+esc(image)+'</image:loc></image:image>':'')+'</url>';
-  });
+  const urls=r.rows.map(sitemapListingEntry);
   if(page===1)urls.unshift('<url><loc>'+esc(ORIGIN+'/marketplace/explorar')+'</loc></url>');
   res.setHeader('Cache-Control','public,max-age=300');
   return res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'+urls.join('')+'</urlset>');
  }catch(error){next(error);}
 });
-module.exports={router,slugify,listingPath,eligible,entitySchema,jsonLd,listingHtml,imagePaths,seoDescription,locality};
+module.exports={router,slugify,listingPath,eligible,entitySchema,jsonLd,listingHtml,imagePaths,sitemapImagePaths,sitemapListingEntry,seoDescription,locality};
