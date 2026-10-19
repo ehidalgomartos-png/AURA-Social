@@ -12,6 +12,7 @@ const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const {requireAdmin,requireAuth}=require('../middleware/auth');
 const {readableDescription,descriptionParts}=require('../services/marketplace-description-v3267');
 const marketplaceLandingV32111=require('../marketplace-landing-v32111');
+const marketplaceCategorySeoV32112=require('../marketplace-category-seo-v32112');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -102,6 +103,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<link rel="apple-touch-icon" href="/marketplace/icon-192.png">'+
  '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.77.8">'+
  '<link rel="stylesheet" href="/marketplace-landing-v32111.css?v=3.2.111">'+
+ '<link rel="stylesheet" href="/marketplace-category-seo-v32112.css?v=3.2.112">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.75" defer></script>'+
  '<script src="/marketplace-category-filter-v3274.js?v=3.2.75" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.75" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
@@ -395,6 +397,7 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   // V3.2.111: upgrade only the existing indexable canonical landing.
   // Filtered searches remain noindex and pagination retains its existing URLs.
   const landingHome=page===1&&!params.size;
+  const categoryCounts=landingHome?(await db.query(marketplaceCategorySeoV32112.countQuery())).rows[0]||{}:null;
   const body=(landingHome?marketplaceLandingV32111.hero():'<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace?publicar=1">Publicar anuncio</a></section>')+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
    filterBox+quickNav+selectedSummary+
@@ -402,7 +405,8 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
    '<section id="anuncios" class="cards market-public-grid" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><h2>No hay anuncios con estos criterios</h2><p>Prueba otra búsqueda o cambia los filtros.</p><a href="/marketplace/explorar" class="primary">Ver todos los anuncios</a></div>')+'</section>'+
    '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+esc(pageLink(page-1))+'">← Anteriores</a>':'')+
    (result.rows.length>24?'<a class="secondary" href="'+esc(pageLink(page+1))+'">Siguientes →</a>':'')+'</nav>'+
-   (landingHome?marketplaceLandingV32111.categories()+marketplaceLandingV32111.ending():'');
+   (landingHome?marketplaceLandingV32111.categories()+
+    marketplaceCategorySeoV32112.navigation(categoryCounts)+marketplaceLandingV32111.ending():'');
   const searching=Boolean(q||city||kind||category||nationalOnly||maxPrice!==null||sort!=='recent');
   res.setHeader('Cache-Control','public,max-age=60');
   return res.type('html').send(shell({
@@ -413,6 +417,44 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
    canonical:ORIGIN+(searching?'/marketplace/explorar':pageLink(page)),
    robots:searching?'noindex,follow':'index,follow,max-image-preview:large',body,bodyClass:'market-public-catalog'
   }));
+ }catch(error){next(error);}
+});
+// V3.2.112: finite public category landing pages. Never index thin/empty stock.
+for(const categoryDef of marketplaceCategorySeoV32112.LANDINGS){
+ router.get(categoryDef.path,async(_req,res,next)=>{
+  try{
+   await ensureMarketplaceSchema();
+   const countsResult=await db.query(marketplaceCategorySeoV32112.countQuery());
+   const counts=countsResult.rows[0]||{};
+   const total=marketplaceCategorySeoV32112.totalFor(counts,categoryDef);
+   const eligibleFromCounts=marketplaceCategorySeoV32112.canIndex(counts,categoryDef);
+   const listings=total?(await db.query(marketplaceCategorySeoV32112.listingQuery(categoryDef))).rows:[];
+   // An advert can be moderated between count and SELECT. Never index a
+   // category with fewer real visible cards than the editorial minimum.
+   const indexable=eligibleFromCounts&&listings.length>=marketplaceCategorySeoV32112.MIN_PUBLIC_ADS;
+   // Both sitemap and listing query exclude hidden, private or inactive ads.
+   const body=marketplaceCategorySeoV32112.content(categoryDef,{
+    count:total,indexable,cards:listings.map(listingCard).join(''),
+    navigationHtml:marketplaceCategorySeoV32112.navigation(counts,{current:categoryDef.slug})
+   });
+   res.setHeader('Cache-Control','public,max-age=60');
+   if(!indexable)res.setHeader('X-Robots-Tag','noindex, follow');
+   return res.type('html').send(shell({
+    title:categoryDef.title,description:categoryDef.description,
+    canonical:ORIGIN+categoryDef.path,
+    robots:indexable?'index,follow,max-image-preview:large':'noindex,follow',
+    schema:indexable?marketplaceCategorySeoV32112.structuredData(categoryDef,listings):null,
+    body,bodyClass:'market-public-catalog market-public-category-seo'
+   }));
+  }catch(error){next(error);}
+ });
+}
+router.get('/sitemap-marketplace-categorias.xml',async(_req,res,next)=>{
+ try{
+  await ensureMarketplaceSchema();
+  const result=await db.query(marketplaceCategorySeoV32112.countQuery());
+  res.setHeader('Cache-Control','public,max-age=300');
+  return res.type('application/xml').send(marketplaceCategorySeoV32112.sitemapXml(result.rows[0]||{}));
  }catch(error){next(error);}
 });
 router.get('/sitemap-marketplace.xml',async(_req,res,next)=>{

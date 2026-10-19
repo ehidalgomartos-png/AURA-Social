@@ -59,7 +59,8 @@ test('SSR only upgrades canonical unfiltered first page; retains noindex for fil
  const segment=src.slice(src.indexOf("router.get('/marketplace/explorar'"),src.indexOf("router.get('/sitemap-marketplace.xml'"));
  assert.match(segment,/const landingHome=page===1&&!params\.size/);
  assert.match(segment,/marketplaceLandingV32111\.hero\(\)/);
- assert.match(segment,/marketplaceLandingV32111\.categories\(\)\+marketplaceLandingV32111\.ending\(\)/);
+ assert.match(segment,/marketplaceLandingV32111\.categories\(\)/);
+ assert.match(segment,/marketplaceLandingV32111\.ending\(\)/);
  assert.match(segment,/schema:landingHome\?marketplaceLandingV32111\.structuredData\(\):null/);
  assert.match(segment,/robots:searching\?'noindex,follow':'index,follow,max-image-preview:large'/);
  assert.match(segment,/id="anuncios"/);
