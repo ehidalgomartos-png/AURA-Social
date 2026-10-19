@@ -14,6 +14,7 @@ const {readableDescription,descriptionParts}=require('../services/marketplace-de
 const marketplaceLandingV32111=require('../marketplace-landing-v32111');
 const marketplaceCategorySeoV32112=require('../marketplace-category-seo-v32112');
 const marketplaceProductMetaV32118=require('../services/marketplace-product-meta-v32118');
+const marketplaceSeoAuditV32120=require('../services/marketplace-seo-audit-v32120');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -205,6 +206,34 @@ router.get('/marketplace/icon-:size.png',(req,res)=>{
  if(![192,512].includes(size)||!/^(192|512)$/.test(req.params.size))return res.sendStatus(404);
  res.setHeader('Cache-Control','public,max-age=604800,immutable');
  res.type('image/png').send(marketplaceIcon(size));
+});
+// V3.2.120: private, read-only diagnostic. Never expose data in public routes
+// and never represent this report as real Search Console index coverage.
+router.get('/marketplace/seo/auditoria',requireAdmin,(_req,res)=>{
+ res.setHeader('Cache-Control','private,no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow');
+ res.type('html').sendFile(path.join(__dirname,'..','views','marketplace-seo-audit-v32120.html'));
+});
+router.get('/api/admin/marketplace/seo/auditoria',requireAdmin,async(_req,res,next)=>{
+ try{
+  await ensureMarketplaceSchema();
+  const [metrics,sample,categoryCounts]=await Promise.all([
+   db.query(marketplaceSeoAuditV32120.metricsSql),
+   db.query(marketplaceSeoAuditV32120.sampleSql),
+   db.query(marketplaceCategorySeoV32112.countQuery())
+  ]);
+  const audit=marketplaceSeoAuditV32120.report({
+   metrics:metrics.rows[0]||{},
+   rows:sample.rows,
+   categoryCounts:categoryCounts.rows[0]||{},
+   categories:marketplaceCategorySeoV32112.LANDINGS,
+   isCategoryIndexable:marketplaceCategorySeoV32112.canIndex,
+   listingPath
+  });
+  res.setHeader('Cache-Control','private,no-store');
+  res.setHeader('X-Robots-Tag','noindex,nofollow');
+  return res.json(audit);
+ }catch(error){next(error);}
 });
 router.get('/marketplace/mi-tienda',requireAuth,(_req,res)=>{
  res.setHeader('Cache-Control','private,no-store');

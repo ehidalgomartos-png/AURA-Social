@@ -58,6 +58,7 @@
     "test:marketplace-furniture-specialists": "node --test tests/marketplace-furniture-specialists-v32117.test.js",
     "test:marketplace-product-meta": "node --test tests/marketplace-product-meta-v32118.test.js",
     "test:marketplace-image-sitemap": "node --test tests/marketplace-image-sitemap-v32119.test.js",
+    "test:marketplace-seo-audit": "node --test tests/marketplace-seo-audit-v32120.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",

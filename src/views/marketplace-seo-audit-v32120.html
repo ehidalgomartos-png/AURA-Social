@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Auditoría SEO del Marketplace · RedLibertad</title>
+<link rel="icon" href="/marketplace/icon-192.png" type="image/png">
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.120">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.120" defer></script>
+</head>
+<body>
+<header class="audit-header">
+ <a href="/marketplace/explorar" class="audit-back">← Marketplace</a>
+ <span class="audit-private">Solo administración</span>
+</header>
+<main class="audit-main">
+ <section class="audit-intro">
+  <p class="audit-eyebrow">REDLIBERTAD · AUDITORÍA INTERNA</p>
+  <h1>Salud SEO del Marketplace</h1>
+  <p>Comprueba la preparación técnica de los anuncios públicos, las imágenes y las categorías para buscadores. <strong>No representa el estado de indexación de Google</strong>.</p>
+  <div class="audit-intro-actions">
+   <button id="auditRefresh" type="button">Actualizar diagnóstico</button>
+   <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Abrir Google Search Console ↗</a>
+  </div>
+ </section>
+ <p id="auditStatus" class="audit-status" role="status" aria-live="polite">Consultando datos públicos…</p>
+ <div id="auditResults" hidden>
+  <section aria-labelledby="auditSummaryTitle">
+   <h2 id="auditSummaryTitle">Anuncios públicos</h2>
+   <div class="audit-metrics" id="auditMetrics"></div>
+  </section>
+  <section aria-labelledby="auditWarningsTitle">
+   <h2 id="auditWarningsTitle">Oportunidades de mejora</h2>
+   <p class="audit-muted">Los avisos son criterios editoriales internos. No son errores oficiales de Google ni bloquean por sí solos la indexación.</p>
+   <div class="audit-checks" id="auditChecks"></div>
+  </section>
+  <section aria-labelledby="auditCategoriesTitle">
+   <h2 id="auditCategoriesTitle">Categorías SEO</h2>
+   <p class="audit-muted">Las páginas con poco inventario real no aparecen en el sitemap de categorías ni se recomiendan para indexación.</p>
+   <div id="auditCategories" class="audit-category-list"></div>
+  </section>
+  <section aria-labelledby="auditExamplesTitle">
+   <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
+   <p id="auditExamplesDescription" class="audit-muted"></p>
+   <div id="auditExamples" class="audit-example-list"></div>
+  </section>
+  <section class="audit-next">
+   <h2>¿Qué conviene hacer después?</h2>
+   <p>Corrige primero los anuncios más importantes que tengan información o fotografías insuficientes. Revisa después las URLs indexables en Search Console: ese servicio es el que informa si Google realmente las ha indexado.</p>
+   <nav aria-label="Enlaces de revisión">
+    <a href="/sitemap-marketplace.xml" target="_blank" rel="noopener noreferrer">Sitemap de anuncios ↗</a>
+    <a href="/sitemap-marketplace-categorias.xml" target="_blank" rel="noopener noreferrer">Sitemap de categorías ↗</a>
+   </nav>
+  </section>
+ </div>
+</main>
+<footer class="audit-footer">Panel privado y de solo lectura · No cambia anuncios, pagos ni productos.</footer>
+</body>
+</html>
