@@ -397,12 +397,12 @@ router.get('/marketplace/explorar',async(req,res,next)=>{
   const landingHome=page===1&&!params.size;
   const body=(landingHome?marketplaceLandingV32111.hero():'<section class="hero"><div><small>ANUNCIOS PÚBLICOS</small><h1>Marketplace RedLibertad</h1><p>Productos, servicios e inmobiliaria de la comunidad.</p></div><a class="primary" href="/marketplace?publicar=1">Publicar anuncio</a></section>')+
    '<nav class="market-deals" aria-label="Tipo de anuncio"><a href="/marketplace/explorar">Todos</a><a href="/marketplace/explorar?operacion=sale">En venta</a><a href="/marketplace/explorar?operacion=buy">Compra · Busco</a></nav>'+
-   filterBox+quickNav+selectedSummary+(landingHome?marketplaceLandingV32111.categories():'')+
+   filterBox+quickNav+selectedSummary+
    '<div class="market-seo-intro"><h2>'+(params.size?'Resultados de búsqueda':'Últimos anuncios')+'</h2><p>Consulta los anuncios sin iniciar sesión. Para contactar con anunciantes necesitas una cuenta.</p></div>'+
    '<section id="anuncios" class="cards market-public-grid" aria-label="Anuncios públicos">'+(cards||'<div class="market-empty"><h2>No hay anuncios con estos criterios</h2><p>Prueba otra búsqueda o cambia los filtros.</p><a href="/marketplace/explorar" class="primary">Ver todos los anuncios</a></div>')+'</section>'+
    '<nav class="market-seo-pagination" aria-label="Paginación">'+(page>1?'<a class="secondary" href="'+esc(pageLink(page-1))+'">← Anteriores</a>':'')+
    (result.rows.length>24?'<a class="secondary" href="'+esc(pageLink(page+1))+'">Siguientes →</a>':'')+'</nav>'+
-   (landingHome?marketplaceLandingV32111.ending():'');
+   (landingHome?marketplaceLandingV32111.categories()+marketplaceLandingV32111.ending():'');
   const searching=Boolean(q||city||kind||category||nationalOnly||maxPrice!==null||sort!=='recent');
   res.setHeader('Cache-Control','public,max-age=60');
   return res.type('html').send(shell({
