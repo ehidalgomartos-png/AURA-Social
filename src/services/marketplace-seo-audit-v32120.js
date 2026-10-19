@@ -3,7 +3,9 @@
 // All aggregates and sample queries share the same strict visibility predicate.
 const SAMPLE_LIMIT=100;
 const PUBLIC_FROM=" FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true";
-const SHORT_TITLE=18,SHORT_DESCRIPTION=70;
+// These are checks on original listing content, not Google meta title/description.
+// Short, distinctive catalogue names such as "Taza Cuphead" are legitimate.
+const SHORT_TITLE=10,SHORT_DESCRIPTION=35;
 const IMAGE_PATTERN=/^\/uploads\/[A-Za-z0-9._-]{1,180}\.(?:jpe?g|png|webp)$/i;
 const metricsSql=
  "SELECT COUNT(*)::integer AS public_total,"+
@@ -36,8 +38,8 @@ function issueCodes(row){
  return issues;
 }
 const LABELS=Object.freeze({
- titulo_corto:'Título muy breve',
- descripcion_breve:'Descripción breve',
+ titulo_corto:'Título demasiado corto',
+ descripcion_breve:'Descripción original muy escueta',
  sin_fotos_publicas:'Sin fotografías locales válidas',
  referencias_imagen_invalidas:'Imagen con formato no permitido',
  fotografias_duplicadas:'Fotografías repetidas',
@@ -73,8 +75,8 @@ function report({metrics={},rows=[],categoryCounts={},categories=[],isCategoryIn
    products:int(metrics.products),services:int(metrics.services),properties:int(metrics.properties)
   },
   checks:[
-   {id:'short_titles',name:'Títulos muy breves',count:int(metrics.short_titles),note:'Umbral editorial: menos de '+SHORT_TITLE+' caracteres'},
-   {id:'short_descriptions',name:'Descripciones breves',count:int(metrics.short_descriptions),note:'Umbral editorial: menos de '+SHORT_DESCRIPTION+' caracteres'},
+   {id:'short_titles',name:'Títulos demasiado cortos',count:int(metrics.short_titles),note:'Solo nombres originales de menos de '+SHORT_TITLE+' caracteres; el título SEO de productos se construye por separado.'},
+   {id:'short_descriptions',name:'Descripciones originales muy escuetas',count:int(metrics.short_descriptions),note:'Solo texto original de menos de '+SHORT_DESCRIPTION+' caracteres. La descripción SEO del producto se genera por separado.'},
    {id:'without_images',name:'Sin fotografías',count:int(metrics.without_images),note:'Anuncios con galería vacía'}
   ],
   informational:[
