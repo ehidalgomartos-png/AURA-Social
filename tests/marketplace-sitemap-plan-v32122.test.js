@@ -24,8 +24,8 @@ test('V3.2.122 root sitemap index points at complete Marketplace sitemap index, 
  const route=fs.readFileSync('src/routes/marketplace-seo-v3251.js','utf8');
  assert.match(route,/router.get\('\/sitemap-marketplace\.xml'/);
  assert.match(route,/router.get\('\/sitemap-marketplace-:page\.xml'/);
- assert.match(route,/router.get\('\/sitemap-marketplace-'+label+'\.xml'/);
- assert.match(route,/router.get\('\/sitemap-marketplace-'+label+'-:page\.xml'/);
+ assert.ok(route.includes("router.get('/sitemap-marketplace-'+label+'.xml'"));
+ assert.ok(route.includes("router.get('/sitemap-marketplace-'+label+'-:page.xml'"));
  assert.match(route,/const PAGE_SIZE=marketplaceSitemapPlanV32122\.PAGE_SIZE/);
  assert.equal(plan.PAGE_SIZE,2000);
  assert.equal(plan.ROOT,'/sitemap-index.xml');
