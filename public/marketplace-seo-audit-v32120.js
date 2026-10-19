@@ -44,6 +44,15 @@
    const tags=element('div','audit-tags');
    for(const key of item.issues)tags.append(element('span','audit-tag',currentLabels[key]||key));
    row.append(top,tags);
+   if(gscReady){
+    const prep=element('button','audit-gsc-pick','Preparar inspección en Google');
+    prep.type='button';
+    prep.addEventListener('click',()=>{
+     gscId.value=String(item.id);
+     gscAction.textContent='Anuncio '+String(item.id)+' preparado. Pulsa Inspeccionar en Google para consultar su estado.';
+    });
+    row.append(prep);
+   }
    container.append(row);
   }
   if(!matches.length)container.append(element('p','audit-muted','No hay avisos de este tipo en la muestra revisada.'));
@@ -96,6 +105,89 @@
   }
   $('auditSitemapNote').textContent=String(estimate.note||'');
  }
+ // Only admin-triggered manual reads may call Google. Never auto-inspect on page load.
+ const gscId=$('auditGscId'),gscButton=$('auditGscInspect');
+ const gscState=$('auditGscState'),gscAction=$('auditGscActionStatus');
+ const gscResult=$('auditGscResult'),gscFields=$('auditGscResultFields');
+ let gscReady=false;
+ function renderGscStatus(info){
+  gscReady=info?.mode==='google_search_console_readonly'&&info?.configured===true;
+  gscButton.disabled=!gscReady;
+  gscState.textContent=info?.note||'Search Console todavía no está configurado para consultas reales.';
+  if(!gscReady){
+   gscResult.hidden=true;
+   clear(gscFields);
+  }
+ }
+ const googleVerdict=Object.freeze({
+  PASS:'Válida en el índice de Google',
+  FAIL:'Error o no válida según Google',
+  NEUTRAL:'Excluida según Google',
+  PARTIAL:'Estado parcial',
+  VERDICT_UNSPECIFIED:'Estado no especificado por Google'
+ });
+ const googleErrors=Object.freeze({
+  gsc_not_configured:'Conecta primero la cuenta de servicio de Search Console mediante Coolify.',
+  gsc_invalid_listing_id:'Introduce un número de anuncio válido (solo dígitos).',
+  gsc_listing_not_public:'El anuncio no está publicado o su vendedor no tiene perfil público.',
+  gsc_same_origin_json_required:'La sesión no pudo validar esta petición. Recarga la página.',
+  gsc_hourly_limit:'Se ha alcanzado el límite de seis inspecciones por hora. Vuelve más tarde.',
+  gsc_quota_exceeded:'Google ha indicado que se ha agotado la cuota de inspección.',
+  gsc_access_denied:'Google no autoriza la cuenta de servicio. Comprueba los permisos en Search Console.',
+  gsc_invalid_service_account_key:'La clave de la cuenta de servicio no es válida. Revísala en Coolify.',
+  gsc_network_unavailable:'No ha sido posible contactar con Google desde el servidor.',
+  gsc_invalid_response:'Google ha devuelto una respuesta inesperada.',
+  gsc_remote_error:'Google no ha podido completar la consulta. Inténtalo más tarde.'
+ });
+ function renderGscInspection(data){
+  clear(gscFields);
+  const entries=[
+   ['URL consultada',data.inspectionUrl],
+   ['Veredicto de Google',googleVerdict[data.verdict]||googleVerdict.VERDICT_UNSPECIFIED],
+   ['Detalle de cobertura',data.coverageState||'No indicado'],
+   ['Permiso de indexación',data.indexingState||'No indicado'],
+   ['Recuperación por Google',data.pageFetchState||'No indicado'],
+   ['Acceso según robots.txt',data.robotsTxtState||'No indicado'],
+   ['Último rastreo registrado',data.lastCrawlTime||'No consta'],
+   ['URL canónica elegida por Google',data.googleCanonical||'No consta'],
+   ['URL canónica declarada',data.userCanonical||'No consta'],
+   ['Sitemaps conocidos por Google',Array.isArray(data.sitemaps)&&data.sitemaps.length?data.sitemaps.join(' · '):'No constan (la lista de Google puede ser incompleta)']
+  ];
+  for(const [label,value] of entries){
+   const pair=element('div','audit-gsc-field');
+   pair.append(element('strong',null,label),element('span',null,String(value).slice(0,1800)));
+   gscFields.append(pair);
+  }
+  gscResult.hidden=false;
+ }
+ gscButton.addEventListener('click',async()=>{
+  const id=String(gscId.value||'').trim();
+  if(!gscReady||!/^[1-9][0-9]{0,15}$/.test(id)){
+   gscAction.textContent='Introduce un identificador válido de anuncio público.';
+   return;
+  }
+  gscButton.disabled=true;
+  gscResult.hidden=true;
+  clear(gscFields);
+  gscAction.textContent='Consultando el índice de Google para el anuncio '+id+'…';
+  try{
+   const response=await fetch('/api/admin/marketplace/seo/gsc/inspeccionar',{
+    method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'Accept':'application/json','Content-Type':'application/json'},
+    body:JSON.stringify({id})
+   });
+   if(response.status===401||response.status===403&&response.headers?.get?.('content-type')?.includes('text/html'))
+    throw new Error('Necesitas iniciar sesión como administrador.');
+   const data=await response.json();
+   if(!response.ok)throw new Error(googleErrors[data?.error]||'La inspección no ha podido completarse.');
+   if(data?.ok!==true||data?.inspection?.source!=='google_search_console_url_inspection')
+    throw new Error('La respuesta de Google no tiene el formato esperado.');
+   renderGscInspection(data.inspection);
+   gscAction.textContent='Inspección manual finalizada. El resultado procede de Google Search Console.';
+  }catch(error){
+   gscAction.textContent=error?.message||'No se pudo realizar la inspección.';
+  }finally{gscButton.disabled=!gscReady;}
+ });
  function renderAudit(data){
   const summary=$('auditMetrics'),checks=$('auditChecks'),optional=$('auditOptional'),
    categories=$('auditCategories'),examples=$('auditExamples');
@@ -133,6 +225,7 @@
   const sample=data.limits.recentSample;
   $('auditExamplesDescription').textContent='Se revisan los '+number(sample)+' anuncios públicos más recientes (máximo 100). Los avisos se ordenan dentro de esa muestra: fotos primero, luego nombres/categorías y después descripciones. No es una clasificación de Google ni incluye necesariamente todos los anuncios.';
   renderSitemaps(data);
+  renderGscStatus(data.googleSearchConsole);
   currentLabels=data.issueLabels||Object.create(null);
   exampleRows=Array.isArray(data.examples)?data.examples:[];
   visibleExamples=PAGE_SIZE;
