@@ -106,6 +106,7 @@ function shell({title,description,canonical,body,ogImage=ogDefault,schema=null,r
  '<link rel="stylesheet" href="/marketplace-v3250.css?v=3.2.75"><link rel="stylesheet" href="/marketplace-seo-v3251.css?v=3.2.77.8">'+
  '<link rel="stylesheet" href="/marketplace-landing-v32111.css?v=3.2.111">'+
  '<link rel="stylesheet" href="/marketplace-category-seo-v32112.css?v=3.2.112">'+
+ '<link rel="stylesheet" href="/marketplace-category-links-v32113.css?v=3.2.113">'+
  (schema?'<script type="application/ld+json">'+jsonLd(schema)+'</script>':'')+'<script src="/marketplace-share-v3254.js?v=3.2.75" defer></script>'+
  '<script src="/marketplace-category-filter-v3274.js?v=3.2.75" defer></script><script src="/marketplace-pwa-retire-v3266.js?v=3.2.75" defer></script><script src="/marketplace-gallery-v3263.js?v=3.2.63.2" defer></script></head>'+
  '<body class="'+esc(bodyClass)+'"><header class="bar"><a class="back" href="'+esc(backHref)+'" aria-label="Volver">←</a><a class="brand" href="/marketplace/explorar">Marketplace</a><a class="headname" href="/app?view=explore&amp;marketReturn=1">RedLibertad</a></header>'+
