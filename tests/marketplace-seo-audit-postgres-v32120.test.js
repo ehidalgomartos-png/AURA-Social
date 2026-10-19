@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 const {Client}=require('pg');
 const audit=require('../src/services/marketplace-seo-audit-v32120');
 const category=require('../src/marketplace-category-seo-v32112');
+const sitemapPlan=require('../src/services/marketplace-sitemap-plan-v32122');
 const connectionString=process.env.STRIPE_REENROLL_CI_DATABASE_URL||'';
 const host=(()=>{try{return new URL(connectionString).hostname;}catch{return '';}})();
 if(host!=='127.0.0.1')throw Error('Refusing nonlocal Marketplace SEO audit PostgreSQL test');
@@ -56,6 +57,12 @@ test('audit reads public marketplace rows only, reports accurate counts and neve
    listingPath:row=>'/marketplace/p/'+row.id+'/'+row.title.toLowerCase().replace(/\s+/g,'-')
   });
   assert.equal(report.totals.publicListings,4);
+  const xmlPlan=sitemapPlan.summary(metrics,categoryCounts,category.LANDINGS,category.canIndex);
+  assert.equal(xmlPlan.marketIndex,'/sitemap-marketplace.xml');
+  assert.deepEqual(xmlPlan.entries.map(x=>x.count),[4,2,1,1,0]);
+  assert.deepEqual(xmlPlan.entries.map(x=>x.pages),[1,1,1,1,1]);
+  assert.ok(xmlPlan.entries.every(x=>x.path.startsWith('/sitemap-marketplace')));
+  assert.match(xmlPlan.note,/No comprueba HTTP en producción/);
   assert.equal(report.informational.find(x=>x.id==='condition_unset').count,1);
   assert.equal(report.checks.some(x=>x.id==='condition_unset'),false);
   assert.ok(report.examples.every(x=>!x.issues.includes('estado_no_indicado')));
