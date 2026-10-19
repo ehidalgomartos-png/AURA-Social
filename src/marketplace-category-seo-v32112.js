@@ -90,6 +90,31 @@ function canIndex(counts,def){
  return true;
 }
 function qualified(counts){return LANDINGS.filter(def=>canIndex(counts,def));}
+
+// A listing can link to an SEO category only when it actually belongs there.
+// Prefer specialist pages and fall back to the general used-products collection.
+// The same category normalization and deal/condition rules as the SQL predicates
+// must be respected; in particular new WooCommerce products never become "used".
+const USED_FURNITURE=new Set(['hogar y muebles','muebles']);
+const USED_MOBILES=new Set(['móviles y telefonía','moviles y telefonia','móviles','moviles','telefonía','telefonia']);
+const USED_VEHICLES=new Set(['vehículos','vehiculos']);
+function candidateCategories(row){
+ if(!row || typeof row!=='object')return [];
+ if(row.kind==='service'&&row.deal==='offer')return [bySlug('servicios')];
+ if(row.kind==='property'&&['sale','rent'].includes(row.deal))return [bySlug('inmuebles')];
+ if(row.kind!=='product'||row.deal!=='sale'||row.details?.condition!=='used')return [];
+ const category=String(row.category||'').trim().toLocaleLowerCase('es');
+ const choices=[];
+ if(USED_FURNITURE.has(category))choices.push(bySlug('muebles-segunda-mano'));
+ else if(USED_MOBILES.has(category))choices.push(bySlug('moviles-segunda-mano'));
+ else if(USED_VEHICLES.has(category))choices.push(bySlug('vehiculos-segunda-mano'));
+ choices.push(bySlug('segunda-mano'));
+ return choices;
+}
+function qualifiedCategoryForListing(row,counts){
+ return candidateCategories(row).find(def=>canIndex(counts,def))||null;
+}
+
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function navigation(counts,{current=null}={}){
  const options=qualified(counts).filter(def=>def.slug!==current);
@@ -142,4 +167,4 @@ function sitemapXml(counts){
  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
  qualified(counts).map(def=>'<url><loc>'+esc(ORIGIN+def.path)+'</loc></url>').join('')+'</urlset>';
 }
-module.exports={ORIGIN,MIN_PUBLIC_ADS,LANDINGS,bySlug,countQuery,listingQuery,totalFor,canIndex,qualified,navigation,content,structuredData,sitemapXml};
+module.exports={ORIGIN,MIN_PUBLIC_ADS,LANDINGS,bySlug,countQuery,listingQuery,totalFor,canIndex,qualified,candidateCategories,qualifiedCategoryForListing,navigation,content,structuredData,sitemapXml};
