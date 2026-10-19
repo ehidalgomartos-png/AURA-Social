@@ -465,6 +465,8 @@ for(const categoryDef of marketplaceCategorySeoV32112.LANDINGS){
    const body=marketplaceCategorySeoV32112.content(categoryDef,{
     count:total,indexable,cards:listings.map(listingCard).join(''),
     page,visibleCount:listings.length,hasNext,
+    typeNav:(categoryDef.slug==='muebles'||categoryDef.specialistId)?
+     marketplaceCategorySeoV32112.furnitureNavigation(counts,{current:categoryDef.slug}):'',
     navigationHtml:marketplaceCategorySeoV32112.navigation(counts,{current:categoryDef.slug})
    });
    res.setHeader('Cache-Control','public,max-age=60');
