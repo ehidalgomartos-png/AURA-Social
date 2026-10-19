@@ -44,7 +44,7 @@ function descriptionFor(row,{externalPurchase=false}={}){
  const parts=[title+(amount?' — '+amount+'.':'.'),condition.trim(),place?place+'.':''];
  const base=parts.filter(Boolean).join(' ');
  const cta=externalPurchase?'Compra en la web del vendedor.':'Consulta el anuncio y contacta con el vendedor.';
- const summary=clean(row?.description);
+ const summary=clean(row?.description).replace(/(?:\s*(?:WhatsApp|Facebook|Twitter)){2,}\s*$/i,'').trim();
  const available=DESCRIPTION_LIMIT-base.length-cta.length-2;
  if(summary&&available>=25)return clipped(base+' '+clipped(summary,available)+' '+cta,DESCRIPTION_LIMIT);
  return clipped(base+' '+cta,DESCRIPTION_LIMIT);
