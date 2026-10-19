@@ -112,6 +112,8 @@ jobs:
         run: npm run test:marketplace-category-pagination
       - name: V3.2.117 furniture specialist SEO eligibility, privacy and internal links
         run: npm run test:marketplace-furniture-specialists
+      - name: V3.2.118 factual Marketplace product meta descriptions and title checks
+        run: npm run test:marketplace-product-meta
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
