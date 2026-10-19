@@ -1,0 +1,48 @@
+'use strict';
+// V3.2.123 — private, explicit, quota-bounded Google URL Inspection.
+const express=require('express');
+const rateLimit=require('express-rate-limit');
+const db=require('../db');
+const {requireAdmin}=require('../middleware/auth');
+const gsc=require('../services/marketplace-gsc-readonly-v32123');
+const ORIGIN=gsc.ORIGIN;
+function sameOriginJson(req,res,next){
+ // JSON with exact expected Origin, not a cookie-based cross-site form.
+ // The fixed canonical production origin is intentional: do not trust Host
+ // headers or client-supplied URLs to authorize an outbound Google call.
+ if(req.headers?.origin!==ORIGIN||
+    !/^application\/json(?:;|$)/i.test(String(req.headers?.['content-type']||'')))
+  return res.status(403).json({error:'gsc_same_origin_json_required'});
+ next();
+}
+const limiter=rateLimit({
+ windowMs:60*60*1000,max:6,standardHeaders:true,legacyHeaders:false,
+ keyGenerator:req=>'gsc-admin-'+String(req.user?.id||'anonymous'),
+ message:{error:'gsc_hourly_limit'}
+});
+function createGscRouter({listingPath,ensureMarketplaceSchema}={}){
+ if(typeof listingPath!=='function'||typeof ensureMarketplaceSchema!=='function')
+  throw Error('gsc_route_dependencies_required');
+ const router=express.Router();
+ router.post('/inspeccionar',requireAdmin,sameOriginJson,limiter,async(req,res,next)=>{
+  res.setHeader('Cache-Control','private,no-store');
+  res.setHeader('X-Robots-Tag','noindex,nofollow');
+  try{
+   const config=gsc.serviceConfig();
+   if(!config.configured)return res.status(503).json({error:'gsc_not_configured'});
+   const id=req.body?.id;
+   if(!gsc.safeListingId(id))return res.status(400).json({error:'gsc_invalid_listing_id'});
+   await ensureMarketplaceSchema();
+   const rows=await db.query(gsc.PUBLIC_LISTING_SQL,[id]);
+   if(!rows.rowCount)return res.status(404).json({error:'gsc_listing_not_public'});
+   const inspection=await gsc.inspect({id,row:rows.rows[0],config,listingPath});
+   return res.json({ok:true,inspection});
+  }catch(error){
+   if(error instanceof gsc.GscError)
+    return res.status(error.status).json({error:error.code});
+   next(error);
+  }
+ });
+ return router;
+}
+module.exports={createGscRouter,sameOriginJson,limiter};
