@@ -38,10 +38,12 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   await insert(12,'service','offer','Profesionales',null);
   await insert(13,'property','sale','Pisos',null);
   await insert(14,'product','sale','Hogar y muebles','used','active','published',1123);
+  await insert(15,'product','sale','Móviles y telefonía','used');
   const counts=(await client.query(seo.countQuery())).rows[0];
-  assert.equal(Number(counts.segunda_mano),5);
+  assert.equal(Number(counts.segunda_mano),6);
+  assert.equal(Number(counts.used_category_diversity),2);
   assert.equal(Number(counts.muebles),5);
-  assert.equal(Number(counts.moviles),0);
+  assert.equal(Number(counts.moviles),1);
   assert.equal(Number(counts.vehiculos),0);
   assert.equal(Number(counts.servicios),2);
   assert.equal(Number(counts.inmuebles),1);
@@ -59,6 +61,7 @@ test('SQL-backed category pages and sitemap never expose hidden, non-public or w
   const less=(await client.query(seo.countQuery())).rows[0];
   assert.equal(Number(less.muebles),4);
   assert.equal(seo.canIndex(less,furniture),false);
-  assert.equal(seo.sitemapXml(less).includes('<url>'),false);
+  assert.doesNotMatch(seo.sitemapXml(less),/\/marketplace\/muebles-segunda-mano<\/loc>/);
+  assert.match(seo.sitemapXml(less),/\/marketplace\/segunda-mano<\/loc>/);
  }finally{await client.end();}
 });
