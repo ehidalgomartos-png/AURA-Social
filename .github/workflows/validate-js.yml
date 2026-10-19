@@ -94,6 +94,8 @@ jobs:
         run: npm run test:marketplace-stripe-event-order
       - name: V3.2.108 PostgreSQL TEST Checkout race and safe UI plan selection
         run: npm run test:marketplace-stripe-checkout-atomic
+      - name: V3.2.109 Stripe TEST manual sync concurrent webhook and canceled-state guard
+        run: npm run test:marketplace-stripe-sync-race
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -370,3 +372,5 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Verify TEST reenrollment and old-webhook protection against real PostgreSQL
         run: node --test tests/marketplace-stripe-reenrollment-postgres-v32102.test.js
+      - name: V3.2.109 verify manual Stripe TEST sync CAS against PostgreSQL 18
+        run: node --test tests/marketplace-stripe-sync-race-postgres-v32109.test.js
