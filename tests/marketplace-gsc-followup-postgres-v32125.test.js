@@ -1,5 +1,5 @@
 'use strict';
-// Real PostgreSQL 18 regression; temporary tables and local CI DB only.
+// Real PostgreSQL 18 regression; a dedicated disposable schema in local CI DB only.
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {Client}=require('pg');
@@ -18,10 +18,13 @@ const report=(code,coverageState)=>({
 test('V3.2.125 real PG18 history stores only explicit successful inspections and never displays now-hidden/private listings',async()=>{
  const db=new Client({connectionString,connectionTimeoutMillis:5000});
  await db.connect();
+ const isolatedSchema='gsc_followup_ci_v32125';
  try{
-  await db.query('CREATE TEMP TABLE users(id BIGINT PRIMARY KEY,status TEXT NOT NULL,discoverable BOOLEAN NOT NULL)');
+  await db.query('CREATE SCHEMA '+isolatedSchema);
+  await db.query('SET search_path TO '+isolatedSchema);
+  await db.query('CREATE TABLE users(id BIGINT PRIMARY KEY,status TEXT NOT NULL,discoverable BOOLEAN NOT NULL)');
   await db.query("INSERT INTO users(id,status,discoverable) VALUES(1201,'active',true),(1202,'active',false),(1203,'suspended',true)");
-  await db.query("CREATE TEMP TABLE marketplace_listings(id BIGINT PRIMARY KEY,seller_id BIGINT NOT NULL,title TEXT NOT NULL,kind TEXT NOT NULL,deal TEXT NOT NULL,status TEXT NOT NULL,moderation_status TEXT NOT NULL)");
+  await db.query("CREATE TABLE marketplace_listings(id BIGINT PRIMARY KEY,seller_id BIGINT NOT NULL,title TEXT NOT NULL,kind TEXT NOT NULL,deal TEXT NOT NULL,status TEXT NOT NULL,moderation_status TEXT NOT NULL)");
   const add=(id,title,seller=1201,status='active',moderation='published',kind='product',deal='sale')=>
    db.query('INSERT INTO marketplace_listings(id,seller_id,title,kind,deal,status,moderation_status) VALUES($1,$2,$3,$4,$5,$6,$7)',[id,seller,title,kind,deal,status,moderation]);
   await add(5,'Taza Roblox');
@@ -31,8 +34,8 @@ test('V3.2.125 real PG18 history stores only explicit successful inspections and
   await add(9,'Taza pausada',1201,'paused');
   await add(10,'Taza de vendedor suspendido',1203);
   await add(11,'Servicio de informática',1201,'active','published','service','offer');
-  // A temporary mirror shadows the runtime table, avoiding permanent test writes.
-  await db.query(followup.DDL[0].replace('CREATE TABLE IF NOT EXISTS','CREATE TEMP TABLE IF NOT EXISTS'));
+  // PostgreSQL forbids a permanent followup FK to a temporary listing table.
+  // A dedicated throwaway schema exercises the exact production DDL safely.
   await followup.ensureSchema(db);
   const discovered=report('discovered','Discovered - currently not indexed');
   const indexed=report('indexed','Submitted and indexed');
@@ -71,5 +74,8 @@ test('V3.2.125 real PG18 history stores only explicit successful inspections and
   const recordCount=await db.query('SELECT count(*)::integer AS n FROM '+followup.TABLE);
   assert.ok(Number(recordCount.rows[0].n)>=8);
   assert.doesNotMatch(JSON.stringify(history),/OAuth|access_token|PRIVATE KEY|tienda privado/i);
- }finally{await db.end();}
+ }finally{
+  await db.query('DROP SCHEMA IF EXISTS '+isolatedSchema+' CASCADE');
+  await db.end();
+ }
 });
