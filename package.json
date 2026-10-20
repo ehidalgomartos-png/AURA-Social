@@ -65,6 +65,7 @@
     "test:marketplace-gsc-followup": "node --test tests/marketplace-gsc-followup-v32125.test.js",
     "test:marketplace-gsc-uninspected": "node --test tests/marketplace-gsc-uninspected-v32126.test.js",
     "test:marketplace-gsc-priority": "node --test tests/marketplace-gsc-priority-v32127.test.js",
+    "test:marketplace-seo-review-queue": "node --test tests/marketplace-seo-review-queue-v32128.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
