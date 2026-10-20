@@ -117,7 +117,7 @@ test('V3.2.126 admin mobile UI only loads on a click; page/search have no Google
   'auditPendingLoad','auditPendingSearch','auditPendingStatus','auditPendingCounts','auditPendingItems',
   'auditPendingPagination','auditPendingPrevious','auditPendingNext','auditPendingPage'
  ])assert.ok(html.includes('id="'+id+'"'),id);
- assert.match(html,/Esto NO significa que Google desconozca esas URLs/);
+ assert.match(html,/Pendiente de revisión no significa que Google no los conozca o indexe/);
  assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(css,/@media\(max-width:620px\)/);
  assert.doesNotMatch(js,/innerHTML|insertAdjacentHTML|localStorage|sessionStorage|eval\(/);
@@ -156,9 +156,9 @@ test('V3.2.126 admin mobile UI only loads on a click; page/search have no Google
  assert.equal(calls[1].opts.method,'GET');
  assert.equal(get('auditPendingItems').children.length,20);
  assert.equal(get('auditPendingNext').disabled,false);
- assert.match(get('auditPendingStatus').textContent,/21 sin inspección manual guardada reciente/);
+ assert.match(get('auditPendingStatus').textContent,/21 sin inspección manual reciente/);
  const first=get('auditPendingItems').children[0];
- const prepare=first.children.at(-1);
+ const prepare=first.children.at(-1).children.at(-1);
  prepare.events.click();
  assert.equal(get('auditGscId').value,'10');
  assert.equal(calls.length,2);
