@@ -62,6 +62,7 @@
     "test:marketplace-seo-audit": "node --test tests/marketplace-seo-audit-v32120.test.js tests/marketplace-seo-audit-review-v32121.test.js",
     "test:marketplace-sitemap-plan": "node --test tests/marketplace-sitemap-plan-v32122.test.js",
     "test:marketplace-gsc-readonly": "node --test tests/marketplace-gsc-readonly-v32123.test.js",
+    "test:marketplace-gsc-followup": "node --test tests/marketplace-gsc-followup-v32125.test.js",
     "test:marketplace-store-owner": "node --test tests/marketplace-store-owner-v32775.test.js",
     "test:marketplace-store-review": "node --test tests/marketplace-store-review-v32777.test.js",
     "test:marketplace-professional-admin-stores": "node --test tests/marketplace-professional-admin-stores-v32774.test.js",
