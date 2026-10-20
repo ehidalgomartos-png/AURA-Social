@@ -216,3 +216,44 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
 @media(max-width:360px){
  .audit-pending-queue-buttons{grid-template-columns:1fr}
 }
+
+
+/* V3.2.129 — useful daily SEO work at the top; advanced panels collapsed. */
+.audit-daily-brief{padding:18px 20px;margin:18px 0 16px;border:1px solid #bcd7d1;background:#f1f8f5;border-radius:15px}
+.audit-daily-head{display:flex;gap:12px 20px;align-items:start;justify-content:space-between;flex-wrap:wrap}
+.audit-daily-head h2{margin:0 0 8px;font-size:22px}
+.audit-daily-head p{margin:0 0 8px;line-height:1.5}
+.audit-daily-head button,.audit-daily-add{font:inherit;font-size:13px;font-weight:750;border:1px solid #09675e;background:#09675e;color:#fff;border-radius:10px;min-height:44px;padding:9px 13px;cursor:pointer;flex-shrink:0}
+.audit-daily-head button:disabled{opacity:.6;cursor:wait}
+.audit-daily-brief .audit-metrics{margin:13px 0}
+.audit-daily-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.audit-daily-column{min-width:0}
+.audit-daily-column h3{font-size:16px;margin:12px 0 10px}
+.audit-daily-list{display:grid;gap:8px}
+.audit-daily-item{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;border:1px solid #d2e4df;border-radius:11px;padding:12px 13px;background:#fff;overflow-wrap:anywhere}
+.audit-daily-item a{font-size:14px;font-weight:750;overflow-wrap:anywhere}
+.audit-daily-tag{display:inline-block;font-size:12px;font-weight:650;color:#255259;background:#eef4f3;border-radius:6px;padding:4px 7px}
+.audit-daily-item p{font-size:12px;line-height:1.45;margin:0}
+.audit-daily-item small{font-size:12px}
+.audit-daily-add{min-height:40px;padding:8px 11px;margin-top:3px;background:#fff;color:#09675e}
+.audit-daily-note{line-height:1.55;margin:14px 0}
+.audit-daily-nav{display:flex;gap:9px 16px;flex-wrap:wrap;align-items:center}
+.audit-daily-nav a{font-size:13px;font-weight:750}
+.audit-advanced{border:1px solid #d4e2df;border-radius:12px;margin:14px 0;padding:0 15px;background:#f9fbfa}
+.audit-advanced>summary{cursor:pointer;min-height:48px;display:list-item;padding:15px 4px;font-size:15px;font-weight:750;color:#0b625b}
+.audit-advanced[open]>summary{border-bottom:1px solid #d4e2df;margin-bottom:10px}
+.audit-advanced>section{margin:13px 0 22px}
+.audit-daily-head button:focus-visible,.audit-daily-add:focus-visible,.audit-advanced summary:focus-visible{outline:3px solid #d98b18;outline-offset:3px}
+@media(max-width:720px){
+ .audit-daily-columns{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:620px){
+ .audit-daily-brief{padding:13px;margin:14px 0}
+ .audit-daily-head{display:grid;grid-template-columns:minmax(0,1fr)}
+ .audit-daily-head h2{font-size:20px}
+ .audit-daily-head button{width:100%;min-height:48px}
+ .audit-daily-add{width:100%;min-height:46px}
+ .audit-daily-nav{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .audit-daily-item{padding:12px}
+ .audit-advanced{padding:0 11px}
+}
