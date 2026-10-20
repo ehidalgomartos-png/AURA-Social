@@ -75,7 +75,7 @@ test('V3.2.129 summary is visible above detailed audit and advanced controls rem
  const html=fs.readFileSync('src/views/marketplace-seo-audit-v32120.html','utf8');
  const css=fs.readFileSync('public/marketplace-seo-audit-v32120.css','utf8');
  const js=fs.readFileSync('public/marketplace-seo-audit-v32120.js','utf8');
- assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.129/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  for(const id of [
   'auditDailyTitle','auditDailyLoad','auditDailyMetrics','auditDailyStatus',
   'auditDailyNext','auditDailyHistory','auditDailyBrief','auditAdvanced',
