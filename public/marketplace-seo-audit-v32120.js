@@ -388,6 +388,118 @@
   if(lastPendingData)renderPending(lastPendingData);
  });
  renderReviewQueue();
+ // V3.2.129: One lightweight daily briefing, fetched ONLY after a click.
+ // Both endpoints read PostgreSQL and require the existing admin session.
+ // No Google API request, scheduling, automatic inspection or persistence.
+ const dailyLoad=$('auditDailyLoad'),dailyStatus=$('auditDailyStatus'),
+  dailyMetrics=$('auditDailyMetrics'),dailyNext=$('auditDailyNext'),
+  dailyHistory=$('auditDailyHistory');
+ const dailyHistoryAdvice=Object.freeze({
+  indexed:'Sin nuevas solicitudes por rutina; revisa el rendimiento si lo necesitas.',
+  discovered:'Comprueba enlaces internos y sitemap; el rastreo puede tardar.',
+  crawled:'Revisa contenido propio, duplicados y URL canónica.',
+  technical:'Comprueba la prueba de URL publicada y posibles errores de acceso.',
+  excluded:'Comprueba el motivo de exclusión y las URL canónicas.',
+  unknown:'Abre Search Console para comprender el motivo exacto.'
+ });
+ async function readDailyLocal(path){
+  const response=await fetch(path,{
+   method:'GET',credentials:'same-origin',cache:'no-store',
+   headers:{'Accept':'application/json'}
+  });
+  if(response.status===401||response.status===403)
+   throw Error('Necesitas iniciar sesión como administrador.');
+  if(!response.ok)throw Error('La consulta local no está disponible ahora.');
+  return response.json();
+ }
+ function dailyCandidate(item){
+  const selected=safeReviewProduct(item);
+  if(!selected)return null;
+  const panel=element('article','audit-daily-item');
+  const title=element('a',null,selected.title);
+  title.href=selected.path;
+  panel.append(title);
+  const review=item.reviewPriority;
+  if(review&&['review_first','ready_recent','improve_card'].includes(review.code)){
+   panel.append(element('span','audit-daily-tag',String(review.label).slice(0,90)));
+   if(review.code==='improve_card'&&Array.isArray(review.attention)&&review.attention.length)
+    panel.append(element('small','audit-muted',review.attention.filter(x=>typeof x==='string').slice(0,3).join(' · ')));
+  }
+  const add=element('button','audit-daily-add','Añadir a mi lista');
+  add.type='button';
+  add.addEventListener('click',()=>{
+   // Reuse the existing six-item, in-memory, validated review selection.
+   addReviewProduct(selected);
+   dailyStatus.textContent='Selección actualizada. Añadir a mi lista no consulta Google. Usa «Preparar siguiente» en productos pendientes.';
+  });
+  panel.append(add);
+  return panel;
+ }
+ function dailyInspected(item){
+  if(!item||!Object.hasOwn(dailyHistoryAdvice,String(item.status||'')))return null;
+  const path=safeUrl(item.path);
+  if(!path)return null;
+  const panel=element('article','audit-daily-item');
+  const name=element('a',null,String(item.title||'Producto').slice(0,150));
+  name.href=path;
+  panel.append(name,element('span','audit-daily-tag',
+   FOLLOWUP_STATES[item.status]||'Estado no determinado'));
+  panel.append(element('small','audit-muted','Última inspección guardada: '+niceDate(item.checkedAt)));
+  panel.append(element('p','audit-muted',dailyHistoryAdvice[item.status]));
+  return panel;
+ }
+ async function loadDaily(){
+  if(dailyLoad.disabled)return;
+  dailyLoad.disabled=true;
+  dailyStatus.textContent='Consultando pendientes e historial guardado en RedLibertad; sin contactar con Google…';
+  clear(dailyMetrics);clear(dailyNext);clear(dailyHistory);
+  try{
+   const [listResult,historyResult]=await Promise.allSettled([
+    readDailyLocal('/api/admin/marketplace/seo/gsc/pendientes?pagina=1&q=&orden=priority'),
+    readDailyLocal('/api/admin/marketplace/seo/gsc/seguimiento')
+   ]);
+   let listOk=false,historyOk=false;
+   if(listResult.status==='fulfilled'&&
+    listResult.value?.ok===true&&
+    listResult.value?.source==='public_products_without_recent_saved_manual_inspection'&&
+    Array.isArray(listResult.value.products)){
+    const data=listResult.value;
+    listOk=true;
+    card(dailyMetrics,data.totalPublicSaleProducts,'Productos públicos en venta','Total de este catálogo, sin filtro de búsqueda');
+    card(dailyMetrics,data.withoutRecentInspection,'Sin inspección guardada reciente','Pendientes de revisión local, no necesariamente sin indexar');
+    card(dailyMetrics,data.inspectedInWindow,'Con inspección guardada en 90 días','No significa que estén indexados');
+    let shown=0;
+    for(const item of data.products){
+     if(shown>=3)break;
+     const panel=dailyCandidate(item);
+     if(panel){dailyNext.append(panel);shown++;}
+    }
+    if(!shown)dailyNext.append(element('p','audit-muted','No hay fichas pendientes en la muestra actual.'));
+   }else dailyNext.append(element('p','audit-muted','No se pudieron cargar las fichas pendientes. Puedes abrir el listado completo más abajo.'));
+   if(historyResult.status==='fulfilled'&&
+    historyResult.value?.ok===true&&
+    historyResult.value?.source==='stored_manual_search_console_inspections'&&
+    Array.isArray(historyResult.value.products)){
+    historyOk=true;
+    let shown=0;
+    for(const item of historyResult.value.products){
+     if(shown>=3)break;
+     const panel=dailyInspected(item);
+     if(panel){dailyHistory.append(panel);shown++;}
+    }
+    if(!shown)dailyHistory.append(element('p','audit-muted','Aún no hay inspecciones manuales guardadas de productos visibles.'));
+   }else dailyHistory.append(element('p','audit-muted','No se pudo consultar el historial. Puedes abrir el seguimiento guardado más abajo.'));
+   if(!listOk&&!historyOk)
+    dailyStatus.textContent='No se ha podido cargar el resumen local. Prueba más tarde o comprueba tu sesión de administración.';
+   else if(!listOk||!historyOk)
+    dailyStatus.textContent='Resumen parcial: uno de los dos apartados no está disponible. No se ha realizado ninguna petición a Google.';
+   else
+    dailyStatus.textContent='Resumen local actualizado. Prioridades editoriales y últimas inspecciones guardadas; no refleja el índice de Google en directo ni consume su cuota.';
+  }catch(_){
+   dailyStatus.textContent='No se pudo actualizar el resumen. No se ha contactado con Google.';
+  }finally{dailyLoad.disabled=false;}
+ }
+ dailyLoad.addEventListener('click',loadDaily);
  function renderPending(data){
   if(data?.source!=='public_products_without_recent_saved_manual_inspection'||
    !Array.isArray(data.products))throw Error('Formato del listado no reconocido.');

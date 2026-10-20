@@ -132,6 +132,8 @@ jobs:
         run: npm run test:marketplace-gsc-priority
       - name: V3.2.128 simplified SEO mobile panel and memory-only selection without automatic Google calls
         run: npm run test:marketplace-seo-review-queue
+      - name: V3.2.129 private mobile-first daily SEO summary, existing local APIs and no automatic Google calls
+        run: npm run test:marketplace-seo-daily-brief
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
