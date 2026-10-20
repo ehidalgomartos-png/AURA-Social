@@ -151,3 +151,21 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
  .audit-gsc-followup-controls{display:grid;grid-template-columns:minmax(0,1fr)}
  .audit-gsc-followup-controls button,.audit-gsc-followup-controls select{width:100%;min-width:0}
 }
+
+
+/* V3.2.126 — public sale products pending a manual GSC inspection. */
+.audit-gsc-pending-controls{display:flex;flex-wrap:wrap;align-items:end;gap:9px 12px;margin:14px 0}
+.audit-gsc-pending-controls label{font-size:14px;font-weight:700;flex-basis:100%}
+.audit-gsc-pending-controls input{flex:1 1 230px;min-width:0;min-height:48px;border:1px solid #90b7af;border-radius:10px;padding:9px 12px;font:inherit;background:#fff;color:#103e43}
+.audit-gsc-pending-controls button,.audit-gsc-pending-pages button{min-height:48px;border:1px solid #09675e;background:#09675e;color:#fff;border-radius:10px;font:inherit;font-weight:700;padding:9px 14px;cursor:pointer}
+.audit-gsc-pending-controls button:disabled,.audit-gsc-pending-pages button:disabled{opacity:.45;cursor:not-allowed}
+.audit-gsc-pending-pages{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;flex-wrap:wrap}
+.audit-gsc-pending-pages[hidden]{display:none}
+.audit-gsc-pending-pages span{font-size:13px;font-weight:700}
+.audit-gsc-pending-pages button:focus-visible,.audit-gsc-pending-controls button:focus-visible,.audit-gsc-pending-controls input:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
+@media(max-width:620px){
+ .audit-gsc-pending-controls{display:grid;grid-template-columns:minmax(0,1fr)}
+ .audit-gsc-pending-controls button,.audit-gsc-pending-controls input{width:100%}
+ .audit-gsc-pending-pages{display:grid;grid-template-columns:1fr auto 1fr}
+ .audit-gsc-pending-pages button{width:100%;padding:9px 8px}
+}
