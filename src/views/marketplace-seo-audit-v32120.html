@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.124">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.124" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.125">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.125" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -73,11 +73,32 @@
    </div>
    <p id="auditGscHelp" class="audit-muted">Solo se permite consultar anuncios activos de vendedores públicos. Límite interno: seis inspecciones por hora y administrador. No introduzcas ninguna clave privada aquí.</p>
    <p id="auditGscActionStatus" role="status" aria-live="polite" class="audit-muted"></p>
+   <div id="auditGscInterpretation" class="audit-gsc-interpretation" hidden aria-live="polite"></div>
    <div id="auditGscResult" class="audit-gsc-result" hidden>
     <h3>Última respuesta recibida de Google</h3>
     <div id="auditGscResultFields"></div>
     <p class="audit-muted">Este resultado corresponde a la inspección concreta indicada, no al estado de todas las URLs del Marketplace ni a una petición automática de indexación.</p>
    </div>
+  </section>
+  <section aria-labelledby="auditFollowupTitle" class="audit-gsc-followup">
+   <h2 id="auditFollowupTitle">Seguimiento de indexación · Productos seleccionados</h2>
+   <p class="audit-muted">Historial privado de las inspecciones manuales de productos públicos. Se conservan hasta 8 comprobaciones por producto durante 90 días. <strong>Consultar este historial no llama a Google ni gasta cuota.</strong> No representa el estado de todo el Marketplace.</p>
+   <div class="audit-gsc-followup-controls">
+    <button id="auditFollowupLoad" type="button">Consultar seguimiento guardado</button>
+    <label for="auditFollowupFilter">Estado mostrado</label>
+    <select id="auditFollowupFilter">
+     <option value="todos">Todos los estados</option>
+     <option value="indexed">Indexados</option>
+     <option value="discovered">Descubiertos sin indexar</option>
+     <option value="crawled">Rastreados sin indexar</option>
+     <option value="technical">Posibles problemas técnicos</option>
+     <option value="excluded">Otras exclusiones</option>
+     <option value="unknown">No determinados</option>
+    </select>
+   </div>
+   <p id="auditFollowupStatus" class="audit-muted" role="status" aria-live="polite">Pulsa «Consultar seguimiento guardado» para ver inspecciones anteriores.</p>
+   <div id="auditFollowupCounts" class="audit-metrics"></div>
+   <div id="auditFollowupEntries" class="audit-gsc-followup-list"></div>
   </section>
   <section aria-labelledby="auditExamplesTitle">
    <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
