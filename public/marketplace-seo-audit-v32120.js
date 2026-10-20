@@ -198,6 +198,24 @@
    gscAction.textContent=error?.message||'No se pudo realizar la inspección.';
   }finally{gscButton.disabled=!gscReady;}
  });
+ // V3.2.124: nonblocking, read-only Merchant warnings from the bounded
+ // PUBLIC sample, not scraped policies or real Google Search Console results.
+ function renderMerchantAdvice(data){
+  const metrics=$('auditMerchantSamples'),guidance=$('auditMerchantGuidance');
+  clear(metrics);clear(guidance);
+  if(data?.source!=='recent_public_product_sale_sample'){
+   guidance.append(element('p','audit-muted','No hay diagnóstico de productos en esta muestra.'));
+   return;
+  }
+  card(metrics,data.productsReviewed,'Productos en venta revisados','Solo anuncios públicos de la muestra reciente, máximo 100');
+  card(metrics,data.withoutAnyDeclaredBrandOrIdentifier,'Sin marca ni identificador declarado','No implica que el producto deba tener GTIN o marca');
+  card(metrics,data.withValidGtin,'Con GTIN válido declarado','Únicamente códigos realmente indicados');
+  card(metrics,data.withBrand,'Con marca declarada','Una marca no se infiere del título o diseño');
+  for(const note of [data.note,data.identifiers,data.shipping,data.returns]){
+   if(typeof note==='string'&&note.length<=500)
+    guidance.append(element('p','audit-muted',note));
+  }
+ }
  function renderAudit(data){
   const summary=$('auditMetrics'),checks=$('auditChecks'),optional=$('auditOptional'),
    categories=$('auditCategories'),examples=$('auditExamples');
@@ -235,6 +253,7 @@
   const sample=data.limits.recentSample;
   $('auditExamplesDescription').textContent='Se revisan los '+number(sample)+' anuncios públicos más recientes (máximo 100). Los avisos se ordenan dentro de esa muestra: fotos primero, luego nombres/categorías y después descripciones. No es una clasificación de Google ni incluye necesariamente todos los anuncios.';
   renderSitemaps(data);
+  renderMerchantAdvice(data.merchantStructuredAdvice);
   renderGscStatus(data.googleSearchConsole);
   currentLabels=data.issueLabels||Object.create(null);
   exampleRows=Array.isArray(data.examples)?data.examples:[];
