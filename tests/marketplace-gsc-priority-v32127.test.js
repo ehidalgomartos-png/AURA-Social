@@ -136,7 +136,7 @@ test('V3.2.127 mobile priorities visible, search and page preserve user order, n
  const js=fs.readFileSync('public/marketplace-seo-audit-v32120.js','utf8');
  assert.match(html,/id="auditPendingOrder"/);
  assert.match(html,/<option value="priority" selected>/);
- assert.match(html,/No es una clasificación ni puntuación de Google/);
+ assert.match(html,/No es una puntuación de Google/);
  assert.match(html,/v=3\.2\.127/);
  assert.match(css,/audit-pending-priority-improve_card/);
  assert.match(css,/@media\(max-width:620px\)/);
@@ -182,7 +182,7 @@ test('V3.2.127 mobile priorities visible, search and page preserve user order, n
  assert.ok(first.children.some(x=>x.className?.includes('audit-pending-priority-review_first')));
  const second=get('auditPendingItems').children[1];
  assert.ok(second.children.some(x=>x.className?.includes('audit-pending-priority-improve_card')));
- second.children.at(-1).events.click(); // manual inspection prep, never a Google request
+ second.children.at(-1).children.at(-1).events.click(); // manual inspection prep, never a Google request
  assert.equal(get('auditGscId').value,'6');
  assert.equal(calls.length,2);
  await get('auditPendingNext').events.click();
