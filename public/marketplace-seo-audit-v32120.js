@@ -299,6 +299,92 @@
    gscAction.textContent=error?.message||'No se pudo realizar la inspección.';
   }finally{gscButton.disabled=!gscReady;}
  });
+ // V3.2.126: a catalogue of PUBLIC sale products not manually inspected
+ // within the retained 90-day window. Reading this list never calls Google.
+ const pendingSearch=$('auditPendingSearch'),pendingLoad=$('auditPendingLoad'),
+  pendingStatus=$('auditPendingStatus'),pendingCounts=$('auditPendingCounts'),
+  pendingItems=$('auditPendingItems'),pendingPagination=$('auditPendingPagination'),
+  pendingPrevious=$('auditPendingPrevious'),pendingNext=$('auditPendingNext'),
+  pendingPageText=$('auditPendingPage');
+ let pendingPage=1,pendingTerm='',pendingLoading=false;
+ function renderPending(data){
+  if(data?.source!=='public_products_without_recent_saved_manual_inspection'||
+   !Array.isArray(data.products))throw Error('Formato del listado no reconocido.');
+  clear(pendingCounts);clear(pendingItems);
+  card(pendingCounts,data.totalPublicSaleProducts,'Productos públicos en venta','Dentro del filtro de búsqueda actual');
+  card(pendingCounts,data.withoutRecentInspection,'Sin inspección manual reciente','No significa que Google desconozca el producto');
+  card(pendingCounts,data.inspectedInWindow,'Con inspección guardada en 90 días','No confirma que estén indexados');
+  for(const item of data.products){
+   const entry=element('article','audit-gsc-followup-card');
+   const top=element('div','audit-gsc-followup-title');
+   const link=element('a',null,item.title||'Producto público');
+   const uri=safeUrl(item.path);
+   if(uri)link.href=uri;
+   top.append(link,element('span','audit-gsc-followup-state','Pendiente de inspección manual'));
+   entry.append(top);
+   if(typeof item.category==='string'&&item.category)
+    entry.append(element('p','audit-muted','Categoría: '+item.category));
+   if(typeof item.updatedAt==='string')
+    entry.append(element('p','audit-muted','Anuncio actualizado: '+niceDate(item.updatedAt)));
+   if(gscReady&&/^[1-9][0-9]{0,15}$/.test(String(item.id||''))){
+    const prep=element('button','audit-gsc-pick','Preparar inspección individual');
+    prep.type='button';
+    prep.addEventListener('click',()=>{
+     gscId.value=String(item.id);
+     gscAction.textContent='Anuncio '+String(item.id)+' preparado. Pulsa Inspeccionar en Google arriba si deseas realizar una consulta real.';
+    });
+    entry.append(prep);
+   }
+   pendingItems.append(entry);
+  }
+  if(!data.products.length)pendingItems.append(
+   element('p','audit-muted','No hay productos pendientes en esta página y búsqueda. Consulta otro filtro o vuelve a la primera página.'));
+  pendingPagination.hidden=!(data.hasPrevious||data.hasNext);
+  pendingPrevious.disabled=!data.hasPrevious;
+  pendingNext.disabled=!data.hasNext;
+  pendingPageText.textContent='Página '+number(data.page);
+  pendingStatus.textContent='Mostrando '+number(data.products.length)+' productos de esta página. '+number(data.withoutRecentInspection)+' sin inspección manual guardada reciente. No es una estadística de indexación de Google.';
+  pendingPage=data.page;
+ }
+ async function loadPending(page,search){
+  if(pendingLoading)return;
+  pendingLoading=true;
+  pendingLoad.disabled=true;pendingNext.disabled=true;pendingPrevious.disabled=true;
+  pendingStatus.textContent='Consultando catálogo público e historial local, sin contactar con Google…';
+  try{
+   const query='?pagina='+encodeURIComponent(String(page))+'&q='+encodeURIComponent(search);
+   const response=await fetch('/api/admin/marketplace/seo/gsc/pendientes'+query,{
+    method:'GET',credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}
+   });
+   if(response.status===401||response.status===403)
+    throw Error('Inicia sesión como administrador para consultar productos pendientes.');
+   if(!response.ok)throw Error('No se pudo obtener el listado. Inténtalo de nuevo.');
+   const data=await response.json();
+   if(data?.ok!==true)throw Error('Respuesta inesperada del listado.');
+   pendingTerm=search;
+   renderPending(data);
+  }catch(error){
+   pendingStatus.textContent=error?.message||'Error consultando los productos pendientes.';
+   pendingNext.disabled=false;pendingPrevious.disabled=false;
+  }finally{pendingLoading=false;pendingLoad.disabled=false;}
+ }
+ pendingLoad.addEventListener('click',()=>{
+  const term=String(pendingSearch.value||'').trim().slice(0,70);
+  return loadPending(1,term);
+ });
+ pendingPrevious.addEventListener('click',()=>{
+  if(pendingPage>1)return loadPending(pendingPage-1,pendingTerm);
+ });
+ pendingNext.addEventListener('click',()=>{
+  if(pendingPage<250)return loadPending(pendingPage+1,pendingTerm);
+ });
+ pendingSearch.addEventListener('keydown',event=>{
+  if(event?.key==='Enter'){
+   if(typeof event.preventDefault==='function')event.preventDefault();
+   const term=String(pendingSearch.value||'').trim().slice(0,70);
+   return loadPending(1,term);
+  }
+ });
  // V3.2.124: nonblocking, read-only Merchant warnings from the bounded
  // PUBLIC sample, not scraped policies or real Google Search Console results.
  function renderMerchantAdvice(data){
