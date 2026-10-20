@@ -5,6 +5,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const db=require('../src/db');
 const seo=require('../src/routes/marketplace-seo-v3251');
+const publicDiscovery=require('../src/services/marketplace-public-discovery-v32130');
 const read=path=>fs.readFileSync(path,'utf8');
 const api=read('src/routes/marketplace-v3250.js');
 const src=read('src/routes/marketplace-seo-v3251.js');
@@ -68,9 +69,12 @@ test('Public discovery search sorts safely and avoids indexing filtered copies',
  }finally{db.query=original;}
 });
 test('Related listings require visibility, exclude the current listing, and remain factual',()=>{
- assert.ok(src.includes("l.id<>$1 AND l.kind=$2"));
- assert.ok(src.includes("l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true"));
- assert.ok(src.includes('LIMIT 4'));
+ assert.ok(src.includes('marketplaceDiscoveryV32130.PUBLIC_RELATED_SQL'));
+ assert.ok(publicDiscovery.PUBLIC_RELATED_SQL.includes('l.id<>$1 AND l.kind=$2 AND l.deal=$3'));
+ for(const predicate of ["l.status='active'","l.moderation_status='published'","u.status='active'","u.discoverable=true"])
+  assert.ok(publicDiscovery.PUBLIC_RELATED_SQL.includes(predicate),predicate);
+ assert.ok(publicDiscovery.PUBLIC_RELATED_SQL.includes('LIMIT 4'));
+ assert.deepEqual(publicDiscovery.relatedArgs(fixture),['31','product','sale','Hogar y muebles','Valencia']);
  const related={...fixture,id:42,title:'Silla de comedor'};
  const rendered=seo.listingHtml(fixture,[related]);
  assert.ok(rendered.includes('También te puede interesar'));
