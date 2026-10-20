@@ -10,7 +10,7 @@ const INSPECTION_URL='https://searchconsole.googleapis.com/v1/urlInspection/inde
 const PROPERTY_OPTIONS=Object.freeze([
  'sc-domain:redlibertad.com','https://redlibertad.com/'
 ]);
-const PUBLIC_LISTING_SQL="SELECT l.id,l.title FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1 AND l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true LIMIT 1";
+const PUBLIC_LISTING_SQL="SELECT l.id,l.title,l.kind,l.deal FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id=$1 AND l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true LIMIT 1";
 const MAX_TEXT=180;
 class GscError extends Error{
  constructor(code,status=502){super(code);this.code=code;this.status=status;}
