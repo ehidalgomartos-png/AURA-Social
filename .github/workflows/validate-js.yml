@@ -428,3 +428,5 @@ jobs:
         run: node --test tests/marketplace-gsc-followup-postgres-v32125.test.js
       - name: V3.2.126 verify public-only uninspected product count and pagination on PostgreSQL 18
         run: node --test tests/marketplace-gsc-uninspected-postgres-v32126.test.js
+      - name: V3.2.127 verify full-catalogue editorial priority, age and image readiness with PostgreSQL 18
+        run: node --test tests/marketplace-gsc-priority-postgres-v32127.test.js
