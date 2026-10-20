@@ -60,7 +60,10 @@ test('V3.2.126 real PG18 exposes only active public sale products lacking recent
   const third=await service.pending(db,{page:3,search:'',listingPath:seo.listingPath});
   assert.equal(third.products.length,6);
   assert.equal(third.hasNext,false);
-  assert.ok(third.products.some(p=>p.id==='44'));
+  // 44 is recent in descending updated_at order and belongs on page 1;
+  // the final page contains the oldest remaining public entries.
+  assert.ok(first.products.some(p=>p.id==='44'));
+  assert.ok(third.products.some(p=>p.id==='1'));
   assert.ok(!third.products.some(p=>p.id==='45'));
   assert.equal(new Set([...first.products,...second.products,...third.products].map(x=>x.id)).size,46);
   const literal=await service.pending(db,{page:1,search:'%_',listingPath:seo.listingPath});
