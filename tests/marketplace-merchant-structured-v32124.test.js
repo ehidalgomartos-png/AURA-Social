@@ -154,7 +154,7 @@ test('V3.2.124 responsive private merchant guidance uses safe DOM and no externa
  assert.match(html,/id="auditMerchantSamples"/);
  assert.match(html,/id="auditMerchantGuidance"/);
  assert.match(html,/Avisos opcionales/);
- assert.match(html,/v=3\.2\.124/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(js,/renderMerchantAdvice\(data\.merchantStructuredAdvice\)/);
  assert.match(js,/data\.withoutAnyDeclaredBrandOrIdentifier/);
  assert.doesNotThrow(()=>new vm.Script(js));
