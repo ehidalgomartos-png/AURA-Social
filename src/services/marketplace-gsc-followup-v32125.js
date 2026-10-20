@@ -15,7 +15,7 @@ const STATES=Object.freeze({
 });
 const STATUS_KEYS=Object.freeze(Object.keys(STATES));
 const DDL=[
- 'CREATE TABLE IF NOT EXISTS '+TABLE+' (id BIGSERIAL PRIMARY KEY, listing_id BIGINT NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE, checked_at TIMESTAMPTZ NOT NULL DEFAULT now(), status_code VARCHAR(24) NOT NULL CHECK (status_code IN ('+"'indexed','discovered','crawled','technical','excluded','unknown'"+')), verdict VARCHAR(25) NOT NULL, coverage_state VARCHAR(180) NOT NULL, last_crawl_time TIMESTAMPTZ)',
+ "CREATE TABLE IF NOT EXISTS "+TABLE+" (id BIGSERIAL PRIMARY KEY, listing_id BIGINT NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE, checked_at TIMESTAMPTZ NOT NULL DEFAULT now(), status_code VARCHAR(24) NOT NULL CHECK (status_code IN ('indexed','discovered','crawled','technical','excluded','unknown')), verdict VARCHAR(25) NOT NULL, coverage_state VARCHAR(180) NOT NULL, last_crawl_time TIMESTAMPTZ)",
  'CREATE INDEX IF NOT EXISTS idx_marketplace_gsc_inspections_v32125_recent ON '+TABLE+' (checked_at DESC,id DESC)',
  'CREATE INDEX IF NOT EXISTS idx_marketplace_gsc_inspections_v32125_listing ON '+TABLE+' (listing_id,checked_at DESC,id DESC)'
 ];
