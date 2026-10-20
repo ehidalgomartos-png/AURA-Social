@@ -137,7 +137,7 @@ test('V3.2.127 mobile priorities visible, search and page preserve user order, n
  assert.match(html,/id="auditPendingOrder"/);
  assert.match(html,/<option value="priority" selected>/);
  assert.match(html,/No es una puntuación de Google/);
- assert.match(html,/v=3\.2\.127/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(css,/audit-pending-priority-improve_card/);
  assert.match(css,/@media\(max-width:620px\)/);
  assert.doesNotMatch(js,/innerHTML|insertAdjacentHTML|localStorage|sessionStorage|eval\(/);
