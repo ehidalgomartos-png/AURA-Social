@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.125">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.125" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.126">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.126" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -99,6 +99,24 @@
    <p id="auditFollowupStatus" class="audit-muted" role="status" aria-live="polite">Pulsa «Consultar seguimiento guardado» para ver inspecciones anteriores.</p>
    <div id="auditFollowupCounts" class="audit-metrics"></div>
    <div id="auditFollowupEntries" class="audit-gsc-followup-list"></div>
+  </section>
+  <section aria-labelledby="auditPendingTitle" class="audit-gsc-pending">
+   <h2 id="auditPendingTitle">Productos pendientes de inspección manual</h2>
+   <p class="audit-muted">Productos en venta y públicos sin una inspección guardada durante los últimos 90 días. <strong>Esto NO significa que Google desconozca esas URLs ni que estén sin indexar.</strong> Consultar esta lista no contacta con Google, no consume cuota y no solicita indexación.</p>
+   <div class="audit-gsc-pending-controls">
+    <label for="auditPendingSearch">Buscar por nombre del producto</label>
+    <input id="auditPendingSearch" type="search" maxlength="70" autocomplete="off" placeholder="Ej.: taza, armario…">
+    <button id="auditPendingLoad" type="button">Consultar productos pendientes</button>
+   </div>
+   <p id="auditPendingStatus" class="audit-muted" role="status" aria-live="polite">Pulsa «Consultar productos pendientes» para verlos.</p>
+   <div id="auditPendingCounts" class="audit-metrics"></div>
+   <div id="auditPendingItems" class="audit-gsc-followup-list"></div>
+   <nav id="auditPendingPagination" class="audit-gsc-pending-pages" aria-label="Páginas de productos pendientes" hidden>
+    <button id="auditPendingPrevious" type="button">← Anterior</button>
+    <span id="auditPendingPage" aria-live="polite"></span>
+    <button id="auditPendingNext" type="button">Siguiente →</button>
+   </nav>
+   <p class="audit-muted">Puedes preparar una inspección individual desde cada producto y luego pulsar «Inspeccionar en Google» arriba. No se realizan consultas en lote.</p>
   </section>
   <section aria-labelledby="auditExamplesTitle">
    <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
