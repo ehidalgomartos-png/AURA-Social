@@ -109,6 +109,7 @@
  const gscId=$('auditGscId'),gscButton=$('auditGscInspect');
  const gscState=$('auditGscState'),gscAction=$('auditGscActionStatus');
  const gscResult=$('auditGscResult'),gscFields=$('auditGscResultFields');
+ const gscInterpretation=$('auditGscInterpretation');
  let gscReady=false;
  function renderGscStatus(info){
   gscReady=info?.mode==='google_search_console_readonly'&&info?.configured===true;
@@ -127,6 +128,8 @@
   if(!gscReady){
    gscResult.hidden=true;
    clear(gscFields);
+   gscInterpretation.hidden=true;
+   clear(gscInterpretation);
   }
  }
  const googleVerdict=Object.freeze({
@@ -170,6 +173,101 @@
   }
   gscResult.hidden=false;
  }
+ // V3.2.125: status classification comes from real, explicit inspections,
+ // not the editorial audit or a site-wide Google Search Console estimate.
+ const followupLoad=$('auditFollowupLoad'),followupFilter=$('auditFollowupFilter'),
+  followupStatus=$('auditFollowupStatus'),followupCounts=$('auditFollowupCounts'),
+  followupEntries=$('auditFollowupEntries');
+ const FOLLOWUP_STATES=Object.freeze({
+  indexed:'Indexados',discovered:'Descubiertos',crawled:'Rastreados sin indexar',
+  technical:'Posibles problemas técnicos',excluded:'Otras exclusiones',unknown:'No determinados'
+ });
+ let savedFollowup=null;
+ function niceDate(value){
+  const dt=new Date(value);
+  return Number.isFinite(dt.getTime())?dt.toLocaleString('es-ES'):'Fecha no disponible';
+ }
+ function renderInspectionInterpretation(info,saved){
+  clear(gscInterpretation);
+  if(!info||!Object.hasOwn(FOLLOWUP_STATES,String(info.code||''))){
+   gscInterpretation.hidden=true;
+   return;
+  }
+  gscInterpretation.append(
+   element('strong',null,info.label),
+   element('p',null,info.advice),
+   element('small','audit-muted',info.note)
+  );
+  gscInterpretation.append(element('p','audit-muted',saved
+   ?'Resultado guardado en el seguimiento privado. Puedes consultar las inspecciones anteriores sin llamar a Google.'
+   :'No se ha guardado este resultado en el historial. Solo se almacenan inspecciones manuales de productos públicos en venta; también puede haber un problema temporal de almacenamiento.'));
+  gscInterpretation.hidden=false;
+ }
+ function renderFollowupRows(){
+  clear(followupEntries);
+  const source=savedFollowup?.products;
+  if(!Array.isArray(source))return;
+  const currentFilter=followupFilter.value;
+  const filtered=source.filter(item=>currentFilter==='todos'||item.status===currentFilter);
+  for(const item of filtered){
+   if(!Object.hasOwn(FOLLOWUP_STATES,String(item.status||'')))continue;
+   const box=element('article','audit-gsc-followup-card');
+   const name=element('div','audit-gsc-followup-title');
+   const link=element('a',null,item.title),safe=safeUrl(item.path);
+   if(safe)link.href=safe;
+   name.append(link,element('span','audit-gsc-followup-state',item.label));
+   box.append(name,element('p','audit-muted','Inspección manual: '+niceDate(item.checkedAt)));
+   if(item.changed===true&&Object.hasOwn(FOLLOWUP_STATES,String(item.previousStatus||'')))
+    box.append(element('p','audit-gsc-change','Cambio desde: '+FOLLOWUP_STATES[item.previousStatus]));
+   else if(item.previousStatus)
+    box.append(element('p','audit-muted','Sin cambio respecto a la inspección manual anterior.'));
+   if(typeof item.coverageState==='string'&&item.coverageState)
+    box.append(element('p','audit-muted','Google informa: '+item.coverageState));
+   if(typeof item.advice==='string')
+    box.append(element('p','audit-gsc-advice',item.advice));
+   if(gscReady&&/^[1-9][0-9]{0,15}$/.test(String(item.id||''))){
+    const inspectButton=element('button','audit-gsc-pick','Preparar nueva inspección');
+    inspectButton.type='button';
+    inspectButton.addEventListener('click',()=>{
+     gscId.value=String(item.id);
+     gscAction.textContent='Producto '+String(item.id)+' preparado. Para consumir una consulta, pulsa Inspeccionar en Google arriba.';
+    });
+    box.append(inspectButton);
+   }
+   followupEntries.append(box);
+  }
+  if(!filtered.length)
+   followupEntries.append(element('p','audit-muted','No hay inspecciones manuales guardadas con este estado entre los productos visibles.'));
+  followupStatus.textContent='Mostrando '+number(filtered.length)+' de '+number(source.length)+' productos consultados. Historial local del servidor, sin nuevas consultas a Google.';
+ }
+ function renderFollowup(data){
+  clear(followupCounts);
+  savedFollowup=data;
+  if(data?.source!=='stored_manual_search_console_inspections'||!Array.isArray(data.products))
+   throw Error('Formato del seguimiento no reconocido.');
+  card(followupCounts,data.products.length,'Productos consultados','Solo los que tienen inspecciones manuales guardadas');
+  for(const [code,label] of Object.entries(FOLLOWUP_STATES))
+   if(Number(data.counts?.[code])>0)
+    card(followupCounts,data.counts[code],label);
+  renderFollowupRows();
+ }
+ followupFilter.addEventListener('change',renderFollowupRows);
+ followupLoad.addEventListener('click',async()=>{
+  followupLoad.disabled=true;
+  followupStatus.textContent='Cargando inspecciones ya guardadas, sin contactar con Google…';
+  try{
+   const resp=await fetch('/api/admin/marketplace/seo/gsc/seguimiento',{
+    method:'GET',credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}
+   });
+   if(resp.status===401||resp.status===403)
+    throw Error('Debes iniciar sesión como administrador.');
+   if(!resp.ok)throw Error('El historial no está disponible ahora. Vuelve a intentarlo.');
+   const data=await resp.json();
+   if(data?.ok!==true)throw Error('La respuesta del historial no es válida.');
+   renderFollowup(data);
+  }catch(e){followupStatus.textContent=e?.message||'No se pudo consultar el seguimiento.';}
+  finally{followupLoad.disabled=false;}
+ });
  gscButton.addEventListener('click',async()=>{
   const id=String(gscId.value||'').trim();
   if(!gscReady||!/^[1-9][0-9]{0,15}$/.test(id)){
@@ -179,6 +277,8 @@
   gscButton.disabled=true;
   gscResult.hidden=true;
   clear(gscFields);
+  gscInterpretation.hidden=true;
+  clear(gscInterpretation);
   gscAction.textContent='Consultando el índice de Google para el anuncio '+id+'…';
   try{
    const response=await fetch('/api/admin/marketplace/seo/gsc/inspeccionar',{
@@ -193,6 +293,7 @@
    if(data?.ok!==true||data?.inspection?.source!=='google_search_console_url_inspection')
     throw new Error('La respuesta de Google no tiene el formato esperado.');
    renderGscInspection(data.inspection);
+   renderInspectionInterpretation(data.followup,data.followupSaved===true);
    gscAction.textContent='Inspección manual finalizada. El resultado procede de Google Search Console.';
   }catch(error){
    gscAction.textContent=error?.message||'No se pudo realizar la inspección.';
