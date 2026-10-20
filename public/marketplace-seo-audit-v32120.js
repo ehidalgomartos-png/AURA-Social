@@ -370,19 +370,19 @@
  }
  pendingLoad.addEventListener('click',()=>{
   const term=String(pendingSearch.value||'').trim().slice(0,70);
-  loadPending(1,term);
+  return loadPending(1,term);
  });
  pendingPrevious.addEventListener('click',()=>{
-  if(pendingPage>1)loadPending(pendingPage-1,pendingTerm);
+  if(pendingPage>1)return loadPending(pendingPage-1,pendingTerm);
  });
  pendingNext.addEventListener('click',()=>{
-  if(pendingPage<250)loadPending(pendingPage+1,pendingTerm);
+  if(pendingPage<250)return loadPending(pendingPage+1,pendingTerm);
  });
  pendingSearch.addEventListener('keydown',event=>{
   if(event?.key==='Enter'){
    if(typeof event.preventDefault==='function')event.preventDefault();
    const term=String(pendingSearch.value||'').trim().slice(0,70);
-   loadPending(1,term);
+   return loadPending(1,term);
   }
  });
  // V3.2.124: nonblocking, read-only Merchant warnings from the bounded
