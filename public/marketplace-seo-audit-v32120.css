@@ -257,3 +257,15 @@ a:focus-visible,button:focus-visible{outline:3px solid #d98b18;outline-offset:3p
  .audit-daily-item{padding:12px}
  .audit-advanced{padding:0 11px}
 }
+
+
+/* V3.2.130 — bounded private possible-duplicate title review. */
+.audit-duplicate-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.audit-duplicate-group{display:flex;flex-direction:column;min-width:0;gap:5px;background:#fff;border:1px solid #d4e3df;border-radius:12px;padding:13px 15px;overflow-wrap:anywhere}
+.audit-duplicate-group strong{font-size:14px}
+.audit-duplicate-links{display:flex;flex-direction:column;align-items:start;gap:5px;margin-top:4px}
+.audit-duplicate-links a{font-size:13px;font-weight:700}
+@media(max-width:620px){
+ .audit-duplicate-groups{grid-template-columns:minmax(0,1fr)}
+ .audit-duplicate-group{padding:12px}
+}
