@@ -5,6 +5,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const gsc=require('../services/marketplace-gsc-readonly-v32123');
+const followup=require('../services/marketplace-gsc-followup-v32125');
 const ORIGIN=gsc.ORIGIN;
 function sameOriginJson(req,res,next){
  // JSON with exact expected Origin, not a cookie-based cross-site form.
@@ -24,6 +25,17 @@ function createGscRouter({listingPath,ensureMarketplaceSchema}={}){
  if(typeof listingPath!=='function'||typeof ensureMarketplaceSchema!=='function')
   throw Error('gsc_route_dependencies_required');
  const router=express.Router();
+ // V3.2.125 — inspect the already-saved status history without contacting Google.
+ router.get('/seguimiento',requireAdmin,async(_req,res,next)=>{
+  res.setHeader('Cache-Control','private,no-store');
+  res.setHeader('X-Robots-Tag','noindex,nofollow');
+  try{
+   await ensureMarketplaceSchema();
+   return res.json(await followup.history(db,{listingPath}));
+  }catch(_){
+   return res.status(503).json({error:'gsc_followup_unavailable'});
+  }
+ });
  router.post('/inspeccionar',requireAdmin,sameOriginJson,limiter,async(req,res,next)=>{
   res.setHeader('Cache-Control','private,no-store');
   res.setHeader('X-Robots-Tag','noindex,nofollow');
@@ -36,7 +48,20 @@ function createGscRouter({listingPath,ensureMarketplaceSchema}={}){
    const rows=await db.query(gsc.PUBLIC_LISTING_SQL,[id]);
    if(!rows.rowCount)return res.status(404).json({error:'gsc_listing_not_public'});
    const inspection=await gsc.inspect({id,row:rows.rows[0],config,listingPath});
-   return res.json({ok:true,inspection});
+   const info=followup.interpretation(inspection);
+   // Only successful explicit inspections of active PUBLIC sale products
+   // are persisted. Never store GSC credentials or raw Google responses.
+   let followupSaved=false;
+   if(rows.rows[0].kind==='product'&&rows.rows[0].deal==='sale'){
+    try{
+     await followup.save(db,{listingId:id,inspection});
+     followupSaved=true;
+    }catch(_){
+     // Preserve the genuine manual Google result even when local
+     // inspection history storage is temporarily unavailable.
+    }
+   }
+   return res.json({ok:true,inspection,followup:info,followupSaved});
   }catch(error){
    if(error instanceof gsc.GscError)
     return res.status(error.status).json({error:error.code});

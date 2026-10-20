@@ -124,6 +124,8 @@ jobs:
         run: npm run test:marketplace-gsc-readonly
       - name: V3.2.124 factual seller identity and optional merchant structured data diagnostics
         run: npm run test:marketplace-merchant-structured
+      - name: V3.2.125 manual Google indexation followup, classification and admin-only history
+        run: npm run test:marketplace-gsc-followup
       - name: V3.2.77.5 safe professional store ownership transfer
         run: npm run test:marketplace-store-owner
       - name: V3.2.77.7 admin submission and external checkout review guard
@@ -418,3 +420,5 @@ jobs:
         run: node --test tests/marketplace-image-sitemap-postgres-v32119.test.js
       - name: V3.2.120 verify admin SEO audit public-only counts with PostgreSQL 18
         run: node --test tests/marketplace-seo-audit-postgres-v32120.test.js
+      - name: V3.2.125 verify stored manual Google followup and visibility against PostgreSQL 18
+        run: node --test tests/marketplace-gsc-followup-postgres-v32125.test.js
