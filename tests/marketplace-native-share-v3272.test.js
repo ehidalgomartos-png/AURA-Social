@@ -51,7 +51,7 @@ test('SEO detail offers native sharing, retains all previous channels and catego
  assert.match(html,/Facebook/);
  assert.match(html,/data-copy-url=/);
  assert.match(html,/market-more-category-v3272/);
- assert.match(html,/\/marketplace\/explorar\?tipo=product&amp;categoria=Hogar%20y%20muebles/);
+ assert.match(html,/\/marketplace\/explorar\?tipo=product&amp;operacion=sale&amp;categoria=Hogar\+y\+muebles/);
  assert.match(html,/marketplace-share-v3254\.js\?v=3\.2\.75/);
  assert.match(html,/property="og:image"/);
  assert.match(html,/\/marketplace\/imagen\/77\/0/);
@@ -99,7 +99,7 @@ test('seller category is encoded and no user supplied HTML leaks into attributes
  const html=seo.listingHtml(bad);
  assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
  assert.match(html,/data-market-share-title="&lt;script&gt;alert\(1\)&lt;\/script&gt;"/);
- assert.match(html,/categoria=Hogar%20%26%20%3Cscript%3E/);
+ assert.match(html,/categoria=Hogar\+%26\+%3Cscript%3E/);
 });
 test('no DB schema or PWA changes, release and responsive assets updated',()=>{
  const css=read('public/marketplace-seo-v3251.css');

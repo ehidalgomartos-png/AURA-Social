@@ -66,7 +66,7 @@ test('thin-category or uncategorized listing preserves established 3-part breadc
  const crumbs=schemaFrom(html)['@graph'][1].itemListElement;
  assert.equal(crumbs.length,3);
  assert.equal(crumbs[2].item,'https://redlibertad.com/marketplace/p/113/sofa-usado-en-valencia');
- assert.match(html,/href="\/marketplace\/explorar\?tipo=product&amp;categoria=Hogar%20y%20muebles"/);
+ assert.match(html,/href="\/marketplace\/explorar\?tipo=product&amp;operacion=sale&amp;categoria=Hogar\+y\+muebles"/);
 });
 test('server applies gate to real public listings, avoids new database writes and fails open if optional count fails',()=>{
  const src=fs.readFileSync('src/routes/marketplace-seo-v3251.js','utf8');

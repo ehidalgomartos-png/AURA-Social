@@ -18,6 +18,7 @@ const marketplaceMerchantV32124=require('../services/marketplace-merchant-struct
 const marketplaceSeoAuditV32120=require('../services/marketplace-seo-audit-v32120');
 const marketplaceSitemapPlanV32122=require('../services/marketplace-sitemap-plan-v32122');
 const marketplaceGscReadOnlyV32123=require('../services/marketplace-gsc-readonly-v32123');
+const marketplaceDiscoveryV32130=require('../services/marketplace-public-discovery-v32130');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const GENERAL_MARKET_CATEGORIES_V3273=["Hogar y muebles","Electrodomésticos","Decoración","Jardín y bricolaje","Moda y accesorios","Belleza y cuidado personal","Tecnología","Móviles y telefonía","Informática","Videojuegos","Vehículos","Deportes y ocio","Bebés y niños","Juguetes y juegos","Libros y coleccionismo","Arte y antigüedades","Mascotas","Música e instrumentos","Alimentación","Regalos y personalización","Tazas","Otros productos","Reformas y mantenimiento","Clases y formación","Salud y bienestar","Hogar y limpieza","Profesionales","Transporte y mudanzas","Informática y reparación","Eventos y celebraciones","Belleza y estética","Cuidado de personas","Otros servicios","Pisos","Casas","Habitaciones","Locales","Terrenos","Garajes","Trasteros","Oficinas","Otros inmuebles"];
@@ -177,7 +178,7 @@ function listingHtml(row,related=[],categoryDef=null){
  const contactText=row.deal==='buy'?'Contactar con quien busca':'Contactar con el anunciante';
  const otherAdsLink='/marketplace/vendedor/'+encodeURIComponent(row.seller_username);
  const shareLink=encodeURIComponent(url),shareTitle=encodeURIComponent('Mira este anuncio en RedLibertad: '+row.title+' '+url);
- const categoryBrowse='/marketplace/explorar?tipo='+encodeURIComponent(row.kind)+'&categoria='+encodeURIComponent(row.category);
+ const categoryBrowse=marketplaceDiscoveryV32130.categoryBrowse(row);
  const category=[row.category,row.details?.subcategory].filter(Boolean).join(' · ');
  const qualifiedCategory=marketplaceCategorySeoV32112.candidateCategories(row).includes(categoryDef)?categoryDef:null;
  const categoryCrumb=qualifiedCategory?'<a href="'+esc(qualifiedCategory.path)+'">'+esc(qualifiedCategory.h1)+'</a> › '+esc(row.title):esc(row.category);
@@ -196,7 +197,7 @@ function listingHtml(row,related=[],categoryDef=null){
  '<p class="market-category-more-v3272"><a class="market-more-category-v3272" href="'+esc(categoryBrowse)+'">Ver más anuncios de '+esc(row.category)+' →</a></p>'+categoryLink+
  '<p class="muted">Consulta el perfil público del anunciante y confirma la información antes de acordar un pago o envío. RedLibertad no procesa pagos ni garantiza las transacciones.</p><small class="muted">Actualizado <time datetime="'+esc(updated)+'">'+esc(new Date(row.updated_at).toLocaleDateString('es-ES'))+'</time></small></article>'+
  (isProductSale?'<nav class="market-mobile-contact" aria-label="'+(verifiedPurchaseUrl?'Comprar en la tienda':'Consulta sobre el producto')+'" hidden><span>'+esc(displayPrice(row))+'</span>'+mobileAction+'</nav>':'')+
- (related.length?'<section class="market-related" aria-label="Anuncios relacionados"><h2>También te puede interesar</h2><p>Otros anuncios públicos de una categoría o ubicación similar.</p><div class="cards market-public-grid">'+related.map(listingCard).join('')+'</div></section>':'');
+ (related.length?'<section class="market-related" aria-label="Anuncios relacionados"><h2>También te puede interesar</h2><p>Otros anuncios públicos de la misma operación y de una categoría o ubicación similar.</p><div class="cards market-public-grid">'+related.map(listingCard).join('')+'</div><p class="market-discovery-more-v32130"><a href="'+esc(categoryBrowse)+'">Explorar más anuncios de esta categoría →</a></p></section>':'');
  const improvedProductMeta=marketplaceProductMetaV32118.forListing(row,{externalPurchase:Boolean(verifiedPurchaseUrl)});
  return shell({title:improvedProductMeta?.title||((row.deal==='buy'?'Busco comprar: ':'')+row.title+(nationalSale(row)?' | Venta en toda España':' en '+location)+' | RedLibertad Marketplace').slice(0,155),
  description:improvedProductMeta?.description||((row.deal==='buy'?'Se busca comprar. Presupuesto '+displayPrice(row)+'. ':'')+seoDescription(row)).slice(0,155),
@@ -242,6 +243,7 @@ router.get('/api/admin/marketplace/seo/auditoria',requireAdmin,async(_req,res,ne
   // V3.2.124: explain optional merchant metadata from the *same*
   // public, capped sample, not from unverified WooCommerce policies.
   audit.merchantStructuredAdvice=marketplaceMerchantV32124.merchantSample(sample.rows);
+  audit.duplicateTitleCandidates=marketplaceDiscoveryV32130.duplicateTitleCandidates(sample.rows,{listingPath});
   audit.technicalSitemaps=marketplaceSitemapPlanV32122.summary(
    metrics.rows[0]||{},categoryCounts.rows[0]||{},marketplaceCategorySeoV32112.LANDINGS,marketplaceCategorySeoV32112.canIndex
   );
@@ -304,10 +306,11 @@ router.get('/marketplace/p/:id/:slug?',async(req,res,next)=>{
   if(!eligible(row))return unavailable(res,row?.status==='sold');
   if(req.path!==listingPath(row)){res.setHeader('Cache-Control','public,max-age=60');return res.redirect(301,listingPath(row));}
   res.setHeader('Cache-Control','public,max-age=60');
-  // Related listings never include this ad, paused/hidden ads or private sellers.
+  // Relevant public links only: same type and same sale/buy/rent/offer.
+  // Hidden or paused ads and private/inactive sellers are excluded in SQL.
   const related=await db.query(
-   "SELECT l.id,l.title,l.kind,l.deal,l.city,l.details,l.price_cents,l.image_urls,l.created_at FROM marketplace_listings l JOIN users u ON u.id=l.seller_id WHERE l.id<>$1 AND l.kind=$2 AND (l.category=$3 OR l.city=$4) AND l.status='active' AND l.moderation_status='published' AND u.status='active' AND u.discoverable=true ORDER BY CASE WHEN l.category=$3 THEN 0 ELSE 1 END,l.created_at DESC,l.id DESC LIMIT 4",
-   [row.id,row.kind,row.category,row.city]);
+   marketplaceDiscoveryV32130.PUBLIC_RELATED_SQL,
+   marketplaceDiscoveryV32130.relatedArgs(row));
   // A public advert may link back to a qualified SEO category, but must not
   // advertise thin/noindex pages or classify new store goods as second-hand.
   let qualifiedCategory=null;

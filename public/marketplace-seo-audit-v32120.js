@@ -605,6 +605,38 @@
    return loadPending(1,term,pendingOrderSelect.value);
   }
  });
+ // V3.2.130: possible repeated TITLE combinations within the same
+ // strictly PUBLIC 100-item sample, never an automatic duplicate decision.
+ function renderDuplicateTitles(data){
+  const container=$('auditDuplicateCandidates'),note=$('auditDuplicateNote');
+  clear(container);
+  if(data?.source!=='recent_public_listing_title_sample'||!Array.isArray(data.groups)){
+   container.append(element('p','audit-muted','La revisión de títulos no está disponible.'));
+   note.textContent='';
+   return;
+  }
+  const groups=data.groups.slice(0,5);
+  for(const group of groups){
+   if(!group||!Array.isArray(group.items)||Number(group.count)<2)continue;
+   const card=element('article','audit-duplicate-group');
+   card.append(element('strong',null,group.title||'Título compartido'));
+   card.append(element('small','audit-muted',
+    number(group.count)+' anuncios con título y categoría coincidentes · '+String(group.category||'')));
+   const links=element('div','audit-duplicate-links');
+   for(const entry of group.items.slice(0,3)){
+    const path=safeUrl(entry?.path);
+    if(!path)continue;
+    const link=element('a',null,entry.title||'Ver anuncio');
+    link.href=path;
+    links.append(link);
+   }
+   card.append(links);
+   container.append(card);
+  }
+  if(!container.children.length)
+   container.append(element('p','audit-muted','No hay coincidencias exactas de título y categoría en la muestra revisada.'));
+  note.textContent=String(data.note||'').slice(0,500);
+ }
  // V3.2.124: nonblocking, read-only Merchant warnings from the bounded
  // PUBLIC sample, not scraped policies or real Google Search Console results.
  function renderMerchantAdvice(data){
@@ -661,6 +693,7 @@
   $('auditExamplesDescription').textContent='Se revisan los '+number(sample)+' anuncios públicos más recientes (máximo 100). Los avisos se ordenan dentro de esa muestra: fotos primero, luego nombres/categorías y después descripciones. No es una clasificación de Google ni incluye necesariamente todos los anuncios.';
   renderSitemaps(data);
   renderMerchantAdvice(data.merchantStructuredAdvice);
+  renderDuplicateTitles(data.duplicateTitleCandidates);
   renderGscStatus(data.googleSearchConsole);
   currentLabels=data.issueLabels||Object.create(null);
   exampleRows=Array.isArray(data.examples)?data.examples:[];
