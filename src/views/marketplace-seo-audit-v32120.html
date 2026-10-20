@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.128">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.128" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.129">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.129" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -26,6 +26,35 @@
  </section>
  <p id="auditStatus" class="audit-status" role="status" aria-live="polite">Consultando datos públicos…</p>
  <div id="auditResults" hidden>
+  <section id="auditDailyBrief" aria-labelledby="auditDailyTitle" class="audit-daily-brief">
+   <div class="audit-daily-head">
+    <div>
+     <h2 id="auditDailyTitle">Mi resumen SEO</h2>
+     <p class="audit-muted">Qué productos revisar y qué respondió Google en inspecciones anteriores, sin navegar por toda la auditoría.</p>
+    </div>
+    <button id="auditDailyLoad" type="button">Ver resumen de trabajo</button>
+   </div>
+   <p id="auditDailyStatus" class="audit-muted" role="status" aria-live="polite">Pulsa «Ver resumen de trabajo». Consultaremos únicamente datos guardados en RedLibertad, no Google.</p>
+   <div id="auditDailyMetrics" class="audit-metrics"></div>
+   <div class="audit-daily-columns">
+    <div class="audit-daily-column">
+     <h3>Próximas fichas para revisar</h3>
+     <div id="auditDailyNext" class="audit-daily-list"></div>
+    </div>
+    <div class="audit-daily-column">
+     <h3>Últimas inspecciones guardadas</h3>
+     <div id="auditDailyHistory" class="audit-daily-list"></div>
+    </div>
+   </div>
+   <p class="audit-muted audit-daily-note">Una ficha sin inspección reciente en RedLibertad no significa que Google la desconozca. El historial refleja consultas manuales anteriores y no el estado en tiempo real. <strong>Solo «Inspeccionar en Google» consume cuota.</strong></p>
+   <nav class="audit-daily-nav" aria-label="Herramientas de revisión">
+    <a href="#auditPendingTitle">Ir a productos pendientes</a>
+    <a href="#auditFollowupTitle">Ir al historial</a>
+    <a href="#auditGscTitle">Inspeccionar un producto</a>
+   </nav>
+  </section>
+  <details class="audit-advanced" id="auditAdvanced">
+   <summary>Ver diagnóstico técnico detallado: categorías, imágenes y sitemaps</summary>
   <section aria-labelledby="auditSummaryTitle">
    <h2 id="auditSummaryTitle">Anuncios públicos</h2>
    <div class="audit-metrics" id="auditMetrics"></div>
@@ -59,6 +88,7 @@
    <div id="auditSitemapPlan" class="audit-sitemap-list"></div>
    <p id="auditSitemapNote" class="audit-muted"></p>
   </section>
+  </details>
   <section aria-labelledby="auditGscTitle" class="audit-gsc-section">
    <h2 id="auditGscTitle">Google Search Console · Inspección real</h2>
    <p class="audit-muted">Consulta manualmente el estado de una ficha pública en la versión que Google tiene en su índice. <strong>No inspecciona la versión en directo ni solicita indexación.</strong> La conexión permanece desactivada hasta configurarla con permisos de solo lectura en Coolify.</p>
@@ -138,6 +168,8 @@
    </nav>
    <p class="audit-muted">Preparar un producto solo rellena su número. La inspección real sigue siendo <strong>individual y manual</strong> desde el botón de Google.</p>
   </section>
+  <details class="audit-advanced" id="auditExamplesAdvanced">
+   <summary>Ver ejemplos de problemas SEO y consejos adicionales</summary>
   <section aria-labelledby="auditExamplesTitle">
    <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
    <p id="auditExamplesDescription" class="audit-muted"></p>
@@ -162,6 +194,7 @@
     <a href="/sitemap-marketplace-categorias.xml" target="_blank" rel="noopener noreferrer">Sitemap de categorías ↗</a>
    </nav>
   </section>
+  </details>
  </div>
 </main>
 <footer class="audit-footer">Panel privado y de solo lectura · No cambia anuncios, pagos ni productos.</footer>
