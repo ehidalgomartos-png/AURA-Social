@@ -295,6 +295,7 @@
    renderGscInspection(data.inspection);
    renderInspectionInterpretation(data.followup,data.followupSaved===true);
    gscAction.textContent='Inspección manual finalizada. El resultado procede de Google Search Console.';
+   removeReviewAfterInspection(id);
   }catch(error){
    gscAction.textContent=error?.message||'No se pudo realizar la inspección.';
   }finally{gscButton.disabled=!gscReady;}
@@ -307,10 +308,90 @@
   pendingPrevious=$('auditPendingPrevious'),pendingNext=$('auditPendingNext'),
   pendingOrderSelect=$('auditPendingOrder'),
   pendingPageText=$('auditPendingPage');
+ // V3.2.128: temporary, memory-only selection of public product cards.
+ // This is NOT an inspection queue on the server and never calls Google.
+ const queueCount=$('auditQueueCount'),queueStatus=$('auditQueueStatus'),
+  queueItems=$('auditQueueItems'),queuePrepare=$('auditQueuePrepare'),
+  queueClear=$('auditQueueClear');
+ const MAX_REVIEW_QUEUE=6;
+ const reviewQueue=[];
+ let lastPendingData=null;
  let pendingPage=1,pendingTerm='',pendingOrder='priority',pendingLoading=false;
+ function safeReviewProduct(item){
+  const id=String(item?.id||''),title=String(item?.title||'').trim().slice(0,120);
+  const path=safeUrl(item?.path);
+  if(!/^[1-9][0-9]{0,15}$/.test(id)||!title||
+   !path||!path.startsWith('/marketplace/p/'+id+'/'))return null;
+  return {id,title,path};
+ }
+ function prepareReview(id){
+  if(!/^[1-9][0-9]{0,15}$/.test(String(id||'')))return;
+  gscId.value=String(id);
+  gscAction.textContent='Producto '+String(id)+' preparado. La inspección solo comienza si pulsas «Inspeccionar en Google».';
+  if(typeof gscId.focus==='function')gscId.focus();
+ }
+ function renderReviewQueue(message){
+  clear(queueItems);
+  queueCount.textContent=number(reviewQueue.length)+'/'+MAX_REVIEW_QUEUE;
+  queuePrepare.disabled=!reviewQueue.length||!gscReady;
+  queueClear.disabled=!reviewQueue.length;
+  for(const item of reviewQueue){
+   const entry=element('div','audit-queue-item');
+   const link=element('a',null,item.title);
+   link.href=item.path;
+   const remove=element('button','audit-queue-remove','Quitar');
+   remove.type='button';
+   remove.addEventListener('click',()=>{
+    const pos=reviewQueue.findIndex(x=>x.id===item.id);
+    if(pos>=0)reviewQueue.splice(pos,1);
+    renderReviewQueue('Producto retirado de tu lista.');
+    if(lastPendingData)renderPending(lastPendingData);
+   });
+   entry.append(link,remove);
+   queueItems.append(entry);
+  }
+  queueStatus.textContent=typeof message==='string'?message:
+   reviewQueue.length
+    ?number(reviewQueue.length)+' seleccionados para revisar, sin consultas a Google.'
+    :'La lista está vacía.';
+ }
+ function addReviewProduct(item){
+  const candidate=safeReviewProduct(item);
+  if(!candidate)return;
+  if(reviewQueue.some(x=>x.id===candidate.id)){
+   renderReviewQueue('Este producto ya está en tu lista.');
+   return;
+  }
+  if(reviewQueue.length>=MAX_REVIEW_QUEUE){
+   renderReviewQueue('Límite de seis productos por lista. Retira uno antes de añadir otro.');
+   return;
+  }
+  reviewQueue.push(candidate);
+  renderReviewQueue('Producto añadido. La selección no consume cuota de Google.');
+  if(lastPendingData)renderPending(lastPendingData);
+ }
+ function removeReviewAfterInspection(id){
+  const index=reviewQueue.findIndex(x=>x.id===String(id));
+  if(index<0)return;
+  reviewQueue.splice(index,1);
+  renderReviewQueue('Inspección manual completada; producto retirado de la lista. Actualiza los pendientes para renovar el catálogo.');
+  if(lastPendingData)renderPending(lastPendingData);
+ }
+ queuePrepare.addEventListener('click',()=>{
+  if(!gscReady||!reviewQueue.length)return;
+  prepareReview(reviewQueue[0].id);
+  queueStatus.textContent='Primer producto preparado en el formulario de Google. Aún no se ha realizado ninguna inspección.';
+ });
+ queueClear.addEventListener('click',()=>{
+  reviewQueue.splice(0,reviewQueue.length);
+  renderReviewQueue('Lista vaciada; no se ha contactado con Google.');
+  if(lastPendingData)renderPending(lastPendingData);
+ });
+ renderReviewQueue();
  function renderPending(data){
   if(data?.source!=='public_products_without_recent_saved_manual_inspection'||
    !Array.isArray(data.products))throw Error('Formato del listado no reconocido.');
+  lastPendingData=data;
   clear(pendingCounts);clear(pendingItems);
   card(pendingCounts,data.totalPublicSaleProducts,'Productos públicos en venta','Dentro del filtro de búsqueda actual');
   card(pendingCounts,data.withoutRecentInspection,'Sin inspección manual reciente','No significa que Google desconozca el producto');
@@ -321,7 +402,7 @@
    const link=element('a',null,item.title||'Producto público');
    const uri=safeUrl(item.path);
    if(uri)link.href=uri;
-   top.append(link,element('span','audit-gsc-followup-state','Pendiente de inspección manual'));
+   top.append(link);
    entry.append(top);
    if(data.order==='priority'&&item.reviewPriority){
     const quality=item.reviewPriority;
@@ -329,9 +410,8 @@
      ['review_first','ready_recent','improve_card'].includes(quality.code)){
      const qualityBox=element('div','audit-pending-priority audit-pending-priority-'+quality.code);
      qualityBox.append(element('strong',null,quality.label));
-     if(typeof quality.why==='string')
-      qualityBox.append(element('p','audit-muted',quality.why));
-     if(Array.isArray(quality.attention)&&quality.attention.length){
+     // One concise label for ready cards; detail only on actual gaps.
+     if(quality.code==='improve_card'&&Array.isArray(quality.attention)&&quality.attention.length){
       qualityBox.append(element('p','audit-muted','Antes de inspeccionar: '+
        quality.attention.filter(x=>typeof x==='string').slice(0,4).join(' · ')));
      }
@@ -342,14 +422,22 @@
     entry.append(element('p','audit-muted','Categoría: '+item.category));
    if(typeof item.updatedAt==='string')
     entry.append(element('p','audit-muted','Anuncio actualizado: '+niceDate(item.updatedAt)));
-   if(gscReady&&/^[1-9][0-9]{0,15}$/.test(String(item.id||''))){
-    const prep=element('button','audit-gsc-pick','Preparar inspección individual');
-    prep.type='button';
-    prep.addEventListener('click',()=>{
-     gscId.value=String(item.id);
-     gscAction.textContent='Anuncio '+String(item.id)+' preparado. Pulsa Inspeccionar en Google arriba si deseas realizar una consulta real.';
-    });
-    entry.append(prep);
+   const candidate=safeReviewProduct(item);
+   if(candidate){
+    const actions=element('div','audit-pending-actions');
+    const selected=reviewQueue.some(x=>x.id===candidate.id);
+    const add=element('button','audit-pending-add',selected?'En mi lista':'Añadir a revisión');
+    add.type='button';
+    add.disabled=selected||reviewQueue.length>=MAX_REVIEW_QUEUE;
+    add.addEventListener('click',()=>addReviewProduct(item));
+    actions.append(add);
+    if(gscReady){
+     const prep=element('button','audit-gsc-pick','Preparar inspección individual');
+     prep.type='button';
+     prep.addEventListener('click',()=>prepareReview(item.id));
+     actions.append(prep);
+    }
+    entry.append(actions);
    }
    pendingItems.append(entry);
   }
@@ -359,7 +447,10 @@
   pendingPrevious.disabled=!data.hasPrevious;
   pendingNext.disabled=!data.hasNext;
   pendingPageText.textContent='Página '+number(data.page);
-  pendingStatus.textContent='Mostrando '+number(data.products.length)+' productos de esta página. '+number(data.withoutRecentInspection)+' sin inspección manual guardada reciente. '+(typeof data.priorityNote==='string'?data.priorityNote:'No es una estadística de indexación de Google.');
+  pendingStatus.textContent=number(data.products.length)+' en esta página · '+
+   number(data.withoutRecentInspection)+' sin inspección manual reciente · '+
+   (data.order==='priority'?'Prioridad editorial':'Últimas actualizaciones')+
+   '. No indica indexación de Google.';
   pendingPage=data.page;
  }
  async function loadPending(page,search,order=pendingOrder){
