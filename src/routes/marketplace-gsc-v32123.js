@@ -6,6 +6,7 @@ const db=require('../db');
 const {requireAdmin}=require('../middleware/auth');
 const gsc=require('../services/marketplace-gsc-readonly-v32123');
 const followup=require('../services/marketplace-gsc-followup-v32125');
+const uninspected=require('../services/marketplace-gsc-uninspected-v32126');
 const ORIGIN=gsc.ORIGIN;
 function sameOriginJson(req,res,next){
  // JSON with exact expected Origin, not a cookie-based cross-site form.
@@ -25,6 +26,23 @@ function createGscRouter({listingPath,ensureMarketplaceSchema}={}){
  if(typeof listingPath!=='function'||typeof ensureMarketplaceSchema!=='function')
   throw Error('gsc_route_dependencies_required');
  const router=express.Router();
+ // V3.2.126 — private, paginated public sale products without a saved
+ // successful manual inspection in the retained 90-day window. No Google call.
+ router.get('/pendientes',requireAdmin,async(req,res)=>{
+  res.setHeader('Cache-Control','private,no-store');
+  res.setHeader('X-Robots-Tag','noindex,nofollow');
+  const page=uninspected.parsePage(req.query?.pagina);
+  const search=uninspected.parseSearch(req.query?.q);
+  if(page===null||search===null)
+   return res.status(400).json({error:'gsc_pending_invalid_filter'});
+  try{
+   await ensureMarketplaceSchema();
+   await followup.ensureSchema(db);
+   return res.json(await uninspected.pending(db,{listingPath,page,search}));
+  }catch(_){
+   return res.status(503).json({error:'gsc_pending_unavailable'});
+  }
+ });
  // V3.2.125 — inspect the already-saved status history without contacting Google.
  router.get('/seguimiento',requireAdmin,async(_req,res,next)=>{
   res.setHeader('Cache-Control','private,no-store');
