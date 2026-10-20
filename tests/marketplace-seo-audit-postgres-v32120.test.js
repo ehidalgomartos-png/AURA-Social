@@ -4,6 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {Client}=require('pg');
 const audit=require('../src/services/marketplace-seo-audit-v32120');
+const merchant=require('../src/services/marketplace-merchant-structured-v32124');
 const gsc=require('../src/services/marketplace-gsc-readonly-v32123');
 const category=require('../src/marketplace-category-seo-v32112');
 const sitemapPlan=require('../src/services/marketplace-sitemap-plan-v32122');
@@ -61,6 +62,13 @@ test('audit reads public marketplace rows only, reports accurate counts and neve
   const rows=(await db.query(audit.sampleSql)).rows;
   assert.deepEqual(rows.map(x=>Number(x.id)).sort((a,b)=>a-b),[1,2,3,4]);
   assert.ok(rows.every(x=>!String(x.title).includes('nunca publicable')));
+  // The private Merchant advisory must use this SAME strictly public sample.
+  const merchantInfo=merchant.merchantSample(rows);
+  assert.equal(merchantInfo.productsReviewed,2);
+  assert.equal(merchantInfo.withoutAnyDeclaredBrandOrIdentifier,2);
+  assert.equal(merchantInfo.withBrand,0);
+  assert.match(merchantInfo.note,/muestra de hasta 100 anuncios públicos/);
+  assert.doesNotMatch(JSON.stringify(merchantInfo),/nunca publicable|stripe|seller_id/);
   const categoryCounts=(await db.query(category.countQuery())).rows[0];
   assert.equal(Number(categoryCounts.muebles_catalogo),2);
   const report=audit.report({
