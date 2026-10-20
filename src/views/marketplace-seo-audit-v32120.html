@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.126">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.126" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.127">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.127" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -106,8 +106,14 @@
    <div class="audit-gsc-pending-controls">
     <label for="auditPendingSearch">Buscar por nombre del producto</label>
     <input id="auditPendingSearch" type="search" maxlength="70" autocomplete="off" placeholder="Ej.: taza, armario…">
+    <label for="auditPendingOrder">Ordenar revisión</label>
+    <select id="auditPendingOrder">
+     <option value="priority" selected>Prioridad editorial de revisión</option>
+     <option value="recent">Últimas actualizaciones</option>
+    </select>
     <button id="auditPendingLoad" type="button">Consultar productos pendientes</button>
    </div>
+   <p class="audit-muted"><strong>Prioridad editorial:</strong> primero fichas con fotografía local, título, descripción y categoría, especialmente las publicadas hace más de siete días. Las demás se señalan para revisar su contenido antes de utilizar una consulta de Google. <strong>No es una clasificación ni puntuación de Google.</strong></p>
    <p id="auditPendingStatus" class="audit-muted" role="status" aria-live="polite">Pulsa «Consultar productos pendientes» para verlos.</p>
    <div id="auditPendingCounts" class="audit-metrics"></div>
    <div id="auditPendingItems" class="audit-gsc-followup-list"></div>

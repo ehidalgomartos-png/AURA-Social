@@ -33,12 +33,13 @@ function createGscRouter({listingPath,ensureMarketplaceSchema}={}){
   res.setHeader('X-Robots-Tag','noindex,nofollow');
   const page=uninspected.parsePage(req.query?.pagina);
   const search=uninspected.parseSearch(req.query?.q);
-  if(page===null||search===null)
+  const order=uninspected.parseOrder(req.query?.orden);
+  if(page===null||search===null||order===null)
    return res.status(400).json({error:'gsc_pending_invalid_filter'});
   try{
    await ensureMarketplaceSchema();
    await followup.ensureSchema(db);
-   return res.json(await uninspected.pending(db,{listingPath,page,search}));
+   return res.json(await uninspected.pending(db,{listingPath,page,search,order}));
   }catch(_){
    return res.status(503).json({error:'gsc_pending_unavailable'});
   }

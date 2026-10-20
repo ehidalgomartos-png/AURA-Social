@@ -305,8 +305,9 @@
   pendingStatus=$('auditPendingStatus'),pendingCounts=$('auditPendingCounts'),
   pendingItems=$('auditPendingItems'),pendingPagination=$('auditPendingPagination'),
   pendingPrevious=$('auditPendingPrevious'),pendingNext=$('auditPendingNext'),
+  pendingOrderSelect=$('auditPendingOrder'),
   pendingPageText=$('auditPendingPage');
- let pendingPage=1,pendingTerm='',pendingLoading=false;
+ let pendingPage=1,pendingTerm='',pendingOrder='priority',pendingLoading=false;
  function renderPending(data){
   if(data?.source!=='public_products_without_recent_saved_manual_inspection'||
    !Array.isArray(data.products))throw Error('Formato del listado no reconocido.');
@@ -322,6 +323,21 @@
    if(uri)link.href=uri;
    top.append(link,element('span','audit-gsc-followup-state','Pendiente de inspección manual'));
    entry.append(top);
+   if(data.order==='priority'&&item.reviewPriority){
+    const quality=item.reviewPriority;
+    if(typeof quality.label==='string'&&typeof quality.code==='string'&&
+     ['review_first','ready_recent','improve_card'].includes(quality.code)){
+     const qualityBox=element('div','audit-pending-priority audit-pending-priority-'+quality.code);
+     qualityBox.append(element('strong',null,quality.label));
+     if(typeof quality.why==='string')
+      qualityBox.append(element('p','audit-muted',quality.why));
+     if(Array.isArray(quality.attention)&&quality.attention.length){
+      qualityBox.append(element('p','audit-muted','Antes de inspeccionar: '+
+       quality.attention.filter(x=>typeof x==='string').slice(0,4).join(' · ')));
+     }
+     entry.append(qualityBox);
+    }
+   }
    if(typeof item.category==='string'&&item.category)
     entry.append(element('p','audit-muted','Categoría: '+item.category));
    if(typeof item.updatedAt==='string')
@@ -343,16 +359,16 @@
   pendingPrevious.disabled=!data.hasPrevious;
   pendingNext.disabled=!data.hasNext;
   pendingPageText.textContent='Página '+number(data.page);
-  pendingStatus.textContent='Mostrando '+number(data.products.length)+' productos de esta página. '+number(data.withoutRecentInspection)+' sin inspección manual guardada reciente. No es una estadística de indexación de Google.';
+  pendingStatus.textContent='Mostrando '+number(data.products.length)+' productos de esta página. '+number(data.withoutRecentInspection)+' sin inspección manual guardada reciente. '+(typeof data.priorityNote==='string'?data.priorityNote:'No es una estadística de indexación de Google.');
   pendingPage=data.page;
  }
- async function loadPending(page,search){
+ async function loadPending(page,search,order=pendingOrder){
   if(pendingLoading)return;
   pendingLoading=true;
   pendingLoad.disabled=true;pendingNext.disabled=true;pendingPrevious.disabled=true;
   pendingStatus.textContent='Consultando catálogo público e historial local, sin contactar con Google…';
   try{
-   const query='?pagina='+encodeURIComponent(String(page))+'&q='+encodeURIComponent(search);
+   const query='?pagina='+encodeURIComponent(String(page))+'&q='+encodeURIComponent(search)+'&orden='+encodeURIComponent(order);
    const response=await fetch('/api/admin/marketplace/seo/gsc/pendientes'+query,{
     method:'GET',credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json'}
    });
@@ -362,6 +378,7 @@
    const data=await response.json();
    if(data?.ok!==true)throw Error('Respuesta inesperada del listado.');
    pendingTerm=search;
+   pendingOrder=order;
    renderPending(data);
   }catch(error){
    pendingStatus.textContent=error?.message||'Error consultando los productos pendientes.';
@@ -370,19 +387,19 @@
  }
  pendingLoad.addEventListener('click',()=>{
   const term=String(pendingSearch.value||'').trim().slice(0,70);
-  return loadPending(1,term);
+  return loadPending(1,term,pendingOrderSelect.value);
  });
  pendingPrevious.addEventListener('click',()=>{
-  if(pendingPage>1)return loadPending(pendingPage-1,pendingTerm);
+  if(pendingPage>1)return loadPending(pendingPage-1,pendingTerm,pendingOrder);
  });
  pendingNext.addEventListener('click',()=>{
-  if(pendingPage<250)return loadPending(pendingPage+1,pendingTerm);
+  if(pendingPage<250)return loadPending(pendingPage+1,pendingTerm,pendingOrder);
  });
  pendingSearch.addEventListener('keydown',event=>{
   if(event?.key==='Enter'){
    if(typeof event.preventDefault==='function')event.preventDefault();
    const term=String(pendingSearch.value||'').trim().slice(0,70);
-   return loadPending(1,term);
+   return loadPending(1,term,pendingOrderSelect.value);
   }
  });
  // V3.2.124: nonblocking, read-only Merchant warnings from the bounded
