@@ -94,7 +94,7 @@ test('V3.2.128 private simplified SEO panel remains accessible and does not clai
  assert.match(html,/Lista de revisión|Mi lista de revisión/);
  assert.match(html,/Pendiente de revisión no significa que Google no los conozca o indexe/);
  assert.match(html,/la inspección real sigue siendo/i);
- assert.match(html,/v=3\.2\.128/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(css,/audit-pending-queue/);
  assert.match(css,/@media\(max-width:620px\)/);
  assert.match(css,/@media\(max-width:360px\)/);
