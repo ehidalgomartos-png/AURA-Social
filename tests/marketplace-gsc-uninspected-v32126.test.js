@@ -89,7 +89,7 @@ test('V3.2.126 server admin endpoint only reads public product list; uses no-sto
  assert.match(route,/uninspected\.parsePage\(req\.query\?\.pagina\)/);
  assert.match(route,/uninspected\.parseSearch\(req\.query\?\.q\)/);
  assert.match(route,/await followup\.ensureSchema\(db\)/);
- assert.match(route,/uninspected\.pending\(db,\{listingPath,page,search\}\)/);
+ assert.match(route,/uninspected\.pending\(db,\{listingPath,page,search,order\}\)/);
  const section=route.slice(route.indexOf("router.get('/pendientes'"),route.indexOf("router.get('/seguimiento'"));
  assert.match(section,/Cache-Control','private,no-store'/);
  assert.match(section,/X-Robots-Tag','noindex,nofollow'/);
@@ -118,7 +118,7 @@ test('V3.2.126 admin mobile UI only loads on a click; page/search have no Google
   'auditPendingPagination','auditPendingPrevious','auditPendingNext','auditPendingPage'
  ])assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(html,/Esto NO significa que Google desconozca esas URLs/);
- assert.match(html,/v=3\.2\.126/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(css,/@media\(max-width:620px\)/);
  assert.doesNotMatch(js,/innerHTML|insertAdjacentHTML|localStorage|sessionStorage|eval\(/);
  const audit={
