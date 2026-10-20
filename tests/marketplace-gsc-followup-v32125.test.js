@@ -144,7 +144,7 @@ test('V3.2.125 mobile followup GET happens only upon explicit click, and existin
  for(const id of ['auditFollowupLoad','auditFollowupFilter','auditFollowupStatus','auditFollowupCounts','auditFollowupEntries','auditGscInterpretation'])
   assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(html,/Consultar este historial no llama a Google ni gasta cuota/);
- assert.match(html,/v=3\.2\.125/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(css,/@media\(max-width:620px\)/);
  assert.doesNotMatch(js,/innerHTML|insertAdjacentHTML|localStorage|sessionStorage|eval\(/);
  node('auditExampleFilter').value='todos';
