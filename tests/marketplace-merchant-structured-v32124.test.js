@@ -36,7 +36,7 @@ test('V3.2.124 public chat-only product names only actual public seller, not Red
  assert.equal(data.offers.seller['@type'],'Person');
  assert.deepEqual(row,before);
  const html=seo.listingHtml(row);
- assert.match(html,/Consulta.*condiciones de entrega y devolución/);
+ assert.match(html,/Confirma con el vendedor las condiciones de entrega y devolución/);
  const ld=structuredFromHtml(html)['@graph'][0];
  assert.deepEqual(ld.offers.seller,data.offers.seller);
  assert.equal(ld.brand,undefined);
