@@ -343,7 +343,7 @@ test('V3.2.123.1 private mobile panel clearly presents safe checks without netwo
  const css=fs.readFileSync('public/marketplace-seo-audit-v32120.css','utf8');
  assert.match(html,/id="auditGscConfigChecks"/);
  assert.match(html,/Nunca muestra ni transmite las credenciales/);
- assert.match(html,/v=3\.2\.123\.1/);
+ assert.match(html,/marketplace-seo-audit-v32120\.js\?v=3\.2\.[0-9]+(?:\.[0-9]+)?/);
  assert.match(js,/for\(const item of info\?\.checks\|\|\[\]\)/);
  assert.match(js,/item\.ok\?'✓ ':'✕ '/);
  assert.match(js,/element\('small','audit-muted',item\.hint\)/);

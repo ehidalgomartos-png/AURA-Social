@@ -14,6 +14,7 @@ const {readableDescription,descriptionParts}=require('../services/marketplace-de
 const marketplaceLandingV32111=require('../marketplace-landing-v32111');
 const marketplaceCategorySeoV32112=require('../marketplace-category-seo-v32112');
 const marketplaceProductMetaV32118=require('../services/marketplace-product-meta-v32118');
+const marketplaceMerchantV32124=require('../services/marketplace-merchant-structured-v32124');
 const marketplaceSeoAuditV32120=require('../services/marketplace-seo-audit-v32120');
 const marketplaceSitemapPlanV32122=require('../services/marketplace-sitemap-plan-v32122');
 const marketplaceGscReadOnlyV32123=require('../services/marketplace-gsc-readonly-v32123');
@@ -93,6 +94,10 @@ function entitySchema(row,url,images){
  const offer={'@type':'Offer',url,price:price(row),priceCurrency:'EUR',availability:row.external_source==='api'&&(!freshWooStock(row)||row.external_stock_status!=='in_stock')||row.external_stock_status==='out_of_stock'?'https://schema.org/OutOfStock':'https://schema.org/InStock'};
  const details=row.details&&typeof row.details==='object'?row.details:{};
  if(row.kind==='product'){
+   // Seller attribution is based on the same PUBLIC user and, if approved,
+   // independently verified external purchase destination already visible.
+   const seller=marketplaceMerchantV32124.sellerForOffer(row);
+   if(seller)offer.seller=seller;
    if(['new','used'].includes(details.condition))offer.itemCondition='https://schema.org/'+(details.condition==='new'?'NewCondition':'UsedCondition');
    if(nationalSale(row))offer.areaServed={'@type':'Country',name:'España'};
    const product={...data,'@type':'Product',offers:offer};
@@ -164,8 +169,8 @@ function listingHtml(row,related=[],categoryDef=null){
  const offerActions=verifiedPurchaseUrl?
   '<div class="market-product-offer-actions-v32778">'+buyAnchor+chatAnchor+'</div>':chatAnchor;
  const purchaseNote=verifiedPurchaseUrl?
-  'Comprarás y pagarás en la web del vendedor. RedLibertad no gestiona pagos ni envíos. Puedes consultar dudas por el chat.':
-  'Contacto por el chat de RedLibertad. Para escribir necesitas iniciar sesión. RedLibertad no gestiona pagos ni envíos.';
+  'Comprarás y pagarás en la web del vendedor. RedLibertad no gestiona pagos ni envíos. Consulta las condiciones de envío y devolución de esa tienda antes de pagar; puedes preguntar por el chat.':
+  'Contacto por el chat de RedLibertad. Para escribir necesitas iniciar sesión. RedLibertad no gestiona pagos ni envíos. Confirma con el vendedor las condiciones de entrega y devolución antes de acordar el pago.';
  const mobileAction=verifiedPurchaseUrl?
   '<a class="market-mobile-buy-v32778" href="'+esc(verifiedPurchaseUrl)+'" target="_blank" rel="noopener noreferrer">Comprar en la tienda ↗</a>':
   '<a href="'+esc(contactHref)+'">Consultar al vendedor →</a>';
@@ -234,6 +239,9 @@ router.get('/api/admin/marketplace/seo/auditoria',requireAdmin,async(_req,res,ne
   });
   // Counts already originate from the strict public-only audit queries.
   // Do not imply these URLs were fetched or verified by Search Console.
+  // V3.2.124: explain optional merchant metadata from the *same*
+  // public, capped sample, not from unverified WooCommerce policies.
+  audit.merchantStructuredAdvice=marketplaceMerchantV32124.merchantSample(sample.rows);
   audit.technicalSitemaps=marketplaceSitemapPlanV32122.summary(
    metrics.rows[0]||{},categoryCounts.rows[0]||{},marketplaceCategorySeoV32112.LANDINGS,marketplaceCategorySeoV32112.canIndex
   );
