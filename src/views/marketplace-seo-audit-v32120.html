@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Auditoría SEO del Marketplace · RedLibertad</title>
 <link rel="icon" href="/marketplace/icon-192.png" type="image/png">
-<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.127">
-<script src="/marketplace-seo-audit-v32120.js?v=3.2.127" defer></script>
+<link rel="stylesheet" href="/marketplace-seo-audit-v32120.css?v=3.2.128">
+<script src="/marketplace-seo-audit-v32120.js?v=3.2.128" defer></script>
 </head>
 <body>
 <header class="audit-header">
@@ -102,7 +102,7 @@
   </section>
   <section aria-labelledby="auditPendingTitle" class="audit-gsc-pending">
    <h2 id="auditPendingTitle">Productos pendientes de inspección manual</h2>
-   <p class="audit-muted">Productos en venta y públicos sin una inspección guardada durante los últimos 90 días. <strong>Esto NO significa que Google desconozca esas URLs ni que estén sin indexar.</strong> Consultar esta lista no contacta con Google, no consume cuota y no solicita indexación.</p>
+   <p class="audit-muted">Productos públicos sin una inspección manual guardada en los últimos 90 días. <strong>Pendiente de revisión no significa que Google no los conozca o indexe.</strong> Buscar y seleccionar no consume cuota.</p>
    <div class="audit-gsc-pending-controls">
     <label for="auditPendingSearch">Buscar por nombre del producto</label>
     <input id="auditPendingSearch" type="search" maxlength="70" autocomplete="off" placeholder="Ej.: taza, armario…">
@@ -113,16 +113,30 @@
     </select>
     <button id="auditPendingLoad" type="button">Consultar productos pendientes</button>
    </div>
-   <p class="audit-muted"><strong>Prioridad editorial:</strong> primero fichas con fotografía local, título, descripción y categoría, especialmente las publicadas hace más de siete días. Las demás se señalan para revisar su contenido antes de utilizar una consulta de Google. <strong>No es una clasificación ni puntuación de Google.</strong></p>
+   <p class="audit-muted"><strong>Orden orientativo:</strong> foto y datos básicos, antigüedad y posibles mejoras. No es una puntuación de Google.</p>
    <p id="auditPendingStatus" class="audit-muted" role="status" aria-live="polite">Pulsa «Consultar productos pendientes» para verlos.</p>
    <div id="auditPendingCounts" class="audit-metrics"></div>
+   <aside class="audit-pending-queue" aria-labelledby="auditQueueTitle">
+    <div class="audit-pending-queue-header">
+     <div>
+      <h3 id="auditQueueTitle">Mi lista de revisión <span id="auditQueueCount" class="audit-queue-count">0/6</span></h3>
+      <p class="audit-muted">Selecciona hasta seis fichas para organizar tu revisión en esta sesión. No se reservan consultas ni se contacta con Google.</p>
+     </div>
+     <div class="audit-pending-queue-buttons">
+      <button type="button" id="auditQueuePrepare" disabled>Preparar siguiente</button>
+      <button type="button" id="auditQueueClear" disabled>Vaciar lista</button>
+     </div>
+    </div>
+    <p id="auditQueueStatus" class="audit-muted" role="status" aria-live="polite">La lista está vacía.</p>
+    <div id="auditQueueItems" class="audit-pending-queue-items" aria-label="Productos seleccionados"></div>
+   </aside>
    <div id="auditPendingItems" class="audit-gsc-followup-list"></div>
    <nav id="auditPendingPagination" class="audit-gsc-pending-pages" aria-label="Páginas de productos pendientes" hidden>
     <button id="auditPendingPrevious" type="button">← Anterior</button>
     <span id="auditPendingPage" aria-live="polite"></span>
     <button id="auditPendingNext" type="button">Siguiente →</button>
    </nav>
-   <p class="audit-muted">Puedes preparar una inspección individual desde cada producto y luego pulsar «Inspeccionar en Google» arriba. No se realizan consultas en lote.</p>
+   <p class="audit-muted">Preparar un producto solo rellena su número. La inspección real sigue siendo <strong>individual y manual</strong> desde el botón de Google.</p>
   </section>
   <section aria-labelledby="auditExamplesTitle">
    <h2 id="auditExamplesTitle">Ejemplos que conviene revisar</h2>
