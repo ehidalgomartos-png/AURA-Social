@@ -60,7 +60,7 @@ test('V3.2.124 approved external checkout identifies its real external shop, not
  });
  assert.deepEqual(schema(row).offers.seller,seller);
  const html=seo.listingHtml(row);
- assert.match(html,/Compra en la tienda/);
+ assert.match(html,/Comprar en la tienda/);
  assert.match(html,/condiciones de envío y devolución de esa tienda/);
  assert.deepEqual(structuredFromHtml(html)['@graph'][0].offers.seller,seller);
  assert.doesNotMatch(html,/shippingDetails|hasMerchantReturnPolicy/);
