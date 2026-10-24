@@ -19,6 +19,7 @@ test('successful signup triggers conversion and landing page hosts consent contr
   const app = read('public/app.js');
   const index = read('public/index.html');
   assert.match(app, /if\(!r\.ok\)[\s\S]*?window\.RedLibertadMeta\?\.trackRegistration\(\)/);
+  assert.match(app, /setTimeout\(resolve,400\)/);
   assert.match(index, /meta-pixel-consent\.js/);
   assert.match(index, /metaCookieSettings/);
 });
