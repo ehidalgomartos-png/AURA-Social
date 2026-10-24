@@ -49,10 +49,11 @@ async function requestVerification({userId,email,db=database,env=process.env,fet
     "VALUES($1,$2,now()+interval '24 hours',now())",
     'ON CONFLICT(user_id) DO UPDATE',
     'SET token_hash=EXCLUDED.token_hash,expires_at=EXCLUDED.expires_at,updated_at=now()',
-    'WHERE signup_email_verifications_v32131.verified_at IS NULL',
+    "WHERE signup_email_verifications_v32131.verified_at IS NULL " +
+    "AND (signup_email_verifications_v32131.sent_at IS NULL OR signup_email_verifications_v32131.sent_at < now()-interval '15 minutes')",
     'RETURNING user_id'
   ].join(' '),[userId,tokenHash]);
-  if (!result.rowCount) return {sent:false,reason:'already_verified'};
+  if (!result.rowCount) return {sent:false,reason:'already_verified_or_cooldown'};
 
   const link=publicUrl(token);
   const response=await fetchImpl('https://api.resend.com/emails',{
