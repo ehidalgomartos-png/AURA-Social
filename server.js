@@ -156,8 +156,8 @@ app.use(helmet({
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
       mediaSrc: ["'self'", 'blob:', 'https:'],
       frameSrc: ["'self'", 'https://iframe.mediadelivery.net'],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://connect.facebook.net'],
+      connectSrc: ["'self'", 'https://www.facebook.com', 'https://connect.facebook.net'],
       upgradeInsecureRequests: null
     }
   }
