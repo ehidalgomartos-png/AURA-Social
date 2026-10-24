@@ -6,7 +6,8 @@
   if(!button || !status)return;
   var token='';
   try{
-    token=(new URLSearchParams(window.location.search)).get('token')||'';
+    token=(new URLSearchParams(window.location.hash.replace(/^#/,''))).get('token')||'';
+    if(!token)token=(new URLSearchParams(window.location.search)).get('token')||'';
     // No dejar el token en la barra del navegador tras cargarlo.
     window.history.replaceState(null,'','/verificar-email/');
   }catch(_){}
