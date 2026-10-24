@@ -6,7 +6,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const {requestPasswordReset,resetPassword,passwordResetLink}=require('../src/services/password-recovery-v321311');
 
-const ENV={EMAIL_VERIFICATION_ENABLED:'true',RESEND_API_KEY:'re_123456789abcdefgh',EMAIL_VERIFICATION_FROM:'RedLibertad <noreply@redlibertad.com>'};
+const ENV={EMAIL_VERIFICATION_ENABLED:'true',RESEND_API_KEY:'re_123456789abcdefgh',EMAIL_VERIFICATION_FROM:'noreply@redlibertad.com'};
 
 test('Forgot-password requests require email delivery enabled',async()=>{
   const result=await requestPasswordReset({email:'test@example.com',env:{}});
