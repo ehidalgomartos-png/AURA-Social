@@ -157,7 +157,8 @@
           googleDecision !== 'accepted') return false;
       var key = 'redlibertad-ads-verified-' + result.conversionId;
       try { if (window.localStorage.getItem(key) === '1') return false; } catch (_) {}
-      if (!loadGoogleAds() || typeof window.gtag !== 'function') return false;
+      loadGoogleAds();
+      if (typeof window.gtag !== 'function') return false;
       window.gtag('event', 'conversion', {
         send_to: GOOGLE_CONVERSION,
         transaction_id: String(result.conversionId)
