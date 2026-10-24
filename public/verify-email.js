@@ -15,6 +15,21 @@
     status.textContent='El enlace no es válido. Solicita uno nuevo desde RedLibertad.';
     return;
   }
+  var resend=document.getElementById('resendEmailButton');
+  if(resend)resend.addEventListener('click',async function(){
+    resend.disabled=true;
+    status.textContent='Solicitando otro enlace...';
+    try{
+      var reply=await fetch('/api/auth/verify-email/resend',{
+        method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},cache:'no-store',body:'{}'
+      });
+      if(reply.ok)status.textContent='Te hemos enviado otro enlace de confirmación. Revisa tu correo.';
+      else if(reply.status===401)status.textContent='Primero inicia sesión en RedLibertad para reenviar el correo.';
+      else status.textContent='No se pudo enviar otro enlace todavía. Prueba más tarde.';
+    }catch(_){status.textContent='No se pudo solicitar el enlace. Comprueba tu conexión.';}
+    resend.disabled=false;
+  });
   button.addEventListener('click',async function(){
     button.disabled=true;
     status.textContent='Comprobando el enlace de confirmación...';
