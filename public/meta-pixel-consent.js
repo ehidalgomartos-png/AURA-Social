@@ -7,7 +7,6 @@
 
   var META_PIXEL_ID = '2349464439156555';
   var GOOGLE_ADS_ID = 'AW-18535212811';
-  var GOOGLE_CONVERSION = 'AW-18535212811/BczVCKftp6gdEIvoo4ZF';
   var META_CONSENT_KEY = 'redlibertad-meta-pixel-consent-v1';
   var GOOGLE_CONSENT_KEY = 'redlibertad-google-ads-consent-v1';
   var metaDecision = readDecision(META_CONSENT_KEY);
@@ -148,26 +147,10 @@
     openPreferences: showPreferences
   });
 
-  // PREPARADO, NO INVOCADO: se conectara solo a una respuesta del servidor
-  // que acredite la verificacion del correo; /api/auth/register NO la acredita.
-  window.RedLibertadGoogleAds = Object.freeze({
-    trackVerifiedRegistration: function (result) {
-      if (!result || result.emailVerified !== true ||
-          !/^[a-zA-Z0-9_-]{8,128}$/.test(String(result.conversionId || '')) ||
-          googleDecision !== 'accepted') return false;
-      var key = 'redlibertad-ads-verified-' + result.conversionId;
-      try { if (window.localStorage.getItem(key) === '1') return false; } catch (_) {}
-      loadGoogleAds();
-      if (typeof window.gtag !== 'function') return false;
-      window.gtag('event', 'conversion', {
-        send_to: GOOGLE_CONVERSION,
-        transaction_id: String(result.conversionId)
-      });
-      try { window.localStorage.setItem(key, '1'); } catch (_) {}
-      return true;
-    },
-    openPreferences: showPreferences
-  });
+  // La accion Registro confirmado se deja intencionadamente INACTIVA.
+  // Solo se habilitara cuando exista un evento del servidor autentico,
+  // generado tras verificar el correo y resistente a duplicados.
+  // El registro actual /api/auth/register NO garantiza verificacion.
 
   var manage = document.getElementById('metaCookieSettings');
   if (manage) manage.addEventListener('click', showPreferences);
