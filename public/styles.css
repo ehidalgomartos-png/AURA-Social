@@ -367,6 +367,7 @@ body{
 .marketplace-auth-back:focus-visible{outline:3px solid #22a89c;outline-offset:3px}
 
 /* V3.2.131.2 — Acceso: opciones de ayuda separadas, legibles y táctiles. */
+.dark-card #loginMessage:empty{display:none}
 .dark-card .auth-help-links{
   display:grid;
   grid-template-columns:minmax(0,1fr);
