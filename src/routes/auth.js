@@ -24,7 +24,7 @@ router.post('/verify-email/request',rateLimit({
 }),async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   const email=String(req.body?.email||'').trim().toLowerCase();
-  if(email.length>254||!/^[^<>\\s@]+@[^<>\\s@]+\\.[^<>\\s@]+$/.test(email)){
+  if(email.length>254||!/^[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+$/.test(email)){
     return res.status(400).json({ok:false,error:'invalid_email'});
   }
   if(!verificationEmailConfig().enabled){
@@ -48,7 +48,7 @@ router.post('/password-reset/request',rateLimit({
 }),async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   const email=String(req.body?.email||'').trim();
-  if(email.length>254||!/^[^<>\\s@]+@[^<>\\s@]+\\.[^<>\\s@]+$/.test(email)){
+  if(email.length>254||!/^[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+$/.test(email)){
     return res.status(400).json({ok:false,error:'invalid_email'});
   }
   if(!verificationEmailConfig().enabled){
