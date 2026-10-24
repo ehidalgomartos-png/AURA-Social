@@ -32,7 +32,7 @@ function config(env=process.env) {
   return {enabled,from,key};
 }
 function publicUrl(token) {
-  return 'https://redlibertad.com/verificar-email/?token='+encodeURIComponent(token);
+  return 'https://redlibertad.com/verificar-email/#token='+encodeURIComponent(token);
 }
 async function requestVerification({userId,email,db=database,env=process.env,fetchImpl=globalThis.fetch}) {
   const settings=config(env);
