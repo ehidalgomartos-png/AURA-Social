@@ -13,7 +13,6 @@
   if(!/^[A-Za-z0-9_-]{40,64}$/.test(token)){
     button.hidden=true;
     status.textContent='El enlace no es válido. Solicita uno nuevo desde RedLibertad.';
-    return;
   }
   var resend=document.getElementById('resendEmailButton');
   if(resend)resend.addEventListener('click',async function(){
