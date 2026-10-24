@@ -7,6 +7,7 @@
 
   var META_PIXEL_ID = '2349464439156555';
   var GOOGLE_ADS_ID = 'AW-18535212811';
+  var GOOGLE_CONFIRMED_REGISTRATION = 'AW-18535212811/BczVCKftp6gdEIvoo4ZF';
   var META_CONSENT_KEY = 'redlibertad-meta-pixel-consent-v1';
   var GOOGLE_CONSENT_KEY = 'redlibertad-google-ads-consent-v1';
   var metaDecision = readDecision(META_CONSENT_KEY);
@@ -14,6 +15,7 @@
   var metaLoaded = false;
   var googleLoaded = false;
   var banner = null;
+  var pendingVerifiedConversion = null;
 
   function readDecision(key) {
     try {
@@ -70,6 +72,21 @@
     return true;
   }
 
+  function reportVerifiedRegistration() {
+    if (googleDecision !== 'accepted' || !pendingVerifiedConversion) return false;
+    loadGoogleAds();
+    if (typeof window.gtag !== 'function') return false;
+    var key = 'redlibertad-ads-verified-' + pendingVerifiedConversion;
+    try { if (window.localStorage.getItem(key) === '1') return false; } catch (_) {}
+    window.gtag('event', 'conversion', {
+      send_to: GOOGLE_CONFIRMED_REGISTRATION,
+      transaction_id: pendingVerifiedConversion
+    });
+    try { window.localStorage.setItem(key, '1'); } catch (_) {}
+    pendingVerifiedConversion=null;
+    return true;
+  }
+
   function clearCookies(names) {
     names.forEach(function (name) {
       document.cookie = name + '=; Max-Age=0; Path=/; SameSite=Lax';
@@ -91,6 +108,7 @@
     if (next === 'accepted') {
       loadMetaPixel();
       loadGoogleAds();
+      reportVerifiedRegistration();
       return;
     }
     if (typeof window.gtag === 'function') {
@@ -147,10 +165,18 @@
     openPreferences: showPreferences
   });
 
-  // La accion Registro confirmado se deja intencionadamente INACTIVA.
-  // Solo se habilitara cuando exista un evento del servidor autentico,
-  // generado tras verificar el correo y resistente a duplicados.
-  // El registro actual /api/auth/register NO garantiza verificacion.
+
+  // La pagina /verificar-email/ solo llama esto tras una respuesta exitosa
+  // del servidor al token de un solo uso. No se dispara desde /register.
+  window.RedLibertadGoogleAds = Object.freeze({
+    trackVerifiedRegistration: function (result) {
+      if (!result || result.ok !== true || result.emailVerified !== true ||
+          !/^[0-9a-f-]{36}$/i.test(String(result.conversionId || ''))) return false;
+      pendingVerifiedConversion=String(result.conversionId);
+      return reportVerifiedRegistration();
+    },
+    openPreferences: showPreferences
+  });
 
   var manage = document.getElementById('metaCookieSettings');
   if (manage) manage.addEventListener('click', showPreferences);
