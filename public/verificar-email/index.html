@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0d2238">
+  <title>Confirmar correo — RedLibertad</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/meta-pixel-consent.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main style="min-height:80vh;display:grid;place-items:center;padding:2rem">
+    <section style="width:min(480px,100%);padding:2rem;background:#fff;border-radius:1rem;color:#14283d">
+      <h1>Confirma tu correo</h1>
+      <p>Confirma la dirección de correo de tu cuenta de RedLibertad. Este enlace caduca en 24 horas y solo se puede utilizar una vez.</p>
+      <p id="verificationStatus" role="status" aria-live="polite">Listo para verificar.</p>
+      <button id="confirmEmailButton" class="button" type="button">Confirmar correo</button>
+      <p>¿El enlace ha caducado? Si has iniciado sesión, puedes solicitar otro.</p>
+      <button id="resendEmailButton" type="button">Reenviar confirmación</button>
+      <p><a href="/">Volver a RedLibertad</a></p>
+      <button id="metaCookieSettings" type="button">Preferencias de cookies</button>
+    </section>
+  </main>
+  <script src="/verify-email.js"></script>
+  <script src="/meta-pixel-consent.js"></script>
+</body>
+</html>
