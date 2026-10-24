@@ -1,24 +1,36 @@
-/* Meta Pixel de RedLibertad: solo después de consentimiento publicitario. */
+/* Consentimiento publicitario de RedLibertad (Meta Pixel + Google Ads).
+ * Google Ads: consentimiento basico v2, sin cargar su etiqueta antes de aceptar.
+ * Un consentimiento anterior de Meta NO implica consentimiento para Google.
+ */
 (function () {
   'use strict';
 
-  var PIXEL_ID = '2349464439156555';
-  var CONSENT_KEY = 'redlibertad-meta-pixel-consent-v1';
-  var decision = null;
-  var loaded = false;
+  var META_PIXEL_ID = '2349464439156555';
+  var GOOGLE_ADS_ID = 'AW-18535212811';
+  var GOOGLE_CONVERSION = 'AW-18535212811/BczVCKftp6gdEIvoo4ZF';
+  var META_CONSENT_KEY = 'redlibertad-meta-pixel-consent-v1';
+  var GOOGLE_CONSENT_KEY = 'redlibertad-google-ads-consent-v1';
+  var metaDecision = readDecision(META_CONSENT_KEY);
+  var googleDecision = readDecision(GOOGLE_CONSENT_KEY);
+  var metaLoaded = false;
+  var googleLoaded = false;
   var banner = null;
 
-  try {
-    var saved = window.localStorage.getItem(CONSENT_KEY);
-    if (saved === 'accepted' || saved === 'rejected') decision = saved;
-  } catch (_) {
-    // Si el almacenamiento está bloqueado se solicita consentimiento de nuevo.
+  function readDecision(key) {
+    try {
+      var value = window.localStorage.getItem(key);
+      if (value === 'accepted' || value === 'rejected') return value;
+    } catch (_) {}
+    return null;
   }
 
-  function loadPixel() {
-    if (decision !== 'accepted' || loaded) return false;
-    loaded = true;
-    // Código base oficial; NO se carga la biblioteca de Meta antes de aceptar.
+  function storeDecision(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (_) {}
+  }
+
+  function loadMetaPixel() {
+    if (metaDecision !== 'accepted' || metaLoaded) return false;
+    metaLoaded = true;
     !function(f,b,e,v,n,t,s){
       if(f.fbq)return;
       n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -27,13 +39,40 @@
       t=b.createElement(e);t.async=!0;t.src=v;
       s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s);
     }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    window.fbq('init', PIXEL_ID);
+    window.fbq('init', META_PIXEL_ID);
     window.fbq('track', 'PageView');
     return true;
   }
 
-  function clearMetaCookies() {
-    ['_fbp', '_fbc'].forEach(function(name) {
+  function loadGoogleAds() {
+    if (googleDecision !== 'accepted' || googleLoaded) return false;
+    googleLoaded = true;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    // Consent Mode v2: los cuatro estados se definen ANTES de config/event.
+    window.gtag('consent', 'default', {
+      ad_storage: 'denied',
+      analytics_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied'
+    });
+    window.gtag('consent', 'update', {
+      ad_storage: 'granted',
+      analytics_storage: 'denied',
+      ad_user_data: 'granted',
+      ad_personalization: 'denied'
+    });
+    window.gtag('js', new Date());
+    window.gtag('config', GOOGLE_ADS_ID);
+    var script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GOOGLE_ADS_ID);
+    document.head.appendChild(script);
+    return true;
+  }
+
+  function clearCookies(names) {
+    names.forEach(function (name) {
       document.cookie = name + '=; Max-Age=0; Path=/; SameSite=Lax';
       if (/^(?:.+\.)?redlibertad\.com$/.test(window.location.hostname)) {
         document.cookie = name + '=; Max-Age=0; Path=/; Domain=.redlibertad.com; SameSite=Lax';
@@ -42,18 +81,31 @@
   }
 
   function saveDecision(next) {
-    var previous = decision;
-    decision = next;
-    try { window.localStorage.setItem(CONSENT_KEY, next); } catch (_) {}
+    if (next !== 'accepted' && next !== 'rejected') return;
+    var previousMeta = metaDecision;
+    var previousGoogle = googleDecision;
+    metaDecision = next;
+    googleDecision = next;
+    storeDecision(META_CONSENT_KEY, next);
+    storeDecision(GOOGLE_CONSENT_KEY, next);
     if (banner) banner.hidden = true;
-
     if (next === 'accepted') {
-      loadPixel();
-    } else {
-      clearMetaCookies();
-      // La biblioteca ya cargada no se puede descargar; recargar impide nuevos eventos.
-      if (previous === 'accepted' && loaded) window.location.reload();
+      loadMetaPixel();
+      loadGoogleAds();
+      return;
     }
+    if (typeof window.gtag === 'function') {
+      window.gtag('consent', 'update', {
+        ad_storage: 'denied',
+        analytics_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied'
+      });
+    }
+    clearCookies(['_fbp','_fbc','_gcl_au','_gcl_aw','_gcl_dc','_gcl_gb','_gcl_gs']);
+    // Una etiqueta descargada no puede retirarse sin recargar.
+    if ((previousMeta === 'accepted' && metaLoaded) ||
+        (previousGoogle === 'accepted' && googleLoaded)) window.location.reload();
   }
 
   function showPreferences() {
@@ -65,15 +117,17 @@
       banner.innerHTML =
         '<div class="meta-consent-inner">' +
           '<div><strong>Tu privacidad importa</strong>' +
-          '<p>Con tu permiso, RedLibertad utilizará Meta Pixel para medir visitas y registros de las campañas publicitarias. ' +
-          'Puedes rechazarlo y seguir usando la web normalmente. ' +
+          '<p>Con tu permiso, RedLibertad utiliza Meta Pixel y Google Ads para medir ' +
+          'las visitas y los registros de publicidad. Google y Meta pueden tratar identificadores ' +
+          'técnicos de publicidad. No enviamos tu correo, nombre ni contraseña en los eventos. ' +
+          'Puedes rechazar sin perder funciones. ' +
           '<a href="/cookies/">Leer la política de cookies</a>.</p></div>' +
           '<div class="meta-consent-actions">' +
             '<button type="button" data-meta-consent="rejected">Rechazar</button>' +
             '<button type="button" data-meta-consent="accepted">Aceptar</button>' +
           '</div></div>';
       document.body.appendChild(banner);
-      banner.querySelectorAll('[data-meta-consent]').forEach(function(button) {
+      banner.querySelectorAll('[data-meta-consent]').forEach(function (button) {
         button.addEventListener('click', function () {
           saveDecision(button.getAttribute('data-meta-consent'));
         });
@@ -82,13 +136,33 @@
     banner.hidden = false;
   }
 
-  // No se recopilan email, nombres, fechas de nacimiento ni contraseñas.
+  // Conservamos el comportamiento de Meta para no romper la campana existente.
   window.RedLibertadMeta = Object.freeze({
     trackRegistration: function () {
-      if (decision !== 'accepted') return false;
-      loadPixel();
+      if (metaDecision !== 'accepted') return false;
+      loadMetaPixel();
       if (typeof window.fbq !== 'function') return false;
       window.fbq('track', 'CompleteRegistration');
+      return true;
+    },
+    openPreferences: showPreferences
+  });
+
+  // PREPARADO, NO INVOCADO: se conectara solo a una respuesta del servidor
+  // que acredite la verificacion del correo; /api/auth/register NO la acredita.
+  window.RedLibertadGoogleAds = Object.freeze({
+    trackVerifiedRegistration: function (result) {
+      if (!result || result.emailVerified !== true ||
+          !/^[a-zA-Z0-9_-]{8,128}$/.test(String(result.conversionId || '')) ||
+          googleDecision !== 'accepted') return false;
+      var key = 'redlibertad-ads-verified-' + result.conversionId;
+      try { if (window.localStorage.getItem(key) === '1') return false; } catch (_) {}
+      if (!loadGoogleAds() || typeof window.gtag !== 'function') return false;
+      window.gtag('event', 'conversion', {
+        send_to: GOOGLE_CONVERSION,
+        transaction_id: String(result.conversionId)
+      });
+      try { window.localStorage.setItem(key, '1'); } catch (_) {}
       return true;
     },
     openPreferences: showPreferences
@@ -97,10 +171,10 @@
   var manage = document.getElementById('metaCookieSettings');
   if (manage) manage.addEventListener('click', showPreferences);
 
+  if (metaDecision === 'accepted') loadMetaPixel();
+  if (googleDecision === 'accepted') loadGoogleAds();
+
   var params = new URLSearchParams(window.location.search);
-  if (params.get('cookies') === 'manage' || decision === null) {
-    showPreferences();
-  } else if (decision === 'accepted') {
-    loadPixel();
-  }
+  if (params.get('cookies') === 'manage' ||
+      metaDecision === null || googleDecision === null) showPreferences();
 })();
