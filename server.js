@@ -155,9 +155,9 @@ app.use(helmet({
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
       mediaSrc: ["'self'", 'blob:', 'https:'],
-      frameSrc: ["'self'", 'https://iframe.mediadelivery.net'],
-      scriptSrc: ["'self'", 'https://connect.facebook.net', 'https://www.googletagmanager.com', 'https://www.googleadservices.com'],
-      connectSrc: ["'self'", 'https://www.facebook.com', 'https://connect.facebook.net', 'https://www.google.com', 'https://www.google.es', 'https://www.googleadservices.com', 'https://www.google-analytics.com', 'https://region1.google-analytics.com'],
+      frameSrc: ["'self'", 'https://iframe.mediadelivery.net', 'https://www.googletagmanager.com'],
+      scriptSrc: ["'self'", 'https://connect.facebook.net', 'https://www.googletagmanager.com', 'https://www.googleadservices.com', 'https://www.google.com'],
+      connectSrc: ["'self'", 'https://www.facebook.com', 'https://connect.facebook.net', 'https://www.googletagmanager.com', 'https://www.google.com', 'https://www.google.es', 'https://www.googleadservices.com', 'https://googleads.g.doubleclick.net', 'https://pagead2.googlesyndication.com', 'https://ad.doubleclick.net'],
       upgradeInsecureRequests: null
     }
   }
