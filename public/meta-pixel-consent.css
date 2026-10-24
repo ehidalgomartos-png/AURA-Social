@@ -29,7 +29,9 @@
   background: transparent;
   border-radius: 10px;
   padding: 12px 16px;
-  font: 700 .9rem inherit;
+  font-family: inherit;
+  font-size: .9rem;
+  font-weight: 700;
   cursor: pointer;
   min-width: 104px;
 }
