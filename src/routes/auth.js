@@ -32,6 +32,26 @@ router.post('/verify-email/confirm',rateLimit({
   }
 });
 
+// Reenvio solo para el usuario autenticado; incluye limitacion por IP y por cuenta.
+router.post('/verify-email/resend',requireAuth,rateLimit({
+  windowMs:60*60*1000,max:6,standardHeaders:true,legacyHeaders:false,
+  message:{ok:false,error:'too_many_attempts'}
+}),async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  try{
+    const found=await db.query("SELECT id,email FROM users WHERE id=$1 AND status='active' LIMIT 1",[req.user.id]);
+    if(!found.rowCount)return res.status(404).json({ok:false,error:'account_unavailable'});
+    const r=await requestVerification({userId:found.rows[0].id,email:found.rows[0].email});
+    if(!r.sent)return res.status(r.reason==='not_configured'?503:429).json({
+      ok:false,error:r.reason==='not_configured'?'verification_unavailable':'already_verified_or_wait'
+    });
+    return res.json({ok:true,verificationEmailSent:true});
+  }catch(error){
+    console.error('RedLibertad resend verification failed:',error?.message||'unknown');
+    return res.status(503).json({ok:false,error:'verification_unavailable'});
+  }
+});
+
 const LEGAL_DOCUMENT_VERSIONS=Object.freeze({
   terms:'1.0',
   community_guidelines:'1.0',
