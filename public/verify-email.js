@@ -30,6 +30,25 @@
     }catch(_){status.textContent='No se pudo solicitar el enlace. Comprueba tu conexión.';}
     resend.disabled=false;
   });
+  var anonymous=document.getElementById('anonymousVerifyForm');
+  if(anonymous)anonymous.addEventListener('submit',async function(event){
+    event.preventDefault();
+    var submit=anonymous.querySelector('button[type="submit"]');
+    submit.disabled=true;
+    status.textContent='Solicitando confirmación...';
+    try{
+      var email=anonymous.querySelector('[name="email"]').value.trim();
+      var response=await fetch('/api/auth/verify-email/request',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})
+      });
+      if(response.ok)status.textContent='Si tu cuenta existe y aún necesita confirmación, te enviaremos un enlace. Comprueba también la carpeta de spam.';
+      else if(response.status===503)status.textContent='El envío de correos no está disponible. Contacta con el administrador.';
+      else if(response.status===429)status.textContent='Demasiadas solicitudes. Prueba más tarde.';
+      else status.textContent='Comprueba el correo electrónico que has escrito.';
+    }catch(_){status.textContent='No se pudo conectar. Vuelve a intentarlo.';}
+    submit.disabled=false;
+  });
   button.addEventListener('click',async function(){
     button.disabled=true;
     status.textContent='Comprobando el enlace de confirmación...';
