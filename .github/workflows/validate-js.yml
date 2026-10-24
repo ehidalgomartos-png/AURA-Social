@@ -26,6 +26,8 @@ jobs:
         run: node --test tests/password-recovery-v321311.test.js
       - name: V3.2.131.2 mobile login help layout
         run: node --test tests/login-links-polish-v321312.test.js
+      - name: V3.2.131.3 mobile account assistance and email verification UX
+        run: node --test tests/account-pages-mobile-v321313.test.js
       - name: V3.2.77.1 community post composer mobile polish
         run: npm run test:community-compose-polish
       - name: V3.2.77.3 catalogue origin and seller byline
