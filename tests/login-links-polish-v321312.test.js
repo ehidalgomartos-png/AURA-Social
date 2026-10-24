@@ -6,7 +6,7 @@ const path=require('node:path');
 
 const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 const css=fs.readFileSync(path.join(__dirname,'../public/styles.css'),'utf8');
-const login=html.match(/<form id="loginForm"\b[\s\S]*?<\/form>/)?.[0]||'';
+const login=html.match(/<form id="loginForm"[^>]*>[\s\S]*?<\/form>/)?.[0]||'';
 
 test('Login includes two distinct recovery options with direct valid paths',()=>{
   assert.match(login,/<nav class="auth-help-links" aria-label="Ayuda para acceder">/);
