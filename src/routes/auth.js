@@ -8,10 +8,29 @@ const { z } = require('zod');
 const db = require('../db');
 const {ensureSignupAttributionSchema}=require('../services/signup-attribution-schema-v219');
 const { requireAuth } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+const {requestVerification,confirmVerification} = require('../services/signup-email-verification-v32131');
 const { buildLegalConsentReceipt } = require('../services/legal-consent-receipt');
 const { renderLegalConsentReceiptHTML } = require('../services/legal-consent-readable');
 
 const router = express.Router();
+
+// Enlace de confirmacion de correo: POST de un solo uso; nunca confirmar por GET.
+router.post('/verify-email/confirm',rateLimit({
+  windowMs:15*60*1000,max:15,standardHeaders:true,legacyHeaders:false,
+  message:{ok:false,error:'too_many_attempts'}
+}),async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('Referrer-Policy','no-referrer');
+  try{
+    const result=await confirmVerification({token:req.body?.token});
+    if(!result.ok)return res.status(400).json({ok:false,error:'invalid_or_expired'});
+    return res.status(200).json(result);
+  }catch(error){
+    console.error('Email verification error:',error?.message||'unknown');
+    return res.status(503).json({ok:false,error:'verification_unavailable'});
+  }
+});
 
 const LEGAL_DOCUMENT_VERSIONS=Object.freeze({
   terms:'1.0',
@@ -371,7 +390,16 @@ router.post('/register', async (req, res) => {
     maxAge: 14 * 24 * 60 * 60 * 1000
   });
 
-  res.status(201).json({ ok: true, user, returnPath:signupAttribution?.path||'' });
+  // Envio opcional: los registros existentes siguen funcionando si Resend falla.
+  // Google Ads solo recibira una conversion tras usar el enlace recibido por email.
+  let verificationEmailSent=false;
+  try{
+    const verify=await requestVerification({userId:user.id,email:user.email});
+    verificationEmailSent=verify.sent === true;
+  }catch(error){
+    console.error('RedLibertad verification email failed:',error?.message||'unknown');
+  }
+  res.status(201).json({ ok: true, user, returnPath:signupAttribution?.path||'', verificationEmailSent });
 });
 
 router.post('/login', async (req, res) => {
