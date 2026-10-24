@@ -156,8 +156,8 @@ app.use(helmet({
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
       mediaSrc: ["'self'", 'blob:', 'https:'],
       frameSrc: ["'self'", 'https://iframe.mediadelivery.net'],
-      scriptSrc: ["'self'", 'https://connect.facebook.net'],
-      connectSrc: ["'self'", 'https://www.facebook.com', 'https://connect.facebook.net'],
+      scriptSrc: ["'self'", 'https://connect.facebook.net', 'https://www.googletagmanager.com', 'https://www.googleadservices.com'],
+      connectSrc: ["'self'", 'https://www.facebook.com', 'https://connect.facebook.net', 'https://www.google.com', 'https://www.google.es', 'https://www.googleadservices.com', 'https://www.google-analytics.com', 'https://region1.google-analytics.com'],
       upgradeInsecureRequests: null
     }
   }
