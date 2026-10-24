@@ -10,10 +10,80 @@ const {ensureSignupAttributionSchema}=require('../services/signup-attribution-sc
 const { requireAuth } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 const {requestVerification,confirmVerification} = require('../services/signup-email-verification-v32131');
+const {config:verificationEmailConfig} = require('../services/signup-email-verification-v32131');
+const {requestPasswordReset,resetPassword} = require('../services/password-recovery-v321311');
 const { buildLegalConsentReceipt } = require('../services/legal-consent-receipt');
 const { renderLegalConsentReceiptHTML } = require('../services/legal-consent-readable');
 
 const router = express.Router();
+
+// Acceso a la confirmación desde login sin conocer contraseña ni existencia de la cuenta.
+router.post('/verify-email/request',rateLimit({
+  windowMs:60*60*1000,max:8,standardHeaders:true,legacyHeaders:false,
+  message:{ok:false,error:'too_many_attempts'}
+}),async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  const email=String(req.body?.email||'').trim().toLowerCase();
+  if(email.length>254||!/^[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+$/.test(email)){
+    return res.status(400).json({ok:false,error:'invalid_email'});
+  }
+  if(!verificationEmailConfig().enabled){
+    return res.status(503).json({ok:false,error:'email_unavailable'});
+  }
+  try{
+    const found=await db.query("SELECT id,email FROM users WHERE lower(email)=$1 AND status='active' LIMIT 1",[email]);
+    if(found.rowCount){
+      await requestVerification({userId:found.rows[0].id,email:found.rows[0].email});
+    }
+  }catch(error){
+    console.error('RedLibertad anonymous verification email failed:',error?.message||'unknown');
+  }
+  return res.json({ok:true,message:'if_account_exists_email_will_arrive'});
+});
+
+// Recuperación segura de contraseñas: sin revelar si la dirección está registrada.
+router.post('/password-reset/request',rateLimit({
+  windowMs:60*60*1000,max:8,standardHeaders:true,legacyHeaders:false,
+  message:{ok:false,error:'too_many_attempts'}
+}),async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  const email=String(req.body?.email||'').trim();
+  if(email.length>254||!/^[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+$/.test(email)){
+    return res.status(400).json({ok:false,error:'invalid_email'});
+  }
+  if(!verificationEmailConfig().enabled){
+    return res.status(503).json({ok:false,error:'email_unavailable'});
+  }
+  try{
+    await requestPasswordReset({email});
+  }catch(error){
+    console.error('RedLibertad password recovery email failed:',error?.message||'unknown');
+  }
+  return res.status(200).json({ok:true,message:'if_account_exists_email_will_arrive'});
+});
+
+router.post('/password-reset/confirm',rateLimit({
+  windowMs:15*60*1000,max:12,standardHeaders:true,legacyHeaders:false,
+  message:{ok:false,error:'too_many_attempts'}
+}),async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('Referrer-Policy','no-referrer');
+  const token=String(req.body?.token||'');
+  const newPassword=req.body?.newPassword;
+  if(!/^[A-Za-z0-9_-]{40,64}$/.test(token)||
+     typeof newPassword!=='string'||newPassword.length<10||newPassword.length>128){
+    return res.status(400).json({ok:false,error:'invalid_data'});
+  }
+  try{
+    const result=await resetPassword({token,newPassword});
+    if(!result.ok)return res.status(400).json({ok:false,error:'invalid_or_expired'});
+    res.clearCookie('aura_token');
+    return res.json({ok:true});
+  }catch(error){
+    console.error('RedLibertad password recovery failed:',error?.message||'unknown');
+    return res.status(503).json({ok:false,error:'reset_unavailable'});
+  }
+});
 
 // Enlace de confirmacion de correo: POST de un solo uso; nunca confirmar por GET.
 router.post('/verify-email/confirm',rateLimit({

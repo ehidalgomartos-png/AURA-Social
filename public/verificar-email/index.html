@@ -20,6 +20,13 @@
       <button id="confirmEmailButton" class="button" type="button">Confirmar correo</button>
       <p>¿El enlace ha caducado? Si has iniciado sesión, puedes solicitar otro.</p>
       <button id="resendEmailButton" type="button">Reenviar confirmación</button>
+      <form id="anonymousVerifyForm" style="margin-top:1.5rem">
+        <p>¿No puedes iniciar sesión? Solicita la confirmación escribiendo el correo con el que creaste tu cuenta.</p>
+        <label for="verificationEmail">Tu email</label>
+        <input id="verificationEmail" name="email" type="email" autocomplete="email" maxlength="254" required style="display:block;min-width:0;width:100%;padding:12px;margin:8px 0">
+        <button type="submit" class="button">Enviar enlace sin iniciar sesión</button>
+      </form>
+      <p><a href="/recuperar-contrasena/">¿No recuerdas tu contraseña?</a></p>
       <p><a href="/">Volver a RedLibertad</a></p>
       <button id="metaCookieSettings" type="button">Preferencias de cookies</button>
     </section>
