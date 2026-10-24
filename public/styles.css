@@ -365,3 +365,59 @@ body{
 .marketplace-auth-return{border-left:4px solid #22a89c;padding:9px 12px!important;margin:12px 0!important;background:#eaf8f6!important;border-radius:8px;color:#083d37!important;font-size:14px;font-weight:700;line-height:1.5}
 .marketplace-auth-back{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:10px;margin:12px auto 0;color:inherit;font-weight:750;text-underline-offset:3px}
 .marketplace-auth-back:focus-visible{outline:3px solid #22a89c;outline-offset:3px}
+
+/* V3.2.131.2 — Acceso: opciones de ayuda separadas, legibles y táctiles. */
+.dark-card .auth-help-links{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:9px;
+  margin:1px 0 0;
+  padding-top:15px;
+  border-top:1px solid rgba(255,255,255,.13);
+}
+.dark-card .auth-help-link{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0;
+  min-height:49px;
+  padding:11px 13px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:13px;
+  background:rgba(255,255,255,.045);
+  color:rgba(255,255,255,.88);
+  text-decoration:none;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.35;
+  transition:background .16s,border-color .16s;
+}
+.dark-card .auth-help-link svg{
+  flex:none;
+  width:19px;
+  height:19px;
+  color:#7ce1d5;
+}
+.dark-card .auth-help-link>span:not(.auth-help-chevron){flex:1;min-width:0}
+.dark-card .auth-help-chevron{
+  flex:none;
+  color:rgba(255,255,255,.62);
+  font-size:23px;
+  font-weight:400;
+  line-height:1;
+}
+.dark-card .auth-help-link:hover{
+  background:rgba(255,255,255,.10);
+  border-color:rgba(124,225,213,.45);
+}
+.dark-card .auth-help-link:focus-visible{
+  outline:3px solid #7ce1d5;
+  outline-offset:3px;
+}
+@media(max-width:359px){
+  .dark-card .auth-help-link{gap:8px;padding:10px;font-size:13px}
+  .dark-card .auth-help-link svg{width:18px;height:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .dark-card .auth-help-link{transition:none}
+}
