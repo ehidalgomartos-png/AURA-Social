@@ -61,6 +61,7 @@ test('No conversion if no explicit Google consent; pending conversion emits only
   const result={ok:true,emailVerified:true,conversionId:'12345678-1234-4234-8234-123456789abc'};
   assert.equal(a.win.RedLibertadGoogleAds.trackVerifiedRegistration(result),false);
   assert.equal(a.win.dataLayer.length,0);
+  a.win.RedLibertadGoogleAds.openPreferences();
   a.listeners.accept();
   const conv=a.win.dataLayer.filter(x=>x[0]==='event'&&x[1]==='conversion');
   assert.equal(conv.length,1);
