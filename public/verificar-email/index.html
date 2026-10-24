@@ -5,33 +5,44 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex,nofollow">
-  <meta name="theme-color" content="#0d2238">
+  <meta name="theme-color" content="#0c2036">
   <title>Confirmar correo — RedLibertad</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/account-help-v321313.css">
   <link rel="stylesheet" href="/meta-pixel-consent.css">
-  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <main style="min-height:80vh;display:grid;place-items:center;padding:2rem">
-    <section style="width:min(480px,100%);padding:2rem;background:#fff;border-radius:1rem;color:#14283d">
-      <h1>Confirma tu correo</h1>
-      <p>Confirma la dirección de correo de tu cuenta de RedLibertad. Este enlace caduca en 24 horas y solo se puede utilizar una vez.</p>
-      <p id="verificationStatus" role="status" aria-live="polite">Listo para verificar.</p>
-      <button id="confirmEmailButton" class="button" type="button">Confirmar correo</button>
-      <p>¿El enlace ha caducado? Si has iniciado sesión, puedes solicitar otro.</p>
-      <button id="resendEmailButton" type="button">Reenviar confirmación</button>
-      <form id="anonymousVerifyForm" style="margin-top:1.5rem">
-        <p>¿No puedes iniciar sesión? Solicita la confirmación escribiendo el correo con el que creaste tu cuenta.</p>
-        <label for="verificationEmail">Tu email</label>
-        <input id="verificationEmail" name="email" type="email" autocomplete="email" maxlength="254" required style="display:block;min-width:0;width:100%;padding:12px;margin:8px 0">
-        <button type="submit" class="button">Enviar enlace sin iniciar sesión</button>
+  <main class="account-shell">
+    <section class="account-card" aria-labelledby="verificationTitle">
+      <div class="account-brand"><span class="account-brand-dot" aria-hidden="true"></span>REDLIBERTAD</div>
+      <h1 id="verificationTitle">Confirma tu correo</h1>
+      <p id="verificationIntro" class="account-intro">Comprueba la dirección de correo de tu cuenta de RedLibertad.</p>
+
+      <div id="confirmPanel" hidden>
+        <p class="account-intro">Tu enlace es de un solo uso y tiene una validez de 24 horas.</p>
+        <button id="confirmEmailButton" class="account-primary" type="button">Confirmar mi correo</button>
+      </div>
+
+      <form id="anonymousVerifyForm" class="account-form" hidden>
+        <label class="account-field" for="verificationEmail">
+          Correo electrónico
+          <input id="verificationEmail" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="tu@email.com">
+        </label>
+        <button class="account-primary" type="submit">Enviar enlace de confirmación</button>
+        <p class="account-secondary">Puedes pedirlo sin iniciar sesión. Si el correo está registrado y pendiente de confirmar, recibirás un enlace.</p>
       </form>
-      <p><a href="/recuperar-contrasena/">¿No recuerdas tu contraseña?</a></p>
-      <p><a href="/">Volver a RedLibertad</a></p>
-      <button id="metaCookieSettings" type="button">Preferencias de cookies</button>
+
+      <p id="verificationStatus" class="account-status" role="status" aria-live="polite" hidden></p>
+
+      <div class="account-divider" role="separator"></div>
+      <nav class="account-links" aria-label="Opciones de acceso">
+        <a class="account-link" href="/recuperar-contrasena/">Recuperar contraseña <span class="arrow" aria-hidden="true">›</span></a>
+        <a class="account-link" href="/#acceso">Volver a RedLibertad <span class="arrow" aria-hidden="true">›</span></a>
+      </nav>
+      <button id="metaCookieSettings" class="account-text-button" type="button">Preferencias de cookies</button>
     </section>
   </main>
-  <script src="/verify-email.js"></script>
+  <script src="/verify-email.js?v=3.2.131.3"></script>
   <script src="/meta-pixel-consent.js"></script>
 </body>
 </html>
