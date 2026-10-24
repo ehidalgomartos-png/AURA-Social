@@ -4,6 +4,7 @@
   const ask=document.getElementById('requestResetForm');
   const confirm=document.getElementById('confirmResetForm');
   const status=document.getElementById('status');
+  const intro=document.querySelector('.account-intro');
   let token='';
   try{
     token=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('token')||'';
@@ -12,6 +13,7 @@
   if(/^[A-Za-z0-9_-]{40,64}$/.test(token)){
     ask.hidden=true;
     confirm.hidden=false;
+    if(intro)intro.textContent='Introduce una contraseña nueva de al menos 10 caracteres.';
   }else{
     token='';
   }
@@ -56,6 +58,7 @@
       if(response.ok){
         token='';
         confirm.hidden=true;
+        if(intro)intro.textContent='La contraseña está actualizada. Puedes volver a entrar en tu cuenta.';
         status.textContent='Contraseña cambiada correctamente. Vuelve a la página de acceso para entrar con la nueva contraseña.';
       }else if(response.status===400){
         status.textContent='El enlace no es válido o ha caducado. Solicita otro desde la página de recuperación.';
