@@ -1,0 +1,45 @@
+/* Banner no intrusivo: aceptar y rechazar tienen la misma prominencia. */
+.meta-consent-banner {
+  position: fixed;
+  z-index: 10000;
+  inset: auto 0 0;
+  background: #102b42;
+  color: #fff;
+  box-shadow: 0 -8px 32px rgba(0,0,0,.24);
+  font-family: inherit;
+}
+.meta-consent-banner[hidden] { display: none; }
+.meta-consent-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.meta-consent-inner strong { font-size: 1rem; }
+.meta-consent-inner p { font-size: .88rem; line-height: 1.48; margin: 5px 0 0; color: #e4f0f6; }
+.meta-consent-inner a { color: #80e5ed; text-decoration: underline; }
+.meta-consent-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.meta-consent-actions button {
+  appearance: none;
+  border: 2px solid #a7e8eb;
+  color: #fff;
+  background: transparent;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font: 700 .9rem inherit;
+  cursor: pointer;
+  min-width: 104px;
+}
+.meta-consent-actions button:hover,
+.meta-consent-actions button:focus-visible { background: #204e60; outline: 2px solid #fff; outline-offset: 2px; }
+#metaCookieSettings {
+  background: transparent; border: 0; padding: 0;
+  color: inherit; text-decoration: underline; font: inherit; cursor: pointer;
+}
+@media (max-width: 720px) {
+  .meta-consent-inner { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); }
+  .meta-consent-actions { display: grid; grid-template-columns: 1fr 1fr; }
+}
