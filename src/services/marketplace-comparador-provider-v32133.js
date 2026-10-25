@@ -88,6 +88,9 @@ function resolveOfferLink(offer){
 // Los marketplaces entre particulares no ofrecen normalmente una ficha de
 // vendedores de Google Product que permita verificar el anuncio concreto.
 // No gastar consultas adicionales cuando no hay URL real de ese anuncio.
+function hasProductReference(offer){
+ return /^\d{8,30}$/.test(String(offer?.product_id||'')) || Boolean(safePageToken(offer?.page_token));
+}
 function canLookupSeller(offer){
  const shop=String(offer?.shop||'').trim().toLowerCase();
  return !/^(?:wallapop(?:\.es)?|vinted(?:\.es)?|milanuncios(?:\.com)?|facebook marketplace)$/i.test(shop);
@@ -257,11 +260,11 @@ function selectRetailer(offer,sellers){
 async function fetchDirectRetailer(offer,fetchFn=fetch,env=process.env){
  if(!configured(env))throw new Error('provider_not_configured');
  const pid=String(offer?.product_id||'');
- if(!/^\d{8,30}$/.test(pid))return null;
+ const token=safePageToken(offer?.page_token);
+ if(!token&&!/^\d{8,30}$/.test(pid))return null;
  const params=new URLSearchParams({
   engine:'google_product',gl:'es',hl:'es',api_key:String(env.COMPARADOR_SERPAPI_KEY).trim()
  });
- const token=safePageToken(offer?.page_token);
  if(token)params.set('page_token',token);
  else params.set('product_id',pid);
  const r=await fetchFn('https://serpapi.com/search.json?'+params,{
@@ -302,4 +305,4 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
  return mergeOffers(organic,sponsored);
 }
-module.exports={safeHttps,safeImage,directMerchantUrl,safePageToken,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,canLookupSeller,selectRetailer,fetchDirectRetailer};
+module.exports={safeHttps,safeImage,directMerchantUrl,safePageToken,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,hasProductReference,canLookupSeller,selectRetailer,fetchDirectRetailer};
