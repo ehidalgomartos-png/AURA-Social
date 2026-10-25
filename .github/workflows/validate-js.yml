@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.141 quiet quota UX, protected monthly budget and automatic retry
+        run: node --test tests/marketplace-comparador-quiet-quota-v32141.test.js
       - name: V3.2.140.2 fix Google Shopping empty fallback for used marketplace offers
         run: node --test tests/marketplace-comparador-google-web-fallback-v321402.test.js
       - name: V3.2.140.1 quota notice consolidation and compact mobile product variants
