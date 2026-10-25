@@ -166,7 +166,7 @@ router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
   }else if(action==='approve'){
    const summary=String(req.body?.summary||'').trim().replace(/\s+/g,' ');
    if(summary.length<80||summary.length>2000)return res.status(400).send('El análisis requiere entre 80 y 2000 caracteres.');
-   const r=await db.query("UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,updated_at=now() WHERE id=$1 AND query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2 RETURNING id",[id,summary]);
+   const r=await db.query("UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,updated_at=now() WHERE id=$1 AND query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 RETURNING id",[id,summary]);
    if(!r.rowCount)return res.status(409).send('Solo se aprueban modelos específicos con dos vendedores distintos y ofertas recientes.');
   }else return res.sendStatus(400);
   res.redirect(303,'/admin/comparador');
