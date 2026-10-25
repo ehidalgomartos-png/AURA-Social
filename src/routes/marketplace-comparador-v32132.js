@@ -434,4 +434,4 @@ router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
  }catch(e){next(e);}
 });
-module.exports={router,cleanQuery,queryKey,slugFor,parseExternal,safeHref,ensureSchema,localOffers,issueCsrf,validCsrf,csrfName,startBackgroundWorker:()=>compareWorker.start(ensureSchema),stopBackgroundWorker:compareWorker.stop};
+module.exports={router,cleanQuery,queryKey,slugFor,parseExternal,safeHref,ensureSchema,localOffers,seoAdminView,seoRefinementSuggestions,issueCsrf,validCsrf,csrfName,startBackgroundWorker:()=>compareWorker.start(ensureSchema),stopBackgroundWorker:compareWorker.stop};
