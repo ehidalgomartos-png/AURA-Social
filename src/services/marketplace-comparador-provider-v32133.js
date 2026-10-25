@@ -144,11 +144,14 @@ function parseExternal(results,q){
   const cents=euroPrice(r);
   if(!cents)continue;
   const direct=directMerchantUrl(r.direct_link)||directMerchantUrl(r.link);
+  const source=safeHttps(r.link||'');
   const product=safeHttps(r.product_link||'');
-  if(!direct&&!product)continue;
+  // Un vínculo Google /aclk o /shopping nunca es compra directa, pero
+  // la oferta real con precio aún debe poder buscarse por título y tienda.
+  if(!direct&&!product&&!source)continue;
   const shop=String(r.source||'Tienda no identificada').replace(/[<>]/g,'').trim().slice(0,80)||'Tienda no identificada';
   const landing=direct&&!isGoogleHost(new URL(direct).hostname)?{href:direct,destination:'store'}:
-   resolveOfferLink({title,shop,href:product||direct});
+   resolveOfferLink({title,shop,href:product||source});
   if(!landing)continue;
   const dedup=shop.toLowerCase()+'|'+keyOf(title)+'|'+cents;
   if(seen.has(dedup))continue;
