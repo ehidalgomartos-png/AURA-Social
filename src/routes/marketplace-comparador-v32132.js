@@ -531,7 +531,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
    (checked?'<span>Precios consultados: '+esc(checked)+'</span>':'')+'</div>'+
-   '<p class="cmp-start-price"><strong>'+(hasExternal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
+   '<p class="cmp-start-price"><strong>'+(bestOffer&&!bestOffer.internal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
    (bestCondition && bestCondition!=='Estado sin confirmar'?' · '+esc(bestCondition.toLowerCase()):'')+
    ' · '+offers.length+' '+(offers.length===1?'oferta':'ofertas')+
    (insight.hasMixedVariants?' en varias versiones y estados':'')+'</p>'+
