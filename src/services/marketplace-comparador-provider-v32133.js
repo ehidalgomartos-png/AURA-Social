@@ -40,6 +40,8 @@ function shoppingSearchUrl(title,shop=''){
 // Nunca enviar al usuario a un product_link de Google que puede haber caducado.
 // Aplica también a URLs guardadas anteriormente en PostgreSQL.
 function resolveOfferLink(offer){
+ const cached=safeHttps(offer?.resolved_href);
+ if(cached&&!isGoogleHost(new URL(cached).hostname))return {href:cached,destination:'store'};
  const href=safeHttps(offer?.href);
  if(offer?.internal)return {href:offer.href,destination:'internal'};
  if(href&&!isGoogleHost(new URL(href).hostname)){
@@ -101,6 +103,7 @@ function parseExternal(results,q){
   out.push({
    title,shop,price_cents:cents,href:landing.href,
    destination:landing.destination,
+   product_id:/^\d{8,30}$/.test(String(r.product_id||''))?String(r.product_id):null,
    condition:condition.includes('refurb')||condition.includes('reacondicionado')?'Reacondicionado':condition.includes('used')||condition.includes('usado')?'Usado':'Consultar estado',
    delivery:typeof r.delivery==='string'?r.delivery.trim().slice(0,110):'',
    image:safeImage(r.thumbnail || (Array.isArray(r.thumbnails)?r.thumbnails[0]:null)),
@@ -156,6 +159,58 @@ function mergeOffers(organic,ads){
  }
  return out.slice(0,32).sort((a,b)=>a.price_cents-b.price_cents);
 }
+function retailerKey(value){
+ return keyOf(value).replace(/\b(www|es|com|eu|online|shop|store|tienda)\b/g,' ').trim().replace(/\s+/g,' ');
+}
+function sameRetailer(wanted,actual){
+ const a=retailerKey(wanted),b=retailerKey(actual);
+ if(!a||!b||a.length<4||b.length<4)return false;
+ return a===b||((a.startsWith(b+' ')||b.startsWith(a+' '))&&Math.min(a.length,b.length)>=7);
+}
+function readEuroAmount(v){
+ if(typeof v==='number')return Number.isFinite(v)?Math.round(v*100):null;
+ const x=String(v||'').trim();
+ if(!x||!/(€|\bEUR\b)/i.test(x)||/[\$£]/.test(x))return null;
+ const numeric=x.replace(/[^\d,.]/g,'');
+ if(!numeric)return null;
+ const comma=numeric.lastIndexOf(','),dot=numeric.lastIndexOf('.');
+ const separator=Math.max(comma,dot);
+ let dec;
+ if(separator!==-1&&numeric.length-separator-1===2){
+  dec=numeric.slice(0,separator).replace(/[.,]/g,'')+'.'+numeric.slice(separator+1);
+ }else dec=numeric.replace(/[.,]/g,'');
+ const n=Number(dec);
+ return Number.isFinite(n)&&n>0&&n<=100000?Math.round(n*100):null;
+}
+function selectRetailer(offer,sellers){
+ const requested=Number(offer.price_cents);
+ if(!Number.isSafeInteger(requested)||requested<=0)return null;
+ for(const seller of (Array.isArray(sellers)?sellers:[]).slice(0,50)){
+  if(!sameRetailer(offer.shop,seller?.name))continue;
+  const href=safeHttps(seller?.direct_link);
+  if(!href||isGoogleHost(new URL(href).hostname))continue;
+  const price=readEuroAmount(seller.base_price);
+  if(price===null)continue; // evitar mandar a un modelo/variante de precio desconocido
+  if(Math.abs(price-requested)>Math.max(300,Math.round(requested*0.03)))continue;
+  return {href,verified_price_cents:price,shop:String(seller.name).slice(0,90)};
+ }
+ return null;
+}
+async function fetchDirectRetailer(offer,fetchFn=fetch,env=process.env){
+ if(!configured(env))throw new Error('provider_not_configured');
+ const pid=String(offer?.product_id||'');
+ if(!/^\d{8,30}$/.test(pid))return null;
+ const params=new URLSearchParams({
+  engine:'google_product',product_id:pid,gl:'es',hl:'es',api_key:String(env.COMPARADOR_SERPAPI_KEY).trim()
+ });
+ const r=await fetchFn('https://serpapi.com/search.json?'+params,{
+  signal:AbortSignal.timeout(12000),headers:{Accept:'application/json'}
+ });
+ if(!r.ok)throw new Error('provider_http_'+r.status);
+ const payload=await r.json();
+ if(payload?.error)throw new Error('provider_error');
+ return selectRetailer(offer,payload?.sellers_results?.online_sellers);
+}
 function configured(env=process.env){
  return typeof env.COMPARADOR_SERPAPI_KEY==='string'&&env.COMPARADOR_SERPAPI_KEY.trim().length>=12;
 }
@@ -184,4 +239,4 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
  return mergeOffers(organic,sponsored);
 }
-module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers};
+module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,selectRetailer,fetchDirectRetailer};
