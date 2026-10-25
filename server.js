@@ -1342,6 +1342,7 @@ async function gracefulShutdown(signal){
   if(shuttingDown)return;
   shuttingDown=true;
   operationalAlerts.stop();
+  marketplaceComparadorV32132.stopBackgroundWorker();
   alertDelivery.stop();
   messageEmailService.stop();
   console.log(`RedLibertad received ${signal}; shutting down gracefully.`);
@@ -1373,6 +1374,7 @@ process.on('unhandledRejection',error=>console.error('RedLibertad unhandled reje
 operationalAlerts.start();
 alertDelivery.start();
 messageEmailService.start();
+marketplaceComparadorV32132.startBackgroundWorker();
 startWooCommerceSyncScheduler();
 
 ensurePerformanceIndexesV168()
