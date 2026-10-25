@@ -358,7 +358,7 @@ router.post('/comparar/tienda/:slug/:offerKey',
    return res.redirect(303,returnLink+'?enlace=sin-verificar#precios-y-tiendas');
   }
   if(!provider.canLookupSeller(offer)||!provider.configured()||!/^\d{8,30}$/.test(String(offer.product_id||'')))return explain();
-  const cached=await db.query("SELECT status,href FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND checked_at>now()-interval '24 hours'",[hash]);
+  const cached=await db.query("SELECT status,href FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND checked_at>now()-interval '24 hours' AND (status!='checking' OR checked_at>now()-interval '2 minutes')",[hash]);
   if(cached.rowCount){
    const current=cached.rows[0];
    if(current.status==='ok'&&current.href){
