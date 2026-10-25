@@ -53,7 +53,7 @@ const seo=require('../src/services/marketplace-comparador-seo-v32132');
 test('SEO pages need editorial content, recent external offers and distinct vendors',()=>{
  const now=Date.now();
  const page={index_approved:true,provider_status:'ok',editorial_summary:'Comparación detallada de características, compatibilidad y condiciones reales de este producto para España, revisada editorialmente.',last_checked_at:new Date(now).toISOString(),query_text:'Samsung Galaxy S26 Ultra'};
- const offers=[{shop:'Tienda A',price_cents:115000,internal:false},{shop:'Tienda B',price_cents:120000,internal:false}];
+ const offers=[{title:'Samsung Galaxy S26 Ultra',shop:'Tienda A',price_cents:115000,internal:false},{title:'Samsung Galaxy S26 Ultra',shop:'Tienda B',price_cents:120000,internal:false}];
  assert.equal(seo.indexEligible(page,offers,now),true);
  assert.equal(seo.indexEligible({...page,editorial_summary:''},offers,now),false);
  assert.equal(seo.indexEligible({...page,last_checked_at:new Date(now-49*3600000).toISOString()},offers,now),false);
