@@ -34,9 +34,9 @@ async function enqueue(page,ensurePages){
  if(!/^[1-9]\d{0,15}$/.test(id))return false;
  // Una página vacía bloqueada por cuota puede reintentarse al renovarse
  // el presupuesto, sin esperar otras 24 horas a una consulta que nunca ocurrió.
- const retryEmpty=page?.provider_status==='limit_reached' &&
-  (!Array.isArray(page.external_results)||page.external_results.length===0);
- if(retryEmpty && !(await quotaStatus()).available)return false;
+ // No reencolar solicitudes que la cuota ya ha rechazado mientras no haya
+ // presupuesto disponible. Aplica también cuando ya existen precios guardados.
+ if(page?.provider_status==='limit_reached' && !(await quotaStatus()).available)return false;
  const result=await db.query(
   "INSERT INTO marketplace_compare_jobs (page_id,status) "+
   "SELECT id,'queued' FROM marketplace_compare_pages WHERE id=$1 "+
