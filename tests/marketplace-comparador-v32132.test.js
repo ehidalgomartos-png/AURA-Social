@@ -39,7 +39,7 @@ test('public routes are mounted and marketplace includes entry',()=>{
  assert.match(source,/res\.send\(shell\(/);
  assert.match(source,/noindex,follow/);
 });
-test('no fake offers, no automatic SEO indexing, no auth requirement',()=>{
+test('no fake offers, automatic SEO quality controls and no login requirement',()=>{
  assert.match(source,/SELECT l\.id,l\.title/);
  assert.match(source,/l\.moderation_status='published'/);
  assert.match(source,/u\.discoverable=true/);
@@ -59,9 +59,9 @@ test('SEO pages need editorial content, recent external offers and distinct vend
  assert.equal(seo.indexEligible({...page,last_checked_at:new Date(now-49*3600000).toISOString()},offers,now),false);
  assert.equal(seo.indexEligible(page,[offers[0],{...offers[1],shop:'Tienda A'}],now),false);
  const graph=seo.structuredData(page,offers,true,'/comparar/samsung-galaxy-s26-ultra');
- assert.equal(graph['@graph'][3]['@type'],'Product');
- assert.equal(graph['@graph'][3].offers['@type'],'AggregateOffer');
- assert.equal(graph['@graph'][3].offers.lowPrice,'1150.00');
+ // No publicar AggregateOffer de una página editada si no sabemos si los
+ // enlaces son directos ni que todas las tiendas vendan la misma variante.
+ assert.equal(graph['@graph'].length,3);
  assert.equal(seo.structuredData(page,offers,false,'/comparar/test')['@graph'].length,3);
 });
 test('JSON-LD avoids raw HTML injection',()=>{
