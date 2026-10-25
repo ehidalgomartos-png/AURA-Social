@@ -359,6 +359,36 @@ router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
     seoAdminView(r.rows,token,filter,quota,merchantCache,manualCache),'/admin/comparador'));
  }catch(e){next(e);}
 });
+// La revisión humana no añade ofertas ni convierte esta ficha en apta para SEO.
+router.post('/admin/comparador/:id/enlace',requireAdmin,
+ rateLimit({windowMs:60*60*1000,limit:25,standardHeaders:'draft-7',legacyHeaders:false}),
+ async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve al panel.');
+  const id=String(req.params.id||''),key=req.body?.offer_key,action=req.body?.action;
+  if(!/^[1-9]\d{0,15}$/.test(id)||!manualLinks.validIdentity(key)||!['save','remove'].includes(action))
+   return res.sendStatus(400);
+  await ensureSchema();
+  const result=await db.query("SELECT id,query_text,external_results FROM marketplace_compare_pages WHERE id=$1",[id]);
+  if(!result.rowCount)return res.sendStatus(404);
+  const offer=manualLinks.findOffer(result.rows[0],key);
+  if(!offer)return res.sendStatus(404); // No permitir enlazar modelos de otra gama ni anuncios inexistentes.
+  if(action==='remove'){
+   await db.query("DELETE FROM marketplace_compare_manual_links WHERE page_id=$1 AND offer_key=$2",[id,key]);
+  }else{
+   if(req.body?.confirmed!=='yes')return res.status(400).send('Confirma que revisaste la oferta y su URL.');
+   const url=manualLinks.merchantUrl(req.body?.url,offer.shop);
+   if(!url)return res.status(400).send('Introduce una URL HTTPS del producto, en el dominio real de la tienda indicada, sin redirecciones ni credenciales.');
+   await db.query(
+    "INSERT INTO marketplace_compare_manual_links(page_id,offer_key,href,reviewed_at) VALUES($1,$2,$3,now()) "+
+    "ON CONFLICT(page_id,offer_key) DO UPDATE SET href=EXCLUDED.href,reviewed_at=now()",
+    [id,key,url]
+   );
+  }
+  return res.redirect(303,'/admin/comparador?enlace='+(action==='save'?'guardado':'retirado')+'#comparacion-'+id);
+ }catch(e){next(e);}
+});
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
  try{
   if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve al panel.');
