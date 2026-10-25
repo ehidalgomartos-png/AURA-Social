@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.136 voluntary merchant lookup through Product API and CSRF
+        run: node --test tests/marketplace-comparador-merchant-click-v32136.test.js
       - name: V3.2.135.1 direct seller offers without additional Shopping queries
         run: node --test tests/marketplace-comparador-direct-stores-v321351.test.js
       - name: V3.2.135 safe external product links, live comparison results and mobile UI
