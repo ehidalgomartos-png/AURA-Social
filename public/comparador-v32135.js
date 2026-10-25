@@ -30,7 +30,16 @@
    // El botón de actualizar manualmente permanece visible.
   }finally{
    polling=false;
-   if(attempts>=maxAttempts)clearInterval(interval);
+   if(attempts>=maxAttempts){
+    clearInterval(interval);
+    if(['queued','checking'].includes(root.dataset.comparisonStatus)){
+     const title=root.querySelector('h2');
+     const description=root.querySelector('p');
+     if(title)title.textContent='Esta comparación está tardando más de lo habitual';
+     if(description)description.textContent='La página está guardada. Puedes regresar más tarde para consultar las ofertas.';
+     root.dataset.comparisonStatus='waiting';
+    }
+   }
   }
  };
  const interval=setInterval(refresh,5000);
