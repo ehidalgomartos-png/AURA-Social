@@ -242,8 +242,8 @@ function linkDiagnosticsMarkup(page,cache,quota,manualCache=new Map(),token=''){
  const offers=linkDiagnostics.pageDiagnostics(page,cache,quota);
  if(!offers.length)return '<details class="seo-link-details"><summary>Enlaces de tienda · sin ofertas válidas</summary><p class="seo-link-empty">Todavía no hay ofertas coincidentes que analizar.</p></details>';
  const ready=offers.filter(x=>x.status==='ready').length;
- const manualCount=offers.filter(x=>manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+manualLinks.identityKey(x.offer)))).length;
- const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)).length+manualCount;
+ const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)||
+  manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+manualLinks.identityKey(x.offer)))).length;
  const details=offers.slice(0,6).map(x=>{
   const key=manualLinks.identityKey(x.offer);
   const manual=manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+key));
