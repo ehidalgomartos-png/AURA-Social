@@ -147,3 +147,30 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .compare-search{margin-top:17px}
 @media(max-width:800px){.compare-variant-grid,.compare-history ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:570px){.compare-variant-grid,.compare-history ol{grid-template-columns:1fr}.compare-variant-section,.compare-history{padding:17px}.compare-variant-heading{gap:7px}}
+
+/* V3.2.140.1 — Una alerta, menos ruido y variantes plegables */
+.compare-status-summary{padding:19px 22px}
+.compare-status-head{display:flex;gap:10px 18px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+.compare-status-head h2{margin:0;font-size:1.3rem}
+.compare-status-head span{font-size:.82rem;color:#697b90}
+.compare-status-summary .cmp-start-price{margin:11px 0 0;color:#345773}
+.compare-status-summary .cmp-start-price strong{font-size:1.35rem}
+.compare-status-summary .compare-help{margin:7px 0 0}
+.compare-more-variants{margin-top:14px;border-top:1px solid #e1eaf3;padding-top:12px}
+.compare-more-variants summary{width:max-content;max-width:100%;padding:9px 13px;border:1px solid #c4d9ed;border-radius:10px;background:#f3f8fd;cursor:pointer;color:#135c9c;font-size:.91rem;font-weight:750}
+.compare-more-variants summary:hover{background:#e7f1fc}
+.compare-more-variants[open] summary{margin-bottom:13px}
+.compare-variant{min-height:125px}
+.compare-variant-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.compare-variant .compare-variant-price{font-size:1.25rem}
+.compare-variant-warning{margin:13px 0 0}
+.compare-quota-banner{margin:12px 0;color:#735412}
+.comparison-list .offer{gap:10px}
+.comparison-list .offer .offer-destination{margin-top:-2px}
+@media(max-width:600px){
+ .compare-status-summary{padding:17px}
+ .compare-status-head{display:block}
+ .compare-status-head span{display:block;margin-top:6px}
+ .compare-variant-grid{grid-template-columns:1fr}
+ .compare-variant{min-height:0}
+}
