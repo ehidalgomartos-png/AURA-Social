@@ -215,13 +215,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const approved=seo.indexEligible(page,offers);
   const title='Comparar '+page.query_text+' | RedLibertad';
   const description=approved?String(page.editorial_summary).slice(0,155):'Compara ofertas para '+page.query_text+' en España. Consulta vendedores, precios de referencia y fecha de actualización.';
+  const csrfToken=issueCsrf(req,res);
   const content='<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p><h1>Comparar '+esc(page.query_text)+'</h1>'+
    '<p>Página permanente de comparación, creada el '+new Date(page.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'})+'. Comparte esta URL para volver cuando quieras.</p>'+
    formMarkup('',page.query_text,csrfToken)+
    (approved?'<section class="info"><h2>Qué debes saber de este producto</h2><p>'+esc(page.editorial_summary)+'</p></section>':'')+
    '<section class="info"><h2>Resultados de comparación</h2><p class="muted">'+esc(offers.length)+' ofertas disponibles. '+provider+'</p><p class="muted">Compara el modelo y los gastos de envío en la tienda antes de comprar; las coincidencias externas son orientativas.</p></section>'+
    (offers.length?'<ol class="comparison-list">'+offers.map(offerMarkup).join('')+'</ol>':'<div class="info"><p>No hemos encontrado ofertas que coincidan suficientemente con esta búsqueda. La página permanece guardada y podrás volver más adelante.</p></div>');
-  const csrfToken=issueCsrf(req,res);
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
  }catch(e){next(e);}
