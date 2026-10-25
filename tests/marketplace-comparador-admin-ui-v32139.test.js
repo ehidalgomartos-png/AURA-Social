@@ -84,7 +84,7 @@ test('GET prefills the search safely, without creating a comparison or contactin
   assert.match(html,/value="iphone 12 128 GB"/);
   assert.match(html,/name="_csrf"/);
   assert.equal(html.includes('Creada la comparación'),false);
-  assert.ok(queries<10);
+  assert.ok(queries<12); // El nuevo almacén de enlaces requiere una tabla adicional, no llamadas al proveedor.
  }finally{await new Promise(resolve=>server.close(resolve));db.query=oldQuery;}
 });
 
