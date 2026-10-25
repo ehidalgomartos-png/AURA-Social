@@ -19,7 +19,7 @@ test('resultados de Google Shopping: euros, modelo, foto, envío, destino y orde
  const offers=provider.parseExternal(sample,'iphone 17 pro');
  assert.equal(offers.length,2);
  assert.equal(offers[0].price_cents,110000);
- assert.equal(offers[0].destination,'shopping');
+ assert.equal(offers[0].destination,'shopping-search');
  assert.equal(offers[1].shop,'Tienda España');
  assert.equal(offers[1].destination,'store');
  assert.match(offers[1].image,/gstatic.com/);
@@ -70,8 +70,8 @@ test('la interfaz protege clave y deja claro Google Shopping frente a compra dir
  assert.match(worker,/reserveQuota/);
  assert.match(worker,/marketplace_compare_provider_usage/);
  assert.match(worker,/provider\.fetchOffers/);
- assert.match(source,/Visitar tienda/);
- assert.match(source,/Consultar en Google Shopping/);
+ assert.match(source,/Ver oferta en tienda/);
+ assert.match(source,/Buscar en Google Shopping/);
  assert.match(source,/provider\.safeImage/);
  assert.doesNotMatch(source,/api_key:key/);
 });
