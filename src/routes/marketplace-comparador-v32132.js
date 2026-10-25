@@ -308,7 +308,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const exact=provider.isSpecificModel(page.query_text);
   const approved=seo.indexEligible(page,offers);
   const title='Comparar '+page.query_text+' | RedLibertad';
-  const description=approved?String(page.editorial_summary).slice(0,155):'Compara ofertas para '+page.query_text+' en España. Consulta vendedores, precios de referencia y fecha de actualización.';
+  const automatic=seo.auto.eligibleOffers(page,offers);
+  const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):null;
+  const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
   const csrfToken=issueCsrf(req,res);
   const pending=['queued','checking'].includes(page.provider_status);
   const best=offers.length?Math.min(...offers.map(o=>o.price_cents)):null;
@@ -326,7 +328,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
    '<p>Compara tiendas españolas desde un solo lugar. Página creada el '+new Date(page.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'})+'.</p>'+
    formMarkup('',page.query_text,csrfToken)+
-   (approved?'<section class="info"><h2>Qué debes saber de este producto</h2><p>'+esc(page.editorial_summary)+'</p></section>':'')+
+   (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+
    '<section data-comparison-results><h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (quota?.available===false?'<p class="compare-quota-banner">'+(
@@ -343,13 +345,23 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
  }catch(e){next(e);}
 });
-// Solo páginas con revisión editorial explícita y ofertas suficientes pasan al sitemap.
-// Las búsquedas arbitrarias, vacías o con resultados escasos no crean SEO spam.
+// Sitemap sincronizado con las condiciones index/noindex del render HTML.
+// Crear una búsqueda nunca implica publicarla en Google.
 router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
  try{
   await ensureSchema();
-  const r=await db.query('SELECT slug,updated_at FROM marketplace_compare_pages WHERE '+seo.APPROVED_SQL+' ORDER BY updated_at DESC LIMIT 2000');
-  const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>',...r.rows.map(p=>'<url><loc>'+esc(ORIGIN+'/comparar/'+p.slug)+'</loc><lastmod>'+new Date(p.updated_at).toISOString()+'</lastmod></url>')];
+  const result=await db.query(
+   "SELECT slug,query_text,index_approved,seo_blocked,editorial_summary,external_results,provider_status,last_checked_at,updated_at "+
+   "FROM marketplace_compare_pages WHERE seo_blocked=false AND provider_status='ok' "+
+   "AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 "+
+   "ORDER BY updated_at DESC LIMIT 2000"
+  );
+  const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>'];
+  for(const p of result.rows){
+   if(!seo.indexEligible(p,p.external_results))continue;
+   urls.push('<url><loc>'+esc(ORIGIN+'/comparar/'+p.slug)+'</loc><lastmod>'+
+    new Date(p.updated_at||p.last_checked_at).toISOString()+'</lastmod></url>');
+  }
   res.set('Cache-Control','public,max-age=300');
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
  }catch(e){next(e);}
