@@ -82,12 +82,12 @@ function offerMarkup(o,index=0,total=0){
  const shop=String(o.shop||'Tienda no identificada');
  const merchant=link.destination==='store';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google Shopping';
- const note=link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'Buscar este artículo y tienda en Google (sin ficha individual)';
+ const note=o.sponsored?'Publicidad de Google · enlace directo del comercio':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'Buscar este artículo y tienda en Google (sin ficha individual)';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'<small>Envío a confirmar</small>';
- return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+
+ return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
-  '<a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow"')+'>'+dest+'</a>'+
+  '<a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   '<span class="offer-destination">'+note+'</span></li>';
 }
 // Token independiente de cabeceras Origin/Sec-Fetch-Site, que pueden cambiar
