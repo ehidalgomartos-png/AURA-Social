@@ -88,7 +88,7 @@ async function attachCachedMerchantLinks(offers){
   if(href)o.resolved_href=href;
  }
 }
-function offerMarkup(o,index=0,total=0,slug='',csrfToken=''){
+function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const link=o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
  const href=link.href;
@@ -99,8 +99,10 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken=''){
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google Shopping';
  const note=o.sponsored?'Publicidad de Google · enlace directo del comercio':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'Buscar este artículo y tienda en Google (sin ficha individual)';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'<small>Envío a confirmar</small>';
- const candidate=link.destination==='shopping-search' && /^\d{8,30}$/.test(String(o.product_id||''));
- const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':'';
+ const possible=link.destination==='shopping-search' && /^\d{8,30}$/.test(String(o.product_id||''));
+ const candidate=possible && quota?.available!==false;
+ const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
+   possible && quota?.available===false?'<p class="offer-quota-note">La comprobación directa de esta tienda está temporalmente limitada. Puedes usar la búsqueda alternativa sin gastar créditos.</p>':'';
  return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
@@ -132,13 +134,18 @@ function validCsrf(req){
 router.get('/comparar',async(req,res,next)=>{
  try{
   await ensureSchema();
-  const r=await db.query('SELECT slug,query_text,created_at FROM marketplace_compare_pages WHERE '+seo.APPROVED_SQL+' ORDER BY created_at DESC LIMIT 12');
-  const items=r.rows.map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('');
+  // Páginas guardadas con ofertas reales: no equivalen a páginas indexadas por Google.
+  const recent=await db.query("SELECT slug,query_text,jsonb_array_length(external_results) AS offer_count FROM marketplace_compare_pages WHERE jsonb_array_length(external_results)>0 AND provider_status IN ('ok','limit_reached','unavailable') ORDER BY last_checked_at DESC NULLS LAST,created_at DESC LIMIT 12");
+  const approved=await db.query('SELECT slug,query_text FROM marketplace_compare_pages WHERE '+seo.APPROVED_SQL+' ORDER BY updated_at DESC LIMIT 8');
+  const items=recent.rows.map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a> · <small>'+Number(p.offer_count)+' ofertas guardadas</small></li>').join('');
+  const indexed=approved.rows.map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('');
   const csrfToken=issueCsrf(req,res);
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
    '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto. RedLibertad conservará su página para consultarla y compartirla.</p>'+formMarkup('','',csrfToken)+
-   '<section class="info"><h2>Comparaciones publicadas</h2>'+(items?'<ul>'+items+'</ul>':'<p>Todavía no hay comparaciones publicadas. Las búsquedas nuevas se guardan aunque no se publiquen en Google.</p>')+'</section><p class="muted">Buscamos primero en los anuncios públicos de RedLibertad. Las ofertas de tiendas externas requieren que el servicio de comparación esté configurado.</p>',
+   '<section class="info"><h2>Comparaciones recientes</h2><p class="muted">Estas búsquedas ya tienen ofertas guardadas y se pueden compartir. No significa que estén indexadas en Google.</p>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
+   (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
+   '<p class="muted">Mostramos anuncios públicos de RedLibertad y resultados de tiendas externas cuando están disponibles.</p>',
    '/comparar',true,seo.structuredData(null,[],false,'/comparar')));
  }catch(e){next(e);}
 });
@@ -236,8 +243,9 @@ router.post('/comparar/tienda/:slug/:offerKey',
   );
   if(!locked.rowCount)return explain('Esta tienda ya se está comprobando. Vuelve a intentarlo después.');
   if(!await compareWorker.reserveQuota()){
-   await db.query("UPDATE marketplace_compare_merchant_links SET status='unavailable',checked_at=now() WHERE offer_key=$1",[hash]);
-   return explain('Se ha alcanzado el límite de consultas a tiendas. No se realizarán búsquedas adicionales.');
+   // No penalizar esta oferta 24 horas: el presupuesto puede renovarse antes.
+   await db.query("DELETE FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND status='checking'",[hash]);
+   return explain('Se ha alcanzado el límite compartido de consultas de SerpApi. Podrás comprobar este vendedor cuando se renueve la cuota; no se ha realizado otra consulta.');
   }
   try{
    const result=await provider.fetchDirectRetailer(offer);
@@ -265,6 +273,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const external=Array.isArray(page.external_results)?page.external_results.filter(o=>o&&!o.internal&&safeHref(o.href)&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0):[];
   const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
+  const quota=offers.some(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')))?
+   await compareWorker.quotaStatus():null;
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
   const providerMessage=page.provider_status==='queued'||page.provider_status==='checking'
    ?'Estamos buscando precios en tiendas españolas. La página ya está guardada; actualiza para ver las ofertas cuando finalice.'
@@ -288,7 +298,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    (pending?'<div class="compare-loading" role="status"><span class="compare-loading-indicator" aria-hidden="true"></span><strong>Buscando las mejores ofertas</strong><p>Actualizamos esta página automáticamente. No necesitas repetir la búsqueda.</p></div>':'')+
    (checked?'<p class="compare-help">Última consulta al proveedor: '+esc(checked)+'</p>':'')+
    '</section>';
-  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken)).join('')+'</ol>':
+  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota)).join('')+'</ol>':
    pending?'<div class="compare-skeleton" aria-hidden="true"><div></div><div></div></div>':
    '<div class="info"><p>Todavía no hay ofertas coincidentes. Esta página permanece guardada y puedes volver a consultarla más adelante.</p></div>';
   const content='<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
@@ -298,6 +308,11 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    (approved?'<section class="info"><h2>Qué debes saber de este producto</h2><p>'+esc(page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+
    '<section data-comparison-results><h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
+   (quota?.available===false?'<p class="compare-quota-banner">'+(
+    quota.reason==='daily'?'Consultas externas agotadas por hoy. Se conservan los precios guardados y volverán a estar disponibles nuevas comprobaciones tras la renovación diaria.':
+    quota.reason==='monthly'?'Se ha alcanzado la cuota mensual de SerpApi. Los precios guardados siguen disponibles hasta la renovación del período.':
+    quota.reason==='disabled'?'Las consultas externas están desactivadas actualmente.': 'No hay proveedor de consultas externas configurado.'
+   )+'</p>':'')+
    '<p class="compare-guide">'+(exact?'Comprueba memoria, capacidad y estado antes de comprar.':'La búsqueda incluye variantes. Indica el modelo exacto para compararlo con mayor precisión.')+'</p>'+
    cards+
    '<p class="compare-help">Los precios son orientativos y pueden no incluir envío. Verifica el importe final, el producto exacto y las condiciones en la tienda. Los enlaces de Google Shopping son búsquedas generales, no enlaces directos a una tienda.</p></section>'+
