@@ -75,8 +75,14 @@ function isSpecificModel(q){
  const words=keyOf(q).split(' ').filter(Boolean);
  return words.length>=2 && words.some(w=>/\d/.test(w));
 }
+function storageCode(value){
+ // Google Shopping alterna «128GB» y «128 GB». Comparar de forma idéntica.
+ const m=keyOf(value).match(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/);
+ return m?String(Number(m[1])*(m[2]==='tb'?1024:1))+'gb':null;
+}
 function titleMatches(q,title){
- const query=keyOf(q),value=keyOf(title);
+ const separate=v=>keyOf(v).replace(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/g,'$1 $2');
+ const query=separate(q),value=separate(title);
  if(!query||!value)return false;
  if(EXCLUDED.test(value)&&!EXCLUDED.test(query))return false;
  const terms=query.split(' ').filter(t=>t.length>=2),wanted=new Set(terms);
@@ -84,9 +90,15 @@ function titleMatches(q,title){
  const match=terms.filter(t=>words.has(t)).length;
  if(!terms.length||match<Math.max(1,Math.ceil(terms.length*.72)))return false;
  if(terms.some(t=>/\d/.test(t)&&!words.has(t)))return false;
- // No mezclar variantes de gama "Pro" y "Pro Max", "Ultra" y modelo base.
- for(const marker of ['max','ultra','plus','mini','lite']){
-  if(!wanted.has(marker)&&words.has(marker)&&isSpecificModel(q))return false;
+ if(isSpecificModel(q)){
+  // El modelo estándar NO es Pro, Pro Max, Plus, Ultra, etc.
+  // La marca en la búsqueda y en la oferta ha de coincidir exactamente;
+  // lo mismo para la capacidad, si el comprador la ha indicado.
+  for(const marker of ['pro','max','ultra','plus','mini','lite','fe','se','air','edge','fold','flip']){
+   if(wanted.has(marker)!==words.has(marker))return false;
+  }
+  const capacity=storageCode(q);
+  if(capacity&&storageCode(title)!==capacity)return false;
  }
  return true;
 }
