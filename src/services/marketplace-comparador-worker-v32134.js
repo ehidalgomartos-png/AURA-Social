@@ -1,0 +1,130 @@
+'use strict';
+// V3.2.134 — worker de precios en segundo plano.
+// Cola persistente PostgreSQL, lease atómico entre instancias y coste acotado.
+// No busca en Google sin un proveedor autorizado y configurado.
+const db=require('../db');
+const provider=require('./marketplace-comparador-provider-v32133');
+const FRESH_HOURS=24;
+let schemaPromise=null;
+let timer=null;
+let busy=false;
+let bootstrap=null;
+
+function periodKeys(now=new Date()){
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const val=key=>parts.find(p=>p.type===key)?.value||'';
+ const month=val('year')+'-'+val('month');
+ return {month:'m:'+month,day:'d:'+month+'-'+val('day')};
+}
+async function ensureSchema(ensurePages=async()=>{}){
+ if(!schemaPromise){
+  schemaPromise=(async()=>{
+   await ensurePages();
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_jobs (page_id BIGINT PRIMARY KEY REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, status VARCHAR(16) NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','done','failed')), requested_at TIMESTAMPTZ NOT NULL DEFAULT now(), available_at TIMESTAMPTZ NOT NULL DEFAULT now(), started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ, attempts INT NOT NULL DEFAULT 0)");
+   await db.query("CREATE INDEX IF NOT EXISTS idx_marketplace_compare_jobs_queue ON marketplace_compare_jobs(available_at,requested_at) WHERE status='queued'");
+  })().catch(e=>{schemaPromise=null;throw e;});
+ }
+ return schemaPromise;
+}
+async function enqueue(page,ensurePages){
+ if(!provider.configured())return false;
+ await ensureSchema(ensurePages);
+ const id=String(page?.id||'');
+ if(!/^[1-9]\d{0,15}$/.test(id))return false;
+ const result=await db.query(
+  "INSERT INTO marketplace_compare_jobs (page_id,status) "+
+  "SELECT id,'queued' FROM marketplace_compare_pages WHERE id=$1 "+
+  "AND (last_checked_at IS NULL OR last_checked_at<now()-interval '24 hours') "+
+  "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0 "+
+  "WHERE marketplace_compare_jobs.status IN ('done','failed') AND EXISTS "+
+  "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours')) "+
+  "RETURNING page_id",[id]
+ );
+ if(result.rowCount)await db.query("UPDATE marketplace_compare_pages SET provider_status='queued' WHERE id=$1",[id]);
+ return Boolean(result.rowCount);
+}
+async function reserveQuota(now=new Date()){
+ const {daily,monthly}=provider.budget();
+ if(!provider.configured()||daily===0||monthly===0)return false;
+ const keys=periodKeys(now);
+ const client=await db.pool.connect();
+ try{
+  await client.query('BEGIN');
+  const q='INSERT INTO marketplace_compare_provider_usage(period_key,used) VALUES($1,1) ON CONFLICT(period_key) DO UPDATE SET used=marketplace_compare_provider_usage.used+1 WHERE marketplace_compare_provider_usage.used<$2 RETURNING used';
+  const m=await client.query(q,[keys.month,monthly]);
+  if(!m.rowCount){await client.query('ROLLBACK');return false;}
+  const d=await client.query(q,[keys.day,daily]);
+  if(!d.rowCount){await client.query('ROLLBACK');return false;}
+  await client.query('COMMIT');
+  return true;
+ }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}
+ finally{client.release();}
+}
+async function claimJob(){
+ // Retomamos trabajos huérfanos de un proceso reiniciado. La llamada externa
+ // expira a los 12 s; no es legítimo mantener un lease > 2 minutos.
+ await db.query("UPDATE marketplace_compare_jobs SET status='queued',available_at=now(),started_at=NULL WHERE status='running' AND started_at<now()-interval '2 minutes'");
+ const claimed=await db.query(
+  "UPDATE marketplace_compare_jobs SET status='running',started_at=now(),attempts=attempts+1 "+
+  "WHERE page_id=(SELECT page_id FROM marketplace_compare_jobs WHERE status='queued' AND available_at<=now() "+
+  "ORDER BY requested_at ASC FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING page_id,attempts"
+ );
+ return claimed.rows[0]||null;
+}
+async function finish(job,status,pageStatus,offers){
+ // Si se trata de un error, nunca sobrescribimos las ofertas anteriores.
+ if(Array.isArray(offers)){
+  await db.query("UPDATE marketplace_compare_pages SET external_results=$2::jsonb,provider_status=$3,last_checked_at=now(),updated_at=now() WHERE id=$1",
+   [job.page_id,JSON.stringify(offers),pageStatus]);
+ }else{
+  await db.query("UPDATE marketplace_compare_pages SET provider_status=$2,last_checked_at=now() WHERE id=$1",[job.page_id,pageStatus]);
+ }
+ await db.query("UPDATE marketplace_compare_jobs SET status=$2,finished_at=now() WHERE page_id=$1 AND status='running'",
+  [job.page_id,status]);
+}
+async function processOne(){
+ if(!provider.configured()||busy)return false;
+ busy=true;
+ try{
+  await ensureSchema(bootstrap||undefined);
+  const job=await claimJob();
+  if(!job)return false;
+  const result=await db.query('SELECT id,query_text,last_checked_at FROM marketplace_compare_pages WHERE id=$1',[job.page_id]);
+  const page=result.rows[0];
+  if(!page){
+   await db.query("DELETE FROM marketplace_compare_jobs WHERE page_id=$1",[job.page_id]);
+   return true;
+  }
+  const since=page.last_checked_at?Date.now()-Date.parse(page.last_checked_at):Infinity;
+  if(Number.isFinite(since)&&since>=0&&since<FRESH_HOURS*3600000){
+   await db.query("UPDATE marketplace_compare_jobs SET status='done',finished_at=now() WHERE page_id=$1",[job.page_id]);
+   return true;
+  }
+  try{
+   if(!await reserveQuota()){
+    await finish(job,'failed','limit_reached');
+    return true;
+   }
+   await db.query("UPDATE marketplace_compare_pages SET provider_status='checking' WHERE id=$1",[job.page_id]);
+   const offers=await provider.fetchOffers(page.query_text);
+   await finish(job,'done','ok',offers);
+  }catch(e){
+   // No se registra la clave ni la URL completa con api_key.
+   console.warn('Comparador background fetch failed:',String(e?.message||'provider_error').slice(0,80));
+   await finish(job,'failed','unavailable');
+  }
+  return true;
+ }finally{busy=false;}
+}
+function start(ensurePages){
+ if(timer)return;
+ bootstrap=ensurePages;
+ // Nunca se crean temporizadores durante tests por el mero hecho de importar.
+ timer=setInterval(()=>{processOne().catch(e=>console.error('Comparador queue:',String(e.message).slice(0,110)));},8000);
+ timer.unref?.();
+ if(provider.configured())processOne().catch(e=>console.error('Comparador queue startup:',String(e.message).slice(0,110)));
+}
+function stop(){
+ if(timer){clearInterval(timer);timer=null;}
+}
+module.exports={periodKeys,ensureSchema,enqueue,reserveQuota,claimJob,processOne,start,stop};
