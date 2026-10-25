@@ -3,11 +3,14 @@
 // El JSON-LD es informativo: los resultados enriquecidos dependen de Google.
 const ORIGIN='https://redlibertad.com';
 const FRESH_MS=48*60*60*1000;
+const provider=require('./marketplace-comparador-provider-v32133');
 function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
 function indexEligible(page,offers,now=Date.now()){
  if(!page || page.index_approved!==true || page.provider_status!=='ok')return false;
+ // Una búsqueda genérica («iphone») puede mezclar dispositivos distintos.
+ if(!provider.isSpecificModel(page.query_text))return false;
  if(String(page.editorial_summary||'').trim().length<80)return false;
  const last=Date.parse(page.last_checked_at||'');
  if(!Number.isFinite(last)||now<last||now-last>=FRESH_MS)return false;
@@ -42,5 +45,5 @@ function jsonLd(data){
  return JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026')
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
-const APPROVED_SQL= "index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2";
+const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2";
 module.exports={ORIGIN,indexEligible,structuredData,jsonLd,APPROVED_SQL,externalOffers};

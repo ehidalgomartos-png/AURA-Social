@@ -23,10 +23,10 @@ test('invalid and dangerous input is rejected',()=>{
 });
 test('external offers must match model numbers and have safe https destinations',()=>{
  const offers=mod.parseExternal([
- {title:'Samsung Galaxy S26 Ultra 256 GB',source:'Prueba A',extracted_price:1150,link:'https://example.com/p1'},
- {title:'Samsung Galaxy S25 Ultra 256 GB',source:'Prueba B',extracted_price:950,link:'https://example.com/p2'},
- {title:'Samsung Galaxy S26 Ultra 256 GB',source:'Prueba C',extracted_price:1100,link:'javascript:alert(1)'},
- {title:'Samsung Galaxy S26 Ultra',source:'Prueba D',extracted_price:1200,link:'http://example.com/p4'}],'Samsung Galaxy S26 Ultra');
+ {title:'Samsung Galaxy S26 Ultra 256 GB',source:'Prueba A',extracted_price:1150,price:'€1,150',link:'https://example.com/p1'},
+ {title:'Samsung Galaxy S25 Ultra 256 GB',source:'Prueba B',extracted_price:950,price:'€950',link:'https://example.com/p2'},
+ {title:'Samsung Galaxy S26 Ultra 256 GB',source:'Prueba C',extracted_price:1100,price:'€1,100',link:'javascript:alert(1)'},
+ {title:'Samsung Galaxy S26 Ultra',source:'Prueba D',extracted_price:1200,price:'€1,200',link:'http://example.com/p4'}],'Samsung Galaxy S26 Ultra');
  assert.equal(offers.length,1);
  assert.equal(offers[0].price_cents,115000);
  assert.equal(mod.safeHref('javascript:alert(1)'),null);
@@ -43,7 +43,7 @@ test('no fake offers, no automatic SEO indexing, no auth requirement',()=>{
  assert.match(source,/SELECT l\.id,l\.title/);
  assert.match(source,/l\.moderation_status='published'/);
  assert.match(source,/u\.discoverable=true/);
- assert.match(source,/COMPARADOR_SERPAPI_KEY/);
+ assert.match(require('node:fs').readFileSync(require('node:path').join(base,'src/services/marketplace-comparador-provider-v32133.js'),'utf8'),/COMPARADOR_SERPAPI_KEY/);
  assert.match(source,/last_checked_at/);
  assert.match(source,/index_approved=true/);
  assert.doesNotMatch(source,/router\.use\(requireAuth\)/);
