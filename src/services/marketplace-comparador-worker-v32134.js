@@ -4,6 +4,7 @@
 // No busca en Google sin un proveedor autorizado y configurado.
 const db=require('../db');
 const provider=require('./marketplace-comparador-provider-v32133');
+const insights=require('./marketplace-comparador-insights-v32140');
 const FRESH_HOURS=24;
 let schemaPromise=null;
 let timer=null;
@@ -98,6 +99,17 @@ async function finish(job,status,pageStatus,offers){
  await db.query("UPDATE marketplace_compare_jobs SET status=$2,finished_at=now() WHERE page_id=$1 AND status='running'",
   [job.page_id,status]);
 }
+async function recordVerifiedHistory(page,offers,now=new Date()){
+ if(!page||!page.id)return false;
+ const snapshot=insights.verifiedSnapshot(page,offers,now);
+ if(!snapshot)return false;
+ await db.query("INSERT INTO marketplace_compare_price_history(page_id,checked_day,low_price_cents,high_price_cents,shop_count,offer_count,updated_at) "+
+  "VALUES($1,$2,$3,$4,$5,$6,now()) ON CONFLICT(page_id,checked_day) DO UPDATE SET "+
+  "low_price_cents=EXCLUDED.low_price_cents,high_price_cents=EXCLUDED.high_price_cents,"+
+  "shop_count=EXCLUDED.shop_count,offer_count=EXCLUDED.offer_count,updated_at=now()",
+  [page.id,snapshot.day,snapshot.lowCents,snapshot.highCents,snapshot.shopCount,snapshot.offerCount]);
+ return true;
+}
 async function processOne(){
  if(!provider.configured()||busy)return false;
  busy=true;
@@ -124,6 +136,10 @@ async function processOne(){
    await db.query("UPDATE marketplace_compare_pages SET provider_status='checking' WHERE id=$1",[job.page_id]);
    const offers=await provider.fetchOffers(page.query_text);
    await finish(job,'done','ok',offers);
+   // El historial es informativo: un fallo de persistencia nunca borra precios
+   // actuales ni provoca un nuevo gasto de SerpApi.
+   try{await recordVerifiedHistory(page,offers);}
+   catch(e){console.warn('Comparador history persistence:',String(e.message).slice(0,80));}
   }catch(e){
    // No se registra la clave ni la URL completa con api_key.
    console.warn('Comparador background fetch failed:',String(e?.message||'provider_error').slice(0,80));
@@ -143,4 +159,4 @@ function start(ensurePages){
 function stop(){
  if(timer){clearInterval(timer);timer=null;}
 }
-module.exports={periodKeys,ensureSchema,enqueue,reserveQuota,quotaStatus,claimJob,processOne,start,stop};
+module.exports={periodKeys,ensureSchema,enqueue,reserveQuota,quotaStatus,claimJob,recordVerifiedHistory,processOne,start,stop};
