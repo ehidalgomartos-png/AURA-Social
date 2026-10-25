@@ -190,6 +190,68 @@ router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
  }catch(e){next(e);}
 });
 
+// Consulta voluntaria: solo al pulsar, nunca durante el render o el sondeo.
+// Cada intento consume como máximo una consulta autorizada de Google Product API.
+router.post('/comparar/tienda/:slug/:offerKey',
+ rateLimit({windowMs:60*60*1000,limit:8,standardHeaders:'draft-7',legacyHeaders:false}),
+ async(req,res,next)=>{
+ try{
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve al comparador.');
+  const {slug,offerKey:hash}=req.params;
+  if(!/^[a-z0-9-]{4,120}$/.test(slug)||!/^[a-f0-9]{64}$/.test(hash))return res.sendStatus(404);
+  await ensureSchema();
+  const p=await db.query('SELECT slug,external_results FROM marketplace_compare_pages WHERE slug=$1',[slug]);
+  if(!p.rowCount)return res.sendStatus(404);
+  const list=Array.isArray(p.rows[0].external_results)?p.rows[0].external_results:[];
+  const offer=list.find(o=>o&&!o.internal&&offerKey(o)===hash);
+  if(!offer)return res.sendStatus(404);
+  const existing=provider.resolveOfferLink(offer);
+  if(existing?.destination==='store')return res.redirect(303,existing.href);
+  const fallback=provider.shoppingSearchUrl(offer.title,offer.shop);
+  const returnLink='/comparar/'+slug;
+  function explain(message){
+   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+   res.send(shell('Consultar tienda | RedLibertad','Resultado de consulta a tiendas',
+    '<p class="crumb"><a href="'+esc(returnLink)+'">Volver a los precios</a></p><h1>Enlace del vendedor</h1>'+
+    '<p>'+esc(message)+'</p><p><strong>'+esc(offer.title)+'</strong> · '+esc(offer.shop)+'</p>'+
+    '<p><a href="'+esc(fallback)+'" target="_blank" rel="noopener noreferrer nofollow">Buscar este artículo en Google Shopping</a></p>',returnLink));
+  }
+  if(!provider.configured()||!/^\d{8,30}$/.test(String(offer.product_id||'')))return explain('No existe una ficha de producto consultable para esta oferta.');
+  const cached=await db.query("SELECT status,href FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND checked_at>now()-interval '24 hours'",[hash]);
+  if(cached.rowCount){
+   const current=cached.rows[0];
+   if(current.status==='ok'&&current.href){
+    const resolved=provider.resolveOfferLink({...offer,resolved_href:current.href});
+    if(resolved?.destination==='store')return res.redirect(303,resolved.href);
+   }
+   if(current.status==='checking')return explain('Ya se está comprobando este comercio. Puedes volver al comparador.');
+   return explain('No hemos podido verificar un enlace directo para esta oferta. El enlace de Google Shopping es una alternativa.');
+  }
+  const locked=await db.query(
+   "INSERT INTO marketplace_compare_merchant_links(offer_key,status,checked_at) VALUES($1,'checking',now()) "+
+   "ON CONFLICT(offer_key) DO UPDATE SET status='checking',href=NULL,checked_at=now() "+
+   "WHERE marketplace_compare_merchant_links.checked_at<now()-interval '24 hours' "+
+   "OR (marketplace_compare_merchant_links.status='checking' AND marketplace_compare_merchant_links.checked_at<now()-interval '2 minutes') "+
+   "RETURNING offer_key",[hash]
+  );
+  if(!locked.rowCount)return explain('Esta tienda ya se está comprobando. Vuelve a intentarlo después.');
+  if(!await compareWorker.reserveQuota()){
+   await db.query("UPDATE marketplace_compare_merchant_links SET status='unavailable',checked_at=now() WHERE offer_key=$1",[hash]);
+   return explain('Se ha alcanzado el límite de consultas a tiendas. No se realizarán búsquedas adicionales.');
+  }
+  try{
+   const result=await provider.fetchDirectRetailer(offer);
+   await db.query("UPDATE marketplace_compare_merchant_links SET status=$2,href=$3,checked_at=now() WHERE offer_key=$1",
+    [hash,result?'ok':'unavailable',result?.href||null]);
+   if(result)return res.redirect(303,result.href);
+   return explain('No hemos encontrado una página directa de esa tienda que coincida con el precio del producto. No mostraremos una dirección sin verificar.');
+  }catch(error){
+   console.warn('Comparador direct seller:',String(error?.message||'lookup_error').slice(0,70));
+   await db.query("UPDATE marketplace_compare_merchant_links SET status='unavailable',href=NULL,checked_at=now() WHERE offer_key=$1",[hash]);
+   return explain('El proveedor no ha podido verificar ahora mismo el enlace de esta oferta.');
+  }
+ }catch(error){next(error);}
+});
 router.get('/comparar/:slug',async(req,res,next)=>{
  try{
   const slug=String(req.params.slug||'');
