@@ -9,7 +9,7 @@ const provider=require('../src/services/marketplace-comparador-provider-v32133')
 const db=require('../src/db');
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
-test('Google product_link inválido se sustituye por búsqueda Shopping segura',()=>{
+test('Google product_link inválido se sustituye por búsqueda web sin forzar Shopping',()=>{
  const broken='https://www.google.com/search?ibp=oshop&q=samsung%20s26&prds=catalogid:15494712961249802758,headlineOfferDocid:15494712961249802758';
  const offer=provider.resolveOfferLink({title:'Samsung Galaxy S26 256 GB',shop:'Tienda A',href:broken});
  assert.ok(offer);
@@ -17,7 +17,7 @@ test('Google product_link inválido se sustituye por búsqueda Shopping segura',
  const url=new URL(offer.href);
  assert.equal(url.hostname,'www.google.com');
  assert.equal(url.pathname,'/search');
- assert.equal(url.searchParams.get('udm'),'28');
+ assert.equal(url.searchParams.get('udm'),null);
  assert.equal(url.searchParams.get('gl'),'es');
  assert.equal(url.searchParams.get('hl'),'es');
  assert.match(url.searchParams.get('q'),/Galaxy S26 256 GB Tienda A/);
@@ -68,13 +68,13 @@ test('La página muestra tarjetas y destino seguro también para resultados anti
   assert.equal(res.status,200);
   assert.match(html,/comparador-v32135\.css/);
   assert.match(html,/comparador-v32135\.js/);
-  assert.match(html,/Buscar en Google Shopping/);
+  assert.match(html,/Buscar en Google/);
   assert.match(html,/Ver oferta en tienda/);
   assert.match(html,/Precio más bajo mostrado/);
   assert.match(html,/data-comparison-results/);
   assert.match(html,/data-comparison-status="ok"/);
   assert.doesNotMatch(html,/prds=catalogid/i);
-  assert.match(html,/udm=28/);
+  assert.doesNotMatch(html,/udm=28/);
   assert.match(html,/gl=es/);
   assert.match(html,/noindex,follow/);
  }finally{
