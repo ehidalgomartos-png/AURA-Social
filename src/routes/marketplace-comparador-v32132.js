@@ -143,7 +143,7 @@ router.get('/comparar',async(req,res,next)=>{
   const csrfToken=issueCsrf(req,res);
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
-   '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('','',csrfToken)+
+   '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
    '<section class="info"><h2>Comparaciones recientes</h2>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
    (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
    '',
@@ -168,27 +168,95 @@ router.post('/comparar/buscar',rateLimit({windowMs:60*60*1000,limit:15,standardH
  }catch(e){next(e);}
 });
 
+function seoRefinementSuggestions(page){
+ const text=cleanQuery(page?.query_text);
+ if(!text||seo.auto.capacity(text))return [];
+ const results=[],seen=new Set(),offers=Array.isArray(page.external_results)?page.external_results:[];
+ for(const o of offers){
+  if(!o?.title||!provider.titleMatches(text,o.title))continue;
+  const cap=seo.auto.capacity(o.title);
+  if(!cap)continue;
+  const q=text+' '+cap.replace('gb',' GB');
+  const key=queryKey(q);
+  if(seen.has(key))continue;
+  seen.add(key);results.push(q);
+  if(results.length>=3)break;
+ }
+ return results;
+}
+function seoAdminView(rows,token,filter){
+ const prepared=rows.map(p=>{
+  const evaluation=seo.auto.eligibleOffers(p,p.external_results);
+  const eligible=seo.indexEligible(p,p.external_results);
+  const state=p.seo_blocked?'bloqueadas':eligible?'aptas':'pendientes';
+  return {p,evaluation,eligible,state};
+ });
+ const states=['todas','aptas','pendientes','bloqueadas'];
+ const chosen=states.includes(filter)?filter:'todas';
+ const counts={todas:prepared.length,aptas:0,pendientes:0,bloqueadas:0};
+ for(const item of prepared)counts[item.state]++;
+ const chips=[
+  ['todas','Todas'],['aptas','Aptas'],['pendientes','Por mejorar'],['bloqueadas','Bloqueadas']
+ ].map(([key,label])=>'<a class="seo-filter'+(key===chosen?' is-active':'')+'" href="/admin/comparador?estado='+key+'">'+
+   esc(label)+' <span>'+counts[key]+'</span></a>').join('');
+ const visible=prepared.filter(x=>chosen==='todas'||x.state===chosen);
+ const cards=visible.map(({p,evaluation,eligible,state})=>{
+  const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
+  const suggestion=seoRefinementSuggestions(p);
+  const reason=p.seo_blocked?'Excluida por decisión del administrador':
+   eligible?(evaluation.eligible?'Modelo y ofertas válidos para SEO automático':'Aprobación editorial vigente'):
+   evaluation.reason;
+  const info=eligible?'Preparada para indexación; Google decide si la indexa.':
+   p.seo_blocked?'Puedes volver a permitir el SEO cuando quieras.':
+   evaluation.reason==='Falta capacidad o variante exacta'?'Especifica modelo y almacenamiento, por ejemplo 128 GB o 256 GB.':
+   evaluation.reason==='Precios sin actualizar'?'Se revisará cuando haya precios recientes.':
+   evaluation.reason==='Menos de tres ofertas independientes'||evaluation.reason==='Menos de tres tiendas diferentes'?
+    'Se necesitan al menos tres comercios independientes con ofertas verificadas.':
+    'Revisa que todas las ofertas sean el mismo modelo, capacidad, color y estado, con enlaces directos a las tiendas.';
+  const links=suggestion.length?
+   '<div class="seo-suggestions"><span>Búsquedas más específicas:</span>'+
+   suggestion.map(q=>'<a href="/comparar?q='+encodeURIComponent(q)+'">'+esc(q)+'</a>').join('')+
+   '<small>Ejemplos basados en anuncios existentes; no garantizan indexación.</small></div>':'';
+  const checked=p.last_checked_at&&!Number.isNaN(Date.parse(p.last_checked_at))?
+   ' · Precios del '+new Date(p.last_checked_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'}):'';
+  const actionControl=p.seo_blocked?
+   '<button type="submit" name="action" value="unblock" class="seo-btn seo-btn-primary">Permitir SEO automático</button>':
+   '<button type="submit" name="action" value="revoke" class="seo-btn seo-btn-outline">Bloquear SEO</button>';
+  return '<li class="seo-admin-card" data-seo-state="'+state+'">'+
+   '<div class="seo-admin-card-head"><div><a class="seo-admin-name" href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a>'+
+   '<div class="seo-admin-meta">'+Number(p.external_count)+' ofertas guardadas'+checked+'</div></div>'+
+   '<span class="seo-admin-chip seo-admin-chip-'+state+'">'+
+   (state==='aptas'?'Apta para Google':state==='bloqueadas'?'Bloqueada':'Por mejorar')+'</span></div>'+
+   '<p class="seo-admin-reason">'+esc(reason)+'</p><p class="seo-admin-detail">'+esc(info)+'</p>'+links+
+   '<div class="seo-admin-controls"><form method="post" action="'+action+'">'+
+   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+actionControl+'</form>'+
+   '<details class="seo-admin-editor"><summary>Editar comentario editorial</summary>'+
+   '<form method="post" action="'+action+'"><input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+   '<label for="seo-summary-'+id+'">Comentario original (mínimo 80 caracteres)</label>'+
+   '<textarea id="seo-summary-'+id+'" name="summary" rows="4" maxlength="2000" minlength="80" placeholder="Aporta información propia y útil sobre este modelo.">'+esc(p.editorial_summary||'')+'</textarea>'+
+   '<button type="submit" name="action" value="approve" class="seo-btn seo-btn-primary">Aprobar con comentario</button></form>'+
+   '</details></div></li>';
+ }).join('');
+ return '<div class="seo-admin">'+
+  '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
+  '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p></div>'+
+  '<div class="seo-admin-overview"><div><strong>'+counts.todas+'</strong><span>Comparaciones</span></div>'+
+  '<div><strong>'+counts.aptas+'</strong><span>Aptas para Google</span></div>'+
+  '<div><strong>'+counts.pendientes+'</strong><span>Por mejorar</span></div>'+
+  '<div><strong>'+counts.bloqueadas+'</strong><span>Bloqueadas</span></div></div>'+
+  '<nav class="seo-admin-filters" aria-label="Filtrar comparaciones">'+chips+'</nav>'+
+  (cards?'<ol class="seo-admin-grid">'+cards+'</ol>':'<div class="seo-admin-empty">No hay comparaciones en este filtro.</div>')+
+  '<p class="seo-admin-disclaimer">Las páginas aptas se incluyen en el sitemap. Google decide si las indexa.</p></div>';
+}
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
  try{
   await ensureSchema();
   const r=await db.query("SELECT id,slug,query_text,index_approved,seo_blocked,editorial_summary,provider_status,last_checked_at,external_results,jsonb_array_length(external_results) AS external_count FROM marketplace_compare_pages ORDER BY created_at DESC LIMIT 60");
   const token=issueCsrf(req,res);
-  const rows=r.rows.map(p=>{
-   const ok=seo.indexEligible(p,p.external_results),evaluation=seo.auto.eligibleOffers(p,p.external_results);
-   const reason=p.seo_blocked?'Bloqueada manualmente':ok?(evaluation.eligible?'SEO automático válido':'Aprobada editorialmente'):'No indexada: '+evaluation.reason;
-   return '<li class="info"><strong><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></strong>'+
-    '<p>'+esc(reason)+' · '+Number(p.external_count)+' ofertas externas</p>'+
-    '<form method="post" action="/admin/comparador/'+Number(p.id)+'/seo">'+
-    '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
-    '<label>Comentario editorial opcional<textarea name="summary" rows="4" maxlength="2000" style="width:100%;display:block;font-size:16px">'+esc(p.editorial_summary)+'</textarea></label>'+
-    '<button type="submit" name="action" value="approve">Aprobar con comentario</button> '+
-    '<button type="submit" name="action" value="revoke">Bloquear SEO</button> '+
-    '<button type="submit" name="action" value="unblock">Permitir SEO automático</button></form></li>';
-  }).join('');
+  const filter=typeof req.query?.estado==='string'?req.query.estado:'todas';
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
-  res.send(shell('Revisión SEO | RedLibertad','Panel privado de comparaciones',
-   '<h1>SEO del comparador</h1><p>Las páginas útiles se preparan automáticamente; aquí puedes bloquear una comparación o redactar un comentario editorial.</p><ul class="comparison-list">'+rows+'</ul>',
-   '/admin/comparador'));
+  res.send(shell('SEO del comparador | RedLibertad','Gestión privada de indexación',
+    seoAdminView(r.rows,token,filter),'/admin/comparador'));
  }catch(e){next(e);}
 });
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
