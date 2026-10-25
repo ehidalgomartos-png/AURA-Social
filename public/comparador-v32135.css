@@ -56,3 +56,10 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 
 /* Enlaces directos de Google Shopping patrocinados y claramente identificados. */
 .offer .offer-sponsored{grid-column:1/-1;display:inline-flex;width:max-content;padding:4px 9px;border-radius:999px;background:#fff3d5;color:#774d0d;font-size:.77rem;font-weight:750;border:1px solid #ead49b}
+
+/* V3.2.136: acción voluntaria para resolver un vendedor con cuota compartida */
+.offer .offer-lookup{grid-column:1/-1;display:block;margin:0;width:100%}
+.offer .offer-lookup .offer-link{display:block;width:100%;font:inherit;cursor:pointer;background:#0a654b;min-height:46px;border:0}
+.offer .offer-lookup .offer-link:hover{background:#064c38}
+.offer .offer-search-backup{background:#edf5fc;color:#135384;border:1px solid #ccdef0;font-size:.9rem;min-height:40px}
+.offer .offer-search-backup:hover{background:#deebf8;color:#0a477c}
