@@ -238,28 +238,43 @@ function seoRefinementSuggestions(page){
  }
  return results;
 }
-function linkDiagnosticsMarkup(page,cache,quota){
+function linkDiagnosticsMarkup(page,cache,quota,manualCache=new Map(),token=''){
  const offers=linkDiagnostics.pageDiagnostics(page,cache,quota);
  if(!offers.length)return '<details class="seo-link-details"><summary>Enlaces de tienda · sin ofertas válidas</summary><p class="seo-link-empty">Todavía no hay ofertas coincidentes que analizar.</p></details>';
  const ready=offers.filter(x=>x.status==='ready').length;
- const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)).length;
- const details=offers.slice(0,6).map(x=>
-  '<li class="seo-link-item"><div><strong>'+esc(x.offer.title)+'</strong><small>'+esc(x.offer.shop||'Tienda no indicada')+'</small></div>'+
-  '<span class="seo-link-state seo-link-state-'+esc(x.status)+'">'+esc(x.label)+'</span>'+
-  '<p>'+esc(x.description)+'</p>'+
-  (x.href?'<a href="'+esc(x.href)+'" target="_blank" rel="noopener noreferrer nofollow">Abrir tienda</a>':'')+'</li>'
- ).join('');
+ const manualCount=offers.filter(x=>manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+manualLinks.identityKey(x.offer)))).length;
+ const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)).length+manualCount;
+ const details=offers.slice(0,6).map(x=>{
+  const key=manualLinks.identityKey(x.offer);
+  const manual=manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+key));
+  const url=manual||x.href;
+  const action='/admin/comparador/'+Number(page.id)+'/enlace';
+  return '<li class="seo-link-item"><div><strong>'+esc(x.offer.title)+'</strong><small>'+esc(x.offer.shop||'Tienda no indicada')+'</small></div>'+
+   '<span class="seo-link-state seo-link-state-'+esc(manual?'manual':x.status)+'">'+esc(manual?'Enlace revisado por administración':x.label)+'</span>'+
+   '<p>'+esc(manual?'La URL se conserva al actualizar precios. Debes comprobar la disponibilidad y el importe en la tienda.':x.description)+'</p>'+
+   (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer nofollow">Abrir tienda</a>':'')+
+   '<form class="seo-manual-link-form" method="post" action="'+action+'">'+
+   '<input type="hidden" name="_csrf" value="'+esc(token)+'"><input type="hidden" name="offer_key" value="'+esc(key)+'">'+
+   '<label for="manual-url-'+Number(page.id)+'-'+esc(key)+'">Enlace exacto en '+esc(x.offer.shop)+'</label>'+
+   '<input id="manual-url-'+Number(page.id)+'-'+esc(key)+'" name="url" type="url" maxlength="2048" required value="'+esc(manual||'')+'" placeholder="https://tienda.es/producto/..." autocomplete="off" inputmode="url">'+
+   '<label class="seo-manual-confirm"><input type="checkbox" name="confirmed" value="yes" required> He comprobado que esta dirección corresponde a la oferta y tienda indicadas.</label>'+
+   '<button class="seo-btn seo-btn-primary" type="submit" name="action" value="save">Guardar enlace directo</button></form>'+
+   (manual?'<form class="seo-manual-remove" method="post" action="'+action+'"><input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+    '<input type="hidden" name="offer_key" value="'+esc(key)+'"><button type="submit" name="action" value="remove" class="seo-btn seo-btn-outline">Quitar enlace manual</button></form>':'')+
+   '</li>';
+ }).join('');
  return '<details class="seo-link-details"><summary>Enlaces de tienda · '+direct+' directos · '+ready+' comprobables</summary>'+
   '<ol class="seo-link-list">'+details+'</ol>'+
   (offers.length>6?'<small>Se muestran 6 de '+offers.length+' ofertas. Abre la comparación para ver todas.</small>':'')+
   '<small>Diagnóstico basado en datos guardados. No se consulta SerpApi.</small></details>';
 }
-function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
+function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manualCache=new Map()){
  const prepared=rows.map(p=>{
-  const evaluation=seo.auto.eligibleOffers(p,p.external_results);
+  const matching=(Array.isArray(p.external_results)?p.external_results:[]).filter(o=>o&&provider.titleMatches(p.query_text,o.title));
+  const evaluation=seo.auto.eligibleOffers(p,matching);
   const eligible=seo.indexEligible(p,p.external_results);
   const state=p.seo_blocked?'bloqueadas':eligible?'aptas':'pendientes';
-  return {p,evaluation,eligible,state};
+  return {p,evaluation,eligible,state,matching};
  });
  const states=['todas','aptas','pendientes','bloqueadas'];
  const chosen=states.includes(filter)?filter:'todas';
@@ -270,7 +285,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
  ].map(([key,label])=>'<a class="seo-filter'+(key===chosen?' is-active':'')+'" href="/admin/comparador?estado='+key+'">'+
    esc(label)+' <span>'+counts[key]+'</span></a>').join('');
  const visible=prepared.filter(x=>chosen==='todas'||x.state===chosen);
- const cards=visible.map(({p,evaluation,eligible,state})=>{
+ const cards=visible.map(({p,evaluation,eligible,state,matching})=>{
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
   const suggestion=seoRefinementSuggestions(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
@@ -292,9 +307,9 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
   const actionControl=p.seo_blocked?
    '<button type="submit" name="action" value="unblock" class="seo-btn seo-btn-primary">Permitir SEO automático</button>':
    '<button type="submit" name="action" value="revoke" class="seo-btn seo-btn-outline">Bloquear SEO</button>';
-  return '<li class="seo-admin-card" data-seo-state="'+state+'">'+
+  return '<li class="seo-admin-card" id="comparacion-'+id+'" data-seo-state="'+state+'">'+
    '<div class="seo-admin-card-head"><div><a class="seo-admin-name" href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a>'+
-   '<div class="seo-admin-meta">'+Number(p.external_count)+' ofertas guardadas'+checked+'</div></div>'+
+   '<div class="seo-admin-meta">'+matching.length+' '+(matching.length===1?'oferta coincidente':'ofertas coincidentes')+checked+'</div></div>'+
    '<span class="seo-admin-chip seo-admin-chip-'+state+'">'+
    (state==='aptas'?'Apta para Google':state==='bloqueadas'?'Bloqueada':'Por mejorar')+'</span></div>'+
    '<p class="seo-admin-reason">'+esc(reason)+'</p><p class="seo-admin-detail">'+esc(info)+'</p>'+links+
@@ -305,7 +320,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
    '<label for="seo-summary-'+id+'">Comentario original (mínimo 80 caracteres)</label>'+
    '<textarea id="seo-summary-'+id+'" name="summary" rows="4" maxlength="2000" minlength="80" placeholder="Aporta información propia y útil sobre este modelo.">'+esc(p.editorial_summary||'')+'</textarea>'+
    '<button type="submit" name="action" value="approve" class="seo-btn seo-btn-primary">Aprobar con comentario</button></form>'+
-   '</details></div>'+linkDiagnosticsMarkup(p,merchantCache,quota)+'</li>';
+   '</details></div>'+linkDiagnosticsMarkup(p,merchantCache,quota,manualCache,token)+'</li>';
  }).join('');
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
@@ -334,9 +349,14 @@ router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
    "SELECT offer_key,status,href,checked_at FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[])",[keys]
   ):{rows:[]};
   const merchantCache=new Map(found.rows.map(item=>[item.offer_key,item]));
+  const pageIds=r.rows.map(item=>item.id);
+  const reviewed=pageIds.length?await db.query(
+   "SELECT page_id,offer_key,href,reviewed_at FROM marketplace_compare_manual_links WHERE page_id=ANY($1::bigint[])",[pageIds]
+  ):{rows:[]};
+  const manualCache=new Map(reviewed.rows.map(item=>[item.page_id+':'+item.offer_key,item]));
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('SEO del comparador | RedLibertad','Gestión privada de indexación',
-    seoAdminView(r.rows,token,filter,quota,merchantCache),'/admin/comparador'));
+    seoAdminView(r.rows,token,filter,quota,merchantCache,manualCache),'/admin/comparador'));
  }catch(e){next(e);}
 });
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
