@@ -40,10 +40,13 @@ async function enqueue(page,ensurePages){
  const result=await db.query(
   "INSERT INTO marketplace_compare_jobs (page_id,status) "+
   "SELECT id,'queued' FROM marketplace_compare_pages WHERE id=$1 "+
-  "AND (last_checked_at IS NULL OR last_checked_at<now()-interval '24 hours' OR (provider_status='limit_reached' AND jsonb_array_length(external_results)=0)) "+
+  "AND (last_checked_at IS NULL OR last_checked_at<now()-interval '24 hours' OR (provider_status='limit_reached' AND jsonb_array_length(external_results)=0) "+
+  "OR (provider_status IN ('queued','checking') AND jsonb_array_length(external_results)=0 AND EXISTS "+
+  "(SELECT 1 FROM marketplace_compare_jobs j WHERE j.page_id=$1 AND j.status IN ('done','failed') AND j.finished_at<now()-interval '2 minutes'))) "+
   "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0 "+
   "WHERE marketplace_compare_jobs.status IN ('done','failed') AND EXISTS "+
-  "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours' OR (p.provider_status='limit_reached' AND jsonb_array_length(p.external_results)=0))) "+
+  "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours' OR (p.provider_status='limit_reached' AND jsonb_array_length(p.external_results)=0) "+
+  "OR (p.provider_status IN ('queued','checking') AND jsonb_array_length(p.external_results)=0 AND marketplace_compare_jobs.finished_at<now()-interval '2 minutes'))) "+
   "RETURNING page_id",[id]
  );
  if(result.rowCount)await db.query("UPDATE marketplace_compare_pages SET provider_status='queued' WHERE id=$1",[id]);
@@ -126,14 +129,16 @@ async function processOne(){
   await ensureSchema(bootstrap||undefined);
   const job=await claimJob();
   if(!job)return false;
-  const result=await db.query('SELECT id,query_text,last_checked_at FROM marketplace_compare_pages WHERE id=$1',[job.page_id]);
+  const result=await db.query('SELECT id,query_text,last_checked_at,provider_status,external_results FROM marketplace_compare_pages WHERE id=$1',[job.page_id]);
   const page=result.rows[0];
   if(!page){
    await db.query("DELETE FROM marketplace_compare_jobs WHERE page_id=$1",[job.page_id]);
    return true;
   }
   const since=page.last_checked_at?Date.now()-Date.parse(page.last_checked_at):Infinity;
-  if(Number.isFinite(since)&&since>=0&&since<FRESH_HOURS*3600000){
+  // Solo ignorar el trabajo si otro proceso guardó un resultado válido recientemente.
+   // No confundir last_checked_at de un intento anterior con una búsqueda completada.
+   if(page.provider_status==='ok'&&Number.isFinite(since)&&since>=0&&since<FRESH_HOURS*3600000){
    await db.query("UPDATE marketplace_compare_jobs SET status='done',finished_at=now() WHERE page_id=$1",[job.page_id]);
    return true;
   }
