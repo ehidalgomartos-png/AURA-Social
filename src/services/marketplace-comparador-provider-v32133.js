@@ -29,6 +29,27 @@ function isGoogleHost(host){
 // Las fichas usadas de Wallapop y otros marketplaces no suelen aparecer en la
 // pestaña Shopping (udm=28). Abrimos búsqueda WEB sin fijar dicha pestaña.
 // Nunca se promete recuperar el anuncio exacto si la fuente no dio URL directa.
+// SerpApi a veces devuelve un enlace de Google /url con la URL real del
+// vendedor codificada en ?q= o ?url=. Solo extraemos destinos HTTPS externos
+// en ese formato exacto. No seguimos redirecciones ni enlaces de anuncios /aclk.
+function directMerchantUrl(value){
+ const safe=safeHttps(value);
+ if(!safe)return null;
+ const u=new URL(safe);
+ if(!isGoogleHost(u.hostname))return safe;
+ if(u.pathname!=='/url')return null;
+ for(const key of ['url','q']){
+  const raw=u.searchParams.get(key);
+  const extracted=safeHttps(raw);
+  if(extracted&&!isGoogleHost(new URL(extracted).hostname))return extracted;
+ }
+ return null;
+}
+// Token ofrecido por Google Shopping para recuperar la variante concreta
+// con una sola consulta Google Product, en lugar de un catálogo genérico.
+function safePageToken(v){
+ return typeof v==='string'&&v.length>=20&&v.length<=2400&&/^[A-Za-z0-9_+=/-]+$/.test(v)?v:null;
+}
 function shoppingSearchUrl(title,shop=''){
  const raw=String(title||'').trim().slice(0,160);
  if(!raw)return null;
@@ -54,9 +75,9 @@ function shoppingSearchUrl(title,shop=''){
 // Nunca enviar al usuario a un product_link de Google que puede haber caducado.
 // Aplica también a URLs guardadas anteriormente en PostgreSQL.
 function resolveOfferLink(offer){
- const cached=safeHttps(offer?.resolved_href);
+ const cached=directMerchantUrl(offer?.resolved_href);
  if(cached&&!isGoogleHost(new URL(cached).hostname))return {href:cached,destination:'store'};
- const href=safeHttps(offer?.href);
+ const href=directMerchantUrl(offer?.href);
  if(offer?.internal)return {href:offer.href,destination:'internal'};
  if(href&&!isGoogleHost(new URL(href).hostname)){
   return {href,destination:'store'};
@@ -122,7 +143,7 @@ function parseExternal(results,q){
   if(!titleMatches(q,title))continue;
   const cents=euroPrice(r);
   if(!cents)continue;
-  const direct=safeHttps(r.link||'');
+  const direct=directMerchantUrl(r.direct_link||r.link||'');
   const product=safeHttps(r.product_link||'');
   if(!direct&&!product)continue;
   const shop=String(r.source||'Tienda no identificada').replace(/[<>]/g,'').trim().slice(0,80)||'Tienda no identificada';
@@ -137,6 +158,7 @@ function parseExternal(results,q){
    title,shop,price_cents:cents,href:landing.href,
    destination:landing.destination,
    product_id:/^\d{8,30}$/.test(String(r.product_id||''))?String(r.product_id):null,
+   page_token:safePageToken(r.immersive_product_page_token),
    condition:condition.includes('refurb')||condition.includes('reacondicionado')?'Reacondicionado':condition.includes('used')||condition.includes('usado')?'Usado':'Consultar estado',
    delivery:typeof r.delivery==='string'?r.delivery.trim().slice(0,110):'',
    image:safeImage(r.thumbnail || (Array.isArray(r.thumbnails)?r.thumbnails[0]:null)),
@@ -158,7 +180,7 @@ function parseInlineStores(results,q){
   if(!titleMatches(q,title))continue;
   const price_cents=euroPrice(r);
   if(!price_cents)continue;
-  const direct=safeHttps(r.link||'');
+  const direct=directMerchantUrl(r.direct_link||r.link||'');
   if(!direct||isGoogleHost(new URL(direct).hostname))continue;
   const shop=String(r.source||'Comercio').replace(/[<>]/g,'').trim().slice(0,80)||'Comercio';
   const identity=shop.toLowerCase()+'|'+keyOf(title)+'|'+price_cents;
@@ -220,7 +242,7 @@ function selectRetailer(offer,sellers){
  if(!Number.isSafeInteger(requested)||requested<=0)return null;
  for(const seller of (Array.isArray(sellers)?sellers:[]).slice(0,50)){
   if(!sameRetailer(offer.shop,seller?.name))continue;
-  const href=safeHttps(seller?.direct_link);
+  const href=directMerchantUrl(seller?.direct_link||seller?.link);
   if(!href||isGoogleHost(new URL(href).hostname))continue;
   const price=readEuroAmount(seller.base_price);
   if(price===null)continue; // evitar mandar a un modelo/variante de precio desconocido
@@ -234,8 +256,11 @@ async function fetchDirectRetailer(offer,fetchFn=fetch,env=process.env){
  const pid=String(offer?.product_id||'');
  if(!/^\d{8,30}$/.test(pid))return null;
  const params=new URLSearchParams({
-  engine:'google_product',product_id:pid,gl:'es',hl:'es',api_key:String(env.COMPARADOR_SERPAPI_KEY).trim()
+  engine:'google_product',gl:'es',hl:'es',api_key:String(env.COMPARADOR_SERPAPI_KEY).trim()
  });
+ const token=safePageToken(offer?.page_token);
+ if(token)params.set('page_token',token);
+ else params.set('product_id',pid);
  const r=await fetchFn('https://serpapi.com/search.json?'+params,{
   signal:AbortSignal.timeout(12000),headers:{Accept:'application/json'}
  });
@@ -274,4 +299,4 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
  return mergeOffers(organic,sponsored);
 }
-module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,canLookupSeller,selectRetailer,fetchDirectRetailer};
+module.exports={safeHttps,safeImage,directMerchantUrl,safePageToken,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,canLookupSeller,selectRetailer,fetchDirectRetailer};
