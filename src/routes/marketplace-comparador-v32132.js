@@ -528,7 +528,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<span>1 oferta coincidente</span>'+(checked?'<time>Precios consultados: '+esc(checked)+'</time>':'')+'</section>':
    offers.length?
-   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'priceWarning+
+   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
    (checked?'<span>Precios consultados: '+esc(checked)+'</span>':'')+'</div>'+
    '<p class="cmp-start-price"><strong>'+(hasExternal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
