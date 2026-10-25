@@ -40,7 +40,7 @@ test('panel SEO de RedLibertad muestra filtros y bloques comprensibles',()=>{
  assert.match(html,/value="unblock"/);
  assert.match(html,/Editar comentario editorial/);
  assert.match(html,/value="approve"/);
- assert.equal((html.match(/name="_csrf"/g)||[]).length,4);
+ assert.equal((html.match(/name="_csrf"/g)||[]).length,7);
  assert.match(html,/minlength="80"/);
  assert.doesNotMatch(html,/Comentario editorial opcional/);
  assert.doesNotMatch(html,/<textarea[^>]*style=/);
