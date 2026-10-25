@@ -37,7 +37,9 @@ function clearCondition(o){
 function validMerchant(o){
  if(!o||o.internal||o.sponsored||o.price_currency!=='EUR'||!Number.isSafeInteger(o.price_cents)||o.price_cents<=0||o.price_cents>100000000)return false;
  if(!String(o.shop||'').trim()||!clearCondition(o))return false;
- const link=provider.resolveOfferLink(o);
+ // Solo enlaces de tienda presentes en los resultados guardados, no enlaces
+ // añadidos al mostrar la página desde otra tabla: sitemap y HTML deben coincidir.
+ const link=provider.resolveOfferLink({...o,resolved_href:null});
  return link?.destination==='store' && Boolean(link?.href);
 }
 function exactVariant(q,offers){
