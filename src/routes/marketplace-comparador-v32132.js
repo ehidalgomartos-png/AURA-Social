@@ -106,7 +106,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
-  lookup+'<a class="offer-link'+(candidate?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
+  lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   '<span class="offer-destination">'+note+'</span></li>';
 }
 // Token independiente de cabeceras Origin/Sec-Fetch-Site, que pueden cambiar
@@ -314,6 +314,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
     quota.reason==='disabled'?'Las consultas externas están desactivadas actualmente.': 'No hay proveedor de consultas externas configurado.'
    )+'</p>':'')+
    '<p class="compare-guide">'+(exact?'Comprueba memoria, capacidad y estado antes de comprar.':'La búsqueda incluye variantes. Indica el modelo exacto para compararlo con mayor precisión.')+'</p>'+
+   (offers.some(o=>['Usado','Reacondicionado'].includes(o.condition))?'<p class="compare-help">También hay ofertas de segunda mano o reacondicionadas. Sus precios no son directamente comparables con los de productos nuevos.</p>':'')+
    cards+
    '<p class="compare-help">Los precios son orientativos y pueden no incluir envío. Verifica el importe final, el producto exacto y las condiciones en la tienda. Los enlaces de Google Shopping son búsquedas generales, no enlaces directos a una tienda.</p></section>'+
    (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'');
