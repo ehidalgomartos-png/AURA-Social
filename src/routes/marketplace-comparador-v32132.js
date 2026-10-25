@@ -8,6 +8,7 @@ const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const seo=require('../services/marketplace-comparador-seo-v32132');
 const provider=require('../services/marketplace-comparador-provider-v32133');
+const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -62,43 +63,6 @@ async function localOffers(q){
  }));
 }
 function parseExternal(results,q){return provider.parseExternal(results,q);}
-async function reserveProviderQuota(){
- const {daily,monthly}=provider.budget();
- if(daily===0||monthly===0)return false;
- const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
- const val=key=>parts.find(p=>p.type===key)?.value||'';
- const month=val('year')+'-'+val('month'), day=month+'-'+val('day');
- const client=await db.pool.connect();
- try{
-  await client.query('BEGIN');
-  const sql='INSERT INTO marketplace_compare_provider_usage(period_key,used) VALUES($1,1) ON CONFLICT(period_key) DO UPDATE SET used=marketplace_compare_provider_usage.used+1 WHERE marketplace_compare_provider_usage.used<$2 RETURNING used';
-  const mo=await client.query(sql,['m:'+month,monthly]);
-  if(!mo.rowCount){await client.query('ROLLBACK');return false;}
-  const dy=await client.query(sql,['d:'+day,daily]);
-  if(!dy.rowCount){await client.query('ROLLBACK');return false;}
-  await client.query('COMMIT');
-  return true;
- }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}
- finally{client.release();}
-}
-async function refreshExternal(page){
- if(!provider.configured())return;
- const lease=await db.query(
-  "UPDATE marketplace_compare_pages SET last_checked_at=now(),provider_status='checking' WHERE id=$1 AND (last_checked_at IS NULL OR last_checked_at < now() - interval '24 hours') RETURNING id",[page.id]
- );
- if(!lease.rowCount)return;
- try{
-  if(!await reserveProviderQuota()){
-   await db.query("UPDATE marketplace_compare_pages SET provider_status='limit_reached' WHERE id=$1",[page.id]);
-   return;
-  }
-  const offers=await provider.fetchOffers(page.query_text);
-  await db.query("UPDATE marketplace_compare_pages SET external_results=$2::jsonb,provider_status='ok',updated_at=now() WHERE id=$1",[page.id,JSON.stringify(offers)]);
- }catch(e){
-  console.warn('RedLibertad comparador: proveedor externo no disponible:',String(e.message).slice(0,90));
-  await db.query("UPDATE marketplace_compare_pages SET provider_status='unavailable' WHERE id=$1",[page.id]);
- }
-}
 function formMarkup(message='',term='',csrfToken=''){
  return '<form class="compare-search" action="/comparar/buscar" method="post"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><label for="compareQ">¿Qué producto quieres comparar?</label><div class="compare-search-row"><input id="compareQ" name="q" type="search" required minlength="3" maxlength="100" value="'+esc(term)+'" placeholder="Ej. Samsung Galaxy S26 Ultra" autocomplete="off"><button type="submit">Comparar precios</button></div>'+
  (message?'<p class="compare-error" role="alert">'+esc(message)+'</p>':'')+
@@ -167,7 +131,7 @@ router.post('/comparar/buscar',rateLimit({windowMs:60*60*1000,limit:15,standardH
   if(key.length<3)return res.status(400).send(shell('Búsqueda no válida | RedLibertad','Introduce un producto válido.',formMarkup('Introduce el nombre de un producto más específico.',q,issueCsrf(req,res)),'/comparar'));
   await ensureSchema();
   const row=await db.query("INSERT INTO marketplace_compare_pages (query_key,slug,query_text) VALUES ($1,$2,$3) ON CONFLICT (query_key) DO UPDATE SET search_count=marketplace_compare_pages.search_count+1 RETURNING id,slug,query_text",[key,slugFor(q),q]);
-  await refreshExternal(row.rows[0]);
+  await compareWorker.enqueue(row.rows[0],ensureSchema);
   res.redirect(303,'/comparar/'+row.rows[0].slug);
  }catch(e){next(e);}
 });
@@ -210,11 +174,14 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const result=await db.query('SELECT * FROM marketplace_compare_pages WHERE slug=$1',[slug]);
   if(!result.rowCount)return res.sendStatus(404);
   const page=result.rows[0];
+  await compareWorker.enqueue(page,ensureSchema);
   const local=await localOffers(page.query_text);
   const external=Array.isArray(page.external_results)?page.external_results.filter(o=>o&&!o.internal&&safeHref(o.href)&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0):[];
   const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
-  const providerMessage=page.provider_status==='ok'
+  const providerMessage=page.provider_status==='queued'||page.provider_status==='checking'
+   ?'Estamos buscando precios en tiendas españolas. La página ya está guardada; actualiza para ver las ofertas cuando finalice.'
+   :page.provider_status==='ok'
    ?'Precios externos consultados el '+esc(checked||'')
    :page.provider_status==='limit_reached'?'Límite de consultas externas alcanzado. Los resultados guardados siguen disponibles.':
     page.provider_status==='unavailable'?'El proveedor externo no responde. Se conservan los últimos resultados guardados.':
@@ -230,7 +197,11 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    formMarkup('',page.query_text,csrfToken)+
    (approved?'<section class="info"><h2>Qué debes saber de este producto</h2><p>'+esc(page.editorial_summary)+'</p></section>':'')+
    '<section class="info"><h2>'+(exact?'Precios encontrados':'Productos relacionados con tu búsqueda')+'</h2><p class="compare-guide">'+(exact?'Consulta las variantes y sus precios antes de comprar.':'«'+esc(page.query_text)+'» incluye varios modelos. Añade el modelo exacto para comparar el mismo producto.')+'</p><p class="muted">'+esc(offers.length)+' ofertas disponibles. '+providerMessage+'</p><p class="compare-section-desc">Precios de referencia en euros, sin garantía de envío incluido. La disponibilidad y el precio final los confirma la tienda de destino. Los enlaces a Google Shopping no son un pago directo en la tienda.</p></section>'+
-   (offers.length?'<ol class="comparison-list">'+offers.map(offerMarkup).join('')+'</ol>':'<div class="info"><p>No hemos encontrado ofertas que coincidan suficientemente con esta búsqueda. La página permanece guardada y podrás volver más adelante.</p></div>');
+   (['queued','checking'].includes(page.provider_status)?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados</a></p>':'')+
+   (offers.length?'<ol class="comparison-list">'+offers.map(offerMarkup).join('')+'</ol>':
+   '<div class="info"><p>'+
+   (['queued','checking'].includes(page.provider_status)?'Estamos buscando ofertas. Puedes volver a esta dirección más tarde.':'No hemos encontrado ofertas que coincidan suficientemente con esta búsqueda. La página permanece guardada y podrás volver más adelante.')+
+   '</p></div>');
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
  }catch(e){next(e);}
@@ -246,4 +217,4 @@ router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
  }catch(e){next(e);}
 });
-module.exports={router,cleanQuery,queryKey,slugFor,parseExternal,safeHref,ensureSchema,localOffers,issueCsrf,validCsrf,csrfName};
+module.exports={router,cleanQuery,queryKey,slugFor,parseExternal,safeHref,ensureSchema,localOffers,issueCsrf,validCsrf,csrfName,startBackgroundWorker:()=>compareWorker.start(ensureSchema),stopBackgroundWorker:compareWorker.stop};
