@@ -195,3 +195,45 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 /* V3.2.142 — El fallo de un enlace externo nunca aparta de la comparación. */
 .compare-merchant-notice{border:1px solid #c5dbee;border-radius:11px;background:#f0f7fe;color:#254e71;padding:11px 14px;line-height:1.5;margin:10px 0 17px;font-size:.92rem}
 #precios-y-tiendas{scroll-margin-top:20px}
+
+
+/* V3.2.144 — Ficha destacada cuando solo hay una oferta coincidente */
+.compare-single-status{display:flex;gap:10px 22px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:10px 0 12px;padding:0 4px;font-size:.87rem;color:#617890}
+.compare-single-status span{font-weight:700;color:#205d87}
+.compare-single-status time{font-size:.84rem;color:#6b7c90}
+.compare-single-product{background:white;border:1px solid #dce6f2;border-radius:18px;padding:23px;margin:0 0 22px;box-shadow:0 8px 25px rgba(17,54,93,.045)}
+.compare-single-product h2{margin:0 0 16px;color:#153a5e;font-size:clamp(1.22rem,2.4vw,1.55rem)}
+.compare-single-product .comparison-list{display:block;margin:0}
+.compare-single-product .offer{display:grid;grid-template-columns:164px minmax(0,1fr);gap:12px 22px;align-items:start;margin:0;padding:20px;background:#f8fbff;border:1px solid #e0eaf5;border-radius:15px;box-shadow:none}
+.compare-single-product .offer .offer-photo,
+.compare-single-product .offer .offer-noimage{grid-column:1;grid-row:1 / span 5;width:164px;height:164px;border-radius:12px;object-fit:contain;background:#fff}
+.compare-single-product .offer .offer-main{grid-column:2;grid-row:1}
+.compare-single-product .offer .offer-main strong{font-size:clamp(1.07rem,2vw,1.22rem);line-height:1.4;display:block;-webkit-line-clamp:unset;min-height:0}
+.compare-single-product .offer .offer-main small{font-size:.91rem;margin-top:8px}
+.compare-single-product .offer .price{grid-column:2;grid-row:auto;font-size:clamp(1.65rem,3vw,2.15rem);margin-top:4px}
+.compare-single-product .offer .offer-lookup,
+.compare-single-product .offer > .offer-link,
+.compare-single-product .offer .offer-destination,
+.compare-single-product .offer .offer-sponsored{grid-column:2}
+.compare-single-product .offer > .offer-link{max-width:440px}
+.compare-single-product .offer .offer-lookup .offer-link{max-width:440px}
+.compare-single-product .compare-help{font-size:.86rem;color:#5c7087;margin:16px 2px 0;line-height:1.5}
+@media(max-width:650px){
+ .compare-single-product{padding:16px}
+ .compare-single-product .offer{grid-template-columns:100px minmax(0,1fr);gap:11px;padding:13px}
+ .compare-single-product .offer .offer-photo,
+ .compare-single-product .offer .offer-noimage{width:100px;height:106px;grid-row:1 / span 2}
+ .compare-single-product .offer .offer-main{grid-column:2}
+ .compare-single-product .offer .price,
+ .compare-single-product .offer .offer-lookup,
+ .compare-single-product .offer > .offer-link,
+ .compare-single-product .offer .offer-destination,
+ .compare-single-product .offer .offer-sponsored{grid-column:1 / -1}
+ .compare-single-product .offer > .offer-link,
+ .compare-single-product .offer .offer-lookup .offer-link{max-width:none}
+}
+@media(max-width:360px){
+ .compare-single-product .offer{grid-template-columns:78px minmax(0,1fr)}
+ .compare-single-product .offer .offer-photo,
+ .compare-single-product .offer .offer-noimage{width:78px;height:92px}
+}

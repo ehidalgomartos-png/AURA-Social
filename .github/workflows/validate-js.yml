@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.144 clean single-offer page and meaningful variant summary
+        run: node --test tests/marketplace-comparador-single-offer-v32144.test.js
       - name: V3.2.143 exact model and storage matching for product comparison
         run: node --test tests/marketplace-comparador-exact-model-v32143.test.js
       - name: V3.2.142 recover stuck comparison queue and seller lookup fallback

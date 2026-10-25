@@ -133,7 +133,8 @@ function historyMarkup(history){
   }).join('')+'</ol><small>Datos de consultas anteriores. Precios orientativos, sin confirmar transporte ni disponibilidad.</small></section>';
 }
 function insightsMarkup(query,insight){
- if(!insight||!insight.variants.length)return '';
+ // No repetir una tabla de versiones si todas las ofertas corresponden a la misma.
+ if(!insight||insight.variants.length<=1)return '';
  const ranked=insight.variants.slice().sort((a,b)=>Number(Boolean(b.capacity))-Number(Boolean(a.capacity))||b.count-a.count||a.minCents-b.minCents);
  const renderVariant=v=>{
   const colors=v.colors.length?' · '+esc(v.colors.length===1?v.colors[0]:v.colors.length+' colores'):'';
@@ -147,7 +148,7 @@ function insightsMarkup(query,insight){
  const shown=ranked.slice(0,4),remaining=ranked.slice(4);
  return '<section class="compare-variant-section" aria-labelledby="compare-variant-heading">'+
   '<div class="compare-variant-heading"><h2 id="compare-variant-heading">Versiones encontradas</h2>'+
-  '<p>'+insight.total+' ofertas agrupadas por capacidad y estado</p></div>'+
+  '<p>'+insight.total+' '+(insight.total===1?'oferta agrupada':'ofertas agrupadas')+' por capacidad y estado</p></div>'+
   '<ul class="compare-variant-grid">'+shown.map(renderVariant).join('')+'</ul>'+
   (remaining.length?'<details class="compare-more-variants"><summary>Ver las otras '+remaining.length+
    (remaining.length===1?' versión':' versiones')+'</summary><ul class="compare-variant-grid">'+remaining.map(renderVariant).join('')+'</ul></details>':'')+
@@ -428,7 +429,11 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const bestOffer=offers.length?offers[0]:null;
   const best=bestOffer?.price_cents??null;
   const bestCondition=bestOffer?insights.conditionOf(bestOffer):null;
-  const status=offers.length?
+  const singleOffer=offers.length===1;
+  const status=singleOffer?
+   '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<span>1 oferta coincidente</span>'+(checked?'<time>Actualizado: '+esc(checked)+'</time>':'')+'</section>':
+   offers.length?
    '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
    '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
    (checked?'<span>Actualizado: '+esc(checked)+'</span>':'')+'</div>'+
@@ -446,7 +451,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
   const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota)).join('')+'</ol>':'';
-  const results=offers.length?
+  const results=singleOffer?
+   '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
+   '<h2 id="precios-y-tiendas">Oferta encontrada</h2>'+
+   (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
+   cards+
+   '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
+   offers.length?
    '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
    '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
