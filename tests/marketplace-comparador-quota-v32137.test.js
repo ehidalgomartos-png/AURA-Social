@@ -55,7 +55,7 @@ test('comparaciones guardadas aparecen en portada aunque no estén aprobadas par
 
 test('cuota agotada: no ofrecer consultas directas y no cachear fracaso 24 horas',async()=>{
  const oldQuery=db.query,oldConfigured=provider.configured,oldQuota=worker.quotaStatus,oldReserve=worker.reserveQuota;
- const item={title:'iPhone 12 Azul',shop:'Wallapop',price_cents:10000,product_id:'12345678901234567',
+ const item={title:'iPhone 12 Azul',shop:'Certideal.es',price_cents:10000,product_id:'12345678901234567',
   href:'https://www.google.com/search?udm=28&q=iPhone+12',condition:'Usado',internal:false};
  const slug=compare.slugFor('iphone 12');
  const hash=crypto.createHash('sha256').update([item.product_id,item.shop,item.title,String(item.price_cents)].join('|')).digest('hex');
@@ -93,8 +93,8 @@ test('cuota agotada: no ofrecer consultas directas y no cachear fracaso 24 horas
     method:'POST',redirect:'manual',headers:{cookie,'content-type':'application/x-www-form-urlencoded'},
     body:new URLSearchParams({_csrf:token}).toString()
    });
-   assert.equal(post.status,200);
-   assert.match(await post.text(),/límite compartido de consultas/);
+   assert.equal(post.status,303);
+   assert.equal(post.headers.get('location'),'/comparar/'+slug+'?enlace=sin-verificar#precios-y-tiendas');
    assert.equal(credits,1);
    assert.equal(deletions,1,'liberar el bloqueo de vendedor al renovarse la cuota');
   }finally{await new Promise(resolve=>server.close(resolve));}
