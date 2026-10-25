@@ -40,8 +40,9 @@ function productTokens(q){return queryKey(q).split(' ').filter(v=>v.length>=2).s
 async function ensureSchema(){
  if(!schemaPromise){
   schemaPromise=(async()=>{
-   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_pages (id BIGSERIAL PRIMARY KEY, query_key VARCHAR(120) NOT NULL UNIQUE, slug VARCHAR(120) NOT NULL UNIQUE, query_text VARCHAR(100) NOT NULL, external_results JSONB NOT NULL DEFAULT '[]'::jsonb, last_checked_at TIMESTAMPTZ, provider_status VARCHAR(30) NOT NULL DEFAULT 'not_configured', index_approved BOOLEAN NOT NULL DEFAULT false, editorial_summary TEXT NOT NULL DEFAULT '', search_count BIGINT NOT NULL DEFAULT 1, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_pages (id BIGSERIAL PRIMARY KEY, query_key VARCHAR(120) NOT NULL UNIQUE, slug VARCHAR(120) NOT NULL UNIQUE, query_text VARCHAR(100) NOT NULL, external_results JSONB NOT NULL DEFAULT '[]'::jsonb, last_checked_at TIMESTAMPTZ, provider_status VARCHAR(30) NOT NULL DEFAULT 'not_configured', index_approved BOOLEAN NOT NULL DEFAULT false, seo_blocked BOOLEAN NOT NULL DEFAULT false, editorial_summary TEXT NOT NULL DEFAULT '', search_count BIGINT NOT NULL DEFAULT 1, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
    await db.query("ALTER TABLE marketplace_compare_pages ADD COLUMN IF NOT EXISTS editorial_summary TEXT NOT NULL DEFAULT ''");
+   await db.query("ALTER TABLE marketplace_compare_pages ADD COLUMN IF NOT EXISTS seo_blocked BOOLEAN NOT NULL DEFAULT false");
    await db.query('CREATE INDEX IF NOT EXISTS idx_marketplace_compare_created ON marketplace_compare_pages(created_at DESC)');
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_merchant_links (offer_key VARCHAR(64) PRIMARY KEY, status VARCHAR(16) NOT NULL CHECK (status IN ('checking','ok','unavailable')), href TEXT, checked_at TIMESTAMPTZ NOT NULL DEFAULT now())");
@@ -136,16 +137,16 @@ router.get('/comparar',async(req,res,next)=>{
   await ensureSchema();
   // Páginas guardadas con ofertas reales: no equivalen a páginas indexadas por Google.
   const recent=await db.query("SELECT slug,query_text,jsonb_array_length(external_results) AS offer_count FROM marketplace_compare_pages WHERE jsonb_array_length(external_results)>0 AND provider_status IN ('ok','limit_reached','unavailable') ORDER BY last_checked_at DESC NULLS LAST,created_at DESC LIMIT 12");
-  const approved=await db.query('SELECT slug,query_text FROM marketplace_compare_pages WHERE '+seo.APPROVED_SQL+' ORDER BY updated_at DESC LIMIT 8');
+  const potential=await db.query("SELECT slug,query_text,external_results,provider_status,last_checked_at,index_approved,editorial_summary,seo_blocked FROM marketplace_compare_pages WHERE provider_status='ok' AND seo_blocked=false AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 ORDER BY updated_at DESC LIMIT 400");
+  const indexed=potential.rows.filter(p=>seo.indexEligible(p,p.external_results)).slice(0,8).map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('');
   const items=recent.rows.map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a> · <small>'+Number(p.offer_count)+' ofertas guardadas</small></li>').join('');
-  const indexed=approved.rows.map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('');
   const csrfToken=issueCsrf(req,res);
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
-   '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto. RedLibertad conservará su página para consultarla y compartirla.</p>'+formMarkup('','',csrfToken)+
-   '<section class="info"><h2>Comparaciones recientes</h2><p class="muted">Estas búsquedas ya tienen ofertas guardadas y se pueden compartir. No significa que estén indexadas en Google.</p>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
+   '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('','',csrfToken)+
+   '<section class="info"><h2>Comparaciones recientes</h2>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
    (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
-   '<p class="muted">Mostramos anuncios públicos de RedLibertad y resultados de tiendas externas cuando están disponibles.</p>',
+   '',
    '/comparar',true,seo.structuredData(null,[],false,'/comparar')));
  }catch(e){next(e);}
 });
@@ -170,28 +171,48 @@ router.post('/comparar/buscar',rateLimit({windowMs:60*60*1000,limit:15,standardH
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
  try{
   await ensureSchema();
-  const r=await db.query("SELECT id,slug,query_text,index_approved,editorial_summary,provider_status,jsonb_array_length(external_results) AS external_count FROM marketplace_compare_pages ORDER BY created_at DESC LIMIT 60");
-  const csrfToken=issueCsrf(req,res);
-  const rows=r.rows.map(p=>'<li class="info"><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a> · '+(p.index_approved?'Aprobada':'No indexada')+
-   '<p>'+esc(p.provider_status)+' · '+Number(p.external_count)+' ofertas externas</p><form method="post" action="/admin/comparador/'+Number(p.id)+'/seo"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><label>Análisis original y verificado<textarea name="summary" rows="5" maxlength="2000" style="width:100%;display:block;font-size:16px">'+esc(p.editorial_summary)+'</textarea></label><button type="submit" name="action" value="approve">Aprobar SEO</button> <button type="submit" name="action" value="revoke">Retirar</button></form></li>').join('');
+  const r=await db.query("SELECT id,slug,query_text,index_approved,seo_blocked,editorial_summary,provider_status,last_checked_at,external_results,jsonb_array_length(external_results) AS external_count FROM marketplace_compare_pages ORDER BY created_at DESC LIMIT 60");
+  const token=issueCsrf(req,res);
+  const rows=r.rows.map(p=>{
+   const ok=seo.indexEligible(p,p.external_results),evaluation=seo.auto.eligibleOffers(p,p.external_results);
+   const reason=p.seo_blocked?'Bloqueada manualmente':ok?(evaluation.eligible?'SEO automático válido':'Aprobada editorialmente'):'No indexada: '+evaluation.reason;
+   return '<li class="info"><strong><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></strong>'+
+    '<p>'+esc(reason)+' · '+Number(p.external_count)+' ofertas externas</p>'+
+    '<form method="post" action="/admin/comparador/'+Number(p.id)+'/seo">'+
+    '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+    '<label>Comentario editorial opcional<textarea name="summary" rows="4" maxlength="2000" style="width:100%;display:block;font-size:16px">'+esc(p.editorial_summary)+'</textarea></label>'+
+    '<button type="submit" name="action" value="approve">Aprobar con comentario</button> '+
+    '<button type="submit" name="action" value="revoke">Bloquear SEO</button> '+
+    '<button type="submit" name="action" value="unblock">Permitir SEO automático</button></form></li>';
+  }).join('');
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
-  res.send(shell('Revisión SEO | RedLibertad','Revisión editorial privada','<h1>Revisión SEO de comparaciones</h1><p>Comprueba modelo, vendedores, vigencia y redacta contenido editorial propio.</p><ul>'+rows+'</ul>','/admin/comparador'));
+  res.send(shell('Revisión SEO | RedLibertad','Panel privado de comparaciones',
+   '<h1>SEO del comparador</h1><p>Las páginas útiles se preparan automáticamente; aquí puedes bloquear una comparación o redactar un comentario editorial.</p><ul class="comparison-list">'+rows+'</ul>',
+   '/admin/comparador'));
  }catch(e){next(e);}
 });
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
  try{
-  if(!validCsrf(req))return res.status(403).send('El formulario ha caducado. Regresa al panel e inténtalo de nuevo.');
-  const id=String(req.params.id||'');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve al panel.');
+  const id=String(req.params.id||''),action=String(req.body?.action||'');
   if(!/^[1-9]\d{0,15}$/.test(id))return res.sendStatus(400);
-  const action=String(req.body?.action||'');
   await ensureSchema();
   if(action==='revoke'){
-   await db.query("UPDATE marketplace_compare_pages SET index_approved=false,updated_at=now() WHERE id=$1",[id]);
+   await db.query("UPDATE marketplace_compare_pages SET index_approved=false,seo_blocked=true,updated_at=now() WHERE id=$1",[id]);
+  }else if(action==='unblock'){
+   await db.query("UPDATE marketplace_compare_pages SET seo_blocked=false,updated_at=now() WHERE id=$1",[id]);
   }else if(action==='approve'){
    const summary=String(req.body?.summary||'').trim().replace(/\s+/g,' ');
-   if(summary.length<80||summary.length>2000)return res.status(400).send('El análisis requiere entre 80 y 2000 caracteres.');
-   const r=await db.query("UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,updated_at=now() WHERE id=$1 AND query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 RETURNING id",[id,summary]);
-   if(!r.rowCount)return res.status(409).send('Solo se aprueban modelos específicos con dos vendedores distintos y ofertas recientes.');
+   if(summary.length<80||summary.length>2000)return res.status(400).send('El comentario original debe tener entre 80 y 2000 caracteres.');
+   const r=await db.query(
+    "UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,seo_blocked=false,updated_at=now() "+
+    "WHERE id=$1 AND query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND provider_status='ok' "+
+    "AND last_checked_at>now()-interval '48 hours' "+
+    "AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 "+
+    "AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 RETURNING id",
+    [id,summary]
+   );
+   if(!r.rowCount)return res.status(409).send('La ficha no cumple las condiciones mínimas de ofertas actuales.');
   }else return res.sendStatus(400);
   res.redirect(303,'/admin/comparador');
  }catch(e){next(e);}
@@ -287,7 +308,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const exact=provider.isSpecificModel(page.query_text);
   const approved=seo.indexEligible(page,offers);
   const title='Comparar '+page.query_text+' | RedLibertad';
-  const description=approved?String(page.editorial_summary).slice(0,155):'Compara ofertas para '+page.query_text+' en España. Consulta vendedores, precios de referencia y fecha de actualización.';
+  const automatic=seo.auto.eligibleOffers(page,offers);
+  const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):null;
+  const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
   const csrfToken=issueCsrf(req,res);
   const pending=['queued','checking'].includes(page.provider_status);
   const best=offers.length?Math.min(...offers.map(o=>o.price_cents)):null;
@@ -305,7 +328,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
    '<p>Compara tiendas españolas desde un solo lugar. Página creada el '+new Date(page.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'})+'.</p>'+
    formMarkup('',page.query_text,csrfToken)+
-   (approved?'<section class="info"><h2>Qué debes saber de este producto</h2><p>'+esc(page.editorial_summary)+'</p></section>':'')+
+   (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+
    '<section data-comparison-results><h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (quota?.available===false?'<p class="compare-quota-banner">'+(
@@ -322,13 +345,23 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
  }catch(e){next(e);}
 });
-// Solo páginas con revisión editorial explícita y ofertas suficientes pasan al sitemap.
-// Las búsquedas arbitrarias, vacías o con resultados escasos no crean SEO spam.
+// Sitemap sincronizado con las condiciones index/noindex del render HTML.
+// Crear una búsqueda nunca implica publicarla en Google.
 router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
  try{
   await ensureSchema();
-  const r=await db.query('SELECT slug,updated_at FROM marketplace_compare_pages WHERE '+seo.APPROVED_SQL+' ORDER BY updated_at DESC LIMIT 2000');
-  const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>',...r.rows.map(p=>'<url><loc>'+esc(ORIGIN+'/comparar/'+p.slug)+'</loc><lastmod>'+new Date(p.updated_at).toISOString()+'</lastmod></url>')];
+  const result=await db.query(
+   "SELECT slug,query_text,index_approved,seo_blocked,editorial_summary,external_results,provider_status,last_checked_at,updated_at "+
+   "FROM marketplace_compare_pages WHERE seo_blocked=false AND provider_status='ok' "+
+   "AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 "+
+   "ORDER BY updated_at DESC LIMIT 2000"
+  );
+  const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>'];
+  for(const p of result.rows){
+   if(!seo.indexEligible(p,p.external_results))continue;
+   urls.push('<url><loc>'+esc(ORIGIN+'/comparar/'+p.slug)+'</loc><lastmod>'+
+    new Date(p.updated_at||p.last_checked_at).toISOString()+'</lastmod></url>');
+  }
   res.set('Cache-Control','public,max-age=300');
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
  }catch(e){next(e);}

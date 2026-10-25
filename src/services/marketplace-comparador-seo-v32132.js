@@ -4,11 +4,14 @@
 const ORIGIN='https://redlibertad.com';
 const FRESH_MS=48*60*60*1000;
 const provider=require('./marketplace-comparador-provider-v32133');
+const auto=require('./marketplace-comparador-auto-seo-v32138');
 function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && !o.sponsored && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
 function indexEligible(page,offers,now=Date.now()){
- if(!page || page.index_approved!==true || page.provider_status!=='ok')return false;
+ if(!page || page.seo_blocked===true)return false;
+ if(auto.eligibleOffers(page,offers,now).eligible)return true;
+ if(page.index_approved!==true || page.provider_status!=='ok')return false;
  // Una búsqueda genérica («iphone») puede mezclar dispositivos distintos.
  if(!provider.isSpecificModel(page.query_text))return false;
  if(String(page.editorial_summary||'').trim().length<80)return false;
@@ -22,7 +25,7 @@ function structuredData(page,offers,approved,canonical){
  const graph=[
   {'@type':'WebSite','@id':ORIGIN+'/#website',url:ORIGIN+'/',name:'RedLibertad',inLanguage:'es-ES'},
   {'@type':'WebPage','@id':url+'#webpage',url,name:page?'Comparar '+page.query_text+' | RedLibertad':'Comparador de precios | RedLibertad',
-   description:page?.editorial_summary||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'}},
+   description:page?.editorial_summary||auto.autoSummary(page,auto.eligibleOffers(page,offers))||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'}},
   {'@type':'BreadcrumbList','@id':url+'#breadcrumb',itemListElement:[
    {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
    {'@type':'ListItem',position:2,name:'Comparador',item:ORIGIN+'/comparar'}
@@ -30,13 +33,13 @@ function structuredData(page,offers,approved,canonical){
  ];
  if(page){
   graph[2].itemListElement.push({'@type':'ListItem',position:3,name:page.query_text,item:url});
-  if(approved && indexEligible(page,offers)){
-   const ext=externalOffers(offers);
-   const cents=ext.map(o=>o.price_cents);
+  const evaluation=auto.eligibleOffers(page,offers);
+  if(approved && evaluation.eligible){
+   const cents=evaluation.offers.map(o=>o.price_cents);
    graph.push({'@type':'Product','@id':url+'#product',name:page.query_text,url,
-    description:page.editorial_summary,
+    description:auto.autoSummary(page,evaluation),
     offers:{'@type':'AggregateOffer',priceCurrency:'EUR',lowPrice:(Math.min(...cents)/100).toFixed(2),
-     highPrice:(Math.max(...cents)/100).toFixed(2),offerCount:ext.length}});
+     highPrice:(Math.max(...cents)/100).toFixed(2),offerCount:evaluation.offers.length}});
   }
  }
  return {'@context':'https://schema.org','@graph':graph};
@@ -46,4 +49,4 @@ function jsonLd(data){
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
 const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2";
-module.exports={ORIGIN,indexEligible,structuredData,jsonLd,APPROVED_SQL,externalOffers};
+module.exports={ORIGIN,indexEligible,structuredData,jsonLd,APPROVED_SQL,externalOffers,auto};
