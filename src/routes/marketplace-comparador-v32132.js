@@ -7,6 +7,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const seo=require('../services/marketplace-comparador-seo-v32132');
+const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const CACHE_MS=24*60*60*1000;
@@ -146,6 +147,36 @@ router.post('/comparar/buscar',rateLimit({windowMs:60*60*1000,limit:15,standardH
   res.redirect(303,'/comparar/'+row.rows[0].slug);
  }catch(e){next(e);}
 });
+
+router.get('/admin/comparador',requireAdmin,async(_req,res,next)=>{
+ try{
+  await ensureSchema();
+  const r=await db.query("SELECT id,slug,query_text,index_approved,editorial_summary,provider_status,jsonb_array_length(external_results) AS external_count FROM marketplace_compare_pages ORDER BY created_at DESC LIMIT 60");
+  const rows=r.rows.map(p=>'<li class="info"><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a> · '+(p.index_approved?'Aprobada':'No indexada')+
+   '<p>'+esc(p.provider_status)+' · '+Number(p.external_count)+' ofertas externas</p><form method="post" action="/admin/comparador/'+Number(p.id)+'/seo"><label>Análisis original y verificado<textarea name="summary" rows="5" maxlength="2000" style="width:100%;display:block;font-size:16px">'+esc(p.editorial_summary)+'</textarea></label><button type="submit" name="action" value="approve">Aprobar SEO</button> <button type="submit" name="action" value="revoke">Retirar</button></form></li>').join('');
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Revisión SEO | RedLibertad','Revisión editorial privada','<h1>Revisión SEO de comparaciones</h1><p>Comprueba modelo, vendedores, vigencia y redacta contenido editorial propio.</p><ul>'+rows+'</ul>','/admin/comparador'));
+ }catch(e){next(e);}
+});
+router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
+ try{
+  if(!sameOrigin(req))return res.sendStatus(403);
+  const id=String(req.params.id||'');
+  if(!/^[1-9]\d{0,15}$/.test(id))return res.sendStatus(400);
+  const action=String(req.body?.action||'');
+  await ensureSchema();
+  if(action==='revoke'){
+   await db.query("UPDATE marketplace_compare_pages SET index_approved=false,updated_at=now() WHERE id=$1",[id]);
+  }else if(action==='approve'){
+   const summary=String(req.body?.summary||'').trim().replace(/\s+/g,' ');
+   if(summary.length<80||summary.length>2000)return res.status(400).send('El análisis requiere entre 80 y 2000 caracteres.');
+   const r=await db.query("UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,updated_at=now() WHERE id=$1 AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2 RETURNING id",[id,summary]);
+   if(!r.rowCount)return res.status(409).send('Necesita dos vendedores distintos y ofertas recientes.');
+  }else return res.sendStatus(400);
+  res.redirect(303,'/admin/comparador');
+ }catch(e){next(e);}
+});
+
 router.get('/comparar/:slug',async(req,res,next)=>{
  try{
   const slug=String(req.params.slug||'');
