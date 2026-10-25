@@ -49,6 +49,7 @@ const {createGrowthCenterRouter}=require('./src/routes/admin-growth-v219');
 const marketplaceRoutes = require('./src/routes/marketplace-v3250');
 const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/marketplace-woocommerce-sync-v3277');
 const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
+const marketplaceComparadorV32132=require('./src/routes/marketplace-comparador-v32132');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
@@ -251,6 +252,7 @@ app.use('/api/admin/editorial', adminEditorialV320Routes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace',marketplaceRoutes);
 app.use(marketplaceSeoV3251.router);
+app.use(marketplaceComparadorV32132.router);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/messages', messageRoutes);
@@ -1213,7 +1215,7 @@ app.get('/sitemap-hashtags.xml',async(req,res)=>{
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-productos.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-servicios.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-inmuebles.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-categorias.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-productos.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-servicios.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-inmuebles.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-categorias.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-comparador.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -1242,6 +1244,7 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /noticias',
     'Allow: /noticias/',
     'Allow: /marketplace/',
+    'Allow: /comparar',
     'Allow: /historias',
     'Allow: /historia/',
     'Disallow: /app',
@@ -1263,6 +1266,7 @@ app.get('/robots.txt',(req,res)=>{
     `Sitemap: ${origin}/sitemap-marketplace-servicios.xml`,
     `Sitemap: ${origin}/sitemap-marketplace-inmuebles.xml`,
     `Sitemap: ${origin}/sitemap-marketplace-categorias.xml`,
+    `Sitemap: ${origin}/sitemap-comparador.xml`,
     `Sitemap: ${origin}/noticias/sitemap.xml`
   ].join('\n'));
 });

@@ -1,0 +1,46 @@
+'use strict';
+// SEO de páginas de comparación: producto único y ofertas externas solo tras validación humana.
+// El JSON-LD es informativo: los resultados enriquecidos dependen de Google.
+const ORIGIN='https://redlibertad.com';
+const FRESH_MS=48*60*60*1000;
+function externalOffers(offers){
+ return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
+}
+function indexEligible(page,offers,now=Date.now()){
+ if(!page || page.index_approved!==true || page.provider_status!=='ok')return false;
+ if(String(page.editorial_summary||'').trim().length<80)return false;
+ const last=Date.parse(page.last_checked_at||'');
+ if(!Number.isFinite(last)||now<last||now-last>=FRESH_MS)return false;
+ const ext=externalOffers(offers);
+ return ext.length>=2 && new Set(ext.map(o=>o.shop.toLowerCase().trim())).size>=2;
+}
+function structuredData(page,offers,approved,canonical){
+ const url=ORIGIN+canonical;
+ const graph=[
+  {'@type':'WebSite','@id':ORIGIN+'/#website',url:ORIGIN+'/',name:'RedLibertad',inLanguage:'es-ES'},
+  {'@type':'WebPage','@id':url+'#webpage',url,name:page?'Comparar '+page.query_text+' | RedLibertad':'Comparador de precios | RedLibertad',
+   description:page?.editorial_summary||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'}},
+  {'@type':'BreadcrumbList','@id':url+'#breadcrumb',itemListElement:[
+   {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
+   {'@type':'ListItem',position:2,name:'Comparador',item:ORIGIN+'/comparar'}
+  ]}
+ ];
+ if(page){
+  graph[2].itemListElement.push({'@type':'ListItem',position:3,name:page.query_text,item:url});
+  if(approved && indexEligible(page,offers)){
+   const ext=externalOffers(offers);
+   const cents=ext.map(o=>o.price_cents);
+   graph.push({'@type':'Product','@id':url+'#product',name:page.query_text,url,
+    description:page.editorial_summary,
+    offers:{'@type':'AggregateOffer',priceCurrency:'EUR',lowPrice:(Math.min(...cents)/100).toFixed(2),
+     highPrice:(Math.max(...cents)/100).toFixed(2),offerCount:ext.length}});
+  }
+ }
+ return {'@context':'https://schema.org','@graph':graph};
+}
+function jsonLd(data){
+ return JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026')
+  .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+}
+const APPROVED_SQL= "index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2";
+module.exports={ORIGIN,indexEligible,structuredData,jsonLd,APPROVED_SQL,externalOffers};
