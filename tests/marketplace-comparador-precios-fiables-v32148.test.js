@@ -41,6 +41,10 @@ async function pageHtml(date,options={}){
  try{
   provider.configured=()=>false; // Rendering never contacts SerpApi.
   db.query=async(sql)=>{
+   if(sql.includes('FROM marketplace_listings')&&offers.some(o=>o.internal))return {rows:[{
+    id:4,title:'iPhone 12 128 GB morado - Reacondicionado',price_cents:25900,
+    image_urls:[],details:{condition:'used'},display_name:'Autor',username:'autor'
+   }],rowCount:1};
    if(sql.startsWith('SELECT * FROM marketplace_compare_pages WHERE slug=$1'))return {rowCount:1,rows:[{
     id:42,slug,query_text:'iphone 12 128 GB',last_checked_at:date,
     provider_status:options.status||'ok',
