@@ -45,7 +45,7 @@ test('Google Product API solo devuelve enlace directo al mismo vendedor con prec
 });
 
 test('el acceso al vendedor exige POST protegido con CSRF y conserva cuota',async()=>{
- const oldQuery=db.query,oldConfigured=provider.configured,oldDirect=provider.fetchDirectRetailer,oldReserve=worker.reserveQuota;
+ const oldQuery=db.query,oldConfigured=provider.configured,oldDirect=provider.fetchDirectRetailer,oldReserve=worker.reserveQuota,oldStatus=worker.quotaStatus;
  const offer={title:'iPhone 13 128GB',shop:'Certideal.es',price_cents:22099,product_id:'1234567890123456789',
   href:'https://www.google.com/search?q=iPhone+13+Certideal&udm=28',condition:'Reacondicionado',internal:false};
  const hash=crypto.createHash('sha256').update([offer.product_id,offer.shop,offer.title,String(offer.price_cents)].join('|')).digest('hex');
@@ -56,6 +56,7 @@ test('el acceso al vendedor exige POST protegido con CSRF y conserva cuota',asyn
   provider.configured=()=>false;
   provider.fetchDirectRetailer=async()=>{lookupCalls++;return {href:'https://certideal.example/iphone13',verified_price_cents:22099}};
   worker.reserveQuota=async()=>{quotaCalls++;return true};
+  worker.quotaStatus=async()=>({available:true,reason:null,daily:5,monthly:100,dailyUsed:0,monthlyUsed:0});
   db.query=async(sql,args=[])=>{
    records.push([sql,args]);
    if(sql.startsWith('SELECT * FROM marketplace_compare_pages'))return {rowCount:1,rows:[{id:1,slug,query_text:'iphone 13',created_at:now,
@@ -89,5 +90,5 @@ test('el acceso al vendedor exige POST protegido con CSRF y conserva cuota',asyn
    assert.equal(quotaCalls,1);
    assert.ok(records.some(x=>x[0].includes('marketplace_compare_merchant_links SET status')));
   }finally{await new Promise(resolve=>server.close(resolve));}
- }finally{db.query=oldQuery;provider.configured=oldConfigured;provider.fetchDirectRetailer=oldDirect;worker.reserveQuota=oldReserve;}
+ }finally{db.query=oldQuery;provider.configured=oldConfigured;provider.fetchDirectRetailer=oldDirect;worker.reserveQuota=oldReserve;worker.quotaStatus=oldStatus;}
 });
