@@ -48,3 +48,26 @@ test('no fake offers, no automatic SEO indexing, no auth requirement',()=>{
  assert.match(source,/index_approved=true/);
  assert.doesNotMatch(source,/router\.use\(requireAuth\)/);
 });
+
+const seo=require('../src/services/marketplace-comparador-seo-v32132');
+test('SEO pages need editorial content, recent external offers and distinct vendors',()=>{
+ const now=Date.now();
+ const page={index_approved:true,provider_status:'ok',editorial_summary:'Comparación detallada de características, compatibilidad y condiciones reales de este producto para España, revisada editorialmente.',last_checked_at:new Date(now).toISOString(),query_text:'Samsung Galaxy S26 Ultra'};
+ const offers=[{shop:'Tienda A',price_cents:115000,internal:false},{shop:'Tienda B',price_cents:120000,internal:false}];
+ assert.equal(seo.indexEligible(page,offers,now),true);
+ assert.equal(seo.indexEligible({...page,editorial_summary:''},offers,now),false);
+ assert.equal(seo.indexEligible({...page,last_checked_at:new Date(now-49*3600000).toISOString()},offers,now),false);
+ assert.equal(seo.indexEligible(page,[offers[0],{...offers[1],shop:'Tienda A'}],now),false);
+ const graph=seo.structuredData(page,offers,true,'/comparar/samsung-galaxy-s26-ultra');
+ assert.equal(graph['@graph'][3]['@type'],'Product');
+ assert.equal(graph['@graph'][3].offers['@type'],'AggregateOffer');
+ assert.equal(graph['@graph'][3].offers.lowPrice,'1150.00');
+ assert.equal(seo.structuredData(page,offers,false,'/comparar/test')['@graph'].length,3);
+});
+test('JSON-LD avoids raw HTML injection',()=>{
+ assert.match(seo.jsonLd({value:'</script><img src=x>'}),/\\u003c/);
+ assert.match(source,/requireAdmin/);
+ assert.match(source,/router\.post\('\/admin\/comparador\/:id\/seo'/);
+ assert.match(source,/og:title/);
+ assert.match(source,/sitemap-comparador\.xml/);
+});
