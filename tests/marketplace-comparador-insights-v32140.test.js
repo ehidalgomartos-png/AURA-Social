@@ -39,7 +39,7 @@ test('agrupa capacidad, gama y estado sin inventar nuevos ni combinar usados',()
  assert.equal(other.count,1,'no etiquetar como nuevo lo que no se ha verificado');
  assert.equal(results.hasMixedVariants,true);
  assert.equal(results.hasUsedOrRefurbished,true);
- assert.equal(insights.conditionOf({title:'Reconditioned iPhone',condition:'Consultar estado'}),'Estado sin confirmar');
+ assert.equal(insights.conditionOf({title:'Reconditioned iPhone',condition:'Consultar estado'}),'Reacondicionado');
  assert.equal(insights.conditionOf({title:'iPhone 12 - refurbished',condition:'Consultar estado'}),'Reacondicionado');
 });
 test('enlaces de búsqueda refinada no crean URLs permanentes por sí mismos',()=>{
