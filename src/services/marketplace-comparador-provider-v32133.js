@@ -64,6 +64,13 @@ function resolveOfferLink(offer){
  const search=shoppingSearchUrl(offer?.title,offer?.shop);
  return search?{href:search,destination:'shopping-search'}:null;
 }
+// Los marketplaces entre particulares no ofrecen normalmente una ficha de
+// vendedores de Google Product que permita verificar el anuncio concreto.
+// No gastar consultas adicionales cuando no hay URL real de ese anuncio.
+function canLookupSeller(offer){
+ const shop=String(offer?.shop||'').trim().toLowerCase();
+ return !/^(?:wallapop(?:\.es)?|vinted(?:\.es)?|milanuncios(?:\.com)?|facebook marketplace)$/i.test(shop);
+}
 function isSpecificModel(q){
  const words=keyOf(q).split(' ').filter(Boolean);
  return words.length>=2 && words.some(w=>/\d/.test(w));
@@ -255,4 +262,4 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
  return mergeOffers(organic,sponsored);
 }
-module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,selectRetailer,fetchDirectRetailer};
+module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,canLookupSeller,selectRetailer,fetchDirectRetailer};
