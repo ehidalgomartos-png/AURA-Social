@@ -100,6 +100,31 @@ test('los enlaces no verificables se cachean y el botón desaparece durante su p
  }finally{db.query=old;provider.configured=oldConfigured;worker.quotaStatus=oldQuota;}
 });
 
+test('la caché conserva enlaces ya verificados de Wallapop sin otra consulta pagada',async()=>{
+ const originalQuery=db.query,originalConfigured=provider.configured;
+ const offer=item('Wallapop'),slug=compare.slugFor('iphone 12'),now=new Date().toISOString(),hash=hashOf(offer);
+ try{
+  provider.configured=()=>false;
+  db.query=async(sql)=>{
+   if(sql.startsWith('SELECT * FROM marketplace_compare_pages WHERE slug'))return {rowCount:1,rows:[{
+    id:4,slug,query_text:'iphone 12',created_at:now,last_checked_at:now,
+    external_results:[offer],index_approved:false,seo_blocked:false,provider_status:'ok'
+   }]};
+   if(sql.startsWith('SELECT offer_key,href,status FROM marketplace_compare_merchant_links'))
+    return {rows:[{offer_key:hash,href:'https://wallapop.com/item/iphone-12-verified',status:'ok'}],rowCount:1};
+   return {rows:[],rowCount:0};
+  };
+  const app=express();app.use(express.urlencoded({extended:true}));app.use(cookieParser());app.use(compare.router);
+  const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
+  try{
+   const html=await (await fetch('http://127.0.0.1:'+server.address().port+'/comparar/'+slug)).text();
+   assert.match(html,/Ver oferta en tienda/);
+   assert.match(html,/https:\/\/wallapop.com\/item\/iphone-12-verified/);
+   assert.doesNotMatch(html,/Consultar enlace de la tienda/);
+  }finally{await new Promise(resolve=>server.close(resolve));}
+ }finally{db.query=originalQuery;provider.configured=originalConfigured;}
+});
+
 test('el worker no descarta una búsqueda recuperada porque una fecha anterior sigue reciente',async()=>{
  const oldQuery=db.query,oldConfigured=provider.configured,oldFetch=provider.fetchOffers,oldConnect=db.pool.connect;
  let requests=0;const now=new Date().toISOString(),writes=[];
