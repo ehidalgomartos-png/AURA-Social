@@ -46,7 +46,8 @@ function exactVariant(q,offers){
  const raw=normalize(q),wantedCapacity=capacity(q);
  if(!wantedCapacity)return false;
  const words=raw.split(' ');
- if(words.length<3||!words.some(w=>/[0-9]/.test(w)&&!/^\d+$/.test(w)))return false;
+ const withoutCapacity=raw.replace(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/g,' ');
+ if(words.length<3||!/[0-9]/.test(withoutCapacity))return false;
  const variantFamily=family(q);
  const wantedColor=color(q);
  const seenColors=new Set();
