@@ -40,6 +40,8 @@ function shoppingSearchUrl(title,shop=''){
 // Nunca enviar al usuario a un product_link de Google que puede haber caducado.
 // Aplica también a URLs guardadas anteriormente en PostgreSQL.
 function resolveOfferLink(offer){
+ const cached=safeHttps(offer?.resolved_href);
+ if(cached&&!isGoogleHost(new URL(cached).hostname))return {href:cached,destination:'store'};
  const href=safeHttps(offer?.href);
  if(offer?.internal)return {href:offer.href,destination:'internal'};
  if(href&&!isGoogleHost(new URL(href).hostname)){
