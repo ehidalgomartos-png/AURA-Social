@@ -111,6 +111,46 @@ function parseExternal(results,q){
  }
  return out.sort((a,b)=>a.price_cents-b.price_cents);
 }
+// Google Shopping incluye ocasionalmente "inline_shopping_results" (anuncios).
+// Cuando la respuesta trae una URL directa del comercio podemos usarla sin
+// otra llamada a SerpApi. Nunca se usa el tracking_link ni un enlace Google.
+function parseInlineStores(results,q){
+ const out=[],seen=new Set();
+ for(const r of (Array.isArray(results)?results:[]).slice(0,24)){
+  if(!r||typeof r!=='object')continue;
+  const title=String(r.title||'').trim().slice(0,160);
+  if(!titleMatches(q,title))continue;
+  const price_cents=euroPrice(r);
+  if(!price_cents)continue;
+  const direct=safeHttps(r.link||'');
+  if(!direct||isGoogleHost(new URL(direct).hostname))continue;
+  const shop=String(r.source||'Comercio').replace(/[<>]/g,'').trim().slice(0,80)||'Comercio';
+  const identity=shop.toLowerCase()+'|'+keyOf(title)+'|'+price_cents;
+  if(seen.has(identity))continue;
+  seen.add(identity);
+  out.push({
+   title,shop,price_cents,href:direct,destination:'store',
+   sponsored:true,source_type:'google_shopping_ad',
+   condition:'Consultar estado',
+   delivery:typeof r.delivery==='string'?r.delivery.trim().slice(0,110):'',
+   image:safeImage(r.thumbnail||(Array.isArray(r.thumbnails)?r.thumbnails[0]:null)),
+   internal:false,price_currency:'EUR'
+  });
+  if(out.length>=8)break;
+ }
+ return out.sort((a,b)=>a.price_cents-b.price_cents);
+}
+function mergeOffers(organic,ads){
+ const out=(Array.isArray(organic)?organic:[]).slice(0,24),seen=new Set();
+ // La URL de cada vendedor es preferible a una ficha genérica de Google.
+ const key=o=>keyOf(o.shop)+'|'+keyOf(o.title)+'|'+o.price_cents;
+ for(const offer of out)seen.add(key(offer));
+ for(const offer of (Array.isArray(ads)?ads:[])){
+  if(seen.has(key(offer)))continue;
+  out.push(offer);seen.add(key(offer));
+ }
+ return out.slice(0,32).sort((a,b)=>a.price_cents-b.price_cents);
+}
 function configured(env=process.env){
  return typeof env.COMPARADOR_SERPAPI_KEY==='string'&&env.COMPARADOR_SERPAPI_KEY.trim().length>=12;
 }
@@ -134,7 +174,9 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  if(!response.ok)throw new Error('provider_http_'+response.status);
  const data=await response.json();
  if(data?.error)throw new Error('provider_error');
- if(!Array.isArray(data?.shopping_results))throw new Error('provider_missing_results');
- return parseExternal(data.shopping_results,q);
+ if(!Array.isArray(data?.shopping_results)&&!Array.isArray(data?.inline_shopping_results))throw new Error('provider_missing_results');
+ const organic=parseExternal(data.shopping_results||[],q);
+ const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
+ return mergeOffers(organic,sponsored);
 }
-module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost};
+module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers};
