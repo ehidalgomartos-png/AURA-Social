@@ -405,7 +405,11 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   if(await compareWorker.enqueue(page,ensureSchema))page.provider_status='queued';
   const local=await localOffers(page.query_text);
   const external=Array.isArray(page.external_results)?page.external_results.filter(o=>o&&!o.internal&&safeHref(o.href)&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0):[];
-  const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
+  // Aplicar el mismo filtro también a ofertas antiguas ya guardadas.
+  // Así una búsqueda base «iPhone 12 128 GB» no anunciará el precio del Pro
+  // ni requiere volver a gastar créditos de SerpApi.
+  const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title))
+   .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
   const insight=insights.buildInsights(page.query_text,offers);
   const history=seo.auto.capacity(page.query_text)?
