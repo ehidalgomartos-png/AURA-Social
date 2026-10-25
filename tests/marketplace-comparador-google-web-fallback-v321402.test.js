@@ -75,7 +75,7 @@ test('ofertas ya guardadas en PostgreSQL muestran la nueva salida sin llamar a S
    assert.match(html,/q=iPhone\+12\+64GB\+Wallapop/);
    assert.doesNotMatch(html,/udm=28/);
    assert.doesNotMatch(html,/Buscar en Google Shopping/);
-   assert.match(html,/Consultas externas agotadas por hoy/);
+   assert.doesNotMatch(html,/Consultas externas agotadas por hoy/);
    assert.ok(queried>0,'la página utiliza datos ya guardados en PostgreSQL');
   }finally{await new Promise(resolve=>server.close(resolve));}
  }finally{
