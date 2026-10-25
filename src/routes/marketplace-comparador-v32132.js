@@ -82,12 +82,12 @@ function offerMarkup(o,index=0,total=0){
  const shop=String(o.shop||'Tienda no identificada');
  const merchant=link.destination==='store';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google Shopping';
- const note=link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'Buscar este artículo y tienda en Google (sin ficha individual)';
+ const note=o.sponsored?'Publicidad de Google · enlace directo del comercio':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'Buscar este artículo y tienda en Google (sin ficha individual)';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'<small>Envío a confirmar</small>';
- return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+
+ return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
-  '<a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow"')+'>'+dest+'</a>'+
+  '<a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   '<span class="offer-destination">'+note+'</span></li>';
 }
 // Token independiente de cabeceras Origin/Sec-Fetch-Site, que pueden cambiar
@@ -166,7 +166,7 @@ router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
   }else if(action==='approve'){
    const summary=String(req.body?.summary||'').trim().replace(/\s+/g,' ');
    if(summary.length<80||summary.length>2000)return res.status(400).send('El análisis requiere entre 80 y 2000 caracteres.');
-   const r=await db.query("UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,updated_at=now() WHERE id=$1 AND query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2 RETURNING id",[id,summary]);
+   const r=await db.query("UPDATE marketplace_compare_pages SET editorial_summary=$2,index_approved=true,updated_at=now() WHERE id=$1 AND query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 RETURNING id",[id,summary]);
    if(!r.rowCount)return res.status(409).send('Solo se aprueban modelos específicos con dos vendedores distintos y ofertas recientes.');
   }else return res.sendStatus(400);
   res.redirect(303,'/admin/comparador');

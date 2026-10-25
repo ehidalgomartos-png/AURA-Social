@@ -53,3 +53,6 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 }
 @media(max-width:360px){.comparison-list .offer{grid-template-columns:68px 1fr}.offer .offer-photo,.offer .offer-noimage{width:68px;height:80px}}
 @media(prefers-reduced-motion:reduce){.compare-loading-indicator,.compare-skeleton>div{animation:none}}
+
+/* Enlaces directos de Google Shopping patrocinados y claramente identificados. */
+.offer .offer-sponsored{grid-column:1/-1;display:inline-flex;width:max-content;padding:4px 9px;border-radius:999px;background:#fff3d5;color:#774d0d;font-size:.77rem;font-weight:750;border:1px solid #ead49b}
