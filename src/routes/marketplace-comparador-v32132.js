@@ -81,11 +81,11 @@ function offerKey(o){
  return crypto.createHash('sha256').update([String(o.product_id||''),String(o.shop||''),String(o.title||''),String(o.price_cents||'')].join('|')).digest('hex');
 }
 async function attachCachedMerchantLinks(offers){
- const candidates=offers.filter(o=>!o.internal && provider.canLookupSeller(o) &&
+ const candidates=offers.filter(o=>!o.internal &&
    /^\d{8,30}$/.test(String(o.product_id||'')) && provider.resolveOfferLink(o)?.destination!=='store');
  if(!candidates.length)return;
  const keys=candidates.map(offerKey);
- const found=await db.query("SELECT offer_key,href,status FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[]) AND checked_at>now()-interval '24 hours'",[keys]);
+ const found=await db.query("SELECT offer_key,href,status FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[]) AND checked_at>now()-interval '24 hours' AND (status!='checking' OR checked_at>now()-interval '2 minutes')",[keys]);
  const byKey=new Map(found.rows.map(r=>[r.offer_key,r]));
  for(const o of candidates){
   const record=byKey.get(offerKey(o));
