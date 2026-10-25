@@ -8,16 +8,20 @@ const auto=require('./marketplace-comparador-auto-seo-v32138');
 function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && !o.sponsored && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
+function matchingOffers(page,offers){
+ return (Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title));
+}
 function indexEligible(page,offers,now=Date.now()){
  if(!page || page.seo_blocked===true)return false;
- if(auto.eligibleOffers(page,offers,now).eligible)return true;
+ const matching=matchingOffers(page,offers);
+ if(auto.eligibleOffers(page,matching,now).eligible)return true;
  if(page.index_approved!==true || page.provider_status!=='ok')return false;
  // Una búsqueda genérica («iphone») puede mezclar dispositivos distintos.
  if(!provider.isSpecificModel(page.query_text))return false;
  if(String(page.editorial_summary||'').trim().length<80)return false;
  const last=Date.parse(page.last_checked_at||'');
  if(!Number.isFinite(last)||now<last||now-last>=FRESH_MS)return false;
- const ext=externalOffers(offers);
+ const ext=externalOffers(matching);
  return ext.length>=2 && new Set(ext.map(o=>o.shop.toLowerCase().trim())).size>=2;
 }
 function structuredData(page,offers,approved,canonical){
@@ -33,7 +37,7 @@ function structuredData(page,offers,approved,canonical){
  ];
  if(page){
   graph[2].itemListElement.push({'@type':'ListItem',position:3,name:page.query_text,item:url});
-  const evaluation=auto.eligibleOffers(page,offers);
+  const evaluation=auto.eligibleOffers(page,matchingOffers(page,offers));
   if(approved && evaluation.eligible){
    const cents=evaluation.offers.map(o=>o.price_cents);
    graph.push({'@type':'Product','@id':url+'#product',name:page.query_text,url,
