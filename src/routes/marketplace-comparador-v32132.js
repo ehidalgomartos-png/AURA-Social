@@ -9,6 +9,7 @@ const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const seo=require('../services/marketplace-comparador-seo-v32132');
 const provider=require('../services/marketplace-comparador-provider-v32133');
 const compareWorker=require('../services/marketplace-comparador-worker-v32134');
+const insights=require('../services/marketplace-comparador-insights-v32140');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -68,7 +69,7 @@ function parseExternal(results,q){return provider.parseExternal(results,q);}
 function formMarkup(message='',term='',csrfToken=''){
  return '<form class="compare-search" action="/comparar/buscar" method="post"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><label for="compareQ">¿Qué producto quieres comparar?</label><div class="compare-search-row"><input id="compareQ" name="q" type="search" required minlength="3" maxlength="100" value="'+esc(term)+'" placeholder="Ej. Samsung Galaxy S26 Ultra" autocomplete="off"><button type="submit">Comparar precios</button></div>'+
  (message?'<p class="compare-error" role="alert">'+esc(message)+'</p>':'')+
- '<small>Una búsqueda crea una página permanente. Solo aparecen precios verificados por una fuente disponible y se indica la fecha de comprobación.</small></form>';
+ '</form>';
 }
 function shell(title,description,body,canonical,allowIndex=false,structured=null){
  const robots=allowIndex?'index,follow':'noindex,follow';
@@ -109,6 +110,26 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
   lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   '<span class="offer-destination">'+note+'</span></li>';
+}
+function insightsMarkup(query,insight){
+ if(!insight||!insight.variants.length)return '';
+ const list=insight.variants.map(v=>{
+  const colors=v.colors.length?' · '+esc(v.colors.length===1?v.colors[0]:v.colors.length+' colores'):'';
+  const link=v.suggestedQuery?'<a class="compare-variant-refine" href="/comparar?q='+encodeURIComponent(v.suggestedQuery)+'">Comparar esta capacidad</a>':'';
+  return '<li class="compare-variant">'+
+   '<strong>'+esc(v.label)+'</strong>'+
+   '<span class="compare-variant-price">Desde '+money(v.minCents)+'</span>'+
+   '<small>'+v.count+' '+(v.count===1?'oferta':'ofertas')+' · '+v.shopCount+
+   (v.shopCount===1?' vendedor':' vendedores')+colors+'</small>'+
+   (v.directShopCount?'<small>'+v.directShopCount+' '+(v.directShopCount===1?'enlace directo':'enlaces directos')+'</small>':'')+
+   link+'</li>';
+ }).join('');
+ return '<section class="compare-variant-section" aria-labelledby="compare-variant-heading">'+
+  '<div class="compare-variant-heading"><h2 id="compare-variant-heading">Versiones encontradas</h2>'+
+  '<p>'+insight.total+' ofertas agrupadas por capacidad, versión y estado.</p></div>'+
+  '<ul class="compare-variant-grid">'+list+'</ul>'+
+  (insight.hasMixedVariants?'<p class="compare-variant-warning">Los precios de versiones distintas, nuevos, usados y reacondicionados no deben compararse como si fueran un mismo producto.</p>':'')+
+  '</section>';
 }
 // Token independiente de cabeceras Origin/Sec-Fetch-Site, que pueden cambiar
 // con redirects www/no-www y proxies. La cookie es httpOnly y SameSite=Lax.
@@ -362,6 +383,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const external=Array.isArray(page.external_results)?page.external_results.filter(o=>o&&!o.internal&&safeHref(o.href)&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0):[];
   const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
+  const insight=insights.buildInsights(page.query_text,offers);
   const quota=offers.some(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')))?
    await compareWorker.quotaStatus():null;
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
@@ -385,7 +407,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const status='<section class="info" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
    '<h2>'+(pending?'Buscando precios en tiendas españolas…':offers.length?'Comparación actualizada':'Estado de la búsqueda')+'</h2>'+
    '<p class="muted">'+providerMessage+'</p>'+
-   (best!==null?'<p><strong>Desde '+money(best)+'</strong> · '+offers.length+' '+(offers.length===1?'oferta encontrada':'ofertas encontradas')+'</p>':'')+
+   (best!==null?'<p class="cmp-start-price"><strong>Desde '+money(best)+'</strong> · '+offers.length+' '+(offers.length===1?'oferta encontrada':'ofertas encontradas')+
+    (insight.hasMixedVariants?' (incluye diferentes versiones o estados)':'')+'</p>':'')+
    (pending?'<div class="compare-loading" role="status"><span class="compare-loading-indicator" aria-hidden="true"></span><strong>Buscando las mejores ofertas</strong><p>Actualizamos esta página automáticamente. No necesitas repetir la búsqueda.</p></div>':'')+
    (checked?'<p class="compare-help">Última consulta al proveedor: '+esc(checked)+'</p>':'')+
    '</section>';
@@ -394,20 +417,21 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<div class="info"><p>Todavía no hay ofertas coincidentes. Esta página permanece guardada y puedes volver a consultarla más adelante.</p></div>';
   const content='<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
-   '<p>Compara tiendas españolas desde un solo lugar. Página creada el '+new Date(page.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'})+'.</p>'+
+   '<p class="cmp-page-subtitle">Ofertas en tiendas españolas · página permanente</p>'+
    formMarkup('',page.query_text,csrfToken)+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+
-   '<section data-comparison-results><h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
+   '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+
+   '<h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (quota?.available===false?'<p class="compare-quota-banner">'+(
     quota.reason==='daily'?'Consultas externas agotadas por hoy. Se conservan los precios guardados y volverán a estar disponibles nuevas comprobaciones tras la renovación diaria.':
     quota.reason==='monthly'?'Se ha alcanzado la cuota mensual de SerpApi. Los precios guardados siguen disponibles hasta la renovación del período.':
     quota.reason==='disabled'?'Las consultas externas están desactivadas actualmente.': 'No hay proveedor de consultas externas configurado.'
    )+'</p>':'')+
-   '<p class="compare-guide">'+(exact?'Comprueba memoria, capacidad y estado antes de comprar.':'La búsqueda incluye variantes. Indica el modelo exacto para compararlo con mayor precisión.')+'</p>'+
-   (offers.some(o=>['Usado','Reacondicionado'].includes(o.condition))?'<p class="compare-help">También hay ofertas de segunda mano o reacondicionadas. Sus precios no son directamente comparables con los de productos nuevos.</p>':'')+
+   (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
+   ''+
    cards+
-   '<p class="compare-help">Los precios son orientativos y pueden no incluir envío. Verifica el importe final, el producto exacto y las condiciones en la tienda. Los enlaces de Google Shopping son búsquedas generales, no enlaces directos a una tienda.</p></section>'+
+   '<p class="compare-help">El precio final y el envío se confirman en la tienda. Los botones de Google Shopping muestran búsquedas, no compras directas.</p></section>'+
    (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'');
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
