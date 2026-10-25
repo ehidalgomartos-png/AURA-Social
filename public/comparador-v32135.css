@@ -72,3 +72,53 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .compare-recent-list a{font-weight:700;word-break:break-word}
 .compare-recent-list small{display:block;margin-top:5px;color:#67798d}
 @media(max-width:620px){.compare-recent-list{grid-template-columns:1fr}}
+
+
+/* V3.2.139 — Centro SEO claro, propio de RedLibertad y mobile-first */
+.seo-admin{--seo-blue:#164e84;--seo-ink:#112f4e;--seo-muted:#536981;max-width:1080px;margin:auto}
+.seo-admin-intro{margin:20px 0 24px}
+.seo-admin-intro h1{font-size:clamp(1.7rem,4vw,2.4rem);letter-spacing:-.028em;margin:0 0 9px}
+.seo-admin-intro p{color:var(--seo-muted);margin:0}
+.seo-admin-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 24px}
+.seo-admin-overview>div{min-width:0;background:#fff;border:1px solid #dce7f2;border-radius:15px;padding:17px 15px;box-shadow:0 5px 18px rgba(23,61,97,.045)}
+.seo-admin-overview strong{display:block;color:var(--seo-ink);font-size:clamp(1.6rem,3vw,2.15rem);line-height:1.2;font-weight:800;font-variant-numeric:tabular-nums}
+.seo-admin-overview span{display:block;color:var(--seo-muted);font-size:.87rem;margin-top:6px}
+.seo-admin-filters{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.seo-admin-filters .seo-filter{display:inline-flex;align-items:center;gap:7px;min-height:43px;padding:10px 14px;border-radius:999px;background:#fff;color:#31516f;text-decoration:none;font-weight:700;border:1px solid #d8e4ef;font-size:.9rem}
+.seo-admin-filters .seo-filter span{border-radius:99px;background:#edf3f8;color:#4d6680;padding:2px 7px;font-size:.78rem}
+.seo-admin-filters .seo-filter.is-active{color:white;background:#185891;border-color:#185891}
+.seo-admin-filters .seo-filter.is-active span{background:#376fa0;color:white}
+.seo-admin-grid{margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;list-style:none;align-items:start}
+.seo-admin-card{min-width:0;background:white;border:1px solid #dce6ef;border-radius:17px;padding:19px;box-shadow:0 6px 22px rgba(22,60,95,.055)}
+.seo-admin-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.seo-admin-name{font-size:1.16rem;font-weight:800;text-decoration:none;line-height:1.25;overflow-wrap:anywhere;color:#184f88}
+.seo-admin-name:hover{text-decoration:underline}
+.seo-admin-meta{font-size:.83rem;color:#6c7f93;margin-top:7px}
+.seo-admin-chip{padding:5px 9px;font-size:.78rem;font-weight:750;border-radius:999px;white-space:nowrap}
+.seo-admin-chip-aptas{background:#e5f5ed;color:#176747}
+.seo-admin-chip-pendientes{background:#edf3f9;color:#315a80}
+.seo-admin-chip-bloqueadas{background:#fff0ec;color:#9a432d}
+.seo-admin-reason{color:#153b5f;font-size:.96rem;font-weight:700;margin:18px 0 5px}
+.seo-admin-detail{color:var(--seo-muted);font-size:.91rem;margin:0 0 16px;line-height:1.55}
+.seo-suggestions{margin:14px 0 18px;padding:13px;border:1px solid #dbe8f3;border-radius:12px;background:#f5f9fe;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.seo-suggestions>span{font-size:.86rem;font-weight:700;width:100%;color:#315574}
+.seo-suggestions>a{display:inline-flex;text-decoration:none;font-size:.86rem;font-weight:700;border:1px solid #bed5e9;border-radius:999px;padding:7px 10px;background:white}
+.seo-suggestions>a:hover{background:#e4f0ff}
+.seo-suggestions small{flex-basis:100%;font-size:.77rem;color:#6c8097}
+.seo-admin-controls{border-top:1px solid #e8edf3;padding-top:13px;display:grid;gap:10px}
+.seo-admin-controls form{margin:0}
+.seo-admin .seo-btn{font:inherit;font-size:.89rem;font-weight:750;cursor:pointer;padding:11px 13px;border-radius:10px;min-height:44px;width:100%;text-align:center}
+.seo-admin .seo-btn-primary{border:1px solid #185891;background:#185891;color:white}
+.seo-admin .seo-btn-primary:hover{background:#114779}
+.seo-admin .seo-btn-outline{border:1px solid #c9d9e8;background:#f5f8fc;color:#315574}
+.seo-admin .seo-btn-outline:hover{background:#e8f0f9}
+.seo-admin-editor{border:1px solid #e2eaf3;border-radius:11px;background:#fbfdff;padding:11px 13px}
+.seo-admin-editor summary{font-weight:700;color:#1b598f;cursor:pointer;font-size:.91rem;list-style:revert}
+.seo-admin-editor[open] summary{margin-bottom:13px}
+.seo-admin-editor label{display:block;color:#344d67;font-size:.87rem;margin-bottom:7px;font-weight:650}
+.seo-admin-editor textarea{width:100%;display:block;resize:vertical;font:inherit;font-size:1rem;min-height:108px;margin:0 0 12px;border-radius:10px;border:1px solid #b9cce1;padding:11px;background:white;color:#20394f}
+.seo-admin-editor textarea:focus-visible,.seo-admin .seo-btn:focus-visible,.seo-filter:focus-visible{outline:3px solid #91b8e3;outline-offset:2px}
+.seo-admin-empty{border:1px solid #dce7f2;border-radius:13px;background:#fff;color:#526982;padding:25px}
+.seo-admin-disclaimer{font-size:.85rem;color:#6c7c8f;margin:22px 0}
+@media(max-width:760px){.seo-admin-grid{grid-template-columns:1fr}.seo-admin-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:400px){.seo-admin-card{padding:15px}.seo-admin-overview{gap:8px}.seo-admin-overview>div{padding:13px}.seo-admin-filters{gap:6px}.seo-admin-filters .seo-filter{font-size:.83rem;padding:9px 11px}}
