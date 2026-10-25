@@ -45,5 +45,5 @@ function jsonLd(data){
  return JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026')
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
-const APPROVED_SQL= "index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2";
+const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND jsonb_array_length(external_results)>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o)>=2";
 module.exports={ORIGIN,indexEligible,structuredData,jsonLd,APPROVED_SQL,externalOffers};
