@@ -47,6 +47,7 @@ async function ensureSchema(){
    await db.query('CREATE INDEX IF NOT EXISTS idx_marketplace_compare_created ON marketplace_compare_pages(created_at DESC)');
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_merchant_links (offer_key VARCHAR(64) PRIMARY KEY, status VARCHAR(16) NOT NULL CHECK (status IN ('checking','ok','unavailable')), href TEXT, checked_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_price_history (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, checked_day DATE NOT NULL, low_price_cents BIGINT NOT NULL CHECK(low_price_cents>0), high_price_cents BIGINT NOT NULL CHECK(high_price_cents>=low_price_cents), shop_count INTEGER NOT NULL CHECK(shop_count>=3), offer_count INTEGER NOT NULL CHECK(offer_count>=3), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,checked_day))");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
  return schemaPromise;
@@ -110,6 +111,22 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
   lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   '<span class="offer-destination">'+note+'</span></li>';
+}
+function historyMarkup(history){
+ const rows=(Array.isArray(history)?history:[]).filter(x=>Number.isSafeInteger(Number(x.low_price_cents))&&Number(x.low_price_cents)>0);
+ if(rows.length<2)return '';
+ const recent=rows.slice(0,6);
+ return '<section class="compare-history" aria-labelledby="compare-history-title"><h2 id="compare-history-title">Evolución de precios verificados</h2>'+
+  '<p>Precios mínimos observados en fechas distintas para esta misma variante.</p>'+
+  '<ol>'+recent.map(row=>{
+   const day=String(row.checked_day||'').slice(0,10);
+   const date=/^\d{4}-\d{2}-\d{2}$/.test(day)?day:'';
+   if(!date)return '';
+   const pretty=date.split('-').reverse().join('/');
+   return '<li><time datetime="'+esc(date)+'">'+esc(pretty)+'</time>'+
+    '<strong>'+money(row.low_price_cents)+'</strong>'+
+    '<span>'+Number(row.shop_count)+' tiendas contrastadas</span></li>';
+  }).join('')+'</ol><small>Datos de consultas anteriores. Precios orientativos, sin confirmar transporte ni disponibilidad.</small></section>';
 }
 function insightsMarkup(query,insight){
  if(!insight||!insight.variants.length)return '';
@@ -384,6 +401,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
   const insight=insights.buildInsights(page.query_text,offers);
+  const history=seo.auto.capacity(page.query_text)?
+   await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
   const quota=offers.some(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')))?
    await compareWorker.quotaStatus():null;
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
@@ -421,7 +440,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    formMarkup('',page.query_text,csrfToken)+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+
-   '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+
+   '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
    '<h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (quota?.available===false?'<p class="compare-quota-banner">'+(
     quota.reason==='daily'?'Consultas externas agotadas por hoy. Se conservan los precios guardados y volverán a estar disponibles nuevas comprobaciones tras la renovación diaria.':
