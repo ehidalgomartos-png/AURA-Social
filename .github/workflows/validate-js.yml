@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.133 Spanish Google Shopping provider, product variants and cost caps
+        run: node --test tests/marketplace-comparador-provider-v32133.test.js
       - name: V3.2.132.1 comparison page persistence and CSRF-protected HTTP form
         run: node --test tests/marketplace-comparador-v32132.test.js tests/marketplace-comparador-csrf-v321321.test.js
       - name: V3.2.131 Google Ads verified email consent and deduplication
