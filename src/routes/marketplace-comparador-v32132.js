@@ -81,14 +81,17 @@ function offerKey(o){
  return crypto.createHash('sha256').update([String(o.product_id||''),String(o.shop||''),String(o.title||''),String(o.price_cents||'')].join('|')).digest('hex');
 }
 async function attachCachedMerchantLinks(offers){
- const candidates=offers.filter(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')) && provider.resolveOfferLink(o)?.destination!=='store');
+ const candidates=offers.filter(o=>!o.internal && provider.canLookupSeller(o) &&
+   /^\d{8,30}$/.test(String(o.product_id||'')) && provider.resolveOfferLink(o)?.destination!=='store');
  if(!candidates.length)return;
  const keys=candidates.map(offerKey);
- const found=await db.query("SELECT offer_key,href FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[]) AND status='ok' AND checked_at>now()-interval '24 hours'",[keys]);
- const byKey=new Map(found.rows.map(r=>[r.offer_key,r.href]));
+ const found=await db.query("SELECT offer_key,href,status FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[]) AND checked_at>now()-interval '24 hours'",[keys]);
+ const byKey=new Map(found.rows.map(r=>[r.offer_key,r]));
  for(const o of candidates){
-  const href=byKey.get(offerKey(o));
-  if(href)o.resolved_href=href;
+  const record=byKey.get(offerKey(o));
+  if(!record)continue;
+  o.lookup_status=record.status;
+  if(record.status==='ok'&&record.href)o.resolved_href=record.href;
  }
 }
 function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
@@ -102,7 +105,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
  const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
- const possible=link.destination==='shopping-search' && /^\d{8,30}$/.test(String(o.product_id||''));
+ const possible=link.destination==='shopping-search' && provider.canLookupSeller(o) &&
+   !['unavailable','checking'].includes(o.lookup_status) && /^\d{8,30}$/.test(String(o.product_id||''));
  const candidate=possible && quota?.available!==false;
  const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
    '';
@@ -348,16 +352,12 @@ router.post('/comparar/tienda/:slug/:offerKey',
   if(!offer)return res.sendStatus(404);
   const existing=provider.resolveOfferLink(offer);
   if(existing?.destination==='store')return res.redirect(303,existing.href);
-  const fallback=provider.shoppingSearchUrl(offer.title,offer.shop);
   const returnLink='/comparar/'+slug;
-  function explain(message){
-   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
-   res.send(shell('Consultar tienda | RedLibertad','Resultado de consulta a tiendas',
-    '<p class="crumb"><a href="'+esc(returnLink)+'">Volver a los precios</a></p><h1>Enlace del vendedor</h1>'+
-    '<p>'+esc(message)+'</p><p><strong>'+esc(offer.title)+'</strong> · '+esc(offer.shop)+'</p>'+
-    '<p><a href="'+esc(fallback)+'" target="_blank" rel="noopener noreferrer nofollow">Buscar este artículo en Google</a></p>',returnLink));
+  function explain(){
+   // Un error o ausencia de URL externa no debe crear una página muerta.
+   return res.redirect(303,returnLink+'?enlace=sin-verificar#precios-y-tiendas');
   }
-  if(!provider.configured()||!/^\d{8,30}$/.test(String(offer.product_id||'')))return explain('No existe una ficha de producto consultable para esta oferta.');
+  if(!provider.canLookupSeller(offer)||!provider.configured()||!/^\d{8,30}$/.test(String(offer.product_id||'')))return explain();
   const cached=await db.query("SELECT status,href FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND checked_at>now()-interval '24 hours'",[hash]);
   if(cached.rowCount){
    const current=cached.rows[0];
@@ -410,7 +410,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const insight=insights.buildInsights(page.query_text,offers);
   const history=seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
-  const quota=offers.some(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')))?
+  const quota=offers.some(o=>!o.internal && provider.canLookupSeller(o) && /^\d{8,30}$/.test(String(o.product_id||'')))?
    await compareWorker.quotaStatus():null;
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
   const exact=provider.isSpecificModel(page.query_text);
@@ -444,7 +444,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota)).join('')+'</ol>':'';
   const results=offers.length?
    '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
-   '<h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
+   '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
+   (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
    cards+
    '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
