@@ -237,3 +237,22 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
  .compare-single-product .offer .offer-photo,
  .compare-single-product .offer .offer-noimage{width:78px;height:92px}
 }
+
+
+/* V3.2.146 — Diagnóstico privado de enlaces de compra (mobile-first) */
+.seo-link-details{margin-top:13px;border:1px solid #d5e5f3;border-radius:11px;background:#f8fbff;overflow:hidden}
+.seo-link-details summary{padding:12px 14px;color:#145582;font-weight:750;font-size:.91rem;cursor:pointer;list-style-position:inside}
+.seo-link-details[open] summary{border-bottom:1px solid #d6e5f3;background:#eff7ff}
+.seo-link-details .seo-link-empty{padding:3px 14px 14px;color:#5a7087}
+.seo-link-list{margin:0;padding:4px 12px 8px;list-style:none}
+.seo-link-item{border-bottom:1px solid #e2ebf5;padding:12px 2px;min-width:0}
+.seo-link-item:last-child{border:0}
+.seo-link-item strong{font-size:.91rem;line-height:1.45;overflow-wrap:anywhere}
+.seo-link-item small{display:block;color:#657990;margin-top:3px}
+.seo-link-state{display:inline-block;margin:8px 0 0;padding:4px 8px;border-radius:8px;background:#eaf0f6;font-size:.77rem;font-weight:700;color:#425c76}
+.seo-link-state-direct,.seo-link-state-verified{background:#e8f5ed;color:#176444}
+.seo-link-state-ready{background:#e8f2fc;color:#15578b}
+.seo-link-item p{font-size:.84rem;color:#536c83;margin:6px 0;line-height:1.45}
+.seo-link-item a{display:inline-flex;align-items:center;min-height:42px;font-weight:700}
+.seo-link-details>small{display:block;color:#697e95;padding:0 14px 12px}
+@media(max-width:640px){.seo-link-details summary{padding:12px}.seo-link-list{padding:0 10px 5px}.seo-link-item{padding:12px 3px}}

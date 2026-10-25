@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.146 private vendor-link diagnostics and token-only offer lookup
+        run: node --test tests/marketplace-comparador-links-admin-v32146.test.js
       - name: V3.2.145 vendor-direct link extraction and exact-offer lookup
         run: node --test tests/marketplace-comparador-direct-links-v32145.test.js
       - name: V3.2.144 clean single-offer page and meaningful variant summary

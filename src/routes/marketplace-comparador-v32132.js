@@ -10,6 +10,7 @@ const seo=require('../services/marketplace-comparador-seo-v32132');
 const provider=require('../services/marketplace-comparador-provider-v32133');
 const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
+const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -82,7 +83,7 @@ function offerKey(o){
 }
 async function attachCachedMerchantLinks(offers){
  const candidates=offers.filter(o=>!o.internal &&
-   /^\d{8,30}$/.test(String(o.product_id||'')) && provider.resolveOfferLink(o)?.destination!=='store');
+   provider.hasProductReference(o) && provider.resolveOfferLink(o)?.destination!=='store');
  if(!candidates.length)return;
  const keys=candidates.map(offerKey);
  const found=await db.query("SELECT offer_key,href,status FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[]) AND checked_at>now()-interval '24 hours' AND (status!='checking' OR checked_at>now()-interval '2 minutes')",[keys]);
@@ -106,7 +107,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
  const possible=link.destination==='shopping-search' && provider.canLookupSeller(o) &&
-   !['unavailable','checking'].includes(o.lookup_status) && /^\d{8,30}$/.test(String(o.product_id||''));
+   !['unavailable','checking'].includes(o.lookup_status) && provider.hasProductReference(o);
  const candidate=possible && quota?.available!==false;
  const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
    '';
@@ -229,7 +230,23 @@ function seoRefinementSuggestions(page){
  }
  return results;
 }
-function seoAdminView(rows,token,filter,quota=null){
+function linkDiagnosticsMarkup(page,cache,quota){
+ const offers=linkDiagnostics.pageDiagnostics(page,cache,quota);
+ if(!offers.length)return '<details class="seo-link-details"><summary>Enlaces de tienda · sin ofertas válidas</summary><p class="seo-link-empty">Todavía no hay ofertas coincidentes que analizar.</p></details>';
+ const ready=offers.filter(x=>x.status==='ready').length;
+ const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)).length;
+ const details=offers.slice(0,6).map(x=>
+  '<li class="seo-link-item"><div><strong>'+esc(x.offer.title)+'</strong><small>'+esc(x.offer.shop||'Tienda no indicada')+'</small></div>'+
+  '<span class="seo-link-state seo-link-state-'+esc(x.status)+'">'+esc(x.label)+'</span>'+
+  '<p>'+esc(x.description)+'</p>'+
+  (x.href?'<a href="'+esc(x.href)+'" target="_blank" rel="noopener noreferrer nofollow">Abrir tienda</a>':'')+'</li>'
+ ).join('');
+ return '<details class="seo-link-details"><summary>Enlaces de tienda · '+direct+' directos · '+ready+' comprobables</summary>'+
+  '<ol class="seo-link-list">'+details+'</ol>'+
+  (offers.length>6?'<small>Se muestran 6 de '+offers.length+' ofertas. Abre la comparación para ver todas.</small>':'')+
+  '<small>Diagnóstico basado en datos guardados. No se consulta SerpApi.</small></details>';
+}
+function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
  const prepared=rows.map(p=>{
   const evaluation=seo.auto.eligibleOffers(p,p.external_results);
   const eligible=seo.indexEligible(p,p.external_results);
@@ -280,7 +297,7 @@ function seoAdminView(rows,token,filter,quota=null){
    '<label for="seo-summary-'+id+'">Comentario original (mínimo 80 caracteres)</label>'+
    '<textarea id="seo-summary-'+id+'" name="summary" rows="4" maxlength="2000" minlength="80" placeholder="Aporta información propia y útil sobre este modelo.">'+esc(p.editorial_summary||'')+'</textarea>'+
    '<button type="submit" name="action" value="approve" class="seo-btn seo-btn-primary">Aprobar con comentario</button></form>'+
-   '</details></div></li>';
+   '</details></div>'+linkDiagnosticsMarkup(p,merchantCache,quota)+'</li>';
  }).join('');
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
@@ -304,9 +321,14 @@ router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
   const token=issueCsrf(req,res);
   const filter=typeof req.query?.estado==='string'?req.query.estado:'todas';
   const quota=await compareWorker.quotaStatus();
+  const keys=linkDiagnostics.keysToCheck(r.rows);
+  const found=keys.length?await db.query(
+   "SELECT offer_key,status,href,checked_at FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[])",[keys]
+  ):{rows:[]};
+  const merchantCache=new Map(found.rows.map(item=>[item.offer_key,item]));
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('SEO del comparador | RedLibertad','Gestión privada de indexación',
-    seoAdminView(r.rows,token,filter,quota),'/admin/comparador'));
+    seoAdminView(r.rows,token,filter,quota,merchantCache),'/admin/comparador'));
  }catch(e){next(e);}
 });
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
@@ -358,7 +380,7 @@ router.post('/comparar/tienda/:slug/:offerKey',
    // Un error o ausencia de URL externa no debe crear una página muerta.
    return res.redirect(303,returnLink+'?enlace=sin-verificar#precios-y-tiendas');
   }
-  if(!provider.canLookupSeller(offer)||!provider.configured()||!/^\d{8,30}$/.test(String(offer.product_id||'')))return explain();
+  if(!provider.canLookupSeller(offer)||!provider.configured()||!provider.hasProductReference(offer))return explain();
   const cached=await db.query("SELECT status,href FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND checked_at>now()-interval '24 hours' AND (status!='checking' OR checked_at>now()-interval '2 minutes')",[hash]);
   if(cached.rowCount){
    const current=cached.rows[0];
@@ -415,7 +437,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const insight=insights.buildInsights(page.query_text,offers);
   const history=seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
-  const quota=offers.some(o=>!o.internal && provider.canLookupSeller(o) && /^\d{8,30}$/.test(String(o.product_id||'')))?
+  const quota=offers.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
    await compareWorker.quotaStatus():null;
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
   const exact=provider.isSpecificModel(page.query_text);
