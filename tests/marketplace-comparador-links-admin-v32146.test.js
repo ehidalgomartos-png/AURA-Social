@@ -85,7 +85,7 @@ test('administración informa del problema de Pixmania y no muestra tokens, dato
  assert.match(doc,/Requiere una consulta voluntaria/);
  assert.doesNotMatch(doc,new RegExp(token.slice(0,20)));
  assert.match(doc,/Editar comentario editorial/);
- assert.equal((doc.match(/name="_csrf"/g)||[]).length,2);
+ assert.equal((doc.match(/name="_csrf"/g)||[]).length,3);
  const hostile=offer('<script>mal</script>',{title:'iPhone 12 128 GB <img src=x onerror=alert(1)>'});
  const html=compare.seoAdminView([page([hostile])],'d'.repeat(48),'todas');
  assert.doesNotMatch(html,/<img src=x onerror/);

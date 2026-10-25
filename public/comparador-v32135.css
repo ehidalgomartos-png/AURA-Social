@@ -256,3 +256,15 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .seo-link-item a{display:inline-flex;align-items:center;min-height:42px;font-weight:700}
 .seo-link-details>small{display:block;color:#697e95;padding:0 14px 12px}
 @media(max-width:640px){.seo-link-details summary{padding:12px}.seo-link-list{padding:0 10px 5px}.seo-link-item{padding:12px 3px}}
+
+
+/* V3.2.147 — revisión manual de enlaces de tienda en administración */
+.seo-manual-link-form{margin:12px 0 4px;display:flex;flex-direction:column;gap:9px;padding:12px;border:1px solid #cfdfed;background:#fff;border-radius:10px}
+.seo-manual-link-form>label:first-of-type{font-size:.86rem;font-weight:750;color:#194a73}
+.seo-manual-link-form input[type="url"]{display:block;width:100%;min-width:0;max-width:100%;border-radius:9px;border:1px solid #aabfd5;min-height:46px;padding:10px 12px;font-size:16px;background:#fff;color:#193b5d}
+.seo-manual-confirm{display:flex;gap:10px;align-items:flex-start;font-size:.83rem;line-height:1.5;color:#385d80}
+.seo-manual-confirm input{width:19px;height:19px;flex:0 0 auto;margin-top:1px}
+.seo-manual-link-form button,.seo-manual-remove button{min-height:44px;margin-top:4px}
+.seo-manual-remove{display:flex;padding:3px 12px 12px}
+.seo-link-state-manual{background:#e4f4ec;color:#115a43}
+@media(max-width:640px){.seo-manual-link-form{padding:10px}.seo-manual-link-form button,.seo-manual-remove button{width:100%}}

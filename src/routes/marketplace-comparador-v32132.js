@@ -11,6 +11,7 @@ const provider=require('../services/marketplace-comparador-provider-v32133');
 const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
 const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
+const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -48,6 +49,7 @@ async function ensureSchema(){
    await db.query('CREATE INDEX IF NOT EXISTS idx_marketplace_compare_created ON marketplace_compare_pages(created_at DESC)');
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_merchant_links (offer_key VARCHAR(64) PRIMARY KEY, status VARCHAR(16) NOT NULL CHECK (status IN ('checking','ok','unavailable')), href TEXT, checked_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_manual_links (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, offer_key VARCHAR(64) NOT NULL, href TEXT NOT NULL, reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,offer_key))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_price_history (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, checked_day DATE NOT NULL, low_price_cents BIGINT NOT NULL CHECK(low_price_cents>0), high_price_cents BIGINT NOT NULL CHECK(high_price_cents>=low_price_cents), shop_count INTEGER NOT NULL CHECK(shop_count>=3), offer_count INTEGER NOT NULL CHECK(offer_count>=3), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,checked_day))");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
@@ -95,6 +97,12 @@ async function attachCachedMerchantLinks(offers){
   if(record.status==='ok'&&record.href)o.resolved_href=record.href;
  }
 }
+async function attachManualMerchantLinks(page,offers){
+ const keys=[...new Set(offers.filter(o=>!o.internal).map(manualLinks.identityKey).filter(Boolean))];
+ if(!keys.length)return;
+ const found=await db.query("SELECT offer_key,href FROM marketplace_compare_manual_links WHERE page_id=$1 AND offer_key=ANY($2::varchar[])",[page.id,keys]);
+ manualLinks.applyManualLinks(page,offers,found.rows);
+}
 function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const link=o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
@@ -104,7 +112,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const shop=String(o.shop||'Tienda no identificada');
  const merchant=link.destination==='store';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
- const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
+ const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':o.manual_link?'Enlace revisado por administración':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
  const possible=link.destination==='shopping-search' && provider.canLookupSeller(o) &&
    !['unavailable','checking'].includes(o.lookup_status) && provider.hasProductReference(o);
@@ -230,28 +238,43 @@ function seoRefinementSuggestions(page){
  }
  return results;
 }
-function linkDiagnosticsMarkup(page,cache,quota){
+function linkDiagnosticsMarkup(page,cache,quota,manualCache=new Map(),token=''){
  const offers=linkDiagnostics.pageDiagnostics(page,cache,quota);
  if(!offers.length)return '<details class="seo-link-details"><summary>Enlaces de tienda · sin ofertas válidas</summary><p class="seo-link-empty">Todavía no hay ofertas coincidentes que analizar.</p></details>';
  const ready=offers.filter(x=>x.status==='ready').length;
- const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)).length;
- const details=offers.slice(0,6).map(x=>
-  '<li class="seo-link-item"><div><strong>'+esc(x.offer.title)+'</strong><small>'+esc(x.offer.shop||'Tienda no indicada')+'</small></div>'+
-  '<span class="seo-link-state seo-link-state-'+esc(x.status)+'">'+esc(x.label)+'</span>'+
-  '<p>'+esc(x.description)+'</p>'+
-  (x.href?'<a href="'+esc(x.href)+'" target="_blank" rel="noopener noreferrer nofollow">Abrir tienda</a>':'')+'</li>'
- ).join('');
+ const direct=offers.filter(x=>['direct','verified','internal'].includes(x.status)||
+  manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+manualLinks.identityKey(x.offer)))).length;
+ const details=offers.slice(0,6).map(x=>{
+  const key=manualLinks.identityKey(x.offer);
+  const manual=manualLinks.storedLink(x.offer,manualCache.get(page.id+':'+key));
+  const url=manual||x.href;
+  const action='/admin/comparador/'+Number(page.id)+'/enlace';
+  return '<li class="seo-link-item"><div><strong>'+esc(x.offer.title)+'</strong><small>'+esc(x.offer.shop||'Tienda no indicada')+'</small></div>'+
+   '<span class="seo-link-state seo-link-state-'+esc(manual?'manual':x.status)+'">'+esc(manual?'Enlace revisado por administración':x.label)+'</span>'+
+   '<p>'+esc(manual?'La URL se conserva al actualizar precios. Debes comprobar la disponibilidad y el importe en la tienda.':x.description)+'</p>'+
+   (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer nofollow">Abrir tienda</a>':'')+
+   '<form class="seo-manual-link-form" method="post" action="'+action+'">'+
+   '<input type="hidden" name="_csrf" value="'+esc(token)+'"><input type="hidden" name="offer_key" value="'+esc(key)+'">'+
+   '<label for="manual-url-'+Number(page.id)+'-'+esc(key)+'">Enlace exacto en '+esc(x.offer.shop)+'</label>'+
+   '<input id="manual-url-'+Number(page.id)+'-'+esc(key)+'" name="url" type="url" maxlength="2048" required value="'+esc(manual||'')+'" placeholder="https://tienda.es/producto/..." autocomplete="off" inputmode="url">'+
+   '<label class="seo-manual-confirm"><input type="checkbox" name="confirmed" value="yes" required> He comprobado que esta dirección corresponde a la oferta y tienda indicadas.</label>'+
+   '<button class="seo-btn seo-btn-primary" type="submit" name="action" value="save">Guardar enlace directo</button></form>'+
+   (manual?'<form class="seo-manual-remove" method="post" action="'+action+'"><input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+    '<input type="hidden" name="offer_key" value="'+esc(key)+'"><button type="submit" name="action" value="remove" class="seo-btn seo-btn-outline">Quitar enlace manual</button></form>':'')+
+   '</li>';
+ }).join('');
  return '<details class="seo-link-details"><summary>Enlaces de tienda · '+direct+' directos · '+ready+' comprobables</summary>'+
   '<ol class="seo-link-list">'+details+'</ol>'+
   (offers.length>6?'<small>Se muestran 6 de '+offers.length+' ofertas. Abre la comparación para ver todas.</small>':'')+
   '<small>Diagnóstico basado en datos guardados. No se consulta SerpApi.</small></details>';
 }
-function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
+function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manualCache=new Map()){
  const prepared=rows.map(p=>{
-  const evaluation=seo.auto.eligibleOffers(p,p.external_results);
+  const matching=(Array.isArray(p.external_results)?p.external_results:[]).filter(o=>o&&provider.titleMatches(p.query_text,o.title));
+  const evaluation=seo.auto.eligibleOffers(p,matching);
   const eligible=seo.indexEligible(p,p.external_results);
   const state=p.seo_blocked?'bloqueadas':eligible?'aptas':'pendientes';
-  return {p,evaluation,eligible,state};
+  return {p,evaluation,eligible,state,matching};
  });
  const states=['todas','aptas','pendientes','bloqueadas'];
  const chosen=states.includes(filter)?filter:'todas';
@@ -262,7 +285,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
  ].map(([key,label])=>'<a class="seo-filter'+(key===chosen?' is-active':'')+'" href="/admin/comparador?estado='+key+'">'+
    esc(label)+' <span>'+counts[key]+'</span></a>').join('');
  const visible=prepared.filter(x=>chosen==='todas'||x.state===chosen);
- const cards=visible.map(({p,evaluation,eligible,state})=>{
+ const cards=visible.map(({p,evaluation,eligible,state,matching})=>{
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
   const suggestion=seoRefinementSuggestions(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
@@ -284,9 +307,9 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
   const actionControl=p.seo_blocked?
    '<button type="submit" name="action" value="unblock" class="seo-btn seo-btn-primary">Permitir SEO automático</button>':
    '<button type="submit" name="action" value="revoke" class="seo-btn seo-btn-outline">Bloquear SEO</button>';
-  return '<li class="seo-admin-card" data-seo-state="'+state+'">'+
+  return '<li class="seo-admin-card" id="comparacion-'+id+'" data-seo-state="'+state+'">'+
    '<div class="seo-admin-card-head"><div><a class="seo-admin-name" href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a>'+
-   '<div class="seo-admin-meta">'+Number(p.external_count)+' ofertas guardadas'+checked+'</div></div>'+
+   '<div class="seo-admin-meta">'+matching.length+' '+(matching.length===1?'oferta coincidente':'ofertas coincidentes')+checked+'</div></div>'+
    '<span class="seo-admin-chip seo-admin-chip-'+state+'">'+
    (state==='aptas'?'Apta para Google':state==='bloqueadas'?'Bloqueada':'Por mejorar')+'</span></div>'+
    '<p class="seo-admin-reason">'+esc(reason)+'</p><p class="seo-admin-detail">'+esc(info)+'</p>'+links+
@@ -297,7 +320,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map()){
    '<label for="seo-summary-'+id+'">Comentario original (mínimo 80 caracteres)</label>'+
    '<textarea id="seo-summary-'+id+'" name="summary" rows="4" maxlength="2000" minlength="80" placeholder="Aporta información propia y útil sobre este modelo.">'+esc(p.editorial_summary||'')+'</textarea>'+
    '<button type="submit" name="action" value="approve" class="seo-btn seo-btn-primary">Aprobar con comentario</button></form>'+
-   '</details></div>'+linkDiagnosticsMarkup(p,merchantCache,quota)+'</li>';
+   '</details></div>'+linkDiagnosticsMarkup(p,merchantCache,quota,manualCache,token)+'</li>';
  }).join('');
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
@@ -326,9 +349,44 @@ router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
    "SELECT offer_key,status,href,checked_at FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[])",[keys]
   ):{rows:[]};
   const merchantCache=new Map(found.rows.map(item=>[item.offer_key,item]));
+  const pageIds=r.rows.map(item=>item.id);
+  const reviewed=pageIds.length?await db.query(
+   "SELECT page_id,offer_key,href,reviewed_at FROM marketplace_compare_manual_links WHERE page_id=ANY($1::bigint[])",[pageIds]
+  ):{rows:[]};
+  const manualCache=new Map(reviewed.rows.map(item=>[item.page_id+':'+item.offer_key,item]));
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('SEO del comparador | RedLibertad','Gestión privada de indexación',
-    seoAdminView(r.rows,token,filter,quota,merchantCache),'/admin/comparador'));
+    seoAdminView(r.rows,token,filter,quota,merchantCache,manualCache),'/admin/comparador'));
+ }catch(e){next(e);}
+});
+// La revisión humana no añade ofertas ni convierte esta ficha en apta para SEO.
+router.post('/admin/comparador/:id/enlace',requireAdmin,
+ rateLimit({windowMs:60*60*1000,limit:25,standardHeaders:'draft-7',legacyHeaders:false}),
+ async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve al panel.');
+  const id=String(req.params.id||''),key=req.body?.offer_key,action=req.body?.action;
+  if(!/^[1-9]\d{0,15}$/.test(id)||!manualLinks.validIdentity(key)||!['save','remove'].includes(action))
+   return res.sendStatus(400);
+  await ensureSchema();
+  const result=await db.query("SELECT id,query_text,external_results FROM marketplace_compare_pages WHERE id=$1",[id]);
+  if(!result.rowCount)return res.sendStatus(404);
+  const offer=manualLinks.findOffer(result.rows[0],key);
+  if(!offer)return res.sendStatus(404); // No permitir enlazar modelos de otra gama ni anuncios inexistentes.
+  if(action==='remove'){
+   await db.query("DELETE FROM marketplace_compare_manual_links WHERE page_id=$1 AND offer_key=$2",[id,key]);
+  }else{
+   if(req.body?.confirmed!=='yes')return res.status(400).send('Confirma que revisaste la oferta y su URL.');
+   const url=manualLinks.merchantUrl(req.body?.url,offer.shop);
+   if(!url)return res.status(400).send('Introduce una URL HTTPS del producto, en el dominio real de la tienda indicada, sin redirecciones ni credenciales.');
+   await db.query(
+    "INSERT INTO marketplace_compare_manual_links(page_id,offer_key,href,reviewed_at) VALUES($1,$2,$3,now()) "+
+    "ON CONFLICT(page_id,offer_key) DO UPDATE SET href=EXCLUDED.href,reviewed_at=now()",
+    [id,key,url]
+   );
+  }
+  return res.redirect(303,'/admin/comparador?enlace='+(action==='save'?'guardado':'retirado')+'#comparacion-'+id);
  }catch(e){next(e);}
 });
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
@@ -434,6 +492,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title))
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
+  await attachManualMerchantLinks(page,offers);
   const insight=insights.buildInsights(page.query_text,offers);
   const history=seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
