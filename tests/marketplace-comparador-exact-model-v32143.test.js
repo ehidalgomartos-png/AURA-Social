@@ -71,7 +71,8 @@ test('la ficha permanente corrige precios antiguos guardados sin consumir SerpAp
    const res=await fetch('http://127.0.0.1:'+server.address().port+'/comparar/'+slug);
    const html=await res.text();
    assert.equal(res.status,200);
-   assert.match(html,/Desde 259,00/);
+   assert.match(html,/259,00/);
+   assert.match(html,/class="compare-single-product"/);
    assert.match(html,/1 oferta/);
    assert.match(html,/iPhone 12 128 GB, morado/);
    assert.doesNotMatch(html,/225,00|249,00|iPhone 12 Pro/);
