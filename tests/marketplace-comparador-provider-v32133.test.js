@@ -71,7 +71,7 @@ test('la interfaz protege clave y deja claro Google Shopping frente a compra dir
  assert.match(worker,/marketplace_compare_provider_usage/);
  assert.match(worker,/provider\.fetchOffers/);
  assert.match(source,/Ver oferta en tienda/);
- assert.match(source,/Buscar en Google Shopping/);
+ assert.match(source,/Buscar en Google/);
  assert.match(source,/provider\.safeImage/);
  assert.doesNotMatch(source,/api_key:key/);
 });

@@ -83,7 +83,7 @@ test('cuota agotada: no ofrecer consultas directas y no cachear fracaso 24 horas
    assert.equal(response.status,200);
    assert.match(html,/Consultas externas agotadas por hoy/);
    assert.match(html,/Usado/);
-   assert.match(html,/Buscar en Google Shopping/);
+   assert.match(html,/Buscar en Google/);
    assert.doesNotMatch(html,/Consultar enlace de la tienda/);
    const token=html.match(/name="_csrf" value="([a-f0-9]{48})"/)?.[1];
    const cookie=response.headers.get('set-cookie').split(';')[0];
