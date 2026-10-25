@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.140.1 quota notice consolidation and compact mobile product variants
+        run: node --test tests/marketplace-comparador-cleanup-v321401.test.js
       - name: V3.2.140 factual product variants and verified price-history snapshots
         run: node --test tests/marketplace-comparador-insights-v32140.test.js
       - name: V3.2.139 clearer SEO administration and product refinement suggestions
