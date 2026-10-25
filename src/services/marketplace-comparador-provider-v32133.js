@@ -151,7 +151,9 @@ function parseExternal(results,q){
   const product=safeHttps(r.product_link||'');
   // Un vínculo Google /aclk o /shopping nunca es compra directa, pero
   // la oferta real con precio aún debe poder buscarse por título y tienda.
-  if(!direct&&!product&&!source)continue;
+  // Algunas fichas ofrecen únicamente el token de la variante: la búsqueda
+  // web sigue disponible y el usuario puede solicitar una sola comprobación.
+  if(!direct&&!product&&!source&&!safePageToken(r.immersive_product_page_token))continue;
   const shop=String(r.source||'Tienda no identificada').replace(/[<>]/g,'').trim().slice(0,80)||'Tienda no identificada';
   const landing=direct&&!isGoogleHost(new URL(direct).hostname)?{href:direct,destination:'store'}:
    resolveOfferLink({title,shop,href:product||source});
