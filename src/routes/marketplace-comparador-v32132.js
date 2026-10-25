@@ -525,10 +525,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const bestCondition=bestOffer?insights.conditionOf(bestOffer):null;
   const singleOffer=offers.length===1;
   const status=singleOffer?
-   '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<span>1 oferta coincidente</span>'+(checked?'<time>Precios consultados: '+esc(checked)+'</time>':'')+'</section>':
    offers.length?
-   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'priceWarning+
    '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
    (checked?'<span>Precios consultados: '+esc(checked)+'</span>':'')+'</div>'+
    '<p class="cmp-start-price"><strong>'+(hasExternal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
@@ -564,7 +564,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p class="cmp-page-subtitle">Ofertas en tiendas españolas · página permanente</p>'+
    formMarkup('',page.query_text,csrfToken)+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
-   priceWarning+'<div data-comparison-status-wrapper>'+status+'</div>'+results+
+   '<div data-comparison-status-wrapper>'+status+'</div>'+results+
    (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'');
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
