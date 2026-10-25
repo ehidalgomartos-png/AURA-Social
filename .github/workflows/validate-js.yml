@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.135 safe external product links, live comparison results and mobile UI
+        run: node --test tests/marketplace-comparador-ux-v32135.test.js
       - name: V3.2.134 background price queue, persistent quota and recovery
         run: node --test tests/marketplace-comparador-worker-v32134.test.js
       - name: V3.2.133 Spanish Google Shopping provider, product variants and cost caps

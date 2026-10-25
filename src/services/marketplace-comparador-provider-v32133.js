@@ -21,6 +21,33 @@ function safeImage(value){
  if(host==='serpapi.com'||host.endsWith('.serpapi.com')||host==='gstatic.com'||host.endsWith('.gstatic.com')||host==='googleusercontent.com'||host.endsWith('.googleusercontent.com'))return url;
  return null;
 }
+function isGoogleHost(host){
+ const h=String(host||'').toLowerCase();
+ return h==='google.com'||h.endsWith('.google.com')||/^google\.[a-z.]+$/.test(h)||/\.google\.[a-z.]+$/.test(h)||h==='googleadservices.com'||h.endsWith('.googleadservices.com');
+}
+function shoppingSearchUrl(title,shop=''){
+ const q=String(title||'').trim().slice(0,160);
+ if(!q)return null;
+ const origin='https://www.google.com/search';
+ const url=new URL(origin);
+ const suffix=String(shop||'').trim().slice(0,50);
+ url.searchParams.set('q',(q+' '+(suffix&&suffix!=='Tienda no identificada'?suffix:'')).trim());
+ url.searchParams.set('udm','28');
+ url.searchParams.set('hl','es');
+ url.searchParams.set('gl','es');
+ return url.href;
+}
+// Nunca enviar al usuario a un product_link de Google que puede haber caducado.
+// Aplica también a URLs guardadas anteriormente en PostgreSQL.
+function resolveOfferLink(offer){
+ const href=safeHttps(offer?.href);
+ if(offer?.internal)return {href:offer.href,destination:'internal'};
+ if(href&&!isGoogleHost(new URL(href).hostname)){
+  return {href,destination:'store'};
+ }
+ const search=shoppingSearchUrl(offer?.title,offer?.shop);
+ return search?{href:search,destination:'shopping-search'}:null;
+}
 function isSpecificModel(q){
  const words=keyOf(q).split(' ').filter(Boolean);
  return words.length>=2 && words.some(w=>/\d/.test(w));
@@ -62,17 +89,18 @@ function parseExternal(results,q){
   if(!cents)continue;
   const direct=safeHttps(r.link||'');
   const product=safeHttps(r.product_link||'');
-  // El enlace product_link lleva habitualmente a Google Shopping, no a la tienda.
-  const href=direct||product;
-  if(!href)continue;
+  if(!direct&&!product)continue;
   const shop=String(r.source||'Tienda no identificada').replace(/[<>]/g,'').trim().slice(0,80)||'Tienda no identificada';
+  const landing=direct&&!isGoogleHost(new URL(direct).hostname)?{href:direct,destination:'store'}:
+   resolveOfferLink({title,shop,href:product||direct});
+  if(!landing)continue;
   const dedup=shop.toLowerCase()+'|'+keyOf(title)+'|'+cents;
   if(seen.has(dedup))continue;
   seen.add(dedup);
   const condition=String(r.second_hand_condition||'').toLowerCase();
   out.push({
-   title,shop,price_cents:cents,href,
-   destination:direct?'store':'shopping',
+   title,shop,price_cents:cents,href:landing.href,
+   destination:landing.destination,
    condition:condition.includes('refurb')||condition.includes('reacondicionado')?'Reacondicionado':condition.includes('used')||condition.includes('usado')?'Usado':'Consultar estado',
    delivery:typeof r.delivery==='string'?r.delivery.trim().slice(0,110):'',
    image:safeImage(r.thumbnail || (Array.isArray(r.thumbnails)?r.thumbnails[0]:null)),
@@ -109,4 +137,4 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  if(!Array.isArray(data?.shopping_results))throw new Error('provider_missing_results');
  return parseExternal(data.shopping_results,q);
 }
-module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers};
+module.exports={safeHttps,safeImage,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost};

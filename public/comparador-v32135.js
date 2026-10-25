@@ -1,0 +1,38 @@
+/* RedLibertad V3.2.135 — refresco sin interrumpir la lectura ni repetir búsquedas de pago. */
+'use strict';
+(()=>{
+ const root=document.querySelector('[data-comparison-status]');
+ if(!root||!['queued','checking'].includes(root.dataset.comparisonStatus))return;
+ const target=document.querySelector('[data-comparison-results]');
+ if(!target)return;
+ let attempts=0,polling=false;
+ const maxAttempts=18;
+ const refresh=async()=>{
+  if(polling||document.hidden)return;
+  attempts++;
+  polling=true;
+  try{
+   const response=await fetch(location.pathname,{credentials:'same-origin',cache:'no-store',headers:{Accept:'text/html'}});
+   if(!response.ok)throw Error('unavailable');
+   const html=await response.text();
+   const doc=new DOMParser().parseFromString(html,'text/html');
+   const fresh=doc.querySelector('[data-comparison-results]');
+   const status=doc.querySelector('[data-comparison-status]');
+   if(!fresh||!status)return;
+   // Solo reemplazamos resultados y estado, no el formulario ni el foco del usuario.
+   target.innerHTML=fresh.innerHTML;
+   root.dataset.comparisonStatus=status.dataset.comparisonStatus||'unknown';
+   root.innerHTML=status.innerHTML;
+   if(!['queued','checking'].includes(root.dataset.comparisonStatus)){
+    clearInterval(interval);
+   }
+  }catch(_){
+   // El botón de actualizar manualmente permanece visible.
+  }finally{
+   polling=false;
+   if(attempts>=maxAttempts)clearInterval(interval);
+  }
+ };
+ const interval=setInterval(refresh,5000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden && attempts<maxAttempts)refresh();});
+})();
