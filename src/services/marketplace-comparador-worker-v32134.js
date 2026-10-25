@@ -43,6 +43,22 @@ async function enqueue(page,ensurePages){
  if(result.rowCount)await db.query("UPDATE marketplace_compare_pages SET provider_status='queued' WHERE id=$1",[id]);
  return Boolean(result.rowCount);
 }
+// Estado de la cuota compartida entre búsquedas y enlaces de tiendas.
+// Solo consulta contadores locales de PostgreSQL, nunca consume SerpApi.
+async function quotaStatus(now=new Date()){
+ const limits=provider.budget();
+ if(!provider.configured())return {available:false,reason:'not_configured',...limits};
+ if(limits.daily===0||limits.monthly===0)return {available:false,reason:'disabled',...limits};
+ const keys=periodKeys(now);
+ const records=await db.query('SELECT period_key,used FROM marketplace_compare_provider_usage WHERE period_key=ANY($1::varchar[])',[[keys.day,keys.month]]);
+ const usage=new Map(records.rows.map(x=>[x.period_key,Number(x.used)||0]));
+ const dailyUsed=usage.get(keys.day)||0,monthlyUsed=usage.get(keys.month)||0;
+ return {
+  available:dailyUsed<limits.daily && monthlyUsed<limits.monthly,
+  reason:dailyUsed>=limits.daily?'daily':monthlyUsed>=limits.monthly?'monthly':null,
+  daily:limits.daily,monthly:limits.monthly,dailyUsed,monthlyUsed
+ };
+}
 async function reserveQuota(now=new Date()){
  const {daily,monthly}=provider.budget();
  if(!provider.configured()||daily===0||monthly===0)return false;
@@ -127,4 +143,4 @@ function start(ensurePages){
 function stop(){
  if(timer){clearInterval(timer);timer=null;}
 }
-module.exports={periodKeys,ensureSchema,enqueue,reserveQuota,claimJob,processOne,start,stop};
+module.exports={periodKeys,ensureSchema,enqueue,reserveQuota,quotaStatus,claimJob,processOne,start,stop};

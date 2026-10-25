@@ -60,7 +60,7 @@ test('GET comparador, POST real y página permanente; rechazo seguro de POST sin
   assert.match(start.headers.get('cache-control'),/no-store/);
   const html=await start.text();
   assert.match(html,/name="_csrf"/);
-  assert.match(html,/Comparaciones publicadas/);
+  assert.match(html,/Comparaciones recientes/);
   const cookie=start.headers.get('set-cookie').split(';')[0];
   assert.match(cookie,/rl_compare_csrf=/);
   const token=html.match(/name="_csrf" value="([a-f0-9]{48})"/)?.[1];
