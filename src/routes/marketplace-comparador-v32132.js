@@ -44,6 +44,7 @@ async function ensureSchema(){
    await db.query("ALTER TABLE marketplace_compare_pages ADD COLUMN IF NOT EXISTS editorial_summary TEXT NOT NULL DEFAULT ''");
    await db.query('CREATE INDEX IF NOT EXISTS idx_marketplace_compare_created ON marketplace_compare_pages(created_at DESC)');
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_merchant_links (offer_key VARCHAR(64) PRIMARY KEY, status VARCHAR(16) NOT NULL CHECK (status IN ('checking','ok','unavailable')), href TEXT, checked_at TIMESTAMPTZ NOT NULL DEFAULT now())");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
  return schemaPromise;
@@ -73,7 +74,21 @@ function shell(title,description,body,canonical,allowIndex=false,structured=null
  const styles=':root{font-family:system-ui,-apple-system,sans-serif;color:#17324c;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}header{background:#102a47;color:white;padding:15px max(18px,calc((100% - 1050px)/2))}header a{color:white;text-decoration:none;font-weight:700}header span{opacity:.8;margin-left:16px}main{max-width:1000px;margin:auto;padding:20px 16px 55px}h1{font-size:clamp(1.5rem,5vw,2.4rem);line-height:1.18}p{line-height:1.55}a{color:#065ca6}.muted,small{color:#526277}.compare-search,.offer,.info{background:white;border:1px solid #dde5ec;border-radius:14px;padding:18px;margin:16px 0}.compare-search label{display:block;font-weight:700;margin-bottom:10px}.compare-search-row{display:flex;gap:8px}.compare-search input{flex:1;min-width:0;padding:13px;border:1px solid #acbdc9;border-radius:9px;font-size:16px}.compare-search button{padding:12px 18px;background:#134f81;color:white;border:0;border-radius:9px;font-weight:700;cursor:pointer}.compare-search small{display:block;margin-top:10px}.compare-error{color:#9c2020}.offer{display:flex;gap:14px;align-items:center}.offer img{width:82px;height:82px;object-fit:contain}.offer-main{min-width:0;flex:1}.offer strong{display:block}.price{font-size:1.2rem;font-weight:800;white-space:nowrap}.offer-link{display:inline-block;margin-top:6px}.crumb{font-size:.9rem}.offer small{display:block}.offer-photo{background:#f8fbfd;border-radius:9px}.offer-noimage{width:82px;height:82px;display:grid;place-items:center;background:#ecf2f8;border-radius:10px;font-size:28px}.compare-guide{font-weight:650;color:#075986}.compare-section-desc{font-size:.96rem}.offer-link{font-weight:700}.offer .price{color:#0c5a35}.comparison-list{list-style:none;padding:0}footer{padding:20px;text-align:center;border-top:1px solid #dae3e9}@media(max-width:540px){.compare-search-row{flex-direction:column}.compare-search button{min-height:46px}.offer{align-items:flex-start;flex-wrap:wrap}.offer img{width:64px;height:64px}.price{width:100%}}';
  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+robots+'"><meta property=\"og:type\" content=\"website\"><meta property=\"og:title\" content=\"'+esc(title)+'\"><meta property=\"og:description\" content=\"'+esc(description)+'\"><meta property=\"og:url\" content=\"'+esc(ORIGIN+canonical)+'\"><meta name=\"twitter:card\" content=\"summary\">'+(structured?'<script type=\"application/ld+json\">'+seo.jsonLd(structured)+'</script>':'')+'<link rel="canonical" href="'+esc(ORIGIN+canonical)+'"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><style>'+styles+'</style><link rel="stylesheet" href="/comparador-v32135.css"><script defer src="/comparador-v32135.js"></script></head><body><header><a href="/app">RedLibertad</a><span>Comparador</span></header><main>'+body+'</main><footer><a href="/marketplace/explorar">Marketplace</a> · <a href="/comparar">Comparador</a> · Los precios y la disponibilidad pueden cambiar en la tienda.</footer></body></html>';
 }
-function offerMarkup(o,index=0,total=0){
+function offerKey(o){
+ return crypto.createHash('sha256').update([String(o.product_id||''),String(o.shop||''),String(o.title||''),String(o.price_cents||'')].join('|')).digest('hex');
+}
+async function attachCachedMerchantLinks(offers){
+ const candidates=offers.filter(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')) && provider.resolveOfferLink(o)?.destination!=='store');
+ if(!candidates.length)return;
+ const keys=candidates.map(offerKey);
+ const found=await db.query("SELECT offer_key,href FROM marketplace_compare_merchant_links WHERE offer_key=ANY($1::varchar[]) AND status='ok' AND checked_at>now()-interval '24 hours'",[keys]);
+ const byKey=new Map(found.rows.map(r=>[r.offer_key,r.href]));
+ for(const o of candidates){
+  const href=byKey.get(offerKey(o));
+  if(href)o.resolved_href=href;
+ }
+}
+function offerMarkup(o,index=0,total=0,slug='',csrfToken=''){
  const link=o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
  const href=link.href;
@@ -84,10 +99,12 @@ function offerMarkup(o,index=0,total=0){
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google Shopping';
  const note=o.sponsored?'Publicidad de Google · enlace directo del comercio':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'Buscar este artículo y tienda en Google (sin ficha individual)';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'<small>Envío a confirmar</small>';
+ const candidate=link.destination==='shopping-search' && /^\d{8,30}$/.test(String(o.product_id||''));
+ const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':'';
  return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="price">'+money(o.price_cents)+'</div>'+
-  '<a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
+  lookup+'<a class="offer-link'+(candidate?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   '<span class="offer-destination">'+note+'</span></li>';
 }
 // Token independiente de cabeceras Origin/Sec-Fetch-Site, que pueden cambiar
@@ -185,6 +202,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const local=await localOffers(page.query_text);
   const external=Array.isArray(page.external_results)?page.external_results.filter(o=>o&&!o.internal&&safeHref(o.href)&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0):[];
   const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
+  await attachCachedMerchantLinks(offers);
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
   const providerMessage=page.provider_status==='queued'||page.provider_status==='checking'
    ?'Estamos buscando precios en tiendas españolas. La página ya está guardada; actualiza para ver las ofertas cuando finalice.'
@@ -208,7 +226,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    (pending?'<div class="compare-loading" role="status"><span class="compare-loading-indicator" aria-hidden="true"></span><strong>Buscando las mejores ofertas</strong><p>Actualizamos esta página automáticamente. No necesitas repetir la búsqueda.</p></div>':'')+
    (checked?'<p class="compare-help">Última consulta al proveedor: '+esc(checked)+'</p>':'')+
    '</section>';
-  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length)).join('')+'</ol>':
+  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken)).join('')+'</ol>':
    pending?'<div class="compare-skeleton" aria-hidden="true"><div></div><div></div></div>':
    '<div class="info"><p>Todavía no hay ofertas coincidentes. Esta página permanece guardada y puedes volver a consultarla más adelante.</p></div>';
   const content='<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
