@@ -100,7 +100,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const shop=String(o.shop||'Tienda no identificada');
  const merchant=link.destination==='store';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google Shopping';
- const note=o.sponsored?'Publicidad · enlace a la tienda':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
+ const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
  const possible=link.destination==='shopping-search' && /^\d{8,30}$/.test(String(o.product_id||''));
  const candidate=possible && quota?.available!==false;
