@@ -44,7 +44,9 @@ async function enqueue(page,ensurePages){
   "OR (provider_status IN ('queued','checking') AND jsonb_array_length(external_results)=0 AND EXISTS "+
   "(SELECT 1 FROM marketplace_compare_jobs j WHERE j.page_id=$1 AND j.status IN ('done','failed') AND j.finished_at<now()-interval '2 minutes'))) "+
   "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0 "+
-  "WHERE marketplace_compare_jobs.status IN ('done','failed') AND EXISTS "+
+  "WHERE marketplace_compare_jobs.status IN ('done','failed') AND (marketplace_compare_jobs.status!='failed' "+
+  "OR marketplace_compare_jobs.finished_at<now()-interval '2 hours' "+
+  "OR EXISTS (SELECT 1 FROM marketplace_compare_pages q WHERE q.id=$1 AND q.provider_status='limit_reached')) AND EXISTS "+
   "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours' OR (p.provider_status='limit_reached' AND jsonb_array_length(p.external_results)=0) "+
   "OR (p.provider_status IN ('queued','checking') AND jsonb_array_length(p.external_results)=0 AND marketplace_compare_jobs.finished_at<now()-interval '2 minutes'))) "+
   "RETURNING page_id",[id]
@@ -106,7 +108,9 @@ async function finish(job,status,pageStatus,offers){
   // consulta real y permitir reintento de fichas vacías con nueva cuota.
   await db.query("UPDATE marketplace_compare_pages SET provider_status=$2 WHERE id=$1",[job.page_id,pageStatus]);
  }else{
-  await db.query("UPDATE marketplace_compare_pages SET provider_status=$2,last_checked_at=now() WHERE id=$1",[job.page_id,pageStatus]);
+  // Un fallo de red NO equivale a haber consultado correctamente los precios.
+  // Mantener la hora de la última respuesta válida y la lista anterior.
+  await db.query("UPDATE marketplace_compare_pages SET provider_status=$2 WHERE id=$1",[job.page_id,pageStatus]);
  }
  await db.query("UPDATE marketplace_compare_jobs SET status=$2,finished_at=now() WHERE page_id=$1 AND status='running'",
   [job.page_id,status]);
