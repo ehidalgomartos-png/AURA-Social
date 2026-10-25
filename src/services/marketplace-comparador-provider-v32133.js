@@ -143,7 +143,7 @@ function parseExternal(results,q){
   if(!titleMatches(q,title))continue;
   const cents=euroPrice(r);
   if(!cents)continue;
-  const direct=directMerchantUrl(r.direct_link||r.link||'');
+  const direct=directMerchantUrl(r.direct_link)||directMerchantUrl(r.link);
   const product=safeHttps(r.product_link||'');
   if(!direct&&!product)continue;
   const shop=String(r.source||'Tienda no identificada').replace(/[<>]/g,'').trim().slice(0,80)||'Tienda no identificada';
@@ -180,7 +180,7 @@ function parseInlineStores(results,q){
   if(!titleMatches(q,title))continue;
   const price_cents=euroPrice(r);
   if(!price_cents)continue;
-  const direct=directMerchantUrl(r.direct_link||r.link||'');
+  const direct=directMerchantUrl(r.direct_link)||directMerchantUrl(r.link);
   if(!direct||isGoogleHost(new URL(direct).hostname))continue;
   const shop=String(r.source||'Comercio').replace(/[<>]/g,'').trim().slice(0,80)||'Comercio';
   const identity=shop.toLowerCase()+'|'+keyOf(title)+'|'+price_cents;
@@ -242,7 +242,7 @@ function selectRetailer(offer,sellers){
  if(!Number.isSafeInteger(requested)||requested<=0)return null;
  for(const seller of (Array.isArray(sellers)?sellers:[]).slice(0,50)){
   if(!sameRetailer(offer.shop,seller?.name))continue;
-  const href=directMerchantUrl(seller?.direct_link||seller?.link);
+  const href=directMerchantUrl(seller?.direct_link)||directMerchantUrl(seller?.link);
   if(!href||isGoogleHost(new URL(href).hostname))continue;
   const price=readEuroAmount(seller.base_price);
   if(price===null)continue; // evitar mandar a un modelo/variante de precio desconocido
