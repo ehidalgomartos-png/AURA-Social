@@ -7,6 +7,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const seo=require('../services/marketplace-comparador-seo-v32132');
+const provider=require('../services/marketplace-comparador-provider-v32133');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -41,6 +42,7 @@ async function ensureSchema(){
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_pages (id BIGSERIAL PRIMARY KEY, query_key VARCHAR(120) NOT NULL UNIQUE, slug VARCHAR(120) NOT NULL UNIQUE, query_text VARCHAR(100) NOT NULL, external_results JSONB NOT NULL DEFAULT '[]'::jsonb, last_checked_at TIMESTAMPTZ, provider_status VARCHAR(30) NOT NULL DEFAULT 'not_configured', index_approved BOOLEAN NOT NULL DEFAULT false, editorial_summary TEXT NOT NULL DEFAULT '', search_count BIGINT NOT NULL DEFAULT 1, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
    await db.query("ALTER TABLE marketplace_compare_pages ADD COLUMN IF NOT EXISTS editorial_summary TEXT NOT NULL DEFAULT ''");
    await db.query('CREATE INDEX IF NOT EXISTS idx_marketplace_compare_created ON marketplace_compare_pages(created_at DESC)');
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
  return schemaPromise;
@@ -59,44 +61,41 @@ async function localOffers(q){
   image:Array.isArray(r.image_urls)&&r.image_urls.length?'/marketplace/imagen/'+r.id+'/0':null,internal:true
  }));
 }
-function parseExternal(results,q){
- const terms=productTokens(q),numbers=terms.filter(t=>/\d/.test(t));
- const out=[],seen=new Set();
- for(const r of (Array.isArray(results)?results:[]).slice(0,40)){
-  const title=String(r.title||'').trim().slice(0,160),name=queryKey(title);
-  if(!title || !terms.length || terms.filter(t=>name.includes(t)).length<Math.max(1,Math.ceil(terms.length*.7)))continue;
-  if(!numbers.every(t=>name.includes(t)))continue;
-  const href=safeHref(r.link||r.product_link);
-  if(r.currency && !['EUR','€'].includes(String(r.currency).trim().toUpperCase()))continue;
-  const amount=Number(r.extracted_price);
-  if(!href||!Number.isFinite(amount)||amount<=0||amount>10000000)continue;
-  const price_cents=Math.round(amount*100);
-  const shop=String(r.source||'Tienda externa').trim().slice(0,90)||'Tienda externa';
-  const id=shop.toLowerCase()+'|'+href;
-  if(seen.has(id))continue;
-  seen.add(id);
-  out.push({title,shop,price_cents,href,condition:'Comprobar en tienda',internal:false});
-  if(out.length>=16)break;
- }
- return out.sort((a,b)=>a.price_cents-b.price_cents);
+function parseExternal(results,q){return provider.parseExternal(results,q);}
+async function reserveProviderQuota(){
+ const {daily,monthly}=provider.budget();
+ if(daily===0||monthly===0)return false;
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const val=key=>parts.find(p=>p.type===key)?.value||'';
+ const month=val('year')+'-'+val('month'), day=month+'-'+val('day');
+ const client=await db.pool.connect();
+ try{
+  await client.query('BEGIN');
+  const sql='INSERT INTO marketplace_compare_provider_usage(period_key,used) VALUES($1,1) ON CONFLICT(period_key) DO UPDATE SET used=marketplace_compare_provider_usage.used+1 WHERE marketplace_compare_provider_usage.used<$2 RETURNING used';
+  const mo=await client.query(sql,['m:'+month,monthly]);
+  if(!mo.rowCount){await client.query('ROLLBACK');return false;}
+  const dy=await client.query(sql,['d:'+day,daily]);
+  if(!dy.rowCount){await client.query('ROLLBACK');return false;}
+  await client.query('COMMIT');
+  return true;
+ }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}
+ finally{client.release();}
 }
-// Solo una búsqueda externa por producto y 24 horas; una reserva SQL evita gastos duplicados.
 async function refreshExternal(page){
- const key=String(process.env.COMPARADOR_SERPAPI_KEY||'').trim();
- if(!key)return;
- const lease=await db.query("UPDATE marketplace_compare_pages SET last_checked_at=now(),provider_status='checking' WHERE id=$1 AND (last_checked_at IS NULL OR last_checked_at < now() - interval '24 hours') RETURNING id",[page.id]);
+ if(!provider.configured())return;
+ const lease=await db.query(
+  "UPDATE marketplace_compare_pages SET last_checked_at=now(),provider_status='checking' WHERE id=$1 AND (last_checked_at IS NULL OR last_checked_at < now() - interval '24 hours') RETURNING id",[page.id]
+ );
  if(!lease.rowCount)return;
  try{
-  const params=new URLSearchParams({engine:'google_shopping',q:page.query_text,hl:'es',gl:'es',api_key:key});
-  const response=await fetch('https://serpapi.com/search.json?'+params,{signal:AbortSignal.timeout(9000),headers:{Accept:'application/json'}});
-  if(!response.ok)throw new Error('provider_status_'+response.status);
-  const data=await response.json();
-  if(data.error)throw new Error('provider_error');
-  if(!Array.isArray(data.shopping_results))throw new Error('missing_results');
-  const offers=parseExternal(data.shopping_results,page.query_text);
+  if(!await reserveProviderQuota()){
+   await db.query("UPDATE marketplace_compare_pages SET provider_status='limit_reached' WHERE id=$1",[page.id]);
+   return;
+  }
+  const offers=await provider.fetchOffers(page.query_text);
   await db.query("UPDATE marketplace_compare_pages SET external_results=$2::jsonb,provider_status='ok',updated_at=now() WHERE id=$1",[page.id,JSON.stringify(offers)]);
  }catch(e){
-  console.warn('RedLibertad comparador: external provider unavailable:',e.message);
+  console.warn('RedLibertad comparador: proveedor externo no disponible:',String(e.message).slice(0,90));
   await db.query("UPDATE marketplace_compare_pages SET provider_status='unavailable' WHERE id=$1",[page.id]);
  }
 }
@@ -107,14 +106,18 @@ function formMarkup(message='',term='',csrfToken=''){
 }
 function shell(title,description,body,canonical,allowIndex=false,structured=null){
  const robots=allowIndex?'index,follow':'noindex,follow';
- const styles=':root{font-family:system-ui,-apple-system,sans-serif;color:#17324c;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}header{background:#102a47;color:white;padding:15px max(18px,calc((100% - 1050px)/2))}header a{color:white;text-decoration:none;font-weight:700}header span{opacity:.8;margin-left:16px}main{max-width:1000px;margin:auto;padding:20px 16px 55px}h1{font-size:clamp(1.5rem,5vw,2.4rem);line-height:1.18}p{line-height:1.55}a{color:#065ca6}.muted,small{color:#526277}.compare-search,.offer,.info{background:white;border:1px solid #dde5ec;border-radius:14px;padding:18px;margin:16px 0}.compare-search label{display:block;font-weight:700;margin-bottom:10px}.compare-search-row{display:flex;gap:8px}.compare-search input{flex:1;min-width:0;padding:13px;border:1px solid #acbdc9;border-radius:9px;font-size:16px}.compare-search button{padding:12px 18px;background:#134f81;color:white;border:0;border-radius:9px;font-weight:700;cursor:pointer}.compare-search small{display:block;margin-top:10px}.compare-error{color:#9c2020}.offer{display:flex;gap:14px;align-items:center}.offer img{width:82px;height:82px;object-fit:contain}.offer-main{min-width:0;flex:1}.offer strong{display:block}.price{font-size:1.2rem;font-weight:800;white-space:nowrap}.offer-link{display:inline-block;margin-top:6px}.crumb{font-size:.9rem}.offer small{display:block}.comparison-list{list-style:none;padding:0}footer{padding:20px;text-align:center;border-top:1px solid #dae3e9}@media(max-width:540px){.compare-search-row{flex-direction:column}.compare-search button{min-height:46px}.offer{align-items:flex-start;flex-wrap:wrap}.offer img{width:64px;height:64px}.price{width:100%}}';
+ const styles=':root{font-family:system-ui,-apple-system,sans-serif;color:#17324c;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}header{background:#102a47;color:white;padding:15px max(18px,calc((100% - 1050px)/2))}header a{color:white;text-decoration:none;font-weight:700}header span{opacity:.8;margin-left:16px}main{max-width:1000px;margin:auto;padding:20px 16px 55px}h1{font-size:clamp(1.5rem,5vw,2.4rem);line-height:1.18}p{line-height:1.55}a{color:#065ca6}.muted,small{color:#526277}.compare-search,.offer,.info{background:white;border:1px solid #dde5ec;border-radius:14px;padding:18px;margin:16px 0}.compare-search label{display:block;font-weight:700;margin-bottom:10px}.compare-search-row{display:flex;gap:8px}.compare-search input{flex:1;min-width:0;padding:13px;border:1px solid #acbdc9;border-radius:9px;font-size:16px}.compare-search button{padding:12px 18px;background:#134f81;color:white;border:0;border-radius:9px;font-weight:700;cursor:pointer}.compare-search small{display:block;margin-top:10px}.compare-error{color:#9c2020}.offer{display:flex;gap:14px;align-items:center}.offer img{width:82px;height:82px;object-fit:contain}.offer-main{min-width:0;flex:1}.offer strong{display:block}.price{font-size:1.2rem;font-weight:800;white-space:nowrap}.offer-link{display:inline-block;margin-top:6px}.crumb{font-size:.9rem}.offer small{display:block}.offer-photo{background:#f8fbfd;border-radius:9px}.offer-noimage{width:82px;height:82px;display:grid;place-items:center;background:#ecf2f8;border-radius:10px;font-size:28px}.compare-guide{font-weight:650;color:#075986}.compare-section-desc{font-size:.96rem}.offer-link{font-weight:700}.offer .price{color:#0c5a35}.comparison-list{list-style:none;padding:0}footer{padding:20px;text-align:center;border-top:1px solid #dae3e9}@media(max-width:540px){.compare-search-row{flex-direction:column}.compare-search button{min-height:46px}.offer{align-items:flex-start;flex-wrap:wrap}.offer img{width:64px;height:64px}.price{width:100%}}';
  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+robots+'"><meta property=\"og:type\" content=\"website\"><meta property=\"og:title\" content=\"'+esc(title)+'\"><meta property=\"og:description\" content=\"'+esc(description)+'\"><meta property=\"og:url\" content=\"'+esc(ORIGIN+canonical)+'\"><meta name=\"twitter:card\" content=\"summary\">'+(structured?'<script type=\"application/ld+json\">'+seo.jsonLd(structured)+'</script>':'')+'<link rel="canonical" href="'+esc(ORIGIN+canonical)+'"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><style>'+styles+'</style></head><body><header><a href="/app">RedLibertad</a><span>Comparador</span></header><main>'+body+'</main><footer><a href="/marketplace/explorar">Marketplace</a> · <a href="/comparar">Comparador</a> · Los precios y la disponibilidad pueden cambiar en la tienda.</footer></body></html>';
 }
 function offerMarkup(o){
- const href=o.internal?o.href:safeHref(o.href);
+ const href=o.internal?o.href:provider.safeHttps(o.href);
  if(!href)return '';
- const image=o.internal&&/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||'')?'<img src="'+esc(o.image)+'" alt="" loading="lazy">':'';
- return '<li class="offer">'+image+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(o.shop)+' · '+esc(o.condition)+'</small><a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow sponsored"')+'>'+(o.internal?'Ver anuncio':'Ver precio en tienda')+'</a></div><div class="price">'+money(o.price_cents)+'</div></li>';
+ const img=o.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||'')?o.image:null:provider.safeImage(o.image);
+ const picture=img?'<img class="offer-photo" src="'+esc(img)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div class="offer-noimage" aria-hidden="true">🛍️</div>';
+ const dest=o.internal?'Ver anuncio':o.destination==='store'?'Visitar tienda':'Consultar en Google Shopping';
+ const shipping=o.delivery?'<small>Envío anunciado: '+esc(o.delivery)+'</small>':'<small>Envío: consultar en destino</small>';
+ return '<li class="offer">'+picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(o.shop)+' · '+esc(o.condition)+'</small>'+shipping+
+  '<a class="offer-link" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow"')+'>'+dest+'</a></div><div class="price">'+money(o.price_cents)+'</div></li>';
 }
 // Token independiente de cabeceras Origin/Sec-Fetch-Site, que pueden cambiar
 // con redirects www/no-www y proxies. La cookie es httpOnly y SameSite=Lax.
@@ -211,7 +214,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const external=Array.isArray(page.external_results)?page.external_results.filter(o=>o&&!o.internal&&safeHref(o.href)&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0):[];
   const offers=[...local,...external].sort((a,b)=>a.price_cents-b.price_cents);
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
-  const provider=page.provider_status==='ok'?'Resultados externos comprobados '+esc(checked||''):page.provider_status==='unavailable'?'El proveedor externo no está disponible. Se muestran los últimos resultados externos guardados, si existen.':'Las ofertas externas todavía no están habilitadas; se muestran los productos de RedLibertad.';
+  const providerMessage=page.provider_status==='ok'
+   ?'Precios externos consultados el '+esc(checked||'')
+   :page.provider_status==='limit_reached'?'Límite de consultas externas alcanzado. Los resultados guardados siguen disponibles.':
+    page.provider_status==='unavailable'?'El proveedor externo no responde. Se conservan los últimos resultados guardados.':
+    provider.configured()?'Consulta preparada. Pulsa «Comparar precios» para buscar ofertas reales.':
+    'Las tiendas externas todavía no están conectadas: falta configurar la clave privada.';
+  const exact=provider.isSpecificModel(page.query_text);
   const approved=seo.indexEligible(page,offers);
   const title='Comparar '+page.query_text+' | RedLibertad';
   const description=approved?String(page.editorial_summary).slice(0,155):'Compara ofertas para '+page.query_text+' en España. Consulta vendedores, precios de referencia y fecha de actualización.';
@@ -220,7 +229,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p>Página permanente de comparación, creada el '+new Date(page.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'})+'. Comparte esta URL para volver cuando quieras.</p>'+
    formMarkup('',page.query_text,csrfToken)+
    (approved?'<section class="info"><h2>Qué debes saber de este producto</h2><p>'+esc(page.editorial_summary)+'</p></section>':'')+
-   '<section class="info"><h2>Resultados de comparación</h2><p class="muted">'+esc(offers.length)+' ofertas disponibles. '+provider+'</p><p class="muted">Compara el modelo y los gastos de envío en la tienda antes de comprar; las coincidencias externas son orientativas.</p></section>'+
+   '<section class="info"><h2>'+(exact?'Precios encontrados':'Productos relacionados con tu búsqueda')+'</h2><p class="compare-guide">'+(exact?'Consulta las variantes y sus precios antes de comprar.':'«'+esc(page.query_text)+'» incluye varios modelos. Añade el modelo exacto para comparar el mismo producto.')+'</p><p class="muted">'+esc(offers.length)+' ofertas disponibles. '+providerMessage+'</p><p class="compare-section-desc">Precios de referencia en euros, sin garantía de envío incluido. La disponibilidad y el precio final los confirma la tienda de destino. Los enlaces a Google Shopping no son un pago directo en la tienda.</p></section>'+
    (offers.length?'<ol class="comparison-list">'+offers.map(offerMarkup).join('')+'</ol>':'<div class="info"><p>No hemos encontrado ofertas que coincidan suficientemente con esta búsqueda. La página permanece guardada y podrás volver más adelante.</p></div>');
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
