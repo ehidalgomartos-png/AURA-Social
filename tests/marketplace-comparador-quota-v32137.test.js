@@ -81,7 +81,7 @@ test('cuota agotada: no ofrecer consultas directas y no cachear fracaso 24 horas
    const base='http://127.0.0.1:'+server.address().port;
    const response=await fetch(base+'/comparar/'+slug),html=await response.text();
    assert.equal(response.status,200);
-   assert.match(html,/Consultas externas agotadas por hoy/);
+   assert.doesNotMatch(html,/Consultas externas agotadas|límite de consultas|SerpApi/i);
    assert.match(html,/Usado/);
    assert.match(html,/Buscar en Google/);
    assert.doesNotMatch(html,/Consultar enlace de la tienda/);

@@ -234,7 +234,9 @@ function budget(env=process.env){
   const n=/^\d+$/.test(raw)?Number(raw):def;
   return Number.isSafeInteger(n)?Math.min(max,Math.max(0,n)):def;
  };
- return {daily:read('COMPARADOR_DAILY_LIMIT',5,50),monthly:read('COMPARADOR_MONTHLY_LIMIT',100,250)};
+ // El plan gratis muestra 250 búsquedas/mes. Reservamos 30 para imprevistos.
+  // Variables de Coolify explícitas siguen prevaleciendo (sin sobrepasar 220/mes).
+  return {daily:read('COMPARADOR_DAILY_LIMIT',12,50),monthly:read('COMPARADOR_MONTHLY_LIMIT',220,220)};
 }
 async function fetchOffers(q,fetchFn=fetch,env=process.env){
  if(!configured(env))throw new Error('provider_not_configured');

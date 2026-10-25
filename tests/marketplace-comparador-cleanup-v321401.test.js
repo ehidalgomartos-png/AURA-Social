@@ -42,7 +42,7 @@ test('comparador muestra una sola alerta de cuota y compacta 6 variantes sin ocu
    assert.match(html,/name="robots" content="noindex,follow"/);
    assert.match(html,/Desde 78,00/);
    assert.match(html,/· usado · 6 ofertas/);
-   assert.equal((html.match(/Consultas externas agotadas por hoy/g)||[]).length,1);
+   assert.equal((html.match(/Consultas externas agotadas por hoy/g)||[]).length,0,'no mostrar presupuesto interno a visitantes');
    assert.equal((html.match(/comprobación directa de esta tienda está temporalmente limitada/g)||[]).length,0);
    assert.equal((html.match(/Envío a confirmar/g)||[]).length,0);
    assert.match(html,/Ver las otras 2 versiones/);

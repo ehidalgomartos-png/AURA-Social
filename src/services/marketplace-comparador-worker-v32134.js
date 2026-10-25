@@ -32,13 +32,18 @@ async function enqueue(page,ensurePages){
  await ensureSchema(ensurePages);
  const id=String(page?.id||'');
  if(!/^[1-9]\d{0,15}$/.test(id))return false;
+ // Una página vacía bloqueada por cuota puede reintentarse al renovarse
+ // el presupuesto, sin esperar otras 24 horas a una consulta que nunca ocurrió.
+ const retryEmpty=page?.provider_status==='limit_reached' &&
+  (!Array.isArray(page.external_results)||page.external_results.length===0);
+ if(retryEmpty && !(await quotaStatus()).available)return false;
  const result=await db.query(
   "INSERT INTO marketplace_compare_jobs (page_id,status) "+
   "SELECT id,'queued' FROM marketplace_compare_pages WHERE id=$1 "+
-  "AND (last_checked_at IS NULL OR last_checked_at<now()-interval '24 hours') "+
+  "AND (last_checked_at IS NULL OR last_checked_at<now()-interval '24 hours' OR (provider_status='limit_reached' AND jsonb_array_length(external_results)=0)) "+
   "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0 "+
   "WHERE marketplace_compare_jobs.status IN ('done','failed') AND EXISTS "+
-  "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours')) "+
+  "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours' OR (p.provider_status='limit_reached' AND jsonb_array_length(p.external_results)=0))) "+
   "RETURNING page_id",[id]
  );
  if(result.rowCount)await db.query("UPDATE marketplace_compare_pages SET provider_status='queued' WHERE id=$1",[id]);
@@ -93,6 +98,10 @@ async function finish(job,status,pageStatus,offers){
  if(Array.isArray(offers)){
   await db.query("UPDATE marketplace_compare_pages SET external_results=$2::jsonb,provider_status=$3,last_checked_at=now(),updated_at=now() WHERE id=$1",
    [job.page_id,JSON.stringify(offers),pageStatus]);
+ }else if(pageStatus==='limit_reached'){
+  // No hemos consultado al proveedor: conservar la fecha de la última
+  // consulta real y permitir reintento de fichas vacías con nueva cuota.
+  await db.query("UPDATE marketplace_compare_pages SET provider_status=$2 WHERE id=$1",[job.page_id,pageStatus]);
  }else{
   await db.query("UPDATE marketplace_compare_pages SET provider_status=$2,last_checked_at=now() WHERE id=$1",[job.page_id,pageStatus]);
  }

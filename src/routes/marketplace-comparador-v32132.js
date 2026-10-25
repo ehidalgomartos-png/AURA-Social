@@ -224,7 +224,7 @@ function seoRefinementSuggestions(page){
  }
  return results;
 }
-function seoAdminView(rows,token,filter){
+function seoAdminView(rows,token,filter,quota=null){
  const prepared=rows.map(p=>{
   const evaluation=seo.auto.eligibleOffers(p,p.external_results);
   const eligible=seo.indexEligible(p,p.external_results);
@@ -280,6 +280,10 @@ function seoAdminView(rows,token,filter){
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
   '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p></div>'+
+  (quota?'<section class="seo-quota-panel" aria-labelledby="seo-quota-title"><h2 id="seo-quota-title">Consultas del comparador</h2>'+
+   '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy</span></p>'+
+   '<p><strong>'+Number(quota.monthlyUsed||0)+' / '+Number(quota.monthly)+'</strong><span>Este mes</span></p></div>'+
+   '<small>Presupuesto interno de RedLibertad. El consumo total de la cuenta se consulta en SerpApi.</small></section>':'')+
   '<div class="seo-admin-overview"><div><strong>'+counts.todas+'</strong><span>Comparaciones</span></div>'+
   '<div><strong>'+counts.aptas+'</strong><span>Aptas para Google</span></div>'+
   '<div><strong>'+counts.pendientes+'</strong><span>Por mejorar</span></div>'+
@@ -294,9 +298,10 @@ router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
   const r=await db.query("SELECT id,slug,query_text,index_approved,seo_blocked,editorial_summary,provider_status,last_checked_at,external_results,jsonb_array_length(external_results) AS external_count FROM marketplace_compare_pages ORDER BY created_at DESC LIMIT 60");
   const token=issueCsrf(req,res);
   const filter=typeof req.query?.estado==='string'?req.query.estado:'todas';
+  const quota=await compareWorker.quotaStatus();
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('SEO del comparador | RedLibertad','Gestión privada de indexación',
-    seoAdminView(r.rows,token,filter),'/admin/comparador'));
+    seoAdminView(r.rows,token,filter,quota),'/admin/comparador'));
  }catch(e){next(e);}
 });
 router.post('/admin/comparador/:id/seo',requireAdmin,async(req,res,next)=>{
@@ -408,14 +413,6 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const quota=offers.some(o=>!o.internal && /^\d{8,30}$/.test(String(o.product_id||'')))?
    await compareWorker.quotaStatus():null;
   const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
-  const providerMessage=page.provider_status==='queued'||page.provider_status==='checking'
-   ?'Estamos buscando precios en tiendas españolas. La página ya está guardada; actualiza para ver las ofertas cuando finalice.'
-   :page.provider_status==='ok'
-   ?'Precios externos consultados el '+esc(checked||'')
-   :page.provider_status==='limit_reached'?'Límite de consultas externas alcanzado. Los resultados guardados siguen disponibles.':
-    page.provider_status==='unavailable'?'El proveedor externo no responde. Se conservan los últimos resultados guardados.':
-    provider.configured()?'Consulta preparada. Pulsa «Comparar precios» para buscar ofertas reales.':
-    'Las tiendas externas todavía no están conectadas: falta configurar la clave privada.';
   const exact=provider.isSpecificModel(page.query_text);
   const approved=seo.indexEligible(page,offers);
   const title='Comparar '+page.query_text+' | RedLibertad';
@@ -427,36 +424,37 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const bestOffer=offers.length?offers[0]:null;
   const best=bestOffer?.price_cents??null;
   const bestCondition=bestOffer?insights.conditionOf(bestOffer):null;
-  const status='<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
-   '<div class="compare-status-head"><h2>'+(pending?'Buscando precios…':offers.length?'Precios encontrados':'Estado de la búsqueda')+'</h2>'+
+  const status=offers.length?
+   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
    (checked?'<span>Actualizado: '+esc(checked)+'</span>':'')+'</div>'+
-   (best!==null?'<p class="cmp-start-price"><strong>Desde '+money(best)+'</strong>'+
-    (bestCondition && bestCondition!=='Estado sin confirmar'?' · '+esc(bestCondition.toLowerCase()):'')+
-    ' · '+offers.length+' '+(offers.length===1?'oferta':'ofertas')+
-    (insight.hasMixedVariants?' en varias versiones y estados':'')+'</p>':
-    '<p class="muted">'+providerMessage+'</p>')+
-   (pending?'<div class="compare-loading" role="status"><span class="compare-loading-indicator" aria-hidden="true"></span><strong>Buscando ofertas</strong><p>Los resultados se actualizarán automáticamente.</p></div>':'')+
-   (!pending&&['unavailable','limit_reached'].includes(page.provider_status)?'<p class="compare-help">'+providerMessage+'</p>':'')+
+   '<p class="cmp-start-price"><strong>Desde '+money(best)+'</strong>'+
+   (bestCondition && bestCondition!=='Estado sin confirmar'?' · '+esc(bestCondition.toLowerCase()):'')+
+   ' · '+offers.length+' '+(offers.length===1?'oferta':'ofertas')+
+   (insight.hasMixedVariants?' en varias versiones y estados':'')+'</p>'+
+   '</section>':
+   '<section class="compare-awaiting" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<div class="compare-awaiting-icon" aria-hidden="true">⌕</div>'+
+   '<h2>'+(pending?'Buscando ofertas para tu producto':page.provider_status==='ok'?'Todavía no encontramos ofertas':'Estamos preparando esta comparación')+'</h2>'+
+   '<p>'+(pending?'Estamos consultando los precios disponibles. Los resultados aparecerán aquí cuando termine la búsqueda.':
+     page.provider_status==='ok'?'Prueba con un modelo diferente o una búsqueda más general.':
+     'Esta página está guardada. Puedes volver más tarde o explorar otras comparaciones.')+'</p>'+
+   '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
-  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota)).join('')+'</ol>':
-   pending?'<div class="compare-skeleton" aria-hidden="true"><div></div><div></div></div>':
-   '<div class="info"><p>Todavía no hay ofertas coincidentes. Esta página permanece guardada y puedes volver a consultarla más adelante.</p></div>';
+  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota)).join('')+'</ol>':'';
+  const results=offers.length?
+   '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
+   '<h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
+   (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
+   cards+
+   '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
+   '<section data-comparison-results aria-label="Ofertas pendientes"></section>';
   const content='<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
    '<p class="cmp-page-subtitle">Ofertas en tiendas españolas · página permanente</p>'+
    formMarkup('',page.query_text,csrfToken)+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
-   '<div data-comparison-status-wrapper>'+status+'</div>'+
-   '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
-   '<h2>'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
-   (quota?.available===false?'<p class="compare-quota-banner">'+(
-    quota.reason==='daily'?'Consultas externas agotadas por hoy. Puedes seguir consultando las ofertas guardadas.':
-    quota.reason==='monthly'?'Cuota mensual agotada. Puedes consultar las ofertas guardadas.':
-    quota.reason==='disabled'?'Las consultas externas están desactivadas actualmente.': 'No hay proveedor de consultas externas configurado.'
-   )+'</p>':'')+
-   (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
-   cards+
-   '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>'+
+   '<div data-comparison-status-wrapper>'+status+'</div>'+results+
    (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'');
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));

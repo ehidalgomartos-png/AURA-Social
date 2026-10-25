@@ -174,3 +174,20 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
  .compare-variant-grid{grid-template-columns:1fr}
  .compare-variant{min-height:0}
 }
+
+
+/* V3.2.141 — estados públicos amistosos y consumos privados */
+.compare-awaiting{display:flex;align-items:center;text-align:center;flex-direction:column;justify-content:center;gap:10px;padding:34px 26px;margin:18px 0 26px;border:1px solid #d8e6f2;border-radius:18px;background:#fff;box-shadow:0 5px 22px rgba(24,68,108,.055)}
+.compare-awaiting-icon{display:grid;place-items:center;width:62px;height:62px;border-radius:18px;color:#175c92;background:#edf6ff;font-weight:600;font-size:2.5rem;line-height:1}
+.compare-awaiting h2{margin:7px 0 0;font-size:clamp(1.18rem,2.8vw,1.5rem);color:#163959}
+.compare-awaiting p{font-size:.97rem;color:#57718b;margin:0;line-height:1.5;max-width:530px}
+.compare-awaiting-link{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;min-height:44px;border-radius:10px;padding:11px 17px;border:1px solid #c1d9ed;background:#f5faff;color:#145a92;font-weight:750;text-decoration:none}
+.compare-awaiting-link:hover{background:#e8f3ff}
+.seo-quota-panel{margin:13px 0 22px;padding:18px 20px;border:1px solid #d7e5f3;background:#fff;border-radius:15px;box-shadow:0 5px 18px rgba(23,61,97,.045)}
+.seo-quota-panel h2{font-size:1.1rem;margin:0 0 12px;color:#143c63}
+.seo-quota-numbers{display:flex;gap:20px;flex-wrap:wrap}
+.seo-quota-numbers p{margin:0;display:flex;align-items:baseline;gap:8px}
+.seo-quota-numbers strong{font-size:1.25rem;color:#15578a;font-variant-numeric:tabular-nums}
+.seo-quota-numbers span{font-size:.87rem;color:#526e88}
+.seo-quota-panel small{display:block;font-size:.82rem;color:#6a8197;margin-top:9px}
+@media(max-width:600px){.compare-awaiting{padding:26px 15px}.seo-quota-panel{padding:16px}}
