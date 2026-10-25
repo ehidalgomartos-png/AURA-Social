@@ -19,6 +19,8 @@ function priceNotice(lastCheckedAt,providerStatus,now=Date.now()){
  const info=freshness(lastCheckedAt,now);
  const date=info.checkedAt?info.checkedAt.toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
  const pending=['queued','checking'].includes(providerStatus);
+ const failed=['unavailable','limit_reached'].includes(providerStatus);
+ if(failed&&date)return {level:info.code,text:'La actualización no se ha completado. Últimos precios consultados el '+date+'. Comprueba el importe antes de comprar.',date};
  if(info.code==='recent')return {level:'recent',text:pending?'Estamos comprobando nuevas ofertas. Puedes consultar los últimos precios guardados.':'Precios consultados el '+date+'. Confirma el importe final en la tienda.',date};
  if(info.code==='refresh_due')return {level:'due',text:pending?'Actualizando los precios del '+date+'. Mientras tanto se muestran las ofertas guardadas.':'Precios consultados el '+date+'. Está pendiente una nueva comprobación; pueden haber cambiado.',date};
  if(info.code==='old')return {level:'old',text:'Precios guardados del '+date+'. Pueden estar desactualizados; verifica precio y disponibilidad en la tienda.',date};
