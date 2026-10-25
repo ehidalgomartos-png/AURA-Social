@@ -77,4 +77,19 @@ function buildInsights(query,offers){
   hasUsedOrRefurbished:variants.some(v=>v.condition==='Usado'||v.condition==='Reacondicionado'),
   directCount:variants.reduce((n,v)=>n+v.directShopCount,0)};
 }
-module.exports={conditionOf,storageLabel,variantKey,variantTitle,suggestedQuery,buildInsights,safeOffer};
+// Una observación diaria solo para consultas que cumplen los mismos requisitos
+// estrictos de producto exacto y enlaces de tienda del SEO automático.
+function verifiedSnapshot(page,offers,now=new Date()){
+ const evaluation=auto.eligibleOffers({
+  ...page,seo_blocked:false,provider_status:'ok',last_checked_at:now.toISOString()
+ },offers,now.getTime());
+ if(!evaluation.eligible)return null;
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const v=key=>parts.find(p=>p.type===key)?.value||'';
+ return {
+  day:v('year')+'-'+v('month')+'-'+v('day'),
+  lowCents:evaluation.lowPriceCents,highCents:evaluation.highPriceCents,
+  shopCount:evaluation.sellerCount,offerCount:evaluation.offers.length
+ };
+}
+module.exports={conditionOf,storageLabel,variantKey,variantTitle,suggestedQuery,buildInsights,safeOffer,verifiedSnapshot};
