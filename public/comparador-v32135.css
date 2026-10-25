@@ -122,3 +122,28 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .seo-admin-disclaimer{font-size:.85rem;color:#6c7c8f;margin:22px 0}
 @media(max-width:760px){.seo-admin-grid{grid-template-columns:1fr}.seo-admin-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:400px){.seo-admin-card{padding:15px}.seo-admin-overview{gap:8px}.seo-admin-overview>div{padding:13px}.seo-admin-filters{gap:6px}.seo-admin-filters .seo-filter{font-size:.83rem;padding:9px 11px}}
+
+
+/* V3.2.140 — Fichas útiles, versiones reales e historial sin ruido */
+.cmp-page-subtitle{font-size:.98rem;color:#536e89;margin:2px 0 20px}
+.compare-variant-section,.compare-history{background:#fff;border-radius:18px;border:1px solid #dce7f3;margin:17px 0 25px;padding:22px;box-shadow:0 7px 24px rgba(15,48,81,.042)}
+.compare-variant-heading{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:15px}
+.compare-variant-heading h2{margin:0;color:#122f50}
+.compare-variant-heading p,.compare-history>p{font-size:.88rem;color:#627990;margin:0}
+.compare-variant-grid{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.compare-variant{background:#f8fbff;border:1px solid #dce8f4;border-radius:13px;padding:15px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.compare-variant strong{font-size:.92rem;color:#244664;line-height:1.4}
+.compare-variant-price{font-size:1.35rem;color:#115b3b;letter-spacing:-.025em;font-weight:800}
+.compare-variant small{font-size:.81rem;color:#60758c}
+.compare-variant-refine{display:inline-flex;align-items:center;justify-content:center;min-height:40px;text-align:center;margin-top:auto;border-radius:9px;border:1px solid #bcd6ef;background:#fff;font-size:.85rem;font-weight:750;color:#15588d;text-decoration:none;padding:8px 10px}
+.compare-variant-refine:hover{background:#ebf5ff}
+.compare-variant-warning{margin:14px 0 0;font-size:.85rem;color:#5b6c7f;line-height:1.5}
+.compare-history ol{list-style:none;padding:0;margin:17px 0 10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.compare-history li{display:grid;gap:6px;padding:12px 14px;border:1px solid #deebf5;background:#f8fbff;border-radius:11px}
+.compare-history li time,.compare-history li span{color:#58718b;font-size:.83rem}
+.compare-history li strong{font-size:1.2rem;color:#145d3c}
+.compare-history>small{font-size:.81rem;color:#687c90}
+.cmp-start-price strong{color:#135b3d;font-size:1.12rem}
+.compare-search{margin-top:17px}
+@media(max-width:800px){.compare-variant-grid,.compare-history ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:570px){.compare-variant-grid,.compare-history ol{grid-template-columns:1fr}.compare-variant-section,.compare-history{padding:17px}.compare-variant-heading{gap:7px}}
