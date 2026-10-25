@@ -13,7 +13,7 @@ const now=new Date().toISOString();
 const offer=(title,price,shop,extra={})=>({
  title,shop,price_cents:price,price_currency:'EUR',
  condition:'Reacondicionado',href:'https://www.google.com/search?q=iphone+12',
- image:'https://img.example/iphone-12.png',internal:false,...extra
+ image:'https://images1.gstatic.com/iphone-12.png',internal:false,...extra
 });
 async function publicPage(query,offers,status='ok',suffix=''){
  const oldQuery=db.query,oldConfigured=provider.configured,slug=compare.slugFor(query);
@@ -49,7 +49,7 @@ test('una única oferta usa ficha principal y no repite el producto tres veces',
  assert.match(html,/iPhone 12 128 GB, morado, desbloqueado/);
  assert.match(html,/Pixmania · Reacondicionado/);
  assert.match(html,/259,00/);
- assert.match(html,/img\.example\/iphone-12\.png/);
+ assert.match(html,/images1\.gstatic\.com\/iphone-12\.png/);
  assert.match(html,/Buscar en Google/);
  assert.doesNotMatch(html,/Precios encontrados|Versiones encontradas|<h2 id="precios-y-tiendas">Precios y tiendas/);
  assert.doesNotMatch(html,/1 ofertas|Precio más bajo mostrado/);
