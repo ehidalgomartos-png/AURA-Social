@@ -66,9 +66,10 @@ test('cuotas limitadas y respetan parada a 0',()=>{
 });
 test('la interfaz protege clave y deja claro Google Shopping frente a compra directa',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
- assert.match(source,/reserveProviderQuota/);
- assert.match(source,/marketplace_compare_provider_usage/);
- assert.match(source,/provider\.fetchOffers/);
+ const worker=fs.readFileSync(path.join(__dirname,'../src/services/marketplace-comparador-worker-v32134.js'),'utf8');
+ assert.match(worker,/reserveQuota/);
+ assert.match(worker,/marketplace_compare_provider_usage/);
+ assert.match(worker,/provider\.fetchOffers/);
  assert.match(source,/Visitar tienda/);
  assert.match(source,/Consultar en Google Shopping/);
  assert.match(source,/provider\.safeImage/);
