@@ -25,14 +25,28 @@ function isGoogleHost(host){
  const h=String(host||'').toLowerCase();
  return h==='google.com'||h.endsWith('.google.com')||/^google\.[a-z.]+$/.test(h)||/\.google\.[a-z.]+$/.test(h)||h==='googleadservices.com'||h.endsWith('.googleadservices.com');
 }
+// Nombre conservado para compatibilidad con llamadas anteriores.
+// Las fichas usadas de Wallapop y otros marketplaces no suelen aparecer en la
+// pestaña Shopping (udm=28). Abrimos búsqueda WEB sin fijar dicha pestaña.
+// Nunca se promete recuperar el anuncio exacto si la fuente no dio URL directa.
 function shoppingSearchUrl(title,shop=''){
- const q=String(title||'').trim().slice(0,160);
- if(!q)return null;
- const origin='https://www.google.com/search';
- const url=new URL(origin);
- const suffix=String(shop||'').trim().slice(0,50);
- url.searchParams.set('q',(q+' '+(suffix&&suffix!=='Tienda no identificada'?suffix:'')).trim());
- url.searchParams.set('udm','28');
+ const raw=String(title||'').trim().slice(0,160);
+ if(!raw)return null;
+ const beforeMarketing=raw.split(/\b(?:pago a plazos|garant[ií]a incluida|env[ií]o gratis|financiaci[oó]n)\b/i)[0];
+ const skip=new Set([
+  'negro','negra','blanco','blanca','azul','verde','rojo','roja','rosa','violeta','morado','morada',
+  'gris','plateado','plateada','dorado','dorada','cobalto','medianoche','midnight','purple','black',
+  'white','green','blue','pink','gray','grey','silver','gold','graphite',
+  'usado','usada','segunda','mano','refurbished','reacondicionado','reacondicionada','renewed',
+  'nuevo','nueva','precintado','precintada','garantia','garantía','incluida','incluido'
+ ]);
+ const tokens=beforeMarketing.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').match(/[a-zA-Z0-9]+/g)||[];
+ const main=tokens.filter(t=>!skip.has(t.toLowerCase())).slice(0,9).join(' ').trim();
+ if(!main)return null;
+ const seller=String(shop||'').replace(/[<>]/g,' ').trim().slice(0,55);
+ const suffix=seller && seller.toLowerCase()!=='tienda no identificada'?seller:'';
+ const url=new URL('https://www.google.com/search');
+ url.searchParams.set('q',(main+' '+suffix).trim());
  url.searchParams.set('hl','es');
  url.searchParams.set('gl','es');
  return url.href;
