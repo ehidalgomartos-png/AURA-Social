@@ -191,3 +191,7 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .seo-quota-numbers span{font-size:.87rem;color:#526e88}
 .seo-quota-panel small{display:block;font-size:.82rem;color:#6a8197;margin-top:9px}
 @media(max-width:600px){.compare-awaiting{padding:26px 15px}.seo-quota-panel{padding:16px}}
+
+/* V3.2.142 — El fallo de un enlace externo nunca aparta de la comparación. */
+.compare-merchant-notice{border:1px solid #c5dbee;border-radius:11px;background:#f0f7fe;color:#254e71;padding:11px 14px;line-height:1.5;margin:10px 0 17px;font-size:.92rem}
+#precios-y-tiendas{scroll-margin-top:20px}
