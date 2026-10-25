@@ -11,6 +11,7 @@ const provider=require('../services/marketplace-comparador-provider-v32133');
 const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
 const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
+const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -48,6 +49,7 @@ async function ensureSchema(){
    await db.query('CREATE INDEX IF NOT EXISTS idx_marketplace_compare_created ON marketplace_compare_pages(created_at DESC)');
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_merchant_links (offer_key VARCHAR(64) PRIMARY KEY, status VARCHAR(16) NOT NULL CHECK (status IN ('checking','ok','unavailable')), href TEXT, checked_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_manual_links (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, offer_key VARCHAR(64) NOT NULL, href TEXT NOT NULL, reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,offer_key))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_price_history (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, checked_day DATE NOT NULL, low_price_cents BIGINT NOT NULL CHECK(low_price_cents>0), high_price_cents BIGINT NOT NULL CHECK(high_price_cents>=low_price_cents), shop_count INTEGER NOT NULL CHECK(shop_count>=3), offer_count INTEGER NOT NULL CHECK(offer_count>=3), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,checked_day))");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
@@ -95,6 +97,12 @@ async function attachCachedMerchantLinks(offers){
   if(record.status==='ok'&&record.href)o.resolved_href=record.href;
  }
 }
+async function attachManualMerchantLinks(page,offers){
+ const keys=[...new Set(offers.filter(o=>!o.internal).map(manualLinks.identityKey).filter(Boolean))];
+ if(!keys.length)return;
+ const found=await db.query("SELECT offer_key,href FROM marketplace_compare_manual_links WHERE page_id=$1 AND offer_key=ANY($2::varchar[])",[page.id,keys]);
+ manualLinks.applyManualLinks(page,offers,found.rows);
+}
 function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const link=o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
@@ -104,7 +112,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const shop=String(o.shop||'Tienda no identificada');
  const merchant=link.destination==='store';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
- const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
+ const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':o.manual_link?'Enlace revisado por administración':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
  const possible=link.destination==='shopping-search' && provider.canLookupSeller(o) &&
    !['unavailable','checking'].includes(o.lookup_status) && provider.hasProductReference(o);
@@ -434,6 +442,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title))
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
+  await attachManualMerchantLinks(page,offers);
   const insight=insights.buildInsights(page.query_text,offers);
   const history=seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
