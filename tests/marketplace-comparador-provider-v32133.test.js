@@ -60,9 +60,9 @@ test('consulta servidor: España y clave solo en backend, rechazo de respuestas 
 });
 
 test('cuotas limitadas y respetan parada a 0',()=>{
- assert.deepEqual(provider.budget({}),{daily:5,monthly:100});
+ assert.deepEqual(provider.budget({}),{daily:12,monthly:220});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'0',COMPARADOR_MONTHLY_LIMIT:'0'}),{daily:0,monthly:0});
- assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'1000',COMPARADOR_MONTHLY_LIMIT:'9999'}),{daily:50,monthly:250});
+ assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'1000',COMPARADOR_MONTHLY_LIMIT:'9999'}),{daily:50,monthly:220});
 });
 test('la interfaz protege clave y deja claro Google Shopping frente a compra directa',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
