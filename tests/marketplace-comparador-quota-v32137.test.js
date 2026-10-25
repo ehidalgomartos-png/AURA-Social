@@ -48,7 +48,7 @@ test('comparaciones guardadas aparecen en portada aunque no estén aprobadas par
    assert.match(html,/\/comparar\/iphone-12-abc/);
    assert.match(html,/18 ofertas guardadas/);
    assert.doesNotMatch(html,/Todavía no hay comparaciones publicadas/);
-   assert.match(html,/no significa que estén indexadas en Google/i);
+   assert.doesNotMatch(html,/Páginas aprobadas para Google/,'sin ofertas elegibles no afirmar que están preparadas para indexación');
   }finally{await new Promise(resolve=>server.close(resolve));}
  }finally{db.query=oldQuery;}
 });
