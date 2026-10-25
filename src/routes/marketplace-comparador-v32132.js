@@ -99,7 +99,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const picture=img?'<img class="offer-photo" src="'+esc(img)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div class="offer-noimage" aria-hidden="true">🛍️</div>';
  const shop=String(o.shop||'Tienda no identificada');
  const merchant=link.destination==='store';
- const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google Shopping';
+ const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
  const note=o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
  const possible=link.destination==='shopping-search' && /^\d{8,30}$/.test(String(o.product_id||''));
@@ -350,7 +350,7 @@ router.post('/comparar/tienda/:slug/:offerKey',
    res.send(shell('Consultar tienda | RedLibertad','Resultado de consulta a tiendas',
     '<p class="crumb"><a href="'+esc(returnLink)+'">Volver a los precios</a></p><h1>Enlace del vendedor</h1>'+
     '<p>'+esc(message)+'</p><p><strong>'+esc(offer.title)+'</strong> · '+esc(offer.shop)+'</p>'+
-    '<p><a href="'+esc(fallback)+'" target="_blank" rel="noopener noreferrer nofollow">Buscar este artículo en Google Shopping</a></p>',returnLink));
+    '<p><a href="'+esc(fallback)+'" target="_blank" rel="noopener noreferrer nofollow">Buscar este artículo en Google</a></p>',returnLink));
   }
   if(!provider.configured()||!/^\d{8,30}$/.test(String(offer.product_id||'')))return explain('No existe una ficha de producto consultable para esta oferta.');
   const cached=await db.query("SELECT status,href FROM marketplace_compare_merchant_links WHERE offer_key=$1 AND checked_at>now()-interval '24 hours'",[hash]);
@@ -456,7 +456,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    )+'</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
    cards+
-   '<p class="compare-help">Precio final y envío a confirmar en la tienda. Google Shopping abre una búsqueda, no la compra directa.</p></section>'+
+   '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>'+
    (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'');
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
