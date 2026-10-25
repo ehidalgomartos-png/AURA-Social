@@ -141,13 +141,18 @@ function parseInlineStores(results,q){
  return out.sort((a,b)=>a.price_cents-b.price_cents);
 }
 function mergeOffers(organic,ads){
- const out=(Array.isArray(organic)?organic:[]).slice(0,24),seen=new Set();
- // La URL de cada vendedor es preferible a una ficha genérica de Google.
+ const out=(Array.isArray(organic)?organic:[]).slice(0,24),position=new Map();
+ // Si el mismo vendedor y precio aparece como anuncio con link real,
+ // preferimos esa URL sobre el enlace genérico a Google Shopping.
  const key=o=>keyOf(o.shop)+'|'+keyOf(o.title)+'|'+o.price_cents;
- for(const offer of out)seen.add(key(offer));
+ out.forEach((offer,i)=>position.set(key(offer),i));
  for(const offer of (Array.isArray(ads)?ads:[])){
-  if(seen.has(key(offer)))continue;
-  out.push(offer);seen.add(key(offer));
+  const id=key(offer),i=position.get(id);
+  if(i!==undefined){
+   if(out[i].destination!=='store')out[i]=offer;
+   continue;
+  }
+  position.set(id,out.length);out.push(offer);
  }
  return out.slice(0,32).sort((a,b)=>a.price_cents-b.price_cents);
 }
