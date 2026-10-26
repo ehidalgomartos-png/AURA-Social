@@ -1211,7 +1211,10 @@ async function openConnectionMessage(username,draft='') {
 function personCardHTML(user, compact = false, discoveryMode = 'for_you') {
   const shared = Number(user.shared_interest_count || 0);
   const followers = Number(user.follower_count || 0);
-  const reason = discoveryMode==='active'
+  const reason = discoveryMode==='starter'
+    ? (shared>0 ? `${shared} ${shared===1?'interés':'intereses'} en común`
+      : user.recent_joiner===true ? 'Se ha unido hace poco' : 'Descubre su perfil')
+    : discoveryMode==='active'
     ? 'Actividad pública reciente'
     : discoveryMode==='new'
       ? 'Se ha unido en los últimos 30 días'
@@ -2038,7 +2041,7 @@ async function loadGrowthPanel() {
   if(starterRoot){
     const starters=Array.isArray(d.starterProfiles)?d.starterProfiles:[];
     starterRoot.innerHTML=starters.length
-      ? starters.map(user=>personCardHTML(user,true)).join('')
+      ? starters.map(user=>personCardHTML(user,true,'starter')).join('')
       : '<div class="mini-empty"><b>Tu red ya está en marcha.</b><small>Explora para descubrir más personas.</small></div>';
   }
 
