@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.153 direct comments and duplicate-safe conversation claims
+        run: node --test tests/conversation-direct-v32153.test.js
       - name: V3.2.152 real conversation return, cooldown and privacy
         run: node --test tests/conversation-return-v32152.test.js
       - name: V3.2.151 first-post activation and editable suggestions
