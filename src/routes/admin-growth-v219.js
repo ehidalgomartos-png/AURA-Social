@@ -28,7 +28,16 @@ const GROWTH_SQL=[
   " AND NULLIF(BTRIM(profile.bio),'') IS NOT NULL AND profile.avatar_url IS NOT NULL",
   " AND EXISTS(SELECT 1 FROM user_interests ui WHERE ui.user_id=profile.id)) AS profile_complete,",
   "EXISTS(SELECT 1 FROM posts first_post WHERE first_post.user_id=s.id",
-  " AND first_post.moderation_status='published' AND first_post.post_kind='post') AS has_first_post",
+  " AND first_post.moderation_status='published' AND first_post.post_kind='post') AS has_first_post,",
+  // A genuine outward social action, never inferred from a session or impression.
+  " (EXISTS(SELECT 1 FROM follows social_follow JOIN users followed",
+  " ON followed.id=social_follow.following_id",
+  " WHERE social_follow.follower_id=s.id AND followed.status='active')",
+  " OR EXISTS(SELECT 1 FROM comments social_reply",
+  " JOIN posts parent_post ON parent_post.id=social_reply.post_id",
+  " WHERE social_reply.user_id=s.id AND parent_post.user_id<>s.id",
+  " AND parent_post.moderation_status='published' AND parent_post.audience='public'))",
+  " AS has_social_contact",
   "FROM signups s LEFT JOIN LATERAL (",
   "SELECT bool_or(a.at<s.created_at+interval '7 days') AS first_week,",
   "bool_or(a.at>=s.created_at+interval '1 day' AND a.at<s.created_at+interval '2 days') AS d1,",
@@ -46,12 +55,14 @@ function rate(numerator,denominator){
   return denominator?Math.round(1000*numerator/denominator)/10:null;
 }
 function emptyCounts(){
-  return {signups:0,eligibleWeek:0,firstWeek:0,eligibleD1:0,activeD1:0,eligibleD7:0,activeD7:0,completedProfiles:0,firstPosts:0};
+  return {signups:0,eligibleWeek:0,firstWeek:0,eligibleD1:0,activeD1:0,eligibleD7:0,activeD7:0,completedProfiles:0,firstPosts:0,socialContacts:0,publishAndConnect:0};
 }
 function addCounts(target,row){
   target.signups++;
   if(row.profile_complete===true)target.completedProfiles++;
   if(row.has_first_post===true)target.firstPosts++;
+  if(row.has_social_contact===true)target.socialContacts++;
+  if(row.has_first_post===true&&row.has_social_contact===true)target.publishAndConnect++;
   if(row.eligible_week===true){
     target.eligibleWeek++;
     if(row.first_week===true)target.firstWeek++;
@@ -68,6 +79,8 @@ function addCounts(target,row){
 function displayCounts(x){
   return {...x,profileCompleteRatePct:rate(x.completedProfiles,x.signups),
     firstPostRatePct:rate(x.firstPosts,x.signups),
+    socialContactRatePct:rate(x.socialContacts,x.signups),
+    publishAndConnectRatePct:rate(x.publishAndConnect,x.signups),
     firstWeekRatePct:rate(x.firstWeek,x.eligibleWeek),
     d1RatePct:rate(x.activeD1,x.eligibleD1),
     d7RatePct:rate(x.activeD7,x.eligibleD7)};
@@ -104,7 +117,9 @@ function summarizeGrowth(rows,days){
       activity:'Publicación, comentario, seguimiento, reacción o mensaje enviado. No implica sesión ni lectura de mensajes.',
       attribution:'Sin atribución significa que no se registró una ruta de origen; no equivale necesariamente a tráfico directo.',
       profileComplete:'Porcentaje de cuentas registradas en el periodo que hoy tienen foto, presentación e intereses; no mide cuándo se completaron.',
-      firstPost:'Porcentaje de cuentas registradas en el periodo que hoy conservan al menos una publicación ordinaria publicada; excluye Reels y publicaciones eliminadas.'
+      firstPost:'Porcentaje de cuentas registradas en el periodo que hoy conservan al menos una publicación ordinaria publicada; excluye Reels y publicaciones eliminadas.',
+      socialContact:'Porcentaje de cuentas del periodo que siguen hoy a una persona activa o han comentado una publicación pública ajena. No implica amistad recíproca ni respuesta recibida.',
+      publishAndConnect:'Porcentaje de cuentas del periodo que hoy conservan una publicación ordinaria publicada y además cumplen el criterio de seguimiento o comentario público ajeno. No es una secuencia temporal ni una conversión del mismo día.'
     },
     privacy:{adminOnly:true,individualUserData:false,externalTracking:false,retrospectiveAttribution:false}
   };

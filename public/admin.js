@@ -187,6 +187,8 @@ async function growthCenter(){
       ['Registros · '+days+' días',t.signups||0],
       ['Perfiles completos',growthCenterRate(t.profileCompleteRatePct,t.signups)],
       ['Con primera publicación',growthCenterRate(t.firstPostRatePct,t.signups)],
+      ['Siguen o comentan',growthCenterRate(t.socialContactRatePct,t.signups)],
+      ['Publican y participan',growthCenterRate(t.publishAndConnectRatePct,t.signups)],
       ['Origen conocido',t.attributedSignups||0],
       ['Primeros 7 días',growthCenterRate(t.firstWeekRatePct,t.eligibleWeek)],
       ['Actividad D1',growthCenterRate(t.d1RatePct,t.eligibleD1)],
@@ -224,6 +226,8 @@ async function growthCenter(){
       ', D1 '+Number(t.eligibleD1||0)+', D7 '+Number(t.eligibleD7||0)+
       '. D1 = acciones entre 24 y 48 h; D7 = acciones entre 7 y 8 días. '+
       'Perfiles completos = foto, presentación e intereses actuales. Primera publicación = conserva algún post publicado; no son conversiones en 24 horas. '+
+      'Siguen o comentan = siguen a una persona activa o han comentado una publicación pública ajena. '+
+      'Publican y participan = tienen una publicación propia y además cumplen la condición anterior; no implica orden cronológico ni una respuesta recibida. '+
       'No mide sesiones, visitas ni conversiones desde impresiones. Sin atribución no significa tráfico directo. '+
       'Datos internos agregados; nunca se leen mensajes privados.';
   }catch(_){

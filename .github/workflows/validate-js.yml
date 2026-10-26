@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.0 consolidated growth participation signals
+        run: node --test tests/growth-consolidated-v330.test.js
       - name: V3.2.166 safe PWA push routing and browser tabs
         run: node --test tests/pwa-safe-push-navigation-v32166.test.js
       - name: V3.2.165 mobile Reel resource lifecycle and data saving
