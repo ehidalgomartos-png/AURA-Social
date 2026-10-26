@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.150.2 compact welcome options and mobile dock safety
+        run: node --test tests/welcome-mobile-polish-v321502.test.js
       - name: V3.2.150.1 prevent duplicate welcome panels on mobile
         run: node --test tests/welcome-single-card-v321501.test.js
       - name: V3.2.150 personalized welcome and privacy-safe onboarding
