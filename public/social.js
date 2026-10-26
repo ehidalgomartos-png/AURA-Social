@@ -91,6 +91,9 @@ let communityDiscoverySearch='';
 let communityDiscoverySearchTimer=null;
 let communityDiscoveryItems=[];
 let activeCommunityId=null;
+// V3.2.162: local-only filter, never a tracking or read-receipt mechanism.
+let communityPostFocusV32162='all';
+let communityPostRequestSequenceV32162=0;
 let activeCommunityData=null;
 let activeCommunityReportTarget=null;
 let eventScope='upcoming';
@@ -9657,6 +9660,8 @@ async function loadCommunities(){
 }
 
 function showCommunityDirectory(){
+  ++communityPostRequestSequenceV32162;
+  communityPostFocusV32162='all';
   activeCommunityId=null;
   activeCommunityData=null;
   $('#communityDetail')?.classList.add('hidden');
@@ -9777,13 +9782,28 @@ function communityPostHTML(post,community){
 async function loadCommunityPosts(){
   const root=$('#communityPosts');
   if(!root || !activeCommunityId || !activeCommunityData)return;
+  const requestId=++communityPostRequestSequenceV32162;
+  const communityId=activeCommunityId,focus=communityPostFocusV32162;
+  const filters=$('#communityPostFiltersV32162');
+  if(filters){
+    filters.classList.toggle('hidden',!activeCommunityData.can_view_content);
+    all('[data-community-post-focus]',filters).forEach(button=>{
+      const selected=button.dataset.communityPostFocus===focus;
+      button.classList.toggle('active',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+  }
   if(!activeCommunityData.can_view_content){
     root.innerHTML='<div class="community-private-gate"><b>Contenido privado</b><p>Solicita acceso para ver publicaciones y miembros de esta comunidad.</p></div>';
     if($('#communityPostCount'))$('#communityPostCount').textContent='Contenido privado';
     return;
   }
   root.innerHTML='<div class="mini-loading">Cargando publicaciones…</div>';
-  const {r,d}=await api(`/api/communities/${activeCommunityId}/posts`);
+  const endpoint=`/api/communities/${communityId}/posts`;
+  const {r,d}=await api(focus==='mine'?endpoint+'?focus=mine':endpoint);
+  if(requestId!==communityPostRequestSequenceV32162 ||
+     String(activeCommunityId)!==String(communityId) ||
+     communityPostFocusV32162!==focus)return;
   if(!r.ok){
     root.innerHTML='<div class="info-card"><b>No se pudieron cargar las publicaciones.</b></div>';
     return;
@@ -9791,10 +9811,23 @@ async function loadCommunityPosts(){
   const posts=Array.isArray(d.posts)?d.posts:[];
   root.innerHTML=posts.length
     ? posts.map(post=>communityPostHTML(post,activeCommunityData.community)).join('')
-    : '<div class="community-posts-empty"><b>Todavía no hay publicaciones.</b><p>Los miembros pueden iniciar la conversación.</p></div>';
-  if($('#communityPostCount'))$('#communityPostCount').textContent=`${posts.length} publicaciones`;
+    : focus==='mine'
+      ? '<div class="community-posts-empty"><b>Aún no has participado en conversaciones aquí.</b><p>Vuelve a Todas para descubrir una publicación y participar cuando quieras.</p></div>'
+      : '<div class="community-posts-empty"><b>Todavía no hay publicaciones.</b><p>Los miembros pueden iniciar la conversación.</p></div>';
+  if($('#communityPostCount'))$('#communityPostCount').textContent=focus==='mine'?`${posts.length} conversaciones`:`${posts.length} publicaciones`;
   all('[data-open-shared-post]',root).forEach(button=>button.onclick=()=>openPostFocus(button.dataset.openSharedPost));
 }
+
+$('#communityPostFiltersV32162')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-community-post-focus]');
+  if(!button || !event.currentTarget.contains(button))return;
+  const next=button.dataset.communityPostFocus;
+  if(!['all','mine'].includes(next)||!activeCommunityId||
+     !activeCommunityData?.can_view_content)return;
+  if(next===communityPostFocusV32162)return;
+  communityPostFocusV32162=next;
+  await loadCommunityPosts();
+});
 
 async function loadCommunityAdminData(){
   const data=activeCommunityData;
@@ -9859,6 +9892,10 @@ function renderCommunityAdmin(data){
 async function openCommunityDetail(communityId){
   const id=Number(communityId);
   if(!Number.isInteger(id)||id<=0)return;
+  if(String(activeCommunityId)!==String(id)){
+    communityPostFocusV32162='all';
+    ++communityPostRequestSequenceV32162;
+  }
   activeCommunityId=id;
   $('#communitiesDirectory')?.classList.add('hidden');
   $('#communityDetail')?.classList.remove('hidden');
