@@ -78,7 +78,7 @@ test('si la publicación se eliminó o dejó de ser pública no abre comentarios
 test('GET incluye última publicación ofrecida y la reclama antes de mostrarla',()=>{
   assert.match(growth,/ALTER TABLE user_experience_state ADD COLUMN IF NOT EXISTS participation_prompt_post_id BIGINT/);
   assert.match(growth,/last_post_id:state\.rows\[0\]\?\.participation_prompt_post_id \|\| null/);
-  assert.match(social,/selectReturnConversationV32152\(feed\.d\?\.posts,me\.id,Date\.now\(\),d\.participation\?\.last_post_id\)/);
+  assert.match(social,/selectReturnConversationV32152\(feed\.d\?\.posts,me\.id,Date\.now\(\),d\.participation\?\.last_post_id,triedIds\)/);
   const segment=social.slice(social.indexOf('if(d.participation?.can_show===true'),social.indexOf("section.classList.toggle('hidden',cards.length===0&&!hasConversation)"));
   const claim=segment.indexOf("const claimed=await api('/api/growth/pulse/conversation-shown'");
   const render=segment.indexOf('hasConversation=renderReturnConversationV32152(match)');
