@@ -1477,9 +1477,11 @@ function updateLatestModeBadge(count = 0) {
     : 'Nuevo';
 }
 
+let activePeopleRequestSequenceV3310=0;
 async function loadActivePeople() {
   const root = $('#activePeople');
   if (!root) return [];
+  const requestId=++activePeopleRequestSequenceV3310;
 
   // Los dos endpoints conservan privacidad, bloqueos, silencios y ocultaciones.
   // Los tres perfiles recientes se priorizan y el resto se personaliza.
@@ -1487,6 +1489,8 @@ async function loadActivePeople() {
     api('/api/profiles/suggestions?limit=5&mode=new'),
     api('/api/profiles/suggestions?limit=12&mode=for_you')
   ]);
+  // Do not replace newer profile recommendations with an older network reply.
+  if(requestId!==activePeopleRequestSequenceV3310)return [];
   const newUsers = newcomers.r.ok && Array.isArray(newcomers.d.users) ? newcomers.d.users : [];
   const suggestedUsers = recommended.r.ok && Array.isArray(recommended.d.users) ? recommended.d.users : [];
   const seen = new Set();
@@ -1505,10 +1509,12 @@ async function loadActivePeople() {
   return users;
 }
 
+let homeMomentumRequestSequenceV3310=0;
 async function loadHomeMomentum() {
   const section = $('#homeMomentum');
   const root = $('#momentumPosts');
-  if (!section || !root) return;
+  if (!section || !root || activeViewName!=='feed') return;
+  const requestId=++homeMomentumRequestSequenceV3310;
 
   const lastVisit = readLastHomeVisit();
   const since = lastVisit.toISOString();
@@ -1517,6 +1523,9 @@ async function loadHomeMomentum() {
     api(`/api/posts/momentum?since=${encodeURIComponent(since)}`),
     loadActivePeople()
   ]);
+  // A hidden or superseded home request must never overwrite the feed or
+  // advance "last visited" while the member is reading another section.
+  if(requestId!==homeMomentumRequestSequenceV3310 || activeViewName!=='feed')return;
 
   if (!momentumResponse.r.ok) {
     // Even when the highlights endpoint fails, recent people may still be useful.
@@ -1589,14 +1598,15 @@ function communityReturnCard(item){
     '<button class="community-return-snooze" type="button" data-community-return-snooze="'+esc(id)+'" aria-label="Ocultar '+esc(item.name||'comunidad')+' durante 7 días">Ocultar 7 días</button>'+
     '</div></article>';
 }
+let communityReturnRequestSequenceV3310=0;
 async function loadCommunityReturn(){
   const section=$('#communityReturn'),list=$('#communityReturnList');
   if(!section||!list)return;
+  const requestId=++communityReturnRequestSequenceV3310;
   const {r,d}=await api('/api/growth/retention/communities');
-  if(!r.ok){
-    section.classList.add('hidden');
-    return;
-  }
+  if(requestId!==communityReturnRequestSequenceV3310)return;
+  // An offline refresh should not erase previously loaded, valid suggestions.
+  if(!r.ok)return;
   const items=Array.isArray(d.items)?d.items.slice(0,3):[];
   list.innerHTML=items.map(communityReturnCard).join('');
   section.classList.toggle('hidden',!list.children.length);
@@ -2160,13 +2170,16 @@ async function handleGrowthAction(action) {
   await loadFeed('latest');
 }
 
+let homeSuggestionsRequestSequenceV3310=0;
 async function loadHomeSuggestions() {
   const root = $('#homeSuggestions');
   if (!root) return;
-
-  const { d } = await api('/api/profiles/suggestions?limit=4');
-  root.innerHTML = d.users?.length
-    ? d.users.map(u => personCardHTML(u, true)).join('')
+  const requestId=++homeSuggestionsRequestSequenceV3310;
+  const {r,d}=await api('/api/profiles/suggestions?limit=4');
+  if(requestId!==homeSuggestionsRequestSequenceV3310 || !r.ok)return;
+  const users=Array.isArray(d?.users)?d.users:[];
+  root.innerHTML = users.length
+    ? users.map(u => personCardHTML(u, true)).join('')
     : `<div class="mini-empty"><b>Ya conoces a todos por aquí.</b><small>Explora contenido o invita a alguien.</small></div>`;
 }
 

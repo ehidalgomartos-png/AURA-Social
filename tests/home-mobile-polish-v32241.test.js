@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const source=read('public/social.js');
-const start=source.indexOf('async function loadHomeMomentum()');
+const start=source.indexOf('let homeMomentumRequestSequenceV3310=0;');
 const end=source.indexOf('\nfunction returnPulseCard(',start);
 assert.ok(start>=0&&end>start,'Home momentum function must be present');
 const momentum=source.slice(start,end);
@@ -40,6 +40,7 @@ function harness({posts=[],users=[],error=false}={}){
  };
  let visits=0;
  const sandbox={
+  activeViewName:'feed',
   $:sel=>nodes[sel],
   readLastHomeVisit:()=>new Date('2026-10-09T12:00:00Z'),
   encodeURIComponent,Date,
