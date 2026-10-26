@@ -38,7 +38,7 @@ test('only one of welcome and collapsed growth checklist is visible',()=>{
   const start=source.indexOf("  panel.classList.remove('hidden');\n  const homeGrowth=$('#homeGrowthDetailsV3224');");
   const end=source.indexOf("    const title=$('#homeGrowthHeadlineV3224');",start);
   assert.ok(start>0&&end>start);
-  const apply=new Function('panel','
+  const apply=new Function('panel','$',source.slice(start,end)+String.fromCharCode(10)+'}');
   n.checklist.open=true;
   apply(panel,n.$);
   assert.equal(n.checklist.classList.contains('hidden'),true,'never show duplicate panel');
