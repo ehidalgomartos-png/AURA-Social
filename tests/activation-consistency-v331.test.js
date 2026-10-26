@@ -33,7 +33,7 @@ test('bio alone and interests alone do not overstate a finished profile',async()
     const {data}=await onboarding(profile);
     assert.equal(step(data,'profile').done,false);
     assert.equal(data.completed,1);
-    assert.equal(data.welcome.nextStep.id,'profile');
+    assert.equal(data.welcome.nextStep.id,'post');
   }
 });
 test('avatar, presentation and interests match growth center completion',async()=>{

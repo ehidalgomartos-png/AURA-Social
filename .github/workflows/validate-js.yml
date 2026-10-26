@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.2 first post without a mandatory completed profile
+        run: node --test tests/first-post-priority-v332.test.js
       - name: V3.3.1 truthful onboarding steps
         run: node --test tests/activation-consistency-v331.test.js
       - name: V3.3.0 consolidated growth participation signals

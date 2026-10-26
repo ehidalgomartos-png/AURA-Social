@@ -135,8 +135,8 @@ test('next action is displayed with a safe button and accurate accessible progre
   assert.equal(ui.nodes['#growthProgressValue'].textContent,'0%');
   assert.equal(ui.ring.attributes['aria-valuenow'],'0');
   assert.match(ui.nodes['#growthProgressDescription'].textContent,/0 de 6 pasos completados/);
-  assert.match(ui.nodes['#growthNextStep'].innerHTML,/data-growth-action="profile"/);
-  assert.match(ui.nodes['#growthNextStep'].innerHTML,/Añade una foto de perfil/);
+  assert.match(ui.nodes['#growthNextStep'].innerHTML,/data-growth-action="create"/);
+  assert.match(ui.nodes['#growthNextStep'].innerHTML,/Publica tu primera idea, foto o vídeo/);
 });
 
 test('completion state is clear and does not present a pending step',async()=>{

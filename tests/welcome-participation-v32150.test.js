@@ -16,7 +16,7 @@ const steps=[
 ];
 
 test('welcome prioritizes profile and first post without inventing activity',()=>{
- assert.equal(nextWelcomeStep(steps).id,'avatar');
+ assert.equal(nextWelcomeStep(steps).id,'post');
  const avatarComplete=steps.map(step=>({...step,done:['avatar','profile'].includes(step.id)}));
  assert.equal(nextWelcomeStep(avatarComplete).id,'post');
  const onlyFollow=steps.map(step=>({...step,done:step.id!=='follow'}));
@@ -89,7 +89,7 @@ test('personalized banner matches action and protects against invalid actions',(
  const ctx={$:key=>fields[key]||null,Set,Number};
  vm.runInNewContext(js.slice(start,end)+'\nthis.render=renderHomeWelcomeV32150;',ctx);
  ctx.render({firstWeek:true,welcome:{visible:true,nextStep:{id:'post',action:'create'}}});
- assert.equal(fields['#homeWelcomeActionV32150'].textContent,'Publicar ahora');
+ assert.equal(fields['#homeWelcomeActionV32150'].textContent,'Escribir mi post');
  assert.equal(fields['#homeWelcomeActionV32150'].dataset.growthAction,'create');
  assert.equal(classNames.has('hidden'),false);
  ctx.render({firstWeek:true,welcome:{visible:true,nextStep:{id:'post',action:'external'}}});
