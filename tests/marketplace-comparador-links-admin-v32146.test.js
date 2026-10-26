@@ -12,7 +12,9 @@ const links=require('../src/services/marketplace-comparador-link-diagnostics-v32
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
 const token='eyJwcm9kdWN0IjoiSXBob25lMTIxMjhHQiIsIm9mZmVyIjoiMTIzIn0=';
-const NOW=new Date('2026-10-25T20:00:00.000Z').getTime();
+// The admin SEO view uses Date.now(), so the verified-cache fixture must also be current.
+// Frozen dates beyond the cache TTL incorrectly appear stale while production remains correct.
+const NOW=Date.now();
 const offer=(shop='Pixmania',over={})=>({
  title:'iPhone 12 128 GB morado - Reacondicionado',shop,price_cents:25900,price_currency:'EUR',
  condition:'Reacondicionado',href:'https://www.google.com/shopping/product/123',
