@@ -59,7 +59,7 @@ function viewerHarness(){
     removeAttribute(name){if(name==='src')this.src='';}
   };
   const closeButton={addEventListener:(name,handler)=>handlers['close-'+name]=handler};
-  const els={'#messagePhotoModal':modal,'#messagePhotoFull':enlarged,'#closeMessagePhoto':closeButton};
+  const els={'#messagePhotoModal':modal,'#messagePhotoFull':enlarged,'#closeMessagePhoto':closeButton,'#messageThread':{}};
   const sandbox={
     $:key=>els[key]||null,
     all:selector=>selector==='[data-message-photo-open]'?[trigger]:[],
