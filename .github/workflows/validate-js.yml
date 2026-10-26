@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.6 mobile PWA background update budget and safe retries
+        run: node --test tests/mobile-pwa-update-budget-v336.test.js
       - name: V3.3.5 public contribution D1 D7 aggregate metrics
         run: node --test tests/growth-public-contribution-v335.test.js
       - name: V3.3.4 real conversation recovery after rejected recommendations
