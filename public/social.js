@@ -1612,6 +1612,60 @@ $('#communityReturnList')?.addEventListener('click',async event=>{
   toast('No te mostraremos esta comunidad aquí durante 7 días.');
 });
 
+// V3.2.152: choose only real, already-authorized content from the normal latest feed.
+// Never fabricate authors, expose sensitive captions or make an automatic comment.
+let returnConversationPostV32152=null;
+function selectReturnConversationV32152(posts,userId,now=Date.now()){
+  if(!Array.isArray(posts))return null;
+  return posts.find(post=>{
+    if(!post || !/^[1-9][0-9]{0,15}$/.test(String(post.id||'')))return false;
+    if(String(post.user_id)===String(userId) || post.liked_by_me===true)return false;
+    if(post.content_level!=='normal' || post.audience!=='public')return false;
+    if(post.post_kind && post.post_kind!=='post')return false;
+    const created=Date.parse(String(post.created_at||''));
+    if(!Number.isFinite(created)||created>now||now-created>7*24*60*60*1000)return false;
+    const caption=String(post.caption||'').trim();
+    return caption.length>=30;
+  }) || null;
+}
+function renderReturnConversationV32152(post){
+  const root=$('#returnConversationV32152');
+  if(!root)return false;
+  returnConversationPostV32152=post||null;
+  if(!post){
+    root.classList.add('hidden');
+    return false;
+  }
+  const name=String(post.display_name||post.username||'Alguien de la comunidad');
+  const title=$('#returnConversationTitleV32152');
+  const excerpt=$('#returnConversationExcerptV32152');
+  if(title)title.textContent='Conversación de '+name;
+  if(excerpt){
+    const caption=String(post.caption||'').trim();
+    excerpt.textContent=caption.length>165?caption.slice(0,162)+'…':caption;
+  }
+  root.classList.remove('hidden');
+  return true;
+}
+$('#returnConversationOpenV32152')?.addEventListener('click',async()=>{
+  const id=String(returnConversationPostV32152?.id||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(id))return;
+  await openPostFocus(id); // Revalidates visibility when opened.
+});
+$('#returnConversationSnoozeV32152')?.addEventListener('click',async event=>{
+  const button=event.currentTarget;
+  button.disabled=true;
+  try{
+    const {r}=await api('/api/growth/pulse/conversation-snooze',{method:'POST'});
+    if(!r.ok)throw Error('snooze_failed');
+    renderReturnConversationV32152(null);
+    if(!$('#returnPulseGrid')?.children.length)$('#returnPulse')?.classList.add('hidden');
+    toast('No volverá a aparecer esta sugerencia durante 7 días.');
+  }catch(_){
+    toast('No se pudo ocultar esta sugerencia. Inténtalo de nuevo.');
+  }finally{button.disabled=false;}
+});
+
 async function loadReturnPulse(force=false) {
   const section=$('#returnPulse');
   const grid=$('#returnPulseGrid');
@@ -1641,7 +1695,27 @@ async function loadReturnPulse(force=false) {
   }
 
   grid.innerHTML=cards.join('');
-  section.classList.toggle('hidden',cards.length===0);
+  // No añadir otra tarjeta en Inicio. Solo una propuesta en el resumen ya existente,
+  // si ha habido un retorno real después de al menos 24h y no hay pausa vigente.
+  let hasConversation=false;
+  renderReturnConversationV32152(null);
+  if(d.participation?.can_show===true && me?.id){
+    try{
+      const feed=await api('/api/posts/feed?mode=latest');
+      if(feed.r.ok){
+        const match=selectReturnConversationV32152(feed.d?.posts,me.id);
+        hasConversation=renderReturnConversationV32152(match);
+        if(hasConversation){
+          // Recordar la aparición, no enviar alertas ni correos.
+          await api('/api/growth/pulse/conversation-shown',{method:'POST'});
+        }
+      }
+    }catch(_){ /* Una sugerencia no debe bloquear el Inicio. */ }
+  }
+  section.classList.toggle('hidden',cards.length===0&&!hasConversation);
+  const heading=section.querySelector('.return-pulse-head h2');
+  if(heading)heading.textContent=cards.length?'Lo que tienes pendiente':'Una conversación para ti';
+  grid.classList.toggle('hidden',cards.length===0);
 
   try{
     await api('/api/growth/pulse/seen',{method:'POST'});
