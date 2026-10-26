@@ -1216,7 +1216,9 @@ function personCardHTML(user, compact = false, discoveryMode = 'for_you') {
   const followers = Number(user.follower_count || 0);
   const reason = discoveryMode==='starter'
     ? (shared>0 ? `${shared} ${shared===1?'interés':'intereses'} en común`
-      : user.recent_joiner===true ? 'Se ha unido hace poco' : 'Descubre su perfil')
+      : user.recent_joiner===true ? 'Se ha unido hace poco'
+      : user.recent_public_post===true ? 'Ha compartido una publicación pública en los últimos 14 días'
+      : 'Descubre su perfil')
     : discoveryMode==='active'
     ? 'Actividad pública reciente'
     : discoveryMode==='new'
