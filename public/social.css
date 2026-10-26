@@ -7677,6 +7677,29 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 }
 
 /* V3.2.38 — Visually locate the first real new comment, without a second CTA. */
+/* V3.2.157: guide appears only inside the existing edit-profile dialog. */
+#profileModal .profile-completion-v32157{
+  display:grid;gap:8px;margin:10px 0 14px;padding:12px;
+  border:1px solid var(--line);border-radius:14px;background:var(--soft);
+}
+#profileModal .profile-completion-v32157 strong{font-size:13px;color:var(--navy)}
+#profileModal .profile-completion-v32157 p{margin:0;font-size:12px;color:var(--muted)}
+#profileModal .profile-completion-v32157 small{font-size:11px;color:var(--muted)}
+#profileModal .profile-completion-actions-v32157{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
+}
+#profileModal .profile-completion-actions-v32157 button{
+  min-width:0;min-height:44px;border:1px solid var(--line);
+  border-radius:10px;background:var(--paper);color:var(--navy);
+  font-size:11px;font-weight:800;cursor:pointer;
+}
+#profileModal .profile-completion-actions-v32157 button:focus-visible{
+  outline:3px solid var(--teal);outline-offset:2px;
+}
+@media(max-width:360px){
+  #profileModal .profile-completion-actions-v32157{grid-template-columns:1fr}
+}
+
 /* V3.2.156: compact on-demand reply shortcut only in Notificaciones. */
 #notificationsView .notification-reply-shortcut-v32156{
   display:inline-flex;
