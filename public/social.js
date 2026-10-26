@@ -2193,14 +2193,13 @@ async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={})
     if(requestId!==peopleDiscoveryRequestSequence)return;
     if(!r.ok)throw Error('suggestions_unavailable');
     const users=Array.isArray(d.users)?d.users:[];
-    if(page>0&&!users.length){
-      return loadPeopleSuggestions(activeExploreInterest,{page:0});
-    }
+    // V3.2.159: exhausted pages are honest; never silently recycle the
+    // first page and show the same people as though they were new suggestions.
     peopleDiscoveryPage=page;
-    peopleDiscoveryHasMore=d.hasMore===true && page<10;
+    peopleDiscoveryHasMore=d.hasMore===true && page<10 && users.length>0;
     root.innerHTML=users.length
       ? users.map(user=>personCardHTML(user,false,peopleDiscoveryMode)).join('')
-      : '<div class="info-card discovery-empty"><b>No hay perfiles en esta selección.</b><p>'+
+      : '<div class="info-card discovery-empty"><b>'+(page>0?'Ya has visto las sugerencias disponibles.':'No hay perfiles en esta selección.')+'</b><p>'+
         esc(peopleDiscoveryEmptyMessage())+
         '</p><button type="button" class="secondary" data-people-mode-reset>Ver todos</button></div>';
     if(status)status.textContent=users.length

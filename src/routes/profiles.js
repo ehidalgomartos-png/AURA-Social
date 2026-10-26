@@ -543,6 +543,15 @@ router.get('/suggestions', requireAuth, async (req, res) => {
       CASE WHEN $4::text='for_you' THEN
         (u.show_activity AND activity.last_activity_at>=now()-interval '7 days')::int
       END DESC NULLS LAST,
+      -- V3.2.159: give real newcomers visibility without pretending they are online.
+      CASE WHEN $4::text='for_you' THEN
+        (u.created_at>=now()-interval '30 days')::int
+      END DESC NULLS LAST,
+      -- Stable, per-viewer daily variety keeps pages deterministic within a day
+      -- and never repeats members within the same pagination cycle.
+      CASE WHEN $4::text='for_you' THEN
+        md5($1::text || ':' || CURRENT_DATE::text || ':' || u.id::text)
+      END ASC NULLS LAST,
       u.creator_verified DESC,
       follower_count DESC,
       u.created_at DESC,
