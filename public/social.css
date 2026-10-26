@@ -8007,3 +8007,85 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   #feedView .home-welcome-actions-v32150 .primary{flex:1;min-width:135px}
   #feedView .home-welcome-actions-v32150 .home-welcome-later-v32150{font-size:10px}
 }
+
+/* V3.2.150.2 — bienvenida compacta y pasos navegables por encima del dock móvil. */
+#feedView .home-welcome-dismiss-v321502{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:3px;
+}
+#feedView .home-welcome-dismiss-v321502 .home-welcome-later-v32150{
+  white-space:nowrap;
+}
+@media(max-width:760px){
+  #feedView .home-welcome-v32150{
+    gap:8px;
+    padding:12px 12px 10px;
+  }
+  #feedView .home-welcome-copy-v32150 h2{
+    margin:3px 0 4px;
+    font-size:16px;
+  }
+  #feedView .home-welcome-copy-v32150 p{
+    font-size:11px;
+    line-height:1.4;
+  }
+  #feedView .home-welcome-actions-v32150{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    column-gap:8px;
+    row-gap:2px;
+    width:100%;
+    max-width:none;
+  }
+  #feedView .home-welcome-actions-v32150 .primary{
+    grid-column:1;
+    min-width:0;
+    width:100%;
+    min-height:42px;
+    padding:9px 10px;
+    white-space:nowrap;
+  }
+  #feedView .home-welcome-actions-v32150 .home-welcome-more-v32150{
+    grid-column:2;
+    min-height:42px;
+    white-space:nowrap;
+    padding:6px 6px;
+  }
+  #feedView .home-welcome-dismiss-v321502{
+    grid-column:1 / -1;
+    width:100%;
+    justify-content:flex-end;
+    gap:6px;
+  }
+  #feedView .home-welcome-dismiss-v321502 .home-welcome-later-v32150{
+    min-height:35px;
+    font-size:10px;
+    padding:5px 8px;
+  }
+  #feedView .home-growth-details-v3224{
+    scroll-margin-top:calc(82px + env(safe-area-inset-top));
+  }
+  #feedView .home-growth-details-v3224[open] .growth-panel{
+    padding-bottom:calc(26px + env(safe-area-inset-bottom));
+  }
+  #feedView .home-growth-details-v3224 .growth-step,
+  #feedView .home-growth-details-v3224 .growth-next-step,
+  #feedView .home-growth-details-v3224 .growth-starter{
+    scroll-margin-bottom:calc(var(--mobile-dock-space,112px) + 12px + env(safe-area-inset-bottom));
+  }
+}
+@media(max-width:350px){
+  #feedView .home-welcome-actions-v32150{
+    column-gap:3px;
+  }
+  #feedView .home-welcome-actions-v32150 .home-welcome-more-v32150{
+    padding-inline:2px;
+    font-size:10px;
+  }
+  #feedView .home-welcome-dismiss-v321502{
+    justify-content:center;
+  }
+}
