@@ -142,6 +142,7 @@ let activePublicProfileUsername='';
 let publicProfileRequestSequence=0;
 let publicProfilePostsSequence=0;
 let activeNotificationFilter = 'all';
+let pendingRepliesOnlyV32156=false;
 let notificationCache = [];
 let liveActivitySource = null;
 let liveActivityState = {
