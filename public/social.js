@@ -1690,6 +1690,35 @@ function growthInviteText() {
   return 'Te invito a RedLibertad, una comunidad donde la libertad es lo primero.';
 }
 
+// V3.2.151 — Ideas voluntarias para crear una primera publicación real.
+// Nunca se publican automáticamente ni se sobrescribe el texto ya escrito.
+const FIRST_POST_IDEAS_V32151=Object.freeze({
+  presentacion:'¡Hola, RedLibertad! Soy nuevo por aquí. Me gusta compartir ideas y conocer gente. ¿De qué temas os gusta hablar?',
+  opinion:'Hoy quiero compartir una opinión: ',
+  historia:'Esta foto tiene una historia: '
+});
+function firstPostIdeasHTMLV32151(){
+  return '<div class="first-post-ideas-v32151" role="group" aria-label="Ideas para tu primera publicación">'+
+    '<span>¿No sabes qué publicar? Empieza con una idea:</span>'+
+    '<div class="first-post-ideas-actions-v32151">'+
+      '<button type="button" data-first-post-idea-v32151="presentacion">Presentarme</button>'+
+      '<button type="button" data-first-post-idea-v32151="opinion">Dar mi opinión</button>'+
+      '<button type="button" data-first-post-idea-v32151="historia">Historia de una foto</button>'+
+    '</div><small>El texto es solo una propuesta: edítalo antes de publicar.</small></div>';
+}
+async function openFirstPostIdeaV32151(id){
+  if(!Object.hasOwn(FIRST_POST_IDEAS_V32151,id))return;
+  const field=$('#createForm textarea[name="caption"]');
+  if(!field)return;
+  await openModal('post');
+  // Respetar borradores o textos introducidos previamente.
+  if(!field.value.trim()){
+    field.value=FIRST_POST_IDEAS_V32151[id];
+    field.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  field.focus();
+}
+
 function growthStepHTML(step) {
   return `<button type="button" class="growth-step ${step.done ? 'done' : ''}" data-growth-action="${esc(step.action)}" ${step.done ? 'disabled' : ''}>
     <span class="growth-step-check">${step.done ? '✓' : '○'}</span>
@@ -1857,7 +1886,11 @@ async function loadGrowthPanel() {
   const progress=Math.max(0,Math.min(100,Number(d.progress)||0));
   const completed=steps.filter(step=>step?.done).length;
   const current=steps.find(step=>step&&!step.done)||null;
-  const next=d.nextStep && current?.id===d.nextStep.id ? d.nextStep : current;
+  // Prioridad útil: foto/bio, primera publicación y después conexiones e interacción.
+  const preferred=d.welcome?.nextStep;
+  const validPreferred=preferred && steps.find(step=>step?.id===preferred.id && step.done!==true
+    && step.action===preferred.action);
+  const next=validPreferred || (d.nextStep && current?.id===d.nextStep.id ? d.nextStep : current);
   const firstWeek=d.firstWeek===true;
   const summary=$('#growthProgressDescription');
   if(summary)summary.textContent=completed+' de '+steps.length+' pasos completados'+
@@ -1868,8 +1901,13 @@ async function loadGrowthPanel() {
     nextRoot.innerHTML=next&&allowedActions.has(String(next.action||''))?
       '<span class="growth-next-eyebrow">TU SIGUIENTE PASO</span>'+
       '<strong>'+esc(next.label)+'</strong>'+
-      '<p>Avanza a tu ritmo. Puedes realizar los demás pasos cuando quieras.</p>'+
-      '<button type="button" class="primary" data-growth-action="'+esc(next.action)+'">Continuar ahora →</button>':
+      '<p>'+(next.id==='post'
+        ? 'Empieza con una presentación, una opinión o una fotografía. Tú decides qué compartir.'
+        : next.id==='interact'
+          ? 'Descubre una publicación de otra persona y participa con un Me gusta o un comentario.'
+          : 'Avanza a tu ritmo. Puedes realizar los demás pasos cuando quieras.')+'</p>'+
+      '<button type="button" class="primary" data-growth-action="'+esc(next.action)+'">Continuar ahora →</button>'+
+      (next.id==='post' ? firstPostIdeasHTMLV32151() : ''):
       '<div class="growth-next-complete"><strong>¡Tus primeros pasos están completos!</strong>'+
       '<p>Puedes seguir explorando y participando en la comunidad.</p></div>';
   }
@@ -3278,6 +3316,13 @@ document.addEventListener('click', async event => {
   if(welcomePreference){
     event.preventDefault();
     await saveWelcomePreferenceV32150(welcomePreference.dataset.welcomePreference);
+    return;
+  }
+
+  const firstPostIdea=event.target.closest('[data-first-post-idea-v32151]');
+  if(firstPostIdea){
+    event.preventDefault();
+    await openFirstPostIdeaV32151(String(firstPostIdea.dataset.firstPostIdeaV32151||''));
     return;
   }
 
