@@ -87,7 +87,7 @@ test('renders only escaped text through textContent and opens post using existin
  assert.match(el['#returnConversationExcerptV32152'].textContent,/^<script>/);
  assert.equal(sandbox.render(null),false);
  assert.equal(classes.has('hidden'),true);
- assert.match(social,/await openComments\(id,\{focusComposer:false\}\)/);
+ assert.match(social,/await openComments\(id,\{focusComposer:false,initialPosition:'start'\}\)/);
  assert.match(social,/const match=selectReturnConversationV32152\(feed\.d\?\.posts,me\.id,Date\.now\(\),d\.participation\?\.last_post_id\)/);
  assert.match(social,/d\.participation\?\.can_show===true/);
 });

@@ -44,7 +44,7 @@ function clickHarness(detail){
       ? {addEventListener:(type,fn)=>{handlers[type]=fn;}}
       : {children:[],classList:{add:name=>calls.push('hide:'+name)}},
     api:async path=>{calls.push('GET:'+path);return detail;},
-    openComments:async (id,opts)=>calls.push('comments:'+id+':'+opts.focusComposer),
+    openComments:async (id,opts)=>calls.push('comments:'+id+':'+opts.focusComposer+':'+opts.initialPosition),
     renderReturnConversationV32152:post=>calls.push('render:'+post),
     toast:text=>calls.push('toast:'+text),
     encodeURIComponent,
@@ -57,7 +57,7 @@ function clickHarness(detail){
 test('Ver y comentar comprueba que la publicación sigue visible y entra directamente a comentarios',async()=>{
   const h=clickHarness({r:{ok:true},d:{post:{id:12,audience:'public',content_level:'normal'}}});
   await h.click();
-  assert.deepEqual(h.calls,['GET:/api/posts/detail/12','comments:12:false']);
+  assert.deepEqual(h.calls,['GET:/api/posts/detail/12','comments:12:false:start']);
   assert.equal(h.button.disabled,false);
 });
 test('si la publicación se eliminó o dejó de ser pública no abre comentarios',async()=>{
@@ -117,5 +117,5 @@ test('sin tarjetas nuevas, sin comentarios automáticos ni teclado forzado',()=>
   assert.equal((html.match(/id="returnConversationV32152"/g)||[]).length,1);
   const handler=social.slice(social.indexOf("$('#returnConversationOpenV32152')?.addEventListener"),social.indexOf("$('#returnConversationSnoozeV32152')?.addEventListener"));
   assert.doesNotMatch(handler,/\/api\/posts\/\$\{.*\/comments|requestSubmit|\.submit\(|postFocusModal/);
-  assert.match(handler,/openComments\(id,\{focusComposer:false\}\)/);
+  assert.match(handler,/openComments\(id,\{focusComposer:false,initialPosition:'start'\}\)/);
 });

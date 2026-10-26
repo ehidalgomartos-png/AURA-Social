@@ -1663,7 +1663,7 @@ $('#returnConversationOpenV32152')?.addEventListener('click',async event=>{
        post.audience!=='public'||post.content_level!=='normal'){
       throw Error('post_unavailable');
     }
-    await openComments(id,{focusComposer:false});
+    await openComments(id,{focusComposer:false,initialPosition:'start'});
   }catch(_){
     renderReturnConversationV32152(null);
     if(!$('#returnPulseGrid')?.children.length)$('#returnPulse')?.classList.add('hidden');
@@ -6557,7 +6557,7 @@ function restoreCommentPositionV3236(list,position){
     : position.previousTop;
 }
 
-async function loadComments(postId,{preserveScroll=false}={}) {
+async function loadComments(postId,{preserveScroll=false,initialPosition='latest'}={}) {
   const list=$('#commentsList');
   if(!list)return;
   const status=$('#commentsRefreshStatusV3236');
@@ -6599,7 +6599,9 @@ async function loadComments(postId,{preserveScroll=false}={}) {
         ? newlySeen+' '+(newlySeen===1?'comentario nuevo.':'comentarios nuevos.')
         : 'Conversación actualizada.';
     }else{
-      list.scrollTop=list.scrollHeight;
+      // V3.2.154: new conversations start at the first real comment;
+      // existing entries still open at the latest one by default.
+      list.scrollTop=initialPosition==='start'?0:list.scrollHeight;
     }
   }catch(_){
     if(!commentsRequestIsCurrent(requestId,postId))return;
@@ -6647,7 +6649,7 @@ $('#commentsRefreshV3236')?.addEventListener('click',()=>{
   loadComments(activeCommentsPostId,{preserveScroll:true});
 });
 
-async function openComments(postId,{focusComposer=false}={}) {
+async function openComments(postId,{focusComposer=false,initialPosition='latest'}={}) {
   const value=Number(postId);
   if(!Number.isSafeInteger(value)||value<1)return;
   if(activeCommentsPostId)saveCommentDraftV3235(activeCommentsPostId);
@@ -6662,7 +6664,7 @@ async function openComments(postId,{focusComposer=false}={}) {
   $('#commentsModal').classList.remove('hidden');
   // Only an explicit Participar tap opens the keyboard; normal comment views do not.
   if(focusComposer)$('#commentBody').focus({preventScroll:true});
-  await loadComments(value);
+  await loadComments(value,{initialPosition});
 }
 
 function openReport(postId) {
