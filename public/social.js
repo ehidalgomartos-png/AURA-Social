@@ -7277,8 +7277,40 @@ async function toggleMessageReaction(button){
   }
 }
 
+function openMessagePhoto(button){
+  const photo=button?.querySelector('img');
+  const modal=$('#messagePhotoModal');
+  const enlarged=$('#messagePhotoFull');
+  if(!photo || !modal || !enlarged)return;
+  const url=photo.currentSrc || photo.src;
+  if(!url)return;
+  // Usar la URL de una imagen ya visible y autorizada en este chat.
+  enlarged.src=url;
+  enlarged.alt=photo.alt || 'Fotografía del mensaje';
+  modal.classList.remove('hidden');
+}
+
+function closeMessagePhoto(){
+  const modal=$('#messagePhotoModal');
+  const enlarged=$('#messagePhotoFull');
+  if(!modal)return;
+  modal.classList.add('hidden');
+  if(enlarged){
+    enlarged.removeAttribute('src');
+    enlarged.alt='Fotografía del mensaje';
+  }
+}
+
+$('#closeMessagePhoto')?.addEventListener('click',closeMessagePhoto);
+$('#messagePhotoModal')?.addEventListener('click',event=>{
+  if(event.target===event.currentTarget)closeMessagePhoto();
+});
+
 function bindMessageActions(root=$('#messageThread')){
   if(!root)return;
+  all('[data-message-photo-open]',root).forEach(button=>{
+    button.onclick=()=>openMessagePhoto(button);
+  });
   all('[data-message-reply]',root).forEach(button=>{
     button.onclick=()=>setMessageReply(
       button.dataset.messageReply,
@@ -8296,7 +8328,11 @@ function messageHTML(m,other,conversation=activeConversationMeta) {
     const canAccept=m.gate_reason==='permission_required' && m.sender_id;
     media=`<div class="message-gate"><b>Contenido sensible oculto</b><span>${gateText(m.gate_reason)}</span>${canAccept ? `<button class="secondary" data-accept-sensitive="${m.sender_id}">Aceptar contenido sensible de @${esc(m.username || '')}</button>` : ''}</div>`;
   }else if(m.media_url || m.playback_url){
-    media=`<div class="message-media">${mediaHTML(m)}</div>`;
+    const rendered=mediaHTML(m);
+    // Solo fotografías permitidas: no abrir contenido protegido ni cambiar vídeos.
+    media=`<div class="message-media">${m.media_type==='image'
+      ? `<button type="button" class="message-photo-open" data-message-photo-open aria-label="Ampliar fotografía del mensaje">${rendered}</button>`
+      : rendered}</div>`;
   }
 
   const sharedCard=sharedPostMessageHTML(m.shared_post)+sharedStoryMessageHTML(m.shared_story)+sharedProfileMessageHTML(m.shared_profile);
