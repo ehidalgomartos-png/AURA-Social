@@ -28,7 +28,7 @@ test('elige una publicación distinta a la última recomendada, sin olvidar las 
   assert.equal(choose(posts,3,now,null).id,12);
   assert.equal(choose(posts,3,now,'12').id,13);
   assert.equal(choose([post(12,now)],3,now,12),null);
-  assert.equal(choose([post(12,now),post(13,now,{audience:'vip'})],3,now,12)?.id,13);
+  assert.equal(choose([post(12,now),{...post(13,now),audience:'vip'}],3,now,12),null);
   assert.equal(choose([{...post(12,now),user_id:3},post(13,now)],3,now,null)?.id,13);
 });
 
