@@ -12,6 +12,7 @@ const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
 const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
 const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
+const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -103,7 +104,7 @@ async function attachManualMerchantLinks(page,offers){
  const found=await db.query("SELECT offer_key,href FROM marketplace_compare_manual_links WHERE page_id=$1 AND offer_key=ANY($2::varchar[])",[page.id,keys]);
  manualLinks.applyManualLinks(page,offers,found.rows);
 }
-function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
+function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo=null){
  const link=o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
  const href=link.href;
@@ -119,9 +120,13 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null){
  const candidate=possible && quota?.available!==false;
  const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
    '';
- return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">Precio más bajo mostrado</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
+ const pricing=o.internal?'':priceInfo?.date?
+   '<small class="offer-price-date'+(priceInfo.isStale?' offer-price-old':'')+'">'+
+   esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
+   '<small class="offer-price-date offer-price-old">Sin fecha de precio externo</small>';
+ return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
-  '</div><div class="price">'+money(o.price_cents)+'</div>'+
+  '</div><div class="price">'+money(o.price_cents)+'</div>'+pricing+
   lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</li>';
 }
@@ -498,7 +503,15 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
   const quota=offers.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
    await compareWorker.quotaStatus():null;
-  const checked=page.last_checked_at?new Date(page.last_checked_at).toLocaleString('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'}):null;
+  const freshness=priceFreshness.freshness(page.last_checked_at);
+  const priceInfo=priceFreshness.priceNotice(page.last_checked_at,page.provider_status);
+  // Solo describimos la antigüedad de resultados externos: las publicaciones
+  // propias de RedLibertad se consultan en la base de datos al abrir la página.
+  const hasExternal=offers.some(o=>!o.internal);
+  const checked=hasExternal?priceInfo.date:null;
+  const priceWarning=hasExternal && (freshness.needsRefresh||page.provider_status==='unavailable'||page.provider_status==='limit_reached')?
+   '<aside class="compare-price-age compare-price-age-'+esc(priceInfo.level)+'" role="status">'+esc(priceInfo.text)+'</aside>':'';
+  const externalPriceInfo={...priceInfo,isStale:freshness.isStale};
   const exact=provider.isSpecificModel(page.query_text);
   const approved=seo.indexEligible(page,offers);
   const title='Comparar '+page.query_text+' | RedLibertad';
@@ -512,13 +525,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const bestCondition=bestOffer?insights.conditionOf(bestOffer):null;
   const singleOffer=offers.length===1;
   const status=singleOffer?
-   '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
-   '<span>1 oferta coincidente</span>'+(checked?'<time>Actualizado: '+esc(checked)+'</time>':'')+'</section>':
+   '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
+   '<span>1 oferta coincidente</span>'+(checked?'<time>Precios consultados: '+esc(checked)+'</time>':'')+'</section>':
    offers.length?
-   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
-   (checked?'<span>Actualizado: '+esc(checked)+'</span>':'')+'</div>'+
-   '<p class="cmp-start-price"><strong>Desde '+money(best)+'</strong>'+
+   (checked?'<span>Precios consultados: '+esc(checked)+'</span>':'')+'</div>'+
+   '<p class="cmp-start-price"><strong>'+(bestOffer&&!bestOffer.internal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
    (bestCondition && bestCondition!=='Estado sin confirmar'?' · '+esc(bestCondition.toLowerCase()):'')+
    ' · '+offers.length+' '+(offers.length===1?'oferta':'ofertas')+
    (insight.hasMixedVariants?' en varias versiones y estados':'')+'</p>'+
@@ -531,10 +544,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
      'Esta página está guardada. Puedes volver más tarde o explorar otras comparaciones.')+'</p>'+
    '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
-  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota)).join('')+'</ol>':'';
+  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const results=singleOffer?
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
-   '<h2 id="precios-y-tiendas">Oferta encontrada</h2>'+
+   '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    cards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':

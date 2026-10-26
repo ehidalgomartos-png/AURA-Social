@@ -53,7 +53,7 @@ test('una única oferta usa ficha principal y no repite el producto tres veces',
  assert.match(html,/Buscar en Google/);
  assert.doesNotMatch(html,/Precios encontrados|Versiones encontradas|<h2 id="precios-y-tiendas">Precios y tiendas/);
  assert.doesNotMatch(html,/1 ofertas|Precio más bajo mostrado/);
- assert.match(html,/Actualizado:/);
+ assert.match(html,/Precios consultados:/);
  assert.match(html,/precio, la disponibilidad y el envío se confirman/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.doesNotMatch(html,/"@type":"Product"/);

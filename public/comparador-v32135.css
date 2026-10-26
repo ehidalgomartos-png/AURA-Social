@@ -268,3 +268,19 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .seo-manual-remove{display:flex;padding:3px 12px 12px}
 .seo-link-state-manual{background:#e4f4ec;color:#115a43}
 @media(max-width:640px){.seo-manual-link-form{padding:10px}.seo-manual-link-form button,.seo-manual-remove button{width:100%}}
+
+
+/* V3.2.148 — precio real de consulta frente a precio antiguo, claro en móviles */
+.compare-price-age{border:1px solid #d5e4f1;background:#f2f8fe;color:#365b79;border-radius:11px;padding:11px 14px;font-size:.88rem;line-height:1.55;font-weight:500}
+.compare-price-age-due{background:#fff8e9;border-color:#eacb85;color:#795313}
+.compare-price-age-old,.compare-price-age-historical,.compare-price-age-unknown{background:#fff4e4;border-color:#e7c98d;color:#85551b}
+.compare-status-summary .compare-price-age{margin:0 0 13px}
+.compare-single-status .compare-price-age{order:1;flex:0 0 100%;margin:0;font-weight:550}
+.comparison-list .offer .offer-price-date{display:block;font-size:.79rem;font-weight:600;line-height:1.4;color:#607d94;margin:0;max-width:100%}
+.comparison-list .offer .offer-price-old{color:#926018}
+.compare-single-product .offer .offer-price-date{grid-column:2}
+@media(max-width:650px){
+ .compare-single-product .offer .offer-price-date{grid-column:1 / -1}
+ .compare-single-status .compare-price-age{padding:10px 12px}
+ .comparison-list .offer .offer-price-date{width:100%}
+}
