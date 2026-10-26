@@ -19,7 +19,7 @@ module.exports=function registerPublicCommunityShareV32163(app,{db,publicOrigin,
       const canonical=origin+'/comunidad/'+encodeURIComponent(community.id);
       const appLink='/app?view=communities&community='+encodeURIComponent(community.id);
       const title='Comunidad '+String(community.name||'')+' | RedLibertad';
-      const description=String(community.description||'Descubre y participa en esta comunidad de RedLibertad.').replace(/\\s+/g,' ').trim().slice(0,170);
+      const description=String(community.description||'Descubre y participa en esta comunidad de RedLibertad.').replace(/\s+/g,' ').trim().slice(0,170);
       const ogImage=origin+'/assets/og-redlibertad-v1922.jpg';
       const h=escapeHtml;
       const page=[
