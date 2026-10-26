@@ -92,7 +92,7 @@ test('personal filter uses authorized endpoint, shows real posts and an honest e
   await h.load();
   assert.deepEqual(h.calls,['/api/communities/34/posts?focus=mine']);
   assert.match(h.list.innerHTML,/data-community-post="9"/);
-  assert.equal(h.count.textContent,'1 conversaciones');
+  assert.equal(h.count.textContent,'1 conversación');
   assert.equal(h.buttons[1].attrs['aria-pressed'],'true');
   assert.equal(h.buttons[0].attrs['aria-pressed'],'false');
   const empty=uiHarness({focus:'mine'});await empty.load();
