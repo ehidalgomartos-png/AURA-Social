@@ -115,8 +115,67 @@ function clientHarness(response){
   const start=social.indexOf('function growthStepHTML(step) {');
   const end=social.indexOf('async function shareGrowthInvite(kind',start);
   assert.ok(start>=0&&end>start,'growth view renderer missing');
-  const app=new Function('$','api','esc','personCardHTML','growthInviteUrl','me',
-    social.slice(start,end)+'\nreturn {render:loadGrowthPanel,step:growthStepHTML};')(
+  const participationStart=social.indexOf('const FIRST_POST_IDEAS_V32151=');
+  assert.ok(participationStart>0&&participationStart<start);
+  const app=new Function('
+    $,async()=>({r:{ok:true},d:response}),esc,
+    item=>'<article>'+esc(item.username)+'</article>',
+    ()=>'https://redlibertad.com/?invite=test',
+    {username:'myuser'}
+  );
+  return {...app,nodes,panel,heading,copy,ring};
+}
+
+test('next action is displayed with a safe button and accurate accessible progress',async()=>{
+  const route=routeHarness(baseUser);
+  const response=await route.read();
+  const ui=clientHarness(response);
+  await ui.render();
+  assert.equal(ui.nodes['#growthProgressValue'].textContent,'0%');
+  assert.equal(ui.ring.attributes['aria-valuenow'],'0');
+  assert.match(ui.nodes['#growthProgressDescription'].textContent,/0 de 6 pasos completados/);
+  assert.match(ui.nodes['#growthNextStep'].innerHTML,/data-growth-action="profile"/);
+  assert.match(ui.nodes['#growthNextStep'].innerHTML,/Añade una foto de perfil/);
+});
+
+test('completion state is clear and does not present a pending step',async()=>{
+  const route=routeHarness({...baseUser,
+    avatar_url:'ok',bio:'Hello',following_count:3,community_count:1,post_count:1,interaction_count:1
+  });
+  const response=await route.read();
+  const ui=clientHarness(response);
+  await ui.render();
+  assert.equal(ui.ring.attributes['aria-valuenow'],'100');
+  assert.match(ui.nodes['#growthNextStep'].innerHTML,/primeros pasos están completos/);
+  assert.doesNotMatch(ui.nodes['#growthNextStep'].innerHTML,/data-growth-action/);
+  assert.equal(ui.panel.classList.classes.has('growth-complete'),true);
+});
+
+test('unrecognized action from response never creates an executable action button',async()=>{
+  const data={progress:0,steps:[{id:'test',label:'<svg onload=alert(1)>',done:false,action:'javascript:alert(1)'}],
+    nextStep:{id:'test',label:'<img src=x>',action:'javascript:alert(1)'},firstWeek:false};
+  const ui=clientHarness(data);
+  await ui.render();
+  assert.doesNotMatch(ui.nodes['#growthNextStep'].innerHTML,/javascript:alert/);
+  assert.doesNotMatch(ui.nodes['#growthNextStep'].innerHTML,/<img/);
+  assert.doesNotMatch(ui.nodes['#growthSteps'].innerHTML,/<svg/);
+});
+
+test('activation layout exposes real progress state and live next step to accessibility tools',()=>{
+  assert.match(html,/id="growthProgressDescription"[^>]*aria-live="polite"/);
+  assert.match(html,/id="growthNextStep"[^>]*aria-live="polite"/);
+  assert.match(html,/class="growth-progress-ring" role="progressbar"/);
+  assert.match(social,/ring\.setAttribute\('aria-valuenow',String\(progress\)\)/);
+});
+
+test('activation relies on existing steps and does not require sending invitations',async()=>{
+  const data=(await routeHarness(baseUser).read());
+  assert.equal(data.steps.length,6);
+  assert.equal(data.steps.some(step=>step.action==='invite'),false);
+  assert.equal(data.nextStep.action,'profile');
+});
+,'api','esc','personCardHTML','growthInviteUrl','me',
+    social.slice(participationStart,start)+social.slice(start,end)+'\nreturn {render:loadGrowthPanel,step:growthStepHTML};')(
     $,async()=>({r:{ok:true},d:response}),esc,
     item=>'<article>'+esc(item.username)+'</article>',
     ()=>'https://redlibertad.com/?invite=test',
