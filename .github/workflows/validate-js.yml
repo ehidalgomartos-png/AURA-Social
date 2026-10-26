@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.149.2 safe full-screen photo viewer for private messages
+        run: node --test tests/chat-photo-viewer-v321492.test.js
       - name: V3.2.149.1 mobile discovery card fit and latest-first feed
         run: node --test tests/home-discovery-feed-hotfix-v321491.test.js
       - name: V3.2.149 discover real newcomers in mobile Home
