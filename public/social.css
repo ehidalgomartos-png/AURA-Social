@@ -7955,3 +7955,55 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   outline:3px solid var(--teal);
   outline-offset:3px;
 }
+
+/* V3.2.150 — Personalized, dismissible welcome that stays compact on mobile. */
+#feedView .home-welcome-v32150{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  max-width:700px;
+  margin:0 0 12px;
+  padding:15px 17px;
+  border:1px solid rgba(43,183,169,.23);
+  border-radius:17px;
+  background:linear-gradient(110deg,rgba(43,183,169,.10),rgba(239,122,93,.08)),var(--paper);
+}
+#feedView .home-welcome-copy-v32150{min-width:0;flex:1}
+#feedView .home-welcome-eyebrow-v32150{
+  font-size:9px;letter-spacing:.09em;font-weight:900;color:#11756e;
+}
+#feedView .home-welcome-copy-v32150 h2{
+  font:800 clamp(16px,2.1vw,19px)/1.25 Manrope,sans-serif;
+  color:var(--navy);margin:5px 0;
+}
+#feedView .home-welcome-copy-v32150 p{
+  margin:0;color:var(--muted);font-size:12px;line-height:1.45;
+}
+#feedView .home-welcome-actions-v32150{
+  display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:flex-end;
+  max-width:265px;
+}
+#feedView .home-welcome-actions-v32150 button{font-size:11px;min-height:40px}
+#feedView .home-welcome-actions-v32150 .primary{padding:9px 12px}
+#feedView .home-welcome-more-v32150,
+#feedView .home-welcome-later-v32150{
+  border:0;background:transparent;color:var(--navy);padding:6px 8px;
+  font-weight:700;border-radius:8px;
+}
+#feedView .home-welcome-later-v32150{color:var(--muted)}
+#feedView .home-welcome-actions-v32150 button:focus-visible{
+  outline:2px solid var(--teal);outline-offset:2px;
+}
+#feedView .home-welcome-v32150[aria-busy="true"]{opacity:.65;pointer-events:none}
+@media(max-width:760px){
+  #feedView .home-welcome-v32150{
+    flex-direction:column;align-items:stretch;
+    padding:12px 13px;gap:10px;border-radius:14px;
+  }
+  #feedView .home-welcome-actions-v32150{
+    max-width:none;width:100%;justify-content:flex-start;gap:5px;
+  }
+  #feedView .home-welcome-actions-v32150 .primary{flex:1;min-width:135px}
+  #feedView .home-welcome-actions-v32150 .home-welcome-later-v32150{font-size:10px}
+}

@@ -7,10 +7,11 @@ const path=require('node:path');
 const growth=fs.readFileSync(path.join(__dirname,'../src/routes/growth.js'),'utf8');
 const social=fs.readFileSync(path.join(__dirname,'../public/social.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'../public/app.html'),'utf8');
+const {welcomeEligibility,welcomeVisible,nextWelcomeStep}=require('../src/services/welcome-v32150');
 
 function routeHarness(profile){
   const start=growth.indexOf("router.get('/me', requireAuth");
-  const end=growth.indexOf("router.get('/pulse'",start);
+  const end=growth.indexOf('// A one-time welcome',start);
   assert.ok(start>=0&&end>start,'growth /me route missing');
   const sql=[];
   let handler;
@@ -18,11 +19,12 @@ function routeHarness(profile){
   const db={query:async(statement,params)=>{
     sql.push({statement,params});
     if(statement.includes('FROM referrals r'))return {rows:[{total:0,activated:0}]};
+    if(statement.includes('FROM user_welcome_state_v32150'))return {rowCount:0,rows:[]};
     if(statement.includes('FROM users u')&&statement.includes('u.id<>$1'))return {rows:[{id:41,username:'suggested_person'}]};
     return {rowCount:1,rows:[profile]};
   }};
-  new Function('router','requireAuth','db','ensurePersonalInvite',
-    growth.slice(start,end))(router,()=>{},db,async()=>({token:'test_invitation',open_count:0,join_count:0}));
+  new Function('router','requireAuth','db','ensurePersonalInvite','welcomeEligibility','welcomeVisible','nextWelcomeStep',
+    growth.slice(start,end))(router,()=>{},db,async()=>({token:'test_invitation',open_count:0,join_count:0}),welcomeEligibility,welcomeVisible,nextWelcomeStep);
   return {
     sql,
     async read(){

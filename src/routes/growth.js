@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const {nextWelcomeStep,welcomeEligibility,welcomeVisible}=require('../services/welcome-v32150');
 
 const router = express.Router();
 
@@ -38,6 +39,15 @@ async function ensureGrowthTables() {
         CREATE TABLE IF NOT EXISTS user_experience_state (
           user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
           last_home_seen_at TIMESTAMPTZ,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_welcome_state_v32150 (
+          user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+          snoozed_until TIMESTAMPTZ,
+          dismissed_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
@@ -118,7 +128,7 @@ router.post('/invites/:token/open', async (req,res)=>{
 router.get('/me', requireAuth, async (req,res)=>{
   const profile=await db.query(`
     SELECT
-      u.id,u.username,u.display_name,u.avatar_url,u.bio,u.created_at,
+      u.id,u.username,u.display_name,u.avatar_url,u.bio,u.created_at,u.status,u.is_admin,
       (SELECT count(*)::int FROM user_interests ui WHERE ui.user_id=u.id) interest_count,
       (SELECT count(*)::int FROM follows f WHERE f.follower_id=u.id) following_count,
       (SELECT count(*)::int FROM community_members cm WHERE cm.user_id=u.id) community_count,
@@ -195,6 +205,14 @@ router.get('/me', requireAuth, async (req,res)=>{
   const nextStep=steps.find(step=>!step.done)||null;
   const joinedAt=new Date(user.created_at).getTime();
   const firstWeek=Number.isFinite(joinedAt)&&joinedAt<=Date.now()&&joinedAt>=Date.now()-7*24*60*60*1000;
+  const welcomeState=await db.query(
+    'SELECT snoozed_until,dismissed_at FROM user_welcome_state_v32150 WHERE user_id=$1',
+    [req.user.id]
+  );
+  const welcomeEligible=welcomeEligibility(user,steps);
+  const welcome={eligible:welcomeEligible,
+    visible:welcomeVisible(welcomeEligible,welcomeState.rows[0]),
+    nextStep:nextWelcomeStep(steps)};
   const inviteLink=await ensurePersonalInvite(req.user.id);
   const starterProfiles=await db.query(`
     SELECT u.id,u.username,u.display_name,u.avatar_url,u.bio,u.creator_verified,u.location_label,
@@ -225,6 +243,7 @@ router.get('/me', requireAuth, async (req,res)=>{
     starterProfiles:starterProfiles.rows,
     nextStep,
     firstWeek,
+    welcome,
     steps,
     completed,
     totalSteps:steps.length,
@@ -234,6 +253,50 @@ router.get('/me', requireAuth, async (req,res)=>{
       activated:referrals.rows[0]?.activated || 0
     }
   });
+});
+
+// A one-time welcome for new accounts and existing members who return.
+// Explicit POST: simply reading the dashboard never creates notifications.
+router.post('/welcome/activate',requireAuth,async(req,res)=>{
+  const result=await db.query(`
+    WITH newly_eligible AS (
+      INSERT INTO user_welcome_state_v32150(user_id)
+      SELECT u.id FROM users u
+       WHERE u.id=$1 AND u.status='active' AND u.is_admin=false
+         AND (
+           NOT EXISTS(SELECT 1 FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published')
+           OR u.created_at>=now()-interval '30 days'
+         )
+      ON CONFLICT (user_id) DO NOTHING
+      RETURNING user_id
+    )
+    INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
+    SELECT user_id,NULL,'system','welcome',NULL,
+           '¡Bienvenido a RedLibertad! Completa tu perfil, comparte tu primera publicación y conoce a tu comunidad.'
+    FROM newly_eligible
+    RETURNING id
+  `,[req.user.id]);
+  res.json({ok:true,created:result.rowCount===1});
+});
+
+// Snoozed server-side across devices. Permanent dismissal remains available.
+router.post('/welcome/preference',requireAuth,async(req,res)=>{
+  const choice=String(req.body?.choice||'');
+  if(!['later','dismiss'].includes(choice))return res.status(400).json({error:'invalid_choice'});
+  await db.query(`
+    INSERT INTO user_welcome_state_v32150(user_id,snoozed_until,dismissed_at,updated_at)
+    VALUES ($1,
+      CASE WHEN $2='later' THEN now()+interval '7 days' ELSE NULL END,
+      CASE WHEN $2='dismiss' THEN now() ELSE NULL END,
+      now())
+    ON CONFLICT(user_id) DO UPDATE
+      SET snoozed_until=excluded.snoozed_until,
+          dismissed_at=CASE WHEN user_welcome_state_v32150.dismissed_at IS NOT NULL
+                             THEN user_welcome_state_v32150.dismissed_at
+                             ELSE excluded.dismissed_at END,
+          updated_at=now()
+  `,[req.user.id,choice]);
+  res.json({ok:true});
 });
 
 router.get('/pulse', requireAuth, async (req,res)=>{
