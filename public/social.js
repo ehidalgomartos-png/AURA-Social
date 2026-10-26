@@ -1615,10 +1615,11 @@ $('#communityReturnList')?.addEventListener('click',async event=>{
 // V3.2.152: choose only real, already-authorized content from the normal latest feed.
 // Never fabricate authors, expose sensitive captions or make an automatic comment.
 let returnConversationPostV32152=null;
-function selectReturnConversationV32152(posts,userId,now=Date.now()){
+function selectReturnConversationV32152(posts,userId,now=Date.now(),lastPostId=null){
   if(!Array.isArray(posts))return null;
   return posts.find(post=>{
     if(!post || !/^[1-9][0-9]{0,15}$/.test(String(post.id||'')))return false;
+    if(lastPostId!=null && String(post.id)===String(lastPostId))return false;
     if(String(post.user_id)===String(userId) || post.liked_by_me===true)return false;
     if(post.content_level!=='normal' || post.audience!=='public')return false;
     if(post.post_kind && post.post_kind!=='post')return false;
@@ -1647,10 +1648,29 @@ function renderReturnConversationV32152(post){
   root.classList.remove('hidden');
   return true;
 }
-$('#returnConversationOpenV32152')?.addEventListener('click',async()=>{
+// One tap goes straight to real comments; don't force another tap via the post modal.
+$('#returnConversationOpenV32152')?.addEventListener('click',async event=>{
+  const button=event.currentTarget;
   const id=String(returnConversationPostV32152?.id||'');
-  if(!/^[1-9][0-9]{0,15}$/.test(id))return;
-  await openPostFocus(id); // Revalidates visibility when opened.
+  if(!/^[1-9][0-9]{0,15}$/.test(id)||button.disabled)return;
+  button.disabled=true;
+  try{
+    // A suggestion can become private, deleted or blocked after it was loaded.
+    // Confirm access through the same authorized detail endpoint before comments.
+    const {r,d}=await api('/api/posts/detail/'+encodeURIComponent(id));
+    const post=d?.post;
+    if(!r.ok||!post||String(post.id)!==id||
+       post.audience!=='public'||post.content_level!=='normal'){
+      throw Error('post_unavailable');
+    }
+    await openComments(id,{focusComposer:false});
+  }catch(_){
+    renderReturnConversationV32152(null);
+    if(!$('#returnPulseGrid')?.children.length)$('#returnPulse')?.classList.add('hidden');
+    toast('Esta conversación ya no está disponible.');
+  }finally{
+    button.disabled=false;
+  }
 });
 $('#returnConversationSnoozeV32152')?.addEventListener('click',async event=>{
   const button=event.currentTarget;
@@ -1703,11 +1723,17 @@ async function loadReturnPulse(force=false) {
     try{
       const feed=await api('/api/posts/feed?mode=latest');
       if(feed.r.ok){
-        const match=selectReturnConversationV32152(feed.d?.posts,me.id);
-        hasConversation=renderReturnConversationV32152(match);
-        if(hasConversation){
-          // Recordar la aparición, no enviar alertas ni correos.
-          await api('/api/growth/pulse/conversation-shown',{method:'POST'});
+        const match=selectReturnConversationV32152(feed.d?.posts,me.id,Date.now(),d.participation?.last_post_id);
+        if(match){
+          // Claim atomically before display: only one eligible tab/device can show it.
+          const claimed=await api('/api/growth/pulse/conversation-shown',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({postId:match.id})
+          });
+          if(claimed.r.ok && claimed.d?.recorded===true){
+            hasConversation=renderReturnConversationV32152(match);
+          }
         }
       }
     }catch(_){ /* Una sugerencia no debe bloquear el Inicio. */ }
