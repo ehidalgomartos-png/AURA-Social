@@ -547,8 +547,8 @@ router.get('/suggestions', requireAuth, async (req, res) => {
       CASE WHEN $4::text='for_you' THEN
         (u.created_at>=now()-interval '30 days')::int
       END DESC NULLS LAST,
-      -- Stable, per-viewer daily variety: unlike random(), pages remain
-      -- deterministic throughout the day and never repeat within a page cycle.
+      -- Stable, per-viewer daily variety keeps pages deterministic within a day
+      -- and never repeats members within the same pagination cycle.
       CASE WHEN $4::text='for_you' THEN
         md5($1::text || ':' || CURRENT_DATE::text || ':' || u.id::text)
       END ASC NULLS LAST,
