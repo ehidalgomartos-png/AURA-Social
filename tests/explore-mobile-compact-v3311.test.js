@@ -30,7 +30,7 @@ test('mobile ordering prioritises people and content above secondary shortcuts a
  ];
  for(const [name,order] of expected){
   assert.ok(scoped.includes(name),name);
-  assert.match(scoped,new RegExp('order:'+order+';'),name);
+  assert.match(scoped,new RegExp('order:'+order+'(?:;|\\})'),name);
  }
  assert.match(scoped,/#exploreView:not\(\.hidden\)/);
  assert.match(scoped,/\.people-search\s*\{[\s\S]*?grid-template-columns:minmax\(0,1fr\) auto;/);
