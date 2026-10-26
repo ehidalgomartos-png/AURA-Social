@@ -190,8 +190,9 @@ function safeNotificationTarget(value){
   const fallback=new URL('/app',self.location.origin).href;
   try{
     const target=new URL(String(value||'/app'),self.location.origin);
-    if(target.origin!==self.location.origin)return fallback;
-    if(target.pathname!=='/app' && !target.pathname.startsWith('/app/'))return fallback;
+    if(target.origin!==self.location.origin || target.username || target.password)return fallback;
+    // Only the single, registered social-app shell is a valid push destination.
+    if(target.pathname!=='/app')return fallback;
     return target.href;
   }catch(_){
     return fallback;
@@ -205,11 +206,15 @@ self.addEventListener('notificationclick',event=>{
   event.waitUntil((async()=>{
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows){
-      if(new URL(client.url).origin===self.location.origin){
-        try{
-          await client.navigate(target);
-        }catch(_){}
-        return client.focus();
+      try{
+        const clientUrl=new URL(client.url);
+        // Do not hijack registration, marketplace, public pages or admin tabs.
+        // Reuse only an already open app shell, and focus it after a successful navigation.
+        if(clientUrl.origin!==self.location.origin || clientUrl.pathname!=='/app')continue;
+        const navigated=await client.navigate(target);
+        if(navigated)return navigated.focus();
+      }catch(_){
+        // A closed or non-navigable app tab must not swallow the notification.
       }
     }
     return self.clients.openWindow(target);
