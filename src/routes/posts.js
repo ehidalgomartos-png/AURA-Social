@@ -3171,10 +3171,10 @@ router.get('/feed', optionalAuth, async (req, res) => {
       FROM posts p JOIN users u ON u.id=p.user_id
      WHERE ${where.join(' AND ')}
      ORDER BY ${mode === 'foryou'
-       ? '(SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,'
+       ? "date_trunc('hour',p.created_at) DESC,(SELECT count(*) FROM likes l2 WHERE l2.post_id=p.id) DESC,"
        : mode === 'following' && req.user
          ? 'GREATEST(p.created_at,COALESCE((SELECT max(rp.created_at) FROM reposts rp WHERE rp.post_id=p.id AND rp.user_id IN (SELECT following_id FROM follows WHERE follower_id=$1)),p.created_at)) DESC,'
-         : ''} p.created_at DESC
+         : ''} p.created_at DESC,p.id DESC
      LIMIT 50
   `, params);
   const participantPosts = await attachApprovedParticipants(result.rows);
