@@ -912,6 +912,8 @@ router.get('/:id/posts',async(req,res)=>{
   const state=await communityState(req.params.id,req.user.id);
   if(!state || !state.can_view_content)return res.status(404).json({error:'community_not_found'});
   if(await blockedBetween(req.user.id,state.owner_id))return res.status(404).json({error:'community_not_found'});
+  // V3.2.162: optional personal conversation filter, still behind normal visibility gates.
+  const focus=req.query.focus==='mine'?'mine':'all';
   const viewer=await viewerRow(req.user.id);
   const result=await db.query(`
     SELECT
@@ -945,6 +947,11 @@ router.get('/:id/posts',async(req,res)=>{
     WHERE cp.community_id=$1
       AND cp.moderation_status='published'
       AND u.status='active'
+      AND ($3<>'mine' OR cp.user_id=$2 OR EXISTS (
+        SELECT 1 FROM community_comments own_comment
+         WHERE own_comment.community_post_id=cp.id
+           AND own_comment.user_id=$2
+      ))
       AND (
         cp.user_id=$2
         OR (
@@ -961,7 +968,7 @@ router.get('/:id/posts',async(req,res)=>{
       )
     ORDER BY cp.created_at DESC,cp.id DESC
     LIMIT 100
-  `,[state.id,req.user.id]);
+  `,[state.id,req.user.id,focus]);
 
   const postIds=result.rows.map(row=>String(row.id));
   const comments=postIds.length ? await db.query(`
@@ -1040,7 +1047,7 @@ router.get('/:id/posts',async(req,res)=>{
       }))
     };
   });
-  res.json({posts,can_post:state.is_member,can_manage:state.can_manage,can_moderate:state.can_moderate});
+  res.json({posts,focus,can_post:state.is_member,can_manage:state.can_manage,can_moderate:state.can_moderate});
 });
 
 const communityPostSchema=z.object({
