@@ -7827,3 +7827,46 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
     row-gap:8px;
   }
 }
+
+/* V3.2.149.1 — Tarjetas completas al deslizar dos perfiles por columna. */
+@media(max-width:760px){
+  #feedView .home-momentum .active-people-strip,
+  #feedView .home-momentum.only-active-v32241 .active-people-strip{
+    grid-auto-flow:column;
+    grid-template-rows:repeat(2,minmax(0,1fr));
+    grid-auto-columns:100%;
+    scroll-snap-type:x mandatory;
+    scroll-padding-inline:12px;
+    overscroll-behavior-inline:contain;
+    row-gap:8px;
+  }
+  #feedView .home-momentum .active-person-card{
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+    grid-template-columns:40px minmax(0,1fr) auto;
+    padding:10px 9px;
+    gap:8px;
+  }
+  #feedView .home-momentum .active-person-copy{
+    min-width:0;
+    overflow:hidden;
+  }
+  #feedView .home-momentum .active-person-copy b,
+  #feedView .home-momentum .active-person-copy small,
+  #feedView .home-momentum .active-person-copy span{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #feedView .home-momentum .active-person-avatar{
+    width:40px;
+    height:40px;
+  }
+  #feedView .home-momentum .active-person-card .person-follow{
+    padding:8px 10px;
+    min-width:0;
+    white-space:nowrap;
+  }
+}
