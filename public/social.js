@@ -1976,7 +1976,7 @@ async function loadGrowthPanel() {
   const { r, d } = await api('/api/growth/me');
   if (!r.ok) {
     firstPostHelperUserV32158=null;
-    renderFirstPostHelperV32158();
+    if(typeof renderFirstPostHelperV32158==='function')renderFirstPostHelperV32158();
     panel.classList.add('hidden');
     $('#homeGrowthDetailsV3224')?.classList.add('hidden');
     $('#homeWelcomeV32150')?.classList.add('hidden');
@@ -1986,7 +1986,7 @@ async function loadGrowthPanel() {
   firstPostHelperUserV32158=Array.isArray(d.steps) &&
     d.steps.some(step=>step?.id==='post'&&step.done===false) && me?.id!=null
     ? String(me.id) : null;
-  renderFirstPostHelperV32158();
+  if(typeof renderFirstPostHelperV32158==='function')renderFirstPostHelperV32158();
   renderHomeWelcomeV32150(d);
   // First visit creates one welcome notification; never sends an email or push.
   if(d.welcome?.visible===true && welcomeActivationUserV32150!==String(me?.id)){
@@ -10405,7 +10405,7 @@ function selectComposerModeV3227(mode,{focus=false}={}){
   $('#storyMessage').textContent='';
   const card=modal.querySelector('.composer-card-v3227');
   if(card)card.scrollTop=0;
-  renderFirstPostHelperV32158();
+  if(typeof renderFirstPostHelperV32158==='function')renderFirstPostHelperV32158();
 }
 all('[data-composer-tab]').forEach(tab=>{
   tab.addEventListener('click',()=>selectComposerModeV3227(tab.dataset.composerTab));
