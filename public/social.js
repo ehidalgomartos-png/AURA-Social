@@ -1697,6 +1697,13 @@ const FIRST_POST_IDEAS_V32151=Object.freeze({
   opinion:'Hoy quiero compartir una opinión: ',
   historia:'Esta foto tiene una historia: '
 });
+function chooseParticipationNextV32151(steps,preferred,legacyNext){
+  const pending=Array.isArray(steps)?steps.filter(step=>step&&step.done!==true):[];
+  const byId=step=>pending.find(candidate=>candidate.id===step?.id &&
+    candidate.action===step?.action);
+  // Única fuente de progreso: pasos reales devueltos por /api/growth/me.
+  return byId(preferred) || byId(legacyNext) || pending[0] || null;
+}
 function firstPostIdeasHTMLV32151(){
   return '<div class="first-post-ideas-v32151" role="group" aria-label="Ideas para tu primera publicación">'+
     '<span>¿No sabes qué publicar? Empieza con una idea:</span>'+
@@ -1885,12 +1892,8 @@ async function loadGrowthPanel() {
   const steps=Array.isArray(d.steps)?d.steps:[];
   const progress=Math.max(0,Math.min(100,Number(d.progress)||0));
   const completed=steps.filter(step=>step?.done).length;
-  const current=steps.find(step=>step&&!step.done)||null;
   // Prioridad útil: foto/bio, primera publicación y después conexiones e interacción.
-  const preferred=d.welcome?.nextStep;
-  const validPreferred=preferred && steps.find(step=>step?.id===preferred.id && step.done!==true
-    && step.action===preferred.action);
-  const next=validPreferred || (d.nextStep && current?.id===d.nextStep.id ? d.nextStep : current);
+  const next=chooseParticipationNextV32151(steps,d.welcome?.nextStep,d.nextStep);
   const firstWeek=d.firstWeek===true;
   const summary=$('#growthProgressDescription');
   if(summary)summary.textContent=completed+' de '+steps.length+' pasos completados'+
