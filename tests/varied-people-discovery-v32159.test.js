@@ -70,7 +70,7 @@ test('exhausted pages do not silently repeat page zero and manually offer a rese
 });
 test('the client preserves the three explicit discovery modes and does not invent recommendations',()=>{
   assert.match(social,/\['for_you','active','new'\]\.includes\(mode\)/);
-  assert.match(social,/users\.map\(user=>personCardHTML\(user,false,peopleDiscoveryMode\)\)/);
+  assert.match(social,/users\.map\(user=>personCardHTML\(user,false,peopleDiscoveryMode,true\)\)/);
   assert.match(social,/if\(!r\.ok\)throw Error\('suggestions_unavailable'\)/);
   assert.match(read('.github/workflows/validate-js.yml'),/tests\/varied-people-discovery-v32159\.test\.js/);
 });

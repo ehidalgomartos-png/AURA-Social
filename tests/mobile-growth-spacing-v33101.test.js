@@ -30,7 +30,7 @@ test('the same collapsible growth section still leads directly into actual feed 
   assert.match(html.slice(end,end+600),/id="feed"/);
 });
 test('stylesheet URL changes for existing PWA/browser caches, without duplicating onboarding',()=>{
-  assert.match(html,/\/social\.css\?v=3\.2\.75&amp;growth-gap-fix=3\.3\.10\.1/);
+  assert.match(html,/\/social\.css\?v=(?:3\.2\.75&amp;growth-gap-fix=3\.3\.10\.1|3\.3\.11)/);
   assert.equal((html.match(/id="homeGrowthDetailsV3224"/g)||[]).length,1);
   assert.equal((html.match(/class="growth-invite"/g)||[]).length,1);
   const workflow=read('.github/workflows/validate-js.yml');
