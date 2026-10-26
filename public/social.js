@@ -6265,6 +6265,42 @@ function closeProfileEditModal() {
   revokeProfilePreviewObjectUrls();
 }
 
+// V3.2.157: an optional guide inside the existing profile editor, never on Inicio.
+function profileCompletionStateV32157(avatar,bio,interests){
+  const completed=[Boolean(avatar),Boolean(String(bio||'').trim()),Number(interests)>0];
+  return {completed,total:completed.filter(Boolean).length};
+}
+function renderProfileCompletionV32157(){
+  const form=$('#profileForm');
+  const root=$('#profileCompletionV32157');
+  if(!form||!root)return;
+  const state=profileCompletionStateV32157(
+    Boolean(me?.avatar_url || $('#avatarFile')?.files?.length),
+    form.bio?.value,
+    all('input[name="interest"]:checked',form).length
+  );
+  const status=$('#profileCompletionStatusV32157');
+  if(status)status.textContent=state.total===3
+    ? '¡Todo listo! Puedes modificar tu perfil cuando quieras.'
+    : state.total+' de 3 apartados preparados · Completa solo los que prefieras.';
+  const labels=['Foto','Presentación','Intereses'];
+  const ids=['profileTipAvatarV32157','profileTipBioV32157','profileTipInterestsV32157'];
+  ids.forEach((id,i)=>{
+    const label=$('#'+id);
+    if(label)label.textContent=(state.completed[i]?'✓ ':'○ ')+labels[i];
+  });
+}
+$('#profileForm')?.addEventListener('input',renderProfileCompletionV32157);
+$('#profileForm')?.addEventListener('change',renderProfileCompletionV32157);
+$('#profileCompletionV32157')?.addEventListener('click',event=>{
+  const tip=event.target.closest('[data-profile-tip-v32157]');
+  if(!tip)return;
+  const field=tip.dataset.profileTipV32157==='avatar'?'#avatarFile'
+    :tip.dataset.profileTipV32157==='bio'?'#profileForm textarea[name="bio"]'
+      :'#profileInterests input[name="interest"]';
+  const target=$(field);
+  if(target)target.focus({preventScroll:true});
+});
 async function openProfileModal() {
   const form = $('#profileForm');
   form.displayName.value = me.display_name || '';
@@ -6287,6 +6323,7 @@ async function openProfileModal() {
   `).join('');
 
   $('#profileMessage').textContent = '';
+  renderProfileCompletionV32157();
   $('#profileModal').classList.remove('hidden');
 }
 $('#closeProfileModal').onclick = closeProfileEditModal;
