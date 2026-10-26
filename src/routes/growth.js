@@ -220,6 +220,7 @@ router.get('/me', requireAuth, async (req,res)=>{
   const inviteLink=await ensurePersonalInvite(req.user.id);
   const starterProfiles=await db.query(`
     SELECT u.id,u.username,u.display_name,u.avatar_url,u.bio,u.creator_verified,u.location_label,
+           (u.created_at>=now()-interval '30 days') AS recent_joiner,
            false AS following,
            (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) AS follower_count,
            (SELECT count(*)::int FROM user_interests ti
@@ -237,7 +238,13 @@ router.get('/me', requireAuth, async (req,res)=>{
       AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=$1))
       AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=u.id)
        AND NOT EXISTS(SELECT 1 FROM discovery_hidden_items h WHERE h.user_id=$1 AND h.item_type='user' AND h.item_id=u.id)
-     ORDER BY shared_interest_count DESC,follower_count DESC,u.created_at DESC
+     -- V3.2.160: first connections favor real shared interests and newcomers,
+     -- not only profiles that already have many followers.
+     ORDER BY shared_interest_count DESC,
+       (u.created_at>=now()-interval '30 days') DESC,
+       (NULLIF(BTRIM(u.bio),'') IS NOT NULL OR u.avatar_url IS NOT NULL) DESC,
+       md5($1::text || ':' || CURRENT_DATE::text || ':first-circle:' || u.id::text) ASC,
+       follower_count DESC,u.created_at DESC,u.id DESC
     LIMIT 6
   `,[req.user.id]);
 
