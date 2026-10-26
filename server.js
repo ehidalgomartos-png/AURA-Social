@@ -519,6 +519,9 @@ async function ensurePublicProfileSeoV177(){
   return publicProfileSeoV177Ready;
 }
 
+// V3.2.163: public, metadata-only community link cards.
+require('./src/services/public-community-share-v32163')(app,{db,publicOrigin,escapeHtml,publicEntryHrefV188,publicEntryBarV192,publicLegalFooterV197});
+
 app.get('/perfil/:username',async(req,res)=>{
   try{
     await Promise.all([ensurePublicProfileSeoV177(),ensurePublicPostAudienceV18()]);
