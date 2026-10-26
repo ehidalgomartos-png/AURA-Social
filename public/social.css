@@ -5216,6 +5216,8 @@ select:focus-visible{
 .community-discovery-card{position:relative;border:1px solid var(--line);border-radius:15px;background:var(--paper);overflow:hidden}
 .community-discovery-main{width:100%;display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;padding:12px 42px 12px 12px;border:0;background:transparent;text-align:left;color:inherit}
 .community-discovery-reason{display:block;margin-top:6px;color:var(--teal);font-size:9px;font-style:normal;font-weight:900}
+/* V3.2.161: existing community detail, without automated joining. */
+.community-discovery-open-v32161{display:block;margin-top:8px;color:var(--navy);font-size:11px;font-weight:800}
 .community-discovery-interests{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}
 .community-discovery-interests i{display:inline-flex;padding:3px 6px;border-radius:999px;background:var(--soft);color:var(--muted);font-size:8px;font-style:normal;font-weight:800}
 .community-discovery-hide{position:absolute;top:8px;right:8px;width:30px;height:30px;border:1px solid var(--line);border-radius:50%;background:var(--paper);color:var(--muted);font-weight:900}
