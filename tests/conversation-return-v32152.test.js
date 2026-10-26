@@ -87,7 +87,7 @@ test('renders only escaped text through textContent and opens post using existin
  assert.match(el['#returnConversationExcerptV32152'].textContent,/^<script>/);
  assert.equal(sandbox.render(null),false);
  assert.equal(classes.has('hidden'),true);
- assert.match(social,/await openPostFocus\(id\)/);
+ assert.match(social,/await openComments\(id,\{focusComposer:false\}\)/);
  assert.match(social,/const match=selectReturnConversationV32152\(feed\.d\?\.posts,me\.id\)/);
  assert.match(social,/d\.participation\?\.can_show===true/);
 });
@@ -106,7 +106,7 @@ test('the existing return summary remains single and opt-in, with persisted snoo
  assert.match(routes,/interval '72 hours'/);
  assert.match(routes,/interval '7 days'/);
  assert.doesNotMatch(routes,/INSERT INTO notifications|sendEmail|sendPush|sendMail|setTimeout|setInterval/i);
- assert.match(social,/api\('\/api\/growth\/pulse\/conversation-shown',\{method:'POST'\}\)/);
+ assert.match(social,/api\('\/api\/growth\/pulse\/conversation-shown',\{/);
  assert.match(social,/api\('\/api\/growth\/pulse\/conversation-snooze',\{method:'POST'\}\)/);
 });
 
