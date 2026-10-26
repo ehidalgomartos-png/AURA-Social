@@ -11081,12 +11081,34 @@ async function handleInitialDeepLink() {
 // V3.3.7: prioritise the visible home feed and Stories. Below-the-fold
 // summaries and off-screen inbox lists no longer compete with first render.
 let startupHomeExtrasRequestedV337=false;
+// V3.3.8: do not run the same home panel concurrently on rapid mobile navigation
+// or when the deferred start races with the user's first return to Inicio.
+// No response data is cached; completed and failed requests can refresh normally.
+const homePanelInFlightV338=new Map();
+function loadHomePanelOnceV338(key,loader){
+  const existing=homePanelInFlightV338.get(key);
+  if(existing)return existing;
+  let task;
+  try{task=Promise.resolve(loader());}
+  catch(error){task=Promise.reject(error);}
+  homePanelInFlightV338.set(key,task);
+  const clear=()=>{
+    if(homePanelInFlightV338.get(key)===task)homePanelInFlightV338.delete(key);
+  };
+  // Both success and failure clear the in-memory lock; Promise.allSettled
+  // remains responsible for handling errors without blocking the home screen.
+  void task.then(clear,clear);
+  return task;
+}
 function loadStartupHomePanelsV337(){
   if(activeViewName!=='feed')return;
   const firstVisit=!startupHomeExtrasRequestedV337;
   startupHomeExtrasRequestedV337=true;
   const tasks=[
-    loadReturnPulse(),loadHomeMomentum(),loadGrowthPanel(),loadCommunityReturn()
+    loadHomePanelOnceV338('pulse',()=>loadReturnPulse()),
+    loadHomePanelOnceV338('momentum',()=>loadHomeMomentum()),
+    loadHomePanelOnceV338('growth',()=>loadGrowthPanel()),
+    loadHomePanelOnceV338('communityReturn',()=>loadCommunityReturn())
   ];
   // The small home recommendations were formerly loaded only at boot.
   // Keep them available for members who arrive from a deep link instead.
