@@ -60,7 +60,9 @@ test('returning after one hour checks again without repeated writes or timers',a
 test('concurrent visibility events cannot start overlapping service worker updates',async()=>{
  const h=runHarness();h.defer();
  const work=h.load();
- await Promise.resolve();await Promise.resolve();await Promise.resolve();
+ // Registration and the update call run through separate promise turns.
+ // Await the observable update rather than assuming a fixed microtask count.
+ for(let i=0;i<20 && h.calls.update===0;i++)await Promise.resolve();
  assert.equal(h.calls.update,1);
  await h.visible();await h.visible();
  assert.equal(h.calls.update,1);
