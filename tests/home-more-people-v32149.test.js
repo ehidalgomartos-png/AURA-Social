@@ -9,7 +9,8 @@ const social=read('public/social.js');
 
 const start=social.indexOf('function activePersonHTML(user)');
 const finish=social.indexOf('function readLastHomeVisit()',start);
-const loaderStart=social.indexOf('async function loadActivePeople()');
+// Include the request sequence declaration now guarding overlapping responses.
+const loaderStart=social.indexOf('let activePeopleRequestSequenceV3310=0;');
 const loaderEnd=social.indexOf('async function loadHomeMomentum()',loaderStart);
 assert.ok(start>0&&finish>start&&loaderStart>finish&&loaderEnd>loaderStart);
 
