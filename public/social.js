@@ -1320,20 +1320,28 @@ function momentumCardHTML(post) {
   </button>`;
 }
 
+// El Inicio debe incluir personas recién llegadas, incluso sin publicaciones.
 function activePersonHTML(user) {
   const shared = Number(user.shared_interest_count || 0);
-  const activity = compactTimeAgo(user.last_activity_at);
-  const reason = shared
+  const joinedAt = Date.parse(user.created_at || '');
+  const activityAt = Date.parse(user.last_activity_at || '');
+  const now = Date.now();
+  const newHere = Number.isFinite(joinedAt) && joinedAt <= now &&
+    joinedAt >= now - 30 * 24 * 60 * 60 * 1000;
+  // El endpoint de sugerencias solo revela actividad pública cuando show_activity=true.
+  const recentlyActive = Number.isFinite(activityAt) && activityAt <= now &&
+    activityAt >= now - 7 * 24 * 60 * 60 * 1000;
+  const reason = shared > 0
     ? `${shared} ${shared === 1 ? 'interés' : 'intereses'} en común`
-    : user.following
-      ? 'Ya le sigues'
-      : 'Actividad reciente';
+    : newHere ? 'Nuevo por aquí'
+    : recentlyActive ? 'Actividad pública reciente'
+    : user.following ? 'Ya le sigues' : 'Descubre su perfil';
 
   return `<article class="active-person-card">
-    ${profileLink(user.username, `<span class="active-person-avatar">${avatarHTML(user)}<i></i></span>`, 'active-person-profile')}
+    ${profileLink(user.username, `<span class="active-person-avatar">${avatarHTML(user)}</span>`, 'active-person-profile')}
     <div class="active-person-copy">
       ${profileLink(user.username, `<b>${esc(user.display_name)}</b>`, 'active-person-name')}
-      <small>@${esc(user.username)} · ${activity}</small>
+      <small>@${esc(user.username)}${recentlyActive ? ' · ' + compactTimeAgo(user.last_activity_at) : ''}</small>
       <span>${reason}</span>
     </div>
     <button type="button" class="person-follow ${user.following ? 'following' : ''}" data-suggest-follow="${user.id}" data-following="${user.following ? '1' : '0'}">${user.following ? 'Siguiendo' : 'Seguir'}</button>
@@ -1460,13 +1468,27 @@ async function loadActivePeople() {
   const root = $('#activePeople');
   if (!root) return [];
 
-  const { r, d } = await api('/api/profiles/active?limit=10');
-  const users = r.ok && Array.isArray(d.users) ? d.users : [];
+  // Los dos endpoints conservan privacidad, bloqueos, silencios y ocultaciones.
+  // Los tres perfiles recientes se priorizan y el resto se personaliza.
+  const [newcomers, recommended] = await Promise.all([
+    api('/api/profiles/suggestions?limit=5&mode=new'),
+    api('/api/profiles/suggestions?limit=12&mode=for_you')
+  ]);
+  const newUsers = newcomers.r.ok && Array.isArray(newcomers.d.users) ? newcomers.d.users : [];
+  const suggestedUsers = recommended.r.ok && Array.isArray(recommended.d.users) ? recommended.d.users : [];
+  const seen = new Set();
+  const users = [...newUsers.slice(0,3), ...suggestedUsers, ...newUsers.slice(3)]
+    .filter(user => {
+      if (!user || !user.id || seen.has(String(user.id))) return false;
+      seen.add(String(user.id));
+      return true;
+    }).slice(0,12);
 
   root.innerHTML = users.length
     ? users.map(activePersonHTML).join('')
-    : '<div class="active-people-empty">Cuando haya más actividad reciente aparecerán personas aquí.</div>';
-
+    : '<div class="active-people-empty">Aún hay pocas personas para descubrir. Puedes invitar a alguien a RedLibertad.</div>';
+  const hint = $('#activePeopleHint');
+  if (hint) hint.hidden = users.length <= 2;
   return users;
 }
 
