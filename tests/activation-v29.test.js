@@ -117,7 +117,8 @@ function clientHarness(response){
   assert.ok(start>=0&&end>start,'growth view renderer missing');
   const participationStart=social.indexOf('const FIRST_POST_IDEAS_V32151=');
   assert.ok(participationStart>0&&participationStart<start);
-  const app=new Function('
+  const app=new Function('$','api','esc','personCardHTML','growthInviteUrl','me',
+    social.slice(participationStart,start)+social.slice(start,end)+String.fromCharCode(10)+'return {render:loadGrowthPanel,step:growthStepHTML};')(
     $,async()=>({r:{ok:true},d:response}),esc,
     item=>'<article>'+esc(item.username)+'</article>',
     ()=>'https://redlibertad.com/?invite=test',
