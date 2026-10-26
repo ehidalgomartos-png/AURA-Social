@@ -50,7 +50,7 @@ test('server creates a one-time in-app welcome per eligible user, no mass mail, 
  assert.match(route,/CREATE TABLE IF NOT EXISTS user_welcome_state_v32150/);
  assert.match(route,/user_id BIGINT PRIMARY KEY REFERENCES users\(id\) ON DELETE CASCADE/);
  assert.match(text,/router\.post\('\/welcome\/activate',requireAuth/);
- assert.match(text,/NOT EXISTS\(SELECT 1 FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published'\)/);
+ assert.match(text,/NOT EXISTS\(SELECT 1 FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published' AND p.post_kind='post'\)/);
  assert.match(text,/u\.status='active' AND u\.is_admin=false/);
  assert.match(text,/ON CONFLICT \(user_id\) DO NOTHING/);
  assert.match(text,/INSERT INTO notifications\(user_id,actor_id,type,entity_type,entity_id,text\)/);
