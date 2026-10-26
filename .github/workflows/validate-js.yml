@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.149 discover real newcomers in mobile Home
+        run: node --test tests/home-more-people-v32149.test.js
       - name: V3.2.148 real price freshness, safe retries and conservative SEO
         run: node --test tests/marketplace-comparador-precios-fiables-v32148.test.js
       - name: V3.2.147 reviewed merchant URL persistence and admin protection
