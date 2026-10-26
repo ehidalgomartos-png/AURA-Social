@@ -115,8 +115,10 @@ function clientHarness(response){
   const start=social.indexOf('function growthStepHTML(step) {');
   const end=social.indexOf('async function shareGrowthInvite(kind',start);
   assert.ok(start>=0&&end>start,'growth view renderer missing');
+  const participationStart=social.indexOf('const FIRST_POST_IDEAS_V32151=');
+  assert.ok(participationStart>0&&participationStart<start);
   const app=new Function('$','api','esc','personCardHTML','growthInviteUrl','me',
-    social.slice(start,end)+'\nreturn {render:loadGrowthPanel,step:growthStepHTML};')(
+    social.slice(participationStart,start)+social.slice(start,end)+String.fromCharCode(10)+'return {render:loadGrowthPanel,step:growthStepHTML};')(
     $,async()=>({r:{ok:true},d:response}),esc,
     item=>'<article>'+esc(item.username)+'</article>',
     ()=>'https://redlibertad.com/?invite=test',

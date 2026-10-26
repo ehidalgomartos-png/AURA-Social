@@ -8089,3 +8089,66 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
     justify-content:center;
   }
 }
+
+/* V3.2.151 — Invitación opcional a la primera publicación, dentro de los pasos. */
+#feedView .first-post-ideas-v32151{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+}
+#feedView .first-post-ideas-v32151>span{
+  color:var(--navy);
+  font-size:12px;
+  font-weight:800;
+}
+#feedView .first-post-ideas-actions-v32151{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+#feedView .first-post-ideas-actions-v32151 button{
+  min-height:42px;
+  max-width:100%;
+  padding:8px 12px;
+  font-size:11px;
+  font-weight:800;
+  color:var(--navy);
+  border:1px solid rgba(13,34,56,.16);
+  border-radius:12px;
+  background:#fff;
+  cursor:pointer;
+}
+#feedView .first-post-ideas-actions-v32151 button:focus-visible{
+  outline:3px solid var(--teal);
+  outline-offset:2px;
+}
+#feedView .first-post-ideas-v32151 small{
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.4;
+}
+@media(max-width:760px){
+  #feedView .first-post-ideas-actions-v32151{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #feedView .first-post-ideas-actions-v32151 button{
+    min-width:0;
+    white-space:normal;
+  }
+  /* Cuando el checklist está abierto, dejar margen para desplazar el último paso
+     completamente por encima de la barra fija de navegación. */
+  #feedView .home-growth-details-v3224[open]{
+    margin-bottom:calc(var(--mobile-dock-space,112px) + 12px + env(safe-area-inset-bottom));
+  }
+  #feedView .home-growth-details-v3224 .growth-step:last-child{
+    scroll-margin-bottom:calc(var(--mobile-dock-space,112px) + 20px + env(safe-area-inset-bottom));
+  }
+}
+@media(max-width:350px){
+  #feedView .first-post-ideas-actions-v32151{
+    grid-template-columns:1fr;
+  }
+}
