@@ -3168,6 +3168,8 @@ router.get('/feed', optionalAuth, async (req, res) => {
            u.id AS user_id,u.username,u.display_name,u.avatar_url,u.creator_verified,
            (SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) AS like_count,
            ${req.user ? `EXISTS(SELECT 1 FROM likes my_like WHERE my_like.post_id=p.id AND my_like.user_id=$1)` : 'false'} AS liked_by_me,
+           -- Used only to avoid suggesting a discussion where the viewer already commented.
+           ${req.user ? `EXISTS(SELECT 1 FROM comments my_comment WHERE my_comment.post_id=p.id AND my_comment.user_id=$1)` : 'false'} AS commented_by_me,
            (SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) AS comment_count
       FROM posts p JOIN users u ON u.id=p.user_id
      WHERE ${where.join(' AND ')}

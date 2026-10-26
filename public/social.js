@@ -1624,12 +1624,14 @@ $('#communityReturnList')?.addEventListener('click',async event=>{
 // V3.2.152: choose only real, already-authorized content from the normal latest feed.
 // Never fabricate authors, expose sensitive captions or make an automatic comment.
 let returnConversationPostV32152=null;
-function selectReturnConversationV32152(posts,userId,now=Date.now(),lastPostId=null){
+function selectReturnConversationV32152(posts,userId,now=Date.now(),lastPostId=null,triedIds=null){
   if(!Array.isArray(posts))return null;
   return posts.find(post=>{
     if(!post || !/^[1-9][0-9]{0,15}$/.test(String(post.id||'')))return false;
     if(lastPostId!=null && String(post.id)===String(lastPostId))return false;
-    if(String(post.user_id)===String(userId) || post.liked_by_me===true)return false;
+    if(triedIds?.has(String(post.id)))return false;
+    // Never invite someone back to a post they have already commented on.
+    if(String(post.user_id)===String(userId) || post.liked_by_me===true || post.commented_by_me===true)return false;
     if(post.content_level!=='normal' || post.audience!=='public')return false;
     if(post.post_kind && post.post_kind!=='post')return false;
     const created=Date.parse(String(post.created_at||''));
@@ -1732,9 +1734,14 @@ async function loadReturnPulse(force=false) {
     try{
       const feed=await api('/api/posts/feed?mode=latest');
       if(feed.r.ok){
-        const match=selectReturnConversationV32152(feed.d?.posts,me.id,Date.now(),d.participation?.last_post_id);
-        if(match){
-          // Claim atomically before display: only one eligible tab/device can show it.
+        // V3.3.4: a stale/blocked/already-commented first option must not hide
+        // other real candidates. Keep the attempt count small (at most 3)
+        // and let the server atomically enforce privacy, cooldown and uniqueness.
+        const triedIds=new Set();
+        for(let attempt=0;attempt<3;attempt++){
+          const match=selectReturnConversationV32152(feed.d?.posts,me.id,Date.now(),d.participation?.last_post_id,triedIds);
+          if(!match)break;
+          triedIds.add(String(match.id));
           const claimed=await api('/api/growth/pulse/conversation-shown',{
             method:'POST',
             headers:{'Content-Type':'application/json'},
@@ -1742,7 +1749,10 @@ async function loadReturnPulse(force=false) {
           });
           if(claimed.r.ok && claimed.d?.recorded===true){
             hasConversation=renderReturnConversationV32152(match);
+            break;
           }
+          // Do not retry on network/server errors: preserve quiet behavior.
+          if(!claimed.r.ok)break;
         }
       }
     }catch(_){ /* Una sugerencia no debe bloquear el Inicio. */ }

@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.4 real conversation recovery after rejected recommendations
+        run: node --test tests/conversation-fallback-v334.test.js
       - name: V3.3.3 truthful first circle public publishing and privacy
         run: node --test tests/real-connections-v333.test.js
       - name: V3.3.2 first post without a mandatory completed profile
