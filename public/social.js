@@ -6667,6 +6667,32 @@ async function openComments(postId,{focusComposer=false,initialPosition='latest'
   await loadComments(value,{initialPosition});
 }
 
+// V3.2.155: navigate only to a real, server-returned comment after the existing
+// authenticated comments endpoint has checked post visibility. No new public API.
+async function openCommentTargetV32155(postId,commentId){
+  const targetId=String(commentId||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(targetId)){
+    await openComments(postId); // Notifications created before this version.
+    return;
+  }
+  await openComments(postId,{focusComposer:false});
+  const list=$('#commentsList');
+  const modal=$('#commentsModal');
+  if(!list || !modal || modal.classList.contains('hidden') ||
+     String(activeCommentsPostId||'')!==String(postId))return;
+  // Network/access errors show their existing retry state, never a false target.
+  if(list.querySelector('[data-comments-retry]'))return;
+  const target=all('[data-comment-id]',list)
+    .find(row=>String(row.dataset.commentId)===targetId);
+  if(!target){
+    toast('Esta respuesta ya no está disponible en el hilo.');
+    return;
+  }
+  list.scrollTop=Math.max(0,target.offsetTop-12);
+  target.classList.add('comment-target-v32155');
+  list.focus({preventScroll:true});
+}
+
 function openReport(postId) {
   activeReportPostId = Number(postId);
   $('#reportForm').reset();
@@ -7993,9 +8019,14 @@ async function navigateNotification(notification) {
     return;
   }
 
-  // V3.2.29: a comment notification should open its real discussion directly.
+  // V3.2.155: new notifications navigate to the actual reply; legacy ones
+  // continue to open the existing authenticated comments dialog normally.
   if (type === 'comment' && entityType === 'post' && entityId) {
-    await openComments(entityId);
+    const targetId=String(notification.comment_id||'');
+    if(/^[1-9][0-9]{0,15}$/.test(targetId))
+      await openCommentTargetV32155(entityId,targetId);
+    else
+      await openComments(entityId);
     return;
   }
 
