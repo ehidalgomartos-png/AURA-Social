@@ -1,6 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const db = require('../db');
+const {ensureCommentNotificationTargetV32155}=require('../services/comment-notification-target-v32155');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { validateContentLevel, canViewerSee } = require('../services/contentPolicy');
 
@@ -3969,6 +3970,8 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
   if(!parsed.success)return res.status(400).json({error:'invalid_comment'});
   const visiblePost=await accessiblePublishedPost(req.params.id,req.user.id);
   if(!visiblePost)return res.status(404).json({error:'post_not_found'});
+  // Upgrade once before the insert so new comment notifications remain navigable.
+  await ensureCommentNotificationTargetV32155();
 
   let parentComment=null;
   let rootParentId=null;
@@ -3999,10 +4002,10 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
   if(replyTargetId && String(replyTargetId)!==String(req.user.id)){
     await db.query(`
       INSERT INTO notifications (
-        user_id,actor_id,type,entity_type,entity_id,text
+        user_id,actor_id,type,entity_type,entity_id,comment_id,text
       )
-      VALUES ($1,$2,'comment','post',$3,'Ha respondido a tu comentario.')
-    `,[replyTargetId,req.user.id,req.params.id]);
+      VALUES ($1,$2,'comment','post',$3,$4,'Ha respondido a tu comentario.')
+    `,[replyTargetId,req.user.id,req.params.id,result.rows[0].id]);
   }
 
   if(
@@ -4011,13 +4014,14 @@ router.post('/:id/comments',requireAuth,async(req,res)=>{
   ){
     await db.query(`
       INSERT INTO notifications (
-        user_id,actor_id,type,entity_type,entity_id,text
+        user_id,actor_id,type,entity_type,entity_id,comment_id,text
       )
-      VALUES ($1,$2,'comment','post',$3,$4)
+      VALUES ($1,$2,'comment','post',$3,$4,$5)
     `,[
       ownerId,
       req.user.id,
       req.params.id,
+      result.rows[0].id,
       rootParentId ? 'Ha respondido en los comentarios de tu publicación.' : 'Ha comentado tu publicación.'
     ]);
   }
