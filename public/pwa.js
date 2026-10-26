@@ -1,15 +1,39 @@
 'use strict';
 // V3.2.39: one mobile installation experience shared by visitors and signed-in members.
+// V3.3.6: mobile-friendly SW refresh budget. Previously every tab focus
+// triggered a network update, including repeated app switches on slow networks.
 let serviceWorkerRegistration=null;
+const SW_UPDATE_INTERVAL_V336=60*60*1000;
+const SW_ERROR_RETRY_V336=5*60*1000;
+let lastServiceWorkerCheckAtV336=-Infinity;
+let pendingServiceWorkerCheckV336=null;
+function refreshServiceWorkerV336(){
+  if(!serviceWorkerRegistration || pendingServiceWorkerCheckV336 ||
+     navigator.onLine===false || document.visibilityState!=='visible')return Promise.resolve(false);
+  const now=Date.now();
+  if(now>=lastServiceWorkerCheckAtV336 &&
+     now-lastServiceWorkerCheckAtV336<SW_UPDATE_INTERVAL_V336)return Promise.resolve(false);
+  lastServiceWorkerCheckAtV336=now;
+  const work=Promise.resolve()
+    .then(()=>serviceWorkerRegistration.update())
+    .then(()=>true,()=>{
+      // Retry transient failures after five minutes rather than on every focus.
+      lastServiceWorkerCheckAtV336=Date.now()-SW_UPDATE_INTERVAL_V336+SW_ERROR_RETRY_V336;
+      return false;
+    })
+    .finally(()=>{if(pendingServiceWorkerCheckV336===work)pendingServiceWorkerCheckV336=null;});
+  pendingServiceWorkerCheckV336=work;
+  return work;
+}
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
     try{
       serviceWorkerRegistration=await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
-      serviceWorkerRegistration.update().catch(()=>{});
+      await refreshServiceWorkerV336();
     }catch(_){}
   });
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible')serviceWorkerRegistration?.update().catch(()=>{});
+    if(document.visibilityState==='visible')void refreshServiceWorkerV336();
   });
 }
 
