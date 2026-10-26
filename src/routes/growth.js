@@ -45,6 +45,7 @@ async function ensureGrowthTables() {
       `);
       await db.query('ALTER TABLE user_experience_state ADD COLUMN IF NOT EXISTS participation_prompt_shown_at TIMESTAMPTZ');
       await db.query('ALTER TABLE user_experience_state ADD COLUMN IF NOT EXISTS participation_prompt_snoozed_until TIMESTAMPTZ');
+      await db.query('ALTER TABLE user_experience_state ADD COLUMN IF NOT EXISTS participation_prompt_post_id BIGINT');
       await db.query(`
         CREATE TABLE IF NOT EXISTS user_welcome_state_v32150 (
           user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -311,7 +312,7 @@ router.get('/pulse', requireAuth, async (req,res)=>{
   const viewer=viewerResult.rows[0];
 
   const state=await db.query(
-    'SELECT last_home_seen_at,participation_prompt_shown_at,participation_prompt_snoozed_until FROM user_experience_state WHERE user_id=$1 LIMIT 1',
+    'SELECT last_home_seen_at,participation_prompt_shown_at,participation_prompt_snoozed_until,participation_prompt_post_id FROM user_experience_state WHERE user_id=$1 LIMIT 1',
     [req.user.id]
   );
   const stored=state.rows[0]?.last_home_seen_at ? new Date(state.rows[0].last_home_seen_at) : null;
@@ -449,7 +450,8 @@ router.get('/pulse', requireAuth, async (req,res)=>{
         lastPromptAt:state.rows[0]?.participation_prompt_shown_at,
         snoozedUntil:state.rows[0]?.participation_prompt_snoozed_until,
         hasPublishedPosts:viewer.has_published_posts===true
-      })
+      }),
+      last_post_id:state.rows[0]?.participation_prompt_post_id || null
     },
     counts:{
       unread_messages:Number(messages.rows[0]?.n || 0),
@@ -462,18 +464,61 @@ router.get('/pulse', requireAuth, async (req,res)=>{
   });
 });
 
-// Record an actually displayed prompt, never on a passive GET or by a scheduled job.
+// V3.2.153: claim the recommendation BEFORE showing it. Atomically prevents
+// concurrent tabs/devices from displaying a duplicate or an inaccessible post.
+// Viewing GET /pulse never writes state or sends notifications.
 router.post('/pulse/conversation-shown',requireAuth,async(req,res)=>{
+  const postId=String(req.body?.postId||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(postId))return res.status(400).json({error:'invalid_post_id'});
   const result=await db.query(`
     UPDATE user_experience_state
-       SET participation_prompt_shown_at=now(),updated_at=now()
+       SET participation_prompt_shown_at=now(),
+           participation_prompt_post_id=$2::bigint,
+           updated_at=now()
      WHERE user_id=$1
+       AND last_home_seen_at<=now()-interval '24 hours'
        AND (participation_prompt_shown_at IS NULL
          OR participation_prompt_shown_at<=now()-interval '72 hours')
        AND (participation_prompt_snoozed_until IS NULL
          OR participation_prompt_snoozed_until<=now())
+       AND participation_prompt_post_id IS DISTINCT FROM $2::bigint
+       AND EXISTS (
+         SELECT 1 FROM posts own
+         WHERE own.user_id=$1 AND own.moderation_status='published'
+       )
+       AND EXISTS (
+         SELECT 1 FROM posts p JOIN users u ON u.id=p.user_id
+         WHERE p.id=$2::bigint
+           AND p.user_id<>$1
+           AND p.moderation_status='published'
+           AND u.status='active'
+           AND p.audience='public'
+           AND p.content_level='normal'
+           AND COALESCE(p.post_kind,'post')='post'
+           AND p.created_at>=now()-interval '7 days'
+           AND length(btrim(COALESCE(p.caption,'')))>=30
+           AND NOT EXISTS (
+             SELECT 1 FROM blocks b WHERE
+               (b.blocker_id=$1 AND b.blocked_id=p.user_id)
+               OR (b.blocker_id=p.user_id AND b.blocked_id=$1)
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=p.user_id
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM discovery_hidden_items h WHERE h.user_id=$1
+               AND ((h.item_type='post' AND h.item_id=p.id)
+                 OR (h.item_type='user' AND h.item_id=p.user_id))
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM likes l WHERE l.user_id=$1 AND l.post_id=p.id
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM comments c WHERE c.user_id=$1 AND c.post_id=p.id
+           )
+       )
     RETURNING user_id
-  `,[req.user.id]);
+  `,[req.user.id,postId]);
   res.json({ok:true,recorded:result.rowCount===1});
 });
 
