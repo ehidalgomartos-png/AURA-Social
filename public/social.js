@@ -9814,7 +9814,7 @@ async function loadCommunityPosts(){
     : focus==='mine'
       ? '<div class="community-posts-empty"><b>Aún no has participado en conversaciones aquí.</b><p>Vuelve a Todas para descubrir una publicación y participar cuando quieras.</p></div>'
       : '<div class="community-posts-empty"><b>Todavía no hay publicaciones.</b><p>Los miembros pueden iniciar la conversación.</p></div>';
-  if($('#communityPostCount'))$('#communityPostCount').textContent=focus==='mine'?`${posts.length} conversaciones`:`${posts.length} publicaciones`;
+  if($('#communityPostCount'))$('#communityPostCount').textContent=focus==='mine'?`${posts.length} ${posts.length===1?'conversación':'conversaciones'}`:`${posts.length} publicaciones`;
   all('[data-open-shared-post]',root).forEach(button=>button.onclick=()=>openPostFocus(button.dataset.openSharedPost));
 }
 
