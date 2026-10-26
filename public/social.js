@@ -79,6 +79,8 @@ let activeMessageReply = null;
 let messageConversationFilter = 'all';
 let messageConversationSearch = '';
 let messageConversationSearchTimer = null;
+// V3.3.9: prevent older inbox list requests from overwriting newer filters.
+let conversationListRequestSequenceV339=0;
 let communityConversationsData=null;
 let communityConversationsLoading=false;
 let communityDirectoryItems=[];
@@ -147,6 +149,8 @@ let publicProfilePostsSequence=0;
 let activeNotificationFilter = 'all';
 let pendingRepliesOnlyV32156=false;
 let notificationCache = [];
+// Protect the notification view and badge against out-of-order list responses.
+let notificationListRequestSequenceV339=0;
 let liveActivitySource = null;
 let liveActivityState = {
   notificationUnread:null,
@@ -8161,9 +8165,12 @@ async function navigateNotification(notification) {
 }
 
 async function loadNotifications() {
+  const requestId=++notificationListRequestSequenceV339;
   const root=$('#notificationsList');
   root?.setAttribute('aria-busy','true');
   const { r,d } = await api('/api/notifications');
+  // An older response must never replace a newer notification list or badge.
+  if(requestId!==notificationListRequestSequenceV339)return;
   root?.setAttribute('aria-busy','false');
   if(!r.ok){
     if(root)root.innerHTML=uiStateHTML({title:'No pudimos cargar tu actividad',copy:'No has perdido ninguna notificación. Puedes volver a intentarlo.',retry:'notifications'});
@@ -8372,10 +8379,16 @@ async function loadCommunityConversations(){
 }
 
 async function loadConversations(openId = null) {
-  const params=new URLSearchParams({filter:messageConversationFilter,q:messageConversationSearch});
+  const requestId=++conversationListRequestSequenceV339;
+  const filter=messageConversationFilter,search=messageConversationSearch;
+  const params=new URLSearchParams({filter,q:search});
   const listRoot=$('#conversationList');
   listRoot?.setAttribute('aria-busy','true');
   const {r,d}=await api('/api/messages/conversations?'+params.toString());
+  // Mobile searches and filters can finish out of order. Ignore stale results,
+  // including stale error screens, unread counters and deep-link chat openings.
+  if(requestId!==conversationListRequestSequenceV339 ||
+     filter!==messageConversationFilter || search!==messageConversationSearch)return;
   listRoot?.setAttribute('aria-busy','false');
   if(!r.ok){
     if(listRoot)listRoot.innerHTML=uiStateHTML({title:'No pudimos cargar tus conversaciones',copy:'Tus mensajes siguen guardados. Vuelve a intentarlo cuando tengas conexión.',retry:'conversations'});
