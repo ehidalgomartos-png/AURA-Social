@@ -396,8 +396,11 @@ router.get('/discover',async(req,res)=>{
       owner.username AS owner_username,owner.display_name AS owner_display_name,
       request.status AS request_status,
       (SELECT count(*)::int FROM community_members cm WHERE cm.community_id=c.id) AS member_count,
-      (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published') AS post_count,
-      (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published' AND cp.created_at>=now()-interval '14 days') AS recent_post_count,
+      -- Private-community publication totals are not discovery metadata.
+      CASE WHEN c.privacy='public'
+        THEN (SELECT count(*)::int FROM community_posts cp WHERE cp.community_id=c.id AND cp.moderation_status='published')
+        ELSE NULL END AS post_count,
+      COALESCE(recent.visible_recent_post_count,0) AS recent_post_count,
       (
         SELECT count(*)::int
           FROM community_interests ci
@@ -424,6 +427,26 @@ router.get('/discover',async(req,res)=>{
       ) AS connection_member_count
     FROM communities c
     JOIN users owner ON owner.id=c.owner_id
+    LEFT JOIN LATERAL (
+      SELECT count(*)::int AS visible_recent_post_count,
+             max(cp.created_at) AS latest_visible_post_at
+        FROM community_posts cp
+        JOIN users author ON author.id=cp.user_id
+       WHERE c.privacy='public'
+         AND cp.community_id=c.id
+         AND cp.moderation_status='published'
+         AND cp.created_at>=now()-interval '14 days'
+         AND author.status='active'
+         AND NOT EXISTS (
+           SELECT 1 FROM blocks blocked_post
+            WHERE (blocked_post.blocker_id=$1 AND blocked_post.blocked_id=cp.user_id)
+               OR (blocked_post.blocker_id=cp.user_id AND blocked_post.blocked_id=$1)
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM mutes muted_post
+            WHERE muted_post.muter_id=$1 AND muted_post.muted_id=cp.user_id
+         )
+    ) recent ON true
     LEFT JOIN community_join_requests request ON request.community_id=c.id AND request.user_id=$1
     WHERE owner.status='active'
       AND NOT EXISTS(
@@ -443,6 +466,9 @@ router.get('/discover',async(req,res)=>{
         SELECT 1 FROM mutes m
          WHERE m.muter_id=$1 AND m.muted_id=c.owner_id
       )
+      -- New means created recently; Active requires a visible real publication.
+      AND ($4<>'new' OR c.created_at>=now()-interval '30 days')
+      AND ($4<>'active' OR COALESCE(recent.visible_recent_post_count,0)>0)
       AND ($2='' OR c.category=$2)
       AND (
         $3=''
@@ -474,12 +500,10 @@ router.get('/discover',async(req,res)=>{
           ) THEN 0 ELSE 1 END
       END,
       CASE WHEN $4='new' THEN c.created_at END DESC NULLS LAST,
-      CASE WHEN $4='active' THEN (
-        SELECT max(cp2.created_at) FROM community_posts cp2
-         WHERE cp2.community_id=c.id AND cp2.moderation_status='published'
-      ) END DESC NULLS LAST,
+      CASE WHEN $4='active' THEN recent.latest_visible_post_at END DESC NULLS LAST,
       shared_interest_count DESC,
       connection_member_count DESC,
+      CASE WHEN $4='recommended' THEN recent.visible_recent_post_count END DESC NULLS LAST,
       c.updated_at DESC,
       c.id DESC
     LIMIT 40
@@ -492,10 +516,11 @@ router.get('/discover',async(req,res)=>{
       const connections=Number(row.connection_member_count||0);
       const recent=Number(row.recent_post_count||0);
       let reason='Comunidad que podrías explorar';
-      if(shared>0)reason=`${shared} ${shared===1?'interés compartido':'intereses compartidos'}`;
+      if(mode==='active'&&recent>0)reason=`${recent} ${recent===1?'publicación reciente':'publicaciones recientes'} · últimos 14 días`;
+      else if(mode==='new')reason='Comunidad creada en los últimos 30 días';
+      else if(shared>0)reason=`${shared} ${shared===1?'interés compartido':'intereses compartidos'}`;
       else if(connections>0)reason=`${connections} ${connections===1?'conexión participa':'conexiones participan'}`;
-      else if(recent>0)reason=`Actividad reciente · ${recent} ${recent===1?'publicación':'publicaciones'}`;
-      else if(mode==='new')reason='Comunidad creada recientemente';
+      else if(recent>0)reason=`Actividad pública reciente · ${recent} ${recent===1?'publicación':'publicaciones'}`;
       return {...row,reason};
     });
 
