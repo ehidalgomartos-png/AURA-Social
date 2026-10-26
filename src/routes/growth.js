@@ -221,6 +221,14 @@ router.get('/me', requireAuth, async (req,res)=>{
   const starterProfiles=await db.query(`
     SELECT u.id,u.username,u.display_name,u.avatar_url,u.bio,u.creator_verified,u.location_label,
            (u.created_at>=now()-interval '30 days') AS recent_joiner,
+           -- V3.3.3: recent normal public posts count only when activity visibility is enabled.
+           (u.show_activity=true AND EXISTS(
+             SELECT 1 FROM posts public_post WHERE public_post.user_id=u.id
+               AND public_post.moderation_status='published'
+               AND public_post.audience='public' AND public_post.content_level='normal'
+               AND public_post.post_kind='post'
+               AND public_post.created_at>=now()-interval '14 days'
+           )) AS recent_public_post,
            false AS following,
            (SELECT count(*)::int FROM follows f WHERE f.following_id=u.id) AS follower_count,
            (SELECT count(*)::int FROM user_interests ti
@@ -240,8 +248,10 @@ router.get('/me', requireAuth, async (req,res)=>{
        AND NOT EXISTS(SELECT 1 FROM discovery_hidden_items h WHERE h.user_id=$1 AND h.item_type='user' AND h.item_id=u.id)
      -- V3.2.160: first connections favor real shared interests and newcomers,
      -- not only profiles that already have many followers.
+     -- Genuine recent public participation breaks ties after shared interests/newcomers.
      ORDER BY shared_interest_count DESC,
        (u.created_at>=now()-interval '30 days') DESC,
+       recent_public_post DESC,
        (NULLIF(BTRIM(u.bio),'') IS NOT NULL OR u.avatar_url IS NOT NULL) DESC,
        md5($1::text || ':' || CURRENT_DATE::text || ':first-circle:' || u.id::text) ASC,
        follower_count DESC,u.created_at DESC,u.id DESC

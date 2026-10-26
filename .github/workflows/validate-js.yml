@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.3 truthful first circle public publishing and privacy
+        run: node --test tests/real-connections-v333.test.js
       - name: V3.3.2 first post without a mandatory completed profile
         run: node --test tests/first-post-priority-v332.test.js
       - name: V3.3.1 truthful onboarding steps
@@ -534,5 +536,7 @@ jobs:
         run: node --test tests/marketplace-gsc-uninspected-postgres-v32126.test.js
       - name: V3.2.127 verify full-catalogue editorial priority, age and image readiness with PostgreSQL 18
         run: node --test tests/marketplace-gsc-priority-postgres-v32127.test.js
+      - name: V3.3.3 verify authentic public first-circle candidates in PostgreSQL 18
+        run: node --test tests/real-connections-postgres-v333.test.js
       - name: V3.2.130 verify related public links and title-match privacy against PostgreSQL 18
         run: node --test tests/marketplace-public-discovery-postgres-v32130.test.js
