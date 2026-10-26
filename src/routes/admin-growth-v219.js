@@ -22,7 +22,13 @@ const GROWTH_SQL=[
   "s.created_at<=now()-interval '2 days' AS eligible_d1,",
   "s.created_at<=now()-interval '8 days' AS eligible_d7,",
   "COALESCE(events.first_week,FALSE) AS first_week,",
-  "COALESCE(events.d1,FALSE) AS d1,COALESCE(events.d7,FALSE) AS d7",
+  "COALESCE(events.d1,FALSE) AS d1,COALESCE(events.d7,FALSE) AS d7,",
+  // Current state of this signup cohort, not completion within its signup day.
+  "EXISTS(SELECT 1 FROM users profile WHERE profile.id=s.id",
+  " AND NULLIF(BTRIM(profile.bio),'') IS NOT NULL AND profile.avatar_url IS NOT NULL",
+  " AND EXISTS(SELECT 1 FROM user_interests ui WHERE ui.user_id=profile.id)) AS profile_complete,",
+  "EXISTS(SELECT 1 FROM posts first_post WHERE first_post.user_id=s.id",
+  " AND first_post.moderation_status='published' AND first_post.post_kind='post') AS has_first_post",
   "FROM signups s LEFT JOIN LATERAL (",
   "SELECT bool_or(a.at<s.created_at+interval '7 days') AS first_week,",
   "bool_or(a.at>=s.created_at+interval '1 day' AND a.at<s.created_at+interval '2 days') AS d1,",
@@ -40,10 +46,12 @@ function rate(numerator,denominator){
   return denominator?Math.round(1000*numerator/denominator)/10:null;
 }
 function emptyCounts(){
-  return {signups:0,eligibleWeek:0,firstWeek:0,eligibleD1:0,activeD1:0,eligibleD7:0,activeD7:0};
+  return {signups:0,eligibleWeek:0,firstWeek:0,eligibleD1:0,activeD1:0,eligibleD7:0,activeD7:0,completedProfiles:0,firstPosts:0};
 }
 function addCounts(target,row){
   target.signups++;
+  if(row.profile_complete===true)target.completedProfiles++;
+  if(row.has_first_post===true)target.firstPosts++;
   if(row.eligible_week===true){
     target.eligibleWeek++;
     if(row.first_week===true)target.firstWeek++;
@@ -58,7 +66,9 @@ function addCounts(target,row){
   }
 }
 function displayCounts(x){
-  return {...x,firstWeekRatePct:rate(x.firstWeek,x.eligibleWeek),
+  return {...x,profileCompleteRatePct:rate(x.completedProfiles,x.signups),
+    firstPostRatePct:rate(x.firstPosts,x.signups),
+    firstWeekRatePct:rate(x.firstWeek,x.eligibleWeek),
     d1RatePct:rate(x.activeD1,x.eligibleD1),
     d7RatePct:rate(x.activeD7,x.eligibleD7)};
 }
@@ -92,7 +102,9 @@ function summarizeGrowth(rows,days){
       d1:'Actividad social entre 24 y 48 horas después del registro; solo cuentas con al menos 48 horas de antigüedad.',
       d7:'Actividad social entre 7 y 8 días después del registro; solo cuentas con al menos 8 días de antigüedad.',
       activity:'Publicación, comentario, seguimiento, reacción o mensaje enviado. No implica sesión ni lectura de mensajes.',
-      attribution:'Sin atribución significa que no se registró una ruta de origen; no equivale necesariamente a tráfico directo.'
+      attribution:'Sin atribución significa que no se registró una ruta de origen; no equivale necesariamente a tráfico directo.',
+      profileComplete:'Porcentaje de cuentas registradas en el periodo que hoy tienen foto, presentación e intereses; no mide cuándo se completaron.',
+      firstPost:'Porcentaje de cuentas registradas en el periodo que hoy conservan al menos una publicación ordinaria publicada; excluye Reels y publicaciones eliminadas.'
     },
     privacy:{adminOnly:true,individualUserData:false,externalTracking:false,retrospectiveAttribution:false}
   };
