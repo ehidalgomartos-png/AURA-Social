@@ -7677,6 +7677,37 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 }
 
 /* V3.2.38 — Visually locate the first real new comment, without a second CTA. */
+/* V3.2.156: compact on-demand reply shortcut only in Notificaciones. */
+#notificationsView .notification-reply-shortcut-v32156{
+  display:inline-flex;
+  align-items:center;
+  width:fit-content;
+  max-width:100%;
+  min-height:44px;
+  margin:0 0 12px;
+  padding:9px 14px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--paper);
+  color:var(--navy);
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+#notificationsView .notification-reply-shortcut-v32156[aria-pressed="true"]{
+  border-color:var(--teal);
+  color:var(--teal);
+}
+#notificationsView .notification-reply-shortcut-v32156.hidden,
+#notificationsView .notification-reply-shortcut-v32156[hidden]{display:none!important}
+#notificationsView .notification-reply-shortcut-v32156:focus-visible{
+  outline:3px solid var(--teal);
+  outline-offset:3px;
+}
+@media(max-width:760px){
+  #notificationsView .notification-reply-shortcut-v32156{min-height:44px;margin-left:12px}
+}
+
 /* V3.2.155: exact replies are highlighted only within the existing dialog. */
 #commentsModal .comment-item.comment-target-v32155{
   outline:2px solid var(--teal);
