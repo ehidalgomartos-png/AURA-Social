@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.161 truthful active community discovery and privacy
+        run: node --test tests/honest-active-communities-v32161.test.js
       - name: V3.2.160 fair first-circle connections and privacy
         run: node --test tests/first-connections-v32160.test.js
       - name: V3.2.159 daily diverse and non-repeating profile discovery

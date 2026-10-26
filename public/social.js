@@ -9591,8 +9591,9 @@ function communityDiscoveryCardHTML(community){
         <span class="community-card-kicker">${esc(COMMUNITY_CATEGORY_LABELS[community.category] || 'General')} · ${esc(privacy)}</span>
         <b>${esc(community.name)}</b>
         <p>${esc(community.description || 'Sin descripción todavía.')}</p>
-        <small>${Number(community.member_count||0)} miembros · ${Number(community.post_count||0)} publicaciones</small>
+        <small>${Number(community.member_count||0)} miembros · ${community.privacy==='private'?'Publicaciones reservadas a miembros':Number(community.post_count||0)+' publicaciones'}</small>
         <em class="community-discovery-reason">${esc(community.reason || 'Comunidad que podrías explorar')}</em>
+        <span class="community-discovery-open-v32161">${communityDiscoveryMode==='active'&&community.privacy==='public'&&Number(community.recent_post_count||0)>0?'Ver conversaciones recientes →':'Explorar comunidad →'}</span>
         ${interests.length ? `<span class="community-discovery-interests">${interests.slice(0,4).map(item=>`<i>${esc(item)}</i>`).join('')}</span>` : ''}
       </span>
     </button>
@@ -9605,7 +9606,11 @@ function renderCommunityDiscovery(){
   if(!root)return;
   root.innerHTML=communityDiscoveryItems.length
     ? communityDiscoveryItems.map(communityDiscoveryCardHTML).join('')
-    : '<div class="communities-empty"><b>No hay sugerencias con estos filtros.</b><p>Puedes cambiar categoría, búsqueda o modo.</p></div>';
+    : communityDiscoveryMode==='active'
+      ? '<div class="communities-empty"><b>No hay comunidades públicas con publicaciones recientes.</b><p>Prueba Recomendadas o cambia los filtros.</p></div>'
+      : communityDiscoveryMode==='new'
+        ? '<div class="communities-empty"><b>No hay comunidades creadas en los últimos 30 días.</b><p>Prueba Recomendadas o cambia los filtros.</p></div>'
+        : '<div class="communities-empty"><b>No hay sugerencias con estos filtros.</b><p>Puedes cambiar categoría, búsqueda o modo.</p></div>';
   all('[data-community-discovery-mode]').forEach(button=>{
     button.classList.toggle('active',button.dataset.communityDiscoveryMode===communityDiscoveryMode);
   });
