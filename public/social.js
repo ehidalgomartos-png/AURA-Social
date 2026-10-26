@@ -3,7 +3,7 @@ const all = (s, r = document) => [...r.querySelectorAll(s)];
 let me = null;
 let publicOrigin=location.origin.replace(/\/$/,'');
 let clientAppVersion='unknown';
-let currentMode = 'foryou';
+let currentMode = 'latest';
 let feedRequestSequence = 0;
 let releaseFlags={support_center:true};
 let activeViewName='feed';
@@ -10523,7 +10523,7 @@ async function handleInitialDeepLink() {
     installAppHistoryV32441();
     await loadReleaseFlags();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('foryou'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel(), loadCommunityReturn()]);
+    await Promise.all([loadStories(), loadFeed('latest'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel(), loadCommunityReturn()]);
     startLiveActivity();
     startPresenceHeartbeat();
     syncVisualViewport();
