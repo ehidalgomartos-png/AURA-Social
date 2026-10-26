@@ -9,7 +9,11 @@ const css=read('public/social.css'),posts=read('src/routes/posts.js');
 
 test('Inicio abre Nuevo y nunca arranca silenciosamente en Para ti',()=>{
   assert.match(js,/let currentMode = 'latest';/);
-  assert.match(js,/loadStories\(\), loadFeed\('latest'\), loadConversations\(\)/);
+  // V3.3.7 preserves Nuevo as the default while prioritising the visible
+  // feed over inbox requests on slower mobile connections.
+  assert.match(js,/await Promise\.allSettled\(\[loadFeed\('latest'\),loadStories\(\)\]\)/);
+  assert.match(js,/scheduleStartupExtrasV337\(\)/);
+  assert.match(js,/loadConversations\(\),loadCommunityConversations\(\)/);
   assert.match(html,/<button data-mode="latest" class="active">Nuevo<\/button>/);
   assert.doesNotMatch(html,/<button data-mode="foryou" class="active">Para ti<\/button>/);
   assert.match(js,/all\('\[data-mode\]'\)\.forEach\(b => b\.onclick/);
