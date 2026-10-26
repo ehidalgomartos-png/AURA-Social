@@ -800,6 +800,19 @@ async function loadConnectionCircles(){
   return connectionCircles;
 }
 
+// Collapsible summary only in Explorar mobile. The full connection center
+// and private-circle management remain available without a duplicated panel.
+document.addEventListener('click',event=>{
+  const button=event.target.closest('#connectionsExpandV3311');
+  if(!button)return;
+  const section=$('#connectionsSection');
+  if(!section || section.classList.contains('hidden'))return;
+  const expanded=section.dataset.expanded!=='true';
+  section.dataset.expanded=String(expanded);
+  button.setAttribute('aria-expanded',String(expanded));
+  button.textContent=expanded?'Mostrar menos':'Ver conexiones';
+});
+
 async function loadConnections() {
   const section=$('#connectionsSection');
   const list=$('#connectionsList');
@@ -1215,7 +1228,7 @@ async function openConnectionMessage(username,draft='') {
   }
 }
 
-function personCardHTML(user, compact = false, discoveryMode = 'for_you') {
+function personCardHTML(user, compact = false, discoveryMode = 'for_you', exploreCompact = false) {
   const shared = Number(user.shared_interest_count || 0);
   const followers = Number(user.follower_count || 0);
   const reason = discoveryMode==='starter'
@@ -1233,16 +1246,21 @@ function personCardHTML(user, compact = false, discoveryMode = 'for_you') {
       ? `${followers} ${followers === 1 ? 'seguidor' : 'seguidores'}`
       : 'Nuevo por aquí';
 
-  return `<article class="person-card ${compact ? 'compact' : ''}" data-person-card="${user.id}">
+  const tags=Array.isArray(user.interests)?user.interests:[];
+  const exploreTags=exploreCompact && tags.length
+    ? `<div class="interest-pills explore-interest-pills-v3311">${tags.slice(0,2).map(tag=>`<span>${esc(tag)}</span>`).join('')}${tags.length>2?`<span class="explore-interest-extra-v3311">+${tags.length-2}</span>`:''}</div>`
+    : '';
+  return `<article class="person-card ${compact ? 'compact' : ''} ${exploreCompact ? 'explore-person-v3311' : ''}" data-person-card="${user.id}">
     ${profileLink(user.username, `<span class="person-avatar">${avatarHTML(user)}</span>`, 'person-avatar-link')}
     <div class="person-copy">
       ${profileLink(user.username, `<b>${esc(user.display_name)} ${user.creator_verified ? '<span class="verified">✓</span>' : ''}</b>`, 'person-name-link')}
       <small>${profileLink(user.username, `@${esc(user.username)}`, 'post-username-link')}${user.location_label ? ` · ${esc(user.location_label)}` : ''}</small>
       <span class="suggestion-reason">${reason}</span>
       ${!compact && user.bio ? `<p>${esc(user.bio)}</p>` : ''}
-      ${interestPillsHTML(user.interests, compact)}
+      ${exploreCompact ? exploreTags : interestPillsHTML(user.interests, compact)}
     </div>
     <div class="person-card-actions">
+      ${exploreCompact ? profileLink(user.username, 'Ver perfil', 'explore-person-profile-v3311') : ''}
       <button type="button" class="person-follow ${user.following ? 'following' : ''}" data-suggest-follow="${user.id}" data-following="${user.following ? '1' : '0'}">${user.following ? 'Siguiendo' : 'Seguir'}</button>
       ${compact ? '' : `<button type="button" class="person-hide-suggestion" data-discovery-hide-person="${user.id}" title="Ocultar sugerencia" aria-label="Ocultar sugerencia">×</button>`}
     </div>
@@ -2233,7 +2251,7 @@ async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={})
     peopleDiscoveryPage=page;
     peopleDiscoveryHasMore=d.hasMore===true && page<10 && users.length>0;
     root.innerHTML=users.length
-      ? users.map(user=>personCardHTML(user,false,peopleDiscoveryMode)).join('')
+      ? users.map(user=>personCardHTML(user,false,peopleDiscoveryMode,true)).join('')
       : '<div class="info-card discovery-empty"><b>'+(page>0?'Ya has visto las sugerencias disponibles.':'No hay perfiles en esta selección.')+'</b><p>'+
         esc(peopleDiscoveryEmptyMessage())+
         '</p><button type="button" class="secondary" data-people-mode-reset>Ver todos</button></div>';
@@ -2281,7 +2299,7 @@ async function searchPeople(query){
     $('#peopleDiscoveryTitle').textContent='Resultados para “'+clean+'”';
     $('#clearPeopleSearch').classList.remove('hidden');
     root.innerHTML=users.length
-      ? users.map(user=>personCardHTML(user)).join('')
+      ? users.map(user=>personCardHTML(user,false,'for_you',true)).join('')
       : '<div class="info-card discovery-empty"><b>No encontramos a nadie.</b><p>Prueba con otro nombre o @usuario.</p></div>';
     if(status)status.textContent=users.length?users.length+' resultados para tu búsqueda':'No hay resultados para esa búsqueda.';
   }catch(_){

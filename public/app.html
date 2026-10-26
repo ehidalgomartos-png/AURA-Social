@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/social.css?v=3.2.75&amp;growth-gap-fix=3.3.10.1"><link rel="stylesheet" href="/community-compose-polish-v32771.css?v=3.2.77.1"><link rel="stylesheet" href="/marketplace-entry-v3250.css">
+  <link rel="stylesheet" href="/social.css?v=3.3.11"><link rel="stylesheet" href="/community-compose-polish-v32771.css?v=3.2.77.1"><link rel="stylesheet" href="/marketplace-entry-v3250.css">
   <link rel="stylesheet" href="/pwa-install.css?v=3.2.39">
   <link rel="stylesheet" href="/creator-ops.css">
 </head>
@@ -194,12 +194,13 @@
         <button type="button" data-explore-mobile-section="people" aria-pressed="false" aria-controls="explorePeoplePaneV3232">Personas</button>
       </div>
 
-      <section id="connectionsSection" class="connections-section hidden">
+      <section id="connectionsSection" class="connections-section hidden" data-expanded="false" aria-label="Tus conexiones">
         <div class="connections-head">
           <div><span class="eyebrow">TU RED</span><h2>Tus conexiones</h2><p>Organiza tu red en círculos privados. Solo tú puedes verlos.</p></div>
           <div class="connections-head-actions">
             <button type="button" class="connection-center-open" data-view-jump="connections">Abrir centro</button>
             <button id="newConnectionCircle" class="connection-circle-create" type="button">+ Círculo</button>
+            <button id="connectionsExpandV3311" class="connections-expand-v3311" type="button" aria-expanded="false" aria-controls="connectionsList connectionCircleFilters">Ver conexiones</button>
             <span id="connectionsCount" class="connections-count">0</span>
           </div>
         </div>

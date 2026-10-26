@@ -8314,3 +8314,161 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 @media(max-width:350px){
   #feedView .return-conversation-actions-v32152{grid-template-columns:1fr}
 }
+
+
+/* V3.3.11 — Explorar mobile-first: quicker discovery, not more panels.
+   All layout changes are scoped to Explore and mobile screens. */
+.connections-expand-v3311{display:none}
+@media(max-width:760px){
+  #exploreView:not(.hidden){
+    display:flex;flex-direction:column;min-width:0;
+    gap:0;padding-bottom:calc(var(--mobile-dock-space,112px) + env(safe-area-inset-bottom));
+  }
+  #exploreView .page-title{
+    order:0;display:flex;align-items:center;gap:8px;
+    margin:0 4px 6px;padding:8px 8px 4px;
+    background:transparent;border:0;box-shadow:none;
+  }
+  #exploreView .page-title h1{font-size:23px;line-height:1.15;margin:2px 0 0}
+  #exploreView .page-title .eyebrow{font-size:10px}
+  #exploreView .page-title button{min-height:40px;padding:8px 12px;font-size:12px}
+  #exploreView #exploreMobileSwitchV3232{order:1;margin:6px 4px 10px;padding:4px}
+  #exploreView #exploreMobileSwitchV3232 button{min-height:44px;padding:8px}
+  #exploreView #explorePeoplePaneV3232,
+  #exploreView #exploreContentPaneV3232{order:2}
+  #exploreView #connectionsSection{order:3}
+  #exploreView .marketplace-explore-entry-v3250{order:4}
+  #exploreView .editorial-discovery-entry{order:5}
+  #exploreView .global-search-mobile-toggle-v3233{order:6}
+  #exploreView #globalSearchPanelV3233{order:7}
+
+  /* One compact search row and horizontal, swipeable topics. */
+  #exploreView .people-discovery{
+    margin:0 4px 12px;padding:12px 11px 14px;
+    border-radius:17px;min-width:0;
+  }
+  #exploreView .explore-search-row{margin-bottom:8px}
+  #exploreView .people-search{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    gap:6px;align-items:stretch;
+  }
+  #exploreView .people-search input{min-width:0;padding:10px 12px;min-height:44px;font-size:14px}
+  #exploreView .people-search button{min-width:76px;min-height:44px;padding:8px 10px;font-size:12px}
+  #exploreView .interest-filters{gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:3px 0 7px;scrollbar-width:none}
+  #exploreView .interest-filters button{flex:0 0 auto;min-height:38px;font-size:11px;padding:7px 10px}
+  #exploreView .discovery-heading{margin:7px 0 9px;gap:8px}
+  #exploreView .discovery-heading h2{font-size:18px}
+  #exploreView .discover-people-controls{margin-top:4px;gap:6px}
+  #exploreView .discover-people-modes{gap:5px;min-width:0}
+  #exploreView .discover-people-modes button{min-height:40px;padding:7px 10px;font-size:11px}
+  #exploreView #changePeopleSuggestions{min-height:40px;padding:7px 10px;font-size:11px}
+  #exploreView .discover-people-status{margin:6px 2px 8px;font-size:11px}
+
+  /* Compact, clear actions on the same card. Never change follow/hide APIs. */
+  #exploreView #peopleSuggestions{grid-template-columns:minmax(0,1fr);gap:8px}
+  #exploreView #peopleSuggestions .explore-person-v3311{
+    padding:10px;min-width:0;gap:7px 9px;
+    border-radius:15px;box-shadow:0 3px 12px rgba(13,34,56,.035);
+    grid-template-columns:44px minmax(0,1fr);align-items:start;
+  }
+  #exploreView .explore-person-v3311 .person-avatar{width:44px;height:44px}
+  #exploreView .explore-person-v3311 .person-copy{grid-column:2;min-width:0}
+  #exploreView .explore-person-v3311 .person-copy b{font-size:14px;line-height:1.3}
+  #exploreView .explore-person-v3311 .person-copy small{font-size:11px;margin-top:1px}
+  #exploreView .explore-person-v3311 .suggestion-reason{font-size:10px}
+  #exploreView .explore-person-v3311 .person-copy p{
+    margin:4px 0 0;font-size:11px;line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  #exploreView .explore-person-v3311 .interest-pills{
+    display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0;
+  }
+  #exploreView .explore-person-v3311 .interest-pills span{padding:4px 7px;font-size:10px;line-height:1.2}
+  #exploreView .explore-person-v3311 .person-card-actions{
+    grid-column:2;grid-row:auto;display:flex;justify-content:flex-start;
+    flex-wrap:wrap;align-items:center;gap:6px;width:100%;min-width:0;
+  }
+  #exploreView .explore-person-profile-v3311{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-height:40px;padding:5px 6px;font-size:11px;font-weight:800;color:var(--navy);
+    text-decoration:underline;text-underline-offset:3px;
+  }
+  #exploreView .explore-person-v3311 .person-follow{
+    width:auto;min-height:40px;min-width:72px;padding:7px 10px;font-size:11px;
+  }
+  #exploreView .explore-person-v3311 .person-hide-suggestion{
+    width:40px;min-width:40px;min-height:40px;height:40px;padding:0;
+  }
+
+  /* The private connections section is a secondary, collapsible preview. */
+  #exploreView #connectionsSection{
+    margin:3px 4px 11px;padding:12px;border-radius:16px;
+    background:var(--paper);border:1px solid var(--line);color:var(--navy);
+  }
+  #exploreView #connectionsSection .connections-head{
+    display:flex;align-items:center;gap:8px;margin-bottom:7px;
+  }
+  #exploreView #connectionsSection .connections-head h2{
+    font-size:17px;color:var(--navy);margin:2px 0;
+  }
+  #exploreView #connectionsSection .connections-head .eyebrow{color:#168c81}
+  #exploreView #connectionsSection .connections-head p{font-size:10px;color:var(--muted);line-height:1.3}
+  #exploreView #connectionsSection .connections-head-actions{display:flex;gap:5px;flex-direction:column;align-items:flex-end}
+  #exploreView #connectionsSection .connection-center-open{
+    padding:6px 9px;min-height:36px;font-size:11px;
+    background:var(--ivory);color:var(--navy);border:1px solid var(--line);border-radius:10px;
+  }
+  #exploreView #connectionsSection .connections-count{
+    width:auto;height:auto;min-width:0;padding:3px 7px;font-size:11px;
+    background:rgba(43,183,169,.11);color:var(--navy);
+  }
+  #exploreView #connectionsExpandV3311{
+    display:inline-flex;min-height:38px;align-items:center;justify-content:center;
+    padding:7px 11px;border:1px solid rgba(43,183,169,.38);
+    border-radius:10px;background:#e8f7f4;color:#0d584f;
+    font-size:11px;font-weight:800;
+  }
+  #exploreView #connectionsSection[data-expanded="false"] #connectionCircleFilters,
+  #exploreView #connectionsSection[data-expanded="false"] #newConnectionCircle{
+    display:none!important;
+  }
+  #exploreView #connectionsSection[data-expanded="false"] .connection-card:not(:first-child),
+  #exploreView #connectionsSection[data-expanded="false"] .connection-favorite,
+  #exploreView #connectionsSection[data-expanded="false"] .connection-card-actions,
+  #exploreView #connectionsSection[data-expanded="false"] .connection-circle-tags,
+  #exploreView #connectionsSection[data-expanded="false"] .connection-copy p{
+    display:none!important;
+  }
+  #exploreView #connectionsSection[data-expanded="false"] .connections-strip{
+    display:grid;grid-auto-flow:row;grid-auto-columns:auto;overflow:visible;
+  }
+  #exploreView #connectionsSection[data-expanded="false"] .connection-card{
+    display:grid;grid-template-columns:36px minmax(0,1fr);gap:8px;
+    padding:7px 8px;background:#f5faf9;border-color:var(--line);border-radius:12px;
+    box-shadow:none;min-width:0;
+  }
+  #exploreView #connectionsSection[data-expanded="false"] .connection-avatar{width:36px;height:36px}
+  #exploreView #connectionsSection .connection-copy b{color:var(--navy);font-size:12px}
+  #exploreView #connectionsSection .connection-copy small,
+  #exploreView #connectionsSection .connection-copy span{color:var(--muted);font-size:10px}
+  #exploreView #connectionsSection[data-expanded="true"] .connections-strip{grid-auto-columns:85%}
+  #exploreView #connectionsSection[data-expanded="true"] .connection-card{background:#f4f8f7;border:1px solid var(--line)}
+  #exploreView #connectionsSection[data-expanded="true"] .connection-card-actions button{color:var(--navy)}
+
+  /* Marketplace/news are still reachable, now secondary compact shortcuts. */
+  #exploreView .marketplace-explore-entry-v3250,
+  #exploreView .editorial-discovery-entry{margin:2px 4px 6px}
+  #exploreView .marketplace-explore-entry-v3250 a,
+  #exploreView .editorial-discovery-entry a{
+    display:block;padding:9px 12px;min-height:42px;border-radius:12px;
+    font-size:11px;line-height:1.35;box-shadow:none;
+  }
+  #exploreView .editorial-discovery-entry a span{display:none}
+  #exploreView .global-search-mobile-toggle-v3233{margin:4px 4px 10px}
+}
+@media(max-width:360px){
+  #exploreView .page-title h1{font-size:21px}
+  #exploreView .explore-person-v3311 .person-card-actions{gap:3px}
+  #exploreView .explore-person-profile-v3311{padding-inline:3px}
+  #exploreView #connectionsSection .connections-head p{display:none}
+}
