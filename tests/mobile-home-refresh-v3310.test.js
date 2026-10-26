@@ -52,13 +52,14 @@ test('home momentum does not mark a visit after navigation away from the feed',a
    querySelector:()=>({classList:{add(){},toggle(){}}})};
  const pending=[],visited=[];
  const ctx={activeViewName:'feed',Promise,Date,
-   $:key=>key==='#homeMomentum'?section:key==='#momentumPosts'?root:null,
+   $:key=>key==='#homeMomentum'?section:key==='#momentumPosts'?root:
+     key==='#momentumTitle'||key==='#momentumSubtitle'?{textContent:''}:null,
    api:()=>{const p=deferred();pending.push(p);return p.promise},
    readLastHomeVisit:()=>new Date('2026-10-26T10:00:00Z'),
    loadActivePeople:async()=>[],
    storeHomeVisit:date=>visited.push(date),updateLatestModeBadge:()=>{},
    momentumCardHTML:post=>'<p>'+post.caption+'</p>'};
- vm.runInNewContext(fragment('let homeMomentumRequestSequenceV3310=0;','function communityReturnCardHTML(')+
+ vm.runInNewContext(fragment('let homeMomentumRequestSequenceV3310=0;','function communityReturnCard(')+
    '\nthis.load=loadHomeMomentum;',ctx);
  const outdated=ctx.load();
  ctx.activeViewName='messages';
@@ -75,13 +76,14 @@ test('older momentum reply cannot update the new feed visit timestamp',async()=>
  const section={classList:{toggle(){},add(){},remove(){}},
    querySelector:()=>({classList:{add(){},toggle(){}}})};
  const ctx={activeViewName:'feed',Promise,Date,
-   $:key=>key==='#homeMomentum'?section:key==='#momentumPosts'?root:null,
+   $:key=>key==='#homeMomentum'?section:key==='#momentumPosts'?root:
+     key==='#momentumTitle'||key==='#momentumSubtitle'?{textContent:''}:null,
    api:()=>{const d=deferred();pending.push(d);return d.promise},
    readLastHomeVisit:()=>new Date('2026-10-26T10:00:00Z'),
    loadActivePeople:async()=>[],
    storeHomeVisit:date=>seen.push(date),updateLatestModeBadge:()=>{},
    momentumCardHTML:x=>'<p>'+x.caption+'</p>'};
- vm.runInNewContext(fragment('let homeMomentumRequestSequenceV3310=0;','function communityReturnCardHTML(')+
+ vm.runInNewContext(fragment('let homeMomentumRequestSequenceV3310=0;','function communityReturnCard(')+
   '\nthis.load=loadHomeMomentum;',ctx);
  const old=ctx.load(),latest=ctx.load();
  pending[1].resolve({r:{ok:true},d:{catchup:[],highlights:[]}});await latest;
