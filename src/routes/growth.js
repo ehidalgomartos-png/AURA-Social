@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const {nextWelcomeStep,welcomeEligibility,welcomeVisible}=require('../services/welcome-v32150');
+const {canOfferConversation}=require('../services/participation-v32152');
 
 const router = express.Router();
 
@@ -42,6 +43,8 @@ async function ensureGrowthTables() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `);
+      await db.query('ALTER TABLE user_experience_state ADD COLUMN IF NOT EXISTS participation_prompt_shown_at TIMESTAMPTZ');
+      await db.query('ALTER TABLE user_experience_state ADD COLUMN IF NOT EXISTS participation_prompt_snoozed_until TIMESTAMPTZ');
       await db.query(`
         CREATE TABLE IF NOT EXISTS user_welcome_state_v32150 (
           user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -301,14 +304,14 @@ router.post('/welcome/preference',requireAuth,async(req,res)=>{
 
 router.get('/pulse', requireAuth, async (req,res)=>{
   const viewerResult=await db.query(
-    'SELECT age_verified,show_sensitive,is_admin FROM users WHERE id=$1 AND status=\'active\' LIMIT 1',
+    'SELECT age_verified,show_sensitive,is_admin,EXISTS(SELECT 1 FROM posts p WHERE p.user_id=users.id AND p.moderation_status=\'published\') has_published_posts FROM users WHERE id=$1 AND status=\'active\' LIMIT 1',
     [req.user.id]
   );
   if(!viewerResult.rowCount)return res.status(404).json({error:'user_not_found'});
   const viewer=viewerResult.rows[0];
 
   const state=await db.query(
-    'SELECT last_home_seen_at FROM user_experience_state WHERE user_id=$1 LIMIT 1',
+    'SELECT last_home_seen_at,participation_prompt_shown_at,participation_prompt_snoozed_until FROM user_experience_state WHERE user_id=$1 LIMIT 1',
     [req.user.id]
   );
   const stored=state.rows[0]?.last_home_seen_at ? new Date(state.rows[0].last_home_seen_at) : null;
@@ -440,6 +443,14 @@ router.get('/pulse', requireAuth, async (req,res)=>{
 
   res.json({
     since:since.toISOString(),
+    participation:{
+      can_show:canOfferConversation({
+        lastHomeSeenAt:state.rows[0]?.last_home_seen_at,
+        lastPromptAt:state.rows[0]?.participation_prompt_shown_at,
+        snoozedUntil:state.rows[0]?.participation_prompt_snoozed_until,
+        hasPublishedPosts:viewer.has_published_posts===true
+      })
+    },
     counts:{
       unread_messages:Number(messages.rows[0]?.n || 0),
       unread_notifications:Number(notifications.rows[0]?.n || 0),
@@ -449,6 +460,31 @@ router.get('/pulse', requireAuth, async (req,res)=>{
       new_followers:Number(newFollowers.rows[0]?.n || 0)
     }
   });
+});
+
+// Record an actually displayed prompt, never on a passive GET or by a scheduled job.
+router.post('/pulse/conversation-shown',requireAuth,async(req,res)=>{
+  const result=await db.query(`
+    UPDATE user_experience_state
+       SET participation_prompt_shown_at=now(),updated_at=now()
+     WHERE user_id=$1
+       AND (participation_prompt_shown_at IS NULL
+         OR participation_prompt_shown_at<=now()-interval '72 hours')
+       AND (participation_prompt_snoozed_until IS NULL
+         OR participation_prompt_snoozed_until<=now())
+    RETURNING user_id
+  `,[req.user.id]);
+  res.json({ok:true,recorded:result.rowCount===1});
+});
+
+router.post('/pulse/conversation-snooze',requireAuth,async(req,res)=>{
+  await db.query(`
+    INSERT INTO user_experience_state(user_id,participation_prompt_snoozed_until,updated_at)
+    VALUES($1,now()+interval '7 days',now())
+    ON CONFLICT(user_id) DO UPDATE
+      SET participation_prompt_snoozed_until=now()+interval '7 days',updated_at=now()
+  `,[req.user.id]);
+  res.json({ok:true});
 });
 
 router.post('/pulse/seen', requireAuth, async (req,res)=>{
