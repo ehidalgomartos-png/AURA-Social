@@ -225,6 +225,11 @@ async function growthCenter(){
       'Muestra elegible: primera semana '+Number(t.eligibleWeek||0)+
       ', D1 '+Number(t.eligibleD1||0)+', D7 '+Number(t.eligibleD7||0)+
       '. D1 = acciones entre 24 y 48 h; D7 = acciones entre 7 y 8 días. '+
+      'Aportación pública D1 '+growthCenterRate(t.publicD1RatePct,t.eligibleD1)+
+      ' ('+Number(t.publicD1||0)+'/'+Number(t.eligibleD1||0)+'); D7 '+
+      growthCenterRate(t.publicD7RatePct,t.eligibleD7)+
+      ' ('+Number(t.publicD7||0)+'/'+Number(t.eligibleD7||0)+'). '+
+      'Solo posts públicos normales o comentarios en posts públicos normales ajenos; no mensajes, Me gusta ni visitas. '+
       'Perfiles completos = foto, presentación e intereses actuales. Primera publicación = conserva algún post publicado; no son conversiones en 24 horas. '+
       'Siguen o comentan = siguen a una persona activa o han comentado una publicación pública ajena. '+
       'Publican y participan = tienen una publicación propia y además cumplen la condición anterior; no implica orden cronológico ni una respuesta recibida. '+
