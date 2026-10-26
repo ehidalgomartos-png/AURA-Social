@@ -56,7 +56,7 @@ test('new member gets one clear first step, accurate zero progress and first-wee
 test('partially activated account gets first incomplete action and a real follow count',async()=>{
   const h=routeHarness({
     ...baseUser,created_at:'2024-01-01T10:00:00Z',
-    avatar_url:'/uploads/avatar.jpg',interest_count:2,
+    avatar_url:'/uploads/avatar.jpg',bio:'Me gusta la fotografía',interest_count:2,
     community_count:1,following_count:2,interaction_count:1
   });
   const data=await h.read();
@@ -69,7 +69,7 @@ test('partially activated account gets first incomplete action and a real follow
 
 test('fully activated account has 100 percent progress and no artificial pending action',async()=>{
   const h=routeHarness({...baseUser,
-    avatar_url:'/uploads/ok.jpg',bio:'Hola',following_count:4,
+    avatar_url:'/uploads/ok.jpg',bio:'Hola',interest_count:1,following_count:4,
     community_count:1,post_count:1,interaction_count:1
   });
   const data=await h.read();
@@ -141,7 +141,7 @@ test('next action is displayed with a safe button and accurate accessible progre
 
 test('completion state is clear and does not present a pending step',async()=>{
   const route=routeHarness({...baseUser,
-    avatar_url:'ok',bio:'Hello',following_count:3,community_count:1,post_count:1,interaction_count:1
+    avatar_url:'ok',bio:'Hello',interest_count:1,following_count:3,community_count:1,post_count:1,interaction_count:1
   });
   const response=await route.read();
   const ui=clientHarness(response);
