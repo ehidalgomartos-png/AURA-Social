@@ -49,8 +49,8 @@ test('New tab returns genuine recent communities and default discovery keeps ori
   assert.equal(response.mode,'new');
   assert.match(sql,/\(\$4<>'new' OR c\.created_at>=now\(\)-interval '30 days'\)/);
   for(const piece of ["owner.status='active'","community_members mine",
-    "community_hidden_suggestions hidden","blocked.blocker_id=$1",
-    "blocked.blocked_id=$1","FROM mutes m","m.muter_id=$1",
+    "community_hidden_suggestions hidden","b.blocker_id=$1",
+    "b.blocked_id=$1","FROM mutes m","m.muter_id=$1",
     "($2='' OR c.category=$2)"]){
     assert.ok(sql.includes(piece),piece);
   }
