@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.8 no duplicate home requests during rapid mobile navigation
+        run: node --test tests/mobile-home-single-flight-v338.test.js
       - name: V3.3.7 fast mobile home and deferred non-visible initial workloads
         run: node --test tests/mobile-home-start-v337.test.js
       - name: V3.3.6 mobile PWA background update budget and safe retries
