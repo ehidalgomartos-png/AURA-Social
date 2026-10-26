@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.157 optional profile completion guide
+        run: node --test tests/profile-completion-guide-v32157.test.js
       - name: V3.2.156 pending genuine replies in activity filters
         run: node --test tests/pending-real-replies-v32156.test.js
       - name: V3.2.155 exact reply navigation from existing notifications
