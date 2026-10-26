@@ -90,46 +90,7 @@ test('button toggles opt-in-only filtering and resets when a normal tab is selec
     activeNotificationFilter:'all',pendingRepliesOnlyV32156:false,
     pendingReplyCountV32156:()=>2,
     renderNotifications:()=>renderCount++,
-    '
-  vm.runInNewContext(js.slice(from,to),sandbox);
-  callbacks.shortcut();
-  assert.equal(sandbox.pendingRepliesOnlyV32156,true);
-  assert.equal(sandbox.activeNotificationFilter,'conversations');
-  callbacks.shortcut();
-  assert.equal(sandbox.pendingRepliesOnlyV32156,false);
-  callbacks.shortcut();
-  const buttons=sandbox.all('[data-notification-filter]');
-  buttons[0].onclick();
-  assert.equal(sandbox.pendingRepliesOnlyV32156,false);
-  assert.equal(sandbox.activeNotificationFilter,'unread');
-  assert.equal(renderCount,4);
-});
-test('filter uses existing notifications only, updates after read and provides honest empty state',()=>{
-  const code=js.slice(js.indexOf('function renderNotifications()'),js.indexOf('async function navigateNotification('));
-  assert.match(code,/updateReplyShortcutV32156\(\)/);
-  assert.match(code,/notificationMatches\(notification,activeNotificationFilter\)/);
-  assert.match(code,/!pendingRepliesOnlyV32156 \|\| isPendingReplyV32156\(notification\)/);
-  assert.match(code,/No tienes respuestas pendientes/);
-  assert.match(code,/if\(activeNotificationFilter==='unread'\)renderNotifications\(\)/);
-  assert.match(code,/else if\(pendingRepliesOnlyV32156\)renderNotifications\(\)/);
-  assert.match(code,/updateNotificationBadge\(liveActivityState\.notificationUnread\)/);
-  assert.doesNotMatch(code,/POST.*comments|autoPublish|requestSubmit\(/);
-});
-test('mobile-first, accessible and confined to existing notifications panel',()=>{
-  const from=html.indexOf('id="notificationsView"');
-  const to=html.indexOf('id="publicProfileView"',from);
-  const section=html.slice(from,to);
-  assert.equal((html.match(/id="notificationReplyShortcutV32156"/g)||[]).length,1);
-  assert.match(section,/id="notificationReplyShortcutV32156"[^>]*aria-pressed="false" hidden/);
-  assert.ok(section.indexOf('id="notificationReplyShortcutV32156"')>
-    section.indexOf('data-notification-filter="conversations"'));
-  assert.match(css,/#notificationsView \.notification-reply-shortcut-v32156\.hidden/);
-  assert.match(css,/#notificationsView \.notification-reply-shortcut-v32156:focus-visible/);
-  assert.match(css, /min-height:44px/);
-  assert.match(css,/@media\(max-width:760px\)/);
-  assert.match(read('.github/workflows/validate-js.yml'),/tests\/pending-real-replies-v32156\.test\.js/);
-});
-:selector=>selector==='#notificationReplyShortcutV32156'?{
+    '$':selector=>selector==='#notificationReplyShortcutV32156'?{
       addEventListener:(_type,fn)=>callbacks.shortcut=fn
     }:null,
     all:selector=>selector==='[data-notification-filter]'?buttons:[]
@@ -141,7 +102,6 @@ test('mobile-first, accessible and confined to existing notifications panel',()=
   callbacks.shortcut();
   assert.equal(sandbox.pendingRepliesOnlyV32156,false);
   callbacks.shortcut();
-  const buttons=sandbox.all('[data-notification-filter]');
   buttons[0].onclick();
   assert.equal(sandbox.pendingRepliesOnlyV32156,false);
   assert.equal(sandbox.activeNotificationFilter,'unread');
