@@ -9670,6 +9670,30 @@ function showCommunityDirectory(){
   loadCommunityDiscovery();
 }
 
+// V3.2.163: voluntary public sharing; private groups have no public link.
+async function sharePublicCommunityV32163(community,kind='native'){
+  const id=String(community?.id||'');
+  if(community?.privacy!=='public'||!/^[1-9][0-9]{0,14}$/.test(id))return false;
+  const url=publicOrigin+'/comunidad/'+encodeURIComponent(id);
+  const title=String(community.name||'Comunidad').trim().slice(0,80);
+  const text='Descubre la comunidad «'+title+'» en RedLibertad.';
+  const copy=async()=>{
+    try{await writeClipboardText(text+' '+url);toast('Enlace de comunidad copiado');return true;}
+    catch(_){window.prompt('Copia este enlace:',url);return false;}
+  };
+  if(kind==='whatsapp'){
+    window.open('https://api.whatsapp.com/send?text='+encodeURIComponent(text+' '+url),'_blank','noopener,noreferrer');
+    return true;
+  }
+  if(kind==='copy')return copy();
+  if(kind!=='native')return false;
+  if(navigator.share){
+    try{await navigator.share({title:'Comunidad '+title+' | RedLibertad',text,url});return true;}
+    catch(err){if(err?.name==='AbortError')return false;}
+  }
+  return copy();
+}
+
 function communityHeroHTML(data){
   const community=data.community;
   const isMember=community.is_member===true;
@@ -9700,7 +9724,7 @@ function communityHeroHTML(data){
       ${Array.isArray(data.interests) && data.interests.length ? `<div class="community-hero-interests">${data.interests.map(item=>`<span>${esc(item)}</span>`).join('')}</div>` : ''}
     </div>
   </div>
-  <div class="community-hero-actions">${joinAction}${chatAction}</div>`;
+  <div class="community-hero-actions">${joinAction}${chatAction}${community.privacy==='public'?`<div class="community-share-tools-v32163" role="group" aria-label="Difundir comunidad pública"><button type="button" class="secondary" data-community-external-share="native">↗ Compartir</button><button type="button" class="secondary" data-community-external-share="whatsapp">WhatsApp</button><button type="button" class="secondary" data-community-external-share="copy">Copiar enlace</button></div>`:''}</div>`;
 }
 
 function renderCommunityRules(data){
@@ -10208,6 +10232,12 @@ document.addEventListener('click',async event=>{
   if(openButton){
     event.preventDefault();
     await openCommunityDetail(openButton.dataset.communityOpen);
+    return;
+  }
+  const communityShareButton=event.target.closest('[data-community-external-share]');
+  if(communityShareButton){
+    event.preventDefault();
+    await sharePublicCommunityV32163(activeCommunityData?.community,communityShareButton.dataset.communityExternalShare);
     return;
   }
   const joinButton=event.target.closest('[data-community-join]');
@@ -10956,6 +10986,7 @@ async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
   const post = params.get('post');
+  const community = params.get('community');
   const story = params.get('story');
   const view = params.get('view');
   const conversation = params.get('conversation');
@@ -10969,6 +11000,12 @@ async function handleInitialDeepLink() {
 
   if (post) {
     await openPostFocus(post);
+    return;
+  }
+
+  if(community && /^[1-9][0-9]{0,14}$/.test(community)){
+    showView('communities');
+    await openCommunityDetail(community);
     return;
   }
 
