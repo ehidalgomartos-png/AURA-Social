@@ -18,7 +18,7 @@ test('home recommendations ignore stale responses and do not mislabel connection
    api:()=>{const p=deferred();pending.push(p);return p.promise},
    personCardHTML:u=>'<b>'+u.username+'</b>',
    Array};
- vm.runInNewContext(fragment('let homeSuggestionsRequestSequenceV3310=0;','function handleGrowthAction(')+
+ vm.runInNewContext(fragment('let homeSuggestionsRequestSequenceV3310=0;','async function handleGrowthAction(')+
    '\nthis.load=loadHomeSuggestions;',ctx);
  const first=ctx.load(),second=ctx.load();
  pending[1].resolve({r:{ok:true},d:{users:[{username:'ana'}]}});await second;
