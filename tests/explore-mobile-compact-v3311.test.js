@@ -85,6 +85,6 @@ test('narrow cards retain 40px tap targets and bottom dock spacing without new s
  assert.match(scoped,/#exploreView \.explore-person-v3311 \.person-follow\{[\s\S]*?min-height:40px/);
  assert.match(scoped,/#exploreView \.explore-person-v3311 \.person-hide-suggestion\{[\s\S]*?min-height:40px/);
  assert.match(scoped,/--mobile-dock-space,112px/);
- assert.match(html,/social\.css\?v=3\.3\.11/);
+ assert.match(html,/social\.css\?v=3\.2\.75&amp;growth-gap-fix=3\.3\.10\.1&amp;explore=3\.3\.11/);
  assert.match(read('.github/workflows/validate-js.yml'),/tests\/explore-mobile-compact-v3311\.test\.js/);
 });
