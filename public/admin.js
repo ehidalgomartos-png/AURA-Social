@@ -185,6 +185,8 @@ async function growthCenter(){
     const t=d.totals||{};
     const metricCards=[
       ['Registros · '+days+' días',t.signups||0],
+      ['Perfiles completos',growthCenterRate(t.profileCompleteRatePct,t.signups)],
+      ['Con primera publicación',growthCenterRate(t.firstPostRatePct,t.signups)],
       ['Origen conocido',t.attributedSignups||0],
       ['Primeros 7 días',growthCenterRate(t.firstWeekRatePct,t.eligibleWeek)],
       ['Actividad D1',growthCenterRate(t.d1RatePct,t.eligibleD1)],
@@ -221,6 +223,7 @@ async function growthCenter(){
       'Muestra elegible: primera semana '+Number(t.eligibleWeek||0)+
       ', D1 '+Number(t.eligibleD1||0)+', D7 '+Number(t.eligibleD7||0)+
       '. D1 = acciones entre 24 y 48 h; D7 = acciones entre 7 y 8 días. '+
+      'Perfiles completos = foto, presentación e intereses actuales. Primera publicación = conserva algún post publicado; no son conversiones en 24 horas. '+
       'No mide sesiones, visitas ni conversiones desde impresiones. Sin atribución no significa tráfico directo. '+
       'Datos internos agregados; nunca se leen mensajes privados.';
   }catch(_){

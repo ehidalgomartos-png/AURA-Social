@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.164 aggregated onboarding activation metrics
+        run: node --test tests/activation-growth-v32164.test.js
       - name: V3.2.163 public communities sharing with safe previews and deep links
         run: node --test tests/community-public-sharing-v32163.test.js
       - name: V3.2.162 return to own community conversations
