@@ -75,6 +75,6 @@ test('first-post ideas live inside the existing composer and cannot force posts'
   assert.match(css,/#modal \.first-post-helper-v32158\.hidden/);
   assert.match(css,/min-height:44px/);
   const code=js.slice(js.indexOf('function renderFirstPostHelperV32158('),js.indexOf("async function openModal(mode='post')",js.indexOf('function renderFirstPostHelperV32158(')));
-  assert.doesNotMatch(code,/api\(|requestSubmit\(|\.submit\(|localStorage|sessionStorage|method:\\s*['\"]POST['\"]|setTimeout/);
+  assert.doesNotMatch(code,/api\(|requestSubmit\(|\.submit\(|localStorage|sessionStorage|method:\s*['"]POST['"]|setTimeout/);
   assert.match(read('.github/workflows/validate-js.yml'),/tests\/first-post-composer-v32158\.test\.js/);
 });
