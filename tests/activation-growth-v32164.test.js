@@ -11,7 +11,7 @@ function row(extra={}){return {
   profile_complete:false,has_first_post:false,...extra
 };}
 test('SQL calculates truthful profile completion from current avatar, bio and interests without returning personal fields',()=>{
-  assert.match(GROWTH_SQL,/NULLIF\(BTRIM\(profile\.bio\),'\'\)/);
+  assert.match(GROWTH_SQL,/NULLIF\(BTRIM\(profile\.bio\),''\)/);
   assert.match(GROWTH_SQL,/profile\.avatar_url IS NOT NULL/);
   assert.match(GROWTH_SQL,/EXISTS\(SELECT 1 FROM user_interests ui WHERE ui\.user_id=profile\.id\)/);
   assert.match(GROWTH_SQL,/AS profile_complete/);
