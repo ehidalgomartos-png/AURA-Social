@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.165 mobile Reel resource lifecycle and data saving
+        run: node --test tests/mobile-reel-resources-v32165.test.js
       - name: V3.2.164 aggregated onboarding activation metrics
         run: node --test tests/activation-growth-v32164.test.js
       - name: V3.2.163 public communities sharing with safe previews and deep links

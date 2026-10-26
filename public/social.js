@@ -2747,8 +2747,22 @@ async function loadExplore() {
     loadDiscoveryContent(activeContentMode)
   ]);
 }
+// V3.2.165: discard stale requests and disconnect old observers on view changes.
+let reelLoadSequenceV32165=0;
+let reelViewObserverV32165=null;
+let reelPlaybackObserverV32165=null;
+function releaseReelObserversV32165(){
+  reelViewObserverV32165?.disconnect();
+  reelPlaybackObserverV32165?.disconnect();
+  reelViewObserverV32165=null;
+  reelPlaybackObserverV32165=null;
+  pauseReelVideos();
+}
 async function loadReels() {
+  const sequence=++reelLoadSequenceV32165;
   const { r,d } = await api('/api/posts/reels');
+  if(sequence!==reelLoadSequenceV32165 || activeViewName!=='reels')return;
+  releaseReelObserversV32165();
   const reels = r.ok && Array.isArray(d.posts) ? d.posts : [];
   const root=$('#reelsFeed');
   root.innerHTML = reels.map(reel=>postHTML(reel,{immersive:true})).join('') || '<div class="info-card"><b>Todavía no hay Reels.</b><p>Publica el primero usando Crear → Reel.</p></div>';
@@ -2763,12 +2777,19 @@ function pauseReelVideos(except=null){
   });
 }
 
+// Pause foreground media immediately when switching apps or locking the screen.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')pauseReelVideos();
+});
+window.addEventListener('pagehide',()=>pauseReelVideos());
+
 function observeReelExperience(){
+  releaseReelObserversV32165();
   const root=$('#reelsFeed');
   if(!root || !('IntersectionObserver' in window))return;
 
   const cards=all('[data-reel-observe]',root);
-  const viewObserver=new IntersectionObserver(entries=>{
+  reelViewObserverV32165=new IntersectionObserver(entries=>{
     entries.forEach(entry=>{
       if(!entry.isIntersecting || entry.intersectionRatio<0.65)return;
       const id=entry.target.dataset.reelObserve;
@@ -2776,12 +2797,13 @@ function observeReelExperience(){
       recordedReelViews.add(String(id));
       api(`/api/posts/${encodeURIComponent(id)}/reel-view`,{method:'POST'})
         .catch(()=>{recordedReelViews.delete(String(id));});
-      viewObserver.unobserve(entry.target);
+      reelViewObserverV32165?.unobserve(entry.target);
     });
   },{root,threshold:[0.65]});
 
   const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
-  const playbackObserver=new IntersectionObserver(entries=>{
+  const saveData=window.navigator?.connection?.saveData===true;
+  reelPlaybackObserverV32165=new IntersectionObserver(entries=>{
     entries.forEach(entry=>{
       const card=entry.target;
       const video=card.querySelector('.post-media video');
@@ -2792,7 +2814,7 @@ function observeReelExperience(){
         pauseReelVideos(video);
         video.muted=true;
         video.playsInline=true;
-        if(!reducedMotion){
+        if(!reducedMotion && !saveData && document.visibilityState==='visible' && activeViewName==='reels'){
           video.play().catch(()=>{});
         }
       }else{
@@ -2803,8 +2825,8 @@ function observeReelExperience(){
   },{root,threshold:[0,0.35,0.72]});
 
   cards.forEach(card=>{
-    viewObserver.observe(card);
-    playbackObserver.observe(card);
+    reelViewObserverV32165.observe(card);
+    reelPlaybackObserverV32165.observe(card);
   });
 }
 
@@ -10327,7 +10349,10 @@ function showView(name) {
     document.body.classList.remove('mobile-chat-active-v3244');
     openConversationSequenceV3244++;
   }
-  if(name!=='reels')pauseReelVideos();
+  if(name!=='reels'){
+    ++reelLoadSequenceV32165;
+    releaseReelObserversV32165();
+  }
   all('.view').forEach(v => { v.classList.add('hidden'); v.setAttribute('aria-hidden','true'); });
   view.classList.remove('hidden');
   view.setAttribute('aria-hidden','false');
