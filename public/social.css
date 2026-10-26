@@ -8152,3 +8152,70 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
     grid-template-columns:1fr;
   }
 }
+
+/* V3.2.152 — una invitación ocasional, dentro del resumen existente. */
+#feedView .return-conversation-v32152{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+  padding:14px 16px;
+  border-radius:16px;
+  border:1px solid rgba(43,183,169,.25);
+  background:var(--paper);
+}
+#feedView .return-conversation-tag-v32152{
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.1em;
+  color:#118b80;
+}
+#feedView .return-conversation-v32152>b{
+  color:var(--navy);
+  font-size:15px;
+  line-height:1.35;
+}
+#feedView .return-conversation-v32152>p{
+  margin:0;
+  color:var(--ink);
+  font-size:12px;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+#feedView .return-conversation-actions-v32152{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#feedView .return-conversation-actions-v32152 button{
+  min-height:42px;
+  padding:9px 13px;
+  border-radius:11px;
+  font-size:11px;
+  font-weight:850;
+}
+#feedView #returnConversationSnoozeV32152{
+  border:1px solid var(--line);
+  background:transparent;
+  color:var(--muted);
+}
+#feedView .return-conversation-v32152>small{
+  font-size:10px;
+  color:var(--muted);
+}
+#feedView .return-conversation-v32152 button:focus-visible{
+  outline:3px solid var(--teal);
+  outline-offset:2px;
+}
+@media(max-width:760px){
+  #feedView .return-conversation-v32152{padding:12px;gap:7px}
+  #feedView .return-conversation-actions-v32152{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+  }
+  #feedView .return-conversation-actions-v32152 button{min-width:0}
+}
+@media(max-width:350px){
+  #feedView .return-conversation-actions-v32152{grid-template-columns:1fr}
+}
