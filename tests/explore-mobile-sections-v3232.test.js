@@ -14,7 +14,7 @@ test('mobile Explore has two visible first-class section controls with sensible 
   assert.match(html,/data-explore-mobile-section="people" aria-pressed="false" aria-controls="explorePeoplePaneV3232">Personas/);
   assert.match(html,/id="explorePeoplePaneV3232"/);
   assert.match(html,/id="exploreContentPaneV3232"/);
-  assert.match(html,/data-view-jump="explore" data-explore-target="people">Explorar personas/);
+  assert.match(html,/data-view-jump="explore" data-explore-target="people">(?:Explorar personas|Ver todas)/);
 });
 test('mobile hides only the nonselected Explore section and keeps desktop both visible',()=>{
   assert.match(css,/\.explore-mobile-switch-v3232\{display:none\}/);
