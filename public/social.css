@@ -7677,6 +7677,30 @@ button:disabled,[aria-disabled="true"]{cursor:not-allowed;opacity:.58}
 }
 
 /* V3.2.38 — Visually locate the first real new comment, without a second CTA. */
+/* V3.2.158: first-post suggestions are scoped to the existing composer only. */
+#modal .first-post-helper-v32158{
+  display:grid;gap:8px;margin:8px 0 12px;padding:12px;
+  border:1px solid var(--line);border-radius:13px;background:var(--soft);
+}
+#modal .first-post-helper-v32158.hidden,
+#modal .first-post-helper-v32158[hidden]{display:none!important}
+#modal .first-post-helper-v32158 strong{color:var(--navy);font-size:13px}
+#modal .first-post-helper-v32158 p{margin:0;color:var(--muted);font-size:12px}
+#modal .first-post-helper-v32158 small{font-size:11px;color:var(--muted)}
+#modal .first-post-helper-ideas-v32158{display:flex;flex-wrap:wrap;gap:6px}
+#modal .first-post-helper-ideas-v32158 button{
+  min-height:44px;border:1px solid var(--line);border-radius:999px;
+  padding:7px 12px;background:var(--paper);color:var(--navy);
+  font-size:11px;font-weight:800;cursor:pointer;
+}
+#modal .first-post-helper-ideas-v32158 button:focus-visible{
+  outline:3px solid var(--teal);outline-offset:2px;
+}
+@media(max-width:420px){
+  #modal .first-post-helper-v32158{padding:10px}
+  #modal .first-post-helper-ideas-v32158 button{flex:1 1 auto}
+}
+
 /* V3.2.157: guide appears only inside the existing edit-profile dialog. */
 #profileModal .profile-completion-v32157{
   display:grid;gap:8px;margin:10px 0 14px;padding:12px;
