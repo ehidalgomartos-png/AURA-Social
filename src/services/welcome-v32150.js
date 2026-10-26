@@ -4,7 +4,8 @@
 const DAY=24*60*60*1000;
 const ACTIONS=new Set(['profile','create','explore','communities','feed']);
 function nextWelcomeStep(steps=[]){
-  const priority=['avatar','profile','post','follow','community','interact'];
+  // Publicar es voluntario y no exige completar antes campos opcionales del perfil.
+  const priority=['post','avatar','profile','follow','community','interact'];
   return priority.map(id=>steps.find(step=>step?.id===id&&step.done!==true))
     .find(step=>step&&ACTIONS.has(step.action)) || null;
 }

@@ -283,7 +283,7 @@ router.post('/welcome/activate',requireAuth,async(req,res)=>{
     )
     INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)
     SELECT user_id,NULL,'system','welcome',NULL,
-           '¡Bienvenido a RedLibertad! Completa tu perfil, comparte tu primera publicación y conoce a tu comunidad.'
+           '¡Bienvenido a RedLibertad! Comparte tu primera idea cuando quieras y completa tu perfil a tu ritmo.'
     FROM newly_eligible
     RETURNING id
   `,[req.user.id]);

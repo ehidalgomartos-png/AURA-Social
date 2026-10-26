@@ -1918,7 +1918,7 @@ function renderHomeWelcomeV32150(data){
   const action=$('#homeWelcomeActionV32150');
   if(title)title.textContent=first?'¡Bienvenido a RedLibertad!':'Tu voz tiene sitio en RedLibertad';
   if(copy)copy.textContent=next.id==='post'
-    ? 'Anímate a publicar tu primera foto, opinión o vídeo. No tiene que ser perfecto.'
+    ? 'Comparte tu primera idea, foto o vídeo sin terminar antes tu perfil. Tú decides cuándo publicar.'
     : next.id==='avatar'||next.id==='profile'
       ? 'Añade tu foto y cuéntanos un poco sobre ti para que otras personas te conozcan.'
       : next.id==='follow'
@@ -1928,7 +1928,7 @@ function renderHomeWelcomeV32150(data){
           : 'Comenta o da un Me gusta a una publicación que te interese.';
   if(action){
     action.dataset.growthAction=next.action;
-    action.textContent=next.id==='post'?'Publicar ahora':
+    action.textContent=next.id==='post'?'Escribir mi post':
       next.action==='profile'?'Completar perfil':
       next.action==='explore'?'Descubrir personas':
       next.action==='communities'?'Ver comunidades':'Ver publicaciones';
@@ -2137,7 +2137,7 @@ async function handleGrowthAction(action) {
     return;
   }
   if (action === 'create') {
-    openModal();
+    await openModal('post');
     return;
   }
   showView('feed');
