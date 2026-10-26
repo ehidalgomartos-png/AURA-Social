@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.10.1 mobile growth checklist spacing without dock-sized gap
+        run: node --test tests/mobile-growth-spacing-v33101.test.js
       - name: V3.3.10 safe home refresh without lost return activity or stale recommendations
         run: node --test tests/mobile-home-refresh-v3310.test.js
       - name: V3.3.9 latest-response-only for mobile messages and notifications

@@ -86,7 +86,9 @@ test('los últimos pasos son accesibles por encima de la navegación fija móvil
  const patch=css.slice(css.indexOf('/* V3.2.151'));
  assert.match(patch,/@media\(max-width:760px\)/);
  assert.match(patch,/\.home-growth-details-v3224\[open\]\{/);
- assert.match(patch,/margin-bottom:calc\(var\(--mobile-dock-space,112px\) \+ 12px \+ env\(safe-area-inset-bottom\)\)/);
+ assert.match(patch,/\.home-growth-details-v3224\[open\]\{\s*margin-bottom:10px;/);
+ // Focus/scroll safety belongs to the steps, not a permanent 124px layout gap.
+ assert.match(css,/\.home-growth-details-v3224 \.growth-step,[\s\S]*?scroll-margin-bottom:calc\(var\(--mobile-dock-space,112px\) \+ 12px \+ env\(safe-area-inset-bottom\)\)/);
  assert.match(patch,/\.growth-step:last-child/);
  assert.match(patch,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
  assert.match(patch,/@media\(max-width:350px\)/);

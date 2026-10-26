@@ -8233,10 +8233,10 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
     min-width:0;
     white-space:normal;
   }
-  /* Cuando el checklist está abierto, dejar margen para desplazar el último paso
-     completamente por encima de la barra fija de navegación. */
+  /* V3.3.10.1: la reserva del dock pertenece al desplazamiento y al
+     padding inferior general, no al margen entre el checklist y el feed. */
   #feedView .home-growth-details-v3224[open]{
-    margin-bottom:calc(var(--mobile-dock-space,112px) + 12px + env(safe-area-inset-bottom));
+    margin-bottom:10px;
   }
   #feedView .home-growth-details-v3224 .growth-step:last-child{
     scroll-margin-bottom:calc(var(--mobile-dock-space,112px) + 20px + env(safe-area-inset-bottom));
