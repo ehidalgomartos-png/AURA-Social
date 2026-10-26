@@ -81,7 +81,7 @@ function rate(numerator,denominator){
   return denominator?Math.round(1000*numerator/denominator)/10:null;
 }
 function emptyCounts(){
-  return {signups:0,eligibleWeek:0,firstWeek:0,eligibleD1:0,activeD1:0,eligibleD7:0,activeD7:0,completedProfiles:0,firstPosts:0,socialContacts:0,publishAndConnect:0};
+  return {signups:0,eligibleWeek:0,firstWeek:0,eligibleD1:0,activeD1:0,eligibleD7:0,activeD7:0,publicD1:0,publicD7:0,completedProfiles:0,firstPosts:0,socialContacts:0,publishAndConnect:0};
 }
 function addCounts(target,row){
   target.signups++;
@@ -96,10 +96,12 @@ function addCounts(target,row){
   if(row.eligible_d1===true){
     target.eligibleD1++;
     if(row.d1===true)target.activeD1++;
+    if(row.public_contribution_d1===true)target.publicD1++;
   }
   if(row.eligible_d7===true){
     target.eligibleD7++;
     if(row.d7===true)target.activeD7++;
+    if(row.public_contribution_d7===true)target.publicD7++;
   }
 }
 function displayCounts(x){
@@ -109,7 +111,9 @@ function displayCounts(x){
     publishAndConnectRatePct:rate(x.publishAndConnect,x.signups),
     firstWeekRatePct:rate(x.firstWeek,x.eligibleWeek),
     d1RatePct:rate(x.activeD1,x.eligibleD1),
-    d7RatePct:rate(x.activeD7,x.eligibleD7)};
+    d7RatePct:rate(x.activeD7,x.eligibleD7),
+    publicD1RatePct:rate(x.publicD1,x.eligibleD1),
+    publicD7RatePct:rate(x.publicD7,x.eligibleD7)};
 }
 function summarizeGrowth(rows,days){
   const totals=emptyCounts(),bySource=new Map(),byGuide=new Map(),byDay=new Map();
@@ -141,6 +145,8 @@ function summarizeGrowth(rows,days){
       d1:'Actividad social entre 24 y 48 horas después del registro; solo cuentas con al menos 48 horas de antigüedad.',
       d7:'Actividad social entre 7 y 8 días después del registro; solo cuentas con al menos 8 días de antigüedad.',
       activity:'Publicación, comentario, seguimiento, reacción o mensaje enviado. No implica sesión ni lectura de mensajes.',
+      publicD1:'Aportación visible entre 24 y 48 horas tras el alta: post ordinario público normal publicado, o comentario en post público normal ajeno todavía disponible; solo cohortes maduras.',
+      publicD7:'Aportación visible entre los días 7 y 8 tras el alta. No mide visitas, sesiones ni continuidad sin interrupción.',
       attribution:'Sin atribución significa que no se registró una ruta de origen; no equivale necesariamente a tráfico directo.',
       profileComplete:'Porcentaje de cuentas registradas en el periodo que hoy tienen foto, presentación e intereses; no mide cuándo se completaron.',
       firstPost:'Porcentaje de cuentas registradas en el periodo que hoy conservan al menos una publicación ordinaria publicada; excluye Reels y publicaciones eliminadas.',
