@@ -1755,6 +1755,65 @@ $('#growthStarterCommunityList')?.addEventListener('click',async event=>{
 let growthInviteCode = '';
 let growthInviteToken = '';
 
+// V3.2.150 — one lightweight, optional CTA; the existing checklist remains the source of truth.
+let welcomeActivationUserV32150=null;
+function renderHomeWelcomeV32150(data){
+  const root=$('#homeWelcomeV32150');
+  if(!root)return;
+  const welcome=data?.welcome;
+  const next=welcome?.nextStep;
+  const allowed=new Set(['profile','create','explore','communities','feed']);
+  if(welcome?.visible!==true||!next||!allowed.has(next.action)){
+    root.classList.add('hidden');
+    return;
+  }
+  const first=data.firstWeek===true;
+  const title=$('#homeWelcomeTitleV32150');
+  const copy=$('#homeWelcomeCopyV32150');
+  const action=$('#homeWelcomeActionV32150');
+  if(title)title.textContent=first?'¡Bienvenido a RedLibertad!':'Tu voz tiene sitio en RedLibertad';
+  if(copy)copy.textContent=next.id==='post'
+    ? 'Anímate a publicar tu primera foto, opinión o vídeo. No tiene que ser perfecto.'
+    : next.id==='avatar'||next.id==='profile'
+      ? 'Añade tu foto y cuéntanos un poco sobre ti para que otras personas te conozcan.'
+      : next.id==='follow'
+        ? 'Descubre personas con las que conectar y empieza a construir tu comunidad.'
+        : next.id==='community'
+          ? 'Encuentra una comunidad en la que te apetezca participar.'
+          : 'Comenta o da un Me gusta a una publicación que te interese.';
+  if(action){
+    action.dataset.growthAction=next.action;
+    action.textContent=next.id==='post'?'Publicar ahora':
+      next.action==='profile'?'Completar perfil':
+      next.action==='explore'?'Descubrir personas':
+      next.action==='communities'?'Ver comunidades':'Ver publicaciones';
+  }
+  root.classList.remove('hidden');
+}
+
+async function saveWelcomePreferenceV32150(choice){
+  if(!['later','dismiss'].includes(choice))return;
+  const root=$('#homeWelcomeV32150');
+  root?.setAttribute('aria-busy','true');
+  try{
+    const {r}=await api('/api/growth/welcome/preference',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({choice})
+    });
+    if(!r.ok)throw Error('preference_failed');
+    root?.classList.add('hidden');
+  }catch(_){
+    toast('No se pudo guardar tu preferencia. Inténtalo de nuevo.');
+  }finally{
+    root?.removeAttribute('aria-busy');
+  }
+}
+$('#homeWelcomeMoreV32150')?.addEventListener('click',()=>{
+  const details=$('#homeGrowthDetailsV3224');
+  if(!details)return;
+  details.open=true;
+  details.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
 async function loadGrowthPanel() {
   const panel = $('#growthPanel');
   if (!panel) return;
@@ -1763,7 +1822,17 @@ async function loadGrowthPanel() {
   if (!r.ok) {
     panel.classList.add('hidden');
     $('#homeGrowthDetailsV3224')?.classList.add('hidden');
+    $('#homeWelcomeV32150')?.classList.add('hidden');
     return;
+  }
+
+  renderHomeWelcomeV32150(d);
+  // First visit creates one welcome notification; never sends an email or push.
+  if(d.welcome?.visible===true && welcomeActivationUserV32150!==String(me?.id)){
+    welcomeActivationUserV32150=String(me?.id);
+    void api('/api/growth/welcome/activate',{method:'POST'}).then(({r,d:result})=>{
+      if(r.ok&&result.created===true)void loadNotifications();
+    }).catch(()=>{ /* Welcome is optional; never block Inicio. */ });
   }
 
   growthInviteCode = String(d.inviteCode || me?.username || '');
@@ -3180,6 +3249,13 @@ document.addEventListener('click', async event => {
 
   const hidePerson=event.target.closest('[data-discovery-hide-person]');
   if(hidePerson){event.preventDefault();event.stopPropagation();await hideDiscoveryPerson(hidePerson);return;}
+
+  const welcomePreference=event.target.closest('[data-welcome-preference]');
+  if(welcomePreference){
+    event.preventDefault();
+    await saveWelcomePreferenceV32150(welcomePreference.dataset.welcomePreference);
+    return;
+  }
 
   const growthStep = event.target.closest('[data-growth-action]');
   if (growthStep) {
@@ -7664,6 +7740,16 @@ async function navigateNotification(notification) {
   if(type==='mention' && entityType==='community' && entityId){
     showView('communities');
     await openCommunityDetail(entityId);
+    return;
+  }
+
+  if(type==='system' && entityType==='welcome'){
+    showView('feed');
+    const details=$('#homeGrowthDetailsV3224');
+    if(details){
+      details.open=true;
+      details.scrollIntoView({behavior:'smooth',block:'start'});
+    }
     return;
   }
 
