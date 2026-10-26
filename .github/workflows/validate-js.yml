@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.152 real conversation return, cooldown and privacy
+        run: node --test tests/conversation-return-v32152.test.js
       - name: V3.2.151 first-post activation and editable suggestions
         run: node --test tests/participation-first-post-v32151.test.js
       - name: V3.2.150.2 compact welcome options and mobile dock safety
