@@ -10382,7 +10382,7 @@ function showView(name) {
     live.textContent='Sección '+title;
   }
   if(switching)restoreViewScroll(name);
-  if (name === 'feed') { loadReturnPulse(); loadHomeMomentum(); loadGrowthPanel(); loadCommunityReturn(); }
+  if (name === 'feed') loadStartupHomePanelsV337();
   if (name === 'explore') {
     setExploreMobileSection(exploreMobileSection);
     setGlobalSearchMobileOpen(globalSearchMobileOpen);
@@ -11078,6 +11078,39 @@ async function handleInitialDeepLink() {
   }
 }
 
+// V3.3.7: prioritise the visible home feed and Stories. Below-the-fold
+// summaries and off-screen inbox lists no longer compete with first render.
+let startupHomeExtrasRequestedV337=false;
+function loadStartupHomePanelsV337(){
+  if(activeViewName!=='feed')return;
+  const firstVisit=!startupHomeExtrasRequestedV337;
+  startupHomeExtrasRequestedV337=true;
+  const tasks=[
+    loadReturnPulse(),loadHomeMomentum(),loadGrowthPanel(),loadCommunityReturn()
+  ];
+  // The small home recommendations were formerly loaded only at boot.
+  // Keep them available for members who arrive from a deep link instead.
+  if(firstVisit)tasks.push(loadHomeSuggestions());
+  void Promise.allSettled(tasks);
+}
+function loadStartupInboxV337(){
+  const tasks=[];
+  // Opening Messages/Notifications already loads the corresponding data.
+  if(activeViewName!=='messages')tasks.push(loadConversations(),loadCommunityConversations());
+  if(activeViewName!=='notifications')tasks.push(loadNotifications());
+  void Promise.allSettled(tasks);
+}
+function scheduleStartupExtrasV337(){
+  const start=()=>{
+    loadStartupHomePanelsV337();
+    loadStartupInboxV337();
+  };
+  // Give the browser a chance to paint the new feed on slower phones.
+  // The timeout guarantees progress even when idle time is scarce.
+  if(typeof window.requestIdleCallback==='function')
+    window.requestIdleCallback(start,{timeout:1200});
+  else setTimeout(start,0);
+}
 (async () => {
   try {
     await loadPublicConfig();
@@ -11085,12 +11118,13 @@ async function handleInitialDeepLink() {
     installAppHistoryV32441();
     await loadReleaseFlags();
     await loadSavedPostIds();
-    await Promise.all([loadStories(), loadFeed('latest'), loadConversations(), loadCommunityConversations(), loadNotifications(), loadHomeSuggestions(), loadReturnPulse(), loadHomeMomentum(), loadGrowthPanel(), loadCommunityReturn()]);
+    await Promise.allSettled([loadFeed('latest'),loadStories()]);
     startLiveActivity();
     startPresenceHeartbeat();
     syncVisualViewport();
     setConnectivityStatus(navigator.onLine,{initial:true});
     await handleInitialDeepLink();
+    scheduleStartupExtrasV337();
   } catch (e) { console.error(e); }
 })();
 
