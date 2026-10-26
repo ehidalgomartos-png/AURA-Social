@@ -142,6 +142,7 @@ let activePublicProfileUsername='';
 let publicProfileRequestSequence=0;
 let publicProfilePostsSequence=0;
 let activeNotificationFilter = 'all';
+let pendingRepliesOnlyV32156=false;
 let notificationCache = [];
 let liveActivitySource = null;
 let liveActivityState = {
@@ -7890,6 +7891,31 @@ function notificationMatches(notification, filter) {
   return true;
 }
 
+// Only actual unread replies to this account's own comments count here.
+// The server computes reply_to_me from comment ownership, not from display text.
+function isPendingReplyV32156(notification){
+  return notification?.reply_to_me===true &&
+    notification.type==='comment' &&
+    notification.entity_type==='post' &&
+    !notification.read_at;
+}
+function pendingReplyCountV32156(items=notificationCache){
+  return items.filter(isPendingReplyV32156).length;
+}
+function updateReplyShortcutV32156(){
+  const button=$('#notificationReplyShortcutV32156');
+  if(!button)return;
+  const count=pendingReplyCountV32156();
+  const inContext=activeNotificationFilter==='all' || activeNotificationFilter==='conversations';
+  const visible=inContext && (count>0 || pendingRepliesOnlyV32156);
+  button.hidden=!visible;
+  button.classList.toggle('hidden',!visible);
+  button.setAttribute('aria-pressed',String(pendingRepliesOnlyV32156));
+  button.textContent=pendingRepliesOnlyV32156
+    ? '← Todas las conversaciones'
+    : count+' '+(count===1?'respuesta pendiente':'respuestas pendientes');
+}
+
 function renderNotifications() {
   const root = $('#notificationsList');
   if (!root) return;
@@ -7898,11 +7924,16 @@ function renderNotifications() {
     button.classList.toggle('active', button.dataset.notificationFilter === activeNotificationFilter);
   });
 
-  const items = notificationCache.filter(notification => notificationMatches(notification, activeNotificationFilter));
+  updateReplyShortcutV32156();
+  const items = notificationCache.filter(notification =>
+    notificationMatches(notification,activeNotificationFilter) &&
+    (!pendingRepliesOnlyV32156 || isPendingReplyV32156(notification)));
 
   root.innerHTML = items.length
     ? items.map(n => `<button type="button" class="notification-item notification-button ${n.read_at ? '' : 'unread'}" data-notification="${n.id}" data-notification-type="${esc(n.type)}" data-entity-type="${esc(n.entity_type || '')}" data-entity-id="${n.entity_id || ''}" data-actor-username="${esc(n.actor_username || '')}"><div class="notification-symbol" aria-hidden="true">${notificationIcon(n.type)}</div><div class="avatar">${n.actor_avatar_url ? `<img src="${esc(n.actor_avatar_url)}">` : initials(n.actor_display_name || 'RedLibertad')}</div><div class="notification-copy"><b>${n.actor_display_name ? esc(n.actor_display_name) : 'RedLibertad'}</b><p>${esc(n.text)}</p><small>${timeAgo(n.created_at)}</small></div><span class="notification-open">›</span></button>`).join('')
-    : '<div class="info-card"><b>No hay actividad en este filtro.</b><p>Cuando ocurra algo nuevo aparecerá aquí.</p></div>';
+    : pendingRepliesOnlyV32156
+      ? '<div class="info-card"><b>No tienes respuestas pendientes.</b><p>Puedes volver a todas las conversaciones desde el botón superior.</p></div>'
+      : '<div class="info-card"><b>No hay actividad en este filtro.</b><p>Cuando ocurra algo nuevo aparecerá aquí.</p></div>';
 
   all('[data-notification]', root).forEach(item => {
     item.onclick = async () => {
@@ -7916,7 +7947,9 @@ function renderNotifications() {
           liveActivityState.notificationUnread=Number(d.unread||0);
           updateNotificationBadge(liveActivityState.notificationUnread);
           if(activeNotificationFilter==='unread')renderNotifications();
+          else if(pendingRepliesOnlyV32156)renderNotifications();
           else item.classList.remove('unread');
+          updateReplyShortcutV32156();
         }else{
           toast('No se pudo marcar como leída. Puedes intentarlo de nuevo.');
         }
@@ -8059,9 +8092,16 @@ async function loadNotifications() {
   renderNotifications();
 }
 
+$('#notificationReplyShortcutV32156')?.addEventListener('click',()=>{
+  if(!pendingRepliesOnlyV32156 && pendingReplyCountV32156()===0)return;
+  pendingRepliesOnlyV32156=!pendingRepliesOnlyV32156;
+  activeNotificationFilter='conversations';
+  renderNotifications();
+});
 all('[data-notification-filter]').forEach(button => {
   button.onclick = () => {
     activeNotificationFilter = button.dataset.notificationFilter || 'all';
+    pendingRepliesOnlyV32156=false;
     renderNotifications();
   };
 });
