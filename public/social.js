@@ -1894,6 +1894,8 @@ let growthInviteToken = '';
 
 // V3.2.150 — one lightweight, optional CTA; the existing checklist remains the source of truth.
 let welcomeActivationUserV32150=null;
+// Only a server-confirmed first-post step can show the composer helper.
+let firstPostHelperUserV32158=null;
 function renderHomeWelcomeV32150(data){
   const root=$('#homeWelcomeV32150');
   if(!root)return;
@@ -1973,12 +1975,18 @@ async function loadGrowthPanel() {
 
   const { r, d } = await api('/api/growth/me');
   if (!r.ok) {
+    firstPostHelperUserV32158=null;
+    renderFirstPostHelperV32158();
     panel.classList.add('hidden');
     $('#homeGrowthDetailsV3224')?.classList.add('hidden');
     $('#homeWelcomeV32150')?.classList.add('hidden');
     return;
   }
 
+  firstPostHelperUserV32158=Array.isArray(d.steps) &&
+    d.steps.some(step=>step?.id==='post'&&step.done===false) && me?.id!=null
+    ? String(me.id) : null;
+  renderFirstPostHelperV32158();
   renderHomeWelcomeV32150(d);
   // First visit creates one welcome notification; never sends an email or push.
   if(d.welcome?.visible===true && welcomeActivationUserV32150!==String(me?.id)){
@@ -10397,6 +10405,7 @@ function selectComposerModeV3227(mode,{focus=false}={}){
   $('#storyMessage').textContent='';
   const card=modal.querySelector('.composer-card-v3227');
   if(card)card.scrollTop=0;
+  renderFirstPostHelperV32158();
 }
 all('[data-composer-tab]').forEach(tab=>{
   tab.addEventListener('click',()=>selectComposerModeV3227(tab.dataset.composerTab));
@@ -10411,6 +10420,34 @@ all('[data-composer-tab]').forEach(tab=>{
   });
 });
 
+// V3.2.158: optional first-post suggestions inside the existing composer.
+// The server's real post-count step is the only eligibility signal.
+function renderFirstPostHelperV32158(){
+  const root=$('#firstPostHelperV32158'),modal=$('#modal');
+  if(!root||!modal)return false;
+  const eligible=!!firstPostHelperUserV32158&&
+    String(firstPostHelperUserV32158)===String(me?.id||'')&&
+    modal.dataset.composerMode==='post';
+  root.hidden=!eligible;
+  root.classList.toggle('hidden',!eligible);
+  return eligible;
+}
+$('#firstPostHelperV32158')?.addEventListener('click',event=>{
+  const action=event.target.closest('[data-first-post-helper-v32158]');
+  if(!action || !renderFirstPostHelperV32158())return;
+  const idea=String(action.dataset.firstPostHelperV32158||'');
+  if(!Object.hasOwn(FIRST_POST_IDEAS_V32151,idea))return;
+  const field=$('#createForm textarea[name="caption"]');
+  const status=$('#firstPostHelperStatusV32158');
+  if(!field)return;
+  if(field.value.trim()){
+    if(status)status.textContent='Tu texto está a salvo. Puedes editarlo antes de publicar.';
+    return;
+  }
+  field.value=FIRST_POST_IDEAS_V32151[idea];
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+  if(status)status.textContent='Idea añadida. Personalízala y comprueba la audiencia antes de publicar.';
+});
 async function openModal(mode='post') {
   $('#marketShareComposerHintV3269')?.classList.add('hidden');
   tapFeedback();
