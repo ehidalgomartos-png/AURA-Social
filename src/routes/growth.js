@@ -136,7 +136,7 @@ router.get('/me', requireAuth, async (req,res)=>{
       (SELECT count(*)::int FROM user_interests ui WHERE ui.user_id=u.id) interest_count,
       (SELECT count(*)::int FROM follows f WHERE f.follower_id=u.id) following_count,
       (SELECT count(*)::int FROM community_members cm WHERE cm.user_id=u.id) community_count,
-      (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published') post_count,
+      (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published' AND p.post_kind='post') post_count,
       (
         (SELECT count(*) FROM likes l WHERE l.user_id=u.id)
         + (SELECT count(*) FROM comments c WHERE c.user_id=u.id)
@@ -173,8 +173,8 @@ router.get('/me', requireAuth, async (req,res)=>{
     },
     {
       id:'profile',
-      label:'Completa tu bio o tus intereses',
-      done:Boolean(String(user.bio||'').trim()) || Number(user.interest_count||0)>0,
+      label:'Añade una presentación y al menos un interés',
+      done:Boolean(String(user.bio||'').trim()) && Number(user.interest_count||0)>0,
       action:'profile'
     },
     {
@@ -275,7 +275,7 @@ router.post('/welcome/activate',requireAuth,async(req,res)=>{
       SELECT u.id FROM users u
        WHERE u.id=$1 AND u.status='active' AND u.is_admin=false
          AND (
-           NOT EXISTS(SELECT 1 FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published')
+           NOT EXISTS(SELECT 1 FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published' AND p.post_kind='post')
            OR u.created_at>=now()-interval '30 days'
          )
       ON CONFLICT (user_id) DO NOTHING
