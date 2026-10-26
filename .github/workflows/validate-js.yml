@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.2.156 pending genuine replies in activity filters
+        run: node --test tests/pending-real-replies-v32156.test.js
       - name: V3.2.155 exact reply navigation from existing notifications
         run: node --test tests/comment-reply-target-v32155.test.js
       - name: V3.2.154 read genuine conversations from the beginning
