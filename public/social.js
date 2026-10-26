@@ -1788,7 +1788,12 @@ function renderHomeWelcomeV32150(data){
       next.action==='explore'?'Descubrir personas':
       next.action==='communities'?'Ver comunidades':'Ver publicaciones';
   }
-  root.classList.remove('hidden');
+  // Si el usuario pidió ver el listado detallado, no repintar la bienvenida encima.
+  if($('#homeGrowthDetailsV3224')?.dataset?.welcomeExpanded==='1'){
+    root.classList.add('hidden');
+  }else{
+    root.classList.remove('hidden');
+  }
 }
 
 async function saveWelcomePreferenceV32150(choice){
@@ -1801,6 +1806,13 @@ async function saveWelcomePreferenceV32150(choice){
     });
     if(!r.ok)throw Error('preference_failed');
     root?.classList.add('hidden');
+    // Los pasos originales siguen disponibles manualmente al posponer la bienvenida.
+    const details=$('#homeGrowthDetailsV3224');
+    if(details){
+      details.dataset.welcomeExpanded='0';
+      details.open=false;
+      details.classList.remove('hidden');
+    }
   }catch(_){
     toast('No se pudo guardar tu preferencia. Inténtalo de nuevo.');
   }finally{
@@ -1810,6 +1822,10 @@ async function saveWelcomePreferenceV32150(choice){
 $('#homeWelcomeMoreV32150')?.addEventListener('click',()=>{
   const details=$('#homeGrowthDetailsV3224');
   if(!details)return;
+  // Un panel cada vez: cambiar la bienvenida por el checklist expandido.
+  details.dataset.welcomeExpanded='1';
+  $('#homeWelcomeV32150')?.classList.add('hidden');
+  details.classList.remove('hidden');
   details.open=true;
   details.scrollIntoView({behavior:'smooth',block:'start'});
 });
@@ -1884,7 +1900,15 @@ async function loadGrowthPanel() {
   panel.classList.remove('hidden');
   const homeGrowth=$('#homeGrowthDetailsV3224');
   if(homeGrowth){
-    homeGrowth.classList.remove('hidden');
+    // No repetir dos invitaciones a completar el perfil en Inicio.
+    const welcomeCard=$('#homeWelcomeV32150');
+    const welcomeShown=Boolean(welcomeCard&&!welcomeCard.classList.contains('hidden'));
+    if(welcomeShown){
+      homeGrowth.classList.add('hidden');
+      homeGrowth.open=false;
+    }else{
+      homeGrowth.classList.remove('hidden');
+    }
     const title=$('#homeGrowthHeadlineV3224');
     const subtitle=$('#homeGrowthProgressV3224');
     if(title)title.textContent=progress>=100?'Tu comunidad está en marcha':'Completa tu RedLibertad';
@@ -7747,6 +7771,9 @@ async function navigateNotification(notification) {
     showView('feed');
     const details=$('#homeGrowthDetailsV3224');
     if(details){
+      details.dataset.welcomeExpanded='1';
+      $('#homeWelcomeV32150')?.classList.add('hidden');
+      details.classList.remove('hidden');
       details.open=true;
       details.scrollIntoView({behavior:'smooth',block:'start'});
     }
