@@ -1401,12 +1401,14 @@ async function toggleSuggestedFollow(button) {
   }
   if(!saved)return;
   // A failed secondary refresh must not misreport a confirmed server write.
-  try {
-    await loadMe();
-    if($('#homeSuggestions'))await loadHomeSuggestions();
-    if($('#activePeople'))await loadActivePeople();
-    if($('#growthPanel'))await loadGrowthPanel();
-  }catch(_){}
+  // V3.3.30: a failed profile read must not prevent confirmed follow
+  // progress and real-person suggestions from being refreshed.
+  try{await loadMe();}catch(_){}
+  await Promise.allSettled([
+    $('#homeSuggestions') ? loadHomeSuggestions() : Promise.resolve(),
+    $('#activePeople') ? loadActivePeople() : Promise.resolve(),
+    $('#growthPanel') ? loadGrowthPanel() : Promise.resolve()
+  ]);
 }
 
 async function loadInterestCatalog() {
@@ -2158,11 +2160,16 @@ $('#homeWelcomeMoreV32150')?.addEventListener('click',()=>{
   details.scrollIntoView({behavior:'smooth',block:'start'});
 });
 
+let growthPanelRequestSequenceV3330=0;
 async function loadGrowthPanel() {
   const panel = $('#growthPanel');
   if (!panel) return;
-
+  const requestId=++growthPanelRequestSequenceV3330;
+  const viewerId=String(me?.id ?? '');
   const { r, d } = await api('/api/growth/me');
+  // A slow response must not reintroduce obsolete recommendations or
+  // expose the former account's invitation after switching user.
+  if(requestId!==growthPanelRequestSequenceV3330 || viewerId!==String(me?.id ?? ''))return;
   if (!r.ok) {
     firstPostHelperUserV32158=null;
     if(typeof renderFirstPostHelperV32158==='function')renderFirstPostHelperV32158();

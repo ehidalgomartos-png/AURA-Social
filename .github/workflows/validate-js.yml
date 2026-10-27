@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.30 isolate stale growth data and recover follow progress
+        run: node --test tests/real-onboarding-consistency-v3330.test.js
       - name: V3.3.29 prevent duplicate private chat creation and competing initial loads
         run: node --test tests/chat-entry-single-flight-v3329.test.js
       - name: V3.3.28 confirmed post and comment are never misreported after read refresh errors
