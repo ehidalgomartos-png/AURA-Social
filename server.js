@@ -1343,7 +1343,7 @@ app.get('/admin', sendHtmlShell('admin.html'));
 app.get('/admin/actividad',requireAdmin,(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Robots-Tag','noindex,nofollow');
-  res.sendFile(path.join(__dirname,'public','admin-activity-v3317.html'));
+  res.sendFile(path.join(__dirname,'src','views','admin-activity-v3317.html'));
 });
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
