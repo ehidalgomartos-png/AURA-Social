@@ -31,7 +31,6 @@ const postRoutes = require('./src/routes/posts');
 const {createYouTubePreviewRouter}=require('./src/routes/youtube-preview-v33161');
 const moderationRoutes = require('./src/routes/moderation');
 const adminRoutes = require('./src/routes/admin');
-const {createAdminActivityRouter}=require('./src/routes/admin-activity-v3317');
 const adminEditorialV320Routes = require('./src/routes/admin-editorial-v320');
 const adminEditorialInboxV321Routes = require('./src/routes/admin-editorial-inbox-v321');
 const {router:adminEditorialReviewV322Routes} = require('./src/routes/admin-editorial-review-v322');
@@ -256,7 +255,6 @@ app.use('/api/admin/editorial', editorialWebImportV3223Admin);
 app.use('/api/admin/editorial', adminEditorialReviewV322Routes);
 app.use('/api/admin/editorial', adminEditorialInboxV321Routes);
 app.use('/api/admin/editorial', adminEditorialV320Routes);
-app.use('/api/admin/activity',createAdminActivityRouter({db}));
 app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace',marketplaceRoutes);
 app.use(marketplaceSeoV3251.router);
@@ -1340,11 +1338,6 @@ app.get('/marketplace',sendHtmlShell('marketplace.html'));
 app.get('/marketplace/google',(_req,res)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex,nofollow');res.sendFile(path.join(__dirname,'public','marketplace-google-v3264.html'));});
 app.get('/app', sendHtmlShell('app.html'));
 app.get('/admin', sendHtmlShell('admin.html'));
-app.get('/admin/actividad',requireAdmin,(req,res)=>{
-  res.setHeader('Cache-Control','no-store');
-  res.setHeader('X-Robots-Tag','noindex,nofollow');
-  res.sendFile(path.join(__dirname,'public','admin-activity-v3317.html'));
-});
 app.get('/admin-recovery', sendHtmlShell('admin-recovery.html'));
 app.get('*', sendHtmlShell('index.html'));
 
