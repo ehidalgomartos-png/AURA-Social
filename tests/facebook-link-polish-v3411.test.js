@@ -56,8 +56,8 @@ test('other networks keep their links and player only after a click',()=>{
 });
 test('asset busting, mobile layout, original links and CI preserve browser rollout',()=>{
  const html=read('public/app.html'),css=read('public/social.css'),ci=read('.github/workflows/validate-js.yml');
- assert.match(html,/social-card=3\.4\.1\.1/);
- assert.match(html,/social-embeds=3\.4\.1\.1/);
+ assert.match(html,/social-card=3\.4\.1\.2/);
+ assert.match(html,/social-embeds=3\.4\.1\.2/);
  assert.match(css,/\.social-link-icon-v3411/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/flex:1 1 150px/);
