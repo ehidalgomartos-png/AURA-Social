@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check:syntax
+      - name: V3.3.14 Explore desktop real people first and compact private network
+        run: node --test tests/explore-desktop-clean-v3314.test.js
       - name: V3.3.13.1 desktop home suggestion cards no overlap, mobile preserved
         run: node --test tests/home-people-desktop-v33131.test.js
       - name: V3.3.13 retryable mobile Explore HTTP errors
