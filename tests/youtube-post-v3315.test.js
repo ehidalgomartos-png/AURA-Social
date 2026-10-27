@@ -66,7 +66,7 @@ test('post template renders link preview, current caption remains escaped, compo
  const html=read('public/app.html');
  const css=read('public/social.css');
  assert.match(source,/youtubePostPreviewV3315\(p,!!media\)/);
- assert.match(source,/captionHTML\(visibleCaption\)/);
+ assert.match(source,/captionHTML\(p.caption\)/);
  assert.match(html,/composer-youtube-hint-v3315/);
  assert.match(html,/youtube=3\.3\.15/);
  assert.match(css,/\.post-youtube-v3315 iframe/);
