@@ -36,12 +36,25 @@
         provider='x';kind='status';id=match[2];
         label='Publicación de @'+match[1]+' en X';
         url='https://x.com/'+match[1]+'/status/'+id;
+      }else if(['vm.tiktok.com','vt.tiktok.com'].includes(h)){
+        match=/^\/([A-Za-z0-9_-]{6,30})\/?$/.exec(p);
+        if(!match)continue;
+        provider='tiktok';kind='short';id=match[1];
+        label='Enlace compartido de TikTok';
+        url='https://'+h+'/'+id+'/';
       }else if(['tiktok.com','www.tiktok.com','m.tiktok.com'].includes(h)){
         match=/^\/@([A-Za-z0-9._]{2,30})\/(video|photo)\/([0-9]{10,22})\/?$/.exec(p);
-        if(!match)continue;
-        provider='tiktok';kind=match[2];id=match[3];
-        label=(kind==='photo'?'Fotografías':'Vídeo')+' de @'+match[1]+' en TikTok';
-        url='https://www.tiktok.com/@'+match[1]+'/'+kind+'/'+id;
+        if(match){
+          provider='tiktok';kind=match[2];id=match[3];
+          label=(kind==='photo'?'Fotografías':'Vídeo')+' de @'+match[1]+' en TikTok';
+          url='https://www.tiktok.com/@'+match[1]+'/'+kind+'/'+id;
+        }else{
+          match=/^\/t\/([A-Za-z0-9_-]{6,30})\/?$/.exec(p);
+          if(!match)continue;
+          provider='tiktok';kind='short';id=match[1];
+          label='Enlace compartido de TikTok';
+          url='https://www.tiktok.com/t/'+id+'/';
+        }
       }else if(['facebook.com','www.facebook.com','m.facebook.com'].includes(h)){
         match=/^\/([A-Za-z0-9._-]{2,80})\/posts\/([A-Za-z0-9_-]{6,110})\/?$/.exec(p);
         if(match){
@@ -50,10 +63,17 @@
           url='https://www.facebook.com/'+match[1]+'/posts/'+id+'/';
         }else{
           match=/^\/reel\/([0-9]{8,22})\/?$/.exec(p);
-          if(!match)continue;
-          provider='facebook';kind='reel';id=match[1];
-          label='Reel de Facebook';
-          url='https://www.facebook.com/reel/'+id+'/';
+          if(match){
+            provider='facebook';kind='reel';id=match[1];
+            label='Reel de Facebook';
+            url='https://www.facebook.com/reel/'+id+'/';
+          }else{
+            match=/^\/share\/(p|r)\/([A-Za-z0-9_-]{6,100})\/?$/.exec(p);
+            if(!match)continue;
+            provider='facebook';kind='short';id=match[2];
+            label='Enlace compartido de Facebook';
+            url='https://www.facebook.com/share/'+match[1]+'/'+id+'/';
+          }
         }
       }else continue;
       return {provider,providerName:PROVIDERS[provider],label,url,id,kind};
@@ -65,10 +85,10 @@
     if(!info||!PROVIDERS[info.provider])return null;
     const safe=parse(info.url);
     if(!safe||safe.url!==info.url||safe.provider!==info.provider)return null;
-    if(safe.provider==='tiktok'){
+    if(safe.provider==='tiktok'&&safe.kind!=='short'){
       return 'https://www.tiktok.com/player/v1/'+safe.id+'?autoplay=0&music_info=1&description=1';
     }
-    if(safe.provider==='facebook'){
+    if(safe.provider==='facebook'&&safe.kind!=='short'){
       const plugin=safe.kind==='reel'?'video.php':'post.php';
       return 'https://www.facebook.com/plugins/'+plugin+'?href='+
         encodeURIComponent(safe.url)+'&show_text=true&width=500';
@@ -123,8 +143,11 @@
       return true;
     }
     const status=doc.createElement('p');
-    status.textContent='Cargando contenido desde '+safe.providerName+'…';
+    status.textContent=safe.kind==='short'
+      ?'Este enlace abre la publicación original en '+safe.providerName+'.'
+      :'Cargando contenido desde '+safe.providerName+'…';
     area.appendChild(status);
+    if(safe.kind==='short')return false;
     try{
       if(safe.provider==='instagram'){
         await loadScript('instagram',doc);
