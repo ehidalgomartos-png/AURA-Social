@@ -636,6 +636,36 @@ document.addEventListener('click',event=>{
   root.replaceChildren(frame);
 });
 
+
+/* V3.4.1 — lightweight cards for public social links, never autoplay or
+ * contact Instagram, Facebook, TikTok or X until a viewer clicks "Ver aquí". */
+function socialPostPreviewV341(post,hasMedia=false){
+  if(post.gated||hasMedia||post.post_kind==='reel')return '';
+  if(youtubeVideoIdV3315(post.caption))return '';
+  const social=window.RedLibertadSocialEmbedsV341?.parse(post.caption);
+  if(!social)return '';
+  return '<section class="post-social-v341" data-social-card="'+esc(social.provider)+'">'+
+    '<div class="post-social-label-v341"><small>ENLACE COMPARTIDO</small>'+
+    '<b>'+esc(social.providerName)+'</b></div>'+
+    '<p>'+esc(social.label)+'</p>'+
+    '<small>El contenido externo se carga solo si eliges verlo. Si es privado, puede no estar disponible.</small>'+
+    '<div class="post-social-actions-v341">'+
+    '<button type="button" data-social-activate data-social-url="'+esc(social.url)+'">Ver aquí</button>'+
+    '<a href="'+esc(social.url)+'" target="_blank" rel="noopener noreferrer nofollow ugc">Abrir en '+esc(social.providerName)+'</a>'+
+    '</div></section>';
+}
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-social-activate]');
+  if(!button||button.disabled)return;
+  const root=button.closest('[data-social-card]');
+  if(!root)return;
+  const info=window.RedLibertadSocialEmbedsV341?.parse(button.dataset.socialUrl);
+  if(!info)return;
+  button.disabled=true;
+  try{await window.RedLibertadSocialEmbedsV341.activate(info,root);}
+  catch(_){button.disabled=false;}
+});
+
 function mediaHTML(p, compact = false, priority = false) {
   if (p.gated) return `<div class="${compact ? 'tile-gate' : 'gate'}"><div>${compact ? '18+' : `<span class="badge">18+</span><b>Contenido sensible</b><p>${gateText(p.gate_reason)}</p>`}</div></div>`;
   const url = p.playback_url || p.media_url;
@@ -772,9 +802,10 @@ function communityToolHTML(p) {
 function postHTML(p, options = {}) {
   const media = mediaHTML(p, false, !!options.priorityMedia);
   const youtubeId=!media&&!p.gated&&p.post_kind!=='reel' ? youtubeVideoIdV3315(p.caption):null;
-  const linkOnlyCaption=youtubeId && /^https:\/\/[^\s]+$/.test(String(p.caption||'').trim());
+  const socialLink=!media&&!p.gated&&p.post_kind!=='reel'&&!youtubeId ? window.RedLibertadSocialEmbedsV341?.parse(p.caption):null;
+  const linkOnlyCaption=(youtubeId||socialLink) && /^https:\/\/[^\s]+$/.test(String(p.caption||'').trim());
   const visibleCaption=Boolean(p.caption)&&!linkOnlyCaption;
-  const textOnly = !media&&!youtubeId;
+  const textOnly = !media&&!youtubeId&&!socialLink;
   const ownPost = !!me && String(me.id) === String(p.user_id);
   const collaboratingMe=!!me && Array.isArray(p.collaborators) && p.collaborators.some(x=>String(x.id)===String(me.id));
   const canManage = !!me && (ownPost || me.is_admin === true);
@@ -811,6 +842,7 @@ function postHTML(p, options = {}) {
     ${media ? `<div class="post-media">${media}</div>` : ''}
     ${visibleCaption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
     ${youtubePostPreviewV3315(p,!!media)}
+    ${socialPostPreviewV341(p,!!media)}
     ${communityToolHTML(p)}
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
@@ -10898,6 +10930,7 @@ function selectComposerModeV3227(mode,{focus=false}={}){
   const kind=$('#composerKindV3228');
   if(kind)kind.value=next==='reel'?'reel':'post';
   if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
+  if(typeof updateComposerSocialV341==='function')updateComposerSocialV341();
   post.setAttribute('aria-labelledby',next==='reel'?'composerReelTabV3228':'composerPostTabV3227');
   for(const tab of all('[data-composer-tab]')){
     const selected=tab.dataset.composerTab===next;
@@ -11099,6 +11132,7 @@ function clearPostMedia() {
   $('#uploadText')?.classList.remove('hidden');
   $('#removePostMedia')?.classList.add('hidden');
   if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
+  if(typeof updateComposerSocialV341==='function')updateComposerSocialV341();
 }
 
 $('#mediaFile').addEventListener('change', e => {
@@ -11114,6 +11148,7 @@ $('#mediaFile').addEventListener('change', e => {
   p.classList.remove('hidden');
   p.innerHTML = f.type.startsWith('image/') ? `<img src="${u}">` : `<video src="${u}" controls></video>`;
   if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
+  if(typeof updateComposerSocialV341==='function')updateComposerSocialV341();
 });
 $('#removePostMedia')?.addEventListener('click', clearPostMedia);
 
@@ -11138,11 +11173,32 @@ function updateComposerYoutubeV33161(){
     youtubePostPreviewV3315({caption,post_kind:'post',gated:false});
   hydrateYoutubeCardsV33161(root);
 }
+
+function updateComposerSocialV341(){
+  const root=$('#socialComposerPreviewV341');
+  if(!root)return;
+  const caption=$('#createForm [name="caption"]')?.value||'';
+  const kind=$('#composerKindV3228')?.value||'post';
+  const mode=$('#modal')?.dataset.composerMode||'post';
+  const hasFile=Boolean($('#mediaFile')?.files?.length);
+  const info=kind==='post'&&mode==='post'&&!hasFile&&!youtubeVideoIdV3315(caption)
+    ? window.RedLibertadSocialEmbedsV341?.parse(caption):null;
+  if(!info){
+    root.hidden=true;root.innerHTML='';root.dataset.socialUrl='';
+    return;
+  }
+  if(root.dataset.socialUrl===info.url&&!root.hidden)return;
+  root.dataset.socialUrl=info.url;
+  root.hidden=false;
+  root.innerHTML='<small class="social-composer-label-v341">Vista previa de tu enlace · aún sin publicar</small>'+
+    socialPostPreviewV341({caption,post_kind:'post',gated:false});
+}
 function updateCreateCounter() {
   if (createCaption && $('#createCharCount')) {
     $('#createCharCount').textContent = `${createCaption.value.length} / 2200`;
   }
   if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
+  if(typeof updateComposerSocialV341==='function')updateComposerSocialV341();
 }
 createCaption?.addEventListener('input', updateCreateCounter);
 updateCreateCounter();
