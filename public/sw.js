@@ -13,6 +13,7 @@ const SHELL_ASSETS=[
   '/creator-ops.css',
   '/app.js',
   '/social.js',
+  '/social-embeds-v341.js',
   '/creator-ops.js',
   '/pwa.js',
   '/pwa-badges-v3323.js',
