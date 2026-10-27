@@ -9,7 +9,9 @@ const seo=require('../src/services/marketplace-comparador-seo-v32132');
 const auto=require('../src/services/marketplace-comparador-auto-seo-v32138');
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
-const NOW='2026-10-25T16:00:00.000Z';
+// Use a fresh clock-relative fixture; fixed dates become stale after 48 hours.
+const NOW=new Date().toISOString();
+const STALE=new Date(Date.parse(NOW)-72*60*60*1000).toISOString();
 function fixture(overrides={}){
  const page={id:74,query_text:'iPhone 17 Pro 256 GB',slug:compare.slugFor('iPhone 17 Pro 256 GB'),index_approved:false,
    seo_blocked:false,provider_status:'ok',last_checked_at:NOW,updated_at:NOW,
@@ -47,7 +49,7 @@ test('no indexar búsquedas generales, mezclas, usados, anuncios ni enlaces a Go
  assert.equal(altered({...p,query_text:'iphone 17 pro 256gb azul'}).eligible,false);
  assert.equal(altered({...p,query_text:'iphone 17 pro 256gb',seo_blocked:true}).eligible,false);
  assert.equal(altered({...p,provider_status:'queued'}).eligible,false);
- assert.equal(altered({...p,last_checked_at:'2026-10-22T10:00:00Z'}).eligible,false);
+ assert.equal(altered({...p,last_checked_at:STALE}).eligible,false);
  assert.equal(altered(p,p.external_results.slice(0,2)).eligible,false);
  assert.equal(altered(p,p.external_results.map((o,i)=>i===2?{...o,shop:'Tienda B'}:o)).eligible,false);
  assert.equal(altered(p,p.external_results.map((o,i)=>i===2?{...o,title:'Apple iPhone 17 Pro Max 256 GB Negro'}:o)).eligible,false);
@@ -109,4 +111,14 @@ test('administrador puede bloquear URL y deja de ser indexable en el siguiente r
  assert.equal(auto.eligibleOffers({...page,seo_blocked:true},page.external_results,now).reason,'Bloqueada por administración');
  const graph=seo.structuredData({...page,seo_blocked:true},page.external_results,false,'/comparar/'+page.slug);
  assert.equal(graph['@graph'].some(x=>x['@type']==='Product'),false);
+});
+
+test('la caducidad de 48 horas sigue bloqueando precios y fichas enriquecidas',()=>{
+ const page=fixture({last_checked_at:STALE});
+ const result=auto.eligibleOffers(page,page.external_results,Date.parse(NOW));
+ assert.equal(result.eligible,false);
+ assert.equal(result.reason,'Precios sin actualizar');
+ assert.equal(seo.indexEligible(page,page.external_results,Date.parse(NOW)),false);
+ const graph=seo.structuredData(page,page.external_results,true,'/comparar/'+page.slug);
+ assert.equal(graph['@graph'].some(entry=>entry['@type']==='Product'),false);
 });
