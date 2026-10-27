@@ -22,9 +22,9 @@ test('missing or invalid SHA is unknown and never guessed',()=>{
  }
  assert.equal(release.deployedCommit({}),null);
 });
-test('health and public config surface SHA without changing the legacy version label',()=>{
+test('health and public config expose the current version and deployed SHA',()=>{
  const server=fs.readFileSync('server.js','utf8');
- for(const phrase of ["const APP_VERSION='3.2.77'",'deployedCommit:releaseInfo().commit',
+ for(const phrase of ["const APP_VERSION='3.3.32'",'deployedCommit:releaseInfo().commit',
   "app.get('/api/health'", "app.get('/api/public-config'"]){
   assert.equal(server.includes(phrase),true,phrase);
  }

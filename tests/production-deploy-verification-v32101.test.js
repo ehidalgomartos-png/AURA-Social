@@ -16,15 +16,15 @@ function fakeFetch(values, calls){
 }
 function responseValues(commit=sha){
  return {
-  '/api/health':{ok:true,version:'3.2.77',deployedCommit:commit},
-  '/api/public-config':{version:'3.2.77',deployedCommit:commit},
-  '/api/ready':{ok:true,database:'ready',version:'3.2.77'}
+  '/api/health':{ok:true,version:'3.3.32',deployedCommit:commit},
+  '/api/public-config':{version:'3.3.32',deployedCommit:commit},
+  '/api/ready':{ok:true,database:'ready',version:'3.3.32'}
  };
 }
 test('matches exact deployed commit and checks HTTP, config and database readiness',async()=>{
  const calls=[];
  const result=await checker.verifyOnce(sha,{fetcher:fakeFetch(responseValues(),calls)});
- assert.deepEqual(result,{ok:true,observedCommit:sha,legacyVersion:'3.2.77'});
+ assert.deepEqual(result,{ok:true,observedCommit:sha,legacyVersion:'3.3.32'});
  assert.deepEqual(calls.map(x=>new URL(x.url).pathname),
   ['/api/health','/api/public-config','/api/ready']);
  for(const call of calls){
