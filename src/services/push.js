@@ -1,6 +1,7 @@
 const webpush = require('web-push');
 const db = require('../db');
 const {shouldDeliverPush}=require('./push-preferences');
+const {getBadgeCountsV3323}=require('./app-badge-v3323');
 
 const VAPID_PUBLIC_KEY=String(process.env.PUSH_VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE_KEY=String(process.env.PUSH_VAPID_PRIVATE_KEY || '').trim();
@@ -164,6 +165,7 @@ async function processPushJobs(){
     `);
 
     const preferencesByUser=new Map();
+    const badgeByUserV3323=new Map();
     for(const job of jobs.rows){
       if(job.actor_id){
         const suppressed=await db.query(`
@@ -214,7 +216,17 @@ async function processPushJobs(){
         continue;
       }
 
+      // Exact unread count from the authenticated recipient's own records.
+      // Push must still deliver if an optional badge query fails.
+      if(!badgeByUserV3323.has(userKey)){
+        try{
+          const counts=await getBadgeCountsV3323(job.user_id);
+          badgeByUserV3323.set(userKey,counts.badgeUnread);
+        }catch(_){badgeByUserV3323.set(userKey,null);}
+      }
+      const badgeCount=badgeByUserV3323.get(userKey);
       const payload=JSON.stringify({
+        ...(badgeCount===null?{}:{badgeCount}),
         notificationId:String(job.notification_id),
         type:job.type,
         title:job.actor_display_name || 'RedLibertad',

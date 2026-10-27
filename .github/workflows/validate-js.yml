@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.23 PWA icon badge real unread and safe push
+        run: node --test tests/pwa-real-badges-v3323.test.js
       - name: V3.3.22 stable return baseline and single real visit acknowledgement
         run: node --test tests/real-return-session-v3322.test.js
       - name: V3.3.21 comment response context and confirmed comment focus

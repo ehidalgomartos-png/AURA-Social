@@ -2481,6 +2481,8 @@ async function loadMe() {
     throw new Error('marketplace_share_login_required');
   }
   me = d.profile;
+  window.RedLibertadPwaBadgeV3323?.setUser(me?.id);
+  void window.RedLibertadPwaBadgeV3323?.refresh();
   const quickAvatar = $('#quickAvatar');
   if (quickAvatar) quickAvatar.innerHTML = avatarHTML(me);
   if (me.is_admin) $('#adminLink').classList.remove('hidden');
@@ -6375,6 +6377,7 @@ $('#logoutAllSessions')?.addEventListener('click', async () => {
     return;
   }
 
+  await window.RedLibertadPwaBadgeV3323?.clear();
   location.href = '/';
 });
 
@@ -8182,6 +8185,7 @@ async function handleLiveActivity(payload,initial=false) {
 
   updateNotificationBadge(liveActivityState.notificationUnread);
   updateMessageBadge(liveActivityState.messageUnread);
+  window.RedLibertadPwaBadgeV3323?.sync(me?.id,payload.badgeUnread);
   updateConversationPresenceBadges();
   updateActiveChatPresence();
   if(initial)return;
@@ -11395,6 +11399,7 @@ $('#logout').onclick = async () => {
   commentDraftsV3235.clear();
   commentDraftOwnerV3235=null;
   await fetch('/api/auth/logout', { method: 'POST' });
+  await window.RedLibertadPwaBadgeV3323?.clear();
   location.href = '/';
 };
 
