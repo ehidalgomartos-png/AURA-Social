@@ -2235,7 +2235,7 @@ async function loadGrowthPanel() {
     const starters=Array.isArray(d.starterProfiles)?d.starterProfiles:[];
     starterRoot.innerHTML=starters.length
       ? starters.map(user=>personCardHTML(user,true,'starter')).join('')
-      : '<div class="mini-empty"><b>Tu red ya está en marcha.</b><small>Explora para descubrir más personas.</small></div>';
+      : '<div class="mini-empty"><b>No hay nuevas sugerencias disponibles ahora.</b><small>Puedes entrar en Explorar para descubrir otras personas cuando quieras.</small></div>';
   }
 
   const hint = $('#growthInviteHint');

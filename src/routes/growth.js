@@ -135,7 +135,10 @@ router.get('/me', requireAuth, async (req,res)=>{
     SELECT
       u.id,u.username,u.display_name,u.avatar_url,u.bio,u.created_at,u.status,u.is_admin,
       (SELECT count(*)::int FROM user_interests ui WHERE ui.user_id=u.id) interest_count,
-      (SELECT count(*)::int FROM follows f WHERE f.follower_id=u.id) following_count,
+      -- Only people with active, non-admin accounts count toward first connections.
+      -- Old follow records for removed/suspended accounts must not mark the step done.
+      (SELECT count(*)::int FROM follows f JOIN users followed ON followed.id=f.following_id
+       WHERE f.follower_id=u.id AND followed.status='active' AND followed.is_admin=false) following_count,
       (SELECT count(*)::int FROM community_members cm WHERE cm.user_id=u.id) community_count,
       (SELECT count(*)::int FROM posts p WHERE p.user_id=u.id AND p.moderation_status='published' AND p.post_kind='post') post_count,
       (
