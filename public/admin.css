@@ -771,3 +771,13 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 .editorial-category-suggestion-v3247{display:block;margin-top:5px;padding:9px 10px;border-radius:9px;
  background:#fffefa;border:1px dashed #bbd3d1;color:#335b60;font-size:12px;font-weight:600;line-height:1.5}
 @media(max-width:620px){.editorial-category-suggestion-v3247{font-size:12px;padding:8px}}
+
+/* V3.3.17 — main admin entry to the standalone activity overview */
+.activity-center-entry-v3317{
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:12px;background:#e8f6f3;color:#11685f;
+  border:1px solid #b9dcd5;padding:11px 16px;
+  font-size:14px;font-weight:800;text-decoration:none;min-height:44px;
+}
+.activity-center-entry-v3317:hover{background:#d6eeea}
+.activity-center-entry-v3317:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
