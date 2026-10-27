@@ -8822,9 +8822,10 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
    The embedded post's bottom controls were clipped by the 480px minimum. */
 .post-social-v341[data-social-card="facebook"] .social-embed-active-v341 iframe{
   box-sizing:border-box;
+  display:block;
   width:100%;
   max-width:500px;
-  min-height:570px;
+  min-height:0;
   margin-inline:auto;
   background:#fff;
 }
@@ -8848,4 +8849,25 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 .facebook-auto-settings-v3413 #facebookAutoEmbedStatusV3413{margin:8px 0 0;min-height:1.25em;font-size:12px}
 @media(max-width:600px){
   .facebook-auto-settings-v3413 .facebook-auto-consent-v3413{padding:12px 10px;gap:10px}
+}
+
+/* V3.4.1.4 — remove the large Facebook iframe blank tail on mobile/desktop.
+   Inline iframe height is calculated from the provider's actual embed width.
+   A manual "Ampliar" control supports unusually long external publications. */
+.post-social-v341[data-social-card="facebook"] .social-embed-fallback-v341{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;
+  margin-top:8px;
+}
+.social-embed-more-v3414{
+  border:1px solid var(--line);border-radius:9px;
+  background:var(--paper,#fff);color:var(--navy);
+  font-size:12px;font-weight:700;cursor:pointer;
+  padding:9px 12px;min-height:40px;
+}
+.social-embed-more-v3414:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+@media(max-width:600px){
+  .post-social-v341[data-social-card="facebook"] .social-embed-fallback-v341{
+    align-items:center;
+  }
 }

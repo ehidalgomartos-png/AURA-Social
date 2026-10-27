@@ -4,13 +4,15 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('public/social-embeds-v341.js','utf8');
 const sandbox={window:{},URL};vm.runInNewContext(source,sandbox);
-const {parse,playerUrl,activate,facebookEmbedWidthV3412}=sandbox.window.RedLibertadSocialEmbedsV341;
+const {parse,playerUrl,activate,facebookEmbedWidthV3412,facebookFrameHeightV3414}=sandbox.window.RedLibertadSocialEmbedsV341;
 const post=parse('https://www.facebook.com/RedLibertad/posts/pfbid01XYabcde');
 const reel=parse('https://www.facebook.com/reel/783920193845112');
 const tiktok=parse('https://www.tiktok.com/@usuario/video/7483917201198731264');
 
 function node(type,width=0){
- return {type,clientWidth:width,children:[],
+ return {type,clientWidth:width,children:[],attributes:{},
+  setAttribute(name,value){this.attributes[name]=String(value)},
+  getAttribute(name){return this.attributes[name]||null},
   getBoundingClientRect(){return {width};},
   replaceChildren(...items){this.children=[...items]},
   appendChild(item){this.children.push(item);return item}};
@@ -29,12 +31,21 @@ test('Facebook embeds use a bounded plugin width and reject bogus dimensions',()
  assert.equal(playerUrl({...post,url:'https://evil.example/'},350),null);
 });
 
-test('desktop Facebook post is centered within provider max 500px and taller than legacy 480px',async()=>{
+test('desktop Facebook post stays compact with an accessible expand control',async()=>{
  const root=node('root'),document=doc(638);
  assert.equal(await activate(post,root,document,{}),true);
  const iframe=root.children[0].children[0];
  assert.equal(iframe.width,'500');
- assert.equal(iframe.height,'725');
+ assert.equal(iframe.height,'525');
+ const expand=root.children[1].children[1];
+ assert.equal(expand.textContent,'Ampliar publicación');
+ assert.equal(expand.getAttribute('aria-expanded'),'false');
+ expand.onclick();
+ assert.equal(expand.getAttribute('aria-expanded'),'true');
+ assert.equal(iframe.height,'1075');
+ assert.equal(expand.textContent,'Reducir publicación');
+ expand.onclick();
+ assert.equal(iframe.height,'525');
  assert.equal(iframe.src,playerUrl(post,500));
  assert.equal(iframe.loading,'lazy');
  assert.equal(root.children[1].children[0].href,post.url);
@@ -47,8 +58,9 @@ test('mobile Facebook embed requests actual narrow width, not a clipped 500px pl
  const iframe=root.children[0].children[0];
  assert.equal(iframe.width,'348');
  assert.match(iframe.src,/&width=348$/);
- assert.ok(Number(iframe.height)>=570);
- assert.ok(Number(iframe.height)<=760);
+ assert.equal(iframe.height,'365');
+ assert.equal(facebookFrameHeightV3414(348),365);
+ assert.equal(facebookFrameHeightV3414(348,true),760);
  assert.equal(root.children[1].children[0].href,post.url);
 });
 
@@ -75,10 +87,10 @@ test('CSS restricts Facebook width, keeps the external link visible and refreshe
  const ci=fs.readFileSync('.github/workflows/validate-js.yml','utf8');
  assert.match(css,/data-social-card="facebook"\] \.social-embed-active-v341 iframe/);
  assert.match(css,/max-width:500px/);
- assert.match(css,/min-height:570px/);
+ assert.match(css,/min-height:0;/);
  assert.match(css,/margin-inline:auto/);
  assert.match(css,/\.social-embed-fallback-v341/);
- assert.match(html,/social-card=3\.4\.1\.2/);
- assert.match(html,/social-embeds-v341\.js\?v=3\.4\.1\.2/);
+ assert.match(html,/social-card=3\.4\.1\.4/);
+ assert.match(html,/social-embeds-v341\.js\?v=3\.4\.1\.4/);
  assert.match(ci,/facebook-embed-responsive-v3412\.test\.js/);
 });
