@@ -62,7 +62,9 @@ test('admin UI is mobile-friendly, escaped, and never represents scores for smal
   note={textContent:''};
  const els={'#growthCenterMetrics':metrics,'#growthCenterDiagnosis':diagnosis,
   '#growthCenterSources':sources,'#growthCenterGuides':guides,
-  '#growthCenterDaily':daily,'#growthCenterMethod':note,'#growthCenterDays':{value:'30'}};
+  '#growthCenterDaily':daily,'#growthCenterMethod':note,
+  '#growthCenterDays':{value:'30',addEventListener(){}},
+  '#reloadGrowthCenter':{addEventListener(){}}};
  const requests=[];
  const ctx={Number,String,Math,encodeURIComponent,Date,
   $:key=>els[key]||null,esc:value=>String(value??'')
