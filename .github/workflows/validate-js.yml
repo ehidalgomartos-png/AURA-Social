@@ -20,6 +20,8 @@ jobs:
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
       - name: V3.3.15 YouTube links embedded with deliberate playback consent
         run: node --test tests/youtube-post-v3315.test.js
+      - name: V3.3.16 important update newsletter opt-in and controlled Resend delivery
+        run: node --test tests/important-updates-v3316.test.js
       - name: Check JavaScript syntax
         run: npm run check:syntax
       - name: V3.3.14 Explore desktop real people first and compact private network
