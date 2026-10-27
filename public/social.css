@@ -8979,3 +8979,18 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
     gap:6px;padding:8px 12px calc(12px + env(safe-area-inset-bottom));
   }
 }
+
+/* V3.4.1.7 — graceful exit for Facebook's inaccessible/private frames. */
+.post-social-v341[data-social-card="facebook"] .social-embed-hide-v3417{
+  min-height:44px;padding:8px 12px;border:1px solid var(--line);
+  border-radius:10px;background:transparent;color:var(--navy);
+  font-size:12px;font-weight:750;cursor:pointer;
+}
+.post-social-v341[data-social-card="facebook"] .social-embed-unavailable-v3417{
+  min-height:0;padding:10px 12px;border-radius:10px;background:rgba(120,130,145,.09);
+  font-size:12px;line-height:1.5;
+}
+.post-social-v341[data-social-card="facebook"] .social-embed-unavailable-v3417 p{margin:0;font-weight:500}
+.post-social-v341[data-social-card="facebook"] .social-embed-hide-v3417:focus-visible{
+  outline:3px solid var(--teal);outline-offset:2px;
+}
