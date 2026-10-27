@@ -1897,8 +1897,8 @@ async function loadReturnPulse(force=false) {
   // Retain an already-shown, still user-dismissable suggestion during
   // an in-tab refresh; opening it always rechecks server-side access.
   let hasConversation=!!returnConversationPostV32152;
-  if(hasConversation)renderReturnConversationV32152(returnConversationPostV32152);
-  else renderReturnConversationV32152(null);
+  // The existing card is already visible; do not re-create it on refresh.
+  if(!hasConversation)renderReturnConversationV32152(null);
   if(!hasConversation && d.participation?.can_show===true && me?.id){
     try{
       const feed=await api('/api/posts/feed?mode=latest');
