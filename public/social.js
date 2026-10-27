@@ -663,17 +663,6 @@ function mediaHTML(p, compact = false, priority = false) {
   if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
   return `<video src="${esc(url)}" controls playsinline preload="${priority ? 'metadata' : 'none'}"></video>`;
 }
-document.addEventListener('click',async event=>{
-  const button=event.target.closest('[data-social-activate]');
-  if(!button||button.disabled)return;
-  const root=button.closest('[data-social-card]');
-  if(!root)return;
-  const info=window.RedLibertadSocialEmbedsV341?.parse(button.dataset.socialUrl);
-  if(!info)return;
-  button.disabled=true;
-  try{await window.RedLibertadSocialEmbedsV341.activate(info,root);}
-  catch(_){button.disabled=false;}
-});
 
 function profileLink(username, label, className = '') {
   return `<button type="button" class="profile-link ${className}" data-profile="${esc(username)}">${label}</button>`;
@@ -11885,3 +11874,16 @@ document.addEventListener('keydown',event=>{
 });
 
 initializeAccessibility();
+
+// V3.4.1: isolated delegated handler; existing media and YouTube hooks stay unchanged.
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-social-activate]');
+  if(!button||button.disabled)return;
+  const root=button.closest('[data-social-card]');
+  if(!root)return;
+  const info=window.RedLibertadSocialEmbedsV341?.parse(button.dataset.socialUrl);
+  if(!info)return;
+  button.disabled=true;
+  try{await window.RedLibertadSocialEmbedsV341.activate(info,root);}
+  catch(_){button.disabled=false;}
+});
