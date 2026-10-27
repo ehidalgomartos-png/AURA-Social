@@ -9,6 +9,7 @@ const SHELL_ASSETS=[
   '/app',
   '/styles.css',
   '/social.css',
+  '/home-growth-desktop-v33242.css',
   '/creator-ops.css',
   '/app.js',
   '/social.js',

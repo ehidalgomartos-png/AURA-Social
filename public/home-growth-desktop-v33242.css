@@ -1,0 +1,115 @@
+/* V3.3.24.2 — Inicio de escritorio: aprovechar anchura real sin tocar el móvil.
+   Los enlaces, datos y acciones existentes no cambian. */
+@media(min-width:761px){
+  #feedView #homeGrowthDetailsV3224{
+    width:100%;
+    max-width:none;
+    box-sizing:border-box;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-panel{
+    grid-template-columns:minmax(0,1fr);
+    align-items:start;
+    gap:14px;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-onboarding,
+  #feedView #homeGrowthDetailsV3224 .growth-invite{
+    min-width:0;
+    align-self:start;
+  }
+  /* Las personas tienen dos filas: nombre y datos arriba; Seguir debajo.
+     Ningún botón puede tapar un nombre, aunque este ocupe dos líneas. */
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list .person-card.compact{
+    display:grid;
+    min-width:0;
+    grid-template-columns:42px minmax(0,1fr);
+    grid-template-rows:auto auto;
+    gap:7px 10px;
+    align-content:start;
+    align-items:start;
+    padding:11px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:rgba(255,255,255,.74);
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list .person-avatar-link{
+    grid-column:1;
+    grid-row:1;
+    align-self:start;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list .person-copy{
+    grid-column:2;
+    grid-row:1;
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list .person-copy b{
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
+    overflow-wrap:anywhere;
+    line-height:1.35;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list .person-card-actions{
+    grid-column:2;
+    grid-row:2;
+    min-width:0;
+    justify-self:start;
+    align-self:end;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter-list .person-follow{
+    min-height:36px;
+    max-width:100%;
+    white-space:nowrap;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-community-starter-list{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+/* Sólo pantallas anchas: onboarding de lectura fácil en dos columnas,
+   invitaciones compactas al lado, sin columnas vacías del alto del checklist. */
+@media(min-width:1180px){
+  #feedView #homeGrowthDetailsV3224 .growth-panel{
+    grid-template-columns:minmax(0,2.2fr) minmax(300px,.95fr);
+    gap:16px;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-onboarding{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    column-gap:16px;
+    row-gap:12px;
+    align-content:start;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-heading,
+  #feedView #homeGrowthDetailsV3224 .growth-progress-description{
+    grid-column:1/-1;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-progress-description{margin:0}
+  #feedView #homeGrowthDetailsV3224 .growth-next-step{
+    grid-column:1;
+    grid-row:3;
+    margin:0;
+    align-self:start;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-steps{
+    grid-column:2;
+    grid-row:3;
+    margin:0;
+    align-self:start;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-starter{
+    grid-column:1/-1;
+    grid-row:4;
+    margin-top:2px;
+  }
+  #feedView #homeGrowthDetailsV3224 .growth-community-starter{
+    grid-column:1/-1;
+    grid-row:5;
+    margin-top:2px;
+  }
+}
