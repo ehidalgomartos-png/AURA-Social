@@ -35,6 +35,28 @@ function harness({mobile=true,selected='content',pending=false,throwOn=null}={})
   '\nthis.start=loadExplore;this.tab=setExploreMobileSection;this.fetchTab=loadExploreTabV3312;this.pending=explorePendingTabsV3312;this.loaded=exploreLoadedTabsV3312;',ctx);
  return {ctx,calls,root,buttons,deferred,settle:()=>deferred.splice(0).forEach(x=>x.resolve())};
 }
+test('failed HTTP responses from existing loaders never mark a mobile tab complete',async()=>{
+ const h=harness();
+ h.ctx.loadTrendChips=()=>{h.calls.push('trends-failed');return Promise.resolve(false);};
+ await h.ctx.start();
+ assert.equal(h.ctx.loaded.has('content'),false);
+ await h.ctx.fetchTab('content');
+ assert.equal(h.calls.filter(x=>x==='trends-failed').length,2);
+ h.ctx.loadTrendChips=()=>Promise.resolve(true);
+ await h.ctx.fetchTab('content');
+ assert.equal(h.ctx.loaded.has('content'),true);
+});
+
+test('real Explore loaders preserve private circles on HTTP failure and expose retries',()=>{
+ assert.match(source,/if\(!r\.ok\)return false;[\s\S]*?connectionCircles=Array\.isArray\(d\.circles\)/);
+ assert.match(source,/if\(await loadConnectionCircles\(\)===false\)return false/);
+ assert.match(source,/if\(!r\.ok\)return false; \/\/ Do not hide real connections/);
+ assert.match(source,/if\(!r\.ok\)throw Error\('suggestions_unavailable'\)/);
+ assert.match(source,/return false;[\s\S]*?\/\/ V3\.3\.12: mobile Explore/);
+ assert.match(source,/data-ui-retry="explore-content"/);
+ assert.match(source,/else if\(action==='explore-content'\)/);
+});
+
 test('mobile opens only selected publications; switching to people requests only real people and circles',async()=>{
  const h=harness();
  await h.ctx.start();
