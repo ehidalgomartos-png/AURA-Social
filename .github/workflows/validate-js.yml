@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.38 PWA registration recovery after offline startup
+        run: node --test tests/pwa-registration-recovery-v3338.test.js
       - name: V3.3.37 active chat live updates across navigation and session changes
         run: node --test tests/chat-live-switch-v3337.test.js
       - name: V3.3.36 post detail selection, close and private-session races
