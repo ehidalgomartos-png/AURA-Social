@@ -8,6 +8,13 @@ const DAY_OPTIONS=Object.freeze([7,30,90]);
 const KNOWN_GUIDES=new Set(GUIDES.map(g=>g.slug));
 const KNOWN_SOURCES=new Set(['profile','post','community','event','reel','topic','story','guide']);
 const CACHE_MS=60000;
+// A manual refresh is bounded to one fresh query per 15 seconds per window.
+const MANUAL_GROWTH_COOLDOWN_V3331=15000;
+function reuseGrowthSnapshotV3331(entry,nowValue,fresh=false){
+  const age=nowValue-Number(entry?.timestamp||0);
+  return Boolean(entry?.result)&&age>=0&&
+    age<(fresh?MANUAL_GROWTH_COOLDOWN_V3331:CACHE_MS);
+}
 
 // Public social contributions still visible now; no private messages or likes.
 function publicContributionWindowSql(day){
@@ -167,11 +174,14 @@ function createGrowthCenterRouter({db,now=()=>Date.now()}={}){
     const raw=String(req.query.days??'30');
     if(!['7','30','90'].includes(raw))return res.status(400).json({error:'invalid_growth_window'});
     const days=Number(raw);
+    // Only this authenticated admin GET can request a newer aggregate snapshot.
+    const fresh=req.query.fresh==='1';
     try{
       await ensureSignupAttributionSchema(db);
       const current=cache.get(days);
-      if(current && now()-current.timestamp<CACHE_MS)return res.json(current.result);
+      // Share an already running calculation; never launch duplicate SQL.
       if(current?.promise)return res.json(await current.promise);
+      if(reuseGrowthSnapshotV3331(current,now(),fresh))return res.json(current.result);
       const promise=db.query(GROWTH_SQL,[days]).then(r=>({
         ...summarizeGrowth(r.rows,days),
         generatedAt:new Date(now()).toISOString()
@@ -191,4 +201,4 @@ function createGrowthCenterRouter({db,now=()=>Date.now()}={}){
   });
   return router;
 }
-module.exports={createGrowthCenterRouter,summarizeGrowth,rate,GROWTH_SQL,DAY_OPTIONS};
+module.exports={createGrowthCenterRouter,summarizeGrowth,rate,GROWTH_SQL,DAY_OPTIONS,reuseGrowthSnapshotV3331};
