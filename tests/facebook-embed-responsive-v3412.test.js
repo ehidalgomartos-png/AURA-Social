@@ -90,7 +90,7 @@ test('CSS restricts Facebook width, keeps the external link visible and refreshe
  assert.match(css,/min-height:0;/);
  assert.match(css,/margin-inline:auto/);
  assert.match(css,/\.social-embed-fallback-v341/);
- assert.match(html,/social-card=3\.4\.1\.4/);
- assert.match(html,/social-embeds-v341\.js\?v=3\.4\.1\.4/);
+ assert.match(html,/social-card=3\.4\.1\.7/);
+ assert.match(html,/social-embeds-v341\.js\?v=3\.4\.1\.7/);
  assert.match(ci,/facebook-embed-responsive-v3412\.test\.js/);
 });
