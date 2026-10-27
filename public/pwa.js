@@ -7,6 +7,10 @@ const SW_UPDATE_INTERVAL_V336=60*60*1000;
 const SW_ERROR_RETRY_V336=5*60*1000;
 let lastServiceWorkerCheckAtV336=-Infinity;
 let pendingServiceWorkerCheckV336=null;
+// V3.3.38: one-flight registration recovery when the app started offline.
+// Existing version-check budget still applies after successful registration.
+let pendingWorkerRegistrationV3338=null;
+let lastWorkerRegistrationFailureV3338=-Infinity;
 function refreshServiceWorkerV336(){
   if(!serviceWorkerRegistration || pendingServiceWorkerCheckV336 ||
      navigator.onLine===false || document.visibilityState!=='visible')return Promise.resolve(false);
@@ -25,19 +29,39 @@ function refreshServiceWorkerV336(){
   pendingServiceWorkerCheckV336=work;
   return work;
 }
+function ensureServiceWorkerRegistrationV3338({reconnect=false}={}){
+  if(serviceWorkerRegistration)return refreshServiceWorkerV336();
+  if(pendingWorkerRegistrationV3338)return pendingWorkerRegistrationV3338;
+  if(reconnect && (navigator.onLine===false || document.visibilityState!=='visible'))
+    return Promise.resolve(false);
+  const now=Date.now();
+  if(now>=lastWorkerRegistrationFailureV3338 &&
+     now-lastWorkerRegistrationFailureV3338<SW_ERROR_RETRY_V336)
+    return Promise.resolve(false);
+  const task=Promise.resolve()
+    .then(()=>navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}))
+    .then(registration=>{
+      serviceWorkerRegistration=registration;
+      return refreshServiceWorkerV336();
+    },()=>{
+      // A failed offline startup can retry immediately on the online event.
+      // Repeated online failures are throttled, with no timers or polling.
+      lastWorkerRegistrationFailureV3338=navigator.onLine===false
+        ? -Infinity : Date.now();
+      return false;
+    })
+    .finally(()=>{if(pendingWorkerRegistrationV3338===task)pendingWorkerRegistrationV3338=null;});
+  pendingWorkerRegistrationV3338=task;
+  return task;
+}
 if('serviceWorker' in navigator){
-  window.addEventListener('load',async()=>{
-    try{
-      serviceWorkerRegistration=await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
-      await refreshServiceWorkerV336();
-    }catch(_){}
-  });
+  window.addEventListener('load',()=>ensureServiceWorkerRegistrationV3338());
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')void refreshServiceWorkerV336();
   });
-  // V3.3.27 — reconnect while the PWA remains open: apply the SAME hourly
-  // check budget instead of waiting for an unrelated tab switch.
-  window.addEventListener('online',()=>{void refreshServiceWorkerV336();});
+  window.addEventListener('online',()=>{
+    void ensureServiceWorkerRegistrationV3338({reconnect:true});
+  });
 }
 
 (function initMobilePwaInstallV3239(){
