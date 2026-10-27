@@ -172,6 +172,26 @@
           more.textContent=expanded?'Reducir publicación':'Ampliar publicación';
         };
         foot.appendChild(more);
+        // An iframe load event cannot tell us whether Facebook rendered an
+        // unavailable/private-post placeholder (cross-origin restrictions).
+        // Keep the original link and a one-tap escape from a grey/blank frame.
+        const hide=doc.createElement('button');
+        hide.type='button';
+        hide.className='social-embed-hide-v3417';
+        hide.textContent='¿No se ve? Ocultar vista previa';
+        const collapse=()=>{
+          frame.onerror=null;
+          area.replaceChildren();
+          area.className+=' social-embed-unavailable-v3417';
+          const notice=doc.createElement('p');
+          notice.textContent='Facebook no puede mostrar esta publicación aquí. Puedes abrirla en Facebook.';
+          area.appendChild(notice);
+          more.hidden=true;
+          hide.hidden=true;
+        };
+        hide.onclick=collapse;
+        frame.onerror=collapse;
+        foot.appendChild(hide);
       }
       area.appendChild(frame);
       return true;
