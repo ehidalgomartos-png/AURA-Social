@@ -108,9 +108,15 @@
     if(!isEnabled()||!root||!provider)return;
     const observe=getObserver();
     if(!observe)return; // manual button remains usable in older browsers
+    // Exclude the composer draft preview: loading is only for saved posts.
+    for(const card of pending){
+      if(card.isConnected===false){observe.unobserve(card);pending.delete(card);}
+    }
     let cards=[];
-    if(root.matches?.('[data-social-card="facebook"]'))cards.push(root);
-    if(root.querySelectorAll)cards.push(...root.querySelectorAll('[data-social-card="facebook"]'));
+    if(root.matches?.('article.post'))
+      cards.push(...(root.querySelectorAll?.('[data-social-card="facebook"]')||[]));
+    if(root.querySelectorAll)
+      cards.push(...root.querySelectorAll('article.post [data-social-card="facebook"]'));
     for(const card of cards){
       if(pending.has(card)||inserted.has(card))continue;
       if(!canAutoEmbed(card))continue;
