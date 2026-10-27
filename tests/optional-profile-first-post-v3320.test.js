@@ -33,7 +33,7 @@ test('bio suggestion needs user-selected interests and never auto saves',()=>{
   h.choose();assert.match(h.bio.value,/fotografía y música/);
   assert.deepEqual(h.bio.events,['input']);
   assert.equal(h.bioIdea.hidden,true);
-  assert.match(h.status.textContent,/1 de 3/);
+  assert.match(h.status.textContent,/2 de 3/);
 });
 test('typed bio and empty interests remain untouched',()=>{
   const h=profile();h.selected.push({value:'cine'});
