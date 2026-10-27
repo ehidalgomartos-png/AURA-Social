@@ -10826,8 +10826,10 @@ function renderFirstPostHelperV32158(){
 }
 $('#firstPostHelperV32158')?.addEventListener('click',event=>{
   const localAction=event.target.closest('[data-first-post-local-v3318]');
-  if(localAction){
-    if(renderFirstPostHelperV32158())firstPostTextActionV3318(localAction.dataset.firstPostLocalV3318);
+  if(localAction && ['save','restore','delete'].includes(localAction.dataset?.firstPostLocalV3318)){
+    if(renderFirstPostHelperV32158() && typeof firstPostTextActionV3318==='function'){
+      firstPostTextActionV3318(localAction.dataset.firstPostLocalV3318);
+    }
     return;
   }
   const action=event.target.closest('[data-first-post-helper-v32158]');
