@@ -8635,3 +8635,14 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   #exploreView #connectionsSection .connections-head{flex-wrap:wrap}
   #exploreView #connectionsSection .connections-head-actions{justify-content:flex-start}
 }
+
+/* V3.3.15 — YouTube: playback only after deliberate viewer interaction. */
+.post-youtube-v3315{margin:10px 14px 12px;position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:16px;background:#122a3f;color:white;display:grid;place-items:center}
+.post-youtube-placeholder-v3315{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;padding:14px;width:100%;height:100%}
+.post-youtube-placeholder-v3315 b{font-size:16px}
+.post-youtube-placeholder-v3315 small{color:#dce9ef;font-size:12px;line-height:1.35;max-width:300px}
+.post-youtube-placeholder-v3315 a{color:#daf7f2;font-size:12px;text-decoration:underline}
+.post-youtube-placeholder-v3315 button{min-height:44px;padding:9px 17px}
+.post-youtube-icon-v3315{display:grid;place-items:center;width:48px;height:48px;background:#dc3434;border-radius:50%;font-size:18px}
+.post-youtube-v3315 iframe{display:block;width:100%;height:100%;border:0}
+.composer-youtube-hint-v3315{display:block;margin:5px 0 9px;color:var(--muted);font-size:11px;line-height:1.45}
