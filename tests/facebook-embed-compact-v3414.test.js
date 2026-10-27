@@ -70,7 +70,7 @@ test('CSS removes the Facebook minimum height while preserving mobile and offlin
  assert.match(custom,/min-height:0;/);
  assert.doesNotMatch(custom,/min-height:570px/);
  assert.match(custom,/social-embed-more-v3414/);
- assert.match(html,/social-card=3\.4\.1\.4/);
- assert.match(html,/social-embeds-v341\.js\?v=3\.4\.1\.4/);
+ assert.match(html,/social-card=3\.4\.1\.7/);
+ assert.match(html,/social-embeds-v341\.js\?v=3\.4\.1\.7/);
  assert.match(ci,/facebook-embed-compact-v3414\.test\.js/);
 });
