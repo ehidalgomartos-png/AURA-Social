@@ -102,8 +102,10 @@ test('invalid maximum price is ignored safely and no category is invented',async
  assert.match(styles,/\.market-public-grid \.thumb img\{[^}]*object-fit:contain/);
 });
 test('release version, public cache, PWA and seller tools remain aligned',()=>{
- assert.equal(JSON.parse(read('package.json')).version,'3.2.77');
- assert.match(read('server.js'),/APP_VERSION='3\.2\.77'/);
+ // Runtime release version follows package.json; historical asset versions stay intact.
+ const version=JSON.parse(read('package.json')).version;
+ assert.ok(/^\d+\.\d+\.\d+$/.test(version));
+ assert.ok(read('server.js').includes("APP_VERSION='"+version+"'"));
  assert.match(read('src/routes/marketplace-seo-v3251.js'),/marketplace-seo-v3251\.css\?v=3\.2\.77\.8/);
  assert.match(read('public/marketplace.html'),/marketplace-v3250\.js\?v=3\.2\.77\.3/);
  assert.match(read('public/marketplace.html'),/marketSellerTools/);

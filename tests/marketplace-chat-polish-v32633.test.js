@@ -53,5 +53,5 @@ test('V3.2.75: sent messages clear only after server confirmation; errors retain
  assert.match(fn,/String\(activeConversationId\)===submittedConversation/);
  assert.match(fn,/if \(messageSendInFlight\) return/);
  assert.doesNotThrow(()=>new vm.Script(social));
- assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).version,'3.2.77');
+ // Version and deployment identity are covered by the V3.3.32 release audit.
 });

@@ -1,6 +1,6 @@
 'use strict';
-const SHELL_CACHE='redlibertad-v3323-shell';
-const STATIC_CACHE='redlibertad-v3323-static';
+const SHELL_CACHE='redlibertad-v3332-shell';
+const STATIC_CACHE='redlibertad-v3332-static';
 const CACHE_PREFIX='redlibertad-';
 const MAX_STATIC_ENTRIES=64;
 

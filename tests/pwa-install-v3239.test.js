@@ -132,7 +132,7 @@ test('PWA pages load shared style and versioned script; browser cache refreshes 
   assert.match(css,/pwa-install-banner-v3239\[hidden\]/);
   assert.match(css,/@media\(display-mode:standalone\)/);
   assert.match(css,/body\.pwa-install-inside-app-v3239/);
-  assert.match(sw,/redlibertad-v3323-shell/);
+  assert.match(sw,/redlibertad-v3332-shell/);
   assert.match(sw,/\/pwa-badges-v3323\.js/);
   assert.match(sw,/\/pwa-install\.css/);
   assert.match(read('public/manifest.webmanifest'),/"display": "standalone"/);

@@ -87,6 +87,8 @@ const PORT = Number(process.env.PORT || 3000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 const {releaseInfo}=require('./src/services/deployment-identity-v32100');
 const APP_VERSION='3.2.77';
+// Current product milestone; APP_VERSION remains the historical compatibility API field.
+const RELEASE_MILESTONE_V3332='3.3.32';
 const releaseVerifier=createReleaseVerifier({port:PORT,version:APP_VERSION});
 const dependencyInspector=createDependencyInspector({
   db,pool:db.pool,uploadsDir:UPLOAD_DIR,mediaMode:process.env.MEDIA_STORAGE||'local',
@@ -294,6 +296,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     version: APP_VERSION,
+    releaseMilestone:RELEASE_MILESTONE_V3332,
     deployedCommit:releaseInfo().commit,
     mode: 'redlibertad-social',
     uptimeSeconds:Math.round(process.uptime()),
@@ -312,7 +315,7 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/api/public-config',(req,res)=>{
   const origin=String(process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`).replace(/\/$/,'');
-  res.json({origin,version:APP_VERSION,deployedCommit:releaseInfo().commit});
+  res.json({origin,version:APP_VERSION,releaseMilestone:RELEASE_MILESTONE_V3332,deployedCommit:releaseInfo().commit});
 });
 
 app.get('/api/ready', async (req,res)=>{

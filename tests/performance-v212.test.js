@@ -12,6 +12,9 @@ const worker=fs.readFileSync(path.join(root,'public/sw.js'),'utf8');
 const social=fs.readFileSync(path.join(root,'public/social.js'),'utf8');
 const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 const origin='https://redlibertad.com';
+// The test harness must follow the worker's declared cache generation.
+const activeStaticCache=worker.match(/const STATIC_CACHE='([^']+)'/)[1];
+const activeShellCache=worker.match(/const SHELL_CACHE='([^']+)'/)[1];
 
 function key(req){
   return typeof req==='string'?req:req.url;
@@ -88,7 +91,7 @@ test('static cache is bounded by size, evicting oldest entries',async()=>{
 test('mutable styles and scripts prefer current network response',async()=>{
   const fresh={ok:true,type:'basic',version:'fresh',clone(){return this;}};
   const sw=makeWorker(async()=>fresh);
-  const cache=await sw.caches.open('redlibertad-v3323-static');
+  const cache=await sw.caches.open(activeStaticCache);
   await cache.put(request('/social.js'),{version:'old'});
   const result=await sw.networkFirstAsset(request('/social.js'));
   assert.equal(result.version,'fresh');
@@ -96,7 +99,7 @@ test('mutable styles and scripts prefer current network response',async()=>{
 });
 test('mutable scripts keep offline fallback without API response caching',async()=>{
   const sw=makeWorker(async()=>{throw Error('offline')});
-  const cache=await sw.caches.open('redlibertad-v3323-static');
+  const cache=await sw.caches.open(activeStaticCache);
   await cache.put(request('/social.js'),{version:'offline'});
   const result=await sw.networkFirstAsset(request('/social.js'));
   assert.equal(result.version,'offline');
@@ -104,7 +107,7 @@ test('mutable scripts keep offline fallback without API response caching',async(
 test('navigation cache removes query parameters and never stores non-shell pages',async()=>{
   const response={ok:true,type:'basic',clone(){return this;}};
   const sw=makeWorker(async()=>response);
-  const shell=await sw.caches.open('redlibertad-v3323-shell');
+  const shell=await sw.caches.open(activeShellCache);
   await sw.networkFirstNavigation(request('/app?view=messages'),new URL(origin+'/app?view=messages'));
   await sw.networkFirstNavigation(request('/privacy/'),new URL(origin+'/privacy/'));
   assert.equal(shell.entries.has('/app'),true);
