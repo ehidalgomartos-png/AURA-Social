@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const {getBadgeCountsV3323,combineUnreadV3323}=require('../services/app-badge-v3323');
 
 const router = express.Router();
 
@@ -9,6 +10,7 @@ async function snapshotFor(userId) {
     db.query(`
       SELECT
         count(*) FILTER (WHERE n.read_at IS NULL)::int AS unread,
+        count(*) FILTER (WHERE n.read_at IS NULL AND n.type<>'message')::int AS non_message_unread,
         COALESCE(max(n.id),0)::bigint AS latest_id
       FROM notifications n
       WHERE n.user_id=$1
@@ -118,6 +120,7 @@ async function snapshotFor(userId) {
 
   return {
     notificationUnread:Number(notifications.rows[0]?.unread || 0),
+    badgeUnread:combineUnreadV3323(messages.rows[0]?.unread,notifications.rows[0]?.non_message_unread),
     latestNotificationId:String(notifications.rows[0]?.latest_id || '0'),
     messageUnread:Number(messages.rows[0]?.unread || 0),
     latestIncomingMessageId:String(messages.rows[0]?.latest_incoming_id || '0'),
@@ -126,6 +129,13 @@ async function snapshotFor(userId) {
     serverTime:new Date().toISOString()
   };
 }
+
+// Read-only lightweight badge check when an installed app returns to foreground.
+router.get('/badge',requireAuth,async(req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  try{res.json(await getBadgeCountsV3323(req.user.id));}
+  catch(_){res.status(503).json({error:'badge_unavailable'});}
+});
 
 router.get('/stream',requireAuth,async(req,res)=>{
   res.status(200);
@@ -149,6 +159,7 @@ router.get('/stream',requireAuth,async(req,res)=>{
       const payload=await snapshotFor(req.user.id);
       const signature=JSON.stringify({
         notificationUnread:payload.notificationUnread,
+        badgeUnread:payload.badgeUnread,
         latestNotificationId:payload.latestNotificationId,
         messageUnread:payload.messageUnread,
         latestIncomingMessageId:payload.latestIncomingMessageId,
