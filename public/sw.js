@@ -1,6 +1,6 @@
 'use strict';
-const SHELL_CACHE='redlibertad-v3239-shell';
-const STATIC_CACHE='redlibertad-v3239-static';
+const SHELL_CACHE='redlibertad-v3323-shell';
+const STATIC_CACHE='redlibertad-v3323-static';
 const CACHE_PREFIX='redlibertad-';
 const MAX_STATIC_ENTRIES=64;
 
@@ -14,6 +14,7 @@ const SHELL_ASSETS=[
   '/social.js',
   '/creator-ops.js',
   '/pwa.js',
+  '/pwa-badges-v3323.js',
   '/pwa-install.css',
   '/manifest.webmanifest',
   '/assets/logo-mark.svg',
@@ -159,6 +160,20 @@ self.addEventListener('fetch',event=>{
   }
 });
 
+async function updatePushIconBadgeV3323(count){
+  if(count===null)return false;
+  try{
+    if(count>0&&typeof self.navigator?.setAppBadge==='function'){
+      await self.navigator.setAppBadge(count);
+      return true;
+    }
+    if(count===0&&typeof self.navigator?.clearAppBadge==='function'){
+      await self.navigator.clearAppBadge();
+      return true;
+    }
+  }catch(_){}
+  return false; // Android icon badges are OS/notification controlled.
+}
 self.addEventListener('push',event=>{
   let payload={};
   try{
@@ -181,7 +196,13 @@ self.addEventListener('push',event=>{
     }
   };
 
-  event.waitUntil(self.registration.showNotification(title,options));
+  const value=payload.badgeCount;
+  const badge=typeof value==='number'&&Number.isSafeInteger(value)&&
+    value>=0&&value<=9999 ? value:null;
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(title,options),
+    updatePushIconBadgeV3323(badge)
+  ]));
 });
 
 // Push payloads are data, not trusted navigation instructions.
