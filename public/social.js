@@ -7841,9 +7841,15 @@ $('#commentForm').addEventListener('submit', async event => {
       saveCommentDraftV3235(commentPostId);
     }
     $('#commentStatus').textContent = wasReply ? 'Respuesta publicada.' : 'Comentario publicado.';
-    await loadComments(activeCommentsPostId,{highlightCommentId:d?.comment?.id});
-    await loadFeed(currentMode);
-    if ($('#growthPanel')) await loadGrowthPanel();
+    // V3.3.28: the comment is already saved. Failed secondary refreshes
+    // must not turn a confirmed success into a deceptive send error.
+    for(const refresh of [
+      ()=>loadComments(activeCommentsPostId,{highlightCommentId:d?.comment?.id}),
+      ()=>loadFeed(currentMode),
+      ()=>$('#growthPanel') ? loadGrowthPanel() : undefined
+    ]){
+      try{await refresh();}catch(_){/* Keep confirmed comment and its success message. */}
+    }
   } catch (error) {
     if(String(activeCommentsPostId||'')===String(commentPostId))
       $('#commentStatus').textContent = error.message;
@@ -11235,9 +11241,15 @@ $('#createForm').addEventListener('submit', async e => {
     syncAudienceCirclePicker('postAudienceSelect','postCircleAudience');
     syncAudienceCirclePicker('storyAudienceSelect','storyCircleAudience');
     renderAudienceCircleOptions('postCircleMentionOptions');
-    await loadFeed(publishMode==='now' ? 'latest' : currentMode);
-    await loadMe();
-    await loadGrowthPanel();
+    // The post is already stored. Refresh the feed, profile and onboarding
+    // independently; a flaky read must never claim the POST failed.
+    for(const refresh of [
+      ()=>loadFeed(publishMode==='now' ? 'latest' : currentMode),
+      ()=>loadMe(),
+      ()=>loadGrowthPanel()
+    ]){
+      try{await refresh();}catch(_){/* Confirmed save remains successful. */}
+    }
   } catch (err) { msg.textContent = err.message; }
 });
 });
