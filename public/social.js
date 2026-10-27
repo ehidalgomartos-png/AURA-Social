@@ -1828,19 +1828,51 @@ $('#returnConversationSnoozeV32152')?.addEventListener('click',async event=>{
   }finally{button.disabled=false;}
 });
 
+// V3.3.22 — One genuine home-visit acknowledgement per signed-in tab.
+// Refreshing the in-app summary does not redefine "since your last visit".
+let returnPulseSessionV3322={userId:null,since:null,marked:false,marking:false};
+let returnPulseRequestSequenceV3322=0;
+function returnPulseSessionForV3322(){
+  const userId=me?.id==null?null:String(me.id);
+  if(returnPulseSessionV3322.userId!==userId){
+    returnPulseSessionV3322={userId,since:null,marked:false,marking:false};
+    returnConversationPostV32152=null;
+  }
+  return returnPulseSessionV3322;
+}
+async function acknowledgeReturnPulseV3322(session){
+  if(!session?.userId || session.marked || session.marking ||
+    returnPulseSessionV3322!==session)return false;
+  session.marking=true;
+  try{
+    const {r}=await api('/api/growth/pulse/seen',{method:'POST'});
+    if(r.ok && returnPulseSessionV3322===session)session.marked=true;
+    return r.ok===true;
+  }catch(_){return false;}
+  finally{session.marking=false;}
+}
+
 async function loadReturnPulse(force=false) {
   const section=$('#returnPulse');
   const grid=$('#returnPulseGrid');
   if(!section || !grid)return;
   if(returnPulseLoaded && !force)return;
-
-  const {r,d}=await api('/api/growth/pulse');
+  const session=returnPulseSessionForV3322();
+  const requestId=++returnPulseRequestSequenceV3322;
+  const query=session.since?'?since='+encodeURIComponent(session.since):'';
+  const {r,d}=await api('/api/growth/pulse'+query);
+  if(requestId!==returnPulseRequestSequenceV3322||
+     returnPulseSessionForV3322()!==session||activeViewName!=='feed')return;
   if(!r.ok){
     section.classList.add('hidden');
     return;
   }
 
   returnPulseLoaded=true;
+  if(!session.since){
+    const baseline=new Date(d.since||'');
+    if(Number.isFinite(baseline.getTime()))session.since=baseline.toISOString();
+  }
   const counts=d.counts || {};
   const cards=[
     returnPulseCard('Mensajes sin leer',counts.unread_messages,'messages','Continuar conversaciones'),
@@ -1859,9 +1891,12 @@ async function loadReturnPulse(force=false) {
   grid.innerHTML=cards.join('');
   // No añadir otra tarjeta en Inicio. Solo una propuesta en el resumen ya existente,
   // si ha habido un retorno real después de al menos 24h y no hay pausa vigente.
-  let hasConversation=false;
-  renderReturnConversationV32152(null);
-  if(d.participation?.can_show===true && me?.id){
+  // Retain an already-shown, still user-dismissable suggestion during
+  // an in-tab refresh; opening it always rechecks server-side access.
+  let hasConversation=!!returnConversationPostV32152;
+  if(hasConversation)renderReturnConversationV32152(returnConversationPostV32152);
+  else renderReturnConversationV32152(null);
+  if(!hasConversation && d.participation?.can_show===true && me?.id){
     try{
       const feed=await api('/api/posts/feed?mode=latest');
       if(feed.r.ok){
@@ -1888,14 +1923,14 @@ async function loadReturnPulse(force=false) {
       }
     }catch(_){ /* Una sugerencia no debe bloquear el Inicio. */ }
   }
+  if(requestId!==returnPulseRequestSequenceV3322 ||
+     returnPulseSessionForV3322()!==session || activeViewName!=='feed')return;
   section.classList.toggle('hidden',cards.length===0&&!hasConversation);
   const heading=section.querySelector('.return-pulse-head h2');
   if(heading)heading.textContent=cards.length?'Lo que tienes pendiente':'Una conversación para ti';
   grid.classList.toggle('hidden',cards.length===0);
 
-  try{
-    await api('/api/growth/pulse/seen',{method:'POST'});
-  }catch(_){}
+  await acknowledgeReturnPulseV3322(session);
 }
 
 async function handleReturnPulseAction(action) {

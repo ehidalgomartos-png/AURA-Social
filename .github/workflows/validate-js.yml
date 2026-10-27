@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.22 stable return baseline and single real visit acknowledgement
+        run: node --test tests/real-return-session-v3322.test.js
       - name: V3.3.21 comment response context and confirmed comment focus
         run: node --test tests/real-comment-participation-v3321.test.js
       - name: V3.3.20 voluntary profile and first-post interest ideas
