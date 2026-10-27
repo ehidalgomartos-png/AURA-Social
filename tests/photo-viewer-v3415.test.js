@@ -12,6 +12,7 @@ function harness(){
  const trigger={dataset:{photoV3415:'post'},isConnected:true};
  const image={currentSrc:'https://redlibertad.com/uploads/allowed.jpg',src:'https://redlibertad.com/uploads/allowed.jpg',alt:'Fotografía de una publicación'};
  trigger.querySelector=selector=>selector==='img'?image:null;
+ trigger.closest=selector=>selector==='[data-photo-v3415]'?trigger:null;
  const modal={classList:{contains:n=>classNames.has(n),remove:n=>classNames.delete(n),add:n=>classNames.add(n)},
    contains:()=>false};
  const full={src:'',alt:'',removeAttribute:function(n){if(n==='src')this.src='';}};
