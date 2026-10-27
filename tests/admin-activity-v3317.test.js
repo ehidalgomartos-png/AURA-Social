@@ -89,13 +89,15 @@ test('only normal public, opted-in activity enters timeline; private messages/re
  assert.doesNotMatch(METRICS_SQL,/\bbody\b|\bsender_id\b|\brecipient_id\b/);
 });
 test('standalone page is mobile-first, private, linked and does not use HTML injection',()=>{
- const html=read('public/admin-activity-v3317.html');
+ const html=read('src/views/admin-activity-v3317.html');
  const admin=read('public/admin.html');
  const js=read('public/admin-activity-v3317.js');
  const css=read('public/admin-activity-v3317.css');
  const server=read('server.js');
  assert.match(server,/app\.use\('\/api\/admin\/activity',createAdminActivityRouter\(\{db\}\)\)/);
  assert.match(server,/app\.get\('\/admin\/actividad',requireAdmin/);
+ assert.match(server,/res\.sendFile\(path\.join\(__dirname,'src','views','admin-activity-v3317\.html'\)\)/);
+ assert.doesNotMatch(server,/path\.join\(__dirname,'public','admin-activity-v3317\.html'\)/);
  assert.match(html,/content="noindex,nofollow"/);
  assert.match(html,/id="activityStats"/);
  assert.match(html,/id="activityFeed"/);
