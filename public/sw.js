@@ -15,6 +15,7 @@ const SHELL_ASSETS=[
   '/creator-ops.js',
   '/pwa.js',
   '/pwa-badges-v3323.js',
+  '/profile-website-v33241.js',
   '/pwa-install.css',
   '/manifest.webmanifest',
   '/assets/logo-mark.svg',

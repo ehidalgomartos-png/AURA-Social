@@ -2,6 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const db = require('../db');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const {normalizeProfileWebsiteV33241}=require('../../public/profile-website-v33241');
 
 const router = express.Router();
 
@@ -2367,6 +2368,11 @@ router.patch('/me/profile',requireAuth,async(req,res)=>{
   const current=await db.query('SELECT * FROM users WHERE id=$1',[req.user.id]);
   const u=current.rows[0];
   const d=parsed.data;
+  const websiteUrl=d.websiteUrl===undefined
+    ? undefined:normalizeProfileWebsiteV33241(d.websiteUrl);
+  if(websiteUrl===null){
+    return res.status(400).json({error:'invalid_website_url'});
+  }
 
   let interests = null;
   if (Array.isArray(d.interests)) {
@@ -2403,7 +2409,7 @@ router.patch('/me/profile',requireAuth,async(req,res)=>{
       d.avatarUrl??u.avatar_url,
       d.coverUrl??u.cover_url,
       d.locationLabel??u.location_label,
-      d.websiteUrl??u.website_url,
+      websiteUrl??u.website_url,
       d.showSensitive??u.show_sensitive
     ]);
 
