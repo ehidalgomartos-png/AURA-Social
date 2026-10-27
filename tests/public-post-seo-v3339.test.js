@@ -53,7 +53,9 @@ test('public route reuses one indexability decision across robots, preview and s
   assert.ok(begin>=0&&end>begin);
   const route=source.slice(begin,end);
   assert.match(route,/p\.moderation_status='published' AND p\.audience='public' AND u\.status='active'/);
-  assert.match(route,/post\.content_level==='normal' && post\.discoverable===true && post\.is_admin===false/);
+  assert.match(route,/publicPostPreview\(post\)/);
+  const privacy=read('src/services/public-post-privacy-v3340.js');
+  assert.match(privacy,/post\?\.content_level==='normal'/);
   assert.match(route,/publicPostSeo\(post,\{indexable\}\)/);
   assert.match(route,/indexable\?'index,follow,max-image-preview:large':'noindex,nofollow'/);
   assert.match(route,/setHeader\('X-Robots-Tag','noindex,nofollow'\)/);

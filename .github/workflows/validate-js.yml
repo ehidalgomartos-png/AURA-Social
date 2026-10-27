@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.40 public sensitive post privacy and invalid ID handling
+        run: node --test tests/public-post-privacy-v3340.test.js
       - name: V3.3.39 public SEO descriptions and private preview protections
         run: node --test tests/public-post-seo-v3339.test.js
       - name: V3.3.38 PWA registration recovery after offline startup
