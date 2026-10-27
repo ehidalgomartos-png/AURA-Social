@@ -81,7 +81,12 @@
     return null;
   }
 
-  function playerUrl(info){
+  function facebookEmbedWidthV3412(value){
+    const width=Number(value);
+    return Number.isFinite(width)&&width>0 ? Math.max(280,Math.min(500,Math.floor(width))) : 500;
+  }
+
+  function playerUrl(info,width=500){
     if(!info||!PROVIDERS[info.provider])return null;
     const safe=parse(info.url);
     if(!safe||safe.url!==info.url||safe.provider!==info.provider)return null;
@@ -91,7 +96,7 @@
     if(safe.provider==='facebook'&&safe.kind!=='short'){
       const plugin=safe.kind==='reel'?'video.php':'post.php';
       return 'https://www.facebook.com/plugins/'+plugin+'?href='+
-        encodeURIComponent(safe.url)+'&show_text=true&width=500';
+        encodeURIComponent(safe.url)+'&show_text=true&width='+facebookEmbedWidthV3412(width);
     }
     return null;
   }
@@ -130,7 +135,11 @@
     foot.className='social-embed-fallback-v341';
     foot.appendChild(open);
     root.replaceChildren(area,foot);
-    const directPlayer=playerUrl(safe);
+    // Match the Facebook plugin's internal width to the actual available
+    // space: fixed 500px inside a mobile iframe caused horizontal clipping.
+    const availableWidth=Number(area.getBoundingClientRect?.().width||area.clientWidth||0);
+    const embedWidth=facebookEmbedWidthV3412(availableWidth);
+    const directPlayer=playerUrl(safe,embedWidth);
     if(directPlayer){
       const frame=doc.createElement('iframe');
       frame.src=directPlayer;
@@ -139,6 +148,12 @@
       frame.referrerPolicy='strict-origin-when-cross-origin';
       frame.allow='fullscreen; encrypted-media; picture-in-picture; web-share';
       frame.allowFullscreen=true;
+      if(safe.provider==='facebook'){
+        frame.width=String(embedWidth);
+        // The former 480px frame cut off Facebook's footer and actions.
+        // Use a bounded, scrollable viewport without loading extra content.
+        frame.height=String(Math.max(570,Math.min(760,Math.round(embedWidth*1.12+165))));
+      }
       area.appendChild(frame);
       return true;
     }
@@ -180,5 +195,5 @@
     return false;
   }
 
-  global.RedLibertadSocialEmbedsV341={parse,playerUrl,activate};
+  global.RedLibertadSocialEmbedsV341={parse,playerUrl,activate,facebookEmbedWidthV3412};
 })(window);

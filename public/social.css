@@ -8817,3 +8817,18 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   .post-social-polish-v3411 .post-social-actions-v341 button,
   .post-social-polish-v3411 .post-social-actions-v341 a{flex:1 1 150px;width:auto}
 }
+
+/* V3.4.1.2 — Facebook embeds: match iframe and provider content widths.
+   The embedded post's bottom controls were clipped by the 480px minimum. */
+.post-social-v341[data-social-card="facebook"] .social-embed-active-v341 iframe{
+  box-sizing:border-box;
+  width:100%;
+  max-width:500px;
+  min-height:570px;
+  margin-inline:auto;
+  background:#fff;
+}
+.post-social-v341[data-social-card="facebook"] .social-embed-fallback-v341{
+  max-width:500px;
+  margin:10px auto 0;
+}
