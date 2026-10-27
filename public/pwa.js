@@ -35,6 +35,9 @@ if('serviceWorker' in navigator){
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible')void refreshServiceWorkerV336();
   });
+  // V3.3.27 — reconnect while the PWA remains open: apply the SAME hourly
+  // check budget instead of waiting for an unrelated tab switch.
+  window.addEventListener('online',()=>{void refreshServiceWorkerV336();});
 }
 
 (function initMobilePwaInstallV3239(){
