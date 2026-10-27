@@ -23,6 +23,20 @@
     <div id="metrics" class="metrics"></div>
   </section>
 
+  <section class="panel" id="importantUpdatesAdminV3316" aria-labelledby="importantUpdatesTitleV3316">
+    <div class="panel-head"><div><span class="eyebrow">COMUNICADOS · V3.3.16</span>
+      <h2 id="importantUpdatesTitleV3316">Novedades importantes por email</h2>
+      <p class="panel-copy">Solo a personas suscritas voluntariamente. Cada comunicado requiere tu confirmación. No se envían mensajes por cada publicación o noticia.</p>
+    </div><button type="button" id="importantUpdatesReloadV3316">Actualizar</button></div>
+    <p id="importantUpdatesAdminStatusV3316" class="status" role="status" aria-live="polite">Comprobando el servicio…</p>
+    <form id="importantUpdatesAdminFormV3316" class="account-form" autocomplete="off">
+      <label>Titular del comunicado<input name="title" maxlength="120" minlength="5" required placeholder="Nueva función importante en RedLibertad"></label>
+      <label>Resumen para las personas suscritas<textarea name="summary" maxlength="800" minlength="25" required rows="4" placeholder="Qué ha cambiado, por qué es importante y dónde verlo."></textarea></label>
+      <button id="importantUpdatesSendV3316" type="submit" class="primary">Revisar y confirmar envío</button>
+    </form>
+    <p class="panel-copy" id="importantUpdatesHistoryV3316"></p>
+  </section>
+
   <section class="panel" id="editorialDaily" aria-labelledby="editorialDailyTitle">
     <div class="panel-head">
       <div><span class="eyebrow">EDITORIAL · V3.2.7</span><h2 id="editorialDailyTitle">Mesa editorial diaria</h2>
@@ -819,6 +833,6 @@
   <script src="/editorial-quick-publish-v3245.js?v=3.2.63.2"></script>
   <script src="/editorial-ai-publisher-v3246.js?v=3.2.63.2"></script>
   <script src="/editorial-category-v3247.js?v=3.2.63.2"></script>
-  <script src="/admin.js?v=3.2.63.2"></script>
+  <script src="/admin.js?v=3.2.63.2&amp;updates=3.3.16"></script>
 </body>
 </html>
