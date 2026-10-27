@@ -768,7 +768,7 @@ function postHTML(p, options = {}) {
   const media = mediaHTML(p, false, !!options.priorityMedia);
   const youtubeId=!media&&!p.gated&&p.post_kind!=='reel' ? youtubeVideoIdV3315(p.caption):null;
   const linkOnlyCaption=youtubeId && /^https:\/\/[^\s]+$/.test(String(p.caption||'').trim());
-  const visibleCaption=linkOnlyCaption?'':p.caption;
+  const visibleCaption=Boolean(p.caption)&&!linkOnlyCaption;
   const textOnly = !media&&!youtubeId;
   const ownPost = !!me && String(me.id) === String(p.user_id);
   const collaboratingMe=!!me && Array.isArray(p.collaborators) && p.collaborators.some(x=>String(x.id)===String(me.id));
@@ -804,7 +804,7 @@ function postHTML(p, options = {}) {
       </div>
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
-    ${visibleCaption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(visibleCaption)}</span></div>` : ''}
+    ${visibleCaption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
     ${youtubePostPreviewV3315(p,!!media)}
     ${communityToolHTML(p)}
     <div class="post-actions">
