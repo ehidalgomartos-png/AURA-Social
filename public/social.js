@@ -8354,6 +8354,8 @@ function renderNotifications() {
           notification.read_at=new Date().toISOString();
           liveActivityState.notificationUnread=Number(d.unread||0);
           updateNotificationBadge(liveActivityState.notificationUnread);
+          // Reading has been confirmed by the server; reconcile the installed icon.
+          void window.RedLibertadPwaBadgeV3323?.refresh({force:true});
           if(activeNotificationFilter==='unread')renderNotifications();
           else if(pendingRepliesOnlyV32156)renderNotifications();
           else item.classList.remove('unread');
@@ -8546,6 +8548,7 @@ $('#readAllNotifications').onclick = async () => {
     liveActivityState.notificationUnread=0;
     updateNotificationBadge(0);
     renderNotifications();
+    void window.RedLibertadPwaBadgeV3323?.refresh({force:true});
     toast('Notificaciones marcadas como leídas');
   }catch(_){
     toast('No se pudieron marcar como leídas. Inténtalo de nuevo.');
@@ -8715,9 +8718,9 @@ async function loadConversations(openId = null) {
     return;
   }
   const conversations=Array.isArray(d.conversations)?d.conversations:[];
-  const total=conversations.reduce((a,x)=>a+Number(x.unread_count || 0),0);
-  updateMessageBadge(total);
-  liveActivityState.messageUnread=total;
+  // V3.3.26: filtered/search/limited (100 items) results are NOT the whole inbox.
+  // A partial list must never overwrite the global unread counter from SSE.
+  // The existing authenticated live stream remains the single source of truth.
 
   all('[data-message-filter]').forEach(button=>{
     button.classList.toggle('active',button.dataset.messageFilter===messageConversationFilter);
@@ -8839,6 +8842,9 @@ async function openConversation(id) {
     return;
   }
   activeConversationId=conversationId;
+  // GET /messages marks this member as having read the chat on the server.
+  // Update the installed badge from real unread records, not a local guess.
+  void window.RedLibertadPwaBadgeV3323?.refresh({force:true});
   clearMessageReply();
   const layout=$('.messages-layout');
   if(layout)layout.classList.add('chat-open');
