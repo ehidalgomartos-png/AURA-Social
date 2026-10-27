@@ -24,6 +24,10 @@ jobs:
         run: node --test tests/youtube-post-v3315.test.js
       - name: V3.3.16 important update newsletter opt-in and controlled Resend delivery
         run: node --test tests/important-updates-v3316.test.js
+      - name: V3.3.17.1 admin route boot and static file access safety
+        run: node --test tests/admin-activity-startup-v33171.test.js
+      - name: V3.3.17 admin activity authorization and private message safety
+        run: node --test tests/admin-activity-v3317.test.js
       - name: Check JavaScript syntax
         run: npm run check:syntax
       - name: V3.3.14 Explore desktop real people first and compact private network
