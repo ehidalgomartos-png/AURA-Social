@@ -8,7 +8,7 @@ const sw=read('public/sw.js');
 const social=read('public/social.js');
 const workflow=read('.github/workflows/validate-js.yml');
 test('desktop-specific stylesheet loaded after existing social.css and versioned for PWA',()=>{
-  assert.equal((html.match(/home-growth-desktop-v33242\\.css\\?v=3\\.3\\.24\\.2/g)||[]).length,1);
+  assert.equal(html.split('home-growth-desktop-v33242.css?v=3.3.24.2').length-1,1);
   assert.ok(html.indexOf('home-growth-desktop-v33242.css')>html.indexOf('/social.css?v='));
   assert.match(sw,/\/home-growth-desktop-v33242\\.css/);
   assert.match(workflow,/node --test tests\/home-growth-desktop-v33242\\.test\\.js/);
