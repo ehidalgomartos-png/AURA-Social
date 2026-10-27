@@ -8,7 +8,7 @@ function harness(){
  const a=admin.indexOf('function growthCenterRate(');
  const b=admin.indexOf('function growthSourceTypeLabel(',a);
  assert.ok(a>=0&&b>a);
- const root={value:'7'},metrics={innerHTML:'',textContent:''},sources={innerHTML:'',textContent:''};
+ const root={value:'7',addEventListener(){}},metrics={innerHTML:'',textContent:''},sources={innerHTML:'',textContent:''};
  const guides={innerHTML:'',textContent:''},daily={innerHTML:'',textContent:''},note={textContent:''};
  const els={
   '#growthCenterDays':root,
