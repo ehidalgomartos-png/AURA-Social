@@ -792,7 +792,9 @@ function renderConnectionCircleFilters(){
 
 async function loadConnectionCircles(){
   const {r,d}=await api('/api/profiles/connections/circles');
-  connectionCircles=r.ok && Array.isArray(d.circles) ? d.circles : [];
+  // Keep previously loaded private circles if the connection is temporarily lost.
+  if(!r.ok)return false;
+  connectionCircles=Array.isArray(d.circles) ? d.circles : [];
   if(activeConnectionCircleId!==null && !connectionCircles.some(circle=>String(circle.id)===String(activeConnectionCircleId))){
     activeConnectionCircleId=null;
   }
@@ -818,11 +820,12 @@ async function loadConnections() {
   const list=$('#connectionsList');
   if(!section || !list)return [];
 
-  await loadConnectionCircles();
+  if(await loadConnectionCircles()===false)return false;
   const query=new URLSearchParams({limit:'50'});
   if(activeConnectionCircleId!==null)query.set('circleId',String(activeConnectionCircleId));
   const {r,d}=await api(`/api/profiles/connections?${query.toString()}`);
-  const connections=r.ok && Array.isArray(d.connections) ? d.connections : [];
+  if(!r.ok)return false; // Do not hide real connections because of a temporary error.
+  const connections=Array.isArray(d.connections) ? d.connections : [];
 
   if(!connections.length && activeConnectionCircleId===null){
     section.classList.add('hidden');
@@ -2243,7 +2246,7 @@ async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={})
   if(activeExploreInterest)params.set('interest',activeExploreInterest);
   try{
     const {r,d}=await api('/api/profiles/suggestions?'+params.toString(),{dedupe:false});
-    if(requestId!==peopleDiscoveryRequestSequence)return;
+    if(requestId!==peopleDiscoveryRequestSequence)return false;
     if(!r.ok)throw Error('suggestions_unavailable');
     const users=Array.isArray(d.users)?d.users:[];
     // V3.2.159: exhausted pages are honest; never silently recycle the
@@ -2261,8 +2264,9 @@ async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={})
       : peopleDiscoveryEmptyMessage();
     syncPeopleDiscoveryControls();
     await renderInterestFilters();
+    return true;
   }catch(_){
-    if(requestId!==peopleDiscoveryRequestSequence)return;
+    if(requestId!==peopleDiscoveryRequestSequence)return false;
     peopleDiscoveryRetryPage=page;
     if(status){
       status.innerHTML='<span>No se pudieron cargar las sugerencias.</span> '+
@@ -2273,6 +2277,7 @@ async function loadPeopleSuggestions(interest=activeExploreInterest,{page=0}={})
         copy:'Conservamos tus preferencias. Puedes intentar cargar las personas otra vez.',
         retry:'people'});
     }
+    return false;
   }finally{
     if(requestId===peopleDiscoveryRequestSequence)root.setAttribute('aria-busy','false');
   }
@@ -2665,11 +2670,16 @@ function renderDiscoveryPosts(posts = [], emptyTitle = 'Todavía no hay contenid
 async function loadTrendChips() {
   const root = $('#trendChips');
   if (!root) return;
-  const { d } = await api('/api/posts/trends');
+  const {r,d} = await api('/api/posts/trends');
+  if(!r.ok){
+    root.innerHTML='<button type="button" class="secondary" data-ui-retry="explore-content">No se pudieron cargar las tendencias. Reintentar</button>';
+    return false;
+  }
   const trends = Array.isArray(d.trends) ? d.trends : [];
   root.innerHTML = trends.length
     ? trends.map(item => `<button type="button" data-hashtag="${esc(item.tag)}">#${esc(item.tag)} <small>${item.count}</small></button>`).join('')
     : '<span class="trend-empty">Los hashtags aparecerán aquí cuando empiece la conversación.</span>';
+  return true;
 }
 
 async function loadDiscoveryContent(mode = activeContentMode) {
@@ -2720,9 +2730,11 @@ async function loadDiscoveryContent(mode = activeContentMode) {
   if (root) root.innerHTML = '<div class="discovery-loading">Buscando publicaciones...</div>';
 
   const { r, d } = await api(endpoint);
-  if (activePostSearch || requestNumber!==discoveryRequestSequence || activeContentMode!==mode) return;
+  if (activePostSearch || requestNumber!==discoveryRequestSequence || activeContentMode!==mode) return false;
   if (!r.ok) {
-    return renderDiscoveryPosts([], 'No se pudo cargar el contenido.', 'Inténtalo de nuevo dentro de unos segundos.');
+    renderDiscoveryPosts([], 'No se pudo cargar el contenido.', 'Inténtalo de nuevo dentro de unos segundos.');
+    $('#discoveryFeed')?.insertAdjacentHTML('beforeend','<button type="button" class="secondary" data-ui-retry="explore-content">Reintentar publicaciones</button>');
+    return false;
   }
 
   const posts = Array.isArray(d.posts) ? d.posts : [];
@@ -2734,6 +2746,7 @@ async function loadDiscoveryContent(mode = activeContentMode) {
     : mode === 'active' ? (selectedScope==='mine' ? 'Aquí aparecerán tus publicaciones y aquellas en las que hayas comentado, si reciben comentarios esta semana.' : 'Cuando una publicación pública reciba comentarios recientes podrás participar aquí.')
     : 'Las primeras publicaciones aparecerán aquí.';
   renderDiscoveryPosts(posts, emptyTitle, emptyCopy, {conversationMode:mode==='active'});
+  return true;
 }
 
 async function searchPosts(query) {
@@ -2789,7 +2802,7 @@ function loadExploreTabV3312(mode){
     : [loadTrendChips(),loadDiscoveryContent(activeContentMode)];
   const pending=Promise.allSettled(requests).then(outcomes=>{
     // Success is only cached for this Explore visit. Failed tasks may retry.
-    if(session===exploreTabSessionV3312&&outcomes.every(item=>item.status==='fulfilled'))
+    if(session===exploreTabSessionV3312&&outcomes.every(item=>item.status==='fulfilled'&&item.value!==false))
       exploreLoadedTabsV3312.add(mode);
   }).finally(()=>{
     if(session===exploreTabSessionV3312&&explorePendingTabsV3312.get(mode)===pending)
@@ -11246,6 +11259,10 @@ document.addEventListener('click',async event=>{
     else if(action==='consents')await loadConsents();
     else if(action==='people')await loadPeopleSuggestions(activeExploreInterest,{page:peopleDiscoveryRetryPage});
     else if(action==='people-search')await searchPeople($('#peopleSearchInput')?.value);
+    else if(action==='explore-content'){
+      exploreLoadedTabsV3312.delete('content');
+      await loadExploreTabV3312('content');
+    }
   }finally{
     if(button.isConnected)button.disabled=false;
   }
