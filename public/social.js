@@ -167,7 +167,9 @@ let liveConversationPresence=new Map();
 let presenceHeartbeatTimer=null;
 let typingClearTimer=null;
 let lastTypingPingAt=0;
-let liveActivityRefreshing = false;
+// Separate live refreshes by account, conversation and navigation generation.
+// An older slow chat must never block the newly opened chat.
+const liveActivityRefreshInFlightV3337=new Set();
 let returnPulseLoaded = false;
 const HOME_LAST_VISIT_KEY = 'redlibertad:last-home-visit';
 const VIP_LAST_VISIT_KEY = 'redlibertad:last-vip-visit';
@@ -8200,12 +8202,20 @@ function updateMessageBadge(n) {
 }
 
 async function refreshActiveConversationLive() {
-  if(!activeConversationId || liveActivityRefreshing)return;
+  if(!activeConversationId)return;
   const conversationId=String(activeConversationId);
-  liveActivityRefreshing=true;
+  const viewerId=String(me?.id ?? 'guest');
+  const openSequence=openConversationSequenceV3244;
+  const key=viewerId+':'+conversationId+':'+openSequence;
+  if(liveActivityRefreshInFlightV3337.has(key))return;
+  liveActivityRefreshInFlightV3337.add(key);
   try{
-    const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`);
-    if(!r.ok || String(activeConversationId)!==conversationId)return;
+    // Never join an old account's in-flight GET after switching chats/sessions.
+    const {r,d}=await api(`/api/messages/conversations/${encodeURIComponent(conversationId)}/messages`,{dedupe:false});
+    if(!r.ok || String(activeConversationId)!==conversationId ||
+       viewerId!==String(me?.id ?? 'guest') ||
+       openSequence!==openConversationSequenceV3244 ||
+       activeViewName!=='messages')return;
     activeConversationOther=d.other;
     activeConversationMeta=d.conversation || activeConversationMeta;
     activeConversationSettings=d.settings || activeConversationSettings;
@@ -8218,7 +8228,7 @@ async function refreshActiveConversationLive() {
     }
     await loadConversations();
   }catch(_){}
-  finally{liveActivityRefreshing=false;}
+  finally{liveActivityRefreshInFlightV3337.delete(key);}
 }
 
 async function handleLiveActivity(payload,initial=false) {
