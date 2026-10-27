@@ -49,6 +49,7 @@ const adminSecurityRoutes = require('./src/routes/admin-security-v211');
 const adminVerificationV1891Routes = require('./src/routes/admin-verification-v1891');
 const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
 const {publicProfileSeo,safeJsonLd}=require('./src/services/public-profile-seo-v302');
+const {publicPostSeo}=require('./src/services/public-post-seo-v3339');
 const {createGrowthCenterRouter}=require('./src/routes/admin-growth-v219');
 const marketplaceRoutes = require('./src/routes/marketplace-v3250');
 const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/marketplace-woocommerce-sync-v3277');
@@ -440,8 +441,11 @@ app.get('/p/:id', async (req, res) => {
     if(indexable && post.post_kind==='reel' && post.media_type==='video' && post.media_url){
       return res.redirect(301,publicReelPathV190(post));
     }
-    const title='Mira mi post en RedLibertad';
-    const description=post.caption ? post.caption.slice(0,180) : 'Donde la libertad es lo primero.';
+    const {title,description}=publicPostSeo(post,{indexable});
+    if(!indexable){
+      res.setHeader('X-Robots-Tag','noindex,nofollow');
+      res.setHeader('Cache-Control','private, no-store');
+    }
     const mediaAllowed=post.content_level==='normal' && post.media_type==='image' && post.media_url;
     const ogImage=indexable && mediaAllowed ? absoluteUrl(req,post.media_url) : `${origin}/assets/og-redlibertad-v1922.jpg`;
     const publishedLabel=(()=>{try{return new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'short',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(post.created_at));}catch(_){return '';}})();
@@ -507,7 +511,7 @@ app.get('/p/:id', async (req, res) => {
 .shared-social-proof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 14px}.shared-social-proof span{padding:10px 8px;border-radius:13px;background:#f5f6f3;text-align:center}.shared-social-proof b,.shared-social-proof small{display:block}.shared-social-proof b{color:var(--navy);font-size:16px}.shared-social-proof small{margin-top:2px;color:var(--muted);font-size:9px}
 .shared-related{margin-top:16px;padding:18px;border:1px solid var(--line);border-radius:22px;background:rgba(255,253,249,.88)}.shared-related-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:12px}.shared-related-head small{color:var(--teal);font-size:8px;font-weight:900;letter-spacing:.12em}.shared-related-head h2{margin:3px 0 0;color:var(--navy);font:800 19px Manrope,sans-serif}.shared-related-head>a{font-size:11px;font-weight:800}.shared-related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.shared-related-card{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:var(--paper);color:inherit;text-decoration:none}.shared-related-media{height:88px;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,var(--navy),#173d58)}.shared-related-media img{width:100%;height:100%;object-fit:cover}.shared-related-placeholder{color:#fff;font:900 24px Manrope,sans-serif}.shared-related-copy{display:block;padding:10px}.shared-related-copy small,.shared-related-copy b,.shared-related-copy em{display:block}.shared-related-copy small{color:var(--teal);font-size:7px;font-weight:900;letter-spacing:.1em}.shared-related-copy b{margin-top:4px;color:var(--navy);font-size:11px;line-height:1.35}.shared-related-copy em{margin-top:6px;color:var(--muted);font-size:8px;font-style:normal}
 @media(max-width:620px){.shared-page{padding:0 10px 18px}.shared-shell{padding-top:8px}.shared-topbar{margin-bottom:10px;border-radius:15px}.shared-card{border-radius:20px}.shared-head{padding:14px}.shared-avatar{width:42px;height:42px;flex-basis:42px}.shared-text-post{margin:0 12px 2px;min-height:160px;padding:24px 18px;border-radius:17px}.shared-text-post p{font-size:clamp(22px,7vw,30px)}.shared-copy{padding:14px}.shared-join{margin-top:2px}.shared-actions{grid-template-columns:1fr}.shared-related{padding:14px;border-radius:18px}.shared-related-grid{grid-template-columns:1fr}.shared-related-card{display:grid;grid-template-columns:82px 1fr}.shared-related-media{height:100%;min-height:82px}.shared-public-label{font-size:8px}}
-</style></head><body><main class="shared-page"><div class="shared-shell"><header class="shared-topbar"><a class="shared-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><span class="shared-public-label">Contenido público</span></header><article class="shared-card"><div class="shared-head">${authorAvatar}<div class="shared-author"><div class="shared-author-line">${authorName}${creatorBadge}</div><small>@${escapeHtml(post.username)}${publishedLabel?' · '+escapeHtml(publishedLabel):''}</small></div></div>${media}<div class="shared-copy">${caption}${socialProof}<div class="shared-join"><b>Participa en la conversación</b><span>Crea tu cuenta para responder, seguir a este creador y descubrir más contenido.</span></div><span class="public-entry-inline-v192"><a class="button" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id)))}">Crear cuenta para participar</a><a class="button ghost" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id),'acceso'))}">Entrar y volver aquí</a></span><div class="shared-actions"><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button><a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></div></article>${relatedHtml}</div></main>${publicLegalFooterV197()}${publicEntryBarV192('post',post.id,'/p/'+encodeURIComponent(post.id))}</body></html>`);
+</style></head><body><main class="shared-page"><div class="shared-shell"><header class="shared-topbar"><a class="shared-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a><span class="shared-public-label">Contenido público</span></header><article class="shared-card"><div class="shared-head">${authorAvatar}<div class="shared-author"><div class="shared-author-line">${authorName}${creatorBadge}</div><small>@${escapeHtml(post.username)}${publishedLabel?' · '+escapeHtml(publishedLabel):''}</small></div></div>${media}<div class="shared-copy">${caption}${socialProof}<div class="shared-join"><b>Participa en la conversación</b><span>Crea tu cuenta para responder, seguir a este creador y descubrir más contenido.</span></div><span class="public-entry-inline-v192"><a class="button" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id)))}">Crear cuenta para participar</a><a class="button ghost" href="${escapeHtml(publicEntryHrefV188('post',post.id,'/p/'+encodeURIComponent(post.id),'acceso'))}">Entrar y volver aquí</a></span><div class="shared-actions"><button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir publicación</button>${indexable?`<a class="button ghost" href="https://wa.me/?text=${encodeURIComponent(title+' '+publicUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` :''}<a class="button ghost" href="/publicaciones">Descubrir publicaciones</a></div></div></article>${relatedHtml}</div></main>${publicLegalFooterV197()}${publicEntryBarV192('post',post.id,'/p/'+encodeURIComponent(post.id))}</body></html>`);
   } catch (error) {
     console.error('RedLibertad public post error:', error);
     res.status(500).send('No se pudo cargar la publicación.');
@@ -564,6 +568,10 @@ app.get('/perfil/:username',async(req,res)=>{
     const cover=profile.cover_url ? absoluteUrl(req,profile.cover_url) : '';
     const seo=publicProfileSeo(profile,{url:publicUrl,avatar:indexable?avatar:''});
     const {title,description}=seo;
+    if(!indexable){
+      res.setHeader('X-Robots-Tag','noindex,nofollow');
+      res.setHeader('Cache-Control','private, no-store');
+    }
     const ogImage=indexable && avatar ? avatar : defaultOg;
     const badge=profile.creator_verified
       ? '<span class="public-profile-badge">✓ Creador verificado</span>'
@@ -650,6 +658,7 @@ app.get('/perfil/:username',async(req,res)=>{
           <a class="button ghost" href="/perfiles">Descubrir perfiles</a>
           <a class="button ghost" href="/publicaciones">Publicaciones públicas</a>
           <button type="button" class="button ghost" data-public-share data-share-title="${escapeHtml(title)}" data-share-text="${escapeHtml(description)}">Compartir perfil</button>
+          ${indexable?`<a class="button ghost" href="https://wa.me/?text=${encodeURIComponent(title+' '+publicUrl)}" target="_blank" rel="noopener noreferrer">WhatsApp</a>` :''}
         </div>
         ${!indexable?'<p class="public-profile-note">Este perfil no participa en la indexación pública de RedLibertad.</p>':''}
       </div>
