@@ -550,6 +550,55 @@ function gateText(reason) {
     permission_required: 'Primero debes aceptar contenido sensible de esta persona.'
   })[reason] || 'Contenido protegido.';
 }
+// V3.3.15: Only YouTube's known hosts and exact 11-character video IDs are valid.
+// Do not fetch thumbnails, metadata or an iframe until the viewer clicks Play.
+function youtubeVideoIdV3315(caption=''){
+  const urls=String(caption||'').match(/https?:\/\/[^\s<>"']+/gi)||[];
+  for(const raw of urls){
+    let url;
+    try{url=new URL(raw.replace(/[.,!?;:)\]}]+$/g,''));}catch(_){continue;}
+    if(url.protocol!=='https:'||url.username||url.password||url.port)continue;
+    const host=url.hostname.toLowerCase();
+    let id='';
+    if(host==='youtu.be'||host==='www.youtu.be'){
+      id=url.pathname.split('/')[1]||'';
+    }else if(['youtube.com','www.youtube.com','m.youtube.com','www.youtube-nocookie.com','youtube-nocookie.com'].includes(host)){
+      const parts=url.pathname.split('/').filter(Boolean);
+      if(url.pathname==='/watch')id=url.searchParams.get('v')||'';
+      else if(['shorts','live','embed'].includes(parts[0]))id=parts[1]||'';
+    }
+    if(/^[A-Za-z0-9_-]{11}$/.test(id))return id;
+  }
+  return null;
+}
+function youtubePostPreviewV3315(post,hasMedia=false){
+  if(post.gated||hasMedia||post.post_kind==='reel')return '';
+  const id=youtubeVideoIdV3315(post.caption);
+  if(!id)return '';
+  return '<div class="post-youtube-v3315" data-youtube-player>'+
+    '<div class="post-youtube-placeholder-v3315">'+
+    '<span class="post-youtube-icon-v3315" aria-hidden="true">▶</span>'+
+    '<b>Vídeo de YouTube</b><small>Se conectará con YouTube solo cuando pulses reproducir.</small>'+
+    '<button type="button" class="primary" data-youtube-activate="'+id+'">Reproducir vídeo</button>'+
+    '<a href="https://www.youtube.com/watch?v='+id+'" target="_blank" rel="noopener noreferrer nofollow ugc">Abrir en YouTube</a>'+
+    '</div></div>';
+}
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-youtube-activate]');
+  if(!button)return;
+  const id=button.dataset.youtubeActivate;
+  const root=button.closest('[data-youtube-player]');
+  if(!root||!(/^[A-Za-z0-9_-]{11}$/.test(id)))return;
+  const frame=document.createElement('iframe');
+  frame.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&playsinline=1';
+  frame.title='Reproductor de vídeo de YouTube';
+  frame.loading='lazy';
+  frame.referrerPolicy='strict-origin-when-cross-origin';
+  frame.allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share';
+  frame.allowFullscreen=true;
+  root.replaceChildren(frame);
+});
+
 function mediaHTML(p, compact = false, priority = false) {
   if (p.gated) return `<div class="${compact ? 'tile-gate' : 'gate'}"><div>${compact ? '18+' : `<span class="badge">18+</span><b>Contenido sensible</b><p>${gateText(p.gate_reason)}</p>`}</div></div>`;
   const url = p.playback_url || p.media_url;
@@ -721,6 +770,7 @@ function postHTML(p, options = {}) {
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
     ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
+    ${youtubePostPreviewV3315(p,!!media)}
     ${communityToolHTML(p)}
     <div class="post-actions">
       <button class="${liked ? 'liked' : ''}" data-like="${p.id}" data-liked="${liked ? '1' : '0'}">${liked ? '♥' : '♡'} <span>${p.like_count || 0}</span></button>
