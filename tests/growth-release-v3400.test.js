@@ -43,11 +43,12 @@ test('real D1/D7, first posts and privacy tests remain mandatory release checks'
     'mobile-pwa-update-budget-v336.test.js',
     'pwa-registration-recovery-v3338.test.js',
     'public-post-privacy-v3340.test.js',
-    'profile-seo-v302.test.js',
     'release-identity-pwa-audit-v3332.test.js',
     'growth-release-v3400.test.js'
   ];
   for(const name of names)assert.ok(ci.includes(name),'Missing release regression: '+name);
+  assert.match(ci,/test:profile-seo/);
+  assert.match(require('../package.json').scripts['test:profile-seo'],/profile-seo-v302/);
   assert.match(read('src/routes/admin-growth-v219.js'),/router\.use\(requireAdmin\)/);
   const {summarizeGrowth}=require('../src/routes/admin-growth-v219');
   const totals=summarizeGrowth([],7).totals;
