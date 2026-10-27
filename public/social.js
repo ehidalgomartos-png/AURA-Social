@@ -3466,15 +3466,22 @@ async function openPublicProfile(username) {
   }
 }
 
+let postFocusRequestSequenceV3336=0;
 async function openPostFocus(postId) {
   const modal = $('#postFocusModal');
   const root = $('#postFocusContent');
   if (!modal || !root || !postId) return;
+  const requestId=++postFocusRequestSequenceV3336;
+  const viewerId=String(me?.id ?? 'guest');
 
   modal.classList.remove('hidden');
   root.innerHTML = '<div class="public-profile-loading">Cargando publicación...</div>';
 
   const { r, d } = await api(`/api/posts/detail/${encodeURIComponent(postId)}`);
+  // A late response cannot reopen a closed dialog, displace a newer post,
+  // or paint a post fetched by a previously signed-in account.
+  if(requestId!==postFocusRequestSequenceV3336 || modal.classList.contains('hidden'))return;
+  if(viewerId!==String(me?.id ?? 'guest')){closePostFocus();return;}
   if (!r.ok || !d.post) {
     root.innerHTML = '<div class="info-card"><b>La publicación ya no está disponible.</b><p>Puede haberse eliminado o no ser visible para tu cuenta.</p></div>';
     return;
@@ -3485,6 +3492,7 @@ async function openPostFocus(postId) {
 }
 
 function closePostFocus() {
+  ++postFocusRequestSequenceV3336;
   $('#postFocusModal')?.classList.add('hidden');
   const root = $('#postFocusContent');
   if (root) root.innerHTML = '';
