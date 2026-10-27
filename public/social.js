@@ -555,6 +555,8 @@ function gateText(reason) {
 function youtubeVideoIdV3315(caption=''){
   const urls=String(caption||'').match(/https?:\/\/[^\s<>"']+/gi)||[];
   for(const raw of urls){
+    // Reject traversal before URL normalizes /../ or encoded dot segments.
+    if(/\/\.{1,2}\//.test(raw)||/%2e/i.test(raw))continue;
     let url;
     try{url=new URL(raw.replace(/[.,!?;:)\]}]+$/g,''));}catch(_){continue;}
     if(url.protocol!=='https:'||url.username||url.password||url.port)continue;
