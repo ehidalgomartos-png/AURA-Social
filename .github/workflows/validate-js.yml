@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.37 active chat live updates across navigation and session changes
+        run: node --test tests/chat-live-switch-v3337.test.js
       - name: V3.3.36 post detail selection, close and private-session races
         run: node --test tests/post-focus-navigation-v3336.test.js
       - name: V3.3.35 home feed tabs match real content across offline and account changes
