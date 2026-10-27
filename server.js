@@ -23,7 +23,7 @@ const { createAlertDeliveryAdminRoutes } = require('./src/routes/admin-delivery-
 const { createReleaseVerifier } = require('./src/services/release-verifier-v217');
 const { createReleaseVerificationRoutes } = require('./src/routes/admin-release-verification-v217');
 const { createRuntimeAdminRoutes } = require('./src/routes/admin-runtime-v213');
-const { requireAuth } = require('./src/middleware/auth');
+const { requireAuth, requireAdmin } = require('./src/middleware/auth');
 
 const authRoutes = require('./src/routes/auth');
 const profileRoutes = require('./src/routes/profiles');
