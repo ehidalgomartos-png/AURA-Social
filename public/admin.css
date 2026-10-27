@@ -25,6 +25,10 @@ main{max-width:1480px;margin:auto;padding:42px clamp(18px,5vw,70px) 70px}
 .eyebrow{font-size:10px;color:var(--teal);letter-spacing:.16em;font-weight:800}
 h1{font:800 clamp(36px,6vw,62px)/1 Manrope;color:var(--navy);margin:8px 0 28px}
 h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
+.growth-center-v219 .growth-metric-sample-v3324{
+  display:block;margin-top:5px;color:var(--muted);font-size:10px;line-height:1.4;
+  overflow-wrap:anywhere;
+}
 .metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .metric,.panel{background:var(--paper);border:1px solid var(--line);border-radius:18px}
 .metric{padding:15px;min-width:0}

@@ -172,15 +172,25 @@ async function seoHealth(){
 function growthCenterRate(value,eligible){
   return value===null||!Number(eligible)?'—':Number(value).toLocaleString('es-ES',{maximumFractionDigits:1})+'%';
 }
+// V3.3.24 — make small D1/D7 cohorts explicit before drawing conclusions.
+function growthCenterSampleV3324(numerator,eligible){
+  const total=Math.max(0,Number(eligible)||0);
+  const observed=Math.max(0,Number(numerator)||0);
+  if(total===0)return 'Sin muestra elegible';
+  return observed+' de '+total+' cuentas elegibles'+(total<10?' · muestra pequeña':'');
+}
+let growthCenterRequestSequenceV3324=0;
 async function growthCenter(){
   const metricsRoot=$('#growthCenterMetrics'),sourcesRoot=$('#growthCenterSources');
   const guidesRoot=$('#growthCenterGuides'),dailyRoot=$('#growthCenterDaily'),noteRoot=$('#growthCenterMethod');
   if(!metricsRoot||!sourcesRoot||!guidesRoot||!dailyRoot)return;
   const raw=$('#growthCenterDays')?.value||'30';
   const days=['7','30','90'].includes(raw)?raw:'30';
+  const requestId=++growthCenterRequestSequenceV3324;
   metricsRoot.textContent='Consultando el crecimiento…';
   try{
     const {r,d}=await api('/api/admin/growth-center?days='+encodeURIComponent(days));
+    if(requestId!==growthCenterRequestSequenceV3324)return;
     if(!r.ok)throw new Error('growth_center_failed');
     const t=d.totals||{};
     const metricCards=[
@@ -190,13 +200,14 @@ async function growthCenter(){
       ['Siguen o comentan',growthCenterRate(t.socialContactRatePct,t.signups)],
       ['Publican y participan',growthCenterRate(t.publishAndConnectRatePct,t.signups)],
       ['Origen conocido',t.attributedSignups||0],
-      ['Primeros 7 días',growthCenterRate(t.firstWeekRatePct,t.eligibleWeek)],
-      ['Actividad D1',growthCenterRate(t.d1RatePct,t.eligibleD1)],
-      ['Actividad D7',growthCenterRate(t.d7RatePct,t.eligibleD7)],
+      ['Primeros 7 días',growthCenterRate(t.firstWeekRatePct,t.eligibleWeek),growthCenterSampleV3324(t.firstWeek,t.eligibleWeek)],
+      ['Actividad D1',growthCenterRate(t.d1RatePct,t.eligibleD1),growthCenterSampleV3324(t.activeD1,t.eligibleD1)],
+      ['Actividad D7',growthCenterRate(t.d7RatePct,t.eligibleD7),growthCenterSampleV3324(t.activeD7,t.eligibleD7)],
       ['Cobertura origen',growthCenterRate(t.attributionRatePct,t.signups)]
     ];
-    metricsRoot.innerHTML=metricCards.map(([label,value])=>
-      '<div class="beta-metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span></div>'
+    metricsRoot.innerHTML=metricCards.map(([label,value,sample])=>
+      '<div class="beta-metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span>'+
+      (sample?'<small class="growth-metric-sample-v3324">'+esc(sample)+'</small>':'')+'</div>'
     ).join('');
     sourcesRoot.innerHTML=(d.sources||[]).map(item=>{
       const label=item.source==='unattributed'?'Sin atribución':growthSourceTypeLabel(item.source);
@@ -222,6 +233,8 @@ async function growthCenter(){
         '<b style="height:'+height+'%"></b><span>'+esc(label)+'</span><small>'+count+'</small></div>';
     }).join('')||'<div class="empty-admin">Todavía no hay altas.</div>';
     if(noteRoot)noteRoot.textContent=
+      'Datos calculados: '+(d.generatedAt?timeLabel(d.generatedAt):'hora no disponible')+'. '+
+      'La gráfica recoge hasta 30 días con altas del periodo seleccionado. '+
       'Muestra elegible: primera semana '+Number(t.eligibleWeek||0)+
       ', D1 '+Number(t.eligibleD1||0)+', D7 '+Number(t.eligibleD7||0)+
       '. D1 = acciones entre 24 y 48 h; D7 = acciones entre 7 y 8 días. '+
@@ -236,6 +249,7 @@ async function growthCenter(){
       'No mide sesiones, visitas ni conversiones desde impresiones. Sin atribución no significa tráfico directo. '+
       'Datos internos agregados; nunca se leen mensajes privados.';
   }catch(_){
+    if(requestId!==growthCenterRequestSequenceV3324)return;
     metricsRoot.textContent='No se pudieron recuperar las métricas.';
     sourcesRoot.textContent='Inténtalo de nuevo.';
     guidesRoot.textContent='';
