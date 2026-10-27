@@ -78,7 +78,7 @@ test('composer displays preview before posting, hides when adding media or switc
  assert.match(css,/\.youtube-rich-v33161 \.youtube-info-v33161 b/);
  assert.match(src,/updateComposerYoutubeV33161\(\)/);
  assert.match(src,/const hasFile=Boolean\(\$\('#mediaFile'\)\?\.files\?\.length\)/);
- assert.match(src,/kind==='post'&&!hasFile\?youtubeVideoIdV3315\(caption\):null/);
+ assert.match(src,/kind==='post'&&mode==='post'&&!hasFile\?youtubeVideoIdV3315\(caption\):null/);
  assert.match(src,/hydrateYoutubeCardsV33161\(root\)/);
  assert.match(src,/bindPostActions\(root\) \{\s*hydrateYoutubeCardsV33161\(root\)/);
 });
