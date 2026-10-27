@@ -3106,6 +3106,14 @@ function renderOwnProfilePostFeed(root,posts,emptyText){
   if(items.length)bindPostActions(root);
 }
 
+// For old profiles as well as new ones, never render a relative or unsafe URL.
+function profileWebsiteLinkV33241(value){
+  const href=window.normalizeProfileWebsiteV33241?.(value);
+  return href
+    ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(String(value).trim())}</a>`
+    : '';
+}
+
 async function loadProfile(mode = ownProfileMode) {
   if (!me) await loadMe();
   setOwnProfileMode(mode);
@@ -3115,7 +3123,7 @@ async function loadProfile(mode = ownProfileMode) {
 
   const {r,d}=await api(`/api/posts/user/${encodeURIComponent(username)}?mode=${encodeURIComponent(selectedMode)}`);
   if(sequence!==ownProfileRequestSequence || String(me?.username)!==username || ownProfileMode!==selectedMode)return;
-  const web = me.website_url ? `<a href="${esc(me.website_url)}" target="_blank" rel="noopener noreferrer">${esc(me.website_url)}</a>` : '';
+  const web=profileWebsiteLinkV33241(me.website_url);
 
   $('#profileFull').innerHTML = `<div class="cover" ${me.cover_url ? `style="background-image:url('${esc(me.cover_url)}')"` : ''}></div><div class="profile-body"><div class="profile-avatar">${avatarHTML(me)}</div><div class="profile-title"><div><h2>${esc(me.display_name)} ${me.creator_verified ? '<span class="verified">✓</span>' : ''}</h2><p>@${esc(me.username)}</p>${me.profile_status ? `<span class="profile-status-line">${esc(me.profile_status)}</span>` : ''}</div><div class="profile-buttons profile-actions-shell"><div class="profile-primary-actions"><button id="editProfile" class="secondary">Editar perfil</button><button id="shareOwnProfile" class="secondary">Compartir</button><button id="profileMoreToggle" class="secondary profile-more-toggle" type="button" aria-expanded="false" aria-controls="profileMoreMenu"><span>Más</span><span class="profile-more-chevron" aria-hidden="true">⌄</span></button></div><div id="profileMoreMenu" class="profile-more-menu profile-more-inline hidden"><button id="trustSettings" class="profile-more-option" type="button"><span><b>Confianza</b><small>Verificación y estado</small></span><span aria-hidden="true">›</span></button><button id="privacySettings" class="profile-more-option" type="button"><span><b>Privacidad</b><small>Visibilidad y bloqueos</small></span><span aria-hidden="true">›</span></button><button id="accountSettings" class="profile-more-option" type="button"><span><b>Cuenta</b><small>Seguridad y datos</small></span><span aria-hidden="true">›</span></button><button id="supportSettings" class="profile-more-option" type="button" data-release-feature="support_center"><span><b>Ayuda</b><small>Soporte y comentarios</small></span><span aria-hidden="true">›</span></button><button id="sensitiveToggle" class="profile-more-option" type="button"><span><b>Contenido sensible</b><small>${me.show_sensitive ? 'Ocultarlo en el feed' : 'Mostrarlo en el feed'}</small></span><span aria-hidden="true">›</span></button></div>${me.creator_verified ? '<button id="creatorCenter" class="secondary creator-center-button profile-creator-entry"><span><b>Centro de creador</b><small>Publicación, comunidad y analítica</small></span><span aria-hidden="true">→</span></button>' : ''}</div></div><p class="profile-bio">${esc(me.bio || 'Todavía no has escrito una biografía.')}</p>${me.creator_verified && me.creator_headline ? `<div class="own-creator-headline"><span>CREADOR</span><b>${esc(me.creator_headline)}</b></div>` : ''}${interestPillsHTML(me.interests)}<div class="profile-meta">${me.location_label ? `<span>⌖ ${esc(me.location_label)}</span>` : ''}${web}</div><div class="profile-stats"><span><b>${me.post_count}</b> ${Number(me.post_count)===1?'publicación':'publicaciones'}</span><button type="button" data-social-list="followers" data-social-username="${esc(me.username)}"><b>${me.follower_count}</b> ${Number(me.follower_count)===1?'seguidor':'seguidores'}</button><button type="button" data-social-list="following" data-social-username="${esc(me.username)}"><b>${me.following_count}</b> siguiendo</button><button type="button" data-view-jump="explore"><b>${me.connection_count || 0}</b> conexiones</button></div></div>`;
 
@@ -3275,9 +3283,7 @@ async function openPublicProfile(username) {
 
     if(requestSequence!==publicProfileRequestSequence || activePublicProfileUsername.toLowerCase()!==clean.toLowerCase())return;
     const profile = profileData.profile;
-    const website = profile.website_url
-      ? `<a href="${esc(profile.website_url)}" target="_blank" rel="noopener noreferrer">${esc(profile.website_url)}</a>`
-      : '';
+    const website=profileWebsiteLinkV33241(profile.website_url);
 
     const actions = `
       <div class="public-profile-actions">
@@ -6670,6 +6676,10 @@ $('#profileForm').addEventListener('submit', async e => {
   msg.textContent = 'Guardando...';
   try {
     const fd = new FormData(e.target);
+    const websiteUrl=window.normalizeProfileWebsiteV33241?.(fd.get('websiteUrl'));
+    if(websiteUrl===null || websiteUrl===undefined){
+      throw new Error('Introduce una web válida, por ejemplo tuweb.com o https://tuweb.com.');
+    }
     const avatar = await uploadFile($('#avatarFile').files[0]);
     const cover = await uploadFile($('#coverFile').files[0]);
     const interests = all('input[name="interest"]:checked', e.target).map(x => x.value).slice(0, 8);
@@ -6678,7 +6688,7 @@ $('#profileForm').addEventListener('submit', async e => {
       profileStatus: fd.get('profileStatus'),
       bio: fd.get('bio'),
       locationLabel: fd.get('locationLabel'),
-      websiteUrl: fd.get('websiteUrl'),
+      websiteUrl,
       interests,
       ...(avatar ? { avatarUrl: avatar.url } : {}),
       ...(cover ? { coverUrl: cover.url } : {})
