@@ -86,6 +86,13 @@
     return Number.isFinite(width)&&width>0 ? Math.max(280,Math.min(500,Math.floor(width))) : 500;
   }
 
+  // Facebook's iframe has no measurable cross-origin document height.
+  // Match compact photo posts by default; longer posts can be expanded.
+  function facebookFrameHeightV3414(width,expanded=false){
+    const w=facebookEmbedWidthV3412(width);
+    return expanded ? Math.max(760,Math.round(w*2.15)) : Math.round(w*1.05);
+  }
+
   function playerUrl(info,width=500){
     if(!info||!PROVIDERS[info.provider])return null;
     const safe=parse(info.url);
@@ -150,9 +157,21 @@
       frame.allowFullscreen=true;
       if(safe.provider==='facebook'){
         frame.width=String(embedWidth);
-        // The former 480px frame cut off Facebook's footer and actions.
-        // Use a bounded, scrollable viewport without loading extra content.
-        frame.height=String(Math.max(570,Math.min(760,Math.round(embedWidth*1.12+165))));
+        // A fixed 570–760px iframe left a large blank area below short
+        // photo posts, especially on phones. Keep a compact square-ish frame.
+        frame.height=String(facebookFrameHeightV3414(embedWidth));
+        const more=doc.createElement('button');
+        more.type='button';
+        more.className='social-embed-more-v3414';
+        more.textContent='Ampliar publicación';
+        more.setAttribute('aria-expanded','false');
+        more.onclick=()=>{
+          const expanded=more.getAttribute('aria-expanded')!=='true';
+          frame.height=String(facebookFrameHeightV3414(embedWidth,expanded));
+          more.setAttribute('aria-expanded',String(expanded));
+          more.textContent=expanded?'Reducir publicación':'Ampliar publicación';
+        };
+        foot.appendChild(more);
       }
       area.appendChild(frame);
       return true;
@@ -195,5 +214,5 @@
     return false;
   }
 
-  global.RedLibertadSocialEmbedsV341={parse,playerUrl,activate,facebookEmbedWidthV3412};
+  global.RedLibertadSocialEmbedsV341={parse,playerUrl,activate,facebookEmbedWidthV3412,facebookFrameHeightV3414};
 })(window);
