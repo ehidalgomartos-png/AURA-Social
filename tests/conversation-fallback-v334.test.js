@@ -48,7 +48,7 @@ test('existing return panel tries at most 3 candidates and respects claim, rate 
  assert.match(segment,/if\(claimed\.r\.ok && claimed\.d\?\.recorded===true\)/);
  assert.match(segment,/if\(!claimed\.r\.ok\)break/);
  assert.match(segment,/body:JSON\.stringify\(\{postId:match\.id\}\)/);
- assert.match(segment,/if\(d\.participation\?\.can_show===true && me\?\.id\)/);
+ assert.match(segment,/if\(!hasConversation && d\.participation\?\.can_show===true && me\?\.id\)/);
  assert.match(read('src/routes/growth.js'),/interval '72 hours'/);
  assert.match(read('src/routes/growth.js'),/interval '7 days'/);
  const html=read('public/app.html');
