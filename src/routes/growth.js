@@ -4,6 +4,7 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const {nextWelcomeStep,welcomeEligibility,welcomeVisible}=require('../services/welcome-v32150');
 const {canOfferConversation}=require('../services/participation-v32152');
+const {resolveReturnSinceV3322}=require('../services/return-since-v3322');
 
 const router = express.Router();
 
@@ -335,9 +336,12 @@ router.get('/pulse', requireAuth, async (req,res)=>{
   const stored=state.rows[0]?.last_home_seen_at ? new Date(state.rows[0].last_home_seen_at) : null;
   const fallback=new Date(Date.now()-24*60*60*1000);
   const earliest=new Date(Date.now()-30*24*60*60*1000);
-  const since=stored && Number.isFinite(stored.getTime())
+  const baseline=stored && Number.isFinite(stored.getTime())
     ? new Date(Math.max(stored.getTime(),earliest.getTime()))
     : fallback;
+  // An explicit in-tab refresh may keep the original 30-day-bounded
+  // return baseline; do not alter the member's stored visit timestamp.
+  const since=resolveReturnSinceV3322(req.query.since,baseline);
 
   const contentVisible = viewer.is_admin || (viewer.age_verified && viewer.show_sensitive);
 
