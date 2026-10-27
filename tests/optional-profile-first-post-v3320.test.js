@@ -10,7 +10,7 @@ function profile(){
   const listeners={},bio={value:'',events:[],dispatchEvent(e){this.events.push(e.type);},focus(){this.focused=true;}};
   const root={addEventListener:(name,fn)=>listeners[name]=fn};
   const bioIdea={hidden:true},status={textContent:''},avatar={files:[]};
-  const form={bio},selected=[];
+  const form={bio,addEventListener(){}},selected=[];
   const map={
     '#profileForm':form,'#profileCompletionV32157':root,
     '#profileCompletionStatusV32157':status,'#profileBioIdeaV3320':bioIdea,
