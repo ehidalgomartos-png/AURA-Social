@@ -28,7 +28,7 @@ test('home recommendations ignore stale responses and do not mislabel connection
  pending[2].resolve({r:{ok:false},d:{error:'offline'}});await failed;
  assert.match(root.innerHTML,/ana/);
  const empty=ctx.load();pending[3].resolve({r:{ok:true},d:{users:[]}});await empty;
- assert.match(root.innerHTML,/Ya conoces a todos/);
+ assert.match(root.innerHTML,/No hay nuevas sugerencias ahora/);
 });
 test('community suggestions keep last good state when refresh fails and discard older results',async()=>{
  const list={innerHTML:'',children:[]};
