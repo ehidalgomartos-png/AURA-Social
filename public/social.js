@@ -9521,6 +9521,8 @@ $('#newMessageRecipientV3244')?.addEventListener('input',event=>{
 
 $('#newMessageForm').addEventListener('submit',async event=>{
   event.preventDefault();
+  // V3.3.29: two rapid taps must never create duplicate chat requests.
+  return runSocialSubmitOnce(event.currentTarget,async()=>{
   const fd=new FormData(event.target);
   const status=$('#newMessageStatus');
   status.textContent='Abriendo…';
@@ -9546,7 +9548,10 @@ $('#newMessageForm').addEventListener('submit',async event=>{
   }
   closeNewConversationModal({afterSubmit:true});
   showView('messages');
-  await loadConversations(d.conversationId);
+  // showView already requests the list. Fetch the confirmed chat directly,
+  // instead of launching a second competing conversations-list request.
+  await openConversation(d.conversationId);
+  });
 });
 
 $('#newGroupForm')?.addEventListener('submit',async event=>{
