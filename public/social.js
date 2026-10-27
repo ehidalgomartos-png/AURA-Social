@@ -1856,8 +1856,11 @@ async function loadReturnPulse(force=false) {
   const section=$('#returnPulse');
   const grid=$('#returnPulseGrid');
   if(!section || !grid)return;
-  if(returnPulseLoaded && !force)return;
+  const previousSession=returnPulseSessionV3322;
   const session=returnPulseSessionForV3322();
+  // A signed-in account change in the same tab must not reuse the old summary.
+  if(session!==previousSession)returnPulseLoaded=false;
+  if(returnPulseLoaded && !force)return;
   const requestId=++returnPulseRequestSequenceV3322;
   const query=session.since?'?since='+encodeURIComponent(session.since):'';
   const {r,d}=await api('/api/growth/pulse'+query);
