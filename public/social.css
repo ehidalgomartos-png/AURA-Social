@@ -8698,3 +8698,15 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   .youtube-rich-v33161 .youtube-info-v33161 b{font-size:14px}
   .composer-youtube-preview-v33161 .post-youtube-v3315.youtube-rich-v33161{border-radius:13px}
 }
+
+/* V3.3.18 — One collapsible text-only draft control inside the existing first-post composer. */
+#modal .first-post-local-text-v3318{margin-top:8px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.48)}
+#modal .first-post-local-text-v3318 summary{font-size:12px;font-weight:800;cursor:pointer;min-height:36px;display:flex;align-items:center}
+#modal .first-post-local-text-v3318 p{font-size:11px;line-height:1.5;color:var(--muted);margin:5px 0 9px}
+#modal .first-post-local-actions-v3318{display:flex;flex-wrap:wrap;gap:7px}
+#modal .first-post-local-actions-v3318 button{min-height:44px;padding:8px 11px;border-radius:10px;flex:0 1 auto}
+#modal [data-first-post-local-v3318="delete"]{background:transparent;color:var(--navy);border:1px solid var(--line);box-shadow:none}
+#modal #firstPostLocalTextStatusV3318{display:block;margin-top:8px;color:var(--muted);font-size:11px;line-height:1.4}
+@media(max-width:430px){#modal .first-post-local-actions-v3318{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+#modal .first-post-local-actions-v3318 button{min-width:0;width:100%}
+#modal [data-first-post-local-v3318="delete"]{grid-column:1/-1}}
