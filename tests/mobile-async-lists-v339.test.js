@@ -55,11 +55,11 @@ test('messages: older filter response cannot overwrite the latest list or badge'
   await second;
   assert.match(h.root.innerHTML,/No hay conversaciones en este filtro/);
   assert.equal(h.root['aria-busy'],'false');
-  assert.deepEqual(h.badges,[0]);
+  assert.deepEqual(h.badges,[], 'a filtered list cannot change the global count');
   h.pending[0].resolve({r:{ok:false},d:{error:'request_timeout'}});
   await first;
   assert.doesNotMatch(h.root.innerHTML,/Error:/);
-  assert.deepEqual(h.badges,[0]);
+  assert.deepEqual(h.badges,[]);
 });
 test('messages: older response must never open a stale deep-link conversation',async()=>{
   const h=messagesHarness();
