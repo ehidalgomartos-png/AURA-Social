@@ -14,6 +14,7 @@ const SHELL_ASSETS=[
   '/app.js',
   '/social.js',
   '/social-embeds-v341.js',
+  '/photo-viewer-v3415.js',
   '/facebook-auto-v3413.js',
   '/creator-ops.js',
   '/pwa.js',
