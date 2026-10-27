@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.34 truthful first-circle progress and empty recommendations
+        run: node --test tests/first-circle-accuracy-v3334.test.js
       - name: V3.3.33 real-user growth diagnosis, small samples and admin privacy
         run: node --test tests/growth-diagnosis-v3333.test.js
       - name: V3.3.32 safe release identity, PWA cache renewal and privacy audit
