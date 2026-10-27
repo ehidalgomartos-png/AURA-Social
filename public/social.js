@@ -644,14 +644,23 @@ function socialPostPreviewV341(post,hasMedia=false){
   if(youtubeVideoIdV3315(post.caption))return '';
   const social=window.RedLibertadSocialEmbedsV341?.parse(post.caption);
   if(!social)return '';
-  return '<section class="post-social-v341" data-social-card="'+esc(social.provider)+'">'+
-    '<div class="post-social-label-v341"><small>ENLACE COMPARTIDO</small>'+
-    '<b>'+esc(social.providerName)+'</b></div>'+
-    '<p>'+esc(social.label)+'</p>'+
-    '<small>El contenido externo se carga solo si eliges verlo. Si es privado, puede no estar disponible.</small>'+
+  const isShort=social.kind==='short';
+  const glyph={facebook:'f',instagram:'◎',tiktok:'♪',x:'𝕏'}[social.provider]||'↗';
+  const label=social.provider==='facebook'
+    ?(social.kind==='reel'?'Reel compartido':isShort?'Enlace compartido':'Publicación compartida')
+    :social.label;
+  const hint=isShort
+    ?'Este enlace abre el contenido original. No admite vista integrada.'
+    :'Vista integrada opcional. Algunas publicaciones privadas o eliminadas no se pueden mostrar.';
+  return '<section class="post-social-v341 post-social-polish-v3411" data-social-card="'+esc(social.provider)+'" data-social-kind="'+esc(social.kind)+'">'+
+    '<div class="social-link-heading-v3411">'+
+    '<span class="social-link-icon-v3411" aria-hidden="true">'+esc(glyph)+'</span>'+
+    '<div class="social-link-copy-v3411"><small>COMPARTIDO DESDE '+esc(social.providerName.toUpperCase())+'</small>'+
+    '<b>'+esc(label)+'</b><span>'+esc(social.providerName)+' · Enlace original</span></div></div>'+
+    '<p class="social-link-hint-v3411">'+esc(hint)+'</p>'+
     '<div class="post-social-actions-v341">'+
-    '<button type="button" data-social-activate data-social-url="'+esc(social.url)+'">Ver aquí</button>'+
-    '<a href="'+esc(social.url)+'" target="_blank" rel="noopener noreferrer nofollow ugc">Abrir en '+esc(social.providerName)+'</a>'+
+    (isShort?'':'<button type="button" data-social-activate data-social-url="'+esc(social.url)+'">Ver publicación aquí</button>')+
+    '<a href="'+esc(social.url)+'" target="_blank" rel="noopener noreferrer nofollow ugc">Abrir en '+esc(social.providerName)+' ↗</a>'+
     '</div></section>';
 }
 
