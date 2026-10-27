@@ -180,6 +180,7 @@ function growthCenterSampleV3324(numerator,eligible){
   return observed+' de '+total+' cuentas elegibles'+(total<10?' · muestra pequeña':'');
 }
 let growthCenterRequestSequenceV3324=0;
+let growthCenterForceNextV3331=false;
 async function growthCenter(){
   const metricsRoot=$('#growthCenterMetrics'),sourcesRoot=$('#growthCenterSources');
   const guidesRoot=$('#growthCenterGuides'),dailyRoot=$('#growthCenterDaily'),noteRoot=$('#growthCenterMethod');
@@ -187,9 +188,11 @@ async function growthCenter(){
   const raw=$('#growthCenterDays')?.value||'30';
   const days=['7','30','90'].includes(raw)?raw:'30';
   const requestId=++growthCenterRequestSequenceV3324;
+  const fresh=growthCenterForceNextV3331;
+  growthCenterForceNextV3331=false;
   metricsRoot.textContent='Consultando el crecimiento…';
   try{
-    const {r,d}=await api('/api/admin/growth-center?days='+encodeURIComponent(days));
+    const {r,d}=await api('/api/admin/growth-center?days='+encodeURIComponent(days)+(fresh?'&fresh=1':''));
     if(requestId!==growthCenterRequestSequenceV3324)return;
     if(!r.ok)throw new Error('growth_center_failed');
     const t=d.totals||{};
@@ -256,7 +259,10 @@ async function growthCenter(){
     dailyRoot.textContent='';
   }
 }
-$('#reloadGrowthCenter')?.addEventListener('click',growthCenter);
+$('#reloadGrowthCenter')?.addEventListener('click',()=>{
+  growthCenterForceNextV3331=true;
+  void growthCenter();
+});
 $('#growthCenterDays')?.addEventListener('change',growthCenter);
 
 function growthSourceTypeLabel(type){
