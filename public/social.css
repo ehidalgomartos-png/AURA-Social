@@ -8472,3 +8472,58 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
   #exploreView .explore-person-profile-v3311{padding-inline:3px}
   #exploreView #connectionsSection .connections-head p{display:none}
 }
+
+
+/* V3.3.13.1 — Inicio escritorio: ninguna tarjeta puede tapar el nombre
+   con el botón Seguir. El carrusel de dos filas en móvil queda intacto. */
+@media(min-width:761px){
+  #feedView .home-momentum .active-person-card{
+    min-width:0;
+    grid-template-columns:44px minmax(0,1fr);
+    grid-template-rows:auto auto;
+    align-items:start;
+    align-content:start;
+    gap:7px 9px;
+  }
+  #feedView .home-momentum .active-person-card>.active-person-profile{
+    grid-column:1;
+    grid-row:1 / 3;
+    align-self:start;
+  }
+  #feedView .home-momentum .active-person-copy{
+    grid-column:2;
+    grid-row:1;
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #feedView .home-momentum .active-person-name{
+    display:block;
+    max-width:100%;
+    min-width:0;
+  }
+  #feedView .home-momentum .active-person-copy b{
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    white-space:normal;
+    overflow:hidden;
+    overflow-wrap:anywhere;
+    line-height:1.3;
+  }
+  #feedView .home-momentum .active-person-copy small,
+  #feedView .home-momentum .active-person-copy span{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #feedView .home-momentum .active-person-card>.person-follow{
+    grid-column:2;
+    grid-row:2;
+    justify-self:start;
+    min-height:36px;
+    min-width:0;
+    max-width:100%;
+    white-space:nowrap;
+  }
+}
