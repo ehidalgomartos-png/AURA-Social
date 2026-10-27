@@ -21,6 +21,9 @@
   const key=id==null?null:String(id);
   if(owner===key)return;
   owner=key;count=null;lastRefresh=0;
+  // A request started by the previous account must not delay this account's refresh.
+  // Its response still fails the owner/revision checks before it can set a badge.
+  inflight=null;
   void schedule(0); // Never inherit another account's badge.
  }
  function sync(id,value){
@@ -42,7 +45,14 @@
    try{
     const r=await fetch('/api/live/badge',{
       credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-    if(!r.ok)return false;
+    if(!r.ok){
+      // An expired/revoked session must not leave a former user's unread badge visible.
+      // Never clear a newer account or override a more recent live SSE update.
+      if((r.status===401||r.status===403)&&owner===expectedOwner&&revision===expectedRevision){
+        await clear();
+      }
+      return false;
+    }
     const d=await r.json();
     if(owner!==expectedOwner||revision!==expectedRevision)return false;
     return sync(expectedOwner,d.badgeUnread);
@@ -50,7 +60,7 @@
   })().finally(()=>{if(inflight===task)inflight=null;});
   inflight=task;return task;
  }
- function clear(){owner=null;count=null;lastRefresh=0;return schedule(0);}
+ function clear(){owner=null;count=null;lastRefresh=0;inflight=null;return schedule(0);}
  document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')void refresh();
  });
