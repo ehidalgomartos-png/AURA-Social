@@ -486,6 +486,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
     SELECT
       u.id,u.username,u.display_name,u.bio,u.avatar_url,u.cover_url,
       u.location_label,u.creator_verified,u.created_at,
+      (u.created_at>=now()-interval '30 days') AS recent_joiner,
       EXISTS(
         SELECT 1 FROM follows f WHERE f.follower_id=$1 AND f.following_id=u.id
       ) AS following,
