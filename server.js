@@ -50,6 +50,7 @@ const adminVerificationV1891Routes = require('./src/routes/admin-verification-v1
 const adminSeoV190Routes = require('./src/routes/admin-seo-v190');
 const {publicProfileSeo,safeJsonLd}=require('./src/services/public-profile-seo-v302');
 const {publicPostSeo}=require('./src/services/public-post-seo-v3339');
+const {validPublicPostId,publicPostPreview}=require('./src/services/public-post-privacy-v3340');
 const {createGrowthCenterRouter}=require('./src/routes/admin-growth-v219');
 const marketplaceRoutes = require('./src/routes/marketplace-v3250');
 const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/marketplace-woocommerce-sync-v3277');
@@ -422,6 +423,10 @@ async function ensurePublicPostAudienceV18(){
 }
 app.get('/p/:id', async (req, res) => {
   try {
+    if(!validPublicPostId(req.params.id)){
+      res.setHeader('X-Robots-Tag','noindex,nofollow');
+      return res.status(404).send('Publicación no encontrada.');
+    }
     await ensurePublicPostAudienceV18();
     const result = await db.query(`
       SELECT p.id,p.user_id,p.caption,p.media_url,p.media_type,p.content_level,p.post_kind,p.created_at,
@@ -437,7 +442,7 @@ app.get('/p/:id', async (req, res) => {
     const post=result.rows[0];
     const origin=publicOrigin(req);
     const publicUrl=`${origin}/p/${encodeURIComponent(post.id)}`;
-    const indexable=post.content_level==='normal' && post.discoverable===true && post.is_admin===false;
+    const {showContent,indexable,safeCaption}=publicPostPreview(post);
     if(indexable && post.post_kind==='reel' && post.media_type==='video' && post.media_url){
       return res.redirect(301,publicReelPathV190(post));
     }
@@ -456,13 +461,15 @@ app.get('/p/:id', async (req, res) => {
       ? `<a href="/perfil/${encodeURIComponent(post.username)}"><b>${escapeHtml(post.display_name)}</b></a>`
       : `<b>${escapeHtml(post.display_name)}</b>`;
     const creatorBadge=post.creator_verified?'<span class="shared-creator-badge">✓ Creador</span>':'';
-    const textOnly=!post.media_url && Boolean(String(post.caption||'').trim());
-    const media=!post.media_url
-      ? (textOnly ? `<div class="shared-text-post"><p>${escapeHtml(post.caption)}</p></div>` : '')
+    const textOnly=!post.media_url && Boolean(String(safeCaption||'').trim());
+    const media=!showContent
+      ? `<div class="shared-lock"><div><b>Contenido protegido</b><span>El contenido sensible no se muestra fuera de la comunidad.</span></div></div>`
+      : !post.media_url
+      ? (textOnly ? `<div class="shared-text-post"><p>${escapeHtml(safeCaption)}</p></div>` : '')
       : mediaAllowed
         ? `<img class="shared-media" src="${escapeHtml(absoluteUrl(req,post.media_url))}" alt="Publicación de ${escapeHtml(post.display_name)}">`
         : `<div class="shared-lock"><div><b>${post.content_level==='normal'?'Publicación en RedLibertad':'Contenido protegido'}</b><span>${post.content_level==='normal'?'Abre RedLibertad para ver la publicación.':'El contenido sensible no se muestra fuera de la comunidad.'}</span></div></div>`;
-    const caption=!textOnly&&post.caption?`<p class="shared-caption">${escapeHtml(post.caption)}</p>`:'';
+    const caption=!textOnly&&safeCaption?`<p class="shared-caption">${escapeHtml(safeCaption)}</p>`:'';
     const socialProof=post.content_level==='normal'?`<div class="shared-social-proof" aria-label="Actividad pública"><span><b>${Number(post.like_count||0)}</b><small>Me gusta</small></span><span><b>${Number(post.comment_count||0)}</b><small>Comentarios</small></span><span><b>${Number(post.repost_count||0)}</b><small>Republicaciones</small></span></div>`:'';
     let relatedHtml='';
     if(indexable){
