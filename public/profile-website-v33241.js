@@ -3,7 +3,7 @@
 function normalizeProfileWebsiteV33241(input){
   const raw=String(input??'').trim();
   if(!raw)return '';
-  if(raw.length>4096||/[\u0000-\u0020\u007F<>"'\\]/.test(raw)||raw.startsWith('//'))return null;
+  if(raw.length>4096||/[\u0000-\u0020\u007F<>"'\\]/.test(raw)||raw.startsWith('/'))return null;
   const explicit=/^https?:\/\//i.test(raw);
   // Reject non-web schemes, broken protocols and injected schemes.
   // Domain:port (e.g. example.com:8443) is still a valid web address.
