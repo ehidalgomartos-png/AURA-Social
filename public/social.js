@@ -10712,6 +10712,7 @@ function selectComposerModeV3227(mode,{focus=false}={}){
   story.classList.toggle('hidden',!storySelected);
   const kind=$('#composerKindV3228');
   if(kind)kind.value=next==='reel'?'reel':'post';
+  updateComposerYoutubeV33161();
   post.setAttribute('aria-labelledby',next==='reel'?'composerReelTabV3228':'composerPostTabV3227');
   for(const tab of all('[data-composer-tab]')){
     const selected=tab.dataset.composerTab===next;
@@ -10828,6 +10829,7 @@ function clearPostMedia() {
   }
   $('#uploadText')?.classList.remove('hidden');
   $('#removePostMedia')?.classList.add('hidden');
+  updateComposerYoutubeV33161();
 }
 
 $('#mediaFile').addEventListener('change', e => {
@@ -10842,14 +10844,35 @@ $('#mediaFile').addEventListener('change', e => {
   const p = $('#preview');
   p.classList.remove('hidden');
   p.innerHTML = f.type.startsWith('image/') ? `<img src="${u}">` : `<video src="${u}" controls></video>`;
+  updateComposerYoutubeV33161();
 });
 $('#removePostMedia')?.addEventListener('click', clearPostMedia);
 
 const createCaption = $('#createForm [name="caption"]');
+// The composer uses the same card as the published post, without saving anything.
+function updateComposerYoutubeV33161(){
+  const root=$('#youtubeComposerPreviewV33161');
+  if(!root)return;
+  const caption=$('#createForm [name="caption"]')?.value||'';
+  const kind=$('#composerKindV3228')?.value||'post';
+  const hasFile=Boolean($('#mediaFile')?.files?.length);
+  const id=kind==='post'&&!hasFile?youtubeVideoIdV3315(caption):null;
+  if(!id){
+    root.hidden=true;root.innerHTML='';root.dataset.youtubeId='';
+    return;
+  }
+  if(root.dataset.youtubeId===id&&!root.hidden)return;
+  root.dataset.youtubeId=id;
+  root.hidden=false;
+  root.innerHTML='<small class="youtube-composer-label-v33161">Vista previa de tu publicación · aún sin publicar</small>'+
+    youtubePostPreviewV3315({caption,post_kind:'post',gated:false});
+  hydrateYoutubeCardsV33161(root);
+}
 function updateCreateCounter() {
   if (createCaption && $('#createCharCount')) {
     $('#createCharCount').textContent = `${createCaption.value.length} / 2200`;
   }
+  updateComposerYoutubeV33161();
 }
 createCaption?.addEventListener('input', updateCreateCounter);
 updateCreateCounter();
