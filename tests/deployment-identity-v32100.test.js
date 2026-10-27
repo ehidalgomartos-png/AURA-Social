@@ -24,7 +24,7 @@ test('missing or invalid SHA is unknown and never guessed',()=>{
 });
 test('health and public config expose the compatibility version, milestone and deployed SHA',()=>{
  const server=fs.readFileSync('server.js','utf8');
- for(const phrase of ["const APP_VERSION='3.2.77'",'releaseMilestone:RELEASE_MILESTONE_V3332','deployedCommit:releaseInfo().commit',
+ for(const phrase of ["const APP_VERSION='3.2.77'",'releaseMilestone:RELEASE_MILESTONE_V3400','deployedCommit:releaseInfo().commit',
   "app.get('/api/health'", "app.get('/api/public-config'"]){
   assert.equal(server.includes(phrase),true,phrase);
  }

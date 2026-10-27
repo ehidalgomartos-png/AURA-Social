@@ -103,7 +103,7 @@ test('PWA versioned resources, safe navigation, mobile performance and CI are re
  assert.equal((html.match(/pwa-badges-v3323\.js\?v=3\.3\.23/g)||[]).length,1);
  assert.ok(html.indexOf('pwa-badges-v3323.js')<html.indexOf('social.js?v='));
  assert.match(html,/social\.js\?[^"]*pwa=3\.3\.23/);
- assert.match(sw,/const SHELL_CACHE='redlibertad-v3332-shell'/);
+ assert.match(sw,/const SHELL_CACHE='redlibertad-v3400-shell'/);
  assert.ok(sw.includes("'/pwa-badges-v3323.js'"));
  assert.match(sw,/url\.pathname==='\/api'/);
  assert.match(sw,/safeNotificationTarget\(event\.notification\.data\?\.url\)/);
