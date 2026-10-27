@@ -10,7 +10,9 @@ const html=read('public/app.html');
 const js=read('public/social.js');
 const start=css.indexOf('/* V3.3.13.1 — Inicio escritorio:');
 assert.ok(start>0,'Desktop home fix must exist');
-const desktop=css.slice(start);
+const end=css.indexOf('/* V3.3.14 — Explorar',start);
+assert.ok(end>start,'Desktop regression checks only V3.3.13.1 rules');
+const desktop=css.slice(start,end);
 
 test('desktop cards reserve a separate grid row for the Follow button',()=>{
   assert.match(desktop,/@media\(min-width:761px\)/);
