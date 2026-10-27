@@ -2771,7 +2771,34 @@ function setGlobalSearchMobileOpen(open,{focus=false}={}){
   return true;
 }
 
-function setExploreMobileSection(mode) {
+// V3.3.12: mobile Explore only loads the visible tab, avoiding requests
+// for a second pane the member has not chosen to open.
+let exploreTabSessionV3312=0;
+const exploreLoadedTabsV3312=new Set();
+const explorePendingTabsV3312=new Map();
+function exploreIsMobileV3312(){
+  return window.matchMedia?.('(max-width:760px)')?.matches===true;
+}
+function loadExploreTabV3312(mode){
+  if(mode!=='content'&&mode!=='people')return Promise.resolve();
+  if(explorePendingTabsV3312.has(mode))return explorePendingTabsV3312.get(mode);
+  if(exploreLoadedTabsV3312.has(mode))return Promise.resolve();
+  const session=exploreTabSessionV3312;
+  const requests=mode==='people'
+    ? [loadConnections(),loadPeopleSuggestions(activeExploreInterest)]
+    : [loadTrendChips(),loadDiscoveryContent(activeContentMode)];
+  const pending=Promise.allSettled(requests).then(outcomes=>{
+    // Success is only cached for this Explore visit. Failed tasks may retry.
+    if(session===exploreTabSessionV3312&&outcomes.every(item=>item.status==='fulfilled'))
+      exploreLoadedTabsV3312.add(mode);
+  }).finally(()=>{
+    if(session===exploreTabSessionV3312&&explorePendingTabsV3312.get(mode)===pending)
+      explorePendingTabsV3312.delete(mode);
+  });
+  explorePendingTabsV3312.set(mode,pending);
+  return pending;
+}
+function setExploreMobileSection(mode,{load=false}={}) {
   if(mode!=='content' && mode!=='people')return false;
   exploreMobileSection=mode;
   const root=$('#exploreView');
@@ -2782,17 +2809,28 @@ function setExploreMobileSection(mode) {
     button.classList.toggle('active',selected);
     button.setAttribute('aria-pressed',String(selected));
   });
+  if(load&&activeViewName==='explore'&&exploreIsMobileV3312())
+    void loadExploreTabV3312(mode);
   return true;
 }
 
 async function loadExplore() {
   initGlobalSearch();
-  await Promise.all([
-    loadConnections(),
-    loadPeopleSuggestions(activeExploreInterest),
-    loadTrendChips(),
-    loadDiscoveryContent(activeContentMode)
-  ]);
+  // A new visit refreshes the selected pane while preserving the existing
+  // desktop multi-column layout and its original four data sources.
+  exploreTabSessionV3312++;
+  exploreLoadedTabsV3312.clear();
+  explorePendingTabsV3312.clear();
+  if(!exploreIsMobileV3312()){
+    await Promise.allSettled([
+      loadConnections(),
+      loadPeopleSuggestions(activeExploreInterest),
+      loadTrendChips(),
+      loadDiscoveryContent(activeContentMode)
+    ]);
+    return;
+  }
+  await loadExploreTabV3312(exploreMobileSection);
 }
 // V3.2.165: discard stale requests and disconnect old observers on view changes.
 let reelLoadSequenceV32165=0;
@@ -9424,7 +9462,7 @@ $('#globalSearchOpenV3233')?.addEventListener('click',()=>{
 });
 
 all('[data-explore-mobile-section]').forEach(button=>{
-  button.onclick=()=>setExploreMobileSection(button.dataset.exploreMobileSection);
+  button.onclick=()=>setExploreMobileSection(button.dataset.exploreMobileSection,{load:true});
 });
 
 all('[data-content-mode]').forEach(button => {
