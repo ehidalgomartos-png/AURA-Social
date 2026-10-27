@@ -5,6 +5,9 @@ let publicOrigin=location.origin.replace(/\/$/,'');
 let clientAppVersion='unknown';
 let currentMode = 'latest';
 let feedRequestSequence = 0;
+// The selected filter must always match the content last rendered for this account.
+let lastRenderedFeedModeV3335=null;
+let lastRenderedFeedOwnerV3335=null;
 let releaseFlags={support_center:true};
 let activeViewName='feed';
 
@@ -2344,7 +2347,7 @@ async function loadHomeSuggestions() {
   const users=Array.isArray(d?.users)?d.users:[];
   root.innerHTML = users.length
     ? users.map(u => personCardHTML(u, true)).join('')
-    : `<div class="mini-empty"><b>Ya conoces a todos por aquí.</b><small>Explora contenido o invita a alguien.</small></div>`;
+    : `<div class="mini-empty"><b>No hay nuevas sugerencias ahora.</b><small>Puedes explorar perfiles cuando quieras.</small></div>`;
 }
 
 async function renderInterestFilters() {
@@ -2549,22 +2552,42 @@ async function refreshVipSignal(stories=visibleStories) {
 async function loadFeed(mode = currentMode) {
   currentMode = mode;
   const requestId=++feedRequestSequence;
+  const viewerId=String(me?.id ?? 'guest');
   const feedRoot=$('#feed');
   feedRoot?.setAttribute('aria-busy','true');
   all('[data-mode]').forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
   const { r,d } = await api(`/api/posts/feed?mode=${mode}`);
   if(requestId!==feedRequestSequence)return;
   feedRoot?.setAttribute('aria-busy','false');
+  // An old account's in-flight feed must never paint after a session change.
+  if(viewerId!==String(me?.id ?? 'guest')){
+    if(feedRoot)feedRoot.innerHTML='';
+    lastRenderedFeedModeV3335=null;
+    lastRenderedFeedOwnerV3335=null;
+    return;
+  }
   if(!r.ok){
     const message=d.error==='request_timeout'
       ? 'El feed está tardando demasiado.'
       : navigator.onLine===false
         ? 'Parece que estás sin conexión.'
         : 'No se pudo actualizar el feed.';
-    if(feedRoot && !feedRoot.children.length){
+    const sameViewer=lastRenderedFeedOwnerV3335===viewerId;
+    if(feedRoot?.children.length && sameViewer && lastRenderedFeedModeV3335){
+      // If opening another filter failed, the visible posts still belong to
+      // the previously successful filter. Restore its tab and keep its cards.
+      if(lastRenderedFeedModeV3335!==mode){
+        currentMode=lastRenderedFeedModeV3335;
+        all('[data-mode]').forEach(button=>button.classList.toggle('active',button.dataset.mode===currentMode));
+        toast(message+' Seguimos mostrando el filtro anterior.');
+      }else{
+        toast(message+' Inténtalo de nuevo.');
+      }
+    }else if(feedRoot){
+      // Never keep another account's cards below a newly selected private tab.
+      lastRenderedFeedModeV3335=null;
+      lastRenderedFeedOwnerV3335=null;
       feedRoot.innerHTML=uiStateHTML({title:message,copy:'Tus publicaciones volverán a aparecer cuando podamos conectar.',retry:'feed'});
-    }else{
-      toast(message+' Inténtalo de nuevo.');
     }
     return;
   }
@@ -2598,6 +2621,8 @@ async function loadFeed(mode = currentMode) {
         </div>
       </div>`;
 
+  lastRenderedFeedModeV3335=mode;
+  lastRenderedFeedOwnerV3335=viewerId;
   bindPostActions(feedRoot);
   // News cards may be interleaved only after real posts finish rendering.
   // The listener handles its own privacy-safe mode checks (V3.2.24).
