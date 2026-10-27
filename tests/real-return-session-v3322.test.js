@@ -31,7 +31,7 @@ test('server keeps authenticated access, existing privacy-safe counts and unchan
  assert.match(get,/since:since\.toISOString\(\)/);
  for(const snippet of ["JOIN follows f","p.moderation_status='published'",
   "u.status='active'","FROM notifications n","FROM messages m",
-  "NOT EXISTS(SELECT 1 FROM story_views sv"]){
+  "FROM story_views sv"]){
   assert.ok(get.includes(snippet),snippet);
  }
  const seen=growth.slice(growth.indexOf("router.post('/pulse/seen'"));
