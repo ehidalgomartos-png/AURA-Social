@@ -6533,6 +6533,14 @@ function profileCompletionStateV32157(avatar,bio,interests){
   const completed=[Boolean(avatar),Boolean(String(bio||'').trim()),Number(interests)>0];
   return {completed,total:completed.filter(Boolean).length};
 }
+// V3.3.20: optional examples from interests the person explicitly selected.
+function profileBioIdeaV3320(interests){
+  const selected=(Array.isArray(interests)?interests:[])
+    .map(value=>String(value||'').trim().slice(0,50)).filter(Boolean).slice(0,2);
+  return selected.length
+    ? 'Me gusta conversar sobre '+selected.join(' y ')+'. Estoy aquí para compartir ideas y descubrir otros puntos de vista.'
+    : '';
+}
 function renderProfileCompletionV32157(){
   const form=$('#profileForm');
   const root=$('#profileCompletionV32157');
@@ -6546,6 +6554,9 @@ function renderProfileCompletionV32157(){
   if(status)status.textContent=state.total===3
     ? '¡Todo listo! Puedes modificar tu perfil cuando quieras.'
     : state.total+' de 3 apartados preparados · Completa solo los que prefieras.';
+  const bioIdea=$('#profileBioIdeaV3320');
+  if(bioIdea)bioIdea.hidden=Boolean(String(form.bio?.value||'').trim()) ||
+    all('input[name="interest"]:checked',form).length===0;
   const labels=['Foto','Presentación','Intereses'];
   const ids=['profileTipAvatarV32157','profileTipBioV32157','profileTipInterestsV32157'];
   ids.forEach((id,i)=>{
@@ -6556,6 +6567,20 @@ function renderProfileCompletionV32157(){
 $('#profileForm')?.addEventListener('input',renderProfileCompletionV32157);
 $('#profileForm')?.addEventListener('change',renderProfileCompletionV32157);
 $('#profileCompletionV32157')?.addEventListener('click',event=>{
+  const bioAction=event.target.closest('[data-profile-bio-idea-v3320]');
+  if(bioAction){
+    const form=$('#profileForm'),field=form?.bio;
+    // A suggested draft must never overwrite something the person typed.
+    if(!field||String(field.value||'').trim())return;
+    const interests=all('input[name="interest"]:checked',form).map(input=>input.value);
+    const idea=profileBioIdeaV3320(interests);
+    if(!idea)return;
+    field.value=idea;
+    field.dispatchEvent(new Event('input',{bubbles:true}));
+    renderProfileCompletionV32157();
+    field.focus({preventScroll:true});
+    return;
+  }
   const tip=event.target.closest('[data-profile-tip-v32157]');
   if(!tip)return;
   const field=tip.dataset.profileTipV32157==='avatar'?'#avatarFile'
@@ -10824,6 +10849,14 @@ function clearFirstPostTextV3318(){
   if(!key)return;
   try{sessionStorage.removeItem(key);}catch(_){}
 }
+// This only prepares editable text and never submits or stores a post.
+function firstPostInterestIdeaV3320(interests){
+  const selected=(Array.isArray(interests)?interests:[])
+    .map(value=>String(value||'').trim().slice(0,50)).filter(Boolean).slice(0,2);
+  return selected.length
+    ? 'Hoy me apetece conversar sobre '+selected.join(' y ')+'. ¿Alguien quiere compartir su experiencia o su punto de vista?'
+    : '';
+}
 function renderFirstPostHelperV32158(){
   const root=$('#firstPostHelperV32158'),modal=$('#modal');
   if(!root||!modal)return false;
@@ -10832,6 +10865,8 @@ function renderFirstPostHelperV32158(){
     modal.dataset.composerMode==='post';
   root.hidden=!eligible;
   root.classList.toggle('hidden',!eligible);
+  const interestsButton=$('#firstPostInterestIdeaV3320');
+  if(interestsButton)interestsButton.hidden=!eligible || !firstPostInterestIdeaV3320(me?.interests);
   if(eligible && typeof updateFirstPostTextStatusV3318==='function')updateFirstPostTextStatusV3318();
   return eligible;
 }
@@ -10846,7 +10881,7 @@ $('#firstPostHelperV32158')?.addEventListener('click',event=>{
   const action=event.target.closest('[data-first-post-helper-v32158]');
   if(!action || !renderFirstPostHelperV32158())return;
   const idea=String(action.dataset.firstPostHelperV32158||'');
-  if(!Object.hasOwn(FIRST_POST_IDEAS_V32151,idea))return;
+  if(idea!=='intereses' && !Object.hasOwn(FIRST_POST_IDEAS_V32151,idea))return;
   const field=$('#createForm textarea[name="caption"]');
   const status=$('#firstPostHelperStatusV32158');
   if(!field)return;
@@ -10854,7 +10889,9 @@ $('#firstPostHelperV32158')?.addEventListener('click',event=>{
     if(status)status.textContent='Tu texto está a salvo. Puedes editarlo antes de publicar.';
     return;
   }
-  field.value=FIRST_POST_IDEAS_V32151[idea];
+  const suggested=idea==='intereses'?firstPostInterestIdeaV3320(me?.interests):FIRST_POST_IDEAS_V32151[idea];
+  if(!suggested)return;
+  field.value=suggested;
   field.dispatchEvent(new Event('input',{bubbles:true}));
   if(status)status.textContent='Idea añadida. Personalízala y comprueba la audiencia antes de publicar.';
 });

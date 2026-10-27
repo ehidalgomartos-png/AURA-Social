@@ -8710,3 +8710,19 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 @media(max-width:430px){#modal .first-post-local-actions-v3318{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 #modal .first-post-local-actions-v3318 button{min-width:0;width:100%}
 #modal [data-first-post-local-v3318="delete"]{grid-column:1/-1}}
+
+/* V3.3.20 — optional small bio draft inside the existing profile guide. */
+#profileModal .profile-bio-idea-v3320{
+  width:fit-content;max-width:100%;min-height:44px;text-align:left;
+  padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+  background:var(--paper);color:var(--navy);font-size:12px;font-weight:700;
+  cursor:pointer;
+}
+#profileModal .profile-bio-idea-v3320[hidden],
+#modal #firstPostInterestIdeaV3320[hidden]{display:none!important}
+#profileModal .profile-bio-idea-v3320:focus-visible{
+  outline:3px solid var(--teal);outline-offset:2px;
+}
+@media(max-width:430px){
+  #profileModal .profile-bio-idea-v3320{width:100%;justify-content:flex-start;}
+}

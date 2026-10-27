@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.20 voluntary profile and first-post interest ideas
+        run: node --test tests/optional-profile-first-post-v3320.test.js
       - name: V3.3.19 truthful people discovery and consistent follow controls
         run: node --test tests/real-people-discovery-v3319.test.js
       - name: V3.3.18 first post text-only opt-in draft and account isolation
