@@ -4,9 +4,12 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const {version}=require('../package.json');
 const {releaseInfo,deployedCommit}=require('../src/services/deployment-identity-v32100');
 const server=read('server.js'),sw=read('public/sw.js'),workflow=read('.github/workflows/validate-js.yml');
-test('runtime health and readiness match the actual package version 3.3.32',()=>{
- assert.equal(version,'3.3.32');
+test('runtime health keeps legacy contract while advertising real V3.3.32 milestone',()=>{
+ assert.equal(version,'3.2.77');
  assert.ok(server.includes("const APP_VERSION='"+version+"'"));
+ assert.match(server,/const RELEASE_MILESTONE_V3332='3\.3\.32'/);
+ assert.match(server,/releaseMilestone:RELEASE_MILESTONE_V3332/);
+ assert.match(server,/res\.json\(\{origin,version:APP_VERSION,releaseMilestone:RELEASE_MILESTONE_V3332/);
  assert.equal(releaseInfo({}).version,version);
  assert.match(server,/app\.get\('\/api\/health'/);
  assert.match(server,/app\.get\('\/api\/ready'/);

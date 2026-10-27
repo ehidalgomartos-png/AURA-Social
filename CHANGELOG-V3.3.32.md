@@ -1,7 +1,9 @@
-# V3.3.32 — Auditoría general y consolidación
+# V3.3.32 — Auditoría y consolidación sin ruptura de contratos
 
-- Se alinea la versión declarada de la aplicación, de `/api/health` y de `/api/ready` con V3.3.32. Antes figuraba V3.2.77 y podía confundirse con un despliegue obsoleto. El commit de Coolify se sigue obteniendo solo de SOURCE_COMMIT, sin inventarlo.
-- Se renueva el espacio de caché público de la PWA a V3.3.32 para sustituir el shell anterior y sus recursos estáticos. Las rutas API autenticadas, medios privados y contenido administrativo siguen excluidos de la caché.
-- Se adaptan pruebas históricas que aún afirmaban la versión o caché antiguas y se incorpora una auditoría CI de salud, identidad, permisos, PWA y límites de verificación de producción.
-- No se alteran diseños móviles/escritorio, usuarios, publicaciones, economía, emails ni base de datos.
-- Importante: GitHub Actions no sustituye la comprobación de despliegue de Coolify ni la auditoría visual real de dispositivos.
+- Por compatibilidad, el campo técnico `version` continúa siendo V3.2.77, utilizado por pruebas y herramientas históricas. Se añade un campo independiente `releaseMilestone: "3.3.32"` a `/api/health` y `/api/public-config`, que permite identificar la etapa de desarrollo en ejecución sin alterar el contrato anterior.
+- El commit desplegado continúa validándose exclusivamente desde `SOURCE_COMMIT` cuando Coolify lo proporciona. Nunca se infiere a partir de GitHub.
+- Se renueva la caché pública de PWA a V3.3.32; las respuestas de API, contenido privado, medios y administración siguen fuera de esa caché.
+- Se adaptan comprobaciones históricas que asociaban funciones ajenas a una versión fija; el guard de publicación, mensajes y navegación mantiene sus regresiones.
+- Auditoría CI automatizada de versión/etapa, accesos admin, caché PWA, identificador de despliegue y límites de verificación externa.
+- Ninguna migración, nuevo usuario, email, pago, cambio visual ni publicación automática.
+- Sigue siendo necesaria la comprobación real de Coolify y `/api/health` tras desplegar.

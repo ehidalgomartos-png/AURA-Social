@@ -1,8 +1,8 @@
 {
   "name": "redlibertad-social",
-  "version": "3.3.32",
+  "version": "3.2.77",
   "private": true,
-  "description": "RedLibertad V3.3.32 — Auditoría y consolidación",
+  "description": "RedLibertad V3.2.77 — Conector WooCommerce",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
