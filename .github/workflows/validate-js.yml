@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.28 confirmed post and comment are never misreported after read refresh errors
+        run: node --test tests/publish-refresh-resilience-v3328.test.js
       - name: V3.3.27 restore PWA version and unread badges after connectivity resumes
         run: node --test tests/pwa-online-recovery-v3327.test.js
       - name: V3.3.26 truthful unread counts across filtered chats and read acknowledgements
