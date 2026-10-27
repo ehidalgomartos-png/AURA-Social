@@ -10749,6 +10749,70 @@ all('[data-composer-tab]').forEach(tab=>{
 
 // V3.2.158: optional first-post suggestions inside the existing composer.
 // The server's real post-count step is the only eligibility signal.
+// V3.3.18 — Explicit, text-only first-post note. No server writes, media or auto-publishing.
+function firstPostTextKeyV3318(){
+  const id=String(me?.id||'');
+  if(!/^[1-9][0-9]{0,17}$/.test(id) || String(firstPostHelperUserV32158)!==id)return null;
+  return 'rl:first-post-text:v3318:'+id;
+}
+function readFirstPostTextV3318(){
+  const key=firstPostTextKeyV3318();
+  if(!key)return null;
+  try{
+    const raw=sessionStorage.getItem(key);
+    if(!raw)return null;
+    const data=JSON.parse(raw);
+    if(data?.version!==1 || typeof data.text!=='string' ||
+        data.text.length<1 || data.text.length>2200 ||
+        !Number.isFinite(data.savedAt) || data.savedAt>Date.now()+60000 ||
+        Date.now()-data.savedAt>7*86400000){
+      sessionStorage.removeItem(key);return null;
+    }
+    return data;
+  }catch(_){return null;}
+}
+function updateFirstPostTextStatusV3318(message=''){
+  const status=$('#firstPostLocalTextStatusV3318');
+  if(!status)return;
+  const saved=readFirstPostTextV3318();
+  status.textContent=message || (saved
+    ? 'Hay un texto guardado en esta pestaña. Puedes recuperarlo sin sobrescribir lo que ya hayas escrito.'
+    : 'No hay texto guardado. Nada se envía al servidor.');
+}
+function firstPostTextActionV3318(action){
+  const key=firstPostTextKeyV3318();
+  const field=$('#createForm textarea[name="caption"]');
+  if(!key || !field || !['save','restore','delete'].includes(action))return;
+  if(action==='save'){
+    const text=String(field.value||'').slice(0,2200);
+    if(!text.trim()){updateFirstPostTextStatusV3318('Escribe algo primero para guardar tu texto.');return;}
+    try{
+      sessionStorage.setItem(key,JSON.stringify({version:1,text,savedAt:Date.now()}));
+      updateFirstPostTextStatusV3318('Texto guardado solo en esta pestaña. No se ha publicado.');
+    }catch(_){updateFirstPostTextStatusV3318('No se pudo guardar en este navegador. Puedes copiar el texto antes de salir.');}
+    return;
+  }
+  if(action==='delete'){
+    try{sessionStorage.removeItem(key);
+      updateFirstPostTextStatusV3318('Texto guardado eliminado de esta pestaña. Tu editor no se ha modificado.');
+    }catch(_){updateFirstPostTextStatusV3318('No se pudo eliminar el texto guardado.');}
+    return;
+  }
+  const saved=readFirstPostTextV3318();
+  if(!saved){updateFirstPostTextStatusV3318('No tienes ningún texto guardado para recuperar.');return;}
+  if(field.value.trim()){
+    updateFirstPostTextStatusV3318('No se ha sustituido tu texto actual. Vacía el editor si quieres recuperar el guardado.');
+    return;
+  }
+  field.value=saved.text;
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+  updateFirstPostTextStatusV3318('Texto recuperado. Puedes editarlo y elegir quién lo verá antes de publicar.');
+}
+function clearFirstPostTextV3318(){
+  const key=firstPostTextKeyV3318();
+  if(!key)return;
+  try{sessionStorage.removeItem(key);}catch(_){}
+}
 function renderFirstPostHelperV32158(){
   const root=$('#firstPostHelperV32158'),modal=$('#modal');
   if(!root||!modal)return false;
@@ -10757,9 +10821,17 @@ function renderFirstPostHelperV32158(){
     modal.dataset.composerMode==='post';
   root.hidden=!eligible;
   root.classList.toggle('hidden',!eligible);
+  if(eligible && typeof updateFirstPostTextStatusV3318==='function')updateFirstPostTextStatusV3318();
   return eligible;
 }
 $('#firstPostHelperV32158')?.addEventListener('click',event=>{
+  const localAction=event.target.closest('[data-first-post-local-v3318]');
+  if(localAction && ['save','restore','delete'].includes(localAction.dataset?.firstPostLocalV3318)){
+    if(renderFirstPostHelperV32158() && typeof firstPostTextActionV3318==='function'){
+      firstPostTextActionV3318(localAction.dataset.firstPostLocalV3318);
+    }
+    return;
+  }
   const action=event.target.closest('[data-first-post-helper-v32158]');
   if(!action || !renderFirstPostHelperV32158())return;
   const idea=String(action.dataset.firstPostHelperV32158||'');
@@ -11017,6 +11089,8 @@ $('#createForm').addEventListener('submit', async e => {
         : (waitingApprovals ? 'Publicación guardada. Esperando aprobaciones.' : 'Publicado');
 
     toast(successMessage);
+    // Clear only after a confirmed first public post save; never on failures.
+    if(publishMode==='now' && kind==='post')clearFirstPostTextV3318();
     $('#modal').classList.add('hidden');
     e.target.reset();
     clearPostMedia();

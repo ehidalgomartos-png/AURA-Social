@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.18 first post text-only opt-in draft and account isolation
+        run: node --test tests/first-post-local-draft-v3318.test.js
       - name: Check JavaScript syntax
         run: npm run check:syntax
       - name: V3.3.14 Explore desktop real people first and compact private network
