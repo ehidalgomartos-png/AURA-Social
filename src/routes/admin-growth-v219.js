@@ -172,7 +172,10 @@ function createGrowthCenterRouter({db,now=()=>Date.now()}={}){
       const current=cache.get(days);
       if(current && now()-current.timestamp<CACHE_MS)return res.json(current.result);
       if(current?.promise)return res.json(await current.promise);
-      const promise=db.query(GROWTH_SQL,[days]).then(r=>summarizeGrowth(r.rows,days));
+      const promise=db.query(GROWTH_SQL,[days]).then(r=>({
+        ...summarizeGrowth(r.rows,days),
+        generatedAt:new Date(now()).toISOString()
+      }));
       cache.set(days,{timestamp:0,promise});
       try{
         const result=await promise;
