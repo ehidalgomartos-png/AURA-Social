@@ -8726,3 +8726,16 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 @media(max-width:430px){
   #profileModal .profile-bio-idea-v3320{width:100%;justify-content:flex-start;}
 }
+
+/* V3.3.21 — Small contextual quote in the existing comment reply editor. */
+#commentsModal .comment-reply-detail-v3321{display:block;min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+#commentsModal #commentReplyExcerptV3321{
+  display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  max-width:100%;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.35;
+}
+#commentsModal #commentReplyExcerptV3321[hidden]{display:none!important}
+#commentsModal #cancelCommentReply{flex:0 0 auto;min-height:40px}
+@media(max-width:440px){
+  #commentsModal .comment-reply-context{align-items:flex-start}
+  #commentsModal .comment-reply-detail-v3321{font-size:11px}
+}
