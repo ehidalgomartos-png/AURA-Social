@@ -1902,6 +1902,8 @@ async function loadReturnPulse(force=false) {
   if(!hasConversation && d.participation?.can_show===true && me?.id){
     try{
       const feed=await api('/api/posts/feed?mode=latest');
+      if(requestId!==returnPulseRequestSequenceV3322 ||
+         returnPulseSessionForV3322()!==session || activeViewName!=='feed')return;
       if(feed.r.ok){
         // V3.3.4: a stale/blocked/already-commented first option must not hide
         // other real candidates. Keep the attempt count small (at most 3)
