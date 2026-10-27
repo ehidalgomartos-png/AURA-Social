@@ -654,6 +654,15 @@ function socialPostPreviewV341(post,hasMedia=false){
     '<a href="'+esc(social.url)+'" target="_blank" rel="noopener noreferrer nofollow ugc">Abrir en '+esc(social.providerName)+'</a>'+
     '</div></section>';
 }
+
+function mediaHTML(p, compact = false, priority = false) {
+  if (p.gated) return `<div class="${compact ? 'tile-gate' : 'gate'}"><div>${compact ? '18+' : `<span class="badge">18+</span><b>Contenido sensible</b><p>${gateText(p.gate_reason)}</p>`}</div></div>`;
+  const url = p.playback_url || p.media_url;
+  if (!url) return '';
+  if (p.media_type === 'image') return `<img src="${esc(url)}" loading="${priority ? 'eager' : 'lazy'}" fetchpriority="${priority ? 'high' : 'auto'}" decoding="async" alt="Contenido de ${esc(p.username || '')}">`;
+  if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
+  return `<video src="${esc(url)}" controls playsinline preload="${priority ? 'metadata' : 'none'}"></video>`;
+}
 document.addEventListener('click',async event=>{
   const button=event.target.closest('[data-social-activate]');
   if(!button||button.disabled)return;
@@ -666,14 +675,6 @@ document.addEventListener('click',async event=>{
   catch(_){button.disabled=false;}
 });
 
-function mediaHTML(p, compact = false, priority = false) {
-  if (p.gated) return `<div class="${compact ? 'tile-gate' : 'gate'}"><div>${compact ? '18+' : `<span class="badge">18+</span><b>Contenido sensible</b><p>${gateText(p.gate_reason)}</p>`}</div></div>`;
-  const url = p.playback_url || p.media_url;
-  if (!url) return '';
-  if (p.media_type === 'image') return `<img src="${esc(url)}" loading="${priority ? 'eager' : 'lazy'}" fetchpriority="${priority ? 'high' : 'auto'}" decoding="async" alt="Contenido de ${esc(p.username || '')}">`;
-  if (p.media_provider === 'bunny-stream' && String(url).includes('iframe.mediadelivery.net')) return `<iframe src="${esc(url)}" loading="lazy" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowfullscreen></iframe>`;
-  return `<video src="${esc(url)}" controls playsinline preload="${priority ? 'metadata' : 'none'}"></video>`;
-}
 function profileLink(username, label, className = '') {
   return `<button type="button" class="profile-link ${className}" data-profile="${esc(username)}">${label}</button>`;
 }
