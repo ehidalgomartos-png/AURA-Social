@@ -1318,21 +1318,23 @@ async function openConnectionMessage(username,draft='') {
 
 function personCardHTML(user, compact = false, discoveryMode = 'for_you', exploreCompact = false) {
   const shared = Number(user.shared_interest_count || 0);
-  const followers = Number(user.follower_count || 0);
+  // Reasons depend on real server-provided facts, never follower popularity.
   const reason = discoveryMode==='starter'
     ? (shared>0 ? `${shared} ${shared===1?'interés':'intereses'} en común`
       : user.recent_joiner===true ? 'Se ha unido hace poco'
       : user.recent_public_post===true ? 'Ha compartido una publicación pública en los últimos 14 días'
       : 'Descubre su perfil')
     : discoveryMode==='active'
-    ? 'Actividad pública reciente'
-    : discoveryMode==='new'
-      ? 'Se ha unido en los últimos 30 días'
-      : shared > 0
-    ? `${shared} ${shared === 1 ? 'interés' : 'intereses'} en común`
-    : followers > 0
-      ? `${followers} ${followers === 1 ? 'seguidor' : 'seguidores'}`
-      : 'Nuevo por aquí';
+      ? 'Actividad pública reciente'
+      : discoveryMode==='new'
+        ? 'Se ha unido en los últimos 30 días'
+        : shared>0
+          ? `${shared} ${shared===1?'interés':'intereses'} en común`
+          : user.recent_joiner===true
+            ? 'Se ha unido hace poco'
+            : user.following===true
+              ? 'Ya sigues este perfil'
+              : 'Descubre su perfil';
 
   const tags=Array.isArray(user.interests)?user.interests:[];
   const exploreTags=exploreCompact && tags.length
@@ -1372,30 +1374,39 @@ async function hideDiscoveryPost(button) {
   toast('Ajustaremos tus recomendaciones');
 }
 
+// Synchronize a real person's follow controls on Inicio, Explorar and starter cards.
 async function toggleSuggestedFollow(button) {
-  const following = button.dataset.following === '1';
-  button.disabled = true;
-
+  const userId=String(button?.dataset?.suggestFollow||'');
+  if(!/^\d+$/.test(userId))return;
+  const samePerson=all('[data-suggest-follow]').filter(item=>String(item.dataset.suggestFollow)===userId);
+  if(samePerson.some(item=>item.disabled))return;
+  const following=button.dataset.following==='1';
+  samePerson.forEach(item=>{item.disabled=true;});
+  let saved=false;
   try {
-    const { r } = await api(`/api/profiles/${button.dataset.suggestFollow}/follow`, {
-      method: following ? 'DELETE' : 'POST'
+    const {r}=await api(`/api/profiles/${userId}/follow`,{
+      method:following?'DELETE':'POST'
     });
-
-    if (!r.ok) throw new Error('follow_failed');
-
-    button.dataset.following = following ? '0' : '1';
-    button.textContent = following ? 'Seguir' : 'Siguiendo';
-    button.classList.toggle('following', !following);
-
-    await loadMe();
-    if ($('#homeSuggestions')) await loadHomeSuggestions();
-    if ($('#activePeople')) await loadActivePeople();
-    if ($('#growthPanel')) await loadGrowthPanel();
+    if(!r.ok)throw Error('follow_failed');
+    saved=true;
+    samePerson.forEach(item=>{
+      item.dataset.following=following?'0':'1';
+      item.textContent=following?'Seguir':'Siguiendo';
+      item.classList.toggle('following',!following);
+    });
   } catch (_) {
     toast('No se pudo actualizar el seguimiento.');
   } finally {
-    button.disabled = false;
+    samePerson.forEach(item=>{item.disabled=false;});
   }
+  if(!saved)return;
+  // A failed secondary refresh must not misreport a confirmed server write.
+  try {
+    await loadMe();
+    if($('#homeSuggestions'))await loadHomeSuggestions();
+    if($('#activePeople'))await loadActivePeople();
+    if($('#growthPanel'))await loadGrowthPanel();
+  }catch(_){}
 }
 
 async function loadInterestCatalog() {
