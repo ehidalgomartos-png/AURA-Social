@@ -65,5 +65,8 @@
   if(document.visibilityState==='visible')void refresh();
  });
  window.addEventListener('pageshow',()=>{void refresh();});
+ // A restored connection can update actual unread activity without
+ // polling or prompting for notification permissions.
+ window.addEventListener('online',()=>{void refresh({force:true});});
  window.RedLibertadPwaBadgeV3323={setUser,sync,refresh,clear};
 })();
