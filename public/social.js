@@ -2524,6 +2524,7 @@ async function loadMe() {
     throw new Error('marketplace_share_login_required');
   }
   me = d.profile;
+  window.RedLibertadFacebookAutoV3413?.setViewer(me?.id,window.RedLibertadSocialEmbedsV341);
   window.RedLibertadPwaBadgeV3323?.setUser(me?.id);
   void window.RedLibertadPwaBadgeV3323?.refresh();
   const quickAvatar = $('#quickAvatar');
@@ -7436,6 +7437,8 @@ async function refreshPostArticle(postId) {
 
 function bindPostActions(root) {
   hydrateYoutubeCardsV33161(root);
+  window.RedLibertadFacebookAutoV3413?.setViewer(me?.id,window.RedLibertadSocialEmbedsV341);
+  window.RedLibertadFacebookAutoV3413?.scan(root);
   all('[data-discovery-hide-post]',root).forEach(button=>button.onclick=()=>hideDiscoveryPost(button));
 
   all('[data-like]', root).forEach(b => {
