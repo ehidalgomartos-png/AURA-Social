@@ -184,6 +184,7 @@ let growthCenterForceNextV3331=false;
 async function growthCenter(){
   const metricsRoot=$('#growthCenterMetrics'),sourcesRoot=$('#growthCenterSources');
   const guidesRoot=$('#growthCenterGuides'),dailyRoot=$('#growthCenterDaily'),noteRoot=$('#growthCenterMethod');
+  const diagnosisRoot=$('#growthCenterDiagnosis');
   if(!metricsRoot||!sourcesRoot||!guidesRoot||!dailyRoot)return;
   const raw=$('#growthCenterDays')?.value||'30';
   const days=['7','30','90'].includes(raw)?raw:'30';
@@ -212,6 +213,21 @@ async function growthCenter(){
       '<div class="beta-metric"><b>'+esc(value)+'</b><span>'+esc(label)+'</span>'+
       (sample?'<small class="growth-metric-sample-v3324">'+esc(sample)+'</small>':'')+'</div>'
     ).join('');
+    if(diagnosisRoot){
+      const diagnosis=d.diagnosis||{};
+      const signups=Math.max(0,Number(t.signups)||0);
+      if(signups===0){
+        diagnosisRoot.innerHTML='<div class="empty-admin">Aún no hay altas en este periodo. No se puede identificar una prioridad.</div>';
+      }else if(diagnosis.sampleSufficient!==true){
+        diagnosisRoot.innerHTML='<div class="empty-admin">Solo '+esc(signups)+' altas en este periodo. Necesitamos al menos 10 para ordenar oportunidades sin dar importancia excesiva a diferencias pequeñas.</div>';
+      }else{
+        diagnosisRoot.innerHTML=(Array.isArray(diagnosis.opportunities)?diagnosis.opportunities:[]).map((item,index)=>
+          '<article class="growth-type-card"><div><b>'+esc((index+1)+'. '+item.label)+'</b><small>'+
+          esc(Number(item.pending)||0)+' de '+esc(signups)+' cuentas · '+esc(item.suggestion)+
+          '</small></div><span>'+esc(growthCenterRate(item.sharePct,signups))+'</span></article>'
+        ).join('')||'<div class="empty-admin">No hay información suficiente para ordenar oportunidades.</div>';
+      }
+    }
     sourcesRoot.innerHTML=(d.sources||[]).map(item=>{
       const label=item.source==='unattributed'?'Sin atribución':growthSourceTypeLabel(item.source);
       return '<article class="growth-type-card"><div><b>'+esc(label)+'</b><small>'+
@@ -257,6 +273,7 @@ async function growthCenter(){
     sourcesRoot.textContent='Inténtalo de nuevo.';
     guidesRoot.textContent='';
     dailyRoot.textContent='';
+    if(diagnosisRoot)diagnosisRoot.textContent='No se pudo recuperar el diagnóstico.';
   }
 }
 $('#reloadGrowthCenter')?.addEventListener('click',()=>{
