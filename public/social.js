@@ -10712,7 +10712,7 @@ function selectComposerModeV3227(mode,{focus=false}={}){
   story.classList.toggle('hidden',!storySelected);
   const kind=$('#composerKindV3228');
   if(kind)kind.value=next==='reel'?'reel':'post';
-  updateComposerYoutubeV33161();
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
   post.setAttribute('aria-labelledby',next==='reel'?'composerReelTabV3228':'composerPostTabV3227');
   for(const tab of all('[data-composer-tab]')){
     const selected=tab.dataset.composerTab===next;
@@ -10829,7 +10829,7 @@ function clearPostMedia() {
   }
   $('#uploadText')?.classList.remove('hidden');
   $('#removePostMedia')?.classList.add('hidden');
-  updateComposerYoutubeV33161();
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
 }
 
 $('#mediaFile').addEventListener('change', e => {
@@ -10844,7 +10844,7 @@ $('#mediaFile').addEventListener('change', e => {
   const p = $('#preview');
   p.classList.remove('hidden');
   p.innerHTML = f.type.startsWith('image/') ? `<img src="${u}">` : `<video src="${u}" controls></video>`;
-  updateComposerYoutubeV33161();
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
 });
 $('#removePostMedia')?.addEventListener('click', clearPostMedia);
 
@@ -10873,7 +10873,7 @@ function updateCreateCounter() {
   if (createCaption && $('#createCharCount')) {
     $('#createCharCount').textContent = `${createCaption.value.length} / 2200`;
   }
-  updateComposerYoutubeV33161();
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
 }
 createCaption?.addEventListener('input', updateCreateCounter);
 updateCreateCounter();
