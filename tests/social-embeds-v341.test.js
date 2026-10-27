@@ -76,7 +76,7 @@ test('player URLs are provider-owned, conservative, and never user-chosen hosts'
  assert.equal(playerUrl({...tt,url:'https://evil.test'}),null);
 });
 function node(type){
- return {type,children:[],dataset:{},replaceChildren(...items){this.children=[...items]},appendChild(item){this.children.push(item);return item}};
+ return {type,children:[],dataset:{},attributes:{},setAttribute(k,v){this.attributes[k]=String(v)},getAttribute(k){return this.attributes[k]||null},replaceChildren(...items){this.children=[...items]},appendChild(item){this.children.push(item);return item}};
 }
 function fakeDoc(){
  const head=node('head');
