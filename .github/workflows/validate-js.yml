@@ -28,6 +28,8 @@ jobs:
         run: node --test tests/admin-activity-startup-v33171.test.js
       - name: V3.3.17 admin activity authorization and private message safety
         run: node --test tests/admin-activity-v3317.test.js
+      - name: V3.3.25 PWA unread badge account separation and expired-session safety
+        run: node --test tests/pwa-badge-session-v3325.test.js
       - name: V3.3.24.2 desktop home growth layout, intact mobile and accessible Follow cards
         run: node --test tests/home-growth-desktop-v33242.test.js
       - name: V3.3.24.1 external website URL normalization and unsafe scheme protection
