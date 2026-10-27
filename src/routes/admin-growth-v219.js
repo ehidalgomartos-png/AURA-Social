@@ -122,6 +122,34 @@ function displayCounts(x){
     publicD1RatePct:rate(x.publicD1,x.eligibleD1),
     publicD7RatePct:rate(x.publicD7,x.eligibleD7)};
 }
+
+/* V3.3.33 — Priorities from aggregated CURRENT states, not a chronological funnel.
+   Accounts can complete these steps in any order and can later remove content. */
+const DIAGNOSIS_MIN_SAMPLE_V3333=10;
+function diagnoseGrowthV3333(counts){
+  const sample=Math.max(0,Math.trunc(Number(counts?.signups)||0));
+  const definitions=[
+    {key:'profile',label:'Sin perfil completo actualmente',
+      recorded:counts?.completedProfiles,
+      suggestion:'Revisar si completar foto, presentación e intereses resulta sencillo.'},
+    {key:'post',label:'Sin primera publicación conservada',
+      recorded:counts?.firstPosts,
+      suggestion:'Comprobar si las personas encuentran fácilmente cómo hacer su primera publicación.'},
+    {key:'connection',label:'Sin seguimiento o comentario público ajeno',
+      recorded:counts?.socialContacts,
+      suggestion:'Revisar la visibilidad de personas y publicaciones reales con las que conectar.'}
+  ];
+  const enough=sample>=DIAGNOSIS_MIN_SAMPLE_V3333;
+  const opportunities=enough?definitions.map((item,index)=>{
+    const recorded=Math.min(sample,Math.max(0,Math.trunc(Number(item.recorded)||0)));
+    const pending=sample-recorded;
+    return {key:item.key,label:item.label,pending,sharePct:rate(pending,sample),
+      suggestion:item.suggestion,order:index};
+  }).sort((a,b)=>b.pending-a.pending||a.order-b.order).map(({order,...item})=>item):[];
+  return {sample,minimumSample:DIAGNOSIS_MIN_SAMPLE_V3333,
+    sampleSufficient:enough,opportunities,
+    limitations:'Estados actuales de cuentas registradas en el periodo, no abandonos ni embudo cronológico. Una cuenta puede estar en varias categorías. No refleja visitas ni sesiones.'};
+}
 function summarizeGrowth(rows,days){
   const totals=emptyCounts(),bySource=new Map(),byGuide=new Map(),byDay=new Map();
   let attributed=0;
@@ -147,6 +175,7 @@ function summarizeGrowth(rows,days){
     totals:{...displayCounts(totals),attributedSignups:attributed,
       attributionRatePct:rate(attributed,totals.signups)},
     sources,guides,daily,
+    diagnosis:diagnoseGrowthV3333(totals),
     definitions:{
       firstWeek:'Primera interacción dentro de los 7 días tras el registro; solo cuentas con al menos 7 días de antigüedad.',
       d1:'Actividad social entre 24 y 48 horas después del registro; solo cuentas con al menos 48 horas de antigüedad.',
@@ -201,4 +230,4 @@ function createGrowthCenterRouter({db,now=()=>Date.now()}={}){
   });
   return router;
 }
-module.exports={createGrowthCenterRouter,summarizeGrowth,rate,GROWTH_SQL,DAY_OPTIONS,reuseGrowthSnapshotV3331};
+module.exports={createGrowthCenterRouter,summarizeGrowth,rate,GROWTH_SQL,DAY_OPTIONS,reuseGrowthSnapshotV3331,diagnoseGrowthV3333,DIAGNOSIS_MIN_SAMPLE_V3333};
