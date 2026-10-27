@@ -106,8 +106,8 @@ test('separate accessible dialog, proper cache roll-out and responsive style for
  assert.match(html,/id="photoViewerModalV3415" class="modal photo-viewer-v3415 hidden" role="dialog" aria-modal="true"/);
  assert.match(html,/id="photoViewerImageV3415"/);
  assert.match(html,/id="photoViewerCloseV3415"[^>]*aria-label="Cerrar foto ampliada"/);
- assert.match(html,/\/photo-viewer-v3415\.js\?v=3\.4\.1\.5/);
- assert.match(html,/photos=3\.4\.1\.5/);
+ assert.match(html,/\/photo-viewer-v3415\.js\?v=3\.4\.1\.6/);
+ assert.match(html,/photos=3\.4\.1\.6/);
  assert.match(css,/#photoViewerModalV3415 #photoViewerImageV3415/);
  assert.match(css,/object-fit:contain/);
  assert.match(css,/env\(safe-area-inset-bottom\)/);
