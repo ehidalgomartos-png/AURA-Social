@@ -6064,6 +6064,39 @@ $('#messageEmailPreferencesForm')?.addEventListener('submit',async event=>{
 });
 
 
+// V3.3.16: newsletter choice is separate from private-message alerts.
+async function loadImportantUpdatesPreferencesV3316(){
+  const form=$('#importantUpdatesPreferencesForm'),status=$('#importantUpdatesPreferencesStatus');
+  const button=$('#importantUpdatesPreferencesSave'),input=form?.elements.namedItem('enabled');
+  if(!form||!input)return;
+  input.disabled=true;if(button)button.disabled=true;
+  if(status)status.textContent='Cargando tu preferencia…';
+  try{
+    const {r,d}=await api('/api/important-updates/preferences',{dedupe:false});
+    if(!r.ok)throw Error('unavailable');
+    input.checked=d.enabled===true;
+    input.disabled=false;if(button)button.disabled=false;
+    if(status)status.textContent=d.configured
+      ? 'Solo recibirás novedades importantes cuando se publique un boletín aprobado.'
+      : 'Preferencia guardable. Los envíos todavía no están activados.';
+  }catch(_){if(status)status.textContent='No se pudo cargar. Abre Cuenta de nuevo para reintentar.';}
+}
+$('#importantUpdatesPreferencesForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,button=$('#importantUpdatesPreferencesSave'),status=$('#importantUpdatesPreferencesStatus');
+  if(!button||button.disabled)return;
+  const enabled=form.elements.namedItem('enabled')?.checked===true;
+  button.disabled=true;
+  if(status)status.textContent='Guardando…';
+  try{
+    const {r}=await api('/api/important-updates/preferences',{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});
+    if(!r.ok)throw Error('save_failed');
+    if(status)status.textContent=enabled?'Te has suscrito a las novedades importantes.':'Has desactivado el boletín de novedades.';
+  }catch(_){if(status)status.textContent='No se pudo guardar. Inténtalo de nuevo.';}
+  finally{button.disabled=false;}
+});
+
 async function openAccountModal() {
   const modal = $('#accountModal');
   if (!modal) return;
@@ -6078,6 +6111,7 @@ async function openAccountModal() {
   $('#pushNotificationsStatus').textContent = '';
   loadPushSettings().catch(()=>{});
   loadMessageEmailPreferencesV3275().catch(()=>{});
+  loadImportantUpdatesPreferencesV3316().catch(()=>{});
   $('#changePasswordForm')?.reset();
   $('#deleteAccountForm')?.reset();
 

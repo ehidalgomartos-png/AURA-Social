@@ -17,6 +17,8 @@ const { createOperationalAlertService } = require('./src/services/operational-al
 const { createOperationalAlertAdminRoutes } = require('./src/routes/admin-alerts-v215');
 const { createAlertDeliveryService } = require('./src/services/alert-delivery-v216');
 const {messageEmailService}=require('./src/services/message-email-v3275');
+const {createImportantUpdatesService}=require('./src/services/important-updates-v3316');
+const {createImportantUpdatesRouter}=require('./src/routes/important-updates-v3316');
 const { createAlertDeliveryAdminRoutes } = require('./src/routes/admin-delivery-v216');
 const { createReleaseVerifier } = require('./src/services/release-verifier-v217');
 const { createReleaseVerificationRoutes } = require('./src/routes/admin-release-verification-v217');
@@ -90,6 +92,7 @@ const dependencyInspector=createDependencyInspector({
 });
 const operationalAlerts=createOperationalAlertService({db,runtimeMonitor,dependencyInspector});
 const alertDelivery=createAlertDeliveryService({db});
+const importantUpdates=createImportantUpdatesService({db});
 
 function configurationStatus(){
   const missing=[];
@@ -226,6 +229,7 @@ app.use(createAbuseGuard({db,requireAuth}));
 app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/important-updates',createImportantUpdatesRouter({service:importantUpdates}));
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/admin', adminVerificationV1891Routes);
 app.use('/api/admin', adminSeoV190Routes);
@@ -1348,6 +1352,7 @@ async function gracefulShutdown(signal){
   marketplaceComparadorV32132.stopBackgroundWorker();
   alertDelivery.stop();
   messageEmailService.stop();
+   importantUpdates.stop();
   console.log(`RedLibertad received ${signal}; shutting down gracefully.`);
 
   const forceTimer=setTimeout(()=>{
@@ -1377,6 +1382,7 @@ process.on('unhandledRejection',error=>console.error('RedLibertad unhandled reje
 operationalAlerts.start();
 alertDelivery.start();
 messageEmailService.start();
+ importantUpdates.start();
 marketplaceComparadorV32132.startBackgroundWorker();
 startWooCommerceSyncScheduler();
 

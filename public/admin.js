@@ -3690,3 +3690,60 @@ $('#verificationFilter')?.addEventListener('change', verifications);
 (async () => {
   await Promise.all([loadEditorialV320(),loadEditorialInboxV321(),loadEditorialPublicV323(),loadEditorialSocialModeration(),loadEditorialQualityV325(),loadEditorialPlanningV326(),loadEditorialDailyV327(), growthCenter(), releaseVerification(), alertDeliveries(), operationalAlerts(), recoveryOverview(), runtimeOps(), securityOverview(), metrics(), betaOps(), seoHealth(), growthAttribution(), releaseControl(), supportAdmin(), reports(), users(), verifications()]);
 })();
+
+// V3.3.16 — important updates: optional editorial bulletins, not activity spam.
+let importantUpdatesSubscribersV3316=0;
+let importantUpdatesConfiguredV3316=false;
+async function loadImportantUpdatesAdminV3316(){
+  const status=$('#importantUpdatesAdminStatusV3316'),history=$('#importantUpdatesHistoryV3316');
+  const send=$('#importantUpdatesSendV3316');
+  if(!status)return;
+  status.textContent='Cargando suscriptores y últimos envíos…';
+  if(send)send.disabled=true;
+  try{
+    const {r,d}=await api('/api/important-updates/admin/status');
+    if(!r.ok)throw Error('unavailable');
+    importantUpdatesSubscribersV3316=Number(d.subscriberCount||0);
+    importantUpdatesConfiguredV3316=d.enabled===true;
+    status.textContent=importantUpdatesConfiguredV3316
+      ? importantUpdatesSubscribersV3316+' personas suscritas. El envío solo se activa tras tu confirmación.'
+      : 'Envío desactivado: configura IMPORTANT_UPDATES_EMAIL_ENABLED=true y el remitente de Resend en Coolify.';
+    if(send)send.disabled=!importantUpdatesConfiguredV3316||importantUpdatesSubscribersV3316<1;
+    if(history)history.textContent=(d.campaigns||[]).length
+      ? 'Último comunicado: '+d.campaigns[0].title+' · Enviados: '+d.campaigns[0].sent+
+        ' · En cola: '+d.campaigns[0].pending+' · Fallidos: '+d.campaigns[0].failed
+      : 'Todavía no se ha enviado ningún comunicado.';
+  }catch(_){
+    status.textContent='No se pudo consultar el boletín. Inténtalo de nuevo.';
+    if(history)history.textContent='';
+    if(send)send.disabled=true;
+  }
+}
+$('#importantUpdatesReloadV3316')?.addEventListener('click',loadImportantUpdatesAdminV3316);
+$('#importantUpdatesAdminFormV3316')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,button=$('#importantUpdatesSendV3316');
+  const status=$('#importantUpdatesAdminStatusV3316');
+  if(!button||button.disabled||!importantUpdatesConfiguredV3316||importantUpdatesSubscribersV3316<1)return;
+  const data=new FormData(form);
+  const title=String(data.get('title')||'').trim();
+  const summary=String(data.get('summary')||'').trim();
+  if(!window.confirm('¿Enviar este comunicado sobre “'+title+'” a las '+importantUpdatesSubscribersV3316+
+    ' personas suscritas? Este envío no se puede deshacer.'))return;
+  button.disabled=true;
+  status.textContent='Registrando el comunicado para envío…';
+  try{
+    const {r,d}=await api('/api/important-updates/admin/send',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,summary})
+    });
+    if(!r.ok)throw Error(d.error||'queue_unavailable');
+    status.textContent=d.duplicate
+      ? 'Este mismo comunicado ya se había enviado o puesto en cola hoy. No se ha duplicado.'
+      : 'Comunicado preparado para '+Number(d.recipients||0)+' suscriptores. Puedes actualizar para ver el progreso.';
+    if(!d.duplicate)form.reset();
+    await loadImportantUpdatesAdminV3316();
+  }catch(_){status.textContent='No se pudo preparar el envío. Ningún destinatario ha sido añadido desde esta solicitud.';}
+  finally{button.disabled=!importantUpdatesConfiguredV3316||importantUpdatesSubscribersV3316<1;}
+});
+void loadImportantUpdatesAdminV3316();
