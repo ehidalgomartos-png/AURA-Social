@@ -84,8 +84,8 @@ test('composer displays preview before posting, hides when adding media or switc
 });
 
 test('link-only caption suppressed visually but stored as authored, no automatic YouTube iframe',()=>{
- assert.match(src,/const visibleCaption=linkOnlyCaption\?'':p\.caption/);
- assert.match(src,/captionHTML\(visibleCaption\)/);
+ assert.match(src,/const visibleCaption=Boolean\(p\.caption\)&&!linkOnlyCaption/);
+ assert.match(src,/captionHTML\(p.caption\)/);
  assert.match(src,/style="background-image:url\(\/api\/youtube\/thumbnail\//);
  assert.match(src,/data-youtube-video-title/);
  assert.match(src,/youtubePostPreviewV3315\(p,!!media\)/);
