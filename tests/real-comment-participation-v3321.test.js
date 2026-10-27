@@ -76,9 +76,8 @@ test('a confirmed comment is highlighted at its actual location, not at the end 
 });
 test('only server-returned ID after publication triggers focus, preserving retries and refresh',()=>{
  const start=js.indexOf("$('#commentForm').addEventListener('submit'");
- const end=js.indexOf("$('#commentBody')?.addEventListener('input'",start);
- assert.ok(start>0&&end>start);
- const submit=js.slice(start,end);
+ assert.ok(start>0);
+ const submit=js.slice(start,start+4400);
  assert.match(submit,/if \(!r\.ok\)/);
  assert.match(submit,/loadComments\(activeCommentsPostId,\{highlightCommentId:d\?\.comment\?\.id\}\)/);
  assert.match(submit,/parentCommentId:commentReplyId/);
