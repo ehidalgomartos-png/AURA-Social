@@ -6729,6 +6729,8 @@ function clearCommentReply() {
   activeCommentReply=null;
   $('#commentReplyContext')?.classList.add('hidden');
   if($('#commentReplyName'))$('#commentReplyName').textContent='';
+  const excerpt=$('#commentReplyExcerptV3321');
+  if(excerpt){excerpt.textContent='';excerpt.hidden=true;}
   if($('#commentBody'))$('#commentBody').placeholder='Escribe un comentario...';
   const submit=$('#commentForm button[type="submit"]');
   if(submit && !submit.disabled)submit.textContent='Comentar';
@@ -6741,6 +6743,16 @@ function startCommentReply(button,{focus=true}={}) {
     displayName:String(button.dataset.replyDisplay || button.dataset.replyUsername || '')
   };
   if($('#commentReplyName'))$('#commentReplyName').textContent=`@${activeCommentReply.username}`;
+  // Context comes from the visible, permitted comment, not a server-side quote
+  // or a generated reply. Use textContent to prevent markup injection.
+  const quote=$('#commentReplyExcerptV3321');
+  if(quote){
+    const raw=String(button?.closest?.('[data-comment-id]')?.querySelector?.('.comment-copy > p')?.textContent||'')
+      .replace(/\s+/g,' ').trim();
+    const excerpt=raw.length>120 ? raw.slice(0,119)+'…' : raw;
+    quote.textContent=excerpt;
+    quote.hidden=!excerpt;
+  }
   $('#commentReplyContext')?.classList.remove('hidden');
   if($('#commentBody')){
     $('#commentBody').placeholder=`Responde a ${activeCommentReply.displayName}...`;
@@ -6883,7 +6895,19 @@ function restoreCommentPositionV3236(list,position){
     : position.previousTop;
 }
 
-async function loadComments(postId,{preserveScroll=false,initialPosition='latest'}={}) {
+// Scroll to a newly confirmed real comment if it actually exists in this visible
+// discussion. The same trusted highlight style is used by notification targets.
+function highlightPublishedCommentV3321(list,commentId){
+  const id=Number(commentId);
+  if(!Number.isSafeInteger(id)||id<1||!list)return false;
+  const row=all('[data-comment-id]',list)
+    .find(item=>String(item.dataset.commentId)===String(id));
+  if(!row)return false;
+  list.scrollTop=Math.max(0,row.offsetTop-12);
+  row.classList.add('comment-target-v32155');
+  return true;
+}
+async function loadComments(postId,{preserveScroll=false,initialPosition='latest',highlightCommentId=null}={}) {
   const list=$('#commentsList');
   if(!list)return;
   const status=$('#commentsRefreshStatusV3236');
@@ -6927,7 +6951,11 @@ async function loadComments(postId,{preserveScroll=false,initialPosition='latest
     }else{
       // V3.2.154: new conversations start at the first real comment;
       // existing entries still open at the latest one by default.
-      list.scrollTop=initialPosition==='start'?0:list.scrollHeight;
+      // A reply to an early root comment need not be the final row.
+      // Only an ID returned after successful publication may be targeted.
+      if(!highlightPublishedCommentV3321(list,highlightCommentId)){
+        list.scrollTop=initialPosition==='start'?0:list.scrollHeight;
+      }
     }
   }catch(_){
     if(!commentsRequestIsCurrent(requestId,postId))return;
@@ -7760,7 +7788,7 @@ $('#commentForm').addEventListener('submit', async event => {
       saveCommentDraftV3235(commentPostId);
     }
     $('#commentStatus').textContent = wasReply ? 'Respuesta publicada.' : 'Comentario publicado.';
-    await loadComments(activeCommentsPostId);
+    await loadComments(activeCommentsPostId,{highlightCommentId:d?.comment?.id});
     await loadFeed(currentMode);
     if ($('#growthPanel')) await loadGrowthPanel();
   } catch (error) {
