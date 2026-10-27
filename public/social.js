@@ -577,14 +577,44 @@ function youtubePostPreviewV3315(post,hasMedia=false){
   if(post.gated||hasMedia||post.post_kind==='reel')return '';
   const id=youtubeVideoIdV3315(post.caption);
   if(!id)return '';
-  return '<div class="post-youtube-v3315" data-youtube-player>'+
-    '<div class="post-youtube-placeholder-v3315">'+
-    '<span class="post-youtube-icon-v3315" aria-hidden="true">▶</span>'+
-    '<b>Vídeo de YouTube</b><small>Se conectará con YouTube solo cuando pulses reproducir.</small>'+
-    '<button type="button" class="primary" data-youtube-activate="'+id+'">Reproducir vídeo</button>'+
+  return '<div class="post-youtube-v3315 youtube-rich-v33161" data-youtube-player data-youtube-id="'+id+'">'+
+    '<div class="youtube-thumb-v33161" style="background-image:url(/api/youtube/thumbnail/'+id+')"></div>'+
+    '<div class="youtube-shade-v33161"></div>'+
+    '<button type="button" class="youtube-play-v33161" data-youtube-activate="'+id+'" aria-label="Reproducir vídeo de YouTube">▶</button>'+
+    '<div class="youtube-info-v33161"><small>YouTube</small>'+
+    '<b data-youtube-video-title>Cargando título del vídeo…</b>'+
     '<a href="https://www.youtube.com/watch?v='+id+'" target="_blank" rel="noopener noreferrer nofollow ugc">Abrir en YouTube</a>'+
     '</div></div>';
 }
+const youtubeMetadataPromisesV33161=new Map();
+function loadYoutubeMetadataV33161(id){
+  if(!/^[A-Za-z0-9_-]{11}$/.test(id))return Promise.resolve(null);
+  if(youtubeMetadataPromisesV33161.has(id))return youtubeMetadataPromisesV33161.get(id);
+  const request=fetch('/api/youtube/preview/'+id,{credentials:'same-origin'})
+    .then(r=>r.ok?r.json():null)
+    .then(data=>data&&data.id===id&&typeof data.title==='string'?data:null)
+    .catch(()=>null);
+  if(youtubeMetadataPromisesV33161.size>=120)
+    youtubeMetadataPromisesV33161.delete(youtubeMetadataPromisesV33161.keys().next().value);
+  youtubeMetadataPromisesV33161.set(id,request);
+  return request;
+}
+function hydrateYoutubeCardsV33161(root=document){
+  const cards=root.querySelectorAll?.('[data-youtube-id]')||[];
+  cards.forEach(card=>{
+    const id=card.dataset.youtubeId;
+    if(card.dataset.youtubeHydrated==='1')return;
+    card.dataset.youtubeHydrated='1';
+    loadYoutubeMetadataV33161(id).then(data=>{
+      const title=card.querySelector('[data-youtube-video-title]');
+      if(title&&card.dataset.youtubeId===id){
+        title.textContent=data?.title||'Vídeo de YouTube';
+        card.setAttribute('aria-label',title.textContent);
+      }
+    });
+  });
+}
+
 document.addEventListener('click',event=>{
   const button=event.target.closest('[data-youtube-activate]');
   if(!button)return;
@@ -736,7 +766,10 @@ function communityToolHTML(p) {
 
 function postHTML(p, options = {}) {
   const media = mediaHTML(p, false, !!options.priorityMedia);
-  const textOnly = !media;
+  const youtubeId=!media&&!p.gated&&p.post_kind!=='reel' ? youtubeVideoIdV3315(p.caption):null;
+  const linkOnlyCaption=youtubeId && /^https:\/\/[^\s]+$/.test(String(p.caption||'').trim());
+  const visibleCaption=Boolean(p.caption)&&!linkOnlyCaption;
+  const textOnly = !media&&!youtubeId;
   const ownPost = !!me && String(me.id) === String(p.user_id);
   const collaboratingMe=!!me && Array.isArray(p.collaborators) && p.collaborators.some(x=>String(x.id)===String(me.id));
   const canManage = !!me && (ownPost || me.is_admin === true);
@@ -771,7 +804,7 @@ function postHTML(p, options = {}) {
       </div>
     </div>
     ${media ? `<div class="post-media">${media}</div>` : ''}
-    ${p.caption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
+    ${visibleCaption ? `<div class="post-caption">${profileLink(p.username, `<b>${esc(p.username)}</b>`, 'caption-profile-link')} <span class="post-caption-text">${captionHTML(p.caption)}</span></div>` : ''}
     ${youtubePostPreviewV3315(p,!!media)}
     ${communityToolHTML(p)}
     <div class="post-actions">
@@ -7212,6 +7245,7 @@ async function refreshPostArticle(postId) {
 }
 
 function bindPostActions(root) {
+  hydrateYoutubeCardsV33161(root);
   all('[data-discovery-hide-post]',root).forEach(button=>button.onclick=()=>hideDiscoveryPost(button));
 
   all('[data-like]', root).forEach(b => {
@@ -10678,6 +10712,7 @@ function selectComposerModeV3227(mode,{focus=false}={}){
   story.classList.toggle('hidden',!storySelected);
   const kind=$('#composerKindV3228');
   if(kind)kind.value=next==='reel'?'reel':'post';
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
   post.setAttribute('aria-labelledby',next==='reel'?'composerReelTabV3228':'composerPostTabV3227');
   for(const tab of all('[data-composer-tab]')){
     const selected=tab.dataset.composerTab===next;
@@ -10794,6 +10829,7 @@ function clearPostMedia() {
   }
   $('#uploadText')?.classList.remove('hidden');
   $('#removePostMedia')?.classList.add('hidden');
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
 }
 
 $('#mediaFile').addEventListener('change', e => {
@@ -10808,14 +10844,36 @@ $('#mediaFile').addEventListener('change', e => {
   const p = $('#preview');
   p.classList.remove('hidden');
   p.innerHTML = f.type.startsWith('image/') ? `<img src="${u}">` : `<video src="${u}" controls></video>`;
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
 });
 $('#removePostMedia')?.addEventListener('click', clearPostMedia);
 
 const createCaption = $('#createForm [name="caption"]');
+// The composer uses the same card as the published post, without saving anything.
+function updateComposerYoutubeV33161(){
+  const root=$('#youtubeComposerPreviewV33161');
+  if(!root)return;
+  const caption=$('#createForm [name="caption"]')?.value||'';
+  const kind=$('#composerKindV3228')?.value||'post';
+  const hasFile=Boolean($('#mediaFile')?.files?.length);
+  const mode=$('#modal')?.dataset.composerMode||'post';
+  const id=kind==='post'&&mode==='post'&&!hasFile?youtubeVideoIdV3315(caption):null;
+  if(!id){
+    root.hidden=true;root.innerHTML='';root.dataset.youtubeId='';
+    return;
+  }
+  if(root.dataset.youtubeId===id&&!root.hidden)return;
+  root.dataset.youtubeId=id;
+  root.hidden=false;
+  root.innerHTML='<small class="youtube-composer-label-v33161">Vista previa de tu publicación · aún sin publicar</small>'+
+    youtubePostPreviewV3315({caption,post_kind:'post',gated:false});
+  hydrateYoutubeCardsV33161(root);
+}
 function updateCreateCounter() {
   if (createCaption && $('#createCharCount')) {
     $('#createCharCount').textContent = `${createCaption.value.length} / 2200`;
   }
+  if(typeof updateComposerYoutubeV33161==='function')updateComposerYoutubeV33161();
 }
 createCaption?.addEventListener('input', updateCreateCounter);
 updateCreateCounter();

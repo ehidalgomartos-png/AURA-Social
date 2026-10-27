@@ -8646,3 +8646,55 @@ body.keyboard-open #messagesView .messages-layout.chat-open .chat-panel.market-c
 .post-youtube-icon-v3315{display:grid;place-items:center;width:48px;height:48px;background:#dc3434;border-radius:50%;font-size:18px}
 .post-youtube-v3315 iframe{display:block;width:100%;height:100%;border:0}
 .composer-youtube-hint-v3315{display:block;margin:5px 0 9px;color:var(--muted);font-size:11px;line-height:1.45}
+
+/* V3.3.16.1 — YouTube cards with a real title and a thumbnail proxied by RedLibertad.
+   YouTube's player is still loaded only after the visitor clicks Play. */
+.post-youtube-v3315.youtube-rich-v33161{
+  display:block;position:relative;isolation:isolate;overflow:hidden;
+  background:#10283d;color:#fff;aspect-ratio:16/9;margin:10px 14px 14px;
+  border-radius:17px;
+}
+.youtube-rich-v33161 .youtube-thumb-v33161{
+  position:absolute;inset:0;z-index:0;background-position:center;
+  background-size:cover;background-repeat:no-repeat;
+}
+.youtube-rich-v33161 .youtube-shade-v33161{
+  position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(6,21,31,.09),rgba(6,21,31,.18) 38%,rgba(6,21,31,.90));
+  pointer-events:none;
+}
+.youtube-rich-v33161 .youtube-play-v33161{
+  position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
+  z-index:3;display:grid;place-items:center;border:0;
+  background:#e72d32;color:#fff;font-size:21px;font-weight:900;
+  width:70px;height:49px;border-radius:14px;box-shadow:0 8px 26px #0008;
+}
+.youtube-rich-v33161 .youtube-play-v33161:hover,
+.youtube-rich-v33161 .youtube-play-v33161:focus-visible{background:#c72025;outline:3px solid #fff;outline-offset:3px}
+.youtube-rich-v33161 .youtube-info-v33161{
+  position:absolute;bottom:0;left:0;right:0;z-index:2;
+  padding:38px 17px 13px;display:flex;flex-direction:column;gap:4px;
+  pointer-events:none;min-width:0;
+}
+.youtube-rich-v33161 .youtube-info-v33161 small{
+  font-size:11px;font-weight:800;color:#fff9;letter-spacing:.04em;
+}
+.youtube-rich-v33161 .youtube-info-v33161 b{
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  overflow:hidden;overflow-wrap:anywhere;font:800 16px/1.3 Manrope,sans-serif;
+  text-shadow:0 2px 9px #0009;
+}
+.youtube-rich-v33161 .youtube-info-v33161 a{
+  color:#fff;font-size:11px;text-decoration:underline;
+  text-underline-offset:2px;align-self:flex-start;pointer-events:auto;
+}
+.composer-youtube-preview-v33161{margin:6px 0 15px}
+.composer-youtube-preview-v33161[hidden]{display:none}
+.youtube-composer-label-v33161{display:block;color:var(--muted);font-size:11px;font-weight:800;margin:0 0 7px}
+.composer-youtube-preview-v33161 .post-youtube-v3315.youtube-rich-v33161{margin:0;aspect-ratio:16/9}
+@media(max-width:760px){
+  .youtube-rich-v33161 .youtube-play-v33161{width:62px;height:44px;font-size:18px}
+  .youtube-rich-v33161 .youtube-info-v33161{padding:34px 12px 10px}
+  .youtube-rich-v33161 .youtube-info-v33161 b{font-size:14px}
+  .composer-youtube-preview-v33161 .post-youtube-v3315.youtube-rich-v33161{border-radius:13px}
+}
