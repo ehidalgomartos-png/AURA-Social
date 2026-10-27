@@ -10856,7 +10856,8 @@ function updateComposerYoutubeV33161(){
   const caption=$('#createForm [name="caption"]')?.value||'';
   const kind=$('#composerKindV3228')?.value||'post';
   const hasFile=Boolean($('#mediaFile')?.files?.length);
-  const id=kind==='post'&&!hasFile?youtubeVideoIdV3315(caption):null;
+  const mode=$('#modal')?.dataset.composerMode||'post';
+  const id=kind==='post'&&mode==='post'&&!hasFile?youtubeVideoIdV3315(caption):null;
   if(!id){
     root.hidden=true;root.innerHTML='';root.dataset.youtubeId='';
     return;
