@@ -529,3 +529,20 @@ body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-
  .cmp-rich-comparison .cmp-noncomparable-list{padding:0 8px 10px}
  .cmp-rich-comparison .cmp-noncomparable-item{padding:8px}
 }
+
+/* V3.4.3.8: estado de comprobación junto a la oferta, no alerta global. */
+body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-feedback{
+ margin:2px 0 5px;padding:10px 12px;border:1px solid #c9ddec;
+ border-radius:10px;background:#f0f7ff;color:#204f76;
+ font-size:.78rem;line-height:1.45;font-weight:620;text-align:left;
+ white-space:normal;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-rich-comparison .offer-side button.offer-link:disabled{
+ opacity:.8;cursor:wait;box-shadow:none;
+}
+body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-network-error{
+ background:#fff7eb;border-color:#edd8ae;color:#76531c;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-feedback{width:100%}
+}

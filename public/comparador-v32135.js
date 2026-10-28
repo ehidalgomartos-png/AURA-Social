@@ -60,3 +60,61 @@ document.addEventListener('click',event=>{
   }).catch(()=>{});
  }catch(_){/* Métrica opcional: nunca impedir abrir la tienda. */}
 },true);
+
+
+/* V3.4.3.8 — Consulta de enlace en su propia tarjeta.
+   Solo sigue una URL HTTPS devuelta como enlace verificado por el servidor.
+   Delegación de eventos: funciona también tras refrescar resultados sin recargar. */
+document.addEventListener('submit',async event=>{
+ const form=event.target?.closest?.('form.offer-lookup[action^="/comparar/tienda/"]');
+ if(!form)return;
+ event.preventDefault();
+ if(form.dataset.lookupRunning==='1')return;
+ const button=form.querySelector('button[type="submit"]');
+ if(!button)return;
+ form.dataset.lookupRunning='1';
+ button.disabled=true;
+ button.textContent='Comprobando enlace…';
+ const notice=(message)=>{
+  const p=document.createElement('p');
+  p.className='offer-lookup-feedback';
+  p.setAttribute('role','status');
+  p.textContent=message;
+  form.replaceWith(p);
+ };
+ try{
+  const response=await fetch(form.action,{
+   method:'POST',credentials:'same-origin',redirect:'error',
+   headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8',
+    Accept:'application/json','X-Requested-With':'XMLHttpRequest'},
+   body:new URLSearchParams(new FormData(form))
+  });
+  if(!response.ok)throw Error('http');
+  const data=await response.json();
+  if(data?.ok===true && typeof data.href==='string'){
+   const url=new URL(data.href);
+   if(url.protocol!=='https:'||url.username||url.password)throw Error('unsafe_link');
+   window.location.assign(url.href);
+   return;
+  }
+  if(data?.ok===false){
+   notice(typeof data.message==='string'?data.message:
+    'No se ha confirmado el enlace directo de esta oferta. Puedes usar «Buscar en Google».');
+   return;
+  }
+  throw Error('unexpected_response');
+ }catch(_){
+  // Un fallo de conexión no equivale a una comprobación negativa de tienda.
+  form.dataset.lookupRunning='';
+  button.disabled=false;
+  button.textContent='Consultar enlace de la tienda';
+  let feedback=form.querySelector('.offer-lookup-network-error');
+  if(!feedback){
+   feedback=document.createElement('p');
+   feedback.className='offer-lookup-feedback offer-lookup-network-error';
+   feedback.setAttribute('role','alert');
+   form.appendChild(feedback);
+  }
+  feedback.textContent='No se ha podido completar la consulta. Comprueba tu conexión o utiliza «Buscar en Google».';
+ }
+});

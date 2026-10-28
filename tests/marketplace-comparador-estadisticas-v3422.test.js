@@ -45,7 +45,9 @@ test('cliente registra evento solo cuando el usuario pulsa y no modifica el href
  assert.match(client,/data-comparison-merchant-click/);
  assert.match(client,/keepalive:true/);
  assert.match(client,/credentials:'omit'/);
- assert.doesNotMatch(client,/preventDefault\(|window\.location=|location\.assign\(/);
+ const clicksOnly=client.split('/* V3.4.2.2: registrar clic')[1]?.split('/* V3.4.3.8')[0]||'';
+ assert.ok(clicksOnly.length>50);
+ assert.doesNotMatch(clicksOnly,/preventDefault\(|window\.location=|location\.assign\(/);
  const route=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
  assert.match(route,/router\.post\('\/comparar\/comercios\/registrar-clic'/);
  assert.match(route,/merchantClicks\.validProof/);
