@@ -413,3 +413,15 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
  .cmp-rich-comparison .cmp-detail-price strong{font-size:2.1rem}
  .cmp-rich-comparison section[data-comparison-results] .offer .offer-price-date{white-space:normal;word-break:normal;overflow-wrap:normal;min-width:0}
 }
+
+/* V3.4.2.0 — Inscripción gratuita y revisión previa de comercios. */
+.cmp-commerce-cta{font-size:.86rem;margin:5px 0 23px;color:#536b84}
+.cmp-commerce-intro{max-width:760px;margin:auto}
+.cmp-commerce-intro h1{font-size:clamp(1.5rem,4vw,2.1rem)}
+.cmp-commerce-intro>p{color:#46617c}
+.cmp-commerce-form{display:grid;grid-template-columns:1fr;gap:8px;max-width:660px}
+.cmp-commerce-form label{margin-top:9px}
+.cmp-commerce-form input,.cmp-commerce-form select{display:block;width:100%;max-width:100%;padding:12px;border:1px solid #b5c9dd;border-radius:10px;min-height:46px;font:inherit;font-size:1rem;background:#fff;color:#183951}
+.cmp-commerce-form button{margin-top:10px;min-height:46px}
+.cmp-commerce-form small{font-size:.81rem;line-height:1.55}
+@media(max-width:540px){.cmp-commerce-form{padding:14px}.cmp-commerce-intro{padding:0 1px}}

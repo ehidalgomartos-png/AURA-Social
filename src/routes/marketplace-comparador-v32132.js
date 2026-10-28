@@ -15,7 +15,9 @@ const manualLinks=require('../services/marketplace-comparador-manual-links-v3214
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
 const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
 const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
-const {requireAdmin}=require('../middleware/auth');
+const {requireAdmin,requireAuth}=require('../middleware/auth');
+const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
+const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
 const CACHE_MS=24*60*60*1000;
@@ -214,6 +216,7 @@ router.get('/comparar',async(req,res,next)=>{
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
    '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
+   '<p class="cmp-commerce-cta">¿Tienes una tienda online? <a href="/comparar/comercios">Solicita aparecer gratis en el comparador</a></p>'+
    '<section class="info"><h2>Comparaciones recientes</h2>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
    (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
    '',
@@ -489,6 +492,56 @@ router.post('/comparar/tienda/:slug/:offerKey',
    await db.query("UPDATE marketplace_compare_merchant_links SET status='unavailable',href=NULL,checked_at=now() WHERE offer_key=$1",[hash]);
    return explain('El proveedor no ha podido verificar ahora mismo el enlace de esta oferta.');
   }
+ }catch(error){next(error);}
+});
+// V3.4.2.0: solicitud gratuita de tiendas; conserva la aprobación administrativa real.
+// No permite activar checkout, pagos ni conexión de credenciales desde el formulario.
+router.get('/comparar/comercios', (req,res)=>{
+ const token=issueCsrf(req,res);
+ const content='<div class="cmp-commerce-intro"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
+  '<h1>Tu tienda en el comparador de RedLibertad</h1>'+
+  '<p>Solicita incorporar tus productos al comparador. Por ahora es gratuito: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
+  '<p>Las tiendas se revisan antes de habilitar enlaces de compra. La venta se realiza exclusivamente en tu propia web.</p>'+
+  '<form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
+  '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+  '<label for="comercioNombre">Nombre de la tienda</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization">'+
+  '<label for="comercioWeb">Web de la tienda (HTTPS)</label><input id="comercioWeb" type="url" name="storeUrl" maxlength="500" placeholder="https://mitienda.es/" required autocomplete="url">'+
+  '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+
+  '<button type="submit">Solicitar incorporación gratuita</button>'+
+  '<small>Debes iniciar sesión en RedLibertad. Solo tramitaremos solicitudes del propietario de la cuenta. No introduzcas contraseñas ni claves de tu tienda.</small></form>'+
+  '<p><a href="/app">Entrar o crear cuenta</a></p></div>';
+ res.set('Cache-Control','private,no-store');
+ res.send(shell('Comercios en el comparador | RedLibertad','Solicitud gratuita para incorporar una tienda online al comparador.',content,'/comparar/comercios',true));
+});
+router.post('/comparar/comercios/solicitar',requireAuth,
+ rateLimit({windowMs:60*60*1000,limit:5,standardHeaders:'draft-7',legacyHeaders:false}),async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve a /comparar/comercios.');
+  const name=typeof req.body?.name==='string'?req.body.name.trim():'';
+  const platform=req.body?.platform;
+  const url=normalizeStoreUrl(req.body?.storeUrl);
+  if(name.length<3||name.length>120||name.includes('<')||name.includes('>')||Array.from(name).some(ch=>ch.charCodeAt(0)<32)||!PLATFORMS.includes(platform)||!url)
+   return res.status(400).send('Datos no válidos. Comprueba el nombre, plataforma y dirección HTTPS.');
+  await ensureProfessionalSchema();
+  const out=await db.query(
+   "INSERT INTO marketplace_professional_stores(seller_id,name,platform,store_url,status,purchase_enabled) "+
+   "VALUES($1,$2,$3,$4,'pending',false) ON CONFLICT(seller_id,store_url) DO NOTHING RETURNING id",
+   [req.user.id,name,platform,url]);
+  if(!out.rowCount)return res.status(409).send('La tienda ya está registrada en esta cuenta.');
+  res.status(201).send(shell('Solicitud recibida | RedLibertad','Solicitud gratuita de comercio.',
+   '<div class="cmp-commerce-intro"><h1>Solicitud registrada</h1><p>Tu tienda está pendiente de revisión. Ninguna oferta se publicará automáticamente en el comparador.</p>'+
+   '<p>No se ha realizado ningún cobro ni activado una suscripción.</p><a href="/comparar">Volver al comparador</a></div>',
+   '/comparar/comercios'));
+ }catch(error){next(error);}
+});
+router.get('/comparar/comercios/mis-solicitudes',requireAuth,async(req,res,next)=>{
+ try{
+  await ensureProfessionalSchema();
+  const stores=await db.query('SELECT id,name,platform,store_url,status FROM marketplace_professional_stores WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 30',[req.user.id]);
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  res.json({ok:true,billingEnabled:false,stores:stores.rows});
  }catch(error){next(error);}
 });
 router.get('/comparar/:slug',async(req,res,next)=>{
