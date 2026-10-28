@@ -21,6 +21,7 @@ const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
 const merchantFollowup=require('../services/marketplace-comparador-merchant-followup-v3424');
 const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
+const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
@@ -637,6 +638,48 @@ router.post('/comparar/comercios/woocommerce/:id',requireAuth,
   }
  }catch(error){next(error);}
 });
+// V3.4.2.9: informe privado del catálogo, solo lectura. No consulta SerpApi.
+router.get('/comparar/comercios/productos/:id',requireAuth,async(req,res,next)=>{
+ try{
+  await ensureProfessionalSchema();
+  const id=String(req.params.id||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(id))return res.sendStatus(400);
+  const store=await db.query(
+   'SELECT id,name,store_url,status,purchase_enabled FROM marketplace_professional_stores WHERE id=$1 AND seller_id=$2',
+   [id,req.user.id]);
+  if(!store.rowCount)return res.sendStatus(404);
+  const products=await db.query(
+   "SELECT x.listing_id,l.title,l.kind,l.deal,l.status AS listing_status,l.moderation_status,"+
+   "x.stock_status,x.source,x.last_checked_at,x.product_url,s.store_url,"+
+   "s.status AS store_status,s.purchase_enabled "+
+   "FROM marketplace_external_products x "+
+   "JOIN marketplace_professional_stores s ON s.id=x.store_id "+
+   "JOIN marketplace_listings l ON l.id=x.listing_id AND l.seller_id=x.seller_id "+
+   "WHERE x.store_id=$1 AND s.seller_id=$2 AND x.seller_id=s.seller_id "+
+   "ORDER BY x.updated_at DESC LIMIT 101",[id,req.user.id]);
+  const shown=products.rows.slice(0,100);
+  const statistics=catalogDiagnostics.summary(shown);
+  const cards=shown.map(product=>{
+   const result=catalogDiagnostics.diagnoseProduct(product);
+   return '<li class="cmp-merchant-diagnostic"><strong>'+esc(product.title)+'</strong>'+
+    '<span>'+esc(result.label)+' · '+esc(product.stock_status)+'</span>'+
+    '<p>'+esc(result.reason)+'</p>'+
+    '<a href="/marketplace/p/'+esc(product.listing_id)+'">Ver anuncio de RedLibertad</a></li>';
+  }).join('');
+  const heading='<div class="cmp-commerce-intro"><p class="crumb"><a href="/comparar/comercios/mi-panel">Mis tiendas</a> / Productos</p>'+
+   '<h1>Diagnóstico de productos</h1><p>'+esc(store.rows[0].name)+'</p>'+
+   '<p>'+statistics.total+' productos revisados · '+statistics.ready+' disponibles · '+
+   statistics.needsReview+' pendientes de publicación · '+statistics.stock+' con incidencia de stock · '+
+   statistics.sync+' para sincronizar · '+statistics.invalidLink+' con enlace a revisar.</p>'+
+   '<p>Estos resultados informan del estado de catálogo: no verifican las ventas y no cambian precios ni publicaciones.</p>'+
+   '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Todavía no hay productos vinculados.</li>')+'</ul>'+
+   (products.rows.length>100?'<p>Se muestran los 100 productos más recientes.</p>':'')+
+   '<a href="/comparar/comercios/mi-panel">Volver a mis tiendas</a></div>';
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Diagnóstico de productos | RedLibertad','Estado del catálogo de tu tienda.',heading,
+    '/comparar/comercios/productos/'+esc(id)));
+ }catch(error){next(error);}
+});
 router.get('/comparar/comercios/mis-solicitudes',requireAuth,async(req,res,next)=>{
  try{
   await ensureProfessionalSchema();
@@ -787,7 +830,8 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
     '<span>'+esc(info.label)+' · '+esc(store.platform)+'</span>'+
     '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
     '<p>'+esc(info.next)+'</p>'+verification+
-    (store.status==='approved'&&store.platform==='woocommerce'?'<p><a href="/comparar/comercios/woocommerce/'+esc(store.id)+'">Conectar WooCommerce con claves de lectura</a></p>':'')+'</li>';
+    (store.status==='approved'&&store.platform==='woocommerce'?'<p><a href="/comparar/comercios/woocommerce/'+esc(store.id)+'">Conectar WooCommerce con claves de lectura</a></p>':'')+
+    (info.linked?'<p><a href="/comparar/comercios/productos/'+esc(store.id)+'">Ver diagnóstico de mis productos</a></p>':'')+'</li>';
   }).join('');
   const content='<div class="cmp-commerce-intro"><h1>Mis tiendas del comparador</h1>'+
    '<p>El servicio es gratuito. Cada tienda necesita aprobación y productos revisados antes de aparecer en una comparación.</p>'+

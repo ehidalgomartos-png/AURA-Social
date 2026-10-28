@@ -451,3 +451,10 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-merchant-verification p{margin:7px 0 9px}
 .cmp-merchant-verification code{display:block;background:#fff;border:1px solid #dae7f3;border-radius:7px;padding:9px;white-space:normal;overflow-wrap:anywhere;font-size:.87rem}
 .cmp-merchant-verification small{margin-top:9px;color:#617b91;line-height:1.5}
+
+/* V3.4.2.9 — diagnóstico privado, legible en pantallas pequeñas. */
+.cmp-merchant-diagnostic{display:flex;flex-direction:column;gap:5px}
+.cmp-merchant-diagnostic strong{overflow-wrap:anywhere}
+.cmp-merchant-diagnostic p{margin:5px 0;color:#455e75;font-size:.88rem;line-height:1.5}
+.cmp-merchant-diagnostic a{font-weight:700;align-self:flex-start}
+@media(max-width:540px){.cmp-merchant-diagnostic{padding:14px}.cmp-merchant-diagnostic p{font-size:.85rem}}

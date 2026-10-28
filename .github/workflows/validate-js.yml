@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.2.9 seller catalogue diagnostics and privacy
+        run: node --test tests/marketplace-comparador-catalog-diagnostics-v3429.test.js
       - name: V3.4.2.8 approved WooCommerce owner connection, read-only and CSRF
         run: node --test tests/marketplace-comparador-woo-selfservice-v3428.test.js
       - name: V3.4.2.7 proof-of-ownership manual challenge and seller isolation
