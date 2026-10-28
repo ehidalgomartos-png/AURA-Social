@@ -20,7 +20,7 @@ function enrichLocalOffers(listings,approvedLinks){
    price_cents:Number(r.price_cents),price_currency:'EUR',
    href:direct||standard,
    condition:r.details?.condition==='new'?'Nuevo':r.details?.condition==='used'?'Usado':'No indicado',
-   image:photo,internal:true,partner_store:Boolean(direct),partner_store_id:direct?partner.store_id:null
+   image:photo,internal:true,listing_id:r.id,partner_store:Boolean(direct),partner_store_id:direct?partner.store_id:null
   };
  });
 }

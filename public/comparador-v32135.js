@@ -45,3 +45,18 @@
  const interval=setInterval(refresh,5000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden && attempts<maxAttempts)refresh();});
 })();
+
+/* V3.4.2.2: registrar clic sin interrumpir la compra; nunca redirigir por RedLibertad. */
+document.addEventListener('click',event=>{
+ const link=event.target?.closest?.('a[data-comparison-merchant-click="1"]');
+ if(!link)return;
+ const storeId=link.dataset.storeId,listingId=link.dataset.listingId,proof=link.dataset.proof;
+ if(!storeId||!listingId||!proof)return;
+ try{
+  fetch('/comparar/comercios/registrar-clic',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   credentials:'omit',keepalive:true,
+   body:JSON.stringify({storeId,listingId,proof})
+  }).catch(()=>{});
+ }catch(_){/* Métrica opcional: nunca impedir abrir la tienda. */}
+},true);
