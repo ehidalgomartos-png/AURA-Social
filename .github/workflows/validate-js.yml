@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.4 merchant catalog duplicate link diagnostics
+        run: node --test tests/marketplace-comparador-catalog-duplicates-v3444.test.js
       - name: V3.4.4.3 merchant signup and duplicate handling
         run: node --test tests/marketplace-comparador-onboarding-v3443.test.js
       - name: V3.4.4.2 mobile-first comparison visual regression
