@@ -17,6 +17,7 @@ const productDetail=require('../services/marketplace-comparador-product-detail-v
 const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
 const {requireAdmin,requireAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
+const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
@@ -130,6 +131,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const candidate=possible && quota?.available!==false;
  const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
    '';
+ const clickToken=o.partner_store?merchantClicks.proof(o.partner_store_id,o.listing_id):null;
+ const clickAttrs=clickToken?' data-comparison-merchant-click="1" data-store-id="'+esc(o.partner_store_id)+'" data-listing-id="'+esc(o.listing_id)+'" data-proof="'+clickToken+'"':'';
  const pricing=o.internal?'':priceInfo?.date?
    '<small class="offer-price-date'+(priceInfo.isStale?' offer-price-old':'')+'">'+
    esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
@@ -137,7 +140,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="price">'+money(o.price_cents)+'</div>'+pricing+
-  lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
+  lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</li>';
 }
 function repairOffersMarkup(offers,slug,csrfToken,priceInfo){
@@ -548,6 +551,55 @@ router.get('/comparar/comercios/mis-solicitudes',requireAuth,async(req,res,next)
   res.set('Cache-Control','private,no-store');
   res.set('X-Robots-Tag','noindex,nofollow');
   res.json({ok:true,billingEnabled:false,stores:stores.rows});
+ }catch(error){next(error);}
+});
+// V3.4.2.2: el enlace sigue siendo directo a la tienda. Solo registramos clics
+// agregados y con prueba firmada, sin datos identificadores del visitante.
+router.post('/comparar/comercios/registrar-clic',
+ rateLimit({windowMs:60*1000,limit:30,standardHeaders:'draft-7',legacyHeaders:false}),
+ async(req,res,next)=>{
+ try{
+  const storeId=String(req.body?.storeId||''),listingId=String(req.body?.listingId||'');
+  if(!merchantClicks.validProof(storeId,listingId,req.body?.proof))
+   return res.sendStatus(403);
+  const accepted=await merchantClicks.record(storeId,listingId);
+  res.set('Cache-Control','no-store');
+  return res.sendStatus(accepted?204:404);
+ }catch(error){next(error);}
+});
+router.get('/comparar/comercios/mis-estadisticas',requireAuth,async(req,res,next)=>{
+ try{
+  await merchantClicks.ensureSchema();
+  const result=await db.query(
+   "SELECT s.name,s.store_url,s.status,COUNT(DISTINCT x.listing_id)::integer AS products,"+
+   "COALESCE(SUM(t.click_count),0)::integer AS clicks "+
+   "FROM marketplace_professional_stores s "+
+   "LEFT JOIN marketplace_external_products x ON x.store_id=s.id AND x.seller_id=s.seller_id "+
+   "LEFT JOIN marketplace_comparison_store_clicks t ON t.store_id=s.id AND t.listing_id=x.listing_id AND t.clicked_day>=CURRENT_DATE-INTERVAL '29 days' "+
+   "WHERE s.seller_id=$1 GROUP BY s.id ORDER BY s.id DESC LIMIT 30",[req.user.id]);
+  const cards=result.rows.map(row=>'<li><strong>'+esc(row.name)+'</strong> · '+esc(row.status)+
+    '<span>'+Number(row.products)+' productos vinculados · '+Number(row.clicks)+' clics registrados (30 días)</span></li>').join('');
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Estadísticas de mis comercios | RedLibertad','Clics agregados en tiendas.',
+   '<div class="cmp-commerce-intro"><h1>Estadísticas de mis comercios</h1>'+
+   '<p>Datos gratuitos de los últimos 30 días. Los clics registrados no equivalen a ventas ni visitantes únicos.</p>'+
+   '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Todavía no tienes tiendas registradas.</li>')+'</ul>'+
+   '<a href="/comparar/comercios">Solicitar otra tienda</a></div>',
+   '/comparar/comercios/mis-estadisticas'));
+ }catch(error){next(error);}
+});
+router.get('/admin/comparador/comercios-estadisticas',requireAdmin,async(req,res,next)=>{
+ try{
+  await merchantClicks.ensureSchema();
+  const r=await db.query(
+   "SELECT s.id,s.name,s.status,u.username,COUNT(DISTINCT x.listing_id)::integer AS products,"+
+   "COALESCE(SUM(t.click_count),0)::integer AS clicks "+
+   "FROM marketplace_professional_stores s JOIN users u ON u.id=s.seller_id "+
+   "LEFT JOIN marketplace_external_products x ON x.store_id=s.id "+
+   "LEFT JOIN marketplace_comparison_store_clicks t ON t.store_id=s.id AND t.listing_id=x.listing_id AND t.clicked_day>=CURRENT_DATE-INTERVAL '29 days' "+
+   "GROUP BY s.id,u.username ORDER BY s.updated_at DESC LIMIT 100");
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.json({ok:true,billingEnabled:false,periodDays:30,clickMetric:'eventos, no ventas ni visitantes únicos',stores:r.rows});
  }catch(error){next(error);}
 });
 router.get('/comparar/:slug',async(req,res,next)=>{
