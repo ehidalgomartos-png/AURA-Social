@@ -558,7 +558,7 @@ router.post('/comparar/comercios/verificacion/:id',requireAuth,
   res.set('X-Robots-Tag','noindex,nofollow');
   if(!validCsrf(req))return res.status(403).send('Formulario caducado. Actualiza tu panel y vuelve a intentarlo.');
   const id=String(req.params.id||'');
-  if(!/^[1-9]\\d{0,15}$/.test(id))return res.sendStatus(400);
+  if(!/^[1-9]\d{0,15}$/.test(id))return res.sendStatus(400);
   await ensureProfessionalSchema();
   const generated='rl-verify-'+crypto.randomBytes(16).toString('hex');
   const result=await db.query(
