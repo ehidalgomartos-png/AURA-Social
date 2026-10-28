@@ -216,6 +216,7 @@ router.get('/comparar',async(req,res,next)=>{
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
    '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
+   '<p class="cmp-commerce-cta">¿Tienes una tienda online? <a href="/comparar/comercios">Solicita aparecer gratis en el comparador</a></p>'+
    '<section class="info"><h2>Comparaciones recientes</h2>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
    (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
    '',
