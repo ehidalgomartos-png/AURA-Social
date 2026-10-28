@@ -132,3 +132,53 @@ test('móvil: fecha de precio en ancho completo y cartel de reparación separado
  assert.match(css,/offer-price-date\{grid-column:1\/-1;text-align:left/);
  assert.match(css,/@media\(max-width:540px\)/);
 });
+
+test('SEO y esquema no convierten averiados en productos ordinarios ni por llamada directa',()=>{
+ const seo=require('../src/services/marketplace-comparador-seo-v32132');
+ const now=new Date().toISOString();
+ const page={query_text:q,provider_status:'ok',last_checked_at:now,index_approved:true,seo_blocked:false,
+  editorial_summary:'Comparación verificada del mismo modelo, con información comprobada de vendedores y precios claramente diferenciados.'};
+ const offers=['Tienda A','Tienda B','Tienda C'].map((shop,i)=>({
+  ...offer('Apple iPhone 12 128 GB Negro',19000+i*500,shop,'Consultar estado'),
+  href:'https://tienda'+i+'.example/product',price_currency:'EUR'
+ }));
+ const faulty={...offers[0],title:'Apple iPhone 12 128 GB Negro No funciona',price_cents:5500,shop:'Piezas'};
+ const eligible=seo.auto.eligibleOffers(page,[faulty,...offers]);
+ assert.equal(eligible.eligible,true);
+ assert.equal(eligible.lowPriceCents,19000);
+ assert.equal(eligible.offers.length,3);
+ assert.equal(seo.indexEligible(page,[faulty,...offers]),true);
+ const product=seo.structuredData(page,[faulty,...offers],true,'/comparar/iphone-12')['@graph'].find(x=>x['@type']==='Product');
+ assert.equal(product.offers.lowPrice,'190.00');
+ const repairPage={...page,query_text:'iphone 12 128 GB no funciona'};
+ assert.equal(seo.indexEligible(repairPage,[faulty,...offers]),false);
+ assert.equal(seo.auto.eligibleOffers(repairPage,[faulty,...offers]).eligible,false);
+ assert.equal(seo.structuredData(repairPage,[faulty,...offers],true,'/comparar/roto')['@graph'].some(x=>x['@type']==='Product'),false);
+});
+test('foto principal elige imagen segura aunque oferta mejor valorada no tenga imagen',()=>{
+ const withNoImage={...refurbished,image:null,condition:'Nuevo'};
+ const hero=detail.heroMarkup(q,[used,withNoImage],null);
+ assert.match(hero,/used\\.png/);
+ assert.doesNotMatch(hero,/cmp-detail-noimage/);
+});
+test('historial anterior con mínimos contaminados no se muestra junto a anuncios averiados',async()=>{
+ const original=db.query,oldConfigured=provider.configured;
+ try{
+  provider.configured=()=>false;
+  db.query=async(sql)=>{
+   if(sql.startsWith('SELECT * FROM marketplace_compare_pages WHERE slug=$1'))return {rowCount:1,rows:[{
+    id:61,slug,query_text:q,index_approved:false,seo_blocked:false,provider_status:'ok',
+    last_checked_at:new Date().toISOString(),external_results:[broken,used,refurbished],editorial_summary:''
+   }]};
+   if(sql.includes('marketplace_compare_price_history'))throw Error('No debe leerse historial mezclado');
+   return {rows:[],rowCount:0};
+  };
+  const app=express();app.use(express.urlencoded({extended:true}));app.use(cookieParser());app.use(compare.router);
+  const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
+  try{
+   const response=await fetch('http://127.0.0.1:'+server.address().port+'/comparar/'+slug);
+   assert.equal(response.status,200);
+   assert.doesNotMatch(await response.text(),/Evolución de precios verificados/);
+  }finally{await new Promise(resolve=>server.close(resolve));}
+ }finally{db.query=original;provider.configured=oldConfigured;}
+});
