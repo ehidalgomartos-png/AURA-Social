@@ -5,14 +5,15 @@ const ORIGIN='https://redlibertad.com';
 const FRESH_MS=48*60*60*1000;
 const provider=require('./marketplace-comparador-provider-v32133');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
+const quality=require('./marketplace-comparador-offer-quality-v3419');
 function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && !o.sponsored && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
 function matchingOffers(page,offers){
- return (Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title));
+ return (Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title)&&!quality.repairReason(o));
 }
 function indexEligible(page,offers,now=Date.now()){
- if(!page || page.seo_blocked===true)return false;
+ if(!page || page.seo_blocked===true || quality.isRepairSearch(page.query_text))return false;
  const matching=matchingOffers(page,offers);
  if(auto.eligibleOffers(page,matching,now).eligible)return true;
  if(page.index_approved!==true || page.provider_status!=='ok')return false;
