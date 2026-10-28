@@ -47,7 +47,8 @@ test('una única oferta usa ficha principal y no repite el producto tres veces',
  assert.match(html,/1 oferta coincidente/);
  assert.match(html,/Oferta encontrada/);
  assert.match(html,/iPhone 12 128 GB, morado, desbloqueado/);
- assert.match(html,/Pixmania · Reacondicionado/);
+ assert.match(html,/class="cmp-offer-shop">Pixmania<\/small>/);
+ assert.match(html,/class="cmp-condition-chip cmp-condition-reacondicionado"[^>]*>Reacondicionado · según anuncio<\/span>/);
  assert.match(html,/259,00/);
  assert.match(html,/images1\.gstatic\.com\/iphone-12\.png/);
  assert.match(html,/Buscar en Google/);
