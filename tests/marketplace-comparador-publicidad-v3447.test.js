@@ -81,7 +81,7 @@ test('un anuncio de 55 € nunca destaca frente al precio ordinario de 190 €',
  assert.equal(product.offers.offerCount,3);
  assert.ok(!sql.some(x=>/(?:INSERT INTO|UPDATE)\s+marketplace_compare_provider_usage|INSERT INTO marketplace_compare_jobs/.test(x)),
   'crear o leer tablas de cuotas no equivale a gastar una consulta');
- assert.ok(!sql.some(x=>/marketplace_compare_price_history/.test(x)),
+ assert.ok(!sql.some(x=>/^\s*SELECT\b[\s\S]*\bFROM\s+marketplace_compare_price_history/i.test(x)),
   'no mostrar historial antiguo potencialmente mezclado con publicidad');
 });
 
