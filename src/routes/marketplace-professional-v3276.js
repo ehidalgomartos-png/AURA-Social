@@ -9,6 +9,7 @@ const {PLATFORMS,normalizeStoreUrl,normalizeProductUrl,DDL}=require('../services
 const {DDL:wooDDL}=require('../services/marketplace-woocommerce-v3277');
 const {DDL:reconcileDDL}=require('../services/marketplace-woocommerce-reconcile-v32776');
 const {TransferError,transferStoreOwner}=require('../services/marketplace-store-owner-v32775');
+const {approvePendingStore}=require('../services/marketplace-comparador-domain-approval-v3426');
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 let ready=null;
@@ -130,14 +131,25 @@ router.post('/admin/stores/:id/review',editLimiter,wrap(async(req,res)=>{
  const status=req.body.status;
  if(status==='approved'&&req.body?.confirmVerified!==true)
   return res.status(400).json({error:'store_review_confirmation_required'});
- const sourceState={approved:'pending',suspended:'approved',pending:'suspended'}[status];
- const r=await db.query('UPDATE marketplace_professional_stores SET status=$2,purchase_enabled=$3,updated_at=now() WHERE id=$1 AND status=$4 RETURNING id,status,purchase_enabled',
-  [req.params.id,status,status==='approved',sourceState]);
- if(!r.rowCount){
+ let store=null;
+ if(status==='approved'){
+  const result=await approvePendingStore(req.params.id);
+  if(result.state==='domain_already_approved')
+   return res.status(409).json({error:'store_domain_already_approved'});
+  if(result.state==='invalid_domain')
+   return res.status(409).json({error:'store_invalid_domain'});
+  if(result.state==='approved')store=result.store;
+ }else{
+  const sourceState={suspended:'approved',pending:'suspended'}[status];
+  const r=await db.query('UPDATE marketplace_professional_stores SET status=$2,purchase_enabled=$3,updated_at=now() WHERE id=$1 AND status=$4 RETURNING id,status,purchase_enabled',
+   [req.params.id,status,false,sourceState]);
+  if(r.rowCount)store=r.rows[0];
+ }
+ if(!store){
   const existing=await db.query('SELECT status FROM marketplace_professional_stores WHERE id=$1',[req.params.id]);
   return res.status(existing.rowCount?409:404).json({error:existing.rowCount?'invalid_store_status_transition':'store_not_found'});
  }
  res.setHeader('Cache-Control','private,no-store');
- res.json({ok:true,store:r.rows[0]});
+ res.json({ok:true,store});
 }));
 module.exports={router,ensureProfessionalSchema};
