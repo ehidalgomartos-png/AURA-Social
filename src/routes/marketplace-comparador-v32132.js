@@ -1075,8 +1075,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<option value="all">Todas las capacidades</option>'+
    filters.capacityOptions.map(v=>'<option value="'+esc(v.code)+'">'+esc(v.label)+'</option>').join('')+
    '</select></label>':'';
+  // Navegación interna sin JS, solo en fichas con suficientes ofertas para desplazar en móvil.
+  const longList=ordinary.length>=4;
   const directControls=ordinary.length>1?
-   '<div class="cmp-access-toolbar" data-direct-filter>'+
+   '<div class="cmp-access-toolbar" data-direct-filter'+(longList?' id="filtros-ofertas"':'')+'>'+
    '<div class="cmp-access-intro"><strong>'+access.direct+' '+(access.direct===1?'oferta con enlace directo':'ofertas con enlace directo')+'</strong>'+
    '<small>'+access.other+' '+(access.other===1?'oferta sin enlace directo':'ofertas sin enlace directo')+' · precios ordenados de menor a mayor</small></div>'+
    (access.direct&&access.other?
@@ -1087,8 +1089,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p class="cmp-access-filter-note" data-access-note hidden>El precio mínimo destacado corresponde a todas las ofertas comparables, no solo a las filtradas.</p>'+
    '<p class="cmp-access-filter-result" role="status" data-filter-results hidden></p>'+
    '<button class="cmp-filter-reset" type="button" data-clear-comparison-filters hidden>Quitar filtros</button>'+
+   (longList?'<a class="cmp-first-visible-link" data-first-visible-link href="#oferta-'+offerKey(ordinary[0])+'">Ir a la primera oferta visible</a>':'')+
    '</div>':'';
-  const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
+  const returnNav=longList?'<nav class="cmp-offer-return-nav" aria-label="Moverse por las ofertas"><a href="#filtros-ofertas">Volver a filtros</a><a href="#precios-y-tiendas">Inicio de las ofertas</a></nav>':'';
+  const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>'+returnNav:'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
   const sponsoredCards=sponsored.length?'<section class="cmp-noncomparable-section cmp-sponsored-section" aria-label="Anuncios publicitarios"><details>'+
    '<summary>Publicidad ('+sponsored.length+')</summary>'+
