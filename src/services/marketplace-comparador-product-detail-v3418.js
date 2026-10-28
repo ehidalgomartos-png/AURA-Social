@@ -1,6 +1,7 @@
 'use strict';
 // V3.4.1.8: ficha de producto a partir de datos comprobables, sin inventar atributos.
 const provider=require('./marketplace-comparador-provider-v32133');
+const {validOfferPhoto}=require('./marketplace-comparador-image-confidence-v3433');
 const colorWords=['blanco','blanca','negro','negra','gris','morado','morada','violeta','azul','verde','rojo','roja','beige','dorado','dorada','plateado','plateada','marrón','marron','rosa','amarillo','amarilla','natural','roble','antracita'];
 const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur=cents=>(Number(cents)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
@@ -59,16 +60,18 @@ function commonFacts(query,offers){
 function heroMarkup(query,offers,lastCheckedAt,isStale=false,repairCount=0){
  if(!Array.isArray(offers)||!offers.length)return '';
  const item=representativeOffer(offers);
+ const photoCandidates=offers.filter(o=>Boolean(validOfferPhoto(query,o)));
+ const photoItem=photoCandidates.length?representativeOffer(photoCandidates):null;
  const title=(offers.length===1?String(item.title||query):String(query)).slice(0,250);
- const photoTitle=String(item.title||query).slice(0,250);
- const image=item.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(item.image||'')?item.image:null:provider.safeImage(item.image);
+ const photoTitle=String(photoItem?.title||query).slice(0,250);
+ const image=photoItem?validOfferPhoto(query,photoItem):null;
  const lowest=offers[0],price=Number.isSafeInteger(lowest.price_cents)&&lowest.price_cents>0?eur(lowest.price_cents):null;
  const condition=String(lowest.condition||'').toLowerCase();
  const count=offers.length;
  const sellers=new Set(offers.map(x=>String(x.shop||'').toLocaleLowerCase('es-ES'))).size;
  const chips=commonFacts(query,offers).filter(f=>f.label!=='Estado').slice(0,4);
  const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" alt="'+safe(photoTitle)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
-  '<div class="cmp-detail-noimage" aria-hidden="true">▤</div>';
+  '<div class="cmp-detail-noimage" aria-hidden="true"><img src="/assets/comparador-producto-v3432.svg" alt="" width="140" height="140"></div>';
  return '<section class="cmp-detail-hero" aria-labelledby="cmp-detail-name">'+
   '<div class="cmp-detail-image">'+imageBlock+(image&&count>1?'<small class="cmp-detail-photo-source">Fotografía de una oferta</small>':'')+'</div>'+
   '<div class="cmp-detail-copy"><p class="cmp-detail-eyebrow">Ficha del producto · RedLibertad</p>'+
