@@ -682,6 +682,32 @@ body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-sin-confirmar{
  body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-chip{font-size:.7rem;padding:4px 8px}
 }
 
+/* V3.4.4.15 — Oferta compartida distinguible con enlace profundo, sin scripts.
+   El aviso de enlaces caducados se crea solo cuando es necesario. */
+body.cmp-premium .cmp-rich-comparison .comparison-list li.offer:target{
+ outline:3px solid #3284c7;outline-offset:3px;
+ border-color:#3284c7!important;scroll-margin-top:24px;
+ box-shadow:0 7px 25px rgba(17,83,141,.15);
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list li.offer:target .offer-main::before{
+ content:"Oferta compartida";display:inline-flex;align-items:center;
+ margin:0 0 9px;padding:4px 9px;border-radius:999px;
+ background:#e8f4ff;border:1px solid #bbd9f3;color:#194e7b;
+ font-size:.75rem;font-weight:800;line-height:1.35;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-shared-offer-notice{
+ border:1px solid #f0d39e;background:#fff9ed;border-radius:12px;
+ color:#6b4a16;padding:13px 16px;margin:14px 0;line-height:1.5;
+ font-size:.88rem;font-weight:650;
+}
+@media(max-width:620px){
+ body.cmp-premium .cmp-rich-comparison .comparison-list li.offer:target{scroll-margin-top:15px}
+ body.cmp-premium .cmp-rich-comparison .cmp-shared-offer-notice{margin:12px 0;padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+}
+
 /* V3.4.4.13 — origen verificable del precio, diseño compacto y legible. */
 body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .cmp-price-source{
  display:block;margin:1px 0 3px;max-width:100%;
