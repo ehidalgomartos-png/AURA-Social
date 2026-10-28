@@ -2,6 +2,7 @@
 // V3.4.1.8: ficha de producto a partir de datos comprobables, sin inventar atributos.
 const provider=require('./marketplace-comparador-provider-v32133');
 const {validOfferPhoto}=require('./marketplace-comparador-image-confidence-v3433');
+const {recentFallback}=require('./marketplace-comparador-recent-images-v3432');
 const colorWords=['blanco','blanca','negro','negra','gris','morado','morada','violeta','azul','verde','rojo','roja','beige','dorado','dorada','plateado','plateada','marrón','marron','rosa','amarillo','amarilla','natural','roble','antracita'];
 const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur=cents=>(Number(cents)/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
@@ -71,9 +72,9 @@ function heroMarkup(query,offers,lastCheckedAt,isStale=false,repairCount=0){
  const sellers=new Set(offers.map(x=>String(x.shop||'').toLocaleLowerCase('es-ES'))).size;
  const chips=commonFacts(query,offers).filter(f=>f.label!=='Estado').slice(0,4);
  const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" alt="'+safe(photoTitle)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
-  '<div class="cmp-detail-noimage"><img src="/assets/comparador-producto-v3432.svg" alt="" width="140" height="140"><small>Fotografía no verificada</small></div>';
+  '<div class="cmp-detail-noimage"><img src="'+safe(recentFallback(query))+'" alt="" width="140" height="140"><small>Fotografía no verificada · Imagen ilustrativa</small></div>';
  return '<section class="cmp-detail-hero" aria-labelledby="cmp-detail-name">'+
-  '<div class="cmp-detail-image">'+imageBlock+(image&&count>1?'<small class="cmp-detail-photo-source">Fotografía de una oferta</small>':'')+'</div>'+
+  '<div class="cmp-detail-image'+(image?'':' cmp-detail-image-placeholder')+'">'+imageBlock+(image&&count>1?'<small class="cmp-detail-photo-source">Fotografía de una oferta</small>':'')+'</div>'+
   '<div class="cmp-detail-copy"><p class="cmp-detail-eyebrow">Ficha del producto · RedLibertad</p>'+
   '<h2 id="cmp-detail-name">'+safe(title)+'</h2>'+
   (chips.length?'<ul class="cmp-detail-chips">'+chips.map(c=>'<li>'+safe(c.label)+': '+safe(c.value)+'</li>').join('')+'</ul>':'')+
