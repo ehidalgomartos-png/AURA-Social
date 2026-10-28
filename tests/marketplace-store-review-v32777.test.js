@@ -104,7 +104,7 @@ test('administrator submits an existing seller shop and approves only after expl
  }finally{
   await new Promise(resolve=>server.close(resolve));
   db.pool.connect=previousConnect;db.query=previousQuery;
-  if(previousSecret=undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=previousSecret;
+  if(previousSecret===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=previousSecret;
  }
 });
 test('admin storefront uses review states, warns about buy links and refreshes cache',()=>{
