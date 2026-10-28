@@ -585,10 +585,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
    '<section data-comparison-results aria-label="'+(repair.length?'Anuncios para reparar':'Ofertas pendientes')+'">'+repairCards+'</section>';
   const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
-   '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
-   '<p class="cmp-page-subtitle">Precios, características y tiendas · ficha permanente</p>'+
+   '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
+   '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+
    richHero+
-   formMarkup('',page.query_text,csrfToken)+
+   '<details class="cmp-change-search"><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
    richFacts+relatedMarkup+
