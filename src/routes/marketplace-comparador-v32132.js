@@ -993,8 +993,11 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   await attachCachedMerchantLinks(offers);
   await attachManualMerchantLinks(page,offers);
   // Quitar repeticiones solo en la ficha: no tocar anuncios, enlaces ni resultados guardados.
-  const grouped=offerQuality.groupOffers(page.query_text,offers);
-  const {ordinary,sponsored}=splitPaidOffers(uniqueOffers(grouped.main));
+  // Separar publicidad ANTES de evaluar precios atípicos: una promoción barata
+  // no puede sesgar el umbral ni formar parte del precio mínimo independiente.
+  const {ordinary:unpaidOffers,sponsored:paidOffers}=splitPaidOffers(offers);
+  const grouped=offerQuality.groupOffers(page.query_text,unpaidOffers);
+  const ordinary=uniqueOffers(grouped.main),sponsored=uniqueOffers(paidOffers);
   const repair=uniqueOffers(grouped.repair);
   const accessories=uniqueOffers(grouped.accessories),review=uniqueOffers(grouped.review);
   const insight=insights.buildInsights(page.query_text,ordinary);
