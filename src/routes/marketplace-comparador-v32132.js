@@ -515,6 +515,7 @@ router.get('/comparar/comercios', (req,res)=>{
   '<h1>Tu tienda en el comparador de RedLibertad</h1>'+
   '<p>Solicita incorporar tus productos al comparador. Por ahora es gratuito: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
   '<p>Las tiendas se revisan antes de habilitar enlaces de compra. La venta se realiza exclusivamente en tu propia web.</p>'+
+  '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra tu tienda y espera la revisión.</span></li><li><strong>Verifica tu dominio</strong><span>Publica el código que te facilitamos; Administración comprobará la titularidad.</span></li><li><strong>Comparte tus productos</strong><span>Conecta WooCommerce con claves de lectura cuando esté aprobada.</span></li></ol>'+
   '<form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
   '<label for="comercioNombre">Nombre de la tienda</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization">'+
@@ -753,7 +754,18 @@ router.get('/comparar/comercios/tiendas',async(req,res,next)=>{
    "AND l.kind='product' AND l.deal='sale' AND l.status='active' AND l.moderation_status='published' "+
    "AND x.stock_status='in_stock' AND (x.source<>'api' OR x.last_checked_at>now()-interval '48 hours') "+
    "GROUP BY s.id ORDER BY s.updated_at DESC,s.id DESC LIMIT 40");
-  const stores=result.rows.filter(s=>normalizeStoreUrl(s.store_url));
+  // Solo dominios HTTPS únicos: evita tarjetas duplicadas y SEO con poco contenido.
+  const domains=new Set();
+  const stores=result.rows.filter(s=>{
+   const url=normalizeStoreUrl(s.store_url);
+   if(!url)return false;
+   const domain=new URL(url).hostname.replace(/^www[.]/,'').toLowerCase();
+   if(domains.has(domain))return false;
+   domains.add(domain);return true;
+  });
+  const indexReady=stores.length>=3 &&
+   stores.filter(s=>Number(s.products)>=2).length>=3 &&
+   stores.reduce((sum,s)=>sum+Math.max(0,Number(s.products)||0),0)>=12;
   const cards=stores.map(s=>'<li><strong>'+esc(s.name)+'</strong>'+
    '<small>'+Number(s.products)+' '+(Number(s.products)===1?'producto':'productos')+' disponibles</small>'+
    '<a href="'+esc(normalizeStoreUrl(s.store_url))+'" target="_blank" rel="noopener noreferrer nofollow">Visitar tienda</a></li>').join('');
@@ -761,10 +773,10 @@ router.get('/comparar/comercios/tiendas',async(req,res,next)=>{
    '<h1>Tiendas participantes</h1>'+
    '<p>Comercios aprobados que comparten sus productos gratuitamente. El pago y la compra se realizan siempre en cada tienda.</p>'+
    '<ul class="cmp-commerce-directory">'+(cards||'<li>Estamos incorporando comercios.</li>')+'</ul>'+
-   '<p><a href="/comparar/comercios">Solicitar aparecer gratis</a></p></div>';
+   '<p><a href="/comparar">Buscar y comparar precios</a> · <a href="/comparar/comercios">Solicitar aparecer gratis</a></p></div>';
   res.set('Cache-Control','private,no-store');
   res.send(shell('Tiendas participantes | RedLibertad','Tiendas online aprobadas y ofertas disponibles.',
-   html,'/comparar/comercios/tiendas',stores.length>=3));
+   html,'/comparar/comercios/tiendas',indexReady));
  }catch(error){next(error);}
 });
 // V3.4.2.4: bandeja de seguimiento read-only: nadie se aprueba ni se factura solo.
