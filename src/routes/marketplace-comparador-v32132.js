@@ -22,7 +22,7 @@ const merchantFollowup=require('../services/marketplace-comparador-merchant-foll
 const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
-const {recentImage}=require('../services/marketplace-comparador-recent-images-v3432');
+const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
@@ -228,7 +228,7 @@ router.get('/comparar',async(req,res,next)=>{
   const items=recent.rows.map(p=>{
    const photo=recentImage(p.query_text,p.external_results);
    const image=photo?'<img src="'+esc(photo)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="82" height="82">':
-    '<img src="/assets/comparador-producto-v3432.svg" alt="" loading="lazy" width="82" height="82">';
+    '<img src="'+esc(recentFallback(p.query_text))+'" alt="" loading="lazy" width="82" height="82">';
    return '<li class="cmp-recent-card"><a href="/comparar/'+esc(p.slug)+'">'+
     '<span class="cmp-recent-image">'+image+'</span><span class="cmp-recent-copy"><strong>'+esc(p.query_text)+'</strong>'+
     '<small>'+Number(p.offer_count)+' ofertas guardadas</small></span></a></li>';
@@ -932,7 +932,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p class="cmp-start-price"><strong>'+(bestOffer&&!bestOffer.internal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
    (bestCondition && bestCondition!=='Estado sin confirmar'?' · '+esc(bestCondition.toLowerCase()):'')+
    ' · '+ordinary.length+' '+(ordinary.length===1?'oferta':'ofertas')+
-   (insight.hasMixedVariants?' en varias versiones y estados':'')+'</p>'+
+   (exact?(insight.hasMixedVariants?' en varias versiones y estados':''):' de productos potencialmente diferentes')+'</p>'+
    '</section>':
    repair.length?
    '<section class="info cmp-only-repair-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite"><h2>Solo se han encontrado anuncios para reparar</h2><p>Ninguna de las ofertas actuales está libre de averías expresamente declaradas. Puedes consultar los anuncios por piezas más abajo.</p></section>':
@@ -946,8 +946,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '</section>';
   const cards=ordinary.length?'<ol class="comparison-list">'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
-  const richHero=productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length);
-  const richFacts=productDetail.specificationsMarkup(page.query_text,ordinary);
+  const richHero=exact?productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length):
+   productDetail.broadResultsMarkup(page.query_text,ordinary,freshness.isStale);
+  const richFacts=exact?productDetail.specificationsMarkup(page.query_text,ordinary):'';
   const relatedKey=queryKey(page.query_text).split(' ')[0]||'';
   const related=ordinary.length&&relatedKey.length>=4?
    await db.query("SELECT slug,query_text FROM marketplace_compare_pages "+
@@ -961,7 +962,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    cards+repairCards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
    ordinary.length?
-   '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
+   '<section data-comparison-results>'+(exact?insightsMarkup(page.query_text,insight):'')+historyMarkup(history.rows)+
    '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
