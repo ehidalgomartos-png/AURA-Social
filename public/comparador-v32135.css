@@ -375,7 +375,7 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-detail-repair-note{font-size:.83rem;line-height:1.48;color:#785119;background:#fff6e6;border:1px solid #f0dfbb;padding:9px 11px;border-radius:9px;margin:0 0 13px}
 .cmp-repair-section{margin:24px 0 12px;border:1px solid #e9d9bd;border-radius:14px;background:#fffbf3;overflow:hidden}
 .cmp-repair-section summary{cursor:pointer;padding:14px 17px;color:#7c5319;font-weight:800;font-size:.94rem;line-height:1.4}
-.cmp-repair-section[open]{padding-bottom:15px}
+.cmp-repair-section details[open]{padding-bottom:15px}
 .cmp-repair-section details[open] summary{border-bottom:1px solid #efe3cf}
 .cmp-repair-advice{color:#7f5d2a;font-size:.88rem;line-height:1.5;margin:12px 17px}
 .cmp-repair-section .comparison-list{padding:0 15px 5px;margin:12px 0;grid-template-columns:1fr}
@@ -384,7 +384,7 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-price-date{grid-column:3;text-align:right;min-width:0}
 .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .best-offer{grid-column:1/-1}
 @media(max-width:760px){
- .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-price-date{grid-column:1/-1;text-align:left;line-height:1.45;max-width:100%;font-size:.81rem}
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-price-date{grid-column:1/-1;text-align:left;line-height:1.45;max-width:100%;font-size:.81rem;overflow-wrap:normal;word-break:normal}
 }
 @media(max-width:540px){
  .cmp-repair-section summary{padding:14px 12px}
