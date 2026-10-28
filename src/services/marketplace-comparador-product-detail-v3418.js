@@ -84,6 +84,26 @@ function heroMarkup(query,offers,lastCheckedAt,isStale=false,repairCount=0){
   '<a class="cmp-detail-action" href="#precios-y-tiendas">Ver '+(count===1?'la oferta':'las ofertas')+'</a>'+
   '<p class="cmp-detail-disclaimer">Precios orientativos. Consulta disponibilidad, funcionamiento, estado y envío en la tienda.</p></div></section>';
 }
+// Búsquedas como "armario" o "mesa" no identifican un artículo exacto.
+// No se les atribuyen imagen, capacidad, dimensiones ni estado general.
+function broadResultsMarkup(query,offers,isStale=false){
+ if(!Array.isArray(offers)||!offers.length)return '';
+ const lowest=offers[0];
+ const sellers=new Set(offers.map(o=>String(o.shop||'').trim().toLowerCase()).filter(Boolean)).size;
+ const count=offers.length;
+ const price=Number.isSafeInteger(lowest.price_cents)&&lowest.price_cents>0?eur(lowest.price_cents):null;
+ return '<section class="cmp-broad-results" aria-labelledby="cmp-detail-name">'+
+  '<div class="cmp-broad-copy"><span class="cmp-detail-eyebrow">Búsqueda general · RedLibertad</span>'+
+  '<h2 id="cmp-detail-name">Resultados para «'+safe(query)+'»</h2>'+
+  '<p>Estas ofertas pueden corresponder a productos, medidas y modelos diferentes. No son necesariamente equivalentes.</p>'+
+  '<p class="cmp-detail-merchant">'+count+' '+(count===1?'oferta':'ofertas')+' · '+sellers+' '+(sellers===1?'vendedor':'vendedores')+'</p></div>'+
+  '<div class="cmp-broad-action">'+
+  (price?'<span>'+(isStale?'Último mínimo de una oferta':'Mínimo de una oferta')+'</span>'+
+   '<strong>'+price+'</strong>':'')+
+  '<small>El precio más bajo no representa a toda la categoría.</small>'+
+  '<a class="cmp-detail-action" href="#precios-y-tiendas">Ver productos y precios</a></div>'+
+  '</section>';
+}
 function specificationsMarkup(query,offers){
  if(!Array.isArray(offers)||!offers.length)return '';
  const list=commonFacts(query,offers);
@@ -102,4 +122,4 @@ function relatedMarkup(rows,currentSlug){
   '<ul>'+items.map(x=>'<li><a href="/comparar/'+safe(x.slug)+'">'+safe(x.query_text)+'</a></li>').join('')+'</ul>'+
   '<small>Estas fichas pueden corresponder a otras variantes o modelos.</small></section>';
 }
-module.exports={facts,representativeOffer,commonFacts,heroMarkup,specificationsMarkup,relatedMarkup};
+module.exports={facts,representativeOffer,commonFacts,heroMarkup,broadResultsMarkup,specificationsMarkup,relatedMarkup};
