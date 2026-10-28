@@ -689,3 +689,19 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .offer
  body.cmp-premium .cmp-rich-comparison .cmp-detail-price strong{font-size:2rem}
  body.cmp-premium .cmp-rich-comparison .cmp-access-option{font-size:.74rem;padding:8px 5px}
 }
+
+/* V3.4.4.3 — rutas claras tras solicitar una tienda y mensajes de plataforma. */
+.cmp-application-page .cmp-merchant-platform-hint{display:block;color:#56728c;
+ font-size:.78rem;line-height:1.45;margin:7px 0 10px}
+.cmp-application-page .cmp-merchant-form-help{margin:14px 0 0;font-size:.83rem;
+ line-height:1.5;color:#5a748d}
+.cmp-application-page .cmp-merchant-form-help a{font-weight:760}
+.cmp-merchant-result{max-width:830px;margin-inline:auto;padding-top:24px}
+.cmp-merchant-result>h1{font-size:clamp(1.75rem,4vw,2.45rem)}
+.cmp-merchant-result>p{color:#567189;max-width:700px}
+.cmp-merchant-result .cmp-section-subnav{margin-top:25px}
+@media(max-width:620px){
+ .cmp-merchant-result{padding:15px 0 30px}
+ .cmp-merchant-result .cmp-section-subnav{display:grid;grid-template-columns:1fr}
+ .cmp-merchant-result .cmp-section-subnav a{min-height:46px}
+}
