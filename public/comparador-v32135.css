@@ -284,3 +284,85 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
  .compare-single-status .compare-price-age{padding:10px 12px}
  .comparison-list .offer .offer-price-date{width:100%}
 }
+
+
+/* V3.4.1.8 — Ficha comercial propia, inspirada en la utilidad de un comparador
+   de productos, no en la identidad o el código de otras webs. */
+.cmp-rich-comparison .cmp-detail-hero{
+ display:grid;grid-template-columns:minmax(220px,330px) minmax(0,1fr);
+ gap:clamp(18px,3.4vw,38px);align-items:center;
+ padding:clamp(17px,3vw,30px);background:#fff;border:1px solid #dce8f2;
+ border-radius:20px;box-shadow:0 8px 28px rgba(18,56,90,.055);margin:18px 0 22px;
+}
+.cmp-detail-image{background:#f5f9fe;border:1px solid #e4edf7;border-radius:16px;
+ min-height:230px;display:flex;align-items:center;justify-content:center;padding:20px}
+.cmp-detail-photo{display:block;width:100%;height:auto;max-height:320px;object-fit:contain;border-radius:10px}
+.cmp-detail-noimage{font-size:4rem;color:#abc1d5;min-height:230px;display:grid;place-items:center}
+.cmp-detail-copy{min-width:0}
+.cmp-detail-eyebrow{margin:0 0 9px;font-size:.83rem;color:#28649a;font-weight:800;letter-spacing:.015em}
+.cmp-rich-comparison .cmp-detail-copy h2{margin:0 0 13px;font-size:clamp(1.25rem,2.9vw,1.9rem);line-height:1.25;color:#103254;overflow-wrap:anywhere}
+.cmp-detail-chips{padding:0;margin:0 0 18px;display:flex;flex-wrap:wrap;gap:7px;list-style:none}
+.cmp-detail-chips li{background:#eef6fe;border:1px solid #d5e6f6;color:#335d80;
+ padding:6px 10px;border-radius:8px;font-size:.82rem;font-weight:650}
+.cmp-detail-price{display:flex;flex-direction:column;margin:0 0 6px;gap:3px}
+.cmp-detail-price span{color:#5c758c;font-size:.88rem}
+.cmp-detail-price strong{color:#0d6844;font-size:clamp(1.9rem,3.7vw,2.75rem);font-weight:850;line-height:1.17;font-variant-numeric:tabular-nums}
+.cmp-detail-merchant{margin:4px 0 16px;color:#547189;font-size:.9rem}
+.cmp-detail-action{display:inline-flex;align-items:center;justify-content:center;padding:13px 21px;min-height:47px;
+ background:#165c9c;color:white;font-weight:800;text-decoration:none;border-radius:11px;max-width:100%}
+.cmp-detail-action:hover{color:white;background:#0e497e}
+.cmp-detail-action:focus-visible{outline:3px solid #92c1f0;outline-offset:3px}
+.cmp-detail-disclaimer{margin:10px 0 0;color:#71869b;font-size:.79rem;line-height:1.5}
+/* Una tabla visual de vendedores en escritorio; en móvil, tarjetas táctiles. */
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list{grid-template-columns:1fr;gap:10px}
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer{
+ display:grid;grid-template-columns:96px minmax(0,1fr) minmax(135px,200px);
+ align-items:center;gap:8px 16px;min-height:125px}
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-photo,
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-noimage{
+ width:96px;height:96px;grid-column:1;grid-row:auto}
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-main{
+ grid-column:2;grid-row:auto}
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .price{
+ grid-column:3;grid-row:auto;text-align:right;font-size:1.55rem;margin:0}
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-link,
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-lookup,
+.cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-destination{
+ grid-column:3;margin:0}
+.cmp-detail-specifications,.cmp-detail-related{margin:24px 0 0;padding:22px;background:white;border:1px solid #dbe7f3;
+ border-radius:18px;box-shadow:0 5px 20px rgba(14,58,96,.035)}
+.cmp-detail-section-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 15px;margin-bottom:15px}
+.cmp-detail-section-head h2{margin:0;color:#123758;font-size:clamp(1.18rem,2.3vw,1.48rem)}
+.cmp-detail-section-head p{color:#6b8197;font-size:.84rem;margin:0}
+.cmp-detail-specifications dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;gap:0}
+.cmp-detail-specifications dl>div{display:flex;align-items:baseline;gap:12px;justify-content:space-between;padding:11px 6px;border-bottom:1px solid #e7edf5}
+.cmp-detail-specifications dt{font-size:.9rem;color:#617991}
+.cmp-detail-specifications dd{font-size:.94rem;text-align:right;font-weight:750;color:#203f5a;margin:0;overflow-wrap:anywhere}
+.cmp-detail-specifications>small,.cmp-detail-related>small{display:block;margin-top:12px;font-size:.8rem;color:#74859a;line-height:1.5}
+.cmp-detail-related ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0;margin:0;list-style:none}
+.cmp-detail-related li{min-width:0}
+.cmp-detail-related a{display:flex;align-items:center;min-height:46px;border:1px solid #d8e6f5;background:#f7fbff;border-radius:11px;
+ padding:11px 14px;font-weight:750;color:#14578c;text-decoration:none;overflow-wrap:anywhere}
+.cmp-detail-related a:hover{background:#e9f3fd}
+@media(max-width:760px){
+ .cmp-rich-comparison .cmp-detail-hero{grid-template-columns:155px minmax(0,1fr);gap:16px}
+ .cmp-detail-image{min-height:170px;padding:12px}
+ .cmp-detail-photo{max-height:180px}
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer{grid-template-columns:76px minmax(0,1fr);gap:10px}
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-photo,
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-noimage{width:76px;height:82px}
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .price,
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-lookup,
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-link,
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-destination{grid-column:1/-1;text-align:left}
+ .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer .offer-link{text-align:center}
+}
+@media(max-width:540px){
+ .cmp-rich-comparison .cmp-detail-hero{grid-template-columns:1fr;padding:16px;gap:13px}
+ .cmp-detail-image{min-height:0;max-height:230px}
+ .cmp-detail-photo{height:204px;max-height:204px}
+ .cmp-detail-noimage{min-height:170px}
+ .cmp-detail-action{width:100%}
+ .cmp-detail-specifications,.cmp-detail-related{padding:16px}
+ .cmp-detail-specifications dl,.cmp-detail-related ul{grid-template-columns:1fr}
+}
