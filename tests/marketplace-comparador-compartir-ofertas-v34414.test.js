@@ -173,7 +173,7 @@ test('el diseño mantiene la acción secundaria discreta y táctil en móvil',()
  assert.match(block,/cmp-share-offer/);
  assert.match(block,/min-height:46px/);
  assert.match(block,/@media\(max-width:760px\)/);
- assert.match(block,/cmp-share-feedback\[hidden\]/);
+ assert.match(css,/cmp-share-feedback\[hidden\]\{display:none!important\}/);
  const source=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
  assert.match(source,/index>=0\?'<a class="cmp-share-offer"/);
 });
