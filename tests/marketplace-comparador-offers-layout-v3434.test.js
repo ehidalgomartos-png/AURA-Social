@@ -7,6 +7,7 @@ const express=require('express');
 const cookieParser=require('cookie-parser');
 const db=require('../src/db');
 const provider=require('../src/services/marketplace-comparador-provider-v32133');
+const worker=require('../src/services/marketplace-comparador-worker-v32134');
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
 const query='iphone 12 128 GB';
@@ -15,9 +16,10 @@ function offer(title,price,shop,href,extra={}){
    image:'https://images1.gstatic.com/iphone-12.jpg',shop,href,...extra};
 }
 async function render(offers){
- const oldQuery=db.query,oldConfigured=provider.configured,slug=compare.slugFor(query);
+ const oldQuery=db.query,oldConfigured=provider.configured,oldQuota=worker.quotaStatus,slug=compare.slugFor(query);
  try{
   provider.configured=()=>false;
+  worker.quotaStatus=async()=>({available:true});
   db.query=async sql=>{
    if(sql.startsWith('SELECT * FROM marketplace_compare_pages WHERE slug=$1'))
     return {rowCount:1,rows:[{id:33,slug,query_text:query,index_approved:false,seo_blocked:false,
@@ -31,7 +33,7 @@ async function render(offers){
    const response=await fetch('http://127.0.0.1:'+server.address().port+'/comparar/'+slug);
    return {status:response.status,html:await response.text()};
   }finally{await new Promise(resolve=>server.close(resolve));}
- }finally{db.query=oldQuery;provider.configured=oldConfigured;}
+ }finally{db.query=oldQuery;provider.configured=oldConfigured;worker.quotaStatus=oldQuota;}
 }
 test('cada ficha de vendedor agrupa precio y botones en una columna, conservando enlaces',async()=>{
  const items=[
@@ -63,7 +65,7 @@ test('el filtro de productos averiados sigue siendo independiente y no cambia el
  ];
  const {status,html}=await render(items);
  assert.equal(status,200);
- assert.match(html,/Precio desde<\/span><strong>90,00/);
+ assert.match(html,/Precio registrado<\/span><strong>90,00/);
  assert.match(html,/55,00/);
  assert.match(html,/Ver 1 anuncio averiado o para piezas/);
  assert.equal((html.match(/class="offer-side"/g)||[]).length,2);
