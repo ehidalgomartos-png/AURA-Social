@@ -148,6 +148,22 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</div></li>';
 }
+function nonComparableMarkup(accessories,review,slug,csrfToken,priceInfo){
+ const sections=[];
+ for(const [items,kind,title,advice] of [
+  [accessories,'accessory','Accesorios relacionados','Estas ofertas describen accesorios. Sus precios no corresponden al teléfono buscado.'],
+  [review,'review','Ofertas por verificar','No se ha podido confirmar que estos anuncios correspondan al teléfono o su precio parece atípico. Comprueba el producto y su estado.']
+ ]){
+  if(!items.length)continue;
+  const rows=items.map(o=>'<li class="cmp-noncomparable-item">'+
+   '<small>'+esc(o.quality_reason||'Revisar oferta')+'</small>'+
+   '<ol class="comparison-list">'+offerMarkup(o,-1,0,slug,csrfToken,null,o.internal?null:priceInfo)+'</ol></li>').join('');
+  sections.push('<section class="cmp-noncomparable-section cmp-'+kind+'-section"><details>'+
+   '<summary>'+title+' ('+items.length+')</summary><p>'+advice+'</p>'+
+   '<ul class="cmp-noncomparable-list">'+rows+'</ul></details></section>');
+ }
+ return sections.join('');
+}
 function repairOffersMarkup(offers,slug,csrfToken,priceInfo){
  if(!offers.length)return '';
  const count=offers.length;
@@ -889,15 +905,16 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   // Aplicar el mismo filtro también a ofertas antiguas ya guardadas.
   // Así una búsqueda base «iPhone 12 128 GB» no anunciará el precio del Pro
   // ni requiere volver a gastar créditos de SerpApi.
-  const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title))
+  const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title,
+    {includeAccessories:offerQuality.isPhoneSearch(page.query_text)&&!offerQuality.isAccessorySearch(page.query_text)}))
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
   await attachManualMerchantLinks(page,offers);
-  const {main:ordinary,repair}=offerQuality.groupOffers(page.query_text,offers);
+  const {main:ordinary,repair,accessories,review}=offerQuality.groupOffers(page.query_text,offers);
   const insight=insights.buildInsights(page.query_text,ordinary);
   // El historial anterior puede incluir mínimos averiados sin desglose por condición.
   // No presentar cifras históricas no depurables junto a una ficha que hoy contiene averías.
-  const history=!repair.length && ordinary.length && seo.auto.capacity(page.query_text)?
+  const history=!repair.length && !accessories.length && !review.length && ordinary.length && seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
   const quota=ordinary.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
    await compareWorker.quotaStatus():null;
@@ -934,6 +951,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    ' · '+ordinary.length+' '+(ordinary.length===1?'oferta':'ofertas')+
    (exact?(insight.hasMixedVariants?' en varias versiones y estados':''):' de productos potencialmente diferentes')+'</p>'+
    '</section>':
+   (accessories.length||review.length)?
+   '<section class="info cmp-only-review-status" role="status"><h2>Ofertas por confirmar</h2>'+
+   '<p>No tenemos precios suficientemente fiables para destacar un teléfono completo. Consulta los anuncios relacionados más abajo, sin mezclar sus importes.</p></section>':
    repair.length?
    '<section class="info cmp-only-repair-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite"><h2>Solo se han encontrado anuncios para reparar</h2><p>Ninguna de las ofertas actuales está libre de averías expresamente declaradas. Puedes consultar los anuncios por piezas más abajo.</p></section>':
    '<section class="compare-awaiting" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
@@ -946,6 +966,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '</section>';
   const cards=ordinary.length?'<ol class="comparison-list">'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
+   const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo);
   const richHero=exact?productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length):
    productDetail.broadResultsMarkup(page.query_text,ordinary,freshness.isStale);
   const richFacts=exact?productDetail.specificationsMarkup(page.query_text,ordinary):'';
@@ -959,16 +980,16 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
    '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
-   cards+repairCards+
+   cards+relatedCards+repairCards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
    ordinary.length?
    '<section data-comparison-results>'+(exact?insightsMarkup(page.query_text,insight):'')+historyMarkup(history.rows)+
    '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
-   cards+repairCards+
+   cards+relatedCards+repairCards+
    '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
-   '<section data-comparison-results aria-label="'+(repair.length?'Anuncios para reparar':'Ofertas pendientes')+'">'+repairCards+'</section>';
+   '<section data-comparison-results aria-label="'+(repair.length||relatedCards?'Otras ofertas para revisar':'Ofertas pendientes')+'">'+relatedCards+repairCards+'</section>';
   const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
    '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+

@@ -76,7 +76,8 @@ function eligibleOffers(page,offers,now=Date.now()){
  if(!Number.isFinite(last)||last>now||now-last>=FRESH_MS)return {eligible:false,reason:'Precios sin actualizar',offers:[]};
  if(!capacity(page.query_text))return {eligible:false,reason:'Falta capacidad o variante exacta',offers:[]};
  // Reusar el mismo filtro que la ficha y el sitemap, aunque el llamador aporte resultados sin depurar.
- const external=(Array.isArray(offers)?offers:[]).filter(o=>o&&!o.internal&&!o.sponsored&&!quality.repairReason(o));
+ const safe=quality.groupOffers(page.query_text,offers).main;
+ const external=safe.filter(o=>o&&!o.internal&&!o.sponsored&&!quality.repairReason(o));
  if(external.length<MIN_MERCHANTS)return {eligible:false,reason:'Menos de tres ofertas independientes',offers:[]};
  if(!exactVariant(page.query_text,external))return {eligible:false,reason:'Modelos, estados o variantes mezclados, o enlaces sin tienda directa',offers:[]};
  const sellers=new Set(external.map(o=>normalize(o.shop)));

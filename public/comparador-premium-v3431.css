@@ -503,3 +503,29 @@ body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-
  body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage{min-height:160px}
  body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage img{width:95px;max-height:95px}
 }
+
+/* V3.4.3.7: accesorios y ofertas pendientes no equivalen al teléfono. */
+.cmp-rich-comparison .cmp-noncomparable-section{margin:15px 0;border:1px solid #dfebf6;
+ border-radius:15px;background:#f8fbff;overflow:hidden}
+.cmp-rich-comparison .cmp-noncomparable-section summary{padding:16px 19px;
+ cursor:pointer;font-size:.89rem;font-weight:790;color:#285b85}
+.cmp-rich-comparison .cmp-noncomparable-section>details>p{padding:0 19px;
+ margin:0 0 13px;font-size:.82rem;line-height:1.5;color:#546f87}
+.cmp-rich-comparison .cmp-noncomparable-list{padding:0 12px 13px;margin:0;
+ display:grid;grid-template-columns:1fr;gap:10px;list-style:none}
+.cmp-rich-comparison .cmp-noncomparable-item{padding:11px;border:1px solid #dce8f2;
+ border-radius:12px;background:#fff;min-width:0}
+.cmp-rich-comparison .cmp-noncomparable-item>small{display:block;font-weight:730;
+ color:#76571c;font-size:.76rem;margin:0 0 7px}
+.cmp-rich-comparison .cmp-noncomparable-item>.comparison-list{margin:0;padding:0}
+.cmp-rich-comparison .cmp-noncomparable-item .offer{margin:0;border:0;
+ box-shadow:none;padding:8px;min-height:0}
+.cmp-rich-comparison .cmp-only-review-status{border:1px solid #d9e7f4;
+ border-radius:15px;background:#fff;padding:19px;margin:16px 0}
+.cmp-rich-comparison .cmp-only-review-status h2{font-size:1.1rem;margin:0 0 7px}
+.cmp-rich-comparison .cmp-only-review-status p{font-size:.86rem;color:#61788e;margin:0}
+@media(max-width:720px){
+ .cmp-rich-comparison .cmp-noncomparable-section summary{padding:14px}
+ .cmp-rich-comparison .cmp-noncomparable-list{padding:0 8px 10px}
+ .cmp-rich-comparison .cmp-noncomparable-item{padding:8px}
+}

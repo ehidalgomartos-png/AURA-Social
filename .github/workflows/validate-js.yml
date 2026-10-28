@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.3.7 phone offers versus accessories and uncertain prices
+        run: node --test tests/marketplace-comparador-phone-quality-v3437.test.js
       - name: V3.4.3.6 consistent visual fallback for smartphone pages
         run: node --test tests/marketplace-comparador-visual-fallback-v3436.test.js
       - name: V3.4.3.5 honest generic categories and Samsung image confidence

@@ -10,7 +10,8 @@ function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && !o.sponsored && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
 function matchingOffers(page,offers){
- return (Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title)&&!quality.repairReason(o));
+ const matching=(Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title)&&!quality.repairReason(o));
+ return quality.groupOffers(page?.query_text,matching).main;
 }
 function indexEligible(page,offers,now=Date.now()){
  if(!page || page.seo_blocked===true || quality.isRepairSearch(page.query_text))return false;
