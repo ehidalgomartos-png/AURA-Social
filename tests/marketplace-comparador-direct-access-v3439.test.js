@@ -89,7 +89,8 @@ test('filtrado progresivo tiene controles accesibles, móvil y no afecta apartad
  const js=fs.readFileSync(path.join(__dirname,'../public/comparador-v32135.js'),'utf8');
  assert.match(js,/data-access-choice/);
  assert.match(js,/data-primary-offers/);
- assert.match(js,/item\.hidden=mode==='direct'/);
+ assert.match(js,/item\.hidden=!show/);
+ assert.match(js,/mode==='all'\|\|item\.dataset\.offerAccess==='direct'/);
  assert.match(js,/aria-pressed/);
  assert.doesNotMatch(js,/fetch\(.*[Ss]erp[Aa]pi/);
  const css=fs.readFileSync(path.join(__dirname,'../public/comparador-premium-v3431.css'),'utf8');
