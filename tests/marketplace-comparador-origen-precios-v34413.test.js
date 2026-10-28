@@ -102,13 +102,14 @@ test('si la fecha es desconocida, no se inventa una fecha de consulta',async()=>
 test('publicidad separada muestra origen correcto sin influir en el precio mínimo',async()=>{
  const advertising=offer('Promo',5500,{sponsored:true});
  const ordinary=offer('Comercio',19000);
- const {status,html}=await render({offers:[advertising,ordinary]});
+ const other=offer('Otra Tienda',21000);
+ const {status,html}=await render({offers:[advertising,ordinary,other]});
  assert.equal(status,200);
  assert.match(html,/Desde 190,00/);
  assert.match(html,/Publicidad \(1\)/);
  assert.match(html,/Publicidad · precio orientativo/);
  assert.match(html,/Oferta externa · precio orientativo/);
- assert.equal((html.match(/class="cmp-price-source"/g)||[]).length,2);
+ assert.equal((html.match(/class="cmp-price-source"/g)||[]).length,3);
 });
 
 test('tarjetas locales de RedLibertad identifican su precio publicado sin fingir consulta externa',async()=>{
