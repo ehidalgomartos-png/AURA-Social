@@ -549,6 +549,26 @@ router.post('/comparar/comercios/solicitar',optionalAuth,
    '/comparar/comercios'));
  }catch(error){next(error);}
 });
+// V3.4.2.7: prueba manual opcional de control del dominio, sin peticiones HTTP
+// a páginas de comerciantes, ni activación de compras ni de pagos.
+router.post('/comparar/comercios/verificacion/:id',requireAuth,
+ rateLimit({windowMs:60*60*1000,limit:10,standardHeaders:'draft-7',legacyHeaders:false}),async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Actualiza tu panel y vuelve a intentarlo.');
+  const id=String(req.params.id||'');
+  if(!/^[1-9]\\d{0,15}$/.test(id))return res.sendStatus(400);
+  await ensureProfessionalSchema();
+  const generated='rl-verify-'+crypto.randomBytes(16).toString('hex');
+  const result=await db.query(
+   "UPDATE marketplace_professional_stores SET verification_token=COALESCE(verification_token,$3),updated_at=now() "+
+   "WHERE id=$1 AND seller_id=$2 AND status='pending' RETURNING id",
+   [id,req.user.id,generated]);
+  if(!result.rowCount)return res.status(404).send('No existe una tienda pendiente en esta cuenta.');
+  res.redirect(303,'/comparar/comercios/mi-panel');
+ }catch(error){next(error);}
+});
 router.get('/comparar/comercios/mis-solicitudes',requireAuth,async(req,res,next)=>{
  try{
   await ensureProfessionalSchema();
@@ -670,8 +690,9 @@ router.get('/admin/comparador/comercios-seguimiento',requireAdmin,async(req,res,
 router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
  try{
   await ensureProfessionalSchema();
+  const csrfToken=issueCsrf(req,res);
   const result=await db.query(
-   "SELECT s.id,s.name,s.platform,s.store_url,s.status,"+
+   "SELECT s.id,s.name,s.platform,s.store_url,s.status,s.verification_token,"+
    "COUNT(DISTINCT x.listing_id)::integer AS linked_count,"+
    "COUNT(DISTINCT x.listing_id) FILTER (WHERE x.stock_status='in_stock' "+
    "AND (x.source<>'api' OR x.last_checked_at>now()-interval '48 hours') "+
@@ -686,10 +707,18 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
    [req.user.id]);
   const cards=result.rows.map(store=>{
    const info=sellerProgress(store);
+   const verification=store.status==='pending'?
+    (store.verification_token?
+     '<div class="cmp-merchant-verification"><strong>Verificación de titularidad (manual)</strong>'+
+     '<p>Publica este código de texto en una página visible de tu dominio '+esc(store.store_url)+'. Administración comprobará el código antes de aprobar la tienda.</p>'+
+     '<code>'+esc(store.verification_token)+'</code><small>No introduzcas contraseñas ni datos de clientes. El código no activa nada automáticamente.</small></div>':
+     '<form method="post" action="/comparar/comercios/verificacion/'+esc(store.id)+'">'+
+     '<input type="hidden" name="_csrf" value="'+esc(csrfToken)+'">'+
+     '<button type="submit">Obtener código de verificación</button></form>'):'';
    return '<li class="cmp-merchant-progress"><strong>'+esc(store.name)+'</strong>'+
     '<span>'+esc(info.label)+' · '+esc(store.platform)+'</span>'+
     '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
-    '<p>'+esc(info.next)+'</p></li>';
+    '<p>'+esc(info.next)+'</p>'+verification+'</li>';
   }).join('');
   const content='<div class="cmp-commerce-intro"><h1>Mis tiendas del comparador</h1>'+
    '<p>El servicio es gratuito. Cada tienda necesita aprobación y productos revisados antes de aparecer en una comparación.</p>'+
