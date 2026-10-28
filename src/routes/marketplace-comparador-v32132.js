@@ -11,6 +11,7 @@ const provider=require('../services/marketplace-comparador-provider-v32133');
 const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
 const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
+const directAccess=require('../services/marketplace-comparador-direct-access-v3439');
 const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
 const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
@@ -127,7 +128,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const img=o.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||'')?o.image:null:provider.safeImage(o.image);
  const picture=img?'<img class="offer-photo" src="'+esc(img)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div class="offer-noimage" aria-hidden="true">🛍️</div>';
  const shop=String(o.shop||'Tienda no identificada');
- const merchant=link.destination==='store';
+ const merchant=directAccess.isDirectStore(o);
+ const directFlag=merchant?'direct':'alternate';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
  const note=o.partner_store?'Comercio aprobado · compra en su web':o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':o.manual_link?'Enlace revisado por administración':merchant?'Enlace directo del vendedor':'';
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
@@ -143,8 +145,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
    '<small class="offer-price-date'+(priceInfo.isStale?' offer-price-old':'')+'">'+
    esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
    '<small class="offer-price-date offer-price-old">Sin fecha de precio externo</small>';
- return '<li class="offer" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
-  picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
+ return '<li class="offer" data-offer-access="'+directFlag+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
+  picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+pricing+
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</div></li>';
@@ -971,7 +973,18 @@ router.get('/comparar/:slug',async(req,res,next)=>{
      'Esta página está guardada. Puedes volver más tarde o explorar otras comparaciones.')+'</p>'+
    '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
-  const cards=ordinary.length?'<ol class="comparison-list">'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
+  const access=directAccess.summary(ordinary);
+  const directControls=ordinary.length>1?
+   '<div class="cmp-access-toolbar" data-direct-filter>'+
+   '<div class="cmp-access-intro"><strong>'+access.direct+' '+(access.direct===1?'oferta con enlace directo':'ofertas con enlace directo')+'</strong>'+
+   '<small>'+access.other+' '+(access.other===1?'oferta sin enlace directo':'ofertas sin enlace directo')+' · precios ordenados de menor a mayor</small></div>'+
+   (access.direct&&access.other?
+    '<div class="cmp-access-options" role="group" aria-label="Filtrar ofertas por tipo de enlace">'+
+    '<button type="button" class="cmp-access-option" data-access-choice="all" aria-pressed="true">Todas ('+access.total+')</button>'+
+    '<button type="button" class="cmp-access-option" data-access-choice="direct" aria-pressed="false">Solo acceso directo ('+access.direct+')</button></div>':'')+
+   '<p class="cmp-access-filter-note" data-access-note hidden>Se muestran únicamente enlaces directos. El mínimo superior corresponde a todas las ofertas comparables, no solo a las filtradas.</p>'+
+   '</div>':'';
+  const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
    const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo);
   const richHero=exact?productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length):

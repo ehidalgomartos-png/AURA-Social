@@ -118,3 +118,25 @@ document.addEventListener('submit',async event=>{
   feedback.textContent='No se ha podido completar la consulta. Comprueba tu conexión o utiliza «Buscar en Google».';
  }
 });
+
+
+/* V3.4.3.9 — filtro local de acceso directo. Nunca consulta SerpApi.
+   Se limita a la lista principal: anuncios averiados/accesorios siguen accesibles. */
+document.addEventListener('click',event=>{
+ const button=event.target?.closest?.('[data-access-choice]');
+ if(!button)return;
+ const toolbar=button.closest('[data-direct-filter]');
+ const list=toolbar?.nextElementSibling;
+ if(!toolbar||!list?.matches?.('[data-primary-offers]'))return;
+ const mode=button.getAttribute('data-access-choice');
+ if(mode!=='all'&&mode!=='direct')return;
+ for(const item of list.children){
+  if(!item.matches('li.offer'))continue;
+  item.hidden=mode==='direct'&&item.dataset.offerAccess!=='direct';
+ }
+ for(const option of toolbar.querySelectorAll('[data-access-choice]')){
+  option.setAttribute('aria-pressed',String(option===button));
+ }
+ const note=toolbar.querySelector('[data-access-note]');
+ if(note)note.hidden=mode!=='direct';
+});
