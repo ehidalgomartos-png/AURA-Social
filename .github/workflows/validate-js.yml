@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.15 shared offer deep-link, missing offer notice and mobile focus
+        run: node --test tests/marketplace-comparador-ofertas-compartidas-visibles-v34415.test.js
       - name: V3.4.4.14 mobile share individual comparison offers
         run: node --test tests/marketplace-comparador-compartir-ofertas-v34414.test.js
       - name: V3.4.4.13 transparent offer price provenance and mobile badges
