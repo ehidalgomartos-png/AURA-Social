@@ -144,9 +144,9 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
    '<small class="offer-price-date offer-price-old">Sin fecha de precio externo</small>';
  return '<li class="offer">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main"><strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
-  '</div><div class="price">'+money(o.price_cents)+'</div>'+pricing+
-  lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
-  (note?'<span class="offer-destination">'+note+'</span>':'')+'</li>';
+  '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+pricing+
+  lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
+  (note?'<span class="offer-destination">'+note+'</span>':'')+'</div></li>';
 }
 function repairOffersMarkup(offers,slug,csrfToken,priceInfo){
  if(!offers.length)return '';
