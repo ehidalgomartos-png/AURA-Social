@@ -94,7 +94,7 @@ function formMarkup(message='',term='',csrfToken=''){
 function shell(title,description,body,canonical,allowIndex=false,structured=null){
  const robots=allowIndex?'index,follow':'noindex,follow';
  const styles=':root{font-family:system-ui,-apple-system,sans-serif;color:#17324c;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}header{background:#102a47;color:white;padding:15px max(18px,calc((100% - 1050px)/2))}header a{color:white;text-decoration:none;font-weight:700}header span{opacity:.8;margin-left:16px}main{max-width:1000px;margin:auto;padding:20px 16px 55px}h1{font-size:clamp(1.5rem,5vw,2.4rem);line-height:1.18}p{line-height:1.55}a{color:#065ca6}.muted,small{color:#526277}.compare-search,.offer,.info{background:white;border:1px solid #dde5ec;border-radius:14px;padding:18px;margin:16px 0}.compare-search label{display:block;font-weight:700;margin-bottom:10px}.compare-search-row{display:flex;gap:8px}.compare-search input{flex:1;min-width:0;padding:13px;border:1px solid #acbdc9;border-radius:9px;font-size:16px}.compare-search button{padding:12px 18px;background:#134f81;color:white;border:0;border-radius:9px;font-weight:700;cursor:pointer}.compare-search small{display:block;margin-top:10px}.compare-error{color:#9c2020}.offer{display:flex;gap:14px;align-items:center}.offer img{width:82px;height:82px;object-fit:contain}.offer-main{min-width:0;flex:1}.offer strong{display:block}.price{font-size:1.2rem;font-weight:800;white-space:nowrap}.offer-link{display:inline-block;margin-top:6px}.crumb{font-size:.9rem}.offer small{display:block}.offer-photo{background:#f8fbfd;border-radius:9px}.offer-noimage{width:82px;height:82px;display:grid;place-items:center;background:#ecf2f8;border-radius:10px;font-size:28px}.compare-guide{font-weight:650;color:#075986}.compare-section-desc{font-size:.96rem}.offer-link{font-weight:700}.offer .price{color:#0c5a35}.comparison-list{list-style:none;padding:0}footer{padding:20px;text-align:center;border-top:1px solid #dae3e9}@media(max-width:540px){.compare-search-row{flex-direction:column}.compare-search button{min-height:46px}.offer{align-items:flex-start;flex-wrap:wrap}.offer img{width:64px;height:64px}.price{width:100%}}';
- return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+robots+'"><meta property=\"og:type\" content=\"website\"><meta property=\"og:title\" content=\"'+esc(title)+'\"><meta property=\"og:description\" content=\"'+esc(description)+'\"><meta property=\"og:url\" content=\"'+esc(ORIGIN+canonical)+'\"><meta name=\"twitter:card\" content=\"summary\">'+(structured?'<script type=\"application/ld+json\">'+seo.jsonLd(structured)+'</script>':'')+'<link rel="canonical" href="'+esc(ORIGIN+canonical)+'"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><style>'+styles+'</style><link rel="stylesheet" href="/comparador-v32135.css"><script defer src="/comparador-v32135.js"></script></head><body><header><a href="/app">RedLibertad</a><span>Comparador</span></header><main>'+body+'</main><footer><a href="/marketplace/explorar">Marketplace</a> · <a href="/comparar">Comparador</a> · Los precios y la disponibilidad pueden cambiar en la tienda.</footer></body></html>';
+ return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+robots+'"><meta property=\"og:type\" content=\"website\"><meta property=\"og:title\" content=\"'+esc(title)+'\"><meta property=\"og:description\" content=\"'+esc(description)+'\"><meta property=\"og:url\" content=\"'+esc(ORIGIN+canonical)+'\"><meta name=\"twitter:card\" content=\"summary\">'+(structured?'<script type=\"application/ld+json\">'+seo.jsonLd(structured)+'</script>':'')+'<link rel="canonical" href="'+esc(ORIGIN+canonical)+'"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><style>'+styles+'</style><link rel="stylesheet" href="/comparador-v32135.css"><link rel="stylesheet" href="/comparador-premium-v3431.css"><script defer src="/comparador-v32135.js"></script></head><body class="cmp-premium"><a class="cmp-skip" href="#contenido">Saltar al contenido</a><header class="cmp-site-header"><nav class="cmp-site-nav" aria-label="Navegación del comparador"><a class="cmp-brand" href="/comparar" aria-label="RedLibertad, comparador"><span class="cmp-brand-mark" aria-hidden="true">RL</span><span class="cmp-brand-copy">RedLibertad <span>· Comparador</span></span></a><div class="cmp-top-links"><a href="/comparar">Comparar</a><a href="/comparar/comercios/tiendas">Tiendas</a><a href="/comparar/comercios" class="cmp-top-cta">Para comercios</a></div></nav></header><main id="contenido">'+body+'</main><footer class="cmp-site-footer"><div class="cmp-footer-inner"><nav aria-label="Enlaces de pie de página"><a href="/marketplace/explorar">Marketplace</a><a href="/comparar">Comparador</a><a href="/comparar/comercios/tiendas">Tiendas participantes</a><a href="/comparar/comercios">Añadir una tienda</a></nav><p>Precios orientativos · Compra siempre en la tienda del vendedor.</p></div></footer></body></html>';
 }
 function offerKey(o){
  return crypto.createHash('sha256').update([String(o.product_id||''),String(o.shop||''),String(o.title||''),String(o.price_cents||'')].join('|')).digest('hex');
@@ -228,10 +228,21 @@ router.get('/comparar',async(req,res,next)=>{
   const csrfToken=issueCsrf(req,res);
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
-   '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
-   '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Tiendas participantes</a> · ¿Tienes una tienda online? <a href="/comparar/comercios">Solicita aparecer gratis</a></p>'+
-   '<section class="info"><h2>Comparaciones recientes</h2>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
-   (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
+   '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p>'+
+   '<section class="cmp-home-hero" aria-labelledby="cmp-home-title">'+
+   '<span class="cmp-home-eyebrow">RedLibertad · Compara antes de comprar</span>'+
+   '<h1 id="cmp-home-title">Comparador de precios</h1>'+
+   '<p class="cmp-home-subtitle">Encuentra ofertas, compara tiendas y comprueba el estado del producto antes de decidir.</p>'+
+   formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
+   '<p class="cmp-home-trust"><span>Precios por producto y estado</span><span>Enlaces a vendedores</span><span>Comparaciones guardadas</span></p></section>'+
+   '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a><span class="cmp-cta-sep">·</span>¿Tienes una tienda? <a href="/comparar/comercios">Añádela gratis</a></p>'+
+   '<section class="info cmp-home-panel" aria-labelledby="cmp-recent-title"><span class="cmp-section-eyebrow">Explora productos</span>'+
+   '<h2 id="cmp-recent-title">Comparaciones recientes</h2>'+
+   (items?'<p class="cmp-section-note">Búsquedas guardadas con ofertas; consulta la ficha para ver precios y disponibilidad.</p><ul class="compare-recent-list">'+items+'</ul>':
+   '<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
+   (indexed?'<section class="info cmp-home-panel"><span class="cmp-section-eyebrow">Fichas públicas</span><h2>Comparaciones seleccionadas</h2>'+
+   '<p class="cmp-section-note">Preparadas para indexación; Google decide si aparecen en sus resultados.</p>'+
+   '<ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
    '',
    '/comparar',true,seo.structuredData(null,[],false,'/comparar')));
  }catch(e){next(e);}
@@ -511,19 +522,20 @@ router.post('/comparar/tienda/:slug/:offerKey',
 // No permite activar checkout, pagos ni conexión de credenciales desde el formulario.
 router.get('/comparar/comercios', (req,res)=>{
  const token=issueCsrf(req,res);
- const content='<div class="cmp-commerce-intro"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
-  '<h1>Tu tienda en el comparador de RedLibertad</h1>'+
-  '<p>Solicita incorporar tus productos al comparador. Por ahora es gratuito: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
+ const content='<div class="cmp-commerce-intro cmp-application-page"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
+  '<span class="cmp-section-eyebrow">Programa de comercios · Gratis</span><h1>Tu tienda en el comparador de RedLibertad</h1>'+
+  '<p class="cmp-commerce-lead">Lleva tus productos a quienes ya están comparando precios. El alta es gratuita: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
   '<p>Las tiendas se revisan antes de habilitar enlaces de compra. La venta se realiza exclusivamente en tu propia web.</p>'+
   '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra tu tienda y espera la revisión.</span></li><li><strong>Verifica tu dominio</strong><span>Publica el código que te facilitamos; Administración comprobará la titularidad.</span></li><li><strong>Comparte tus productos</strong><span>Conecta WooCommerce con claves de lectura cuando esté aprobada.</span></li></ol>'+
-  '<form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
+  '<div class="cmp-application-panel"><form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
   '<label for="comercioNombre">Nombre de la tienda</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization">'+
   '<label for="comercioWeb">Web de la tienda (HTTPS)</label><input id="comercioWeb" type="url" name="storeUrl" maxlength="500" placeholder="https://mitienda.es/" required autocomplete="url">'+
   '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+
   '<button type="submit">Solicitar incorporación gratuita</button>'+
-  '<small>Debes iniciar sesión en RedLibertad. Solo tramitaremos solicitudes del propietario de la cuenta. No introduzcas contraseñas ni claves de tu tienda.</small></form>'+
-  '<p><a href="/app">Entrar o crear cuenta</a> · <a href="/comparar/comercios/mi-panel">Mi panel de comercios</a></p></div>';
+  '<small>Se requiere una cuenta de RedLibertad. No introduzcas contraseñas ni claves de tu tienda en este formulario.</small></form>'+ 
+  '<aside class="cmp-application-note"><strong>Venderás en tu propia tienda</strong><p>Los compradores irán directamente a tu web para finalizar la compra. RedLibertad no cobra ninguna comisión.</p><strong>Tú mantienes el control</strong><p>Las tiendas pasan una revisión manual y cada producto conserva su precio, estado y enlace original.</p><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a></aside></div>'+
+  '<nav class="cmp-section-subnav" aria-label="Opciones de comercios"><a href="/app">Entrar o crear cuenta</a><a href="/comparar/comercios/mi-panel">Mi panel de comercios</a></nav></div>';
  res.set('Cache-Control','private,no-store');
  res.send(shell('Comercios en el comparador | RedLibertad','Solicitud gratuita para incorporar una tienda online al comparador.',content,'/comparar/comercios',true));
 });
@@ -766,14 +778,15 @@ router.get('/comparar/comercios/tiendas',async(req,res,next)=>{
   const indexReady=stores.length>=3 &&
    stores.filter(s=>Number(s.products)>=2).length>=3 &&
    stores.reduce((sum,s)=>sum+Math.max(0,Number(s.products)||0),0)>=12;
-  const cards=stores.map(s=>'<li><strong>'+esc(s.name)+'</strong>'+
-   '<small>'+Number(s.products)+' '+(Number(s.products)===1?'producto':'productos')+' disponibles</small>'+
-   '<a href="'+esc(normalizeStoreUrl(s.store_url))+'" target="_blank" rel="noopener noreferrer nofollow">Visitar tienda</a></li>').join('');
-  const html='<div class="cmp-commerce-intro"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
-   '<h1>Tiendas participantes</h1>'+
+  const cards=stores.map(s=>'<li><div class="cmp-store-card-top"><span class="cmp-store-icon" aria-hidden="true">'+esc(String(s.name||'T').trim().charAt(0).toLocaleUpperCase('es-ES'))+'</span><strong>'+esc(s.name)+'</strong></div><span class="cmp-store-check">Comercio aprobado</span>'+
+   '<small class="cmp-store-meta">'+Number(s.products)+' '+(Number(s.products)===1?'producto':'productos')+' disponibles</small>'+
+   '<a class="cmp-store-action" href="'+esc(normalizeStoreUrl(s.store_url))+'" target="_blank" rel="noopener noreferrer nofollow">Visitar tienda ↗</a></li>').join('');
+  const html='<div class="cmp-commerce-intro cmp-directory-page"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
+   '<span class="cmp-section-eyebrow">Compra directamente a los vendedores</span><h1>Tiendas participantes</h1>'+
    '<p>Comercios aprobados que comparten sus productos gratuitamente. El pago y la compra se realizan siempre en cada tienda.</p>'+
-   '<ul class="cmp-commerce-directory">'+(cards||'<li>Estamos incorporando comercios.</li>')+'</ul>'+
-   '<p><a href="/comparar">Buscar y comparar precios</a> · <a href="/comparar/comercios">Solicitar aparecer gratis</a></p></div>';
+   '<div class="cmp-directory-toolbar"><span class="cmp-directory-count">'+stores.length+' '+(stores.length===1?'tienda participante':'tiendas participantes')+'</span><a href="/comparar/comercios">¿Tienes una tienda? Únete gratis</a></div>'+ 
+   '<ul class="cmp-commerce-directory'+(stores.length===1?' cmp-directory-single':'')+'">'+(cards||'<li class="cmp-commerce-empty"><strong>Estamos incorporando comercios</strong><p>Pronto aparecerán aquí las tiendas que superen la revisión y tengan productos disponibles.</p><a href="/comparar/comercios">Solicitar alta gratuita</a></li>')+'</ul>'+
+   '<nav class="cmp-section-subnav" aria-label="Enlaces del directorio"><a href="/comparar">Buscar y comparar precios</a><a href="/comparar/comercios">Solicitar aparecer gratis</a></nav></div>';
   res.set('Cache-Control','private,no-store');
   res.send(shell('Tiendas participantes | RedLibertad','Tiendas online aprobadas y ofertas disponibles.',
    html,'/comparar/comercios/tiendas',indexReady));
@@ -845,10 +858,10 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
     (store.status==='approved'&&store.platform==='woocommerce'?'<p><a href="/comparar/comercios/woocommerce/'+esc(store.id)+'">Conectar WooCommerce con claves de lectura</a></p>':'')+
     (info.linked?'<p><a href="/comparar/comercios/productos/'+esc(store.id)+'">Ver diagnóstico de mis productos</a></p>':'')+'</li>';
   }).join('');
-  const content='<div class="cmp-commerce-intro"><h1>Mis tiendas del comparador</h1>'+
+  const content='<div class="cmp-commerce-intro cmp-dashboard-page"><span class="cmp-section-eyebrow">Área privada de comercios</span><h1>Mis tiendas del comparador</h1>'+
    '<p>El servicio es gratuito. Cada tienda necesita aprobación y productos revisados antes de aparecer en una comparación.</p>'+
-   '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Aún no has solicitado ninguna tienda.</li>')+'</ul>'+
-   '<p><a href="/comparar/comercios/mis-estadisticas">Ver estadísticas de clics</a> · <a href="/comparar/comercios">Solicitar otra tienda</a></p></div>';
+   '<ul class="cmp-commerce-stat-list">'+(cards||'<li class="cmp-dashboard-note">Todavía no tienes tiendas registradas. Puedes solicitar una gratuitamente y seguir su revisión desde aquí.</li>')+'</ul>'+
+   '<nav class="cmp-section-subnav" aria-label="Opciones de mis tiendas"><a href="/comparar/comercios/mis-estadisticas">Ver estadísticas de clics</a><a href="/comparar/comercios">Solicitar otra tienda</a></nav></div>';
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('Mis tiendas | RedLibertad','Solicitudes y estado de tiendas.',content,'/comparar/comercios/mi-panel'));
  }catch(error){next(error);}
