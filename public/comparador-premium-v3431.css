@@ -705,3 +705,14 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .offer
  .cmp-merchant-result .cmp-section-subnav{display:grid;grid-template-columns:1fr}
  .cmp-merchant-result .cmp-section-subnav a{min-height:46px}
 }
+
+/* V3.4.4.4 — Incidencias de catálogo visibles solo al propietario. */
+.cmp-commerce-intro .cmp-catalog-duplicate-summary{
+ border:1px solid #ecd8af;background:#fff9ed;border-radius:12px;
+ padding:13px 15px;font-size:.85rem;line-height:1.5;color:#704c19;
+}
+.cmp-commerce-intro .cmp-catalog-duplicate-note{
+ display:block;margin:8px 0;padding:9px 11px;
+ border:1px solid #e8d7b6;border-radius:9px;
+ background:#fff9ed;color:#805c23;font-size:.78rem;line-height:1.45;
+}

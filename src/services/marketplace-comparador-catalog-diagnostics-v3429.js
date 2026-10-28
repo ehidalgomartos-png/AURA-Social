@@ -27,4 +27,28 @@ function summary(items){
   sync:statuses.filter(x=>x.state==='sync').length,
   invalidLink:statuses.filter(x=>x.state==='link').length};
 }
-module.exports={diagnoseProduct,summary};
+// Se compara únicamente la URL explícita de compra; no se fusionan productos
+// ni se asumen GTIN/EAN sin datos. Distintos listing_id en el mismo enlace
+// pueden ser duplicados o variantes: solo informamos al propietario.
+function suspectedDuplicateLinks(items){
+ const byUrl=new Map();
+ for(const item of Array.isArray(items)?items:[]){
+  if(!item?.product_url||!item.listing_id)continue;
+  let url;
+  try{url=new URL(item.product_url);}catch(_){continue;}
+  if(url.protocol!=='https:'||url.username||url.password)continue;
+  url.hash='';
+  if(url.pathname.length>1)url.pathname=url.pathname.replace(/\/+$/,'')||'/';
+  const canonical=url.href;
+  if(!byUrl.has(canonical))byUrl.set(canonical,new Set());
+  byUrl.get(canonical).add(String(item.listing_id));
+ }
+ const ids=new Set(),groups=[];
+ for(const values of byUrl.values()){
+  if(values.size<2)continue;
+  const group=[...values];groups.push(group);
+  group.forEach(id=>ids.add(id));
+ }
+ return {groups:groups.length,items:ids.size,listingIds:ids};
+}
+module.exports={diagnoseProduct,summary,suspectedDuplicateLinks};

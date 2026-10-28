@@ -774,10 +774,12 @@ router.get('/comparar/comercios/productos/:id',requireAuth,async(req,res,next)=>
    "ORDER BY x.updated_at DESC LIMIT 101",[id,req.user.id]);
   const shown=products.rows.slice(0,100);
   const statistics=catalogDiagnostics.summary(shown);
+   const duplicateLinks=catalogDiagnostics.suspectedDuplicateLinks(shown);
   const cards=shown.map(product=>{
    const result=catalogDiagnostics.diagnoseProduct(product);
    return '<li class="cmp-merchant-diagnostic"><strong>'+esc(product.title)+'</strong>'+
-    '<span>'+esc(result.label)+' · '+esc(product.stock_status)+'</span>'+
+    '<span>'+esc(result.label)+' · '+esc(product.stock_status)+'</span>'+ 
+     (duplicateLinks.listingIds.has(String(product.listing_id))?'<span class="cmp-catalog-duplicate-note">Posible duplicado: otro anuncio utiliza la misma URL de compra. Comprueba si se trata de una variante.</span>':'')+
     '<p>'+esc(result.reason)+'</p>'+
     '<a href="/marketplace/p/'+esc(product.listing_id)+'">Ver anuncio de RedLibertad</a></li>';
   }).join('');
@@ -785,8 +787,9 @@ router.get('/comparar/comercios/productos/:id',requireAuth,async(req,res,next)=>
    '<h1>Diagnóstico de productos</h1><p>'+esc(store.rows[0].name)+'</p>'+
    '<p>'+statistics.total+' productos revisados · '+statistics.ready+' disponibles · '+
    statistics.needsReview+' pendientes de publicación · '+statistics.stock+' con incidencia de stock · '+
-   statistics.sync+' para sincronizar · '+statistics.invalidLink+' con enlace a revisar.</p>'+
-   '<p>Estos resultados informan del estado de catálogo: no verifican las ventas y no cambian precios ni publicaciones.</p>'+
+   statistics.sync+' para sincronizar · '+statistics.invalidLink+' con enlace a revisar.</p>'+ 
+    (duplicateLinks.groups?'<p class="cmp-catalog-duplicate-summary" role="status">'+duplicateLinks.items+' anuncios comparten enlaces de compra en '+duplicateLinks.groups+' '+(duplicateLinks.groups===1?'grupo':'grupos')+'. Revisa posibles duplicados o variantes antes de hacer cambios.</p>':'')+
+   '<p>Estos resultados informan del estado de catálogo: no verifican las ventas y no cambian precios ni publicaciones. Los enlaces compartidos se señalan como posibles duplicados, sin eliminar ninguna variante.</p>'+
    '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Todavía no hay productos vinculados.</li>')+'</ul>'+
    (products.rows.length>100?'<p>Se muestran los 100 productos más recientes.</p>':'')+
    '<a href="/comparar/comercios/mi-panel">Volver a mis tiendas</a></div>';
