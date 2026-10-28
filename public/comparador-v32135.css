@@ -425,3 +425,9 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-commerce-form button{margin-top:10px;min-height:46px}
 .cmp-commerce-form small{font-size:.81rem;line-height:1.55}
 @media(max-width:540px){.cmp-commerce-form{padding:14px}.cmp-commerce-intro{padding:0 1px}}
+
+/* V3.4.2.2 — Resumen gratuito, privado y legible en móvil. */
+.cmp-commerce-stat-list{list-style:none;padding:0;display:grid;gap:11px;margin:20px 0}
+.cmp-commerce-stat-list li{border:1px solid #dae6f3;background:white;padding:14px;border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.cmp-commerce-stat-list strong{font-weight:800;color:#174d80}
+.cmp-commerce-stat-list span{display:block;margin-top:6px;color:#526e88;font-size:.88rem}
