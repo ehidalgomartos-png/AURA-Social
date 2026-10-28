@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 330" fill="none" role="img" aria-label="Ilustración de productos y comparaciones">
+<defs>
+ <linearGradient id="panel" x1="28" y1="25" x2="429" y2="340" gradientUnits="userSpaceOnUse"><stop stop-color="#EFF7FF"/><stop offset="1" stop-color="#CEDFF6"/></linearGradient>
+ <linearGradient id="screen" x1="188" y1="62" x2="300" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#81B3FF"/><stop offset=".5" stop-color="#5D73CF"/><stop offset="1" stop-color="#DC91C4"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2DAFE3"/><stop offset="1" stop-color="#1A77C5"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#082D53" flood-opacity=".18"/></filter>
+</defs>
+<circle cx="265" cy="175" r="137" fill="#B3DAFF" fill-opacity=".2"/>
+<circle cx="265" cy="175" r="107" stroke="#B9DDFF" stroke-opacity=".46"/>
+<path d="M24 285C115 215 171 299 248 238S371 228 447 158" stroke="#A8D7FF" stroke-opacity=".5" stroke-width="2" stroke-dasharray="5 9"/>
+<!-- center shopping product -->
+<g filter="url(#shadow)">
+ <rect x="149" y="32" width="177" height="265" rx="25" fill="#FCFEFF" stroke="#BDD7F0" stroke-width="2"/>
+ <rect x="174" y="56" width="127" height="216" rx="16" fill="#16395D"/>
+ <rect x="180" y="62" width="115" height="204" rx="12" fill="url(#screen)"/>
+ <path d="M204 220L287 138V267H182V243Z" fill="#FBB5C1" fill-opacity=".4"/>
+ <rect x="219" y="65" width="37" height="8" rx="4" fill="#102D4F"/>
+ <circle cx="237" cy="285" r="4" fill="#AEC7E0"/>
+</g>
+<!-- home accessory preview -->
+<g filter="url(#shadow)">
+ <rect x="25" y="112" width="127" height="115" rx="18" fill="#fff" stroke="#CDE5FA"/>
+ <rect x="45" y="132" width="87" height="70" rx="11" fill="#EAF6FF"/>
+ <rect x="60" y="155" width="57" height="27" rx="13.5" fill="#56AED6"/>
+ <path d="M65 159v-3c0-15 8-22 23-22s23 7 23 22v3" stroke="#215986" stroke-width="8" stroke-linecap="round"/>
+ <rect x="48" y="210" width="68" height="5" rx="2.5" fill="#C8DCEB"/>
+</g>
+<!-- small chair furniture preview -->
+<g filter="url(#shadow)">
+ <rect x="332" y="148" width="122" height="125" rx="18" fill="#fff" stroke="#CDE5FA"/>
+ <rect x="357" y="166" width="73" height="61" rx="15" fill="#A8C7DE"/>
+ <rect x="347" y="204" width="93" height="31" rx="10" fill="#558CAC"/>
+ <rect x="353" y="228" width="7" height="20" rx="3" fill="#295D81"/>
+ <rect x="425" y="228" width="7" height="20" rx="3" fill="#295D81"/>
+ <rect x="353" y="250" width="64" height="5" rx="2.5" fill="#E1EBF3"/>
+</g>
+<!-- product comparison arrows -->
+<g filter="url(#shadow)">
+ <rect x="307" y="39" width="129" height="73" rx="15" fill="#fff" stroke="#CDE5FA"/>
+ <circle cx="332" cy="64" r="10" fill="#D9F5EA"/>
+ <path d="m327 64 4 4 7-8" stroke="#08734E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+ <rect x="351" y="58" width="65" height="6" rx="3" fill="#A8C5DA"/>
+ <rect x="351" y="70" width="46" height="6" rx="3" fill="#E0EBF5"/>
+ <path d="M334 92h68" stroke="#DFEBF5" stroke-width="5" stroke-linecap="round"/>
+</g>
+<g filter="url(#shadow)">
+ <rect x="65" y="256" width="124" height="51" rx="14" fill="#fff" stroke="#D0E4F6"/>
+ <circle cx="91" cy="281" r="12" fill="#E5F3FF"/>
+ <path d="M85 282h12m-4-4 4 4-4 4" stroke="#176AA9" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+ <rect x="113" y="275" width="59" height="6" rx="3" fill="#BBD6E8"/>
+ <rect x="113" y="286" width="38" height="5" rx="2.5" fill="#E0EBF5"/>
+</g>
+</svg>
