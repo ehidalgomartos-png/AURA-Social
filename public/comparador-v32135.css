@@ -458,3 +458,11 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-merchant-diagnostic p{margin:5px 0;color:#455e75;font-size:.88rem;line-height:1.5}
 .cmp-merchant-diagnostic a{font-weight:700;align-self:flex-start}
 @media(max-width:540px){.cmp-merchant-diagnostic{padding:14px}.cmp-merchant-diagnostic p{font-size:.85rem}}
+
+/* V3.4.3.0 — Alta en tres pasos, compacta en móviles y sin duplicar titulares. */
+.cmp-commerce-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0 18px;padding:0;list-style:none;counter-reset:merchantstep}
+.cmp-commerce-steps li{background:#f4f8fc;border:1px solid #dbe8f4;border-radius:12px;padding:13px;min-width:0;counter-increment:merchantstep}
+.cmp-commerce-steps li:before{content:counter(merchantstep);display:inline-grid;place-items:center;border-radius:50%;width:25px;height:25px;background:#e3f0fe;color:#19558c;font-weight:800;margin-bottom:8px}
+.cmp-commerce-steps strong{display:block;font-size:.89rem;color:#163b5a}
+.cmp-commerce-steps span{display:block;font-size:.82rem;color:#587089;line-height:1.45;margin-top:4px}
+@media(max-width:650px){.cmp-commerce-steps{grid-template-columns:1fr;gap:8px}.cmp-commerce-steps li{padding:11px 13px;display:grid;grid-template-columns:27px 1fr;column-gap:10px}.cmp-commerce-steps li:before{grid-row:span 2}.cmp-commerce-steps li strong{align-self:end}.cmp-commerce-steps li span{margin-top:3px}}
