@@ -341,3 +341,6 @@ body.cmp-premium main>.info,body.cmp-premium .cmp-home-panel{background:#fff;bor
  .cmp-home-panel .compare-recent-list .cmp-recent-card{min-height:82px}
  .cmp-recent-image{width:62px;height:62px;flex-basis:62px}
 }
+
+/* El estilo antiguo del header no debe aplicar márgenes a la nueva marca. */
+.cmp-site-header .cmp-brand-copy,.cmp-site-header .cmp-brand-copy span{margin-left:0;opacity:1}
