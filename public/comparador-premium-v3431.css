@@ -350,3 +350,99 @@ body.cmp-premium main>.info,body.cmp-premium .cmp-home-panel{background:#fff;bor
  justify-content:center;gap:10px;font-size:initial;background:#f6f9fd}
 .cmp-rich-comparison .cmp-detail-noimage img{width:min(100%,140px);height:auto;max-height:140px;object-fit:contain}
 .cmp-rich-comparison .cmp-detail-noimage small{font-size:.78rem;color:#617d94;text-align:center;line-height:1.5;font-weight:650}
+
+/* V3.4.3.4 — Ofertas compactas y botones con contraste suficiente.
+   Una columna de acciones evita que CSS grid coloque enlaces en filas vacías. */
+body.cmp-premium .cmp-rich-comparison a.cmp-detail-action,
+body.cmp-premium .cmp-rich-comparison a.cmp-detail-action:visited{
+ color:#fff;background:#125ba4;text-decoration:none;font-weight:800
+}
+body.cmp-premium .cmp-rich-comparison a.cmp-detail-action:hover{color:#fff;background:#0c497f}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side{
+ display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+ gap:7px;grid-column:3;grid-row:auto;min-width:0;width:100%;margin:0;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .price{
+ grid-column:auto;grid-row:auto;text-align:right;width:auto;min-width:0;
+ font-size:1.6rem;line-height:1.2;white-space:nowrap;margin:0 0 2px;
+ color:#08734e;font-weight:850;letter-spacing:-.035em;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-price-date{
+ display:block;grid-column:auto;grid-row:auto;margin:0;text-align:right;
+ white-space:normal;overflow-wrap:normal;word-break:normal;
+ font-size:.75rem;line-height:1.4;color:#667f96;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-lookup{
+ grid-column:auto;grid-row:auto;margin:0;width:100%;min-width:0;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-lookup button.offer-link{
+ display:flex;align-items:center;justify-content:center;width:100%;min-height:42px;
+ border:0;border-radius:10px;background:#125ba4;color:#fff;cursor:pointer;
+ font-size:.82rem;line-height:1.25;padding:10px 11px;font-weight:760;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-lookup button.offer-link:hover{
+ background:#0d497f;color:#fff;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-link,
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-link:visited{
+ display:flex;align-items:center;justify-content:center;grid-column:auto;grid-row:auto;
+ width:100%;max-width:none;min-height:42px;margin:0;text-align:center;
+ font-size:.82rem;line-height:1.3;padding:10px 11px;white-space:normal;
+ border:1px solid #125ba4;border-radius:10px;background:#125ba4;color:#fff;
+ text-decoration:none;font-weight:760;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-link:hover{
+ background:#0d497f;border-color:#0d497f;color:#fff;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-search-backup,
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-search-backup:visited{
+ border:1px solid #c5dbef;background:#eff6ff;color:#164f84;box-shadow:none;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-search-backup:hover{
+ background:#e0effc;color:#0e477c;border-color:#a4c8e6;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-destination{
+ display:block;grid-column:auto;grid-row:auto;margin:0;max-width:100%;
+ font-size:.74rem;line-height:1.4;text-align:right;color:#6b8399;
+}
+body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer{
+ grid-template-columns:100px minmax(0,1fr) minmax(175px,215px);
+ gap:10px 18px;align-items:start;min-height:0;padding:18px 20px;
+}
+body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-photo,
+body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-noimage{
+ width:100px;height:106px;grid-column:1;grid-row:auto;object-fit:contain;
+}
+body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-main{
+ grid-column:2;grid-row:auto;align-self:start;min-width:0;
+}
+body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-side{
+ grid-column:3;grid-row:auto;
+}
+body.cmp-premium .cmp-rich-comparison .compare-single-product .offer>.offer-side{
+ grid-column:2;grid-row:auto;max-width:440px;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-repair-section .offer>.offer-side{
+ grid-column:2;grid-row:auto;max-width:100%;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer{
+  grid-template-columns:82px minmax(0,1fr);gap:12px;padding:16px;min-height:0;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-photo,
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-noimage{
+  width:82px;height:87px;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-side{
+  grid-column:1/-1;grid-row:auto;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .price,
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-price-date,
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-destination{
+  text-align:left;
+ }
+ body.cmp-premium .cmp-rich-comparison .compare-single-product .offer>.offer-side,
+ body.cmp-premium .cmp-rich-comparison .cmp-repair-section .offer>.offer-side{
+  grid-column:1/-1;max-width:none;
+ }
+}
