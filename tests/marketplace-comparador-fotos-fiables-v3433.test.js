@@ -46,7 +46,7 @@ test('el hero conserva precio y ofertas cuando una imagen es ambigua',()=>{
  const fallback=detail.heroMarkup('samsung s26 256 GB',[ambiguous],null,false,0);
  assert.match(fallback,/299,00/);
  assert.match(fallback,/Fotografía no verificada/);
- assert.match(fallback,/comparador-producto-v3432\.svg/);
+ assert.match(fallback,/comparador-movil-generico-v3435\.svg/);
  assert.doesNotMatch(fallback,/box\.png/);
 });
 test('portada reutiliza sólo miniaturas fiables sin consultar SerpApi ni alterar ofertas',async()=>{
