@@ -518,7 +518,7 @@ router.get('/comparar/comercios', (req,res)=>{
   '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+
   '<button type="submit">Solicitar incorporación gratuita</button>'+
   '<small>Debes iniciar sesión en RedLibertad. Solo tramitaremos solicitudes del propietario de la cuenta. No introduzcas contraseñas ni claves de tu tienda.</small></form>'+
-  '<p><a href="/app">Entrar o crear cuenta</a></p></div>';
+  '<p><a href="/app">Entrar o crear cuenta</a> · <a href="/comparar/comercios/mis-estadisticas">Ver mis estadísticas</a></p></div>';
  res.set('Cache-Control','private,no-store');
  res.send(shell('Comercios en el comparador | RedLibertad','Solicitud gratuita para incorporar una tienda online al comparador.',content,'/comparar/comercios',true));
 });
