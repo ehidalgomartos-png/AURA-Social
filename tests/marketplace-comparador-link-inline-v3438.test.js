@@ -44,7 +44,6 @@ async function setup({verifiedHref=null}={}){
    status='checking';href=null;return {rowCount:1,rows:[{offer_key:hash}]};
   }
   if(sql.startsWith('UPDATE marketplace_compare_merchant_links SET status=$2')){
-   const args=arguments[1]; // not required by this mock: use capture below instead
    return {rowCount:1,rows:[]};
   }
   return {rowCount:0,rows:[]};
