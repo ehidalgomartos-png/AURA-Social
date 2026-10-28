@@ -64,10 +64,16 @@ test('SEO filtra precios de accesorios, averiados y atípicos incluso sobre resu
  const valid=offer('Samsung Galaxy S26 256 GB Smartphone',79000,'Tienda Media');
  const valid2=offer('Samsung Galaxy S26 256 GB Smartphone',82500,'Tienda C');
  const v=seo.auto.eligibleOffers(approved,[low,faulty,valid,high,valid2]);
- assert.equal(v.eligible,false); // Estado «Nuevo» mixto: no se publica AggregateOffer.
- assert.equal(v.offers.length,0);
+ assert.equal(v.eligible,true);
+ assert.equal(v.offers.length,3);
+ assert.equal(v.lowPriceCents,79000);
+ assert.equal(v.highPriceCents,82500);
  const seoRaw=seo.structuredData(approved,[low,faulty,valid,high,valid2],true,'/comparar/samsung-s26-256-gb');
- assert.equal(seoRaw['@graph'].some(x=>x['@type']==='Product'),false);
+ const product=seoRaw['@graph'].find(x=>x['@type']==='Product');
+ assert.ok(product);
+ assert.equal(product.offers.lowPrice,'790.00');
+ assert.equal(product.offers.highPrice,'825.00');
+ assert.equal(product.offers.offerCount,3);
 });
 test('ficha pública separa accesorios y anuncios dudosos sin inventar precio mínimo',async()=>{
  const oldQuery=db.query,oldConfigured=provider.configured;
