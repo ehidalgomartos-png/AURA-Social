@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.2.7 proof-of-ownership manual challenge and seller isolation
+        run: node --test tests/marketplace-comparador-titularidad-v3427.test.js
       - name: V3.4.2.6 verified merchant domain uniqueness and approval safeguards
         run: node --test tests/marketplace-comparador-dominio-v3426.test.js
       - name: V3.4.2.5 free merchant onboarding and truthful owner status
