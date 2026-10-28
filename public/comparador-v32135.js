@@ -264,5 +264,5 @@ document.addEventListener('click',async event=>{
   notice.hidden=false;
  };
  document.addEventListener('DOMContentLoaded',updateSharedOffer);
- window.addEventListener('hashchange',updateSharedOffer);
+ if(typeof window!=='undefined')window.addEventListener('hashchange',updateSharedOffer);
 })();
