@@ -13,6 +13,7 @@ const insights=require('../services/marketplace-comparador-insights-v32140');
 const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
 const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
+const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -545,6 +546,14 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
   const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
+  const richHero=productDetail.heroMarkup(page.query_text,offers,page.last_checked_at,freshness.isStale);
+  const richFacts=productDetail.specificationsMarkup(page.query_text,offers);
+  const relatedKey=queryKey(page.query_text).split(' ')[0]||'';
+  const related=offers.length&&relatedKey.length>=4?
+   await db.query("SELECT slug,query_text FROM marketplace_compare_pages "+
+    "WHERE query_key LIKE $1 ESCAPE '\\' AND slug<>$2 ORDER BY search_count DESC,updated_at DESC LIMIT 7",
+    [escapeLike(relatedKey)+'%',slug]):{rows:[]};
+  const relatedMarkup=productDetail.relatedMarkup(related.rows,slug);
   const results=singleOffer?
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
    '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+
@@ -559,13 +568,16 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    cards+
    '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
    '<section data-comparison-results aria-label="Ofertas pendientes"></section>';
-  const content='<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
+  const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
-   '<p class="cmp-page-subtitle">Ofertas en tiendas españolas · página permanente</p>'+
+   '<p class="cmp-page-subtitle">Precios, características y tiendas · ficha permanente</p>'+
+   richHero+
    formMarkup('',page.query_text,csrfToken)+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
-   (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'');
+   richFacts+relatedMarkup+
+   (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'')+
+   '</div>';
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
  }catch(e){next(e);}
