@@ -444,3 +444,10 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-merchant-progress p{margin:8px 0 0;font-size:.88rem;line-height:1.5;color:#435e76}
 .cmp-merchant-progress span{overflow-wrap:anywhere}
 @media(max-width:540px){.cmp-merchant-progress{padding:14px 13px}.cmp-merchant-progress p{font-size:.86rem}}
+
+/* V3.4.2.7 — Código de verificación legible y copiable, mobile-first. */
+.cmp-merchant-verification{padding:12px;background:#f4f8fc;border:1px solid #d3e1f0;border-radius:10px;margin-top:10px;max-width:100%}
+.cmp-merchant-verification strong,.cmp-merchant-verification small{display:block}
+.cmp-merchant-verification p{margin:7px 0 9px}
+.cmp-merchant-verification code{display:block;background:#fff;border:1px solid #dae7f3;border-radius:7px;padding:9px;white-space:normal;overflow-wrap:anywhere;font-size:.87rem}
+.cmp-merchant-verification small{margin-top:9px;color:#617b91;line-height:1.5}

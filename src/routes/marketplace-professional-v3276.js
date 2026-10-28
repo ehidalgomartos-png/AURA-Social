@@ -98,7 +98,7 @@ router.get('/admin/products',wrap(async(req,res)=>{
 router.get('/admin/stores',wrap(async(req,res)=>{
  if(!req.user.isAdmin)return res.status(403).json({error:'admin_required'});
  res.setHeader('Cache-Control','private,no-store');
- const r=await db.query("SELECT s.id,s.seller_id,s.name,s.platform,s.store_url,s.status,s.purchase_enabled,u.username FROM marketplace_professional_stores s JOIN users u ON u.id=s.seller_id ORDER BY s.updated_at DESC LIMIT 200");
+ const r=await db.query("SELECT s.id,s.seller_id,s.name,s.platform,s.store_url,s.status,s.purchase_enabled,s.verification_token,u.username FROM marketplace_professional_stores s JOIN users u ON u.id=s.seller_id ORDER BY s.updated_at DESC LIMIT 200");
  res.json({ok:true,stores:r.rows});
 }));
 router.post('/admin/stores/:id/transfer-owner',editLimiter,wrap(async(req,res)=>{
