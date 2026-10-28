@@ -439,3 +439,8 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-commerce-directory small{color:#667d94;font-size:.84rem}
 .cmp-commerce-directory a{margin-top:auto;min-height:42px;display:inline-flex;align-items:center;font-weight:800;color:#145a92}
 @media(max-width:600px){.cmp-commerce-directory{grid-template-columns:1fr}}
+
+/* V3.4.2.5 — Siguientes pasos claros en el panel privado de comercios. */
+.cmp-merchant-progress p{margin:8px 0 0;font-size:.88rem;line-height:1.5;color:#435e76}
+.cmp-merchant-progress span{overflow-wrap:anywhere}
+@media(max-width:540px){.cmp-merchant-progress{padding:14px 13px}.cmp-merchant-progress p{font-size:.86rem}}
