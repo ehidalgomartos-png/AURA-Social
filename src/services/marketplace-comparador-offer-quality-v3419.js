@@ -4,8 +4,8 @@
 const MATCHERS=[
  ['No funciona',/\b(?:no funciona|sin funcionar|no enciende|no arranca|no operativo|inoperativo|not working|does not work|won t turn on)\b/],
  ['Para piezas',/\b(?:para piezas|solo piezas|por piezas|para despiece|despiece|para repuestos|para recambios|for parts|spares or repair)\b/],
- ['Para reparar',/\b(?:para reparar|necesita reparacion|a reparar|to repair)\b/],
- ['Averiado',/\b(?:averiado|averiada|defectuoso|defectuosa|estropeado|estropeada|danado|danada|faulty|broken|damaged)\b/],
+ ['Para reparar',/\b(?:para reparar|para arreglar|necesita reparacion|necesita arreglo|a reparar|to repair)\b/],
+ ['Averiado',/\b(?:averiado|averiada|defectuoso|defectuosa|estropeado|estropeada|danado|danada|roto|rota|rotos|rotas|inservible|inutilizable|faulty|broken|damaged)\b/],
  ['Dañado',/\b(?:pantalla rota|pantalla partida|pantalla quebrada|pantalla danada|pantalla rajada|bateria hinchada|broken screen)\b/]
 ];
 function normalize(x){
