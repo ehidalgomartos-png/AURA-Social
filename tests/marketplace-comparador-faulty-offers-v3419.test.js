@@ -33,6 +33,22 @@ test('identifica averías explícitas pero no asume que un usado sin informació
   assert.equal(quality.repairReason({title}),null,title);
  }
 });
+test('V3.4.4.5: roto y para arreglar nunca pasan al precio mínimo ordinario',()=>{
+ for(const title of ['iPhone 12 128 GB roto','iPhone 12 128 GB para arreglar',
+  'iPhone 12 128 GB necesita arreglo','iPhone 12 128 GB inservible',
+  'iPhone 12 128 GB pantalla rota']){
+  assert.ok(quality.repairReason({title}),title);
+  const grouped=quality.groupOffers(q,[offer(title,5500),used,refurbished]);
+  assert.equal(grouped.repair.length,1,title);
+  assert.deepEqual(grouped.main,[used,refurbished],title);
+ }
+ for(const title of ['iPhone 12 128 GB con pantalla intacta',
+  'iPhone 12 128 GB funciona perfectamente','iPhone 12 128 GB usado']){
+  assert.equal(quality.repairReason({title}),null,title);
+ }
+ assert.equal(quality.isRepairSearch('iphone 12 roto'),true);
+ assert.equal(quality.groupOffers('iphone 12 roto',[offer('iphone 12 roto',5500)]).main.length,1);
+});
 test('para una búsqueda genérica separa anuncios para reparar y no pierde resultados',()=>{
  const grouped=quality.groupOffers(q,[broken,used,refurbished]);
  assert.deepEqual(grouped.main,[used,refurbished]);
