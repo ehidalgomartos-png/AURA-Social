@@ -785,7 +785,7 @@ router.get('/comparar/comercios/tiendas',async(req,res,next)=>{
    '<span class="cmp-section-eyebrow">Compra directamente a los vendedores</span><h1>Tiendas participantes</h1>'+
    '<p>Comercios aprobados que comparten sus productos gratuitamente. El pago y la compra se realizan siempre en cada tienda.</p>'+
    '<div class="cmp-directory-toolbar"><span class="cmp-directory-count">'+stores.length+' '+(stores.length===1?'tienda participante':'tiendas participantes')+'</span><a href="/comparar/comercios">¿Tienes una tienda? Únete gratis</a></div>'+ 
-   '<ul class="cmp-commerce-directory">'+(cards||'<li class="cmp-commerce-empty"><strong>Estamos incorporando comercios</strong><p>Pronto aparecerán aquí las tiendas que superen la revisión y tengan productos disponibles.</p><a href="/comparar/comercios">Solicitar alta gratuita</a></li>')+'</ul>'+
+   '<ul class="cmp-commerce-directory'+(stores.length===1?' cmp-directory-single':'')+'">'+(cards||'<li class="cmp-commerce-empty"><strong>Estamos incorporando comercios</strong><p>Pronto aparecerán aquí las tiendas que superen la revisión y tengan productos disponibles.</p><a href="/comparar/comercios">Solicitar alta gratuita</a></li>')+'</ul>'+
    '<nav class="cmp-section-subnav" aria-label="Enlaces del directorio"><a href="/comparar">Buscar y comparar precios</a><a href="/comparar/comercios">Solicitar aparecer gratis</a></nav></div>';
   res.set('Cache-Control','private,no-store');
   res.send(shell('Tiendas participantes | RedLibertad','Tiendas online aprobadas y ofertas disponibles.',
