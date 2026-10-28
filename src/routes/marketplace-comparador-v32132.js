@@ -18,6 +18,7 @@ const offerQuality=require('../services/marketplace-comparador-offer-quality-v34
 const {requireAdmin,requireAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
+const merchantFollowup=require('../services/marketplace-comparador-merchant-followup-v3424');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
@@ -518,7 +519,7 @@ router.get('/comparar/comercios', (req,res)=>{
   '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+
   '<button type="submit">Solicitar incorporación gratuita</button>'+
   '<small>Debes iniciar sesión en RedLibertad. Solo tramitaremos solicitudes del propietario de la cuenta. No introduzcas contraseñas ni claves de tu tienda.</small></form>'+
-  '<p><a href="/app">Entrar o crear cuenta</a> · <a href="/comparar/comercios/mis-estadisticas">Ver mis estadísticas</a></p></div>';
+  '<p><a href="/app">Entrar o crear cuenta</a> · <a href="/comparar/comercios/mi-panel">Mi panel de comercios</a></p></div>';
  res.set('Cache-Control','private,no-store');
  res.send(shell('Comercios en el comparador | RedLibertad','Solicitud gratuita para incorporar una tienda online al comparador.',content,'/comparar/comercios',true));
 });
@@ -629,6 +630,54 @@ router.get('/comparar/comercios/tiendas',async(req,res,next)=>{
   res.set('Cache-Control','private,no-store');
   res.send(shell('Tiendas participantes | RedLibertad','Tiendas online aprobadas y ofertas disponibles.',
    html,'/comparar/comercios/tiendas',stores.length>=3));
+ }catch(error){next(error);}
+});
+// V3.4.2.4: bandeja de seguimiento read-only: nadie se aprueba ni se factura solo.
+router.get('/admin/comparador/comercios-seguimiento',requireAdmin,async(req,res,next)=>{
+ try{
+  await ensureProfessionalSchema();
+  const result=await db.query(
+   "SELECT s.id,s.name,s.store_url,s.status,s.platform,u.username,"+
+   "COUNT(DISTINCT x.listing_id)::integer AS product_count,c.sync_enabled,c.last_sync_at,c.last_error "+
+   "FROM marketplace_professional_stores s JOIN users u ON u.id=s.seller_id "+
+   "LEFT JOIN marketplace_external_products x ON x.store_id=s.id "+
+   "LEFT JOIN marketplace_woocommerce_connections c ON c.store_id=s.id "+
+   "GROUP BY s.id,u.username,c.sync_enabled,c.last_sync_at,c.last_error "+
+   "ORDER BY s.updated_at DESC LIMIT 101");
+  const {items,summary}=merchantFollowup.assess(result.rows.slice(0,100));
+  const priority=items.filter(x=>x.needsAttention);
+  const htmlRows=priority.map(s=>{
+   const reasons=[s.pending?'Pendiente de verificación':null,s.empty?'Sin productos vinculados':null,
+    s.syncStale?'Sincronización atrasada':null,s.syncError?'Error de sincronización':null].filter(Boolean).join(' · ');
+   return '<li><strong>'+esc(s.name)+'</strong><small>'+esc(s.username)+' · '+esc(reasons)+'</small></li>';
+  }).join('');
+  const content='<div class="cmp-commerce-intro"><h1>Seguimiento de comercios</h1>'+
+   '<p>Solo información de tiendas existentes. Las aprobaciones y las credenciales se siguen gestionando desde Administración.</p>'+
+   '<ul class="cmp-commerce-stat-list"><li>Pendientes: '+summary.pending+' · Aprobadas: '+summary.approved+
+   ' · Sin productos: '+summary.noProducts+' · Revisar sincronización: '+summary.syncReview+'</li></ul>'+
+   '<h2>Tiendas que necesitan revisión</h2><ul class="cmp-commerce-stat-list">'+(htmlRows||'<li>Sin incidencias en las tiendas revisadas.</li>')+'</ul>'+
+   (result.rows.length>100?'<p>Mostrando solo las 100 tiendas más recientes.</p>':'')+
+   '<p><a href="/marketplace/tiendas">Gestionar tiendas y aprobación</a> · <a href="/admin/comparador/comercios-estadisticas">Estadísticas (JSON)</a></p>'+
+   '<small>Sin facturación, renovaciones automáticas ni cambios de permisos.</small></div>';
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Seguimiento de comercios | RedLibertad','Panel privado de seguimiento.',content,'/admin/comparador/comercios-seguimiento'));
+ }catch(error){next(error);}
+});
+router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
+ try{
+  await ensureProfessionalSchema();
+  const result=await db.query(
+   'SELECT id,name,platform,store_url,status FROM marketplace_professional_stores WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 30',
+   [req.user.id]);
+  const states={draft:'Borrador',pending:'Pendiente de revisión',approved:'Aprobada',suspended:'Suspendida'};
+  const cards=result.rows.map(s=>'<li><strong>'+esc(s.name)+'</strong>'+
+   '<span>'+esc(states[s.status]||'Estado sin confirmar')+' · '+esc(s.platform)+'</span></li>').join('');
+  const content='<div class="cmp-commerce-intro"><h1>Mis tiendas del comparador</h1>'+
+   '<p>La solicitud y el seguimiento son gratuitos. Las tiendas nuevas solo aparecerán tras la aprobación administrativa.</p>'+
+   '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Aún no has solicitado ninguna tienda.</li>')+'</ul>'+
+   '<p><a href="/comparar/comercios/mis-estadisticas">Ver estadísticas</a> · <a href="/comparar/comercios">Solicitar otra tienda</a></p></div>';
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Mis tiendas | RedLibertad','Solicitudes y estado de tiendas.',content,'/comparar/comercios/mi-panel'));
  }catch(error){next(error);}
 });
 router.get('/comparar/:slug',async(req,res,next)=>{
