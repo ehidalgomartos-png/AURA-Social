@@ -16,6 +16,7 @@ const offerFilters=require('../services/marketplace-comparador-offer-filters-v34
 const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
 const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
+const photoReview=require('../services/marketplace-comparador-photo-review-v3441');
 const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
 const {requireAdmin,requireAuth,optionalAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
@@ -64,6 +65,7 @@ async function ensureSchema(){
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_provider_usage (period_key VARCHAR(20) PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0 CHECK (used >= 0))");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_merchant_links (offer_key VARCHAR(64) PRIMARY KEY, status VARCHAR(16) NOT NULL CHECK (status IN ('checking','ok','unavailable')), href TEXT, checked_at TIMESTAMPTZ NOT NULL DEFAULT now())");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_manual_links (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, offer_key VARCHAR(64) NOT NULL, href TEXT NOT NULL, reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,offer_key))");
+   await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_photo_reviews (page_id BIGINT PRIMARY KEY REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, offer_key VARCHAR(64) NOT NULL, image_url TEXT NOT NULL, reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now())");
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_price_history (page_id BIGINT NOT NULL REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, checked_day DATE NOT NULL, low_price_cents BIGINT NOT NULL CHECK(low_price_cents>0), high_price_cents BIGINT NOT NULL CHECK(high_price_cents>=low_price_cents), shop_count INTEGER NOT NULL CHECK(shop_count>=3), offer_count INTEGER NOT NULL CHECK(offer_count>=3), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(page_id,checked_day))");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
@@ -393,7 +395,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
    '<label for="seo-summary-'+id+'">Comentario original (mínimo 80 caracteres)</label>'+
    '<textarea id="seo-summary-'+id+'" name="summary" rows="4" maxlength="2000" minlength="80" placeholder="Aporta información propia y útil sobre este modelo.">'+esc(p.editorial_summary||'')+'</textarea>'+
    '<button type="submit" name="action" value="approve" class="seo-btn seo-btn-primary">Aprobar con comentario</button></form>'+
-   '</details></div>'+linkDiagnosticsMarkup(p,merchantCache,quota,manualCache,token)+'</li>';
+   '</details></div><p><a href="/admin/comparador/fotos/'+esc(p.slug)+'">Revisar fotografía principal</a></p>'+linkDiagnosticsMarkup(p,merchantCache,quota,manualCache,token)+'</li>';
  }).join('');
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
@@ -1005,7 +1007,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
    const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo);
-  const richHero=exact?productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length):
+  const photoRows=exact&&ordinary.length?await db.query(
+   "SELECT offer_key,image_url,reviewed_at FROM marketplace_compare_photo_reviews WHERE page_id=$1",[page.id]):{rows:[]};
+  const curatedPhoto=photoReview.selected(page,photoRows.rows[0],ordinary);
+  const richHero=exact?productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length,curatedPhoto):
    productDetail.broadResultsMarkup(page.query_text,ordinary,freshness.isStale);
   const richFacts=exact?productDetail.specificationsMarkup(page.query_text,ordinary):'';
   const relatedKey=queryKey(page.query_text).split(' ')[0]||'';
