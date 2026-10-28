@@ -18,6 +18,7 @@ const priceFreshness=require('../services/marketplace-comparador-price-freshness
 const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
 const photoReview=require('../services/marketplace-comparador-photo-review-v3441');
 const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
+const {uniqueOffers}=require('../services/marketplace-comparador-offer-dedupe-v3446');
 const {requireAdmin,requireAuth,optionalAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
@@ -990,7 +991,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
   await attachManualMerchantLinks(page,offers);
-  const {main:ordinary,repair,accessories,review}=offerQuality.groupOffers(page.query_text,offers);
+  // Quitar repeticiones solo en la ficha: no tocar anuncios, enlaces ni resultados guardados.
+  const grouped=offerQuality.groupOffers(page.query_text,offers);
+  const ordinary=uniqueOffers(grouped.main),repair=uniqueOffers(grouped.repair);
+  const accessories=uniqueOffers(grouped.accessories),review=uniqueOffers(grouped.review);
   const insight=insights.buildInsights(page.query_text,ordinary);
   // El historial anterior puede incluir mínimos averiados sin desglose por condición.
   // No presentar cifras históricas no depurables junto a una ficha que hoy contiene averías.
