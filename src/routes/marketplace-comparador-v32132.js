@@ -19,6 +19,7 @@ const productDetail=require('../services/marketplace-comparador-product-detail-v
 const photoReview=require('../services/marketplace-comparador-photo-review-v3441');
 const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
 const {uniqueOffers}=require('../services/marketplace-comparador-offer-dedupe-v3446');
+const {splitPaidOffers}=require('../services/marketplace-comparador-sponsored-v3447');
 const {requireAdmin,requireAuth,optionalAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
@@ -992,13 +993,17 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   await attachCachedMerchantLinks(offers);
   await attachManualMerchantLinks(page,offers);
   // Quitar repeticiones solo en la ficha: no tocar anuncios, enlaces ni resultados guardados.
-  const grouped=offerQuality.groupOffers(page.query_text,offers);
-  const ordinary=uniqueOffers(grouped.main),repair=uniqueOffers(grouped.repair);
+  // Separar publicidad ANTES de evaluar precios atípicos: una promoción barata
+  // no puede sesgar el umbral ni formar parte del precio mínimo independiente.
+  const {ordinary:unpaidOffers,sponsored:paidOffers}=splitPaidOffers(offers);
+  const grouped=offerQuality.groupOffers(page.query_text,unpaidOffers);
+  const ordinary=uniqueOffers(grouped.main),sponsored=uniqueOffers(paidOffers);
+  const repair=uniqueOffers(grouped.repair);
   const accessories=uniqueOffers(grouped.accessories),review=uniqueOffers(grouped.review);
   const insight=insights.buildInsights(page.query_text,ordinary);
   // El historial anterior puede incluir mínimos averiados sin desglose por condición.
   // No presentar cifras históricas no depurables junto a una ficha que hoy contiene averías.
-  const history=!repair.length && !accessories.length && !review.length && ordinary.length && seo.auto.capacity(page.query_text)?
+  const history=!repair.length && !accessories.length && !review.length && !sponsored.length && ordinary.length && seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
   const quota=ordinary.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
    await compareWorker.quotaStatus():null;
@@ -1040,6 +1045,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p>No tenemos precios suficientemente fiables para destacar un teléfono completo. Consulta los anuncios relacionados más abajo, sin mezclar sus importes.</p></section>':
    repair.length?
    '<section class="info cmp-only-repair-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite"><h2>Solo se han encontrado anuncios para reparar</h2><p>Ninguna de las ofertas actuales está libre de averías expresamente declaradas. Puedes consultar los anuncios por piezas más abajo.</p></section>':
+   sponsored.length?
+   '<section class="info cmp-only-sponsored-status" role="status"><h2>Solo hay ofertas publicitarias</h2><p>No se han encontrado ofertas independientes para destacar un precio mínimo. Puedes consultar los anuncios etiquetados como publicidad más abajo.</p></section>':
    '<section class="compare-awaiting" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
    '<div class="compare-awaiting-icon" aria-hidden="true">⌕</div>'+
    '<h2>'+(pending?'Buscando ofertas para tu producto':page.provider_status==='ok'?'Todavía no encontramos ofertas':'Estamos preparando esta comparación')+'</h2>'+
@@ -1077,7 +1084,12 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '</div>':'';
   const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
-   const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo);
+  const sponsoredCards=sponsored.length?'<section class="cmp-noncomparable-section cmp-sponsored-section" aria-label="Anuncios publicitarios"><details>'+
+   '<summary>Publicidad ('+sponsored.length+')</summary>'+
+   '<p class="cmp-sponsored-advice">Estas ofertas están etiquetadas como publicidad por su fuente. No se incluyen en el precio mínimo independiente ni en el SEO del producto.</p>'+
+   '<ol class="comparison-list">'+sponsored.map(o=>offerMarkup(o,-1,0,slug,csrfToken,null,o.internal?null:externalPriceInfo)).join('')+'</ol>'+
+   '</details></section>':'';
+  const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo);
   const photoRows=exact&&ordinary.length?await db.query(
    "SELECT offer_key,image_url,reviewed_at FROM marketplace_compare_photo_reviews WHERE page_id=$1",[page.id]):{rows:[]};
   const curatedPhoto=photoReview.selected(page,photoRows.rows[0],ordinary);
@@ -1094,16 +1106,16 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
    '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
-   cards+relatedCards+repairCards+
+   cards+relatedCards+repairCards+sponsoredCards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
    ordinary.length?
    '<section data-comparison-results>'+(exact?insightsMarkup(page.query_text,insight):'')+historyMarkup(history.rows)+
    '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
-   cards+relatedCards+repairCards+
+   cards+relatedCards+repairCards+sponsoredCards+
    '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
-   '<section data-comparison-results aria-label="'+(repair.length||relatedCards?'Otras ofertas para revisar':'Ofertas pendientes')+'">'+relatedCards+repairCards+'</section>';
+   '<section data-comparison-results aria-label="'+(repair.length||relatedCards||sponsored.length?'Ofertas no comparables':'Ofertas pendientes')+'">'+relatedCards+repairCards+sponsoredCards+'</section>';
   const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
    '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+

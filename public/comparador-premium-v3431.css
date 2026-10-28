@@ -716,3 +716,14 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .offer
  border:1px solid #e8d7b6;border-radius:9px;
  background:#fff9ed;color:#805c23;font-size:.78rem;line-height:1.45;
 }
+
+/* V3.4.4.7 — Publicidad identificada y separada, con tarjetas legibles en móvil. */
+.cmp-rich-comparison .cmp-sponsored-section{border-color:#dbe4ef;background:#f8fafc}
+.cmp-rich-comparison .cmp-sponsored-section summary{color:#405970}
+.cmp-rich-comparison .cmp-sponsored-section .comparison-list{display:grid;grid-template-columns:minmax(0,1fr);gap:11px;margin:0;padding:0 14px 16px}
+.cmp-rich-comparison .cmp-sponsored-section .offer{min-width:0;margin:0;border-color:#dce6f0}
+@media(max-width:540px){
+ .cmp-rich-comparison .cmp-sponsored-section .comparison-list{padding:0 10px 12px}
+ .cmp-rich-comparison .cmp-sponsored-section summary{padding:13px 12px}
+ .cmp-rich-comparison .cmp-sponsored-section .offer{min-width:0}
+}
