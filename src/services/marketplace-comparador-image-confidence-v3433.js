@@ -9,7 +9,7 @@ const quality=require('./marketplace-comparador-offer-quality-v3419');
 const forbidden=/\b(?:funda|fundas|carcasa|carcasas|case|cases|cover|covers|protector|protectores|proteccion de pantalla|cristal templado|tempered glass|screen protector|cargador|chargers?|charging case|cable|cord|adaptador|adapter|soporte|holder|repuesto|repuestos|replacement|recambio|recambios|pantalla de recambio|digitalizador|lcd replacement|solo caja|caja vacia|caja original|empty box|box only|retail box|packaging only|embalaje|unboxing|dummy|maqueta|replica|expositor|manual de usuario|skin|pegatina|sticker|compatible con|designed for|for iphone|for samsung|para iphone|para samsung)\b/i;
 const samsungModel=/\b(?:samsung|galaxy)\b.*\b(?:s[0-9]{1,2}|a[0-9]{1,2}|z[0-9]{1,2})\b/i;
 const productContext=/\b(?:galaxy|smartphone|telefono|movil|phone|telefono inteligente)\b/i;
-const imageHint=/\b(?:funda|fundas|carcasa|carcasas|case|cover|protector|templado|tempered|cargador|charger|cable|adaptador|repuesto|repuestos|recambio|replacement|dummy|replica|empty box|box only|packaging|unboxing|sticker)\b/i;
+const imageHint=/\b(?:funda|fundas|carcasa|carcasas|case|cover|protector|templado|tempered|cargador|charger|cable|adaptador|repuesto|repuestos|recambio|replacement|dummy|replica|empty box|box only|box|caja|packaging|unboxing|sticker)\b/i;
 
 function normalized(value){
  return quality.normalize(value);
