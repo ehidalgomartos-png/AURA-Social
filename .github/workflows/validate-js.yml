@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.2.5 free merchant onboarding and truthful owner status
+        run: node --test tests/marketplace-comparador-comercio-panel-v3425.test.js
       - name: V3.4.2.4 merchant follow-up, private status and free operation
         run: node --test tests/marketplace-comparador-seguimiento-v3424.test.js
       - name: V3.4.2.3 free merchant directory, no paid rankings
