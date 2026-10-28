@@ -146,7 +146,7 @@ test('server retains confirmation, admin-only permission, duplicate checks and i
  assert.match(html,/id="wooBulkConfirmPanel"/);
  assert.match(html,/id="wooBulkProgress"/);
  assert.match(html,/marketplace-woo-bulk-v32779\.css\?v=3\.2\.77\.9/);
- assert.match(html,/marketplace-professional-v3276\.js\?v=3\.2\.77\.9/);
+ assert.match(html,/marketplace-professional-v3276\.js\?v=3\.4\.2\.6/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.doesNotMatch(route,/router\.post\('\/stores\/:id\/bulk/);
 });
