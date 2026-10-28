@@ -7,7 +7,7 @@ function say(s){$('message').textContent=s;}
 async function load(){
  const r=await api('/api/marketplace/professional/admin/stores');
  if(!r.ok){say('No se pudieron cargar las tiendas. Revisa la sesión de administrador.');return;}
- $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p><p class="muted">Propietario de la tienda: @'+esc(s.username||'sin cuenta')+'</p>'+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>'+
+ $('stores').innerHTML=r.stores.length?r.stores.map(s=>'<article class="row"><strong>'+esc(s.name)+'</strong><p>'+esc(s.platform)+' · '+esc(s.store_url)+' · '+esc(s.status)+'</p><p class="muted">Propietario de la tienda: @'+esc(s.username||'sin cuenta')+'</p>'+ (s.status==='pending'?'<p class="muted">Código de titularidad: <code>'+esc(s.verification_token||'Sin solicitar')+'</code>. Comprueba manualmente la publicación del código en la web del comercio antes de aprobar.</p>':'')+(s.status==='draft'?'<button type="button" data-submit="'+esc(s.id)+'">Enviar a revisión</button>'+
  '<form data-store-owner-transfer="'+esc(s.id)+'" class="store-owner-transfer" style="margin-top:12px;display:grid;gap:8px">'+
  '<label>Asignar esta tienda a otro usuario de RedLibertad<input name="username" autocomplete="off" maxlength="30" pattern="[A-Za-z0-9_.]{3,30}" placeholder="Ej.: mundotaza" required></label>'+
  '<input type="hidden" name="expectedSellerId" value="'+esc(s.seller_id)+'">'+
