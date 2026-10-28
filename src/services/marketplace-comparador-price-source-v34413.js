@@ -7,8 +7,9 @@ function sourceLabel(offer,priceInfo){
    'Precio publicado en RedLibertad · tienda vinculada':
    'Precio publicado en RedLibertad';
  if(offer?.sponsored===true)return 'Publicidad · precio orientativo';
- if(priceInfo?.isStale===true)return 'Oferta externa · precio anterior';
+ // Sin fecha acreditada no podemos afirmar que se trate de una consulta anterior.
  if(!priceInfo?.date)return 'Oferta externa · fecha sin confirmar';
+ if(priceInfo?.isStale===true)return 'Oferta externa · precio anterior';
  return 'Oferta externa · precio orientativo';
 }
 module.exports={sourceLabel};
