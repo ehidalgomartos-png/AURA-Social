@@ -158,7 +158,7 @@ test('SEO y esquema no convierten averiados en productos ordinarios ni por llama
 test('foto principal elige imagen segura aunque oferta mejor valorada no tenga imagen',()=>{
  const withNoImage={...refurbished,image:null,condition:'Nuevo'};
  const hero=detail.heroMarkup(q,[used,withNoImage],null);
- assert.match(hero,/used\\.png/);
+ assert.ok(hero.includes('https://images1.gstatic.com/used.png'));
  assert.doesNotMatch(hero,/cmp-detail-noimage/);
 });
 test('historial anterior con mínimos contaminados no se muestra junto a anuncios averiados',async()=>{
