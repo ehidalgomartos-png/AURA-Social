@@ -1,3 +1,6 @@
+/* Ocultar únicamente avisos vacíos de compartir; nunca ocultar tarjetas. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-feedback[hidden]{display:none!important}
+
 /* V3.4.3.1 — RedLibertad Compare / Commerce Design System.
    Visual layer only. Product truth, privacy, SEO and external links stay server-owned. */
 :root{
@@ -706,7 +709,6 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-feedbac
  display:block;max-width:100%;color:#1e684a;font-size:.73rem;
  line-height:1.4;overflow-wrap:anywhere;
 }
-body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-feedback[hidden]{display:none!important}
 @media(max-width:760px){
  body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-offer{
   grid-column:1;min-height:46px;width:100%;font-size:.8rem;
