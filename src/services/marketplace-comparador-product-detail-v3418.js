@@ -71,7 +71,7 @@ function heroMarkup(query,offers,lastCheckedAt,isStale=false,repairCount=0){
  const sellers=new Set(offers.map(x=>String(x.shop||'').toLocaleLowerCase('es-ES'))).size;
  const chips=commonFacts(query,offers).filter(f=>f.label!=='Estado').slice(0,4);
  const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" alt="'+safe(photoTitle)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
-  '<div class="cmp-detail-noimage" aria-hidden="true"><img src="/assets/comparador-producto-v3432.svg" alt="" width="140" height="140"></div>';
+  '<div class="cmp-detail-noimage"><img src="/assets/comparador-producto-v3432.svg" alt="" width="140" height="140"><small>Fotografía no verificada</small></div>';
  return '<section class="cmp-detail-hero" aria-labelledby="cmp-detail-name">'+
   '<div class="cmp-detail-image">'+imageBlock+(image&&count>1?'<small class="cmp-detail-photo-source">Fotografía de una oferta</small>':'')+'</div>'+
   '<div class="cmp-detail-copy"><p class="cmp-detail-eyebrow">Ficha del producto · RedLibertad</p>'+
