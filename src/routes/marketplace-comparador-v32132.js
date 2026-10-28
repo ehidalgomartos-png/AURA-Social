@@ -225,7 +225,7 @@ router.get('/comparar',async(req,res,next)=>{
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
    '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p><h1>Comparador de precios</h1><p>Busca un producto y compara ofertas de tiendas.</p>'+formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
-   '<p class="cmp-commerce-cta">¿Tienes una tienda online? <a href="/comparar/comercios">Solicita aparecer gratis en el comparador</a></p>'+
+   '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Tiendas participantes</a> · ¿Tienes una tienda online? <a href="/comparar/comercios">Solicita aparecer gratis</a></p>'+
    '<section class="info"><h2>Comparaciones recientes</h2>'+(items?'<ul class="compare-recent-list">'+items+'</ul>':'<p>Todavía no hay comparaciones con ofertas guardadas.</p>')+'</section>'+
    (indexed?'<section class="info"><h2>Páginas aprobadas para Google</h2><p class="muted">Preparadas para indexación; Google decide si las incorpora a sus resultados.</p><ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
    '',
@@ -600,6 +600,35 @@ router.get('/admin/comparador/comercios-estadisticas',requireAdmin,async(req,res
    "GROUP BY s.id,u.username ORDER BY s.updated_at DESC LIMIT 100");
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.json({ok:true,billingEnabled:false,periodDays:30,clickMetric:'eventos, no ventas ni visitantes únicos',stores:r.rows});
+ }catch(error){next(error);}
+});
+// V3.4.2.3: escaparate de participación gratuita; NO anuncios de pago.
+// Solo tiendas aprobadas con productos realmente disponibles y enlaces HTTPS propios.
+router.get('/comparar/comercios/tiendas',async(req,res,next)=>{
+ try{
+  await ensureProfessionalSchema();
+  const result=await db.query(
+   "SELECT s.name,s.store_url,COUNT(DISTINCT x.listing_id)::integer AS products "+
+   "FROM marketplace_professional_stores s "+
+   "JOIN users u ON u.id=s.seller_id "+
+   "JOIN marketplace_external_products x ON x.store_id=s.id AND x.seller_id=s.seller_id "+
+   "JOIN marketplace_listings l ON l.id=x.listing_id AND l.seller_id=s.seller_id "+
+   "WHERE s.status='approved' AND s.purchase_enabled=true AND u.status='active' AND u.discoverable=true "+
+   "AND l.kind='product' AND l.deal='sale' AND l.status='active' AND l.moderation_status='published' "+
+   "AND x.stock_status='in_stock' AND (x.source<>'api' OR x.last_checked_at>now()-interval '48 hours') "+
+   "GROUP BY s.id ORDER BY s.updated_at DESC,s.id DESC LIMIT 40");
+  const stores=result.rows.filter(s=>normalizeStoreUrl(s.store_url));
+  const cards=stores.map(s=>'<li><strong>'+esc(s.name)+'</strong>'+
+   '<small>'+Number(s.products)+' '+(Number(s.products)===1?'producto':'productos')+' disponibles</small>'+
+   '<a href="'+esc(normalizeStoreUrl(s.store_url))+'" target="_blank" rel="noopener noreferrer nofollow">Visitar tienda</a></li>').join('');
+  const html='<div class="cmp-commerce-intro"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
+   '<h1>Tiendas participantes</h1>'+
+   '<p>Comercios aprobados que comparten sus productos gratuitamente. El pago y la compra se realizan siempre en cada tienda.</p>'+
+   '<ul class="cmp-commerce-directory">'+(cards||'<li>Estamos incorporando comercios.</li>')+'</ul>'+
+   '<p><a href="/comparar/comercios">Solicitar aparecer gratis</a></p></div>';
+  res.set('Cache-Control','private,no-store');
+  res.send(shell('Tiendas participantes | RedLibertad','Tiendas online aprobadas y ofertas disponibles.',
+   html,'/comparar/comercios/tiendas',stores.length>=3));
  }catch(error){next(error);}
 });
 router.get('/comparar/:slug',async(req,res,next)=>{

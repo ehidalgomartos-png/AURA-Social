@@ -431,3 +431,11 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-commerce-stat-list li{border:1px solid #dae6f3;background:white;padding:14px;border-radius:12px;min-width:0;overflow-wrap:anywhere}
 .cmp-commerce-stat-list strong{font-weight:800;color:#174d80}
 .cmp-commerce-stat-list span{display:block;margin-top:6px;color:#526e88;font-size:.88rem}
+
+/* V3.4.2.3 — Directorio sin publicidad de pago ni clasificación por cuota. */
+.cmp-commerce-directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;list-style:none;margin:19px 0}
+.cmp-commerce-directory li{min-width:0;padding:18px;background:#fff;border:1px solid #dce8f3;border-radius:14px;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.cmp-commerce-directory strong{color:#173957;font-size:1rem;overflow-wrap:anywhere}
+.cmp-commerce-directory small{color:#667d94;font-size:.84rem}
+.cmp-commerce-directory a{margin-top:auto;min-height:42px;display:inline-flex;align-items:center;font-weight:800;color:#145a92}
+@media(max-width:600px){.cmp-commerce-directory{grid-template-columns:1fr}}
