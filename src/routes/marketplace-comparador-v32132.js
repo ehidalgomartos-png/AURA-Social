@@ -524,7 +524,7 @@ router.get('/comparar/comercios', (req,res)=>{
  const token=issueCsrf(req,res);
  const content='<div class="cmp-commerce-intro cmp-application-page"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
   '<span class="cmp-section-eyebrow">Programa de comercios · Gratis</span><h1>Tu tienda en el comparador de RedLibertad</h1>'+
-  '<p class="cmp-commerce-lead">Lleva tus productos a quienes ya están comparando precios. El alta es gratuita: sin cuotas, comisiones ni gestión de pagos.</p>'+
+  '<p class="cmp-commerce-lead">Lleva tus productos a quienes ya están comparando precios. El alta es gratuita: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
   '<p>Las tiendas se revisan antes de habilitar enlaces de compra. La venta se realiza exclusivamente en tu propia web.</p>'+
   '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra tu tienda y espera la revisión.</span></li><li><strong>Verifica tu dominio</strong><span>Publica el código que te facilitamos; Administración comprobará la titularidad.</span></li><li><strong>Comparte tus productos</strong><span>Conecta WooCommerce con claves de lectura cuando esté aprobada.</span></li></ol>'+
   '<div class="cmp-application-panel"><form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
