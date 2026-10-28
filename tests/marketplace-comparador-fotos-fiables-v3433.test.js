@@ -70,7 +70,7 @@ test('portada reutiliza sólo miniaturas fiables sin consultar SerpApi ni altera
    const response=await fetch('http://127.0.0.1:'+server.address().port+'/comparar');
    const html=await response.text();
    assert.equal(response.status,200);
-   assert.match(html,/comparador-producto-v3432\.svg/);
+   assert.match(html,/comparador-movil-generico-v3435\.svg/);
    assert.match(html,/samsung-s26-front\.jpg/);
    assert.doesNotMatch(html,/src="https:\/\/images1\.gstatic\.com\/case\.jpg"/);
    assert.match(html,/4 ofertas guardadas/);
