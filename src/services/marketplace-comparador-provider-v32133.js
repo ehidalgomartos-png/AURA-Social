@@ -104,11 +104,11 @@ function storageCode(value){
  const m=keyOf(value).match(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/);
  return m?String(Number(m[1])*(m[2]==='tb'?1024:1))+'gb':null;
 }
-function titleMatches(q,title){
+function titleMatches(q,title,{includeAccessories=false}={}){
  const separate=v=>keyOf(v).replace(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/g,'$1 $2');
  const query=separate(q),value=separate(title);
  if(!query||!value)return false;
- if(EXCLUDED.test(value)&&!EXCLUDED.test(query))return false;
+ if(!includeAccessories&&EXCLUDED.test(value)&&!EXCLUDED.test(query))return false;
  const terms=query.split(' ').filter(t=>t.length>=2),wanted=new Set(terms);
  const words=new Set(value.split(' '));
  const match=terms.filter(t=>words.has(t)).length;
