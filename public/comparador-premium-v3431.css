@@ -625,6 +625,28 @@ body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-network-error{
  .cmp-rich-comparison .cmp-access-filter-result{width:100%}
 }
 
+/* V3.4.4.11 — navegación discreta y táctil en fichas con listas largas. */
+.cmp-rich-comparison .cmp-first-visible-link{display:inline-flex;align-items:center;justify-content:center;
+ min-height:44px;padding:10px 15px;background:#eaf4ff;border:1px solid #bfd8ee;
+ border-radius:10px;color:#15578b;font-size:.82rem;font-weight:780;text-decoration:none}
+.cmp-rich-comparison .cmp-first-visible-link[hidden]{display:none!important}
+.cmp-rich-comparison .cmp-first-visible-link:hover{background:#dcebfa}
+.cmp-rich-comparison .cmp-offer-return-nav{display:flex;justify-content:flex-end;gap:9px;
+ flex-wrap:wrap;margin:16px 0 22px;padding:10px 0;border-top:1px solid #e1eaf3}
+.cmp-rich-comparison .cmp-offer-return-nav a{display:inline-flex;align-items:center;
+ justify-content:center;min-height:44px;padding:10px 13px;border-radius:10px;
+ background:#f5f9fe;border:1px solid #d8e5f2;font-size:.8rem;font-weight:710;text-decoration:none}
+.cmp-rich-comparison .cmp-first-visible-link:focus-visible,
+.cmp-rich-comparison .cmp-offer-return-nav a:focus-visible{outline:3px solid #85b7e5;outline-offset:2px}
+@media(max-width:620px){
+ .cmp-rich-comparison .cmp-first-visible-link{width:100%;min-height:46px}
+ .cmp-rich-comparison .cmp-offer-return-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .cmp-rich-comparison .cmp-offer-return-nav a{min-width:0;text-align:center}
+}
+@media(max-width:380px){
+ .cmp-rich-comparison .cmp-offer-return-nav{grid-template-columns:1fr}
+}
+
 /* V3.4.4.2 — pulido mobile-first del comparador de RedLibertad.
    Solo presentación: conserva orden, precios, accesos y estado de cada oferta. */
 body.cmp-premium .cmp-rich-comparison .comparison-list .offer{
