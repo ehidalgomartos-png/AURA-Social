@@ -138,5 +138,5 @@ test('preflight and transactional recheck prevent duplicate API imports even if 
  assert.match(script,/in_stock:'Disponible'/);
  assert.match(script,/referrerpolicy="no-referrer"/);
  assert.match(html,/marketplace-woo-reconcile-v32776\.css/);
- assert.match(html,/marketplace-professional-v3276\.js\?v=3\.2\.77\.9/);
+ assert.match(html,/marketplace-professional-v3276\.js\?v=3\.4\.2\.6/);
 });
