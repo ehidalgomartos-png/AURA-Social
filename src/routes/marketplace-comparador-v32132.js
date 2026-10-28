@@ -15,10 +15,11 @@ const manualLinks=require('../services/marketplace-comparador-manual-links-v3214
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
 const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
 const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
-const {requireAdmin,requireAuth}=require('../middleware/auth');
+const {requireAdmin,requireAuth,optionalAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
 const merchantFollowup=require('../services/marketplace-comparador-merchant-followup-v3424');
+const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
@@ -523,10 +524,13 @@ router.get('/comparar/comercios', (req,res)=>{
  res.set('Cache-Control','private,no-store');
  res.send(shell('Comercios en el comparador | RedLibertad','Solicitud gratuita para incorporar una tienda online al comparador.',content,'/comparar/comercios',true));
 });
-router.post('/comparar/comercios/solicitar',requireAuth,
+router.post('/comparar/comercios/solicitar',optionalAuth,
  rateLimit({windowMs:60*60*1000,limit:5,standardHeaders:'draft-7',legacyHeaders:false}),async(req,res,next)=>{
  try{
   res.set('Cache-Control','private,no-store');
+  if(!req.user)return res.status(401).send(shell('Inicia sesión | RedLibertad','Identifícate para solicitar una tienda.',
+   '<div class="cmp-commerce-intro"><h1>Inicia sesión para continuar</h1><p>Para solicitar una tienda debes acceder a tu cuenta de RedLibertad. El alta sigue siendo gratuita.</p><p><a href="/app">Entrar o crear cuenta</a> · <a href="/comparar/comercios">Volver a la solicitud</a></p></div>',
+   '/comparar/comercios'));
   if(!validCsrf(req))return res.status(403).send('Formulario caducado. Vuelve a /comparar/comercios.');
   const name=typeof req.body?.name==='string'?req.body.name.trim():'';
   const platform=req.body?.platform;
@@ -667,15 +671,30 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
  try{
   await ensureProfessionalSchema();
   const result=await db.query(
-   'SELECT id,name,platform,store_url,status FROM marketplace_professional_stores WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 30',
+   "SELECT s.id,s.name,s.platform,s.store_url,s.status,"+
+   "COUNT(DISTINCT x.listing_id)::integer AS linked_count,"+
+   "COUNT(DISTINCT x.listing_id) FILTER (WHERE x.stock_status='in_stock' "+
+   "AND (x.source<>'api' OR x.last_checked_at>now()-interval '48 hours') "+
+   "AND l.kind='product' AND l.deal='sale' AND l.status='active' AND l.moderation_status='published')::integer AS available_count,"+
+   "COALESCE(BOOL_OR(c.sync_enabled),false) AS sync_enabled,"+
+   "COALESCE(BOOL_OR(c.credentials_encrypted IS NOT NULL),false) AS connected "+
+   "FROM marketplace_professional_stores s "+
+   "LEFT JOIN marketplace_external_products x ON x.store_id=s.id AND x.seller_id=s.seller_id "+
+   "LEFT JOIN marketplace_listings l ON l.id=x.listing_id AND l.seller_id=s.seller_id "+
+   "LEFT JOIN marketplace_woocommerce_connections c ON c.store_id=s.id "+
+   "WHERE s.seller_id=$1 GROUP BY s.id ORDER BY s.created_at DESC LIMIT 30",
    [req.user.id]);
-  const states={draft:'Borrador',pending:'Pendiente de revisión',approved:'Aprobada',suspended:'Suspendida'};
-  const cards=result.rows.map(s=>'<li><strong>'+esc(s.name)+'</strong>'+
-   '<span>'+esc(states[s.status]||'Estado sin confirmar')+' · '+esc(s.platform)+'</span></li>').join('');
+  const cards=result.rows.map(store=>{
+   const info=sellerProgress(store);
+   return '<li class="cmp-merchant-progress"><strong>'+esc(store.name)+'</strong>'+
+    '<span>'+esc(info.label)+' · '+esc(store.platform)+'</span>'+
+    '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
+    '<p>'+esc(info.next)+'</p></li>';
+  }).join('');
   const content='<div class="cmp-commerce-intro"><h1>Mis tiendas del comparador</h1>'+
-   '<p>La solicitud y el seguimiento son gratuitos. Las tiendas nuevas solo aparecerán tras la aprobación administrativa.</p>'+
+   '<p>El servicio es gratuito. Cada tienda necesita aprobación y productos revisados antes de aparecer en una comparación.</p>'+
    '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Aún no has solicitado ninguna tienda.</li>')+'</ul>'+
-   '<p><a href="/comparar/comercios/mis-estadisticas">Ver estadísticas</a> · <a href="/comparar/comercios">Solicitar otra tienda</a></p></div>';
+   '<p><a href="/comparar/comercios/mis-estadisticas">Ver estadísticas de clics</a> · <a href="/comparar/comercios">Solicitar otra tienda</a></p></div>';
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('Mis tiendas | RedLibertad','Solicitudes y estado de tiendas.',content,'/comparar/comercios/mi-panel'));
  }catch(error){next(error);}
