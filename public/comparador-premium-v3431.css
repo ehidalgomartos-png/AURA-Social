@@ -612,3 +612,80 @@ body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-network-error{
 @media(max-width:850px){.cmp-photo-review .cmp-review-images{grid-template-columns:1fr}}
 @media(max-width:490px){.cmp-photo-review .cmp-review-image-card{flex-direction:column}
  .cmp-photo-review .cmp-review-image-card img{width:100%;height:190px;flex:none}}
+
+/* V3.4.4.2 — pulido mobile-first del comparador de RedLibertad.
+   Solo presentación: conserva orden, precios, accesos y estado de cada oferta. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer{
+ overflow-wrap:break-word;min-width:0;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-main{
+ min-width:0;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side{
+ min-width:0;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .offer-price-date{
+ font-variant-numeric:tabular-nums;overflow-wrap:normal;word-break:normal;
+}
+@media(max-width:760px){
+ body.cmp-premium main{overflow-x:clip}
+ body.cmp-premium .cmp-rich-comparison .cmp-access-toolbar{
+  gap:11px;padding:13px;margin:12px 0;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-access-options{
+  width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-access-option{
+  min-height:44px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-facet-group{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-facet{
+  min-width:0;max-width:none;flex:none;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-facet select{
+  width:100%;max-width:100%;min-height:46px;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer{
+  grid-template-columns:72px minmax(0,1fr);gap:9px 12px;padding:14px;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-photo,
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-noimage{
+  width:72px;height:76px;grid-column:1;grid-row:auto;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-main{
+  grid-column:2;grid-row:auto;align-self:start;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-side{
+  grid-column:1/-1;grid-row:auto;gap:7px;
+  display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .price{
+  font-size:1.45rem;line-height:1.18;margin:0;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-price-date{
+  font-size:.76rem;line-height:1.45;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-lookup,
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side>a.offer-link{
+  width:100%;min-width:0;max-width:none;grid-column:1;min-height:46px;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-lookup button.offer-link{
+  min-height:46px;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .offer-destination{
+  grid-column:1;text-align:left;line-height:1.4;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-noncomparable-item .offer{
+  min-width:0;
+ }
+}
+@media(max-width:380px){
+ body.cmp-premium .cmp-rich-comparison .cmp-facet-group{grid-template-columns:1fr}
+ body.cmp-premium .cmp-rich-comparison .cmp-detail-copy h2{
+  font-size:clamp(1.42rem,7.4vw,1.9rem);overflow-wrap:anywhere;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-detail-price strong{font-size:2rem}
+ body.cmp-premium .cmp-rich-comparison .cmp-access-option{font-size:.74rem;padding:8px 5px}
+}
