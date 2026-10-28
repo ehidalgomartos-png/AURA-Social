@@ -2,6 +2,7 @@
 // V3.2.138 — SEO automático conservador de fichas de comparación.
 // No crea contenido ficticio, no altera cuotas de búsqueda ni usa IA de relleno.
 const provider=require('./marketplace-comparador-provider-v32133');
+const quality=require('./marketplace-comparador-offer-quality-v3419');
 const FRESH_MS=48*60*60*1000;
 const MIN_MERCHANTS=3;
 const MODEL_MARKERS=['pro','max','ultra','plus','mini','lite','fe','se','air','edge','fold','flip'];
@@ -68,11 +69,14 @@ function exactVariant(q,offers){
 }
 function eligibleOffers(page,offers,now=Date.now()){
  if(!page||page.seo_blocked===true)return {eligible:false,reason:'Bloqueada por administración',offers:[]};
+ // Búsquedas explícitas de aparatos para piezas no son productos ordinarios indexables.
+ if(quality.isRepairSearch(page.query_text))return {eligible:false,reason:'Consulta de artículos averiados',offers:[]};
  if(page.provider_status!=='ok')return {eligible:false,reason:'Esperando precios actualizados',offers:[]};
  const last=Date.parse(page.last_checked_at||'');
  if(!Number.isFinite(last)||last>now||now-last>=FRESH_MS)return {eligible:false,reason:'Precios sin actualizar',offers:[]};
  if(!capacity(page.query_text))return {eligible:false,reason:'Falta capacidad o variante exacta',offers:[]};
- const external=(Array.isArray(offers)?offers:[]).filter(o=>o&&!o.internal&&!o.sponsored);
+ // Reusar el mismo filtro que la ficha y el sitemap, aunque el llamador aporte resultados sin depurar.
+ const external=(Array.isArray(offers)?offers:[]).filter(o=>o&&!o.internal&&!o.sponsored&&!quality.repairReason(o));
  if(external.length<MIN_MERCHANTS)return {eligible:false,reason:'Menos de tres ofertas independientes',offers:[]};
  if(!exactVariant(page.query_text,external))return {eligible:false,reason:'Modelos, estados o variantes mezclados, o enlaces sin tienda directa',offers:[]};
  const sellers=new Set(external.map(o=>normalize(o.shop)));

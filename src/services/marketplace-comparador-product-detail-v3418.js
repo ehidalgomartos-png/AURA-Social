@@ -32,33 +32,61 @@ function facts(query,offer){
  }
  return result.slice(0,7);
 }
-function heroMarkup(query,offers,lastCheckedAt,isStale=false){
+function representativeOffer(offers){
+ // Escoger foto por calidad de fuente y estado, NUNCA por precio mínimo.
+ const rank=o=>{
+  let n=0;
+  if(o?.internal)n+=18;
+  const link=o?.internal?{destination:'internal'}:provider.resolveOfferLink(o);
+  if(link?.destination==='store'||link?.destination==='internal')n+=28;
+  if(/\b(?:reacondicionado|refurbished|renewed)\b/i.test(String(o?.condition||'')+' '+String(o?.title||'')))n+=25;
+  if(/\b(?:nuevo|precintado)\b/i.test(String(o?.condition||'')))n+=25;
+  if(!o?.internal&&provider.safeImage(o.image))n+=18;
+  if(o?.internal&&/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||''))n+=18;
+  return n;
+ };
+ // Nunca mostrar un bloque vacío si otra oferta del mismo modelo tiene una foto segura.
+ const withPhoto=offers.filter(o=>o?.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||''):Boolean(provider.safeImage(o?.image)));
+ return [...(withPhoto.length?withPhoto:offers)].sort((a,b)=>rank(b)-rank(a))[0]||null;
+}
+function commonFacts(query,offers){
+ if(!Array.isArray(offers)||!offers.length)return [];
+ if(offers.length===1)return facts(query,offers[0]);
+ const sets=offers.map(o=>facts(query,o));
+ const first=sets[0];
+ return first.filter(f=>sets.every(list=>list.some(x=>x.label===f.label&&x.value.toLowerCase()===f.value.toLowerCase())));
+}
+function heroMarkup(query,offers,lastCheckedAt,isStale=false,repairCount=0){
  if(!Array.isArray(offers)||!offers.length)return '';
- const item=offers[0];
- const title=String(item.title||query).slice(0,250);
+ const item=representativeOffer(offers);
+ const title=(offers.length===1?String(item.title||query):String(query)).slice(0,250);
+ const photoTitle=String(item.title||query).slice(0,250);
  const image=item.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(item.image||'')?item.image:null:provider.safeImage(item.image);
- const price=Number.isSafeInteger(item.price_cents)&&item.price_cents>0?eur(item.price_cents):null;
+ const lowest=offers[0],price=Number.isSafeInteger(lowest.price_cents)&&lowest.price_cents>0?eur(lowest.price_cents):null;
+ const condition=String(lowest.condition||'').toLowerCase();
  const count=offers.length;
  const sellers=new Set(offers.map(x=>String(x.shop||'').toLocaleLowerCase('es-ES'))).size;
- const chips=facts(query,item).filter(f=>f.label!=='Estado').slice(0,4);
- const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" alt="'+safe(title)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
+ const chips=commonFacts(query,offers).filter(f=>f.label!=='Estado').slice(0,4);
+ const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" alt="'+safe(photoTitle)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
   '<div class="cmp-detail-noimage" aria-hidden="true">▤</div>';
  return '<section class="cmp-detail-hero" aria-labelledby="cmp-detail-name">'+
-  '<div class="cmp-detail-image">'+imageBlock+'</div>'+
+  '<div class="cmp-detail-image">'+imageBlock+(image&&count>1?'<small class="cmp-detail-photo-source">Fotografía de una oferta</small>':'')+'</div>'+
   '<div class="cmp-detail-copy"><p class="cmp-detail-eyebrow">Ficha del producto · RedLibertad</p>'+
   '<h2 id="cmp-detail-name">'+safe(title)+'</h2>'+
   (chips.length?'<ul class="cmp-detail-chips">'+chips.map(c=>'<li>'+safe(c.label)+': '+safe(c.value)+'</li>').join('')+'</ul>':'')+
-  (price?'<p class="cmp-detail-price"><span>'+(isStale&&!item.internal?'Último precio registrado':'Precio '+(count>1?'desde':'registrado'))+'</span><strong>'+price+'</strong></p>':'')+
+  (price?'<p class="cmp-detail-price"><span>'+(isStale&&!lowest.internal?'Último precio registrado':'Precio '+(count>1?'desde':'registrado'))+'</span><strong>'+price+'</strong></p>':'')+
+  (count>1?'<p class="cmp-detail-condition">Oferta más económica: '+safe(condition||'estado sin confirmar')+'. Comprueba su funcionamiento y estado.</p>':'')+
   '<p class="cmp-detail-merchant">'+count+' '+(count===1?'oferta':'ofertas')+' · '+sellers+' '+(sellers===1?'vendedor':'vendedores')+'</p>'+
+  (repairCount?'<p class="cmp-detail-repair-note">'+repairCount+' '+(repairCount===1?'anuncio aparte':'anuncios aparte')+' con avería declarada o para piezas, sin mezclar sus precios.</p>':'')+
   '<a class="cmp-detail-action" href="#precios-y-tiendas">Ver '+(count===1?'la oferta':'las ofertas')+'</a>'+
-  '<p class="cmp-detail-disclaimer">Precios orientativos. Consulta disponibilidad, estado y envío en la tienda.</p></div></section>';
+  '<p class="cmp-detail-disclaimer">Precios orientativos. Consulta disponibilidad, funcionamiento, estado y envío en la tienda.</p></div></section>';
 }
 function specificationsMarkup(query,offers){
  if(!Array.isArray(offers)||!offers.length)return '';
- const item=offers[0],list=facts(query,item);
+ const list=commonFacts(query,offers);
  if(!list.length)return '';
  return '<section class="cmp-detail-specifications" aria-labelledby="cmp-specs-title">'+
-  '<div class="cmp-detail-section-head"><h2 id="cmp-specs-title">Características del producto</h2><p>Datos presentes en la oferta consultada</p></div>'+
+  '<div class="cmp-detail-section-head"><h2 id="cmp-specs-title">Características del producto</h2><p>Datos compartidos por las ofertas consultadas</p></div>'+
   '<dl>'+list.map(f=>'<div><dt>'+safe(f.label)+'</dt><dd>'+safe(f.value)+'</dd></div>').join('')+'</dl>'+
   '<small>Comprueba las especificaciones definitivas en la tienda antes de comprar.</small></section>';
 }
@@ -71,4 +99,4 @@ function relatedMarkup(rows,currentSlug){
   '<ul>'+items.map(x=>'<li><a href="/comparar/'+safe(x.slug)+'">'+safe(x.query_text)+'</a></li>').join('')+'</ul>'+
   '<small>Estas fichas pueden corresponder a otras variantes o modelos.</small></section>';
 }
-module.exports={facts,heroMarkup,specificationsMarkup,relatedMarkup};
+module.exports={facts,representativeOffer,commonFacts,heroMarkup,specificationsMarkup,relatedMarkup};

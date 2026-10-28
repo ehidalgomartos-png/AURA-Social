@@ -14,6 +14,7 @@ const linkDiagnostics=require('../services/marketplace-comparador-link-diagnosti
 const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
 const productDetail=require('../services/marketplace-comparador-product-detail-v3418');
+const offerQuality=require('../services/marketplace-comparador-offer-quality-v3419');
 const {requireAdmin}=require('../middleware/auth');
 const router=express.Router();
 const ORIGIN='https://redlibertad.com';
@@ -130,6 +131,15 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
   '</div><div class="price">'+money(o.price_cents)+'</div>'+pricing+
   lookup+'<a class="offer-link'+(possible?' offer-search-backup':'')+'" href="'+esc(href)+'"'+(o.internal?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</li>';
+}
+function repairOffersMarkup(offers,slug,csrfToken,priceInfo){
+ if(!offers.length)return '';
+ const count=offers.length;
+ return '<section class="cmp-repair-section" aria-labelledby="cmp-repair-title"><details>'+
+  '<summary id="cmp-repair-title">Ver '+count+' '+(count===1?'anuncio averiado o para piezas':'anuncios averiados o para piezas')+'</summary>'+
+  '<p class="cmp-repair-advice">Estas ofertas declaran una avería o venta para piezas. No se incluyen en el precio mínimo del producto para uso normal. Comprueba las condiciones con el vendedor.</p>'+
+  '<ol class="comparison-list">'+offers.map(o=>offerMarkup(o,-1,0,slug,csrfToken,null,o.internal?null:priceInfo)).join('')+'</ol>'+
+  '</details></section>';
 }
 function historyMarkup(history){
  const rows=(Array.isArray(history)?history:[]).filter(x=>Number.isSafeInteger(Number(x.low_price_cents))&&Number(x.low_price_cents)>0);
@@ -499,10 +509,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
   await attachManualMerchantLinks(page,offers);
-  const insight=insights.buildInsights(page.query_text,offers);
-  const history=seo.auto.capacity(page.query_text)?
+  const {main:ordinary,repair}=offerQuality.groupOffers(page.query_text,offers);
+  const insight=insights.buildInsights(page.query_text,ordinary);
+  // El historial anterior puede incluir mínimos averiados sin desglose por condición.
+  // No presentar cifras históricas no depurables junto a una ficha que hoy contiene averías.
+  const history=!repair.length && ordinary.length && seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
-  const quota=offers.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
+  const quota=ordinary.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
    await compareWorker.quotaStatus():null;
   const freshness=priceFreshness.freshness(page.last_checked_at);
   const priceInfo=priceFreshness.priceNotice(page.last_checked_at,page.provider_status);
@@ -514,29 +527,31 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<aside class="compare-price-age compare-price-age-'+esc(priceInfo.level)+'" role="status">'+esc(priceInfo.text)+'</aside>':'';
   const externalPriceInfo={...priceInfo,isStale:freshness.isStale};
   const exact=provider.isSpecificModel(page.query_text);
-  const approved=seo.indexEligible(page,offers);
+  const approved=seo.indexEligible(page,ordinary);
   const title='Comparar '+page.query_text+' | RedLibertad';
-  const automatic=seo.auto.eligibleOffers(page,offers);
+  const automatic=seo.auto.eligibleOffers(page,ordinary);
   const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):null;
   const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
   const csrfToken=issueCsrf(req,res);
   const pending=['queued','checking'].includes(page.provider_status);
-  const bestOffer=offers.length?offers[0]:null;
+  const bestOffer=ordinary.length?ordinary[0]:null;
   const best=bestOffer?.price_cents??null;
   const bestCondition=bestOffer?insights.conditionOf(bestOffer):null;
-  const singleOffer=offers.length===1;
+  const singleOffer=ordinary.length===1;
   const status=singleOffer?
    '<section class="compare-single-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<span>1 oferta coincidente</span>'+(checked?'<time>Precios consultados: '+esc(checked)+'</time>':'')+'</section>':
-   offers.length?
+   ordinary.length?
    '<section class="info compare-status-summary" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+priceWarning+
    '<div class="compare-status-head"><h2>Precios encontrados</h2>'+
    (checked?'<span>Precios consultados: '+esc(checked)+'</span>':'')+'</div>'+
    '<p class="cmp-start-price"><strong>'+(bestOffer&&!bestOffer.internal&&freshness.isStale?'Último mínimo registrado: ':'Desde ')+money(best)+'</strong>'+
    (bestCondition && bestCondition!=='Estado sin confirmar'?' · '+esc(bestCondition.toLowerCase()):'')+
-   ' · '+offers.length+' '+(offers.length===1?'oferta':'ofertas')+
+   ' · '+ordinary.length+' '+(ordinary.length===1?'oferta':'ofertas')+
    (insight.hasMixedVariants?' en varias versiones y estados':'')+'</p>'+
    '</section>':
+   repair.length?
+   '<section class="info cmp-only-repair-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite"><h2>Solo se han encontrado anuncios para reparar</h2><p>Ninguna de las ofertas actuales está libre de averías expresamente declaradas. Puedes consultar los anuncios por piezas más abajo.</p></section>':
    '<section class="compare-awaiting" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
    '<div class="compare-awaiting-icon" aria-hidden="true">⌕</div>'+
    '<h2>'+(pending?'Buscando ofertas para tu producto':page.provider_status==='ok'?'Todavía no encontramos ofertas':'Estamos preparando esta comparación')+'</h2>'+
@@ -545,11 +560,12 @@ router.get('/comparar/:slug',async(req,res,next)=>{
      'Esta página está guardada. Puedes volver más tarde o explorar otras comparaciones.')+'</p>'+
    '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
-  const cards=offers.length?'<ol class="comparison-list">'+offers.map((o,i)=>offerMarkup(o,i,offers.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
-  const richHero=productDetail.heroMarkup(page.query_text,offers,page.last_checked_at,freshness.isStale);
-  const richFacts=productDetail.specificationsMarkup(page.query_text,offers);
+  const cards=ordinary.length?'<ol class="comparison-list">'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
+  const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
+  const richHero=productDetail.heroMarkup(page.query_text,ordinary,page.last_checked_at,freshness.isStale,repair.length);
+  const richFacts=productDetail.specificationsMarkup(page.query_text,ordinary);
   const relatedKey=queryKey(page.query_text).split(' ')[0]||'';
-  const related=offers.length&&relatedKey.length>=4?
+  const related=ordinary.length&&relatedKey.length>=4?
    await db.query("SELECT slug,query_text FROM marketplace_compare_pages "+
     "WHERE query_key LIKE $1 ESCAPE '\\' AND slug<>$2 ORDER BY search_count DESC,updated_at DESC LIMIT 7",
     [escapeLike(relatedKey)+'%',slug]):{rows:[]};
@@ -558,16 +574,16 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
    '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
-   cards+
+   cards+repairCards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
-   offers.length?
+   ordinary.length?
    '<section data-comparison-results>'+insightsMarkup(page.query_text,insight)+historyMarkup(history.rows)+
    '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
-   cards+
+   cards+repairCards+
    '<p class="compare-help">Precio final y envío a confirmar en la tienda. Si no hay enlace directo, la búsqueda de Google puede mostrar otras ofertas, no necesariamente el mismo anuncio.</p></section>':
-   '<section data-comparison-results aria-label="Ofertas pendientes"></section>';
+   '<section data-comparison-results aria-label="'+(repair.length?'Anuncios para reparar':'Ofertas pendientes')+'">'+repairCards+'</section>';
   const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1>Comparar precios de '+esc(page.query_text)+'</h1>'+
    '<p class="cmp-page-subtitle">Precios, características y tiendas · ficha permanente</p>'+
@@ -579,7 +595,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'')+
    '</div>';
   res.set('Cache-Control','private,no-store');
-  res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,offers,approved,'/comparar/'+slug)));
+  res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,ordinary,approved,'/comparar/'+slug)));
  }catch(e){next(e);}
 });
 // Sitemap sincronizado con las condiciones index/noindex del render HTML.
