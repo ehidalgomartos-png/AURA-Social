@@ -20,6 +20,7 @@ const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-o
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
 const merchantFollowup=require('../services/marketplace-comparador-merchant-followup-v3424');
 const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
+const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
 const router=express.Router();
@@ -569,6 +570,73 @@ router.post('/comparar/comercios/verificacion/:id',requireAuth,
   res.redirect(303,'/comparar/comercios/mi-panel');
  }catch(error){next(error);}
 });
+// V3.4.2.8 — conexión WooCommerce de solo lectura, por su propietario aprobado.
+// Las credenciales nunca se incluyen en HTML, logs, JSON o una respuesta de error.
+router.get('/comparar/comercios/woocommerce/:id',requireAuth,async(req,res,next)=>{
+ try{
+  await ensureProfessionalSchema();
+  const id=String(req.params.id||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(id))return res.sendStatus(400);
+  const result=await db.query(
+   "SELECT s.id,s.name,s.store_url,s.platform,s.status,"+
+   "(c.credentials_encrypted IS NOT NULL) AS connected "+
+   "FROM marketplace_professional_stores s LEFT JOIN marketplace_woocommerce_connections c ON c.store_id=s.id "+
+   "WHERE s.id=$1 AND s.seller_id=$2 AND s.status='approved' AND s.platform='woocommerce'",
+   [id,req.user.id]);
+  if(!result.rowCount)return res.sendStatus(404);
+  const store=result.rows[0],csrfToken=issueCsrf(req,res);
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  const content='<div class="cmp-commerce-intro"><h1>Conectar WooCommerce</h1>'+
+   '<p>'+esc(store.name)+' · '+esc(store.store_url)+'</p>'+
+   '<p>Utiliza claves WooCommerce con permiso <strong>Lectura</strong>. No solicitamos permisos de escritura, pedidos ni pagos. Las credenciales quedan cifradas.</p>'+
+   '<p>Estado: '+(store.connected?'Conexión guardada. Puedes sustituir las claves con otras de solo lectura.':'Pendiente de conectar.')+'</p>'+
+   '<form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/woocommerce/'+esc(id)+'">'+
+   '<input type="hidden" name="_csrf" value="'+esc(csrfToken)+'">'+
+   '<label for="wooMerchantKey">Consumer Key (solo lectura)</label><input id="wooMerchantKey" type="password" name="consumerKey" minlength="28" maxlength="83" required autocomplete="off">'+
+   '<label for="wooMerchantSecret">Consumer Secret</label><input id="wooMerchantSecret" type="password" name="consumerSecret" minlength="28" maxlength="83" required autocomplete="off">'+
+   '<button type="submit">Verificar y conectar</button><small>La sincronización automática permanece desactivada. Administración revisa las importaciones y productos.</small></form>'+
+   '<p><a href="/comparar/comercios/mi-panel">Volver a mis tiendas</a></p></div>';
+  res.send(shell('Conectar WooCommerce | RedLibertad','Conexión segura de catálogo en modo lectura.',content,'/comparar/comercios/woocommerce/'+esc(id)));
+ }catch(error){next(error);}
+});
+router.post('/comparar/comercios/woocommerce/:id',requireAuth,
+ rateLimit({windowMs:60*60*1000,limit:5,standardHeaders:'draft-7',legacyHeaders:false}),async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Recarga la página.');
+  const id=String(req.params.id||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(id))return res.sendStatus(400);
+  const key=typeof req.body?.consumerKey==='string'?req.body.consumerKey:'';
+  const secret=typeof req.body?.consumerSecret==='string'?req.body.consumerSecret:'';
+  if(!/^ck_[A-Za-z0-9]{25,80}$/.test(key)||!/^cs_[A-Za-z0-9]{25,80}$/.test(secret))
+   return res.status(400).send('Las claves de WooCommerce no tienen un formato válido.');
+  await ensureProfessionalSchema();
+  const owned=await db.query(
+   "SELECT id,store_url,status,platform FROM marketplace_professional_stores "+
+   "WHERE id=$1 AND seller_id=$2 AND status='approved' AND platform='woocommerce'",
+   [id,req.user.id]);
+  if(!owned.rowCount)return res.sendStatus(404);
+  try{
+   merchantWoo.secretKey();
+   // La conexión solo hace GET al dominio aprobado, con DNS/IP pública fijada.
+   await merchantWoo.listProducts(owned.rows[0],{key,secret},1);
+   const encrypted=merchantWoo.encryptCredentials(key,secret);
+   await db.query(
+    "INSERT INTO marketplace_woocommerce_connections(store_id,credentials_encrypted,sync_enabled) VALUES($1,$2,false) "+
+    "ON CONFLICT(store_id) DO UPDATE SET credentials_encrypted=EXCLUDED.credentials_encrypted,sync_enabled=false,last_error=NULL,updated_at=now()",
+    [id,encrypted]);
+   return res.status(200).send(shell('WooCommerce conectado | RedLibertad','Conexión segura guardada.',
+    '<div class="cmp-commerce-intro"><h1>WooCommerce conectado</h1>'+
+    '<p>Las claves se han verificado y guardado cifradas. La importación y sincronización automática siguen desactivadas hasta la revisión de Administración.</p>'+
+    '<a href="/comparar/comercios/mi-panel">Volver a mis tiendas</a></div>',
+    '/comparar/comercios/mi-panel'));
+  }catch(err){
+   const msg=merchantWoo.publicError(err);
+   const statuses={woocommerce_key_not_configured:503,woocommerce_auth_failed:400};
+   return res.status(statuses[msg]||502).send('No se ha podido conectar la tienda ('+esc(msg)+'). No se han guardado las claves.');
+  }
+ }catch(error){next(error);}
+});
 router.get('/comparar/comercios/mis-solicitudes',requireAuth,async(req,res,next)=>{
  try{
   await ensureProfessionalSchema();
@@ -718,7 +786,8 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
    return '<li class="cmp-merchant-progress"><strong>'+esc(store.name)+'</strong>'+
     '<span>'+esc(info.label)+' · '+esc(store.platform)+'</span>'+
     '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
-    '<p>'+esc(info.next)+'</p>'+verification+'</li>';
+    '<p>'+esc(info.next)+'</p>'+verification+
+    (store.status==='approved'&&store.platform==='woocommerce'?'<p><a href="/comparar/comercios/woocommerce/'+esc(store.id)+'">Conectar WooCommerce con claves de lectura</a></p>':'')+'</li>';
   }).join('');
   const content='<div class="cmp-commerce-intro"><h1>Mis tiendas del comparador</h1>'+
    '<p>El servicio es gratuito. Cada tienda necesita aprobación y productos revisados antes de aparecer en una comparación.</p>'+
