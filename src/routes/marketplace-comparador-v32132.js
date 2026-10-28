@@ -12,6 +12,7 @@ const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
 const linkDiagnostics=require('../services/marketplace-comparador-link-diagnostics-v32146');
 const directAccess=require('../services/marketplace-comparador-direct-access-v3439');
+const {describeDestination}=require('../services/marketplace-comparador-destinations-v3449');
 const offerFilters=require('../services/marketplace-comparador-offer-filters-v3440');
 const manualLinks=require('../services/marketplace-comparador-manual-links-v32147');
 const priceFreshness=require('../services/marketplace-comparador-price-freshness-v32148');
@@ -140,7 +141,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const directFlag=merchant?'direct':'alternate';
  const tags=offerFilters.attributes(o);
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
- const note=o.partner_store?'Comercio aprobado · compra en su web':o.sponsored?'Publicidad de Google':link.destination==='internal'?'Anuncio de RedLibertad':o.manual_link?'Enlace revisado por administración':merchant?'Enlace directo del vendedor':'';
+ const destinationInfo=describeDestination(o,link,merchant);
+ const note=destinationInfo.note;
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
  const possible=link.destination==='shopping-search' && provider.canLookupSeller(o) &&
    !['unavailable','checking'].includes(o.lookup_status) && provider.hasProductReference(o);
@@ -157,7 +159,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  return '<li class="offer" data-offer-access="'+directFlag+'" data-offer-condition="'+tags.condition+'" data-offer-capacity="'+tags.capacity+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+pricing+
-  lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
+  lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'" aria-label="'+esc(destinationInfo.ariaLabel)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</div></li>';
 }
 function nonComparableMarkup(accessories,review,slug,csrfToken,priceInfo){
