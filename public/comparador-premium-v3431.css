@@ -191,6 +191,7 @@ body.cmp-premium main>.info,body.cmp-premium .cmp-home-panel{background:#fff;bor
 .cmp-application-note p{color:#5e7790;margin:6px 0 12px}
 .cmp-application-note a{display:inline-flex;margin-top:7px;font-weight:770;text-decoration:none}
 .cmp-commerce-intro .cmp-commerce-directory{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0}
+.cmp-commerce-intro .cmp-commerce-directory.cmp-directory-single{grid-template-columns:minmax(0,590px)}
 .cmp-commerce-directory li{padding:23px 22px;min-height:200px;border:1px solid #dee8f2;
  box-shadow:var(--cmp-shadow);background:#fff;border-radius:18px}
 .cmp-store-card-top{display:flex;align-items:center;gap:13px;width:100%}
