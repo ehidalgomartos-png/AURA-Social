@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.8 professional merchant store links and mobile direct access
+        run: node --test tests/marketplace-comparador-enlaces-profesionales-v3448.test.js
       - name: V3.4.4.7 sponsored offers separate from comparison prices and SEO
         run: node --test tests/marketplace-comparador-publicidad-v3447.test.js
       - name: V3.4.4.6 visible offer deduplication and SEO consistency
