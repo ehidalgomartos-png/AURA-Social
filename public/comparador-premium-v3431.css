@@ -446,3 +446,38 @@ body.cmp-premium .cmp-rich-comparison .cmp-repair-section .offer>.offer-side{
   grid-column:1/-1;max-width:none;
  }
 }
+
+/* V3.4.3.5 — Una búsqueda de categoría no es una ficha de modelo concreto. */
+.cmp-rich-comparison .cmp-broad-results{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,310px);
+ align-items:center;gap:20px 34px;padding:clamp(20px,3.4vw,34px);
+ margin:12px 0 18px;background:#fff;border:1px solid #dde7f1;
+ border-radius:21px;box-shadow:0 12px 32px rgba(16,45,78,.05)
+}
+.cmp-rich-comparison .cmp-broad-results .cmp-detail-eyebrow{
+ display:block;margin-bottom:11px;letter-spacing:.09em;text-transform:uppercase;
+ color:#62819e;font-size:.76rem;font-weight:800;
+}
+.cmp-rich-comparison .cmp-broad-results h2{
+ font-size:clamp(1.55rem,3vw,2.3rem);letter-spacing:-.045em;line-height:1.16;
+ margin:0 0 13px;overflow-wrap:anywhere
+}
+.cmp-rich-comparison .cmp-broad-copy>p{font-size:.93rem;color:#5b7186;line-height:1.52;margin:0 0 9px}
+.cmp-rich-comparison .cmp-broad-copy .cmp-detail-merchant:before{content:"";display:none}
+.cmp-rich-comparison .cmp-broad-action{
+ border-left:1px solid #e2ebf4;padding-left:29px;display:flex;flex-direction:column;
+ gap:8px;align-items:flex-start
+}
+.cmp-rich-comparison .cmp-broad-action>span{color:#5b7186;font-size:.81rem;font-weight:730}
+.cmp-rich-comparison .cmp-broad-action>strong{
+ color:#08734e;font-size:clamp(1.8rem,3.6vw,2.45rem);font-weight:850;
+ line-height:1.1;letter-spacing:-.045em;font-variant-numeric:tabular-nums
+}
+.cmp-rich-comparison .cmp-broad-action>small{font-size:.78rem;color:#637c90;line-height:1.45}
+.cmp-rich-comparison .cmp-broad-action a.cmp-detail-action{margin-top:7px;min-height:46px}
+@media(max-width:690px){
+ .cmp-rich-comparison .cmp-broad-results{grid-template-columns:1fr;padding:19px;gap:11px}
+ .cmp-rich-comparison .cmp-broad-action{border-left:0;padding:15px 0 0;
+ border-top:1px solid #e2ebf4}
+ .cmp-rich-comparison .cmp-broad-action a.cmp-detail-action{width:100%}
+}

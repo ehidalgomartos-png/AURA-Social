@@ -40,6 +40,16 @@ function validOfferPhoto(query,offer){
    const u=new URL(image);
    const mediaName=normalized(decodeURIComponent(u.pathname+' '+u.search));
    if(imageHint.test(mediaName))return null;
+   // S26 y otros Galaxy: las miniaturas de Google pueden mostrar fundas o cajas
+   // incluso si el título describe un smartphone. Una URL opaca no acredita la foto.
+   // Sin verificar píxeles, usar ilustración neutral salvo nombre de archivo inequívoco.
+   if(samsungModel.test(q)){
+    const model=q.match(/\b(?:s|a|z)[0-9]{1,2}\b/)?.[0];
+    const hints=/\b(?:front|frontal|trasera|back|rear|device|telefono|movil|smartphone|handset)\b/;
+    const meaningful=/\b(?:samsung|galaxy)\b/;
+    if(!model||!new Set(mediaName.split(' ')).has(model)||!meaningful.test(mediaName)||!hints.test(mediaName))
+     return null;
+   }
   }catch(_){return null;}
  }
  return image;

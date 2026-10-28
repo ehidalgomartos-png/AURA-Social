@@ -10,4 +10,11 @@ function recentImage(query,offers){
  const best=candidates.sort((a,b)=>rank(b)-rank(a))[0];
  return best?validOfferPhoto(query,best):null;
 }
-module.exports={recentImage};
+function recentFallback(query){
+ const normalized=String(query||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ if(/\barmarios?\b/.test(normalized))return '/assets/comparador-armarios-generico-v3435.svg';
+ if(/\b(?:samsung|galaxy)\b/.test(normalized)&&/\b(?:s|a|z)[0-9]{1,2}\b/.test(normalized))
+  return '/assets/comparador-movil-generico-v3435.svg';
+ return '/assets/comparador-producto-v3432.svg';
+}
+module.exports={recentImage,recentFallback};
