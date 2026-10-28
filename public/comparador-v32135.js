@@ -128,7 +128,7 @@ function applyComparisonFilters(toolbar){
  const mode=toolbar.dataset.activeAccess||'all';
  const condition=toolbar.querySelector('[data-condition-filter]')?.value||'all';
  const capacity=toolbar.querySelector('[data-capacity-filter]')?.value||'all';
- let visible=0,total=0;
+ let visible=0,total=0,lowestVisible=null;
  for(const item of list.children){
   if(!item.matches('li.offer'))continue;
   total++;
@@ -136,7 +136,12 @@ function applyComparisonFilters(toolbar){
    (condition==='all'||item.dataset.offerCondition===condition)&&
    (capacity==='all'||item.dataset.offerCapacity===capacity);
   item.hidden=!show;
-  if(show)visible++;
+  if(show){
+   visible++;
+   const cents=Number(item.dataset.offerPriceCents);
+   if(Number.isSafeInteger(cents)&&cents>0 && (lowestVisible===null||cents<lowestVisible))
+    lowestVisible=cents;
+  }
  }
  const filtered=mode!=='all'||condition!=='all'||capacity!=='all';
  const note=toolbar.querySelector('[data-access-note]');
@@ -144,9 +149,27 @@ function applyComparisonFilters(toolbar){
  const status=toolbar.querySelector('[data-filter-results]');
  if(status){
   status.hidden=!filtered;
-  status.textContent=filtered?visible+' de '+total+' ofertas visibles'+(visible?'':'. Prueba otros filtros.'):'';
+  const price=lowestVisible===null?'':
+   ' · mínimo visible: '+(lowestVisible/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+  status.textContent=filtered?visible+' de '+total+' ofertas visibles'+
+   (visible?price:' · Ninguna coincide. Quita algún filtro para ver más ofertas.'):'';
  }
+ const reset=toolbar.querySelector('[data-clear-comparison-filters]');
+ if(reset)reset.hidden=!filtered;
 }
+// V3.4.4.10: resumen del mínimo VISIBLE sin alterar el precio general de la ficha.
+document.addEventListener('click',event=>{
+ const reset=event.target?.closest?.('[data-clear-comparison-filters]');
+ if(!reset)return;
+ const toolbar=reset.closest('[data-direct-filter]');
+ if(!toolbar)return;
+ toolbar.dataset.activeAccess='all';
+ for(const option of toolbar.querySelectorAll('[data-access-choice]'))
+  option.setAttribute('aria-pressed',String(option.getAttribute('data-access-choice')==='all'));
+ for(const filter of toolbar.querySelectorAll('[data-condition-filter],[data-capacity-filter]'))
+  filter.value='all';
+ applyComparisonFilters(toolbar);
+});
 document.addEventListener('click',event=>{
  const button=event.target?.closest?.('[data-access-choice]');
  if(!button)return;
