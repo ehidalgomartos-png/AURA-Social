@@ -95,7 +95,7 @@ function browser(initialHash='',hasOffer=false){
  vm.runInNewContext(source,{document,window,location,navigator:{},URL},
   {filename:'comparador-v32135.js',timeout:1000});
  const on=(name)=>{
-  const handler=listeners[name]?.find(x=>x.toString().includes('updateSharedOffer'));
+  const handler=listeners[name]?.at(-1); // Se comprueba el evento registrado, no el nombre inferido de su código.
   assert.ok(handler,name);
   handler();
  };
