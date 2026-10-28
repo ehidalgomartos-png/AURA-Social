@@ -82,7 +82,10 @@ document.addEventListener('click',async e=>{
  if(!confirm(approved?'¿Has verificado manualmente la titularidad, dominio, políticas y checkout externo? Aprobar permitirá mostrar «Comprar en la tienda» en los productos que cumplan los requisitos.':'¿Suspender inmediatamente los botones de compra de esta tienda?'))return;
  const r=await api('/api/marketplace/professional/admin/stores/'+encodeURIComponent(btn.dataset.storeReview)+'/review',{
   method:'POST',body:JSON.stringify({status:btn.dataset.storeStatus,confirmVerified:approved})});
- say(r.ok?'Estado de tienda actualizado.':'Error: '+(r.error||'error'));
+ say(r.ok?'Estado de tienda actualizado.':
+  r.error==='store_domain_already_approved'?'Este dominio ya tiene una tienda aprobada. Revisa la titularidad en Administración antes de aprobar una segunda cuenta.':
+  r.error==='store_invalid_domain'?'La web de la tienda no es válida para aprobación.':
+  'Error: '+(r.error||'error'));
  if(r.ok)await load();
 });
 
