@@ -344,3 +344,9 @@ body.cmp-premium main>.info,body.cmp-premium .cmp-home-panel{background:#fff;bor
 
 /* El estilo antiguo del header no debe aplicar márgenes a la nueva marca. */
 .cmp-site-header .cmp-brand-copy,.cmp-site-header .cmp-brand-copy span{margin-left:0;opacity:1}
+
+/* V3.4.3.3: cuando una imagen no puede atribuirse de forma fiable, no fingir una foto. */
+.cmp-rich-comparison .cmp-detail-noimage{display:flex;flex-direction:column;align-items:center;
+ justify-content:center;gap:10px;font-size:initial;background:#f6f9fd}
+.cmp-rich-comparison .cmp-detail-noimage img{width:min(100%,140px);height:auto;max-height:140px;object-fit:contain}
+.cmp-rich-comparison .cmp-detail-noimage small{font-size:.78rem;color:#617d94;text-align:center;line-height:1.5;font-weight:650}
