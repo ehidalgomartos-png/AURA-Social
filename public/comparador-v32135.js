@@ -233,3 +233,36 @@ document.addEventListener('click',async event=>{
  }
  inform('No se ha podido copiar. Mantén pulsado el enlace para copiarlo.');
 });
+
+/* V3.4.4.15 — Enlaces compartidos: avisar si una oferta ya no está disponible.
+   El realce de una tarjeta existente funciona con CSS incluso sin JavaScript. */
+(()=>{
+ const updateSharedOffer=()=>{
+  const results=document.querySelector('[data-comparison-results]');
+  if(!results)return;
+  let notice=results.querySelector('[data-shared-offer-notice]');
+  const hash=location.hash;
+  if(!/^#oferta-[a-f0-9]{64}$/.test(hash)){
+   if(notice)notice.hidden=true;
+   return;
+  }
+  const card=document.getElementById(hash.slice(1));
+  const present=card?.matches?.('li.offer') &&
+   Boolean(card.closest?.('[data-primary-offers]'));
+  if(present){
+   if(notice)notice.hidden=true;
+   return;
+  }
+  if(!notice){
+   notice=document.createElement('p');
+   notice.className='cmp-shared-offer-notice';
+   notice.setAttribute('role','status');
+   notice.setAttribute('data-shared-offer-notice','');
+   results.insertBefore(notice,results.firstChild);
+  }
+  notice.textContent='Esta oferta compartida ya no aparece en la comparación actual. Puedes revisar las ofertas disponibles.';
+  notice.hidden=false;
+ };
+ document.addEventListener('DOMContentLoaded',updateSharedOffer);
+ window.addEventListener('hashchange',updateSharedOffer);
+})();
