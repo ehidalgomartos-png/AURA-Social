@@ -572,3 +572,21 @@ body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-network-error{
  .cmp-rich-comparison .cmp-access-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
  .cmp-rich-comparison .cmp-access-option{min-width:0;padding:9px 7px;font-size:.77rem}
 }
+
+/* V3.4.4.0 — filtros compatibles con el diseño profesional y mobile-first. */
+.cmp-rich-comparison .cmp-facet-group{display:flex;align-items:end;flex-wrap:wrap;gap:9px;
+ width:100%;padding-top:11px;border-top:1px solid #dce9f4}
+.cmp-rich-comparison .cmp-facet{display:flex;flex-direction:column;gap:5px;
+ min-width:170px;flex:1 1 190px;max-width:290px}
+.cmp-rich-comparison .cmp-facet span{font-size:.76rem;color:#4a6580;font-weight:770}
+.cmp-rich-comparison .cmp-facet select{font:inherit;font-size:.87rem;
+ min-height:44px;color:#1c496c;border:1px solid #c9dae9;background:#fff;
+ border-radius:10px;padding:8px 11px;max-width:100%}
+.cmp-rich-comparison .cmp-facet select:focus-visible{outline:3px solid #8fbfeb;outline-offset:2px}
+.cmp-rich-comparison .cmp-access-filter-result{flex-basis:100%;font-size:.79rem;
+ margin:0;color:#3e617e;font-weight:730}
+@media(max-width:620px){
+ .cmp-rich-comparison .cmp-facet-group{display:grid;grid-template-columns:1fr;gap:11px}
+ .cmp-rich-comparison .cmp-facet{max-width:none;min-width:0;flex:none}
+ .cmp-rich-comparison .cmp-facet select{width:100%}
+}
