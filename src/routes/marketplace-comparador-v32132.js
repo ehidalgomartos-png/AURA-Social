@@ -511,7 +511,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   await attachManualMerchantLinks(page,offers);
   const {main:ordinary,repair}=offerQuality.groupOffers(page.query_text,offers);
   const insight=insights.buildInsights(page.query_text,ordinary);
-  const history=seo.auto.capacity(page.query_text)?
+  // El historial anterior puede incluir mínimos averiados sin desglose por condición.
+  // No presentar cifras históricas no depurables junto a una ficha que hoy contiene averías.
+  const history=!repair.length && ordinary.length && seo.auto.capacity(page.query_text)?
    await db.query("SELECT checked_day::text AS checked_day,low_price_cents,shop_count FROM marketplace_compare_price_history WHERE page_id=$1 AND checked_day>=CURRENT_DATE-INTERVAL '180 days' ORDER BY checked_day DESC LIMIT 6",[page.id]):{rows:[]};
   const quota=ordinary.some(o=>!o.internal && provider.canLookupSeller(o) && provider.hasProductReference(o))?
    await compareWorker.quotaStatus():null;
