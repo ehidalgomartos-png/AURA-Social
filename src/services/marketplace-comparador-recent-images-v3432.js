@@ -13,7 +13,8 @@ function recentImage(query,offers){
 function recentFallback(query){
  const normalized=String(query||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
  if(/\barmarios?\b/.test(normalized))return '/assets/comparador-armarios-generico-v3435.svg';
- if(/\b(?:samsung|galaxy)\b/.test(normalized)&&/\b(?:s|a|z)[0-9]{1,2}\b/.test(normalized))
+ if(/\b(?:iphone|smartphone|telefono|movil)\b/.test(normalized)||
+   (/\b(?:samsung|galaxy)\b/.test(normalized)&&/\b(?:s|a|z)[0-9]{1,2}\b/.test(normalized)))
   return '/assets/comparador-movil-generico-v3435.svg';
  return '/assets/comparador-producto-v3432.svg';
 }
