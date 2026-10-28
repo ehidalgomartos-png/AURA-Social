@@ -1081,7 +1081,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '</div>':'';
   const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
-  const sponsoredCards=sponsored.length?'<section class="cmp-sponsored-section" aria-label="Anuncios publicitarios"><details>'+
+  const sponsoredCards=sponsored.length?'<section class="cmp-noncomparable-section cmp-sponsored-section" aria-label="Anuncios publicitarios"><details>'+
    '<summary>Publicidad ('+sponsored.length+')</summary>'+
    '<p class="cmp-sponsored-advice">Estas ofertas están etiquetadas como publicidad por su fuente. No se incluyen en el precio mínimo independiente ni en el SEO del producto.</p>'+
    '<ol class="comparison-list">'+sponsored.map(o=>offerMarkup(o,-1,0,slug,csrfToken,null,o.internal?null:externalPriceInfo)).join('')+'</ol>'+
