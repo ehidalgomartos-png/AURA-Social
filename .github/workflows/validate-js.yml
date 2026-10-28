@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.3.2 real logo and cached comparison photography
+        run: node --test tests/marketplace-comparador-logo-imagenes-v3432.test.js
       - name: V3.4.3.1 premium comparison visual and merchant experience smoke tests
         run: node --test tests/marketplace-comparador-premium-v3431.test.js
       - name: V3.4.3.0 merchant directory quality, privacy and mobile onboarding
