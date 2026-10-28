@@ -679,6 +679,18 @@ body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-sin-confirmar{
  body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-chip{font-size:.7rem;padding:4px 8px}
 }
 
+/* V3.4.4.13 — origen verificable del precio, diseño compacto y legible. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .cmp-price-source{
+ display:block;margin:1px 0 3px;max-width:100%;
+ color:#435f79;font-size:.72rem;font-weight:740;line-height:1.4;
+ white-space:normal;overflow-wrap:anywhere;text-align:right;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .cmp-price-source{
+  text-align:left;font-size:.73rem;
+ }
+}
+
 /* V3.4.4.2 — pulido mobile-first del comparador de RedLibertad.
    Solo presentación: conserva orden, precios, accesos y estado de cada oferta. */
 body.cmp-premium .cmp-rich-comparison .comparison-list .offer{
