@@ -412,6 +412,67 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   (cards?'<ol class="seo-admin-grid">'+cards+'</ol>':'<div class="seo-admin-empty">No hay comparaciones en este filtro.</div>')+
   '<p class="seo-admin-disclaimer">Las páginas aptas se incluyen en el sitemap. Google decide si las indexa.</p></div>';
 }
+// V3.4.4.1: moderación de fotografías existentes, sin uploads ni búsquedas externas.
+router.get('/admin/comparador/fotos/:slug',requireAdmin,async(req,res,next)=>{
+ try{
+  const slug=String(req.params.slug||'');
+  if(!/^[a-z0-9-]{4,120}$/.test(slug))return res.sendStatus(404);
+  await ensureSchema();
+  const result=await db.query('SELECT id,slug,query_text,external_results FROM marketplace_compare_pages WHERE slug=$1',[slug]);
+  if(!result.rowCount)return res.sendStatus(404);
+  const page=result.rows[0],photos=photoReview.candidates(page);
+  const selected=await db.query('SELECT offer_key,image_url,reviewed_at FROM marketplace_compare_photo_reviews WHERE page_id=$1',[page.id]);
+  const active=selected.rows[0]||null;
+  const token=issueCsrf(req,res);
+  const cards=photos.map(o=>'<li class="cmp-review-image-card"><img src="'+esc(o.image)+'" alt="'+esc(o.title)+'" loading="lazy" referrerpolicy="no-referrer" width="150" height="150">'+
+   '<div><strong>'+esc(o.title)+'</strong><small>'+esc(o.shop)+'</small>'+
+   (active?.offer_key===o.key&&active.image_url===o.image?'<span>Seleccionada actualmente</span>':'')+
+   '<form method="post" action="/admin/comparador/'+page.id+'/foto">'+
+   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+   '<input type="hidden" name="offer_key" value="'+esc(o.key)+'">'+
+   '<label><input type="checkbox" name="confirmed" value="yes" required> He revisado la imagen y corresponde al modelo buscado</label>'+
+   '<button type="submit" name="action" value="approve">Seleccionar esta fotografía</button></form></div></li>').join('');
+  const content='<div class="cmp-commerce-intro cmp-photo-review">'+
+   '<p class="crumb"><a href="/admin/comparador">Administración</a> / Fotografías</p>'+
+   '<h1>Revisar fotografías: '+esc(page.query_text)+'</h1>'+
+   '<p>Solo imágenes de anuncios guardados que coinciden con la búsqueda. Comprueba visualmente que no se trate de una funda, caja u otro producto. Las imágenes externas pueden cambiar.</p>'+
+   (active?'<p class="cmp-review-current">Hay una fotografía seleccionada. Si la oferta cambia o desaparece, no se utilizará como imagen aprobada.</p>'+
+   '<form method="post" action="/admin/comparador/'+page.id+'/foto">'+
+   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+   '<button type="submit" name="action" value="remove">Retirar fotografía aprobada</button></form>':'')+
+   (cards?'<ul class="cmp-review-images">'+cards+'</ul>':'<p>No hay fotografías candidatas para este modelo.</p>')+
+   '<p><a href="/admin/comparador">Volver a Administración</a></p></div>';
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Revisión de fotos | RedLibertad','Revisión privada de fotografías.',content,'/admin/comparador/fotos/'+slug));
+ }catch(error){next(error);}
+});
+router.post('/admin/comparador/:id/foto',requireAdmin,
+ rateLimit({windowMs:60*60*1000,limit:25,standardHeaders:'draft-7',legacyHeaders:false}),
+ async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  if(!validCsrf(req))return res.sendStatus(403);
+  const id=String(req.params.id||''),action=req.body?.action;
+  if(!/^[1-9]\d{0,15}$/.test(id)||!['approve','remove'].includes(action))return res.sendStatus(400);
+  await ensureSchema();
+  const row=await db.query('SELECT id,slug,query_text,external_results FROM marketplace_compare_pages WHERE id=$1',[id]);
+  if(!row.rowCount)return res.sendStatus(404);
+  const page=row.rows[0];
+  if(action==='remove'){
+   await db.query('DELETE FROM marketplace_compare_photo_reviews WHERE page_id=$1',[id]);
+  }else{
+   if(req.body?.confirmed!=='yes')return res.status(400).send('Confirma que has revisado la fotografía.');
+   const candidate=photoReview.candidates(page).find(o=>o.key===req.body?.offer_key);
+   if(!candidate)return res.status(400).send('La fotografía no pertenece a una oferta vigente de ese modelo.');
+   await db.query(
+    'INSERT INTO marketplace_compare_photo_reviews(page_id,offer_key,image_url,reviewed_at) VALUES($1,$2,$3,now()) '+
+    'ON CONFLICT(page_id) DO UPDATE SET offer_key=EXCLUDED.offer_key,image_url=EXCLUDED.image_url,reviewed_at=now()',
+    [id,candidate.key,candidate.image]
+   );
+  }
+  res.redirect(303,'/admin/comparador/fotos/'+page.slug);
+ }catch(error){next(error);}
+});
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
  try{
   await ensureSchema();
