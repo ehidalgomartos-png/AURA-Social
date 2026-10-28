@@ -11,7 +11,7 @@ const provider=require('../src/services/marketplace-comparador-provider-v32133')
 const worker=require('../src/services/marketplace-comparador-worker-v32134');
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
-const q='iphone 12 128 GB';
+const q='iphone 12';
 const offers=[
  {title:'Apple iPhone 12 128 GB',shop:'Vendedor Usado',price_cents:15000,
   price_currency:'EUR',condition:'Usado',href:'https://www.google.com/search?q=iphone+12',internal:false},
