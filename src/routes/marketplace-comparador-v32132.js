@@ -521,7 +521,7 @@ router.post('/comparar/comercios/solicitar',requireAuth,
   const name=typeof req.body?.name==='string'?req.body.name.trim():'';
   const platform=req.body?.platform;
   const url=normalizeStoreUrl(req.body?.storeUrl);
-  if(name.length<3||name.length>120||!/^[^<>\\x00-\\x1f]+$/.test(name)||!PLATFORMS.includes(platform)||!url)
+  if(name.length<3||name.length>120||name.includes('<')||name.includes('>')||Array.from(name).some(ch=>ch.charCodeAt(0)<32)||!PLATFORMS.includes(platform)||!url)
    return res.status(400).send('Datos no válidos. Comprueba el nombre, plataforma y dirección HTTPS.');
   await ensureProfessionalSchema();
   const out=await db.query(
