@@ -6,12 +6,13 @@ const FRESH_MS=48*60*60*1000;
 const provider=require('./marketplace-comparador-provider-v32133');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
 const quality=require('./marketplace-comparador-offer-quality-v3419');
+const {uniqueOffers}=require('./marketplace-comparador-offer-dedupe-v3446');
 function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && !o.sponsored && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
 function matchingOffers(page,offers){
  const matching=(Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title)&&!quality.repairReason(o));
- return quality.groupOffers(page?.query_text,matching).main;
+ return uniqueOffers(quality.groupOffers(page?.query_text,matching).main);
 }
 function indexEligible(page,offers,now=Date.now()){
  if(!page || page.seo_blocked===true || quality.isRepairSearch(page.query_text))return false;
