@@ -127,13 +127,16 @@ async function attachManualMerchantLinks(page,offers){
  manualLinks.applyManualLinks(page,offers,found.rows);
 }
 function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo=null){
- const link=o.partner_store?{href:o.href,destination:'store'}:o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
+ // Los comercios aprobados tienen una URL real de compra aunque la oferta
+ // proceda de un anuncio local. No etiquetarla como búsqueda de Google.
+ const merchant=directAccess.isDirectStore(o);
+ const link=o.partner_store?(merchant?{href:o.href,destination:'store'}:null):
+  o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
  const href=link.href;
  const img=o.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||'')?o.image:null:provider.safeImage(o.image);
  const picture=img?'<img class="offer-photo" src="'+esc(img)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div class="offer-noimage" aria-hidden="true">🛍️</div>';
  const shop=String(o.shop||'Tienda no identificada');
- const merchant=directAccess.isDirectStore(o);
  const directFlag=merchant?'direct':'alternate';
  const tags=offerFilters.attributes(o);
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
