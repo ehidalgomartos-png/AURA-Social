@@ -647,6 +647,38 @@ body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-network-error{
  .cmp-rich-comparison .cmp-offer-return-nav{grid-template-columns:1fr}
 }
 
+/* V3.4.4.12 — metadatos de oferta claros: vendedor y estado declarado.
+   Diseño adaptable sin alterar botones, precios, imágenes ni clasificación. */
+body.cmp-premium .cmp-rich-comparison .offer .cmp-offer-meta{
+ display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;min-width:0;margin-top:8px;
+}
+body.cmp-premium .cmp-rich-comparison .offer .cmp-offer-shop{
+ display:inline-block;min-width:0;max-width:100%;margin:0;font-size:.8rem;
+ line-height:1.45;font-weight:690;color:#3f5e78;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-chip{
+ display:inline-flex;align-items:center;max-width:100%;width:max-content;
+ padding:4px 9px;border-radius:999px;border:1px solid #d4e0eb;
+ background:#f3f7fb;color:#3e586f;font-size:.72rem;font-weight:760;
+ line-height:1.4;white-space:normal;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-nuevo{
+ background:#eaf6f0;border-color:#c5e5d3;color:#126340;
+}
+body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-usado{
+ background:#f0f5fc;border-color:#cbdcf0;color:#244c76;
+}
+body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-reacondicionado{
+ background:#f1f0fd;border-color:#d7d2f4;color:#4b3981;
+}
+body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-sin-confirmar{
+ background:#fff7e9;border-color:#f0dcb8;color:#75511a;
+}
+@media(max-width:620px){
+ body.cmp-premium .cmp-rich-comparison .offer .cmp-offer-meta{gap:7px;margin-top:6px}
+ body.cmp-premium .cmp-rich-comparison .offer .cmp-condition-chip{font-size:.7rem;padding:4px 8px}
+}
+
 /* V3.4.4.2 — pulido mobile-first del comparador de RedLibertad.
    Solo presentación: conserva orden, precios, accesos y estado de cada oferta. */
 body.cmp-premium .cmp-rich-comparison .comparison-list .offer{

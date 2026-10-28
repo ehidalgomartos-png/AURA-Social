@@ -140,6 +140,12 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const shop=String(o.shop||'Tienda no identificada');
  const directFlag=merchant?'direct':'alternate';
  const tags=offerFilters.attributes(o);
+ // Etiquetas breves basadas en la clasificación de la oferta; no confirman su estado.
+ const states={nuevo:'Nuevo · según anuncio',usado:'Usado · según anuncio',
+  reacondicionado:'Reacondicionado · según anuncio','sin-confirmar':'Estado sin confirmar'};
+ const stateLabel=states[tags.condition]||states['sin-confirmar'];
+ const stateHelp=tags.condition==='sin-confirmar'?'Estado no verificado':
+  'Estado declarado por el vendedor; compruébalo antes de comprar';
  const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
  const destinationInfo=describeDestination(o,link,merchant);
  const note=destinationInfo.note;
@@ -157,7 +163,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
    esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
    '<small class="offer-price-date offer-price-old">Sin fecha de precio externo</small>';
  return '<li class="offer" data-offer-access="'+directFlag+'" data-offer-condition="'+tags.condition+'" data-offer-capacity="'+tags.capacity+'" data-offer-price-cents="'+(Number.isSafeInteger(o.price_cents)&&o.price_cents>0?o.price_cents:'')+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
-  picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
+  picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><div class="cmp-offer-meta"><small class="cmp-offer-shop">'+esc(shop)+'</small>'+
+  '<span class="cmp-condition-chip cmp-condition-'+tags.condition+'" title="'+esc(stateHelp)+'">'+esc(stateLabel)+'</span></div>'+shipping+
   '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+pricing+
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'" aria-label="'+esc(destinationInfo.ariaLabel)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+'</div></li>';
