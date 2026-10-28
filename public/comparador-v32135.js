@@ -120,23 +120,49 @@ document.addEventListener('submit',async event=>{
 });
 
 
-/* V3.4.3.9 — filtro local de acceso directo. Nunca consulta SerpApi.
-   Se limita a la lista principal: anuncios averiados/accesorios siguen accesibles. */
+/* V3.4.4.0 — filtros combinables de enlaces, estado y capacidad. Todo local;
+   nunca modifica el precio principal ni oculta anuncios averiados/accesorios. */
+function applyComparisonFilters(toolbar){
+ const list=toolbar?.nextElementSibling;
+ if(!list?.matches?.('[data-primary-offers]'))return;
+ const mode=toolbar.dataset.activeAccess||'all';
+ const condition=toolbar.querySelector('[data-condition-filter]')?.value||'all';
+ const capacity=toolbar.querySelector('[data-capacity-filter]')?.value||'all';
+ let visible=0,total=0;
+ for(const item of list.children){
+  if(!item.matches('li.offer'))continue;
+  total++;
+  const show=(mode==='all'||item.dataset.offerAccess==='direct')&&
+   (condition==='all'||item.dataset.offerCondition===condition)&&
+   (capacity==='all'||item.dataset.offerCapacity===capacity);
+  item.hidden=!show;
+  if(show)visible++;
+ }
+ const filtered=mode!=='all'||condition!=='all'||capacity!=='all';
+ const note=toolbar.querySelector('[data-access-note]');
+ if(note)note.hidden=!filtered;
+ const status=toolbar.querySelector('[data-filter-results]');
+ if(status){
+  status.hidden=!filtered;
+  status.textContent=filtered?visible+' de '+total+' ofertas visibles'+(visible?'':'. Prueba otros filtros.'):'';
+ }
+}
 document.addEventListener('click',event=>{
  const button=event.target?.closest?.('[data-access-choice]');
  if(!button)return;
  const toolbar=button.closest('[data-direct-filter]');
- const list=toolbar?.nextElementSibling;
- if(!toolbar||!list?.matches?.('[data-primary-offers]'))return;
+ if(!toolbar)return;
  const mode=button.getAttribute('data-access-choice');
  if(mode!=='all'&&mode!=='direct')return;
- for(const item of list.children){
-  if(!item.matches('li.offer'))continue;
-  item.hidden=mode==='direct'&&item.dataset.offerAccess!=='direct';
- }
+ toolbar.dataset.activeAccess=mode;
  for(const option of toolbar.querySelectorAll('[data-access-choice]')){
   option.setAttribute('aria-pressed',String(option===button));
  }
- const note=toolbar.querySelector('[data-access-note]');
- if(note)note.hidden=mode!=='direct';
+ applyComparisonFilters(toolbar);
+});
+document.addEventListener('change',event=>{
+ const input=event.target?.closest?.('[data-condition-filter],[data-capacity-filter]');
+ if(!input)return;
+ const toolbar=input.closest('[data-direct-filter]');
+ if(toolbar)applyComparisonFilters(toolbar);
 });
