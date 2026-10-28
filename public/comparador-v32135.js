@@ -197,3 +197,39 @@ document.addEventListener('change',event=>{
  const toolbar=input.closest('[data-direct-filter]');
  if(toolbar)applyComparisonFilters(toolbar);
 });
+
+/* V3.4.4.14 — Compartir una tarjeta sin exponer enlaces comerciales.
+   Si no hay Web Share ni portapapeles, el ancla HTML sigue funcionando. */
+document.addEventListener('click',async event=>{
+ const link=event.target?.closest?.('a[data-share-comparison-offer]');
+ if(!link)return;
+ let url;
+ try{url=new URL(link.href,location.href);}catch(_){return;}
+ if(url.origin!==location.origin || !url.pathname.startsWith('/comparar/') ||
+   !/^#oferta-[a-f0-9]{64}$/.test(url.hash))return;
+ const nativeShare=typeof navigator.share==='function';
+ const canCopy=typeof navigator.clipboard?.writeText==='function';
+ if(!nativeShare&&!canCopy)return;
+ event.preventDefault();
+ const feedback=link.parentElement?.querySelector?.('[data-share-offer-feedback]');
+ const inform=message=>{
+  if(feedback){feedback.textContent=message;feedback.hidden=false;}
+ };
+ if(nativeShare){
+  try{
+   await navigator.share({title:'Oferta en RedLibertad',url:url.href});
+   return;
+  }catch(e){
+   if(e?.name==='AbortError')return;
+   // Si el sistema no puede compartir, usar portapapeles sin perder la URL.
+  }
+ }
+ if(canCopy){
+  try{
+   await navigator.clipboard.writeText(url.href);
+   inform('Enlace copiado para compartir.');
+   return;
+  }catch(_){/* No afirmar que la copia se completó. */}
+ }
+ inform('No se ha podido copiar. Mantén pulsado el enlace para copiarlo.');
+});

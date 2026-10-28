@@ -1,3 +1,6 @@
+/* Ocultar únicamente avisos vacíos de compartir; nunca ocultar tarjetas. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-feedback[hidden]{display:none!important}
+
 /* V3.4.3.1 — RedLibertad Compare / Commerce Design System.
    Visual layer only. Product truth, privacy, SEO and external links stay server-owned. */
 :root{
@@ -688,6 +691,30 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .cmp-p
 @media(max-width:760px){
  body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .cmp-price-source{
   text-align:left;font-size:.73rem;
+ }
+}
+
+/* V3.4.4.14 — Acción secundaria para compartir la comparación de una oferta. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-offer{
+ display:inline-flex;align-items:center;justify-content:center;min-height:44px;
+ max-width:100%;width:max-content;padding:8px 11px;margin-top:5px;
+ border:1px solid #d4e4f1;border-radius:10px;background:#f7fbff;
+ color:#245b8a;font-size:.77rem;line-height:1.35;font-weight:700;
+ text-decoration:none;white-space:normal;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-offer:hover{
+ background:#e9f4ff;border-color:#afcde8;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-feedback{
+ display:block;max-width:100%;color:#1e684a;font-size:.73rem;
+ line-height:1.4;overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-offer{
+  grid-column:1;min-height:46px;width:100%;font-size:.8rem;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-feedback{
+  grid-column:1;text-align:left;
  }
 }
 

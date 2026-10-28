@@ -160,6 +160,10 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const clickToken=o.partner_store?merchantClicks.proof(o.partner_store_id,o.listing_id):null;
  const clickAttrs=clickToken?' data-comparison-merchant-click="1" data-store-id="'+esc(o.partner_store_id)+'" data-listing-id="'+esc(o.listing_id)+'" data-proof="'+clickToken+'"':'';
  const provenance=priceSource.sourceLabel(o,priceInfo);
+ // Enlace permanente a ESTA tarjeta, no al vendedor; no enviar URLs externas al compartir.
+ const share=index>=0?'<a class="cmp-share-offer" data-share-comparison-offer href="'+
+  esc('/comparar/'+slug+'#oferta-'+offerKey(o))+'" aria-label="'+esc('Compartir esta oferta de '+shop)+'">Compartir esta oferta</a>'+
+  '<small class="cmp-share-feedback" data-share-offer-feedback role="status" hidden></small>':'';
  const pricing=o.internal?'':priceInfo?.date?
    '<small class="offer-price-date'+(priceInfo.isStale?' offer-price-old':'')+'">'+
    esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
@@ -170,7 +174,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
   '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+
   '<small class="cmp-price-source">'+esc(provenance)+'</small>'+pricing+
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'" aria-label="'+esc(destinationInfo.ariaLabel)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
-  (note?'<span class="offer-destination">'+note+'</span>':'')+'</div></li>';
+  (note?'<span class="offer-destination">'+note+'</span>':'')+share+'</div></li>';
 }
 function nonComparableMarkup(accessories,review,slug,csrfToken,priceInfo){
  const sections=[];
