@@ -45,7 +45,9 @@ function representativeOffer(offers){
   if(o?.internal&&/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||''))n+=18;
   return n;
  };
- return [...offers].sort((a,b)=>rank(b)-rank(a))[0]||null;
+ // Nunca mostrar un bloque vacío si otra oferta del mismo modelo tiene una foto segura.
+ const withPhoto=offers.filter(o=>o?.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||''):Boolean(provider.safeImage(o?.image)));
+ return [...(withPhoto.length?withPhoto:offers)].sort((a,b)=>rank(b)-rank(a))[0]||null;
 }
 function commonFacts(query,offers){
  if(!Array.isArray(offers)||!offers.length)return [];
