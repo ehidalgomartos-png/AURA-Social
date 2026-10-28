@@ -128,7 +128,7 @@ function applyComparisonFilters(toolbar){
  const mode=toolbar.dataset.activeAccess||'all';
  const condition=toolbar.querySelector('[data-condition-filter]')?.value||'all';
  const capacity=toolbar.querySelector('[data-capacity-filter]')?.value||'all';
- let visible=0,total=0,lowestVisible=null;
+ let visible=0,total=0,lowestVisible=null,firstVisible=null;
  for(const item of list.children){
   if(!item.matches('li.offer'))continue;
   total++;
@@ -138,6 +138,7 @@ function applyComparisonFilters(toolbar){
   item.hidden=!show;
   if(show){
    visible++;
+   if(!firstVisible && item.id)firstVisible=item;
    const cents=Number(item.dataset.offerPriceCents);
    if(Number.isSafeInteger(cents)&&cents>0 && (lowestVisible===null||cents<lowestVisible))
     lowestVisible=cents;
@@ -156,6 +157,13 @@ function applyComparisonFilters(toolbar){
  }
  const reset=toolbar.querySelector('[data-clear-comparison-filters]');
  if(reset)reset.hidden=!filtered;
+ // En listas largas, ir siempre a la primera oferta que siga visible.
+ // La ruta sin JavaScript conserva el enlace HTML a la primera oferta.
+ const jump=toolbar.querySelector('[data-first-visible-link]');
+ if(jump){
+  jump.hidden=!firstVisible;
+  if(firstVisible)jump.setAttribute('href','#'+firstVisible.id);
+ }
 }
 // V3.4.4.10: resumen del mínimo VISIBLE sin alterar el precio general de la ficha.
 document.addEventListener('click',event=>{
