@@ -156,7 +156,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
    '<small class="offer-price-date'+(priceInfo.isStale?' offer-price-old':'')+'">'+
    esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
    '<small class="offer-price-date offer-price-old">Sin fecha de precio externo</small>';
- return '<li class="offer" data-offer-access="'+directFlag+'" data-offer-condition="'+tags.condition+'" data-offer-capacity="'+tags.capacity+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
+ return '<li class="offer" data-offer-access="'+directFlag+'" data-offer-condition="'+tags.condition+'" data-offer-capacity="'+tags.capacity+'" data-offer-price-cents="'+(Number.isSafeInteger(o.price_cents)&&o.price_cents>0?o.price_cents:'')+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><small>'+esc(shop)+' · '+esc(o.condition)+'</small>'+shipping+
   '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+pricing+
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'" aria-label="'+esc(destinationInfo.ariaLabel)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
@@ -1086,6 +1086,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    (conditionMenu||capacityMenu?'<div class="cmp-facet-group">'+conditionMenu+capacityMenu+'</div>':'')+
    '<p class="cmp-access-filter-note" data-access-note hidden>El precio mínimo destacado corresponde a todas las ofertas comparables, no solo a las filtradas.</p>'+
    '<p class="cmp-access-filter-result" role="status" data-filter-results hidden></p>'+
+   '<button class="cmp-filter-reset" type="button" data-clear-comparison-filters hidden>Quitar filtros</button>'+
    '</div>':'';
   const cards=ordinary.length?directControls+'<ol class="comparison-list cmp-primary-offers" data-primary-offers>'+ordinary.map((o,i)=>offerMarkup(o,i,ordinary.length,slug,csrfToken,quota,o.internal?null:externalPriceInfo)).join('')+'</ol>':'';
   const repairCards=repairOffersMarkup(repair,slug,csrfToken,externalPriceInfo);
