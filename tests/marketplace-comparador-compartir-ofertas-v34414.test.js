@@ -77,7 +77,9 @@ test('una sola oferta se puede compartir, sin botones en publicidad',async()=>{
  assert.equal(both.status,200);
  assert.match(both.html,/Publicidad \(1\)/);
  assert.equal((both.html.match(/data-share-comparison-offer href=/g)||[]).length,1);
- assert.match(both.html,/Desde 190,00/);
+ assert.match(both.html,/1 oferta coincidente/);
+ assert.match(both.html,/190,00/);
+ assert.doesNotMatch(both.html,/Desde 55,00/);
 });
 
 test('los nombres de comercio se escapan en el atributo accesible al compartir',async()=>{
