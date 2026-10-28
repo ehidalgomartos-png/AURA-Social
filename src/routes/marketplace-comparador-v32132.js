@@ -625,14 +625,15 @@ router.get('/comparar/comercios', (req,res)=>{
   '<span class="cmp-section-eyebrow">Programa de comercios · Gratis</span><h1>Tu tienda en el comparador de RedLibertad</h1>'+
   '<p class="cmp-commerce-lead">Lleva tus productos a quienes ya están comparando precios. El alta es gratuita: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
   '<p>Las tiendas se revisan antes de habilitar enlaces de compra. La venta se realiza exclusivamente en tu propia web.</p>'+
-  '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra tu tienda y espera la revisión.</span></li><li><strong>Verifica tu dominio</strong><span>Publica el código que te facilitamos; Administración comprobará la titularidad.</span></li><li><strong>Comparte tus productos</strong><span>Conecta WooCommerce con claves de lectura cuando esté aprobada.</span></li></ol>'+
+  '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra la web de tu tienda desde tu cuenta de RedLibertad.</span></li><li><strong>Verifica tu dominio</strong><span>Comprueba la titularidad mediante el código proporcionado y espera la revisión.</span></li><li><strong>Publica productos</strong><span>Si usas WooCommerce, podrás conectar el catálogo con acceso de solo lectura tras la aprobación; otras plataformas se revisan individualmente.</span></li></ol>'+
   '<div class="cmp-application-panel"><form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
   '<label for="comercioNombre">Nombre de la tienda</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization">'+
   '<label for="comercioWeb">Web de la tienda (HTTPS)</label><input id="comercioWeb" type="url" name="storeUrl" maxlength="500" placeholder="https://mitienda.es/" required autocomplete="url">'+
-  '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+
+  '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+ 
+   '<small class="cmp-merchant-platform-hint">WooCommerce permite conexión de lectura tras la aprobación. Para otras plataformas revisaremos la incorporación de productos contigo.</small>'+
   '<button type="submit">Solicitar incorporación gratuita</button>'+
-  '<small>Se requiere una cuenta de RedLibertad. No introduzcas contraseñas ni claves de tu tienda en este formulario.</small></form>'+ 
+  '<small>Se requiere una cuenta de RedLibertad. No introduzcas contraseñas ni claves de tu tienda en este formulario.</small><p class="cmp-merchant-form-help">¿Ya la has solicitado? <a href="/comparar/comercios/mi-panel">Consulta el estado desde tu panel</a>. No es necesario repetir el registro.</p></form>'+ 
   '<aside class="cmp-application-note"><strong>Venderás en tu propia tienda</strong><p>Los compradores irán directamente a tu web para finalizar la compra. RedLibertad no cobra ninguna comisión.</p><strong>Tú mantienes el control</strong><p>Las tiendas pasan una revisión manual y cada producto conserva su precio, estado y enlace original.</p><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a></aside></div>'+
   '<nav class="cmp-section-subnav" aria-label="Opciones de comercios"><a href="/app">Entrar o crear cuenta</a><a href="/comparar/comercios/mi-panel">Mi panel de comercios</a></nav></div>';
  res.set('Cache-Control','private,no-store');
@@ -656,10 +657,12 @@ router.post('/comparar/comercios/solicitar',optionalAuth,
    "INSERT INTO marketplace_professional_stores(seller_id,name,platform,store_url,status,purchase_enabled) "+
    "VALUES($1,$2,$3,$4,'pending',false) ON CONFLICT(seller_id,store_url) DO NOTHING RETURNING id",
    [req.user.id,name,platform,url]);
-  if(!out.rowCount)return res.status(409).send('La tienda ya está registrada en esta cuenta.');
+  if(!out.rowCount)return res.status(409).send(shell('Tienda ya registrada | RedLibertad','Consulta el estado de tu solicitud anterior.',
+    '<div class="cmp-commerce-intro cmp-merchant-result"><span class="cmp-section-eyebrow">Solicitud existente</span><h1>Esta tienda ya está registrada</h1><p>No tienes que repetir el alta. Puedes consultar la revisión del dominio y los próximos pasos en tu panel.</p><p>El servicio sigue siendo gratuito y no se ha efectuado ningún cobro.</p><nav class="cmp-section-subnav"><a href="/comparar/comercios/mi-panel">Ver mis tiendas</a><a href="/comparar">Volver al comparador</a></nav></div>',
+    '/comparar/comercios'));
   res.status(201).send(shell('Solicitud recibida | RedLibertad','Solicitud gratuita de comercio.',
    '<div class="cmp-commerce-intro"><h1>Solicitud registrada</h1><p>Tu tienda está pendiente de revisión. Ninguna oferta se publicará automáticamente en el comparador.</p>'+
-   '<p>No se ha realizado ningún cobro ni activado una suscripción.</p><a href="/comparar">Volver al comparador</a></div>',
+   '<p>No se ha realizado ningún cobro ni activado una suscripción.</p><p>El siguiente paso es consultar tu panel, obtener el código de dominio cuando esté disponible y esperar la revisión administrativa.</p><nav class="cmp-section-subnav"><a href="/comparar/comercios/mi-panel">Consultar mi solicitud</a><a href="/comparar">Volver al comparador</a></nav></div>',
    '/comparar/comercios'));
  }catch(error){next(error);}
 });
