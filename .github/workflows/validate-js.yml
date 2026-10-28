@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.10 filtered visible minimum and mobile clear-filters UX
+        run: node --test tests/marketplace-comparador-minimo-visible-v34410.test.js
       - name: V3.4.4.9 real store destinations and mobile navigation clarity
         run: node --test tests/marketplace-comparador-destinos-movil-v3449.test.js
       - name: V3.4.4.8 professional merchant store links and mobile direct access
