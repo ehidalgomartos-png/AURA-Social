@@ -28,8 +28,8 @@ test('dueño ve exclusivamente sus solicitudes; seguimiento de todas las tiendas
    if(sql.includes('FROM users')&&sql.includes('auth_token_version'))return {rowCount:1,rows:[{
     id:Number(args[0]),username:'cuenta',status:'active',is_admin:Number(args[0])===1,
     age_verified:true,show_sensitive:false,auth_token_version:0}]};
-   if(sql.startsWith('SELECT id,name,platform,store_url,status FROM marketplace_professional_stores WHERE seller_id=')){
-    assert.equal(Number(args[0]),22);return {rowCount:1,rows:[{id:45,name:'Mi tienda',platform:'woocommerce',store_url:'https://mitienda.es/',status:'pending'}]};
+   if(sql.startsWith('SELECT s.id,s.name,s.platform,s.store_url,s.status,')){
+    assert.equal(Number(args[0]),22);return {rowCount:1,rows:[{id:45,name:'Mi tienda',platform:'woocommerce',store_url:'https://mitienda.es/',status:'pending',linked_count:0,available_count:0,connected:false,sync_enabled:false}]};
    }
    if(sql.startsWith('SELECT s.id,s.name,s.store_url,s.status,s.platform,u.username,')){
     return {rowCount:2,rows:[{name:'Ejemplo',status:'pending',username:'comerciante',product_count:0,sync_enabled:false},
