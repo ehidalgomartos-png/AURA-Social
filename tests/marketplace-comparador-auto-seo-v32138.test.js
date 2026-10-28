@@ -94,7 +94,7 @@ test('SEO automático consistente en HTML, JSON-LD y sitemap XML sin solicitudes
    assert.match(xml,new RegExp(page.slug));
    assert.ok(!xml.includes(broad.slug));
    const home=await fetch(origin+'/comparar'),homeHtml=await home.text();
-   assert.match(homeHtml,/Páginas aprobadas para Google/);
+   assert.match(homeHtml,/Comparaciones seleccionadas/);
    assert.match(homeHtml,new RegExp(page.slug));
    assert.equal(externalCalls,0);
   }finally{await new Promise(resolve=>server.close(resolve));}
