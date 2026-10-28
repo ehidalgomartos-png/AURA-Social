@@ -54,7 +54,9 @@ test('no gastar consultas adicionales al reutilizar inline_shopping_results',asy
 test('publicidad identificada y no usada para SEO de producto',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
  assert.match(source,/offer-sponsored/);
- assert.match(source,/Publicidad de Google/);
+ const destinationSource=fs.readFileSync(path.join(__dirname,'../src/services/marketplace-comparador-destinations-v3449.js'),'utf8');
+ assert.match(source,/describeDestination/);
+ assert.match(destinationSource,/Publicidad de Google/);
  assert.match(source,/rel="noopener noreferrer nofollow/);
  const page={query_text:'samsung s26',index_approved:true,provider_status:'ok',
    editorial_summary:'Comparativa editorial de modelos exactos con análisis original de diferencias y valor para compradores de España.',

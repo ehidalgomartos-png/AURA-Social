@@ -48,7 +48,8 @@ test('comparador muestra una sola alerta de cuota y compacta 6 variantes sin ocu
    assert.match(html,/Ver las otras 2 versiones/);
    assert.equal((html.match(/class="compare-variant"/g)||[]).length,6);
    assert.equal((html.match(/class="offer"/g)||[]).length,6);
-   assert.equal((html.match(/Buscar en Google/g)||[]).length,6);
+   assert.equal((html.match(/>Buscar en Google<\/a>/g)||[]).length,6,
+    'contar botones visibles, no duplicar el texto por sus etiquetas accesibles');
    assert.doesNotMatch(html,/Consultar enlace de la tienda/);
    assert.equal((html.match(/Última consulta al proveedor/g)||[]).length,0,'fecha sin duplicar');
   }finally{await new Promise(resolve=>server.close(resolve));}

@@ -727,3 +727,11 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .offer
  .cmp-rich-comparison .cmp-sponsored-section summary{padding:13px 12px}
  .cmp-rich-comparison .cmp-sponsored-section .offer{min-width:0}
 }
+
+/* V3.4.4.9: dominios reales legibles en tarjetas estrechas, sin cortar botones. */
+.cmp-rich-comparison .offer .offer-side{min-width:0}
+.cmp-rich-comparison .offer .offer-destination{display:block;max-width:100%;overflow-wrap:anywhere;word-break:normal}
+@media(max-width:540px){
+ .cmp-rich-comparison .offer .offer-link{min-height:46px}
+ .cmp-rich-comparison .offer .offer-destination{line-height:1.5}
+}
