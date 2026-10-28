@@ -481,3 +481,25 @@ body.cmp-premium .cmp-rich-comparison .cmp-repair-section .offer>.offer-side{
  border-top:1px solid #e2ebf4}
  .cmp-rich-comparison .cmp-broad-action a.cmp-detail-action{width:100%}
 }
+
+/* V3.4.3.6 — Imagen ilustrativa del tipo de producto sin fingir una foto. */
+body.cmp-premium .cmp-rich-comparison .cmp-detail-image.cmp-detail-image-placeholder{
+ display:flex;align-items:center;justify-content:center;
+ min-height:250px;padding:22px;border-radius:17px;
+ background:linear-gradient(145deg,#f5f9fd,#eaf3fa);
+}
+body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage{
+ background:transparent;gap:13px;width:100%;min-height:190px;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage img{
+ display:block;width:118px;max-width:38%;height:auto;max-height:118px;object-fit:contain;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage small{
+ color:#55718a;font-size:.78rem;font-weight:660;text-align:center;
+ max-width:220px;line-height:1.45;
+}
+@media(max-width:720px){
+ body.cmp-premium .cmp-rich-comparison .cmp-detail-image.cmp-detail-image-placeholder{min-height:185px;padding:15px}
+ body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage{min-height:160px}
+ body.cmp-premium .cmp-rich-comparison .cmp-detail-image-placeholder .cmp-detail-noimage img{width:95px;max-height:95px}
+}
