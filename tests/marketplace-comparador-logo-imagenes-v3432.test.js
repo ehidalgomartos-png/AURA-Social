@@ -43,7 +43,7 @@ test('la portada muestra logo oficial, ilustración y fotos guardadas sin nuevas
   assert.match(html,/class="cmp-home-art" src="\/assets\/comparador-hero-v3432.svg"/);
   assert.match(html,/class="cmp-recent-card"/);
   assert.match(html,/src="https:\/\/images1.gstatic.com\/product\/photo.jpg"/);
-  assert.match(html,/src="\/assets\/comparador-producto-v3432.svg"/);
+  assert.match(html,/src="\/assets\/comparador-armarios-generico-v3435.svg"/);
   assert.match(html,/referrerpolicy="no-referrer"/);
   assert.match(html,/loading="lazy"/);
   assert.match(html,/href="\/comparar\/iphone-12-128-gb"/);
