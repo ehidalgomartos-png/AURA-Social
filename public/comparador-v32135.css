@@ -392,3 +392,24 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
  .cmp-repair-section .comparison-list{padding:0 10px}
  .cmp-detail-photo-source{font-size:.75rem}
 }
+
+/* V3.4.1.10 — Jerarquía clara y buscador discreto en la ficha, mobile-first. */
+.cmp-rich-comparison .cmp-detail-page-title{font-size:clamp(1.06rem,2vw,1.22rem);font-weight:750;color:#486987;margin:12px 0 3px;letter-spacing:0}
+.cmp-rich-comparison>.cmp-page-subtitle{font-size:.88rem;margin:0 0 12px;color:#627a90}
+.cmp-rich-comparison>.cmp-detail-hero{margin:12px 0 18px}
+.cmp-change-search{background:white;border:1px solid #dde8f2;border-radius:12px;margin:0 0 18px;overflow:hidden}
+.cmp-change-search>summary{cursor:pointer;min-height:46px;padding:12px 17px;color:#195e98;font-size:.9rem;font-weight:750;list-style-position:inside}
+.cmp-change-search>summary:focus-visible{outline:3px solid #92c1f0;outline-offset:-3px}
+.cmp-change-search[open]>summary{border-bottom:1px solid #e5edf5}
+.cmp-change-search>.compare-search{margin:0;box-shadow:none;border:0;padding:12px 17px 17px}
+.cmp-change-search>.compare-search label{font-size:.88rem}
+.cmp-rich-comparison .cmp-detail-repair-note{margin-bottom:10px}
+@media(max-width:540px){
+ .cmp-rich-comparison .cmp-detail-page-title{font-size:1rem;margin:9px 0 4px}
+ .cmp-rich-comparison>.cmp-page-subtitle{font-size:.84rem}
+ .cmp-change-search>summary{padding:12px 14px}
+ .cmp-change-search>.compare-search{padding:12px 14px 14px}
+ .cmp-rich-comparison .cmp-detail-image{max-height:260px}
+ .cmp-rich-comparison .cmp-detail-price strong{font-size:2.1rem}
+ .cmp-rich-comparison section[data-comparison-results] .offer .offer-price-date{white-space:normal;word-break:normal;overflow-wrap:normal;min-width:0}
+}
