@@ -613,6 +613,18 @@ body.cmp-premium .cmp-rich-comparison .offer-side .offer-lookup-network-error{
 @media(max-width:490px){.cmp-photo-review .cmp-review-image-card{flex-direction:column}
  .cmp-photo-review .cmp-review-image-card img{width:100%;height:190px;flex:none}}
 
+/* V3.4.4.10 — resaltar el mínimo de las tarjetas filtradas sin alterar el precio principal. */
+.cmp-rich-comparison .cmp-access-filter-result{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cmp-rich-comparison .cmp-filter-reset{border:1px solid #bdcfe1;background:#fff;color:#17568b;
+ font:inherit;font-size:.81rem;font-weight:760;border-radius:10px;min-height:44px;padding:10px 15px;cursor:pointer}
+.cmp-rich-comparison .cmp-filter-reset:hover{background:#eef6ff}
+.cmp-rich-comparison .cmp-filter-reset:focus-visible{outline:3px solid #8fbfeb;outline-offset:2px}
+.cmp-rich-comparison .cmp-filter-reset[hidden]{display:none!important}
+@media(max-width:620px){
+ .cmp-rich-comparison .cmp-filter-reset{width:100%;min-height:46px}
+ .cmp-rich-comparison .cmp-access-filter-result{width:100%}
+}
+
 /* V3.4.4.2 — pulido mobile-first del comparador de RedLibertad.
    Solo presentación: conserva orden, precios, accesos y estado de cada oferta. */
 body.cmp-premium .cmp-rich-comparison .comparison-list .offer{
@@ -734,16 +746,4 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-side .offer
 @media(max-width:540px){
  .cmp-rich-comparison .offer .offer-link{min-height:46px}
  .cmp-rich-comparison .offer .offer-destination{line-height:1.5}
-}
-
-/* V3.4.4.10 — resaltar el mínimo de las tarjetas filtradas sin alterar el precio principal. */
-.cmp-rich-comparison .cmp-access-filter-result{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.cmp-rich-comparison .cmp-filter-reset{border:1px solid #bdcfe1;background:#fff;color:#17568b;
- font:inherit;font-size:.81rem;font-weight:760;border-radius:10px;min-height:44px;padding:10px 15px;cursor:pointer}
-.cmp-rich-comparison .cmp-filter-reset:hover{background:#eef6ff}
-.cmp-rich-comparison .cmp-filter-reset:focus-visible{outline:3px solid #8fbfeb;outline-offset:2px}
-.cmp-rich-comparison .cmp-filter-reset[hidden]{display:none!important}
-@media(max-width:620px){
- .cmp-rich-comparison .cmp-filter-reset{width:100%;min-height:46px}
- .cmp-rich-comparison .cmp-access-filter-result{width:100%}
 }
