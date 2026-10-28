@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.2 mobile-first comparison visual regression
+        run: node --test tests/marketplace-comparador-mobile-v3442.test.js
       - name: V3.4.4.1 admin-reviewed comparison photos without uploads
         run: node --test tests/marketplace-comparador-photo-review-v3441.test.js
       - name: V3.4.4.0 comparison conditions and capacity filters
