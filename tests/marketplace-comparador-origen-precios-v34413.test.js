@@ -33,6 +33,8 @@ test('fuente de precio: diferenciar RedLibertad, tienda vinculada, publicidad y 
   'Oferta externa · precio anterior');
  assert.equal(sourceLabel(offer('Tienda',18000),{date:null}),
   'Oferta externa · fecha sin confirmar');
+ assert.equal(sourceLabel(offer('Tienda',18000),{date:null,isStale:true}),
+  'Oferta externa · fecha sin confirmar');
  assert.equal(sourceLabel(null,null),'Oferta externa · fecha sin confirmar');
 });
 
