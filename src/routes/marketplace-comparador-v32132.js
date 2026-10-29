@@ -37,6 +37,7 @@ const failureReport=require('../services/marketplace-comparador-failures-v34572'
 const budgetInfo=require('../services/marketplace-comparador-budget-info-v34574');
 const seoPriorities=require('../services/marketplace-comparador-seo-priorities-v3460');
 const mediaAudit=require('../services/marketplace-comparador-media-link-audit-v3461');
+const recovery=require('../services/marketplace-comparador-recovery-v3464');
 const modelSuggestions=require('../services/marketplace-comparador-model-suggestions-v3462');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
@@ -481,7 +482,8 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
   '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p>'+ 
   '<p><a class="cmp-audit-entry" href="/admin/comparador/diagnostico">Ver diagnóstico de calidad de las comparaciones</a></p>'+
-  '<p><a class="cmp-audit-entry" href="/admin/comparador/comercios-panel">Supervisar solicitudes y catálogos de comercios</a></p></div>'+
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/comercios-panel">Supervisar solicitudes y catálogos de comercios</a></p>'+
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/recuperacion">Revisar la cola de recuperación SEO sin gastar consultas</a></p></div>'+
   (quota?'<section class="seo-quota-panel" aria-labelledby="seo-quota-title"><h2 id="seo-quota-title">Consultas del comparador</h2>'+
    '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy (Europe/Madrid)</span></p>'+
    '<p><strong>'+Number(quota.monthlyUsed||0)+' / '+Number(quota.monthly)+'</strong><span>Este mes</span></p></div>'+
@@ -650,6 +652,74 @@ router.get('/admin/comparador/errores',requireAdmin,async(req,res,next)=>{
   res.send(shell('Errores de búsqueda | RedLibertad',
    'Diagnóstico privado de búsquedas externas fallidas.',html,'/admin/comparador/errores'));
  }catch(e){next(e);}
+});
+// V3.4.6.4 — cola privada de recuperación, estrictamente informativa.
+router.get('/admin/comparador/recuperacion',requireAdmin,async(req,res,next)=>{
+ try{
+  await compareWorker.ensureSchema(ensureSchema);
+  const result=await db.query(
+   "SELECT p.id,p.slug,p.query_text,p.index_approved,p.seo_blocked,p.editorial_summary,"+
+   "p.provider_status,p.last_checked_at,p.external_results,"+
+   "j.status AS job_status,j.failure_code,j.finished_at AS job_finished_at "+
+   "FROM marketplace_compare_pages p LEFT JOIN marketplace_compare_jobs j ON j.page_id=p.id "+
+   "ORDER BY p.created_at DESC LIMIT 80"
+  );
+  // Solo lee límites y usos guardados: no reserva cuota ni contacta SerpApi.
+  const quota=await compareWorker.quotaStatus();
+  const requested=typeof req.query?.estado==='string'?req.query.estado:'todas';
+  const report=recovery.queue(result.rows,requested,quota);
+  const choices=[
+   ['todas','Todas'],['accionables','Para revisar'],['en-curso','En curso'],
+   ['pausadas','Pausadas'],['aptas','Aptas'],['bloqueadas','Bloqueadas']
+  ];
+  const filters=choices.map(([key,label])=>
+   '<a href="/admin/comparador/recuperacion?estado='+key+'"'+
+   (report.selected===key?' aria-current="page"':'')+'>'+
+   esc(label)+' <span>'+report.counts[key]+'</span></a>').join('');
+  const cards=report.rows.map(item=>{
+   const p=item.page;
+   // Todos los destinos internos se generan desde el registro consultado.
+   const id=String(p.id),slug=String(p.slug||'');
+   const validId=/^[1-9]\d{0,15}$/.test(id);
+   const validSlug=/^[a-z0-9-]{4,120}$/.test(slug);
+   const storedDate=p.last_checked_at && Number.isFinite(Date.parse(p.last_checked_at))?
+    new Date(p.last_checked_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'}):null;
+   const seoLink=validId?'<a href="/admin/comparador?estado=todas#comparacion-'+id+'">Revisar SEO y ofertas</a>':'';
+   const queryLink=typeof p.query_text==='string'&&p.query_text.length<=100?
+    '<a href="/comparar?q='+encodeURIComponent(p.query_text)+'">Preparar otra búsqueda</a>':'';
+   return '<li class="cmp-recovery-card"><div class="cmp-recovery-card-head"><h2>'+
+    (validSlug?'<a href="/comparar/'+esc(slug)+'">'+esc(p.query_text)+'</a>':esc(p.query_text))+
+    '</h2><span class="cmp-recovery-state">'+esc(item.label)+'</span></div>'+
+    '<p class="cmp-recovery-action">'+esc(item.action)+'</p>'+
+    '<p class="cmp-recovery-metrics">'+item.offerCount+' ofertas comparables guardadas · '+
+    item.sellerCount+' vendedores observados'+
+    (storedDate?' · Última respuesta válida: '+esc(storedDate):' · Sin fecha de respuesta válida')+'</p>'+
+    '<nav class="cmp-recovery-links" aria-label="Acciones para '+esc(p.query_text)+'">'+
+    seoLink+(item.actionable?queryLink:'')+'</nav></li>';
+  }).join('');
+  const budget=budgetInfo.describe(quota);
+  const body='<div class="cmp-recovery"><p class="crumb"><a href="/admin/comparador">Administración SEO</a> / Recuperación</p>'+
+   '<h1>Recuperar comparaciones con criterio</h1>'+
+   '<p>Prioridades basadas en las últimas '+report.counts.todas+
+   ' comparaciones guardadas (máximo 80). No son totales de toda la base.</p>'+
+   '<p class="cmp-recovery-budget"><strong>Presupuesto de consultas:</strong> '+esc(budget.message)+'</p>'+
+   '<div class="cmp-recovery-metrics-grid"><div><strong>'+report.counts.accionables+
+   '</strong><span>Para revisar</span></div><div><strong>'+report.counts['en-curso']+
+   '</strong><span>En curso</span></div><div><strong>'+report.counts.pausadas+
+   '</strong><span>Pausadas</span></div><div><strong>'+report.counts.aptas+
+   '</strong><span>Aptas</span></div></div>'+
+   '<nav class="cmp-recovery-filters" aria-label="Filtrar recuperación SEO">'+filters+'</nav>'+
+   (cards?'<ol class="cmp-recovery-list">'+cards+'</ol>':
+    '<p role="status">No hay comparaciones en este filtro.</p>')+
+   '<p class="cmp-recovery-disclaimer">Esta pantalla no consulta SerpApi, no hace búsquedas, no actualiza precios, no aprueba fichas ni modifica noindex. '+
+   'Abrir una comparación puede activar su actualización habitual si ya corresponde por antigüedad y existe cuota. '+
+   'Preparar otra búsqueda solo rellena el formulario; enviarlo es una decisión expresa y puede consumir una consulta.</p>'+
+   '<p><a href="/admin/comparador/errores">Ver los errores guardados</a></p></div>';
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Recuperación de comparaciones | RedLibertad',
+   'Cola privada de calidad y recuperación SEO.',body,'/admin/comparador/recuperacion'));
+ }catch(error){next(error);}
 });
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
  try{
