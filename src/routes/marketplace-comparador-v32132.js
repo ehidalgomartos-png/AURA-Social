@@ -494,8 +494,6 @@ router.get('/comparar',async(req,res,next)=>{
     '. Revisa el producto y pulsa «Comparar precios» para consultar las ofertas. Abrir este enlace no consume cuota.</p>':'')+
    formMarkup('',prepared,csrfToken)+
    '<p class="cmp-home-trust"><span>Precios por producto y estado</span><span>Enlaces a vendedores</span><span>Comparaciones guardadas</span></p></section>'+
-   '<section class="cmp-landing-home-link"><h2>Compara por categoría</h2><p>Guías prácticas para elegir bien antes de comparar precios.</p><ul class="cmp-landings-grid">'+landingCards()+'</ul><a class="cmp-landing-view-all" href="'+landingPages.HUB+'">Ver todas las guías de compra</a> · <a href="/comparar/guias">Guías de marcas y modelos</a></section>'+ 
-   '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a><span class="cmp-cta-sep">·</span>¿Tienes una tienda? <a href="/comparar/comercios">Añádela gratis</a></p>'+
    '<section class="info cmp-home-panel" aria-labelledby="cmp-recent-title"><span class="cmp-section-eyebrow">Explora productos</span>'+
    '<h2 id="cmp-recent-title">Comparaciones recientes</h2>'+
    (items?'<p class="cmp-section-note">Búsquedas guardadas con ofertas; consulta la ficha para ver precios y disponibilidad.</p><ul class="compare-recent-list">'+items+'</ul>':
@@ -503,6 +501,8 @@ router.get('/comparar',async(req,res,next)=>{
    (indexed?'<section class="info cmp-home-panel"><span class="cmp-section-eyebrow">Fichas públicas</span><h2>Comparaciones seleccionadas</h2>'+
    '<p class="cmp-section-note">Preparadas para indexación; Google decide si aparecen en sus resultados.</p>'+
    '<ul class="compare-recent-list">'+indexed+'</ul></section>':'')+
+   '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a><span class="cmp-cta-sep">·</span>¿Tienes una tienda? <a href="/comparar/comercios">Añádela gratis</a></p>'+
+   '<section class="cmp-landing-home-link"><h2>Compara por categoría</h2><p>Guías prácticas para elegir bien antes de comparar precios.</p><ul class="cmp-landings-grid">'+landingCards()+'</ul><a class="cmp-landing-view-all" href="'+landingPages.HUB+'">Ver todas las guías de compra</a> · <a href="/comparar/guias">Guías de marcas y modelos</a></section>'+ 
    '',
    '/comparar',true,seo.structuredData(null,[],false,'/comparar')));
  }catch(e){next(e);}
