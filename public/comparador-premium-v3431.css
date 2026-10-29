@@ -1624,3 +1624,50 @@ body.cmp-premium .cmp-growth-review-link:focus-visible{
  body.cmp-premium .cmp-growth-filters a{font-size:.77rem;padding:9px 7px}
  body.cmp-premium .cmp-growth-review-link{width:100%;justify-content:center}
 }
+
+/* V3.4.5.7 — siguiente paso destacado en el panel privado de comercios. */
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-step{
+ margin:16px 0 12px;padding:16px;background:linear-gradient(140deg,#edf6fd,#f8fbff);
+ border:1px solid #c7deef;border-radius:14px;min-width:0;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-eyebrow{
+ display:block;color:#1a628f;text-transform:uppercase;font-weight:800;
+ letter-spacing:.08em;font-size:.7rem;margin-bottom:6px;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-step h2{
+ font-size:1.1rem;line-height:1.34;color:#183c5b;margin:0 0 8px;letter-spacing:-.015em;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-step p{
+ font-size:.86rem;line-height:1.55;color:#455f78;margin:0 0 13px;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-button{
+ display:inline-flex;align-items:center;justify-content:center;max-width:100%;
+ min-height:46px;padding:11px 16px;background:#165c94;color:white;
+ border:0;border-radius:10px;font-weight:760;font-size:.9rem;
+ line-height:1.34;text-decoration:none;cursor:pointer;text-align:center;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-button:hover{background:#0e4878}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-form{margin:0}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-verification{
+ padding:13px;margin-top:14px;background:white;border:1px solid #d6e5f0;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-verification:first-of-type{margin-top:0}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-context{
+ color:#526c80;font-size:.8rem;line-height:1.5;margin:9px 0 13px;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-secondary-links{
+ display:flex;flex-wrap:wrap;gap:8px 18px;margin:12px 0 2px;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-secondary-links a{
+ font-size:.81rem;line-height:1.4;color:#2d628a;text-decoration:underline;
+ text-underline-offset:3px;
+}
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-button:focus-visible,
+body.cmp-premium .cmp-dashboard-page .cmp-merchant-secondary-links a:focus-visible{
+ outline:3px solid #83b9e5;outline-offset:3px;
+}
+@media(max-width:550px){
+ body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-step{padding:13px}
+ body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-button{width:100%}
+ body.cmp-premium .cmp-dashboard-page .cmp-merchant-secondary-links{flex-direction:column;gap:12px}
+}

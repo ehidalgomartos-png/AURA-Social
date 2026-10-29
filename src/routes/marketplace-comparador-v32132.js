@@ -27,7 +27,7 @@ const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-o
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
 const merchantDashboard=require('../services/marketplace-comparador-merchant-dashboard-v3452');
 const merchantFollowup=require('../services/marketplace-comparador-merchant-followup-v3424');
-const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
+const {sellerProgress,merchantNextAction}=require('../services/marketplace-comparador-merchant-guide-v3425');
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
 const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
@@ -1346,7 +1346,7 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
   await ensureProfessionalSchema();
   const csrfToken=issueCsrf(req,res);
   const result=await db.query(
-   "SELECT s.id,s.name,s.platform,s.store_url,s.status,s.verification_token,"+
+   "SELECT s.id,s.name,s.platform,s.store_url,s.status,s.verification_token,s.purchase_enabled,"+
    "COUNT(DISTINCT x.listing_id)::integer AS linked_count,"+
    "COUNT(DISTINCT x.listing_id) FILTER (WHERE x.stock_status='in_stock' "+
    "AND (x.source<>'api' OR x.last_checked_at>now()-interval '48 hours') "+
@@ -1361,21 +1361,34 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
    [req.user.id]);
   const cards=result.rows.map(store=>{
    const info=sellerProgress(store);
-   const verification=store.status==='pending'?
+   const action=merchantNextAction(store);
+   const id=String(store.id);
+   // Solo generar destinos a partir de IDs numéricos válidos.
+   const safeId=/^[1-9]\d{0,15}$/.test(id)?id:null;
+   const verification=store.status==='pending'&&safeId?
     (store.verification_token?
-     '<div class="cmp-merchant-verification"><strong>Verificación de titularidad (manual)</strong>'+
+     '<div id="verificacion-'+safeId+'" class="cmp-merchant-verification"><strong>Verificación de titularidad (manual)</strong>'+
      '<p>Publica este código de texto en una página visible de tu dominio '+esc(store.store_url)+'. Administración comprobará el código antes de aprobar la tienda.</p>'+
      '<code>'+esc(store.verification_token)+'</code><small>No introduzcas contraseñas ni datos de clientes. El código no activa nada automáticamente.</small></div>':
-     '<form method="post" action="/comparar/comercios/verificacion/'+esc(store.id)+'">'+
+     '<form class="cmp-merchant-next-form" method="post" action="/comparar/comercios/verificacion/'+safeId+'">'+
      '<input type="hidden" name="_csrf" value="'+esc(csrfToken)+'">'+
-     '<button type="submit">Obtener código de verificación</button></form>'):'';
+     '<button class="cmp-merchant-next-button" type="submit">Obtener código de verificación</button></form>'):'';
+   const control=action.control?.mode==='link'?
+    '<a class="cmp-merchant-next-button" href="'+esc(action.control.href)+'">'+esc(action.control.label)+'</a>':'';
+   const nextStep='<section class="cmp-merchant-next-step" aria-label="Tu siguiente paso para '+esc(store.name)+'">'+
+    '<span class="cmp-merchant-next-eyebrow">Tu siguiente paso</span>'+
+    '<h2>'+esc(action.title)+'</h2><p>'+esc(action.description)+'</p>'+
+    control+verification+'</section>';
    return '<li class="cmp-merchant-progress"><strong>'+esc(store.name)+'</strong>'+
     '<span>'+esc(info.label)+' · '+esc(store.platform)+'</span>'+
     '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
-    '<p>'+esc(info.next)+'</p>'+verification+
-    '<p><a href="/comparar/comercios/catalogo/'+esc(store.id)+'">Preparar catálogo: WooCommerce y CSV</a></p>'+
-    '<p><a href="/comparar/comercios/estadisticas/'+esc(store.id)+'">Ver estadísticas de esta tienda</a></p>'+
-    (info.linked?'<p><a href="/comparar/comercios/productos/'+esc(store.id)+'">Ver diagnóstico de mis productos</a></p>':'')+'</li>';
+    nextStep+
+    '<p class="cmp-merchant-next-context">'+esc(info.next)+'</p>'+
+    '<nav class="cmp-merchant-secondary-links" aria-label="Otras herramientas de '+esc(store.name)+'">'+
+    (safeId?'<a href="/comparar/comercios/catalogo/'+safeId+'">Preparar catálogo: WooCommerce y CSV</a>'+
+    '<a href="/comparar/comercios/estadisticas/'+safeId+'">Ver estadísticas de esta tienda</a>'+
+    (info.linked?'<a href="/comparar/comercios/productos/'+safeId+'">Ver diagnóstico de mis productos</a>':''):'')+
+    '</nav></li>';
   }).join('');
   const content='<div class="cmp-commerce-intro cmp-dashboard-page"><span class="cmp-section-eyebrow">Área privada de comercios</span><h1>Mis tiendas del comparador</h1>'+
    '<p>El servicio es gratuito. Cada tienda necesita aprobación y productos revisados antes de aparecer en una comparación.</p>'+
