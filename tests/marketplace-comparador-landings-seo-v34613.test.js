@@ -7,6 +7,7 @@ const express=require('express');
 const db=require('../src/db');
 const seo=require('../src/services/marketplace-comparador-seo-v32132');
 const landings=require('../src/services/marketplace-comparador-landing-pages-v34613');
+const modelGuides=require('../src/services/marketplace-comparador-model-guides-v34616');
 const audit=require('../src/services/marketplace-comparador-indexation-audit-v3465');
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
@@ -129,7 +130,7 @@ test('sitemap indexa exactamente hub + landings estáticas y solo fichas dinámi
   const r=await get('/sitemap-comparador.xml');
   assert.equal(r.code,200);
   assert.match(r.headers.get('content-type'),/xml/);
-  const paths=['/comparar',...landings.urlPaths(),'/comparar/'+consolePage.slug];
+  const paths=['/comparar',...landings.urlPaths(),...modelGuides.urlPaths(),'/comparar/'+consolePage.slug];
   for(const p of paths){
    assert.ok(r.body.includes('<loc>https://redlibertad.com'+p+'</loc>'),p);
    assert.equal(r.body.split('<loc>https://redlibertad.com'+p+'</loc>').length-1,1,p);

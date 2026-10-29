@@ -48,7 +48,7 @@ test('ficha PS5 Pro indexable enlaza desde su producto a la guía de consolas, s
  assert.equal(r.status,200);
  assert.match(r.html,/meta name="robots" content="index,follow"/);
  assert.match(r.html,/href="\/comparar\/categorias\/consolas"/);
- assert.match(r.html,/Guía de compra relacionada/);
+ assert.match(r.html,/Guías de compra relacionadas/);
  assert.match(r.html,/Comparar precios de consolas/);
  assert.match(r.html,/href="https:\/\/redlibertad.com\/comparar\/playstation-5-pro-/);
  assert.ok(r.queries.every(sql=>!/INSERT INTO marketplace_compare_provider_usage|serpapi\.com/i.test(sql)));
