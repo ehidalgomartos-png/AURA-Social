@@ -749,10 +749,13 @@ router.get('/admin/comparador/indexacion',requireAdmin,async(req,res,next)=>{
    const diagnosis=r.eligible?null:indexDetails.inspect(p);
    const diagnosticMarkup=diagnosis?.kind==='price'?
     '<div class="cmp-index-detail"><strong>Ofertas y precios que requieren revisión</strong>'+
-    '<p>'+diagnosis.sellers+' tiendas distintas; '+diagnosis.total+' ofertas guardadas'+
-    (diagnosis.ratio?' · diferencia máximo/mínimo: '+esc(String(diagnosis.ratio))+'×':'')+'</p>'+
+    '<p>'+diagnosis.sellers+' tiendas distintas con precios de compra; '+diagnosis.total+' ofertas de compra guardadas'+
+    (diagnosis.ratio?' · diferencia máximo/mínimo de compra: '+esc(String(diagnosis.ratio))+'×':'')+'</p>'+
     (diagnosis.offers.length?'<ul>'+diagnosis.offers.map(x=>
      '<li>'+esc(x.shop)+' · '+(x.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'})+'</li>').join('')+'</ul>':'')+
+    (diagnosis.rentalCount?'<p><strong>'+diagnosis.rentalCount+' oferta(s) de alquiler excluida(s) del precio de compra</strong></p><ul>'+
+     diagnosis.rentals.map(x=>'<li>'+esc(x.shop)+' · cuota publicada '+(x.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'})+
+      ' (periodicidad y duración a confirmar)</li>').join('')+'</ul>':'')+
     '<small>'+esc(diagnosis.note)+'</small></div>':
     diagnosis?.kind==='network'?
     '<div class="cmp-index-detail"><strong>Conectividad de las ofertas guardadas</strong><ul>'+
