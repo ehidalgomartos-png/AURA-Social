@@ -731,7 +731,7 @@ router.get('/comparar/comercios', (req,res)=>{
   '<small id="cmp-merchant-url-hint" class="cmp-merchant-field-hint">Introduce la dirección principal de la tienda con https://. La verificaremos antes de la aprobación.</small>'+
   '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+ 
    '<small class="cmp-merchant-platform-hint">WooCommerce permite conexión de lectura tras la aprobación. Para otras plataformas revisaremos la incorporación de productos contigo.</small>'+
-  '<button type="submit">Enviar solicitud gratuita</button>'+
+  '<button type="submit">Solicitar incorporación gratuita</button>'+
   '<small>Se requiere una cuenta de RedLibertad. No introduzcas contraseñas ni claves de tu tienda en este formulario.</small><p class="cmp-merchant-form-help">¿Ya la has solicitado? <a href="/comparar/comercios/mi-panel">Consulta el estado desde tu panel</a>. No es necesario repetir el registro.</p></form>'+ 
   '<aside class="cmp-application-note"><strong>Venderás en tu propia tienda</strong><p>Los compradores irán directamente a tu web para finalizar la compra. RedLibertad no cobra ninguna comisión.</p><strong>Tú mantienes el control</strong><p>Las tiendas pasan una revisión manual y cada producto conserva su precio, estado y enlace original.</p><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a></aside></div>'+
   '<section class="cmp-merchant-faq" aria-labelledby="cmp-merchant-faq-title"><h2 id="cmp-merchant-faq-title">Preguntas frecuentes</h2>'+ 
