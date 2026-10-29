@@ -355,7 +355,7 @@ router.post('/comparar/buscar',rateLimit({windowMs:60*60*1000,limit:15,standardH
 
 function seoRefinementSuggestions(page){
  const text=cleanQuery(page?.query_text);
- if(!text||seo.auto.capacity(text))return [];
+ if(!text||seo.auto.capacity(text)||seo.discovery.consoleModel(text))return [];
  const results=[],seen=new Set(),offers=Array.isArray(page.external_results)?page.external_results:[];
  for(const o of offers){
   if(!o?.title||!provider.titleMatches(text,o.title))continue;

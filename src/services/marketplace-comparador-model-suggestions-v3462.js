@@ -22,7 +22,8 @@ function usable(page,o){
 function models(page,limit=3){
  const q=String(page?.query_text||'').trim().replace(/\s+/g,' ');
  if(q.length<3 || q.length>90 || /[<>{}@]/.test(q) ||
-  quality.isRepairSearch(q) || discovery.modelEvidence(q))return [];
+  quality.isRepairSearch(q) || discovery.modelEvidence(q) ||
+  discovery.consoleModel(q))return [];
  const rows=Array.isArray(page?.external_results)?page.external_results:[];
  const groups=new Map(),queryTokens=new Set(quality.normalize(q).split(' '));
  for(const o of rows.slice(0,80)){
