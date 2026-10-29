@@ -1115,3 +1115,17 @@ body.cmp-premium .cmp-rich-comparison .compare-variant-jump:focus-visible{
   display:flex;width:100%;min-height:46px;
  }
 }
+
+/* V3.4.4.25 — precio externo histórico y alcance real de la información. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .cmp-offer-price-advice{
+ display:block;max-width:100%;border-left:3px solid #d9aa55;
+ border-radius:0 6px 6px 0;background:#fffbf2;
+ padding:8px 10px;font-size:.76rem;line-height:1.45;
+ font-weight:560;color:#6b4e24;text-align:left;
+ white-space:normal;overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .cmp-offer-price-advice{
+  width:100%;font-size:.75rem;line-height:1.45;
+ }
+}

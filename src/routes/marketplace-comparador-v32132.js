@@ -157,7 +157,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const candidate=possible && quota?.available!==false;
  const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
    (o.lookup_status==='unavailable'&&link.destination==='shopping-search'?
-    '<p class="offer-lookup-feedback" role="status">No se ha confirmado un enlace directo de esta oferta.</p>':'');
+    '<p class="offer-lookup-feedback" role="status">No se ha confirmado un enlace directo de esta oferta. Esto no significa que el producto esté agotado.</p>':'');
  const clickToken=o.partner_store?merchantClicks.proof(o.partner_store_id,o.listing_id):null;
  const clickAttrs=clickToken?' data-comparison-merchant-click="1" data-store-id="'+esc(o.partner_store_id)+'" data-listing-id="'+esc(o.listing_id)+'" data-proof="'+clickToken+'"':'';
  const provenance=priceSource.sourceLabel(o,priceInfo);
@@ -169,11 +169,15 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
    '<small class="offer-price-date'+(priceInfo.isStale?' offer-price-old':'')+'">'+
    esc((priceInfo.isStale?'Último precio guardado: ':'Precio consultado: ')+priceInfo.date)+'</small>':
    '<small class="offer-price-date offer-price-old">Sin fecha de precio externo</small>';
+ // V3.4.4.25: la antigüedad del precio no prueba falta de stock.
+ // Mostrar el aviso junto al precio externo antes del acceso comercial.
+ const savedPriceAdvice=!o.internal&&priceInfo?.isStale?
+  '<small class="cmp-offer-price-advice">Precio guardado de una consulta anterior. Comprueba el importe y la disponibilidad en la tienda.</small>':'';
  return '<li class="offer" data-offer-access="'+directFlag+'" data-offer-condition="'+tags.condition+'" data-offer-capacity="'+tags.capacity+'" data-offer-price-cents="'+(Number.isSafeInteger(o.price_cents)&&o.price_cents>0?o.price_cents:'')+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><div class="cmp-offer-meta"><small class="cmp-offer-shop">'+esc(shop)+'</small>'+
   '<span class="cmp-condition-chip cmp-condition-'+tags.condition+'" title="'+esc(stateHelp)+'">'+esc(stateLabel)+'</span></div>'+shipping+
   '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+
-  '<small class="cmp-price-source">'+esc(provenance)+'</small>'+pricing+
+  '<small class="cmp-price-source">'+esc(provenance)+'</small>'+pricing+savedPriceAdvice+
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'" aria-label="'+esc(destinationInfo.ariaLabel)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+share+'</div></li>';
 }
