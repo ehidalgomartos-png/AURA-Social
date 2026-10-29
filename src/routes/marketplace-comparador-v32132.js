@@ -1050,7 +1050,7 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
    "ORDER BY s.created_at DESC,s.id DESC LIMIT 80"
   );
   // Actividad opcional: si la tabla histórica aún no existe, no inventar clics.
-  const ids=data.rows.map(row=>String(row.id)).filter(id=>/^[1-9]\\d{0,15}$/.test(id));
+  const ids=data.rows.map(row=>String(row.id)).filter(id=>/^[1-9]\d{0,15}$/.test(id));
   const clickTotals=new Map();
   let clicksAvailable=ids.length===0;
   if(ids.length){
