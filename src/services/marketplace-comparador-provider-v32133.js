@@ -1,6 +1,10 @@
 'use strict';
 // V3.2.133 — Google Shopping España (SerpApi): resultados reales, sin scraping directo.
 // Nunca expone la API key en HTML ni comunica un enlace Google como checkout del vendedor.
+// Google Shopping a veces supera 20 s (observado: 23,29 s); el worker
+// mantiene un lease de 2 minutos y el navegador comprueba durante 90 s.
+// 45 s evita descartar respuestas válidas sin repetir ni ampliar la cuota.
+const GOOGLE_SHOPPING_TIMEOUT_MS=45000;
 const EXCLUDED=/\b(funda|carcasa|protector|cristal templado|cargador|cable|correa|repuesto|soporte|estuche|adaptador|accessory|case|cover|screen protector)\b/i;
 function keyOf(value){
  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -297,7 +301,7 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
   api_key:String(env.COMPARADOR_SERPAPI_KEY).trim()
  });
  const response=await fetchFn('https://serpapi.com/search.json?'+query.toString(),{
-  signal:AbortSignal.timeout(12000),headers:{Accept:'application/json'}
+  signal:AbortSignal.timeout(GOOGLE_SHOPPING_TIMEOUT_MS),headers:{Accept:'application/json'}
  });
  if(!response.ok)throw new Error('provider_http_'+response.status);
  const data=await response.json();
@@ -322,4 +326,4 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
  return mergeOffers(organic,sponsored);
 }
-module.exports={safeHttps,safeImage,directMerchantUrl,safePageToken,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,hasProductReference,canLookupSeller,selectRetailer,fetchDirectRetailer};
+module.exports={GOOGLE_SHOPPING_TIMEOUT_MS,safeHttps,safeImage,directMerchantUrl,safePageToken,titleMatches,isSpecificModel,euroPrice,parseExternal,configured,budget,fetchOffers,resolveOfferLink,shoppingSearchUrl,isGoogleHost,parseInlineStores,mergeOffers,retailerKey,sameRetailer,readEuroAmount,hasProductReference,canLookupSeller,selectRetailer,fetchDirectRetailer};

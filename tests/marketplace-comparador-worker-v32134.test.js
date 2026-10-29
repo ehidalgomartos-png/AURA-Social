@@ -89,7 +89,7 @@ test('worker procesa ofertas reales fuera de la petición web sin descartar resu
 test('la API de búsqueda no se llama directamente desde la petición POST',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
- assert.match(source,/await compareWorker\.enqueue\(row\.rows\[0\],ensureSchema\)/);
+ assert.match(source,/await compareWorker\.enqueue\(row\.rows\[0\],ensureSchema,true\)/);
  assert.doesNotMatch(source,/await provider\.fetchOffers/);
  assert.match(source,/startBackgroundWorker/);
  assert.match(server,/marketplaceComparadorV32132\.startBackgroundWorker\(\)/);
