@@ -24,6 +24,8 @@ function plan(page,matching=[],eligible=false,discovery=null){
   'No basta con un nombre de producto: necesita ofertas guardadas con precios y enlaces reales.');
  if(!kind||/genérica|generica/.test(reasonKey))return next('baja','Búsqueda demasiado amplia',
   'Crear otra comparación para un modelo o familia identificable usando solo nombres presentes en las ofertas.');
+ if(/conectividad 4g\/5g/.test(reasonKey))return next('media','Distinguir versión 4G o 5G',
+  'Revisa la conectividad real de cada oferta y crea una búsqueda con 4G o 5G solo si la variante se confirma; no mezcles ambas.');
  if(/capacidad|modelos, capacidades o colores/.test(reasonKey))return next('media','Variantes que deben separarse',
   'Verifica el modelo, la capacidad y el color; evita mezclar versiones en una misma página.');
  if(/precios incompatibles/.test(reasonKey))return next('alta','Revisar precios extremos',
