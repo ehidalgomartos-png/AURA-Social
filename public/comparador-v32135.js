@@ -75,6 +75,12 @@
     document.dispatchEvent(new Event('comparison:results-updated'));
    if(!['queued','checking'].includes(root.dataset.comparisonStatus)){
     clearInterval(interval);
+    // Si termina sin ofertas principales, abrir el buscador ya existente.
+    // El sondeo solo lee el HTML guardado; no crea otra consulta de precios.
+    if(!target.querySelector?.('.cmp-primary-offers')){
+     const changeSearch=document.querySelector('.cmp-change-search');
+     if(changeSearch)changeSearch.open=true;
+    }
    }
   }catch(_){
    // Un fallo temporal del refresco no genera búsquedas externas adicionales.
