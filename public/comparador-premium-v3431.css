@@ -1129,3 +1129,53 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side .cmp-o
   width:100%;font-size:.75rem;line-height:1.45;
  }
 }
+
+/* V3.4.4.27 — panel privado de diagnóstico, aislado del escaparate público. */
+body.cmp-premium .cmp-audit{max-width:1050px;margin:0 auto;padding:12px 0 34px}
+body.cmp-premium .cmp-audit h1{margin:8px 0 12px;letter-spacing:-.035em}
+body.cmp-premium .cmp-audit>p{max-width:78ch;line-height:1.5;color:#49617a}
+body.cmp-premium .seo-admin .cmp-audit-entry{
+ display:inline-flex;align-items:center;min-height:44px;padding:9px 13px;
+ border:1px solid #bbd7ed;background:#edf7ff;border-radius:10px;
+ color:#175481;text-decoration:none;font-size:.84rem;font-weight:740;
+}
+body.cmp-premium .cmp-audit-metrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:10px;margin:16px 0;
+}
+body.cmp-premium .cmp-audit-metrics>div{
+ display:flex;flex-direction:column;gap:6px;
+ padding:15px;border:1px solid #dce6ef;background:#fff;border-radius:12px;
+}
+body.cmp-premium .cmp-audit-metrics strong{font-size:1.65rem;font-variant-numeric:tabular-nums;color:#184763}
+body.cmp-premium .cmp-audit-metrics span{font-size:.8rem;color:#536e82;line-height:1.4}
+body.cmp-premium .cmp-audit-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+body.cmp-premium .cmp-audit-tabs a{
+ display:inline-flex;min-height:44px;align-items:center;padding:9px 13px;
+ background:#f5f8fc;color:#2e526d;border:1px solid #d5e4ee;
+ border-radius:10px;font-size:.82rem;font-weight:710;text-decoration:none;
+}
+body.cmp-premium .cmp-audit-tabs a[aria-current="page"]{background:#e7f3fd;border-color:#86b7d9;color:#124c78}
+body.cmp-premium .cmp-audit-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+body.cmp-premium .cmp-audit-card{padding:18px;border:1px solid #dce7f0;border-radius:14px;background:#fff;min-width:0}
+body.cmp-premium .cmp-audit-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+body.cmp-premium .cmp-audit-card h2{font-size:1rem;line-height:1.45;margin:0;overflow-wrap:anywhere}
+body.cmp-premium .cmp-audit-chip{font-size:.74rem;background:#f1f6fc;border-radius:999px;padding:6px 9px;color:#385b77;font-weight:720}
+body.cmp-premium .cmp-audit-facts,
+body.cmp-premium .cmp-audit-meta{font-size:.79rem;color:#516b80;line-height:1.48;overflow-wrap:anywhere}
+body.cmp-premium .cmp-audit-issues{margin:10px 0 13px;padding-left:21px;color:#684c21;font-size:.85rem;line-height:1.48}
+body.cmp-premium .cmp-audit-review{
+ display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;
+ border:1px solid #c6dce9;border-radius:9px;color:#175481;font-size:.8rem;
+ text-decoration:none;font-weight:730;max-width:100%;text-align:center;
+}
+body.cmp-premium .cmp-audit a:focus-visible,
+body.cmp-premium .seo-admin .cmp-audit-entry:focus-visible{outline:3px solid #79aedd;outline-offset:3px}
+@media(max-width:760px){
+ body.cmp-premium .cmp-audit-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.cmp-premium .cmp-audit-card{padding:14px}
+}
+@media(max-width:390px){
+ body.cmp-premium .cmp-audit-tabs{display:grid;grid-template-columns:1fr}
+ body.cmp-premium .cmp-audit-tabs a,body.cmp-premium .cmp-audit-review{width:100%;justify-content:center;min-height:46px}
+}

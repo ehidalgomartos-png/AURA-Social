@@ -29,6 +29,7 @@ const merchantFollowup=require('../services/marketplace-comparador-merchant-foll
 const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
+const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
@@ -438,7 +439,8 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
  }).join('');
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
-  '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p></div>'+
+  '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p>'+ 
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/diagnostico">Ver diagnóstico de calidad de las comparaciones</a></p></div>'+
   (quota?'<section class="seo-quota-panel" aria-labelledby="seo-quota-title"><h2 id="seo-quota-title">Consultas del comparador</h2>'+
    '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy</span></p>'+
    '<p><strong>'+Number(quota.monthlyUsed||0)+' / '+Number(quota.monthly)+'</strong><span>Este mes</span></p></div>'+
@@ -510,6 +512,56 @@ router.post('/admin/comparador/:id/foto',requireAdmin,
    );
   }
   res.redirect(303,'/admin/comparador/fotos/'+page.slug);
+ }catch(error){next(error);}
+});
+// V3.4.4.27: panel privado y estrictamente read-only de calidad de resultados guardados.
+router.get('/admin/comparador/diagnostico',requireAdmin,async(req,res,next)=>{
+ try{
+  // Muestra reciente, no totales de toda la base. Misma fuente que el panel SEO.
+  const records=await db.query(
+   "SELECT id,slug,query_text,seo_blocked,index_approved,provider_status,last_checked_at,external_results "+
+   "FROM marketplace_compare_pages ORDER BY created_at DESC LIMIT 80"
+  );
+  const report=adminQuality.summarize(records.rows);
+  const selected=['todas','revisar','sin-incidencias'].includes(req.query?.estado)?req.query.estado:'todas';
+  const visible=report.items.filter(row=>selected==='todas' ||
+   (selected==='revisar'?row.attention:!row.attention));
+  const count=report.counts;
+  const links=[
+   ['todas','Todas',count.reviewed],
+   ['revisar','Requieren revisión',count.attention],
+   ['sin-incidencias','Sin incidencias detectadas',count.noIssues]
+  ].map(([key,name,total])=>'<a href="/admin/comparador/diagnostico?estado='+key+'"'+
+   (selected===key?' aria-current="page"':'')+'>'+esc(name)+' ('+total+')</a>').join('');
+  const cards=visible.map(row=>{
+   const status=row.attention?'Revisar':'Sin incidencias detectadas';
+   const issues=row.issues.length?'<ul class="cmp-audit-issues">'+
+    row.issues.map(message=>'<li>'+esc(message)+'</li>').join('')+'</ul>':
+    '<p>No se han detectado incidencias con estas reglas. No se confirma stock ni precio final.</p>';
+   return '<li class="cmp-audit-card"><div class="cmp-audit-card-head"><h2><a href="/comparar/'+esc(row.slug)+'">'+
+    esc(row.title)+'</a></h2><span class="cmp-audit-chip">'+esc(status)+'</span></div>'+
+    '<p class="cmp-audit-facts">'+row.total+' ofertas externas · '+row.comparable+
+    ' comparables · '+row.direct+' enlaces directos · '+row.excluded+' separadas por calidad</p>'+
+    issues+'<p class="cmp-audit-meta">Proveedor: '+esc(row.status)+
+    ' · SEO apto según reglas actuales: '+(row.seoEligible?'Sí':'No')+'</p>'+
+    '<a class="cmp-audit-review" href="/admin/comparador?estado=todas#comparacion-'+esc(row.id)+'">Abrir administración SEO</a></li>';
+  }).join('');
+  const html='<div class="cmp-audit"><p class="crumb"><a href="/admin/comparador">Administración SEO</a> / Diagnóstico</p>'+
+   '<h1>Calidad del comparador</h1><p>Indicadores de una muestra de las últimas '+count.reviewed+
+   ' comparaciones guardadas (máximo 80). No son estadísticas globales, ni verifican el stock en tiempo real.</p>'+
+   '<div class="cmp-audit-metrics">'+
+   '<div><strong>'+count.reviewed+'</strong><span>Comparaciones revisadas</span></div>'+
+   '<div><strong>'+count.attention+'</strong><span>Con incidencias</span></div>'+
+   '<div><strong>'+count.stale+'</strong><span>Con precios externos antiguos o sin fecha</span></div>'+
+   '<div><strong>'+count.indexEligible+'</strong><span>Aptas según reglas SEO</span></div></div>'+
+   '<nav class="cmp-audit-tabs" aria-label="Filtrar diagnósticos">'+links+'</nav>'+
+   (cards?'<ol class="cmp-audit-list">'+cards+'</ol>':
+    '<p class="cmp-audit-empty">No hay comparaciones en este filtro.</p>')+
+   '<p class="cmp-audit-disclaimer">Diagnóstico informativo de datos almacenados: no consulta SerpApi, no modifica ofertas ni certifica disponibilidad. Un enlace directo sin confirmar no implica agotamiento.</p></div>';
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Diagnóstico del comparador | RedLibertad',
+   'Resumen privado de calidad de comparaciones guardadas.',html,'/admin/comparador/diagnostico'));
  }catch(error){next(error);}
 });
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
