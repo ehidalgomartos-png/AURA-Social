@@ -1021,7 +1021,7 @@ router.get('/comparar/comercios/estadisticas/:id',requireAuth,async(req,res,next
  }catch(error){next(error);}
 });
 // V3.4.5.3 — una vista de administración para solicitudes y calidad de catálogos.
-// Solo una SELECT de la muestra reciente. La revisión y las aprobaciones mantienen su flujo actual.
+// Solo SELECT acotadas de la muestra reciente. La aprobación sigue su flujo actual.
 router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=>{
  try{
   const data=await db.query(
@@ -1049,6 +1049,23 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
    "FROM marketplace_woocommerce_connections c WHERE c.store_id=s.id) w ON true "+
    "ORDER BY s.created_at DESC,s.id DESC LIMIT 80"
   );
+  // Actividad opcional: si la tabla histórica aún no existe, no inventar clics.
+  const ids=data.rows.map(row=>String(row.id)).filter(id=>/^[1-9]\\d{0,15}$/.test(id));
+  const clickTotals=new Map();
+  let clicksAvailable=ids.length===0;
+  if(ids.length){
+   try{
+    const clicks=await db.query(
+     "SELECT store_id,COALESCE(SUM(click_count),0)::bigint AS clicks "+
+     "FROM marketplace_comparison_store_clicks "+
+     "WHERE store_id=ANY($1::bigint[]) AND clicked_day>=CURRENT_DATE-INTERVAL '29 days' "+
+     "GROUP BY store_id LIMIT 80",[ids]);
+    for(const item of clicks.rows)clickTotals.set(String(item.store_id),adminMerchants.safeCount(item.clicks));
+    clicksAvailable=true;
+   }catch(error){
+    if(error.code!=='42P01')throw error;
+   }
+  }
   const report=adminMerchants.summarize(data.rows);
   const filters=['todas','pendientes','aprobadas','incidencias','suspendidas'];
   const chosen=filters.includes(req.query?.estado)?req.query.estado:'todas';
@@ -1072,7 +1089,9 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
     ' · Compras externas: '+(item.purchasing?'Habilitadas':'No habilitadas')+'</p>'+
     '<p class="cmp-merchant-admin-facts">'+item.linked+' productos vinculados · '+
     item.available+' aptos para compra externa · '+item.stale+' API desactualizados · '+
-    item.noStock+' declarados sin existencias</p>'+issues+'</li>';
+    item.noStock+' declarados sin existencias</p>'+ 
+    '<p class="cmp-merchant-admin-facts">Clics registrados (30 días): '+
+    (clicksAvailable?String(clickTotals.get(item.id)||0):'Datos no disponibles')+'</p>'+issues+'</li>';
   }).join('');
   const summary='<div class="cmp-merchant-admin-metrics">'+
    [['sampled','Comercios revisados'],['pending','Solicitudes pendientes'],
@@ -1082,7 +1101,8 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
   const html='<div class="cmp-merchant-admin"><p class="crumb"><a href="/admin/comparador">Administración del comparador</a> / Comercios</p>'+
    '<h1>Administración de comercios</h1><p>Supervisión de una muestra de hasta 80 tiendas recientes. '+
    'Estas cifras no son totales históricos ni confirman precios o disponibilidad en tiempo real. '+
-   'La aprobación, la conexión de catálogos y las compras siguen sus controles habituales.</p>'+summary+
+   'La aprobación, la conexión de catálogos y las compras siguen sus controles habituales. ' +
+   'Los clics registrados no son ventas, ingresos ni visitantes únicos.</p>'+summary+
    '<nav class="cmp-merchant-admin-tabs" aria-label="Filtrar comercios">'+tabs+'</nav>'+
    (cards?'<ol class="cmp-merchant-admin-list">'+cards+'</ol>':
     '<p class="cmp-merchant-admin-empty">No hay comercios en este filtro de la muestra.</p>')+
