@@ -1878,3 +1878,50 @@ body.cmp-premium .cmp-rental-section>details>summary{font-weight:750;color:#1c58
 body.cmp-premium .cmp-rental-section .cmp-noncomparable-item{min-width:0}
 body.cmp-premium .cmp-rental-price-label{display:block;font-weight:750;font-size:.79rem;color:#27536c;line-height:1.5}
 @media(max-width:620px){body.cmp-premium .cmp-rental-section{margin:12px 0}body.cmp-premium .cmp-rental-price-label{font-size:.76rem}}
+
+/* V3.4.6.13 — Guías SEO del comparador; diseño editorial mobile-first. */
+body.cmp-premium .cmp-landings{max-width:1050px;margin-inline:auto}
+body.cmp-premium .cmp-landings-hero{padding:clamp(22px,4vw,46px);margin:18px 0 25px;
+ background:linear-gradient(130deg,#0e3154 0%,#185d7c 100%);border-radius:19px;color:#fff}
+body.cmp-premium .cmp-landings-hero h1{font-size:clamp(1.65rem,4vw,2.7rem);line-height:1.15;max-width:760px;margin:14px 0}
+body.cmp-premium .cmp-landings-hero p{max-width:770px;font-size:1rem;line-height:1.65;color:#eff8fd}
+body.cmp-premium .cmp-landing-eyebrow{font-size:.8rem;letter-spacing:.07em;text-transform:uppercase;font-weight:800;color:#c4eaf1}
+body.cmp-premium .cmp-landings-hero .cmp-landing-subtitle{font-size:1.15rem;font-weight:750}
+body.cmp-premium .cmp-landings-hero .cmp-landing-caution{font-size:.85rem;color:#d7e9f4}
+body.cmp-premium .cmp-landing-nav{display:flex;flex-wrap:wrap;gap:7px;padding:8px 0 4px}
+body.cmp-premium .cmp-landing-nav a{font-size:.78rem;display:inline-flex;align-items:center;border:1px solid #cfdfed;background:#fff;border-radius:999px;padding:9px 12px;min-height:41px;text-decoration:none;color:#194569;font-weight:650}
+body.cmp-premium .cmp-landing-nav a[aria-current="page"]{background:#174c72;color:#fff;border-color:#174c72}
+body.cmp-premium .cmp-landing-nav a:focus-visible,body.cmp-premium .cmp-landings a:focus-visible{outline:3px solid #78bcd9;outline-offset:3px}
+body.cmp-premium .cmp-landings-grid{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px;padding:0;margin:16px 0 24px}
+body.cmp-premium .cmp-landings-grid li{margin:0;min-width:0}
+body.cmp-premium .cmp-landings-grid a{display:flex;flex-direction:column;height:100%;gap:10px;text-decoration:none;background:#fff;border:1px solid #d4e3ef;border-radius:14px;padding:18px;min-height:105px;box-shadow:0 2px 10px #14355009}
+body.cmp-premium .cmp-landings-grid a:hover{border-color:#87b8d9}
+body.cmp-premium .cmp-landings-grid strong{color:#123c60;font-size:.96rem;line-height:1.35}
+body.cmp-premium .cmp-landings-grid small{color:#526b80;font-size:.81rem;line-height:1.5}
+body.cmp-premium .cmp-landing-method,body.cmp-premium .cmp-landing-vetted,
+body.cmp-premium .cmp-landing-searches,body.cmp-premium .cmp-landing-faq,
+body.cmp-premium .cmp-landing-related{margin:18px 0;padding:clamp(18px,3vw,28px);border:1px solid #d6e5f0;border-radius:15px;background:#fff}
+body.cmp-premium .cmp-landings h2{color:#113d5e;font-size:clamp(1.16rem,2.4vw,1.48rem);margin:0 0 15px}
+body.cmp-premium .cmp-landing-method ol{padding-left:23px;display:grid;gap:14px}
+body.cmp-premium .cmp-landing-checks li h3{font-size:1.02rem;color:#183d60;margin:0 0 5px}
+body.cmp-premium .cmp-landing-checks li p{margin:0;color:#49677a;line-height:1.65}
+body.cmp-premium .cmp-landing-vetted p,body.cmp-premium .cmp-landing-searches p{color:#526b80;line-height:1.6}
+body.cmp-premium .cmp-landing-vetted li,body.cmp-premium .cmp-landing-searches li{margin:10px 0;overflow-wrap:anywhere}
+body.cmp-premium .cmp-landing-vetted a,body.cmp-premium .cmp-landing-searches a{font-weight:720;text-underline-offset:3px}
+body.cmp-premium .cmp-landing-faq details{padding:13px 0;border-top:1px solid #dce8f1}
+body.cmp-premium .cmp-landing-faq summary{cursor:pointer;font-weight:740;color:#164569;line-height:1.5}
+body.cmp-premium .cmp-landing-faq details p{color:#48677b}
+body.cmp-premium .cmp-landing-disclosure{font-size:.82rem;line-height:1.7;color:#566f82;margin:24px 0}
+body.cmp-premium .cmp-landing-home-link{margin:14px 0 24px;padding:clamp(16px,3vw,26px);background:#eef6fb;border:1px solid #c8e0f0;border-radius:15px}
+body.cmp-premium .cmp-landing-home-link h2{margin:0 0 5px;color:#16446a;font-size:1.28rem}
+body.cmp-premium .cmp-landing-view-all{display:inline-flex;align-items:center;font-weight:740;min-height:44px}
+@media(max-width:600px){
+ body.cmp-premium .cmp-landings-hero{border-radius:13px;padding:22px 18px}
+ body.cmp-premium .cmp-landing-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:11px}
+ body.cmp-premium .cmp-landing-nav a{white-space:nowrap;flex-shrink:0}
+ body.cmp-premium .cmp-landings-grid{grid-template-columns:1fr;gap:10px}
+ body.cmp-premium .cmp-landings-grid a{min-height:0;padding:15px}
+ body.cmp-premium .cmp-landing-method,body.cmp-premium .cmp-landing-vetted,
+ body.cmp-premium .cmp-landing-searches,body.cmp-premium .cmp-landing-faq,
+ body.cmp-premium .cmp-landing-related{padding:17px}
+}
