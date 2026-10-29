@@ -55,8 +55,8 @@ test('no se recuperan con solo dos tiendas coherentes, dos extremos o precios a√
   [...prices.slice(0,2),offer('Tienda C',550),offer('Tienda D',600)],
   [offer('Tienda A',2000),offer('Tienda B',8900),offer('Tienda C',24000),offer('Tienda D',91000)],
   [offer('Tienda A',8900),offer('Tienda A',9500),offer('Tienda B',10300),offer('Tienda C',550)],
-  [offer('Tienda A',8900),offer('Tienda B',9500),offer('Tienda C',10300),
-   offer('Tienda D',550,'New Balance 530 Mujer Zapatillas',{sponsored:true})]
+  [offer('Tienda A',8900),offer('Tienda B',9500),
+   offer('Tienda C',550,'New Balance 530 Mujer Zapatillas',{sponsored:true})]
  ];
  for(const list of scenarios){
   const p=page(list);
