@@ -73,13 +73,29 @@ function evaluate(page,offers,now=Date.now()){
  if(kind==='exact'){
   const qFamily=auto.family(page.query_text),qCapacity=auto.capacity(page.query_text),
    qColor=auto.color(page.query_text);
+  const phone=quality.isPhoneSearch(page.query_text);
+  const network=title=>auto.normalize(title).match(/\b(?:4g|5g)\b/)?.[0]||'sin-indicar';
+  const queryNetwork=network(page.query_text);
   const actualCap=new Set(selected.map(o=>auto.capacity(o.title)||'sin-indicar'));
   const actualColors=new Set(selected.map(o=>auto.color(o.title)||'sin-indicar'));
   if(selected.some(o=>auto.family(o.title)!==qFamily||
     (qCapacity&&auto.capacity(o.title)!==qCapacity)||
     (qColor&&auto.color(o.title)!==qColor))||
-    (!qCapacity&&actualCap.size>1)||(!qColor&&actualColors.size>1))
+    (!qCapacity&&actualCap.size>1)||
+    (!qColor&&!phone&&actualColors.size>1))
    return no('Ofertas con modelos, capacidades o colores diferentes');
+  // V3.4.6.8: la búsqueda sin color puede comparar teléfonos del mismo
+  // modelo/capacidad en distintos acabados. No crea un SKU único ni
+  // AggregateOffer si los colores son distintos (vía auto más estricta).
+  // Redmi/POCO distinguen 4G y 5G, que sí pueden ser versiones técnicas
+  // diferentes. No mezclar tampoco con títulos que omitan esta información.
+  if(phone){
+   const isRedmiPoco=/\b(?:redmi|poco)\b/.test(auto.normalize(page.query_text));
+   const networks=new Set(selected.map(o=>network(o.title)));
+   if((queryNetwork!=='sin-indicar'&&selected.some(o=>network(o.title)!==queryNetwork))||
+    (isRedmiPoco&&networks.size>1))
+    return no('Ofertas con conectividad 4G/5G diferente o sin identificar');
+  }
  }
  // No indexar páginas con rango incoherente, potencialmente accesorios o modelos erróneos.
  const values=selected.map(o=>o.price_cents),low=Math.min(...values),high=Math.max(...values);
