@@ -137,7 +137,8 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  if(!link||!link.href)return '';
  const href=link.href;
  const img=o.internal?/^\/marketplace\/imagen\/\d+\/0$/.test(o.image||'')?o.image:null:provider.safeImage(o.image);
- const picture=img?'<img class="offer-photo" src="'+esc(img)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'<div class="offer-noimage" aria-hidden="true">🛍️</div>';
+ // Imagen decorativa: dimensiones reservadas y marcador legible cuando no existe.
+ const picture=img?'<img class="offer-photo" src="'+esc(img)+'" alt="" width="110" height="108" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'<div class="offer-noimage" aria-hidden="true">Sin fotografía</div>';
  const shop=String(o.shop||'Tienda no identificada');
  const directFlag=merchant?'direct':'alternate';
  const tags=offerFilters.attributes(o);
