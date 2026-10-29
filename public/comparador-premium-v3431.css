@@ -1512,3 +1512,79 @@ body.cmp-premium .cmp-merchant-admin a:focus-visible{
  body.cmp-premium .cmp-merchant-admin-tabs{display:grid;grid-template-columns:1fr}
  body.cmp-premium .cmp-merchant-admin-tabs a{width:100%;min-height:46px}
 }
+
+/* V3.4.5.4 — cohorte piloto de 20 comercios y seguimiento manual. */
+body.cmp-premium .cmp-merchant-admin .cmp-growth{
+ margin:22px 0 26px;padding:clamp(15px,2.7vw,24px);
+ background:#f7fbff;border:1px solid #d6e6f3;border-radius:17px;
+}
+body.cmp-premium .cmp-merchant-admin .cmp-growth>h2{
+ color:#173d5a;font-size:clamp(1.2rem,2.4vw,1.55rem);
+ margin:9px 0 8px;line-height:1.25;
+}
+body.cmp-premium .cmp-merchant-admin .cmp-growth>p{
+ color:#4c6b83;font-size:.85rem;line-height:1.57;max-width:76ch;
+}
+body.cmp-premium .cmp-growth-metrics{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:10px;margin:17px 0;
+}
+body.cmp-premium .cmp-growth-metrics>div{
+ display:flex;flex-direction:column;gap:6px;padding:13px;
+ border:1px solid #d9e6f0;border-radius:11px;background:white;min-width:0;
+}
+body.cmp-premium .cmp-growth-metrics strong{
+ color:#185b81;font-size:1.48rem;font-variant-numeric:tabular-nums;
+}
+body.cmp-premium .cmp-growth-metrics span{
+ color:#526f85;font-size:.77rem;line-height:1.42;
+}
+body.cmp-premium .cmp-growth-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;padding:0;margin:10px 0;list-style:none;
+}
+body.cmp-premium .cmp-growth-card{
+ border:1px solid #d9e5ee;border-radius:12px;background:white;
+ padding:14px;min-width:0;
+}
+body.cmp-premium .cmp-growth-card-top{
+ display:flex;justify-content:space-between;align-items:flex-start;
+ gap:8px;flex-wrap:wrap;
+}
+body.cmp-premium .cmp-growth-card-top strong{
+ color:#1b3e59;font-size:.89rem;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-growth-card-top span{
+ border-radius:999px;background:#e8f4fc;color:#205a7f;
+ font-size:.73rem;font-weight:730;padding:5px 9px;
+}
+body.cmp-premium .cmp-growth-card p{
+ color:#385d78;font-size:.83rem;line-height:1.48;margin:9px 0;
+}
+body.cmp-premium .cmp-growth-card small{
+ color:#677b8e;font-size:.77rem;line-height:1.45;
+}
+body.cmp-premium .cmp-growth-invite{
+ margin-top:16px;border:1px solid #c9deee;background:white;border-radius:12px;
+}
+body.cmp-premium .cmp-growth-invite summary{
+ cursor:pointer;min-height:48px;padding:12px 15px;
+ font-size:.86rem;color:#17517b;font-weight:750;line-height:1.5;
+}
+body.cmp-premium .cmp-growth-invite>p{padding:0 15px;font-size:.81rem;line-height:1.5}
+body.cmp-premium .cmp-growth-invite textarea{
+ width:calc(100% - 30px);margin:0 15px 6px;min-height:120px;
+ border:1px solid #bccfdf;background:#f8fbff;border-radius:9px;
+ padding:12px;font:inherit;font-size:.81rem;line-height:1.5;resize:vertical;
+}
+body.cmp-premium .cmp-growth a:focus-visible,
+body.cmp-premium .cmp-growth :is(summary,textarea):focus-visible{
+ outline:3px solid #78afd8;outline-offset:3px;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-growth-list{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:420px){
+ body.cmp-premium .cmp-growth-metrics{grid-template-columns:minmax(0,1fr)}
+ body.cmp-premium .cmp-growth-invite summary{min-height:48px}
+}
