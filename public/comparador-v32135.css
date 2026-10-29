@@ -466,3 +466,16 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .cmp-commerce-steps strong{display:block;font-size:.89rem;color:#163b5a}
 .cmp-commerce-steps span{display:block;font-size:.82rem;color:#587089;line-height:1.45;margin-top:4px}
 @media(max-width:650px){.cmp-commerce-steps{grid-template-columns:1fr;gap:8px}.cmp-commerce-steps li{padding:11px 13px;display:grid;grid-template-columns:27px 1fr;column-gap:10px}.cmp-commerce-steps li:before{grid-row:span 2}.cmp-commerce-steps li strong{align-self:end}.cmp-commerce-steps li span{margin-top:3px}}
+
+/* V3.4.5.5 — Estados de búsqueda comprensibles, sin porcentaje ficticio. */
+.compare-submit-progress[hidden]{display:none}
+.compare-submit-progress{margin-top:14px;padding:14px;border:1px solid #bdd5eb;background:#f2f8ff;border-radius:12px;color:#1d5078}
+.compare-progress-heading{display:flex;align-items:center;gap:8px}
+.compare-progress-heading strong{font-size:.96rem}
+.compare-submit-progress p{margin:6px 0 10px;font-size:.86rem}
+.compare-progress-track{height:8px;width:min(100%,540px);overflow:hidden;background:#dceaf7;border-radius:999px;position:relative;margin:12px auto}
+.compare-progress-track>span{position:absolute;inset:0 auto 0 0;width:38%;border-radius:999px;background:linear-gradient(90deg,#1d71b8,#66b8e7);animation:cmp-progress-slide 1.9s ease-in-out infinite alternate}
+@keyframes cmp-progress-slide{from{transform:translateX(0)}to{transform:translateX(164%)}}
+.compare-awaiting-spinner{display:block;margin:4px auto 2px;width:39px;height:39px;border-width:4px}
+.compare-awaiting .compare-progress-note{font-size:.83rem;color:#526f88}
+@media(prefers-reduced-motion:reduce){.compare-progress-track>span{animation:none;width:100%;opacity:.5}}

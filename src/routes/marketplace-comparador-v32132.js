@@ -102,6 +102,7 @@ async function localOffers(q){
 function parseExternal(results,q){return provider.parseExternal(results,q);}
 function formMarkup(message='',term='',csrfToken=''){
  return '<form class="compare-search" action="/comparar/buscar" method="post"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><label for="compareQ">¿Qué producto quieres comparar?</label><div class="compare-search-row"><input id="compareQ" name="q" type="search" required minlength="3" maxlength="100" value="'+esc(term)+'" placeholder="Ej. Samsung Galaxy S26 Ultra" autocomplete="off"><button type="submit">Comparar precios</button></div>'+
+ '<div class="compare-submit-progress" data-compare-submit-progress role="status" aria-live="polite" hidden><div class="compare-progress-heading"><span class="compare-loading-indicator" aria-hidden="true"></span><strong>Buscando precios y tiendas…</strong></div><p>Estamos preparando tu comparación.</p><div class="compare-progress-track" aria-hidden="true"><span></span></div></div>'+
  (message?'<p class="compare-error" role="alert">'+esc(message)+'</p>':'')+
  '</form>';
 }
@@ -1447,11 +1448,12 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    sponsored.length?
    '<section class="info cmp-only-sponsored-status" role="status"><h2>Solo hay ofertas publicitarias</h2><p>No se han encontrado ofertas independientes para destacar un precio mínimo. Puedes consultar los anuncios etiquetados como publicidad más abajo.</p></section>':
    '<section class="compare-awaiting" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
-   '<div class="compare-awaiting-icon" aria-hidden="true">⌕</div>'+
-   '<h2>'+(pending?'Buscando ofertas para tu producto':page.provider_status==='ok'?'Todavía no encontramos ofertas':'Estamos preparando esta comparación')+'</h2>'+
+   (pending?'<span class="compare-loading-indicator compare-awaiting-spinner" aria-hidden="true"></span>':'<div class="compare-awaiting-icon" aria-hidden="true">⌕</div>')+
+   '<h2>'+(pending?'Buscando precios y tiendas…':page.provider_status==='ok'?'Todavía no encontramos ofertas':'Estamos preparando esta comparación')+'</h2>'+
    '<p>'+(pending?'Estamos consultando los precios disponibles. Los resultados aparecerán aquí cuando termine la búsqueda.':
      page.provider_status==='ok'?'Prueba con un modelo diferente o una búsqueda más general.':
      'Esta página está guardada. Puedes volver más tarde o explorar otras comparaciones.')+'</p>'+
+   (pending?'<div class="compare-progress-track" aria-hidden="true"><span></span></div><p class="compare-progress-note">Esta página se actualiza automáticamente. No necesitas pulsar nada.</p>':'')+
    '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
    '</section>';
   const access=directAccess.summary(ordinary);
@@ -1539,7 +1541,6 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
    richFacts+relatedMarkup+
-   (pending?'<p><a class="offer-link" href="/comparar/'+esc(slug)+'">Actualizar resultados manualmente</a></p>':'')+
    '</div>';
   res.set('Cache-Control','private,no-store');
   res.send(shell(title,description,content,'/comparar/'+slug,approved,seo.structuredData(page,ordinary,approved,'/comparar/'+slug)));
