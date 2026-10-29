@@ -3,6 +3,7 @@
 // no presentarlas como una compra del mismo SKU ni indexarlas sin variedad real.
 // No consulta Google, altera ofertas ni consume SerpApi.
 const quality=require('./marketplace-comparador-offer-quality-v3419');
+const auto=require('./marketplace-comparador-auto-seo-v32138');
 const CATEGORY_RULES=[
  {query:/^zapatillas skechers mujer$/,kind:'calzado',min:2000,max:35000,
   name:'Zapatillas Skechers para mujer',
@@ -26,7 +27,7 @@ function series(ruleItem,title){
 }
 function suitable(query,offer){
  const r=rule(query);
- if(!r||!offer)return false;
+ if(!r||!offer||offer.internal||offer.sponsored||!auto.clearCondition(offer))return false;
  const t=quality.normalize(offer.title);
  const genderMale=/\b(?:hombre|hombres|men|mens|masculino|masculina)\b/;
  const genderFemale=/\b(?:mujer|mujeres|women|womens|femenino|femenina)\b/;
