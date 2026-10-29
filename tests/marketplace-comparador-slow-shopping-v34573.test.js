@@ -50,8 +50,8 @@ test('solo el POST explícito permite reabrir un error reciente, nunca la visita
   assert.equal(await worker.enqueue({id:7,provider_status:'unavailable'},async()=>{}),false);
   assert.equal(await worker.enqueue({id:7,provider_status:'unavailable'},async()=>{},true),false);
   assert.equal(seen.length,2);
-  assert.deepEqual(seen[0].args,[7,false]);
-  assert.deepEqual(seen[1].args,[7,true]);
+  assert.deepEqual(seen[0].args,['7',false]);
+  assert.deepEqual(seen[1].args,['7',true]);
   assert.match(seen[0].sql,/OR \(\$2::boolean AND marketplace_compare_jobs\.finished_at<now\(\)-interval '2 minutes'/);
   assert.match(seen[0].sql,/q\.provider_status='unavailable'/);
   assert.match(seen[0].sql,/marketplace_compare_jobs\.finished_at<now\(\)-interval '2 hours'/);
