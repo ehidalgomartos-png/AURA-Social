@@ -98,7 +98,8 @@ test('landing de consolas enlaza solo comparaciones realmente aptas; noindex no 
   assert.match(r.body,/"@type":"ItemList"/);
   assert.match(r.body,/No confundas alquiler con compra/);
   assert.match(r.body,/Preguntas frecuentes/);
-  assert.match(r.body,/href="\/comparar\?q=PlayStation%205%20Pro"/);
+  assert.match(r.body,/href="\/comparar\?q=PlayStation%205%20Pro#compareQ"/);
+  assert.match(r.body,/Preparar comparación/);
   assert.ok(log.length===1 && log[0].includes('LIMIT 220'));
   assert.ok(log.every(q=>!/\b(?:INSERT|UPDATE|DELETE)\b|serpapi\.com|marketplace_compare_provider_usage/i.test(q)));
  });

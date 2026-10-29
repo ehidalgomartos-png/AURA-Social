@@ -1935,3 +1935,34 @@ body.cmp-premium .cmp-contextual-guide>small{flex-basis:100%;font-size:.79rem;li
 body.cmp-premium .cmp-contextual-guide>a:focus-visible{outline:3px solid #6aaed1;outline-offset:3px}
 @media(max-width:600px){body.cmp-premium .cmp-contextual-guide{display:block;padding:13px}body.cmp-premium .cmp-contextual-guide>span{display:block}
 body.cmp-premium .cmp-contextual-guide>a{display:inline-flex;min-height:44px}body.cmp-premium .cmp-contextual-guide>small{display:block}}
+
+/* V3.4.6.15 — contraste y búsquedas recomendadas visualmente accionables. */
+body.cmp-premium .cmp-landings .cmp-landings-hero h1{color:#fff;letter-spacing:-.035em;text-wrap:balance}
+body.cmp-premium .cmp-landings .cmp-landings-hero .cmp-landing-subtitle{color:#fff}
+body.cmp-premium .cmp-landings .cmp-landings-hero .cmp-landing-eyebrow{color:#c9edfa}
+body.cmp-premium .cmp-landing-search-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));
+ gap:11px;list-style:none;margin:18px 0 0;padding:0}
+body.cmp-premium .cmp-landing-search-grid>li{margin:0;min-width:0}
+body.cmp-premium .cmp-landing-searches .cmp-landing-search-link{display:flex;flex-direction:column;
+ align-items:flex-start;justify-content:space-between;gap:12px;min-height:115px;
+ text-decoration:none;color:#173d61;background:#f5f9fd;border:1px solid #cfdfea;
+ border-radius:13px;padding:16px 17px;transition:border-color .18s ease,box-shadow .18s ease}
+body.cmp-premium .cmp-landing-searches .cmp-landing-search-link:hover{
+ border-color:#4586b8;box-shadow:0 4px 14px #204d7314;background:#edf7ff}
+body.cmp-premium .cmp-landing-search-name{font-size:.96rem;font-weight:790;line-height:1.35;color:#133b60;overflow-wrap:anywhere}
+body.cmp-premium .cmp-landing-search-cta{display:inline-flex;align-items:center;gap:8px;
+ color:#075c9a;font-size:.82rem;font-weight:770;line-height:1.35}
+body.cmp-premium .cmp-landing-searches .cmp-landing-search-link:focus-visible{
+ outline:3px solid #4a93c4;outline-offset:3px}
+body.cmp-premium .cmp-prepared-search{background:#edf8ff;color:#154a6b;border:1px solid #a9d1ec;
+ border-radius:11px;padding:11px 15px;line-height:1.6;font-size:.91rem;margin:10px 0}
+body.cmp-premium #compareQ{scroll-margin-top:100px}
+@media(max-width:600px){
+ body.cmp-premium .cmp-landing-search-grid{grid-template-columns:1fr;gap:9px}
+ body.cmp-premium .cmp-landing-searches .cmp-landing-search-link{min-height:94px;padding:14px}
+ body.cmp-premium .cmp-landings .cmp-landings-hero h1{font-size:clamp(1.7rem,7vw,2.25rem)}
+ body.cmp-premium #compareQ{scroll-margin-top:75px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.cmp-premium .cmp-landing-searches .cmp-landing-search-link{transition:none}
+}
