@@ -5,6 +5,7 @@
 const db=require('../db');
 const provider=require('./marketplace-comparador-provider-v32133');
 const insights=require('./marketplace-comparador-insights-v32140');
+const failure=require('./marketplace-comparador-failures-v34572');
 const FRESH_HOURS=24;
 let schemaPromise=null;
 let timer=null;
@@ -23,6 +24,7 @@ async function ensureSchema(ensurePages=async()=>{}){
    await ensurePages();
    await db.query("CREATE TABLE IF NOT EXISTS marketplace_compare_jobs (page_id BIGINT PRIMARY KEY REFERENCES marketplace_compare_pages(id) ON DELETE CASCADE, status VARCHAR(16) NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','done','failed')), requested_at TIMESTAMPTZ NOT NULL DEFAULT now(), available_at TIMESTAMPTZ NOT NULL DEFAULT now(), started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ, attempts INT NOT NULL DEFAULT 0)");
    await db.query("CREATE INDEX IF NOT EXISTS idx_marketplace_compare_jobs_queue ON marketplace_compare_jobs(available_at,requested_at) WHERE status='queued'");
+   await db.query("ALTER TABLE marketplace_compare_jobs ADD COLUMN IF NOT EXISTS failure_code VARCHAR(32)");
   })().catch(e=>{schemaPromise=null;throw e;});
  }
  return schemaPromise;
@@ -43,7 +45,7 @@ async function enqueue(page,ensurePages){
   "AND (last_checked_at IS NULL OR last_checked_at<now()-interval '24 hours' OR (provider_status='limit_reached' AND jsonb_array_length(external_results)=0) "+
   "OR (provider_status IN ('queued','checking') AND jsonb_array_length(external_results)=0 AND EXISTS "+
   "(SELECT 1 FROM marketplace_compare_jobs j WHERE j.page_id=$1 AND j.status IN ('done','failed') AND j.finished_at<now()-interval '2 minutes'))) "+
-  "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0 "+
+  "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0,failure_code=NULL "+
   "WHERE marketplace_compare_jobs.status IN ('done','failed') AND (marketplace_compare_jobs.status!='failed' "+
   "OR marketplace_compare_jobs.finished_at<now()-interval '2 hours' "+
   "OR EXISTS (SELECT 1 FROM marketplace_compare_pages q WHERE q.id=$1 AND q.provider_status='limit_reached')) AND EXISTS "+
@@ -98,7 +100,7 @@ async function claimJob(){
  );
  return claimed.rows[0]||null;
 }
-async function finish(job,status,pageStatus,offers){
+async function finish(job,status,pageStatus,offers,failureCode=null){
  // Si se trata de un error, nunca sobrescribimos las ofertas anteriores.
  if(Array.isArray(offers)){
   await db.query("UPDATE marketplace_compare_pages SET external_results=$2::jsonb,provider_status=$3,last_checked_at=now(),updated_at=now() WHERE id=$1",
@@ -112,8 +114,8 @@ async function finish(job,status,pageStatus,offers){
   // Mantener la hora de la última respuesta válida y la lista anterior.
   await db.query("UPDATE marketplace_compare_pages SET provider_status=$2 WHERE id=$1",[job.page_id,pageStatus]);
  }
- await db.query("UPDATE marketplace_compare_jobs SET status=$2,finished_at=now() WHERE page_id=$1 AND status='running'",
-  [job.page_id,status]);
+ await db.query("UPDATE marketplace_compare_jobs SET status=$2,finished_at=now(),failure_code=$3 WHERE page_id=$1 AND status='running'",
+  [job.page_id,status,status==='failed'?(failureCode||'provider_unknown'):null]);
 }
 async function recordVerifiedHistory(page,offers,now=new Date()){
  if(!page||!page.id)return false;
@@ -148,7 +150,7 @@ async function processOne(){
   }
   try{
    if(!await reserveQuota()){
-    await finish(job,'failed','limit_reached');
+    await finish(job,'failed','limit_reached',null,'local_budget');
     return true;
    }
    await db.query("UPDATE marketplace_compare_pages SET provider_status='checking' WHERE id=$1",[job.page_id]);
@@ -159,9 +161,10 @@ async function processOne(){
    try{await recordVerifiedHistory(page,offers);}
    catch(e){console.warn('Comparador history persistence:',String(e.message).slice(0,80));}
   }catch(e){
-   // No se registra la clave ni la URL completa con api_key.
-   console.warn('Comparador background fetch failed:',String(e?.message||'provider_error').slice(0,80));
-   await finish(job,'failed','unavailable');
+   // No guardar ni imprimir errores originales: pueden contener credenciales o URLs.
+   const code=failure.category(e);
+   console.warn('Comparador background fetch failed:',code);
+   await finish(job,'failed','unavailable',null,code);
   }
   return true;
  }finally{busy=false;}
