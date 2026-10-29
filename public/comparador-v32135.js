@@ -79,7 +79,7 @@
     // El sondeo solo lee el HTML guardado; no crea otra consulta de precios.
     if(!target.querySelector?.('.cmp-primary-offers')){
      const changeSearch=document.querySelector('.cmp-change-search');
-     if(changeSearch)changeSearch.open=true;
+     if(changeSearch){changeSearch.id='cambiar-producto';changeSearch.open=true;}
     }
    }
   }catch(_){
