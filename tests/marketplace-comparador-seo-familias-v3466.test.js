@@ -80,7 +80,11 @@ test('Xiaomi Redmi Note 14 Pro requiere capacidad y separa variantes 128/256 GB'
   offer('Tienda B','Xiaomi Redmi Note 14 Pro 256 GB Negro',25500),
   offer('Tienda C','Xiaomi Redmi Note 14 Pro 256 GB Azul',26000)
  ]);
- assert.equal(seo.indexEligible(wrongColor,wrongColor.external_results),false);
+ assert.equal(seo.indexEligible(wrongColor,wrongColor.external_results),true,
+  'Si la búsqueda no exige un color, distintos acabados del mismo modelo/capacidad son comparables');
+ const explicitColor=make(q+' 256 GB negro',wrongColor.external_results);
+ assert.equal(seo.indexEligible(explicitColor,explicitColor.external_results),false,
+  'Una búsqueda por color específico sigue sin mezclar acabados');
 });
 test('no cambian vetos: sin fecha, errores de proveedor, bloques y precios incoherentes',()=>{
  const p=make('new balance 530 mujer',women);
