@@ -517,7 +517,6 @@ router.post('/admin/comparador/:id/foto',requireAdmin,
 // V3.4.4.27: panel privado y estrictamente read-only de calidad de resultados guardados.
 router.get('/admin/comparador/diagnostico',requireAdmin,async(req,res,next)=>{
  try{
-  await ensureSchema();
   // Muestra reciente, no totales de toda la base. Misma fuente que el panel SEO.
   const records=await db.query(
    "SELECT id,slug,query_text,seo_blocked,index_approved,provider_status,last_checked_at,external_results "+
