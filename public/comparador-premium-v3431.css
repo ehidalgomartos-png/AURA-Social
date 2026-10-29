@@ -1450,3 +1450,65 @@ body.cmp-premium .cmp-merchant-analytics a:focus-visible{
 @media(max-width:360px){
  body.cmp-premium .cmp-merchant-stat-cards{grid-template-columns:minmax(0,1fr)}
 }
+
+/* V3.4.5.3 — supervisión privada de comercios, mobile-first y sin botones de aprobación. */
+body.cmp-premium .cmp-merchant-admin{max-width:1050px;margin:0 auto;padding:10px 0 30px}
+body.cmp-premium .cmp-merchant-admin h1{
+ color:#163b57;letter-spacing:-.034em;font-size:clamp(1.75rem,3.2vw,2.3rem);margin:8px 0 14px;
+}
+body.cmp-premium .cmp-merchant-admin>p{max-width:80ch;color:#516e84;line-height:1.6}
+body.cmp-premium .cmp-merchant-admin-metrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0;
+}
+body.cmp-premium .cmp-merchant-admin-metrics>div{
+ display:flex;flex-direction:column;gap:8px;padding:16px;
+ background:#fff;border:1px solid #dae6ef;border-radius:13px;min-width:0;
+}
+body.cmp-premium .cmp-merchant-admin-metrics strong{color:#175276;font-size:1.7rem;font-variant-numeric:tabular-nums}
+body.cmp-premium .cmp-merchant-admin-metrics span{color:#536e82;font-size:.8rem;line-height:1.4}
+body.cmp-premium .cmp-merchant-admin-tabs{
+ display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;
+}
+body.cmp-premium .cmp-merchant-admin-tabs a{
+ display:inline-flex;justify-content:center;align-items:center;text-align:center;
+ padding:9px 13px;min-height:44px;border:1px solid #d6e3ee;
+ background:#f7faff;border-radius:11px;text-decoration:none;color:#285778;
+ font-weight:730;font-size:.82rem;
+}
+body.cmp-premium .cmp-merchant-admin-tabs a[aria-current="page"]{
+ color:#14517d;background:#e6f3ff;border-color:#97c6e6;
+}
+body.cmp-premium .cmp-merchant-admin-list{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+body.cmp-premium .cmp-merchant-admin-card{
+ background:white;border:1px solid #dbe6ef;border-radius:15px;padding:17px;min-width:0;
+}
+body.cmp-premium .cmp-merchant-admin-card-top{
+ display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;
+}
+body.cmp-premium .cmp-merchant-admin-card h2{
+ margin:0;color:#173d5a;font-size:1.06rem;line-height:1.4;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-merchant-admin-card-top>span{
+ display:inline-block;background:#eaf4ff;color:#225578;border-radius:99px;
+ padding:6px 10px;font-size:.77rem;font-weight:750;
+}
+body.cmp-premium .cmp-merchant-admin-meta,
+body.cmp-premium .cmp-merchant-admin-facts{
+ font-size:.81rem;line-height:1.48;color:#526d82;overflow-wrap:anywhere;margin:12px 0;
+}
+body.cmp-premium .cmp-merchant-admin-issues{
+ padding-left:21px;margin:10px 0;color:#775123;font-size:.83rem;line-height:1.5;
+}
+body.cmp-premium .cmp-merchant-admin-ok{color:#285f50;font-size:.83rem}
+body.cmp-premium .cmp-merchant-admin-note{font-size:.8rem;line-height:1.55}
+body.cmp-premium .cmp-merchant-admin a:focus-visible{
+ outline:3px solid #75add8;outline-offset:3px;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-merchant-admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.cmp-premium .cmp-merchant-admin-card{padding:14px}
+}
+@media(max-width:390px){
+ body.cmp-premium .cmp-merchant-admin-tabs{display:grid;grid-template-columns:1fr}
+ body.cmp-premium .cmp-merchant-admin-tabs a{width:100%;min-height:46px}
+}

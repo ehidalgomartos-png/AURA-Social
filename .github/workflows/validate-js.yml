@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.5.3 centralized private merchant supervision and read-only quality
+        run: node --test tests/marketplace-comparador-admin-comercios-v3453.test.js
       - name: V3.4.5.2 private per-store click analytics and product ranking
         run: node --test tests/marketplace-comparador-panel-comercio-v3452.test.js
       - name: V3.4.5.1 read-only merchant CSV preview and WooCommerce onboarding
