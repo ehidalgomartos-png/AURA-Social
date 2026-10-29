@@ -73,7 +73,7 @@ function browser({hash=HASH,hasCard=true,status='ok',access='alternate',filtered
   document,location,window:{addEventListener(type,fn){
    listeners.set(type,[...(listeners.get(type)||[]),fn]);
   }},
-  navigator:{},URL,Event,
+  navigator:{},URL,Event,setInterval:()=>1,clearInterval:()=>{},
   fetch:()=>{state.requests++;throw Error('No debe consultar la red');}
  },{filename:'comparador-v32135.js',timeout:1000});
  function emit(type){for(const handler of listeners.get(type)||[])handler({type});}
