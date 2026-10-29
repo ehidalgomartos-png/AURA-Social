@@ -5,6 +5,7 @@
 // mantiene un lease de 2 minutos y el navegador comprueba durante 90 s.
 // 45 s evita descartar respuestas válidas sin repetir ni ampliar la cuota.
 const GOOGLE_SHOPPING_TIMEOUT_MS=45000;
+const consoleModels=require('./marketplace-comparador-console-models-v3469');
 const EXCLUDED=/\b(funda|carcasa|protector|cristal templado|cargador|cable|correa|repuesto|soporte|estuche|adaptador|accessory|case|cover|screen protector)\b/i;
 function keyOf(value){
  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -112,6 +113,9 @@ function titleMatches(q,title,{includeAccessories=false}={}){
  const separate=v=>keyOf(v).replace(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/g,'$1 $2');
  const query=separate(q),value=separate(title);
  if(!query||!value)return false;
+ // V3.4.6.9: PS5 y PlayStation 5 son alias del mismo modelo,
+ // mientras Switch OLED no necesita un número en la consulta.
+ if(consoleModels.consoleModel(q))return consoleModels.offerMatches(q,title);
  if(!includeAccessories&&EXCLUDED.test(value)&&!EXCLUDED.test(query))return false;
  const terms=query.split(' ').filter(t=>t.length>=2),wanted=new Set(terms);
  const words=new Set(value.split(' '));
