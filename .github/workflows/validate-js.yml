@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.8 phone color variation without mixing 4G or 5G
+        run: node --test tests/marketplace-comparador-seo-colores-moviles-v3468.test.js
       - name: V3.4.6.7 independent sellers and footwear extreme price review
         run: node --test tests/marketplace-comparador-precios-atipicos-calzado-v3467.test.js
       - name: V3.4.6.6 model family SEO safeguards for shoes and Redmi
