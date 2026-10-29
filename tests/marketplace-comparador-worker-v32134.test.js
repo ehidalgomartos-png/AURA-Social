@@ -94,5 +94,6 @@ test('la API de búsqueda no se llama directamente desde la petición POST',()=>
  assert.match(source,/startBackgroundWorker/);
  assert.match(server,/marketplaceComparadorV32132\.startBackgroundWorker\(\)/);
  assert.match(server,/marketplaceComparadorV32132\.stopBackgroundWorker\(\)/);
- assert.match(source,/Actualizar resultados/);
+ assert.match(source,/Esta página se actualiza automáticamente/);
+ assert.doesNotMatch(source,/Actualizar resultados manualmente/);
 });
