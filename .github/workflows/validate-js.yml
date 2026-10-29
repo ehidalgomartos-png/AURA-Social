@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.5.4 pilot onboarding checklist and 20 merchant cohort
+        run: node --test tests/marketplace-comparador-onboarding-primeros-comercios-v3454.test.js
       - name: V3.4.5.3.1 stable product SEO grace without misleading rich prices
         run: node --test tests/marketplace-comparador-seo-estable-v34531.test.js
       - name: V3.4.5.3 centralized private merchant supervision and read-only quality
