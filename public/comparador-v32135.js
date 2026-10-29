@@ -19,8 +19,49 @@
    const fresh=doc.querySelector('[data-comparison-results]');
    const status=doc.querySelector('[data-comparison-status]');
    if(!fresh||!status)return;
-   // Solo reemplazamos resultados y estado, no el formulario ni el foco del usuario.
+   // V3.4.4.17: conservar la selección local cuando llega un resultado nuevo.
+   // El HTML actualizado sigue viniendo del servidor; no hace consultas nuevas.
+   const previousToolbar=target.querySelector?.('[data-direct-filter]');
+   const previousFilters=previousToolbar?{
+    access:previousToolbar.dataset.activeAccess==='direct'?'direct':'all',
+    condition:previousToolbar.querySelector?.('[data-condition-filter]')?.value||'all',
+    capacity:previousToolbar.querySelector?.('[data-capacity-filter]')?.value||'all'
+   }:null;
+   const focused=document.activeElement;
+   let focusSelector=null;
+   if(previousToolbar?.contains?.(focused)){
+    if(focused?.matches?.('[data-condition-filter]'))focusSelector='[data-condition-filter]';
+    else if(focused?.matches?.('[data-capacity-filter]'))focusSelector='[data-capacity-filter]';
+    else if(focused?.matches?.('[data-access-choice]')){
+     const option=focused.getAttribute('data-access-choice');
+     if(option==='direct'||option==='all')focusSelector='[data-access-choice="'+option+'"]';
+    }
+    else if(focused?.matches?.('[data-clear-comparison-filters]'))
+     focusSelector='[data-clear-comparison-filters]';
+   }
    target.innerHTML=fresh.innerHTML;
+   if(previousFilters){
+    const toolbar=target.querySelector?.('[data-direct-filter]');
+    if(toolbar){
+     const directAvailable=Boolean(toolbar.querySelector?.('[data-access-choice="direct"]'));
+     toolbar.dataset.activeAccess=previousFilters.access==='direct'&&directAvailable?'direct':'all';
+     for(const choice of toolbar.querySelectorAll?.('[data-access-choice]')||[])
+      choice.setAttribute('aria-pressed',String(
+       choice.getAttribute('data-access-choice')===toolbar.dataset.activeAccess));
+     for(const [selector,value] of [
+      ['[data-condition-filter]',previousFilters.condition],
+      ['[data-capacity-filter]',previousFilters.capacity]
+     ]){
+      const select=toolbar.querySelector?.(selector);
+      if(select && Array.from(select.options||[]).some(option=>option.value===value))
+       select.value=value;
+     }
+     applyComparisonFilters(toolbar);
+     const nextFocus=focusSelector?toolbar.querySelector?.(focusSelector):null;
+     if(nextFocus && !nextFocus.hidden && !nextFocus.disabled)
+      nextFocus.focus?.({preventScroll:true});
+    }
+   }
    root.dataset.comparisonStatus=status.dataset.comparisonStatus||'unknown';
    root.innerHTML=status.innerHTML;
    // V3.4.4.16: el cambio de ofertas notifica a enlaces profundos compartidos.
