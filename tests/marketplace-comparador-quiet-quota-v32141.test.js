@@ -8,8 +8,8 @@ const provider=require('../src/services/marketplace-comparador-provider-v32133')
 const worker=require('../src/services/marketplace-comparador-worker-v32134');
 const compare=require('../src/routes/marketplace-comparador-v32132');
 
-test('presupuesto gratuito por defecto de 12/día, 220/mes, reserva de 30',()=>{
- assert.deepEqual(provider.budget({}),{daily:12,monthly:220});
+test('presupuesto gratuito por defecto de 35/día, 220/mes, reserva de 30',()=>{
+ assert.deepEqual(provider.budget({}),{daily:35,monthly:220});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'8',COMPARADOR_MONTHLY_LIMIT:'180'}),{daily:8,monthly:180});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'90',COMPARADOR_MONTHLY_LIMIT:'250'}),{daily:50,monthly:220});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'0',COMPARADOR_MONTHLY_LIMIT:'0'}),{daily:0,monthly:0});
@@ -22,7 +22,7 @@ test('administración muestra presupuesto interno, no se muestra en público',()
  assert.match(html,/Consultas del comparador/);
  assert.match(html,/6 \/ 12/);
  assert.match(html,/7 \/ 220/);
- assert.match(html,/Presupuesto interno de RedLibertad/);
+ assert.match(html,/Hay presupuesto interno disponible para nuevas búsquedas/);
  assert.match(html,/SerpApi/);
 });
 

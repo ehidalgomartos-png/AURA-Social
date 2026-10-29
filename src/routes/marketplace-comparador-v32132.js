@@ -34,6 +34,7 @@ const adminQuality=require('../services/marketplace-comparador-admin-quality-v34
 const adminMerchants=require('../services/marketplace-comparador-admin-merchants-v3453');
 const merchantGrowth=require('../services/marketplace-comparador-merchant-growth-v3454');
 const failureReport=require('../services/marketplace-comparador-failures-v34572');
+const budgetInfo=require('../services/marketplace-comparador-budget-info-v34574');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
@@ -393,6 +394,7 @@ function linkDiagnosticsMarkup(page,cache,quota,manualCache=new Map(),token=''){
   '<small>Diagnóstico basado en datos guardados. No se consulta SerpApi.</small></details>';
 }
 function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manualCache=new Map()){
+ const quotaDetails=budgetInfo.describe(quota);
  const prepared=rows.map(p=>{
   const matching=(Array.isArray(p.external_results)?p.external_results:[]).filter(o=>o&&provider.titleMatches(p.query_text,o.title));
   const evaluation=seo.auto.eligibleOffers(p,matching);
@@ -453,9 +455,13 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   '<p><a class="cmp-audit-entry" href="/admin/comparador/diagnostico">Ver diagnóstico de calidad de las comparaciones</a></p>'+
   '<p><a class="cmp-audit-entry" href="/admin/comparador/comercios-panel">Supervisar solicitudes y catálogos de comercios</a></p></div>'+
   (quota?'<section class="seo-quota-panel" aria-labelledby="seo-quota-title"><h2 id="seo-quota-title">Consultas del comparador</h2>'+
-   '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy</span></p>'+
+   '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy (Europe/Madrid)</span></p>'+
    '<p><strong>'+Number(quota.monthlyUsed||0)+' / '+Number(quota.monthly)+'</strong><span>Este mes</span></p></div>'+
-   '<small>Presupuesto interno de RedLibertad. El consumo total de la cuenta se consulta en SerpApi.</small></section>':'')+
+   '<p class="seo-quota-status" role="status">'+esc(quotaDetails.message)+'</p>'+
+   (quotaDetails.remainingToday!==null&&quotaDetails.remainingMonth!==null?
+    '<p class="seo-quota-remaining">Disponibles según RedLibertad: <strong>'+quotaDetails.remainingToday+
+    '</strong> hoy · <strong>'+quotaDetails.remainingMonth+'</strong> este mes.</p>':'')+
+   '<small>Estos son límites internos, no el saldo de SerpApi. Si Coolify define COMPARADOR_DAILY_LIMIT, prevalece sobre el valor predeterminado. Otras aplicaciones podrían consumir el mismo plan SerpApi.</small></section>':'')+
   '<div class="seo-admin-overview"><div><strong>'+counts.todas+'</strong><span>Comparaciones</span></div>'+
   '<div><strong>'+counts.aptas+'</strong><span>Aptas para Google</span></div>'+
   '<div><strong>'+counts.pendientes+'</strong><span>Por mejorar</span></div>'+

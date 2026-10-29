@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.5.7.4 revised daily quota, monthly reserve and admin explanation
+        run: node --test tests/marketplace-comparador-presupuesto-diario-v34574.test.js
       - name: V3.4.5.7.3 Google Shopping slow replies and explicit retry safeguards
         run: node --test tests/marketplace-comparador-slow-shopping-v34573.test.js
       - name: V3.4.5.7.2 SerpApi zero-results and safe provider error diagnostics

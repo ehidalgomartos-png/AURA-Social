@@ -290,9 +290,13 @@ function budget(env=process.env){
   const n=/^\d+$/.test(raw)?Number(raw):def;
   return Number.isSafeInteger(n)?Math.min(max,Math.max(0,n)):def;
  };
- // El plan gratis muestra 250 búsquedas/mes. Reservamos 30 para imprevistos.
-  // Variables de Coolify explícitas siguen prevaleciendo (sin sobrepasar 220/mes).
-  return {daily:read('COMPARADOR_DAILY_LIMIT',12,50),monthly:read('COMPARADOR_MONTHLY_LIMIT',220,220)};
+ // SerpApi tiene un plan de 250 búsquedas mensuales. RedLibertad mantiene
+ // un tope propio de 220/mes (reserva de 30 para usos ajenos o imprevistos).
+ // El límite inicial de 12/día bloqueaba muchas búsquedas pese a quedar cuota.
+ // 35/día permite distribuir mejor el uso; la reserva transaccional continúa
+ // impidiendo superar 220/mes por ESTA aplicación.
+ // Coolify puede fijar COMPARADOR_DAILY_LIMIT de 0 a 50, incluso mantener 12.
+ return {daily:read('COMPARADOR_DAILY_LIMIT',35,50),monthly:read('COMPARADOR_MONTHLY_LIMIT',220,220)};
 }
 async function fetchOffers(q,fetchFn=fetch,env=process.env){
  if(!configured(env))throw new Error('provider_not_configured');
