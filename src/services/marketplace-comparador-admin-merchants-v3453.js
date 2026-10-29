@@ -44,4 +44,4 @@ function summarize(rows){
   stale:items.filter(x=>x.stale>0).length
  }};
 }
-module.exports={assess,summarize};
+module.exports={assess,summarize,safeCount:NON_NEGATIVE};
