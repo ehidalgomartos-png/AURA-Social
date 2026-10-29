@@ -339,7 +339,9 @@ router.post('/comparar/buscar',rateLimit({windowMs:60*60*1000,limit:15,standardH
   if(key.length<3)return res.status(400).send(shell('Búsqueda no válida | RedLibertad','Introduce un producto válido.',formMarkup('Introduce el nombre de un producto más específico.',q,issueCsrf(req,res)),'/comparar'));
   await ensureSchema();
   const row=await db.query("INSERT INTO marketplace_compare_pages (query_key,slug,query_text) VALUES ($1,$2,$3) ON CONFLICT (query_key) DO UPDATE SET search_count=marketplace_compare_pages.search_count+1 RETURNING id,slug,query_text",[key,slugFor(q),q]);
-  await compareWorker.enqueue(row.rows[0],ensureSchema);
+  // Un POST validado es un reintento intencional; visitar o actualizar la ficha no lo es.
+  // La cola impone 2 min entre fallos y respeta la cuota diaria y mensual.
+  await compareWorker.enqueue(row.rows[0],ensureSchema,true);
   res.redirect(303,'/comparar/'+row.rows[0].slug);
  }catch(e){next(e);}
 });
