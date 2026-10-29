@@ -82,10 +82,39 @@ function medianPrice(values){
  const i=Math.floor(list.length/2);
  return list.length%2?list[i]:(list[i-1]+list[i])/2;
 }
+// V3.4.6.11: cuotas periódicas no son precios de adquisición.
+// Grover comercializa alquiler tecnológico; detectar también las menciones
+// explícitas al alquiler en otros comercios. Nunca deducir precio de compra
+// dividiendo/multiplicando cuotas, ni ocultar la oferta original.
+function rentalReason(o){
+ if(!o||o.internal)return null;
+ const merchant=normalize(o.shop);
+ const url=String(o.href||o.resolved_href||'');
+ let groverHost=false;
+ try{
+  const parsed=new URL(url);
+  groverHost=parsed.protocol==='https:'&&
+   (parsed.hostname.toLowerCase()==='grover.com'||
+    parsed.hostname.toLowerCase().endsWith('.grover.com'));
+ }catch(_){}
+ if(merchant==='grover'||merchant==='grover es'||merchant==='grover com'||groverHost)
+  return 'Alquiler de tecnología (Grover): cuota periódica, no precio de compra';
+ const title=normalize([o.title,o.price_label,o.price_period,o.billing_period].filter(Boolean).join(' '));
+ if(/\b(?:alquiler|alquilar|alquila|renting|rental|rentals|rent|suscripcion|subscription|mensual|monthly)\b/.test(title)||
+  /\b(?:por mes|al mes|per month|cada mes)\b/.test(title)||
+  /(?:€|eur)\s*\/\s*(?:mes|month)|\/\s*(?:mes|month)\b/i.test(String(o.title||'')))
+  return 'Oferta de alquiler o suscripción, no precio de compra';
+ return null;
+}
 function groupOffers(query,offers){
- const main=[],repair=[],accessories=[],review=[];
+ const main=[],repair=[],accessories=[],review=[],rentals=[];
  const explicitRepair=isRepairSearch(query),phone=isPhoneSearch(query)&&!isAccessorySearch(query);
  for(const offer of Array.isArray(offers)?offers:[]){
+  const rental=rentalReason(offer);
+  if(rental){
+   rentals.push({...offer,quality_reason:rental});
+   continue;
+  }
   if(!explicitRepair&&repairReason(offer)){repair.push(offer);continue;}
   if(footwearFamily(query)&&(!footwearModelCompatible(query,offer.title)||
    !footwearGenderCompatible(query,offer.title))){
@@ -166,6 +195,6 @@ function groupOffers(query,offers){
    }
   }
  }
- return {main,repair,accessories,review};
+ return {main,repair,accessories,review,rentals};
 }
-module.exports={normalize,repairReason,isRepairSearch,groupOffers,accessoryReason,isAccessorySearch,isPhoneSearch,deviceEvidence,footwearFamily,footwearGenderCompatible,footwearModelCompatible};
+module.exports={normalize,repairReason,isRepairSearch,groupOffers,rentalReason,accessoryReason,isAccessorySearch,isPhoneSearch,deviceEvidence,footwearFamily,footwearGenderCompatible,footwearModelCompatible};
