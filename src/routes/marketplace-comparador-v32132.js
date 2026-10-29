@@ -147,6 +147,7 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  // Los comercios aprobados tienen una URL real de compra aunque la oferta
  // proceda de un anuncio local. No etiquetarla como búsqueda de Google.
  const merchant=directAccess.isDirectStore(o);
+ const rental=Boolean(offerQuality.rentalReason(o));
  const link=o.partner_store?(merchant?{href:o.href,destination:'store'}:null):
   o.internal?{href:o.href,destination:'internal'}:provider.resolveOfferLink(o);
  if(!link||!link.href)return '';
@@ -163,11 +164,12 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  const stateLabel=states[tags.condition]||states['sin-confirmar'];
  const stateHelp=tags.condition==='sin-confirmar'?'Estado no verificado':
   'Estado declarado por el vendedor; compruébalo antes de comprar';
- const dest=link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
+ const dest=rental?(link.destination==='shopping-search'?'Buscar condiciones de alquiler':'Consultar condiciones de alquiler'):
+  link.destination==='internal'?'Ver anuncio':merchant?'Ver oferta en tienda':'Buscar en Google';
  const destinationInfo=describeDestination(o,link,merchant);
  const note=destinationInfo.note;
  const shipping=o.delivery?'<small>🚚 '+esc(o.delivery)+'</small>':'';
- const possible=link.destination==='shopping-search' && provider.canLookupSeller(o) &&
+ const possible=!rental && link.destination==='shopping-search' && provider.canLookupSeller(o) &&
    !['unavailable','checking'].includes(o.lookup_status) && provider.hasProductReference(o);
  const candidate=possible && quota?.available!==false;
  const lookup=candidate?'<form class="offer-lookup" method="post" action="/comparar/tienda/'+esc(slug)+'/'+offerKey(o)+'"><input type="hidden" name="_csrf" value="'+esc(csrfToken)+'"><button class="offer-link" type="submit">Consultar enlace de la tienda</button></form>':
@@ -191,14 +193,15 @@ function offerMarkup(o,index=0,total=0,slug='',csrfToken='',quota=null,priceInfo
  return '<li class="offer" data-offer-access="'+directFlag+'" data-offer-condition="'+tags.condition+'" data-offer-capacity="'+tags.capacity+'" data-offer-price-cents="'+(Number.isSafeInteger(o.price_cents)&&o.price_cents>0?o.price_cents:'')+'" id="oferta-'+offerKey(o)+'">'+(index===0&&total>1?'<span class="best-offer">'+(priceInfo?.isStale?'Mínimo de la consulta anterior':'Precio más bajo mostrado')+'</span>':'')+(o.sponsored?'<span class="offer-sponsored">Publicidad</span>':'')+
   picture+'<div class="offer-main">'+(merchant?'<span class="cmp-direct-tag">Acceso directo a tienda</span>':'')+'<strong>'+esc(o.title)+'</strong><div class="cmp-offer-meta"><small class="cmp-offer-shop">'+esc(shop)+'</small>'+
   '<span class="cmp-condition-chip cmp-condition-'+tags.condition+'" title="'+esc(stateHelp)+'">'+esc(stateLabel)+'</span></div>'+shipping+
-  '</div><div class="offer-side"><div class="price">'+money(o.price_cents)+'</div>'+
+  '</div><div class="offer-side">'+(rental?'<small class="cmp-rental-price-label">Cuota de alquiler anunciada · no es precio de compra</small>':'')+'<div class="price">'+money(o.price_cents)+'</div>'+
   '<small class="cmp-price-source">'+esc(provenance)+'</small>'+pricing+savedPriceAdvice+
   lookup+'<a class="offer-link'+(link.destination==='shopping-search'?' offer-search-backup':'')+'" href="'+esc(href)+'" aria-label="'+esc(destinationInfo.ariaLabel)+'"'+clickAttrs+(o.internal&&!o.partner_store?'':' target="_blank" rel="noopener noreferrer nofollow'+(o.sponsored?' sponsored':'')+'"')+'>'+dest+'</a>'+
   (note?'<span class="offer-destination">'+note+'</span>':'')+share+'</div></li>';
 }
-function nonComparableMarkup(accessories,review,slug,csrfToken,priceInfo){
+function nonComparableMarkup(accessories,review,slug,csrfToken,priceInfo,rentals=[]){
  const sections=[];
  for(const [items,kind,title,advice] of [
+  [rentals,'rental','Alquileres y cuotas (no son precios de compra)','Estos importes corresponden a alquiler o pagos periódicos. No se comparan con el precio de compra ni forman parte del mínimo del producto. Verifica la duración, cuotas y condiciones con el proveedor.'],
   [accessories,'accessory','Accesorios relacionados','Estas ofertas describen accesorios. Sus precios no corresponden al teléfono buscado.'],
   [review,'review','Ofertas por verificar','No se ha podido confirmar que estos anuncios correspondan al producto buscado, o su precio es atípico. Comprueba el modelo, el estado y el precio con la tienda. No forman parte del mínimo comparable.']
  ]){
@@ -1662,6 +1665,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const ordinary=uniqueOffers(grouped.main),sponsored=uniqueOffers(paidOffers);
   const repair=uniqueOffers(grouped.repair);
   const accessories=uniqueOffers(grouped.accessories),review=uniqueOffers(grouped.review);
+  const rentals=uniqueOffers(grouped.rentals||[]);
   const insight=insights.buildInsights(page.query_text,ordinary);
   // El historial anterior puede incluir mínimos averiados sin desglose por condición.
   // No presentar cifras históricas no depurables junto a una ficha que hoy contiene averías.
@@ -1706,6 +1710,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    ' · '+ordinary.length+' '+(ordinary.length===1?'oferta':'ofertas')+
    (exact?(insight.hasMixedVariants?' en varias versiones y estados':''):' de productos potencialmente diferentes')+'</p>'+
    '</section>':
+   rentals.length&&!accessories.length&&!review.length&&!repair.length?
+   '<section class="info cmp-only-review-status" role="status"><h2>Solo hay ofertas de alquiler</h2><p>Las cuotas de alquiler no son precios de compra. Consulta los plazos y condiciones en el proveedor.</p></section>':
    (accessories.length||review.length)?
    '<section class="info cmp-only-review-status" role="status"><h2>Ofertas por confirmar</h2>'+
    '<p>No tenemos precios suficientemente fiables para destacar un teléfono completo. Consulta los anuncios relacionados más abajo, sin mezclar sus importes.</p></section>':
@@ -1769,7 +1775,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p class="cmp-sponsored-advice">Estas ofertas están etiquetadas como publicidad por su fuente. No se incluyen en el precio mínimo independiente ni en el SEO del producto.</p>'+
    '<ol class="comparison-list">'+sponsored.map(o=>offerMarkup(o,-1,0,slug,csrfToken,null,o.internal?null:externalPriceInfo)).join('')+'</ol>'+
    '</details></section>':'';
-  const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo);
+  const relatedCards=nonComparableMarkup(accessories,review,slug,csrfToken,externalPriceInfo,rentals);
   const photoRows=exact&&ordinary.length?await db.query(
    "SELECT offer_key,image_url,reviewed_at FROM marketplace_compare_photo_reviews WHERE page_id=$1",[page.id]):{rows:[]};
   const curatedPhoto=photoReview.selected(page,photoRows.rows[0],ordinary);
