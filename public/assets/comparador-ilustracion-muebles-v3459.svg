@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Ilustración de mueble; no es una fotografía real">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F2EFE7"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient></defs>
+<rect width="160" height="160" rx="24" fill="url(#bg)"/>
+<circle cx="80" cy="83" r="64" fill="#fff" opacity=".55"/>
+<rect x="28" y="37" width="104" height="98" rx="8" fill="#fff" stroke="#58677A" stroke-width="5"/><path d="M80 41v90" stroke="#ABB7C2" stroke-width="4"/><path d="M69 82v15m22-15v15" stroke="#50728C" stroke-width="6" stroke-linecap="round"/><path d="M42 138v5m76-5v5" stroke="#58677A" stroke-width="6"/>
+<rect x="120" y="8" width="32" height="28" rx="10" fill="#102D49"/>
+<path d="M128 15h9c6 0 9 3 9 7 0 4-3 6-7 7l6 7h-7l-6-8h-1v8h-5V15zm5 4v6h4c2 0 4-1 4-3s-2-3-4-3z" fill="#fff" transform="translate(0 -3) scale(.96)"/>
+<path d="m145 7 9-5-4 10" fill="#F56A5E"/>
+</svg>
