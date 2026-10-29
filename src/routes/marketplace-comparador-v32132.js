@@ -218,18 +218,31 @@ function historyMarkup(history){
     '<span>'+Number(row.shop_count)+' tiendas contrastadas</span></li>';
   }).join('')+'</ol><small>Datos de consultas anteriores. Precios orientativos, sin confirmar transporte ni disponibilidad.</small></section>';
 }
-function insightsMarkup(query,insight){
+function insightsMarkup(query,insight,offers=[]){
  // No repetir una tabla de versiones si todas las ofertas corresponden a la misma.
  if(!insight||insight.variants.length<=1)return '';
+ // V3.4.4.24: enlace solo a una tarjeta realmente incluida en el grupo.
+ // La agrupación es informativa: no reordena ni modifica ofertas o sus precios.
+ const firstOfferByVariant=new Map();
+ for(const offer of offers){
+  const key=insights.variantKey(offer).key;
+  if(firstOfferByVariant.has(key))continue;
+  const available=offer.partner_store?
+   (directAccess.isDirectStore(offer)?offer.href:null):
+   offer.internal?offer.href:provider.resolveOfferLink(offer)?.href;
+  if(available)firstOfferByVariant.set(key,offerKey(offer));
+ }
  const ranked=insight.variants.slice().sort((a,b)=>Number(Boolean(b.capacity))-Number(Boolean(a.capacity))||b.count-a.count||a.minCents-b.minCents);
  const renderVariant=v=>{
   const colors=v.colors.length?' · '+esc(v.colors.length===1?v.colors[0]:v.colors.length+' colores'):'';
+  const anchor=firstOfferByVariant.get(v.key);
+  const jump=anchor?'<a class="compare-variant-jump" href="#oferta-'+esc(anchor)+'">Ver una oferta de este grupo</a>':'';
   const link=v.suggestedQuery?'<a class="compare-variant-refine" href="/comparar?q='+encodeURIComponent(v.suggestedQuery)+'">Comparar esta capacidad</a>':'';
   const title=v.label.replace(/^Modelo estándar · /,'').replace('Capacidad sin identificar','Capacidad no indicada');
   return '<li class="compare-variant"><strong>'+esc(title)+'</strong>'+
    '<span class="compare-variant-price">Desde '+money(v.minCents)+'</span>'+
    '<small>'+v.count+' '+(v.count===1?'oferta':'ofertas')+' · '+v.shopCount+
-   (v.shopCount===1?' vendedor':' vendedores')+colors+'</small>'+link+'</li>';
+   (v.shopCount===1?' vendedor':' vendedores')+colors+'</small>'+jump+link+'</li>';
  };
  const shown=ranked.slice(0,4),remaining=ranked.slice(4);
  return '<section class="compare-variant-section" aria-labelledby="compare-variant-heading">'+
@@ -1145,7 +1158,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    cards+relatedCards+repairCards+sponsoredCards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
    ordinary.length?
-   '<section data-comparison-results>'+(exact?insightsMarkup(page.query_text,insight):'')+historyMarkup(history.rows)+
+   '<section data-comparison-results>'+(exact?insightsMarkup(page.query_text,insight,ordinary):'')+historyMarkup(history.rows)+
    '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+priceLegend+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
