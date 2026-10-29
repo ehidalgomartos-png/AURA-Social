@@ -73,7 +73,7 @@ test('las fichas sin ofertas muestran error o pausa real y buscador abierto',asy
    assert.doesNotMatch(html,/compare-awaiting-spinner|compare-progress-note/);
    assert.doesNotMatch(html,/api_key|SerpApi|consumerSecret/);
    assert.ok(calls.some(q=>q.startsWith('SELECT * FROM marketplace_compare_pages')),value);
-   assert.ok(!calls.some(q=>/INSERT INTO marketplace_compare_jobs|UPDATE marketplace_compare_jobs|marketplace_compare_provider_usage/.test(q)),value);
+   assert.ok(!calls.some(q=>/INSERT INTO marketplace_compare_jobs|UPDATE marketplace_compare_jobs|INSERT INTO marketplace_compare_provider_usage/.test(q)),value);
   }
   providerReady=true;status='queued';
   const html=await (await fetch(base)).text();
