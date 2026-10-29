@@ -1564,7 +1564,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
    '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+
    richHero+
-   '<details class="cmp-change-search" id="cambiar-producto"'+(!ordinary.length&&!pending?' open':'')+'><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
+   '<details class="cmp-change-search"'+(!ordinary.length&&!pending?' id="cambiar-producto" open':'')+'><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
    richFacts+relatedMarkup+
