@@ -131,7 +131,7 @@ test('el aislamiento por propietario rechaza tiendas inexistentes o de otra cuen
  });
 });
 test('la vista escapa datos de CSV y las validaciones no almacenan productos',async()=>{
- const injected=[header,row('<script>alert(1)</script>')].join('\n');
+ const injected=[header,'simple,"<script>alert(1)</script> producto",SKU-77,Descripción completa del artículo para comprobar que el texto sea seguro,19.90,https://example.com/foto.jpg,Electrónica,1,1'].join('\n');
  await withUser(async(base,cookie)=>{
   const p=await fetch(base+'/comparar/comercios/catalogo/18',{headers:{Cookie:cookie}});
   const token=(await p.text()).match(/name="_csrf" value="([a-f0-9]{48})"/)?.[1];
