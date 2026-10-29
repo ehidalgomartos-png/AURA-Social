@@ -1364,3 +1364,89 @@ body.cmp-premium .cmp-catalog-onboarding :is(input,textarea,button):focus-visibl
  }
  body.cmp-premium .cmp-catalog-form-panel{padding:14px}
 }
+
+
+/* V3.4.5.2 — informe privado por tienda: accesible, legible y mobile-first. */
+body.cmp-premium .cmp-merchant-analytics{max-width:1050px;margin:0 auto}
+body.cmp-premium .cmp-merchant-analytics>h1{
+ color:#173d59;font-size:clamp(1.65rem,3.3vw,2.3rem);
+ letter-spacing:-.03em;overflow-wrap:anywhere;margin:10px 0;
+}
+body.cmp-premium .cmp-merchant-analytics>p{max-width:78ch;color:#506a82;line-height:1.55}
+body.cmp-premium .cmp-merchant-stat-cards{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:12px;margin:20px 0;
+}
+body.cmp-premium .cmp-merchant-stat-cards>div{
+ display:flex;flex-direction:column;gap:7px;padding:17px;
+ background:#fff;border:1px solid #dce7f0;border-radius:14px;min-width:0;
+}
+body.cmp-premium .cmp-merchant-stat-cards strong{
+ font-size:1.65rem;color:#174f76;font-variant-numeric:tabular-nums;
+ overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-merchant-stat-cards span{
+ font-size:.82rem;color:#537087;line-height:1.4;
+}
+body.cmp-premium .cmp-merchant-analytics-panel{
+ border:1px solid #dce6ef;border-radius:16px;background:#fff;
+ padding:clamp(14px,2.5vw,22px);margin:15px 0;
+}
+body.cmp-premium .cmp-merchant-analytics-panel>h2{
+ margin:0 0 16px;color:#183e5a;font-size:1.16rem;
+}
+body.cmp-premium .cmp-merchant-bars{
+ display:grid;grid-template-columns:repeat(14,minmax(0,1fr));
+ align-items:end;gap:6px;min-height:165px;
+ padding:9px 5px 0;max-width:100%;
+}
+body.cmp-premium .cmp-merchant-bar{
+ display:flex;flex-direction:column;align-items:center;min-width:0;
+ gap:5px;height:153px;
+}
+body.cmp-premium .cmp-merchant-bar-value{
+ display:block;font-size:.69rem;color:#365b75;font-weight:720;
+ font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+body.cmp-premium .cmp-merchant-bar-track{
+ display:flex;align-items:flex-end;width:100%;max-width:33px;
+ height:104px;min-height:104px;border-radius:7px 7px 0 0;
+ background:#e9f2fa;overflow:hidden;
+}
+body.cmp-premium .cmp-merchant-bar-track>span{
+ width:100%;background:#2675aa;border-radius:6px 6px 0 0;
+ min-height:3px;
+}
+body.cmp-premium .cmp-merchant-bar small{
+ font-size:.62rem;color:#526e84;white-space:nowrap;
+}
+body.cmp-premium .cmp-merchant-chart-note{
+ font-size:.78rem;line-height:1.45;color:#597388;
+}
+body.cmp-premium .cmp-merchant-table-scroll{max-width:100%;overflow-x:auto}
+body.cmp-premium .cmp-merchant-analytics-panel table{
+ width:100%;border-collapse:collapse;text-align:left;font-size:.85rem;
+}
+body.cmp-premium .cmp-merchant-analytics-panel th,
+body.cmp-premium .cmp-merchant-analytics-panel td{
+ padding:12px 10px;border-bottom:1px solid #e2ebf2;
+ overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-merchant-analytics-panel th{font-weight:760;color:#2a4d67}
+body.cmp-premium .cmp-merchant-analytics-panel .cmp-merchant-numeric{
+ text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+body.cmp-premium .cmp-merchant-analytics a:focus-visible{
+ outline:3px solid #7fb4d9;outline-offset:3px;
+}
+@media(max-width:650px){
+ body.cmp-premium .cmp-merchant-stat-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.cmp-premium .cmp-merchant-bars{gap:3px;padding:8px 0 0}
+ body.cmp-premium .cmp-merchant-bar small{font-size:.53rem;writing-mode:vertical-rl;transform:rotate(180deg)}
+ body.cmp-premium .cmp-merchant-bar-value{font-size:.6rem}
+ body.cmp-premium .cmp-merchant-analytics-panel th,
+ body.cmp-premium .cmp-merchant-analytics-panel td{padding:10px 7px;font-size:.78rem}
+}
+@media(max-width:360px){
+ body.cmp-premium .cmp-merchant-stat-cards{grid-template-columns:minmax(0,1fr)}
+}
