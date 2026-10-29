@@ -1925,3 +1925,13 @@ body.cmp-premium .cmp-landing-view-all{display:inline-flex;align-items:center;fo
  body.cmp-premium .cmp-landing-searches,body.cmp-premium .cmp-landing-faq,
  body.cmp-premium .cmp-landing-related{padding:17px}
 }
+
+/* V3.4.6.14 — enlace contextual de producto hacia guía de compra. */
+body.cmp-premium .cmp-contextual-guide{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;row-gap:5px;
+ padding:12px 15px;margin:12px 0 20px;background:#f0f8fd;border:1px solid #c7dfed;border-radius:12px}
+body.cmp-premium .cmp-contextual-guide>span{color:#57738a;font-size:.78rem;font-weight:750}
+body.cmp-premium .cmp-contextual-guide>a{font-size:.87rem;font-weight:800;color:#144d75;text-underline-offset:3px;min-height:32px;display:inline-flex;align-items:center}
+body.cmp-premium .cmp-contextual-guide>small{flex-basis:100%;font-size:.79rem;line-height:1.5;color:#4d6a7b}
+body.cmp-premium .cmp-contextual-guide>a:focus-visible{outline:3px solid #6aaed1;outline-offset:3px}
+@media(max-width:600px){body.cmp-premium .cmp-contextual-guide{display:block;padding:13px}body.cmp-premium .cmp-contextual-guide>span{display:block}
+body.cmp-premium .cmp-contextual-guide>a{display:inline-flex;min-height:44px}body.cmp-premium .cmp-contextual-guide>small{display:block}}

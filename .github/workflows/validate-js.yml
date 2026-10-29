@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.14 contextual links from comparison pages
+        run: node --test tests/marketplace-comparador-links-editoriales-v34614.test.js
       - name: V3.4.6.13 SEO landing pages internal linking and sitemap
         run: node --test tests/marketplace-comparador-landings-seo-v34613.test.js
       - name: V3.4.6.12 useful category SEO and truthful product families
