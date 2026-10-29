@@ -140,8 +140,8 @@ function summary(page,evaluation,now=Date.now()){
   'Ofertas guardadas de '+page.query_text+' en ';
  return first+evaluation.sellerCount+' tiendas, entre '+eur(evaluation.lowPriceCents)+' y '+
   eur(evaluation.highPriceCents)+'. '+(broad?
-   (multipleModels?'Los importes corresponden a modelos, tallas o versiones diferentes, no al mismo producto. ':
-    'Pueden corresponder a distintas versiones: compara el modelo exacto. '):'')+
+   'Pueden corresponder a distintas versiones: compara el modelo exacto. '+
+   (multipleModels?'Los importes corresponden a modelos, tallas o versiones diferentes, no al mismo producto. ':''):'')+
   (evaluation.modelLines?.length?
    'Líneas identificadas en las ofertas: '+evaluation.modelLines.slice(0,5).join(', ')+'. ':'')+
   (older?'Son precios históricos, no necesariamente vigentes. ':'')+
