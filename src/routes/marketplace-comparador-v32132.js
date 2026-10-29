@@ -383,7 +383,9 @@ function landingPageMarkup(page,comparisons){
  const questions=page.faq.map(([question,answer])=>
   '<details><summary>'+esc(question)+'</summary><p>'+esc(answer)+'</p></details>').join('');
  const searches=page.searches.map(q=>
-  '<li><a href="/comparar?q='+encodeURIComponent(q)+'">'+esc(q)+'</a></li>').join('');
+  '<li class="cmp-landing-search-item"><a class="cmp-landing-search-link" href="/comparar?q='+encodeURIComponent(q)+'#compareQ" aria-label="Preparar comparación de '+esc(q)+'">'+
+  '<span class="cmp-landing-search-name">'+esc(q)+'</span>'+
+  '<span class="cmp-landing-search-cta">Preparar comparación <span aria-hidden="true">→</span></span></a></li>').join('');
  const vetted=comparisons.length?
   '<section class="cmp-landing-vetted"><h2>Comparaciones disponibles de esta categoría</h2>'+
    '<p>Fichas guardadas que cumplen actualmente los criterios de calidad del comparador. El precio y la disponibilidad pueden cambiar.</p><ul>'+
@@ -399,9 +401,9 @@ function landingPageMarkup(page,comparisons){
   '<section class="cmp-landing-method" aria-labelledby="cmp-landing-steps">'+
   '<h2 id="cmp-landing-steps">Qué revisar antes de comprar</h2><ol class="cmp-landing-checks">'+items+'</ol></section>'+
   vetted+
-  '<section class="cmp-landing-searches"><h2>Búsquedas para empezar</h2>'+
-  '<p>Estos enlaces rellenan el buscador. No consultan precios ni consumen cuota hasta que envíes la búsqueda.</p>'+
-  '<ul>'+searches+'</ul></section>'+
+  '<section class="cmp-landing-searches"><h2>Búsquedas recomendadas</h2>'+
+  '<p>Elige un producto para preparar la búsqueda. Después podrás revisar el modelo y pulsar «Comparar precios». No se consulta ninguna tienda al abrir estos enlaces.</p>'+
+  '<ul class="cmp-landing-search-grid">'+searches+'</ul></section>'+
   '<section class="cmp-landing-faq" aria-label="Preguntas frecuentes"><h2>Preguntas frecuentes</h2>'+
   questions+'</section>'+
   '<section class="cmp-landing-related"><h2>Otras guías</h2>'+
@@ -445,6 +447,7 @@ router.get('/comparar',async(req,res,next)=>{
     '<small>'+Number(p.offer_count)+' ofertas guardadas</small></span></a></li>';
   }).join('');
   const csrfToken=issueCsrf(req,res);
+  const prepared=cleanQuery(req.query?.q)||'';
   res.set('Cache-Control','private,no-store');
   res.send(shell('Comparador de precios | RedLibertad','Busca un producto y consulta páginas de comparación guardadas en RedLibertad.',
    '<p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / Comparador</p>'+
@@ -453,7 +456,9 @@ router.get('/comparar',async(req,res,next)=>{
    '<h1 id="cmp-home-title">Comparador de precios</h1>'+
    '<p class="cmp-home-subtitle">Encuentra ofertas, compara tiendas y comprueba el estado del producto antes de decidir.</p>'+ 
    '<img class="cmp-home-art" src="/assets/comparador-hero-v3432.svg" width="470" height="330" alt="" decoding="async" aria-hidden="true">'+
-   formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
+   (prepared?'<p class="cmp-prepared-search" role="status"><strong>Búsqueda preparada:</strong> '+esc(prepared)+
+    '. Revisa el producto y pulsa «Comparar precios» para consultar las ofertas. Abrir este enlace no consume cuota.</p>':'')+
+   formMarkup('',prepared,csrfToken)+
    '<p class="cmp-home-trust"><span>Precios por producto y estado</span><span>Enlaces a vendedores</span><span>Comparaciones guardadas</span></p></section>'+
    '<section class="cmp-landing-home-link"><h2>Compara por categoría</h2><p>Guías prácticas para elegir bien antes de comparar precios.</p><ul class="cmp-landings-grid">'+landingCards()+'</ul><a class="cmp-landing-view-all" href="'+landingPages.HUB+'">Ver todas las guías de compra</a></section>'+ 
    '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a><span class="cmp-cta-sep">·</span>¿Tienes una tienda? <a href="/comparar/comercios">Añádela gratis</a></p>'+
