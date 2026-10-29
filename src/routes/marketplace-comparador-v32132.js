@@ -368,15 +368,21 @@ function landingHubMarkup(){
   '<li>Busca un modelo específico; comprueba su versión y estado.</li>'+
   '<li>Abre la comparación si existe y revisa la fecha de consulta de precios.</li>'+
   '<li>Confirma precio final, envío, garantía y disponibilidad con el vendedor antes de comprar.</li></ol>'+
-  '<a href="/comparar">Ir a buscar un producto</a></section></div>';
+  '<a href="/comparar">Ir a buscar un producto</a></section>'+
+  '<section class="cmp-model-guide-section"><h2>Guías por marca y modelo</h2>'+
+  '<p>Consejos para comparar versiones concretas y evitar confundir un producto con otro.</p>'+
+  '<p><a href="'+modelGuides.HUB+'">Explorar guías de modelos</a></p></section></div>';
 }
 
 function comparisonTopicMarkup(query){
  const guide=landingPages.PAGES.find(p=>landingPages.matches(p,{query_text:query}));
- if(!guide)return '';
- return '<aside class="cmp-contextual-guide" aria-label="Guía de compra relacionada">'+
-  '<span>Antes de elegir una oferta</span><a href="'+landingPages.pathFor(guide.slug)+'">'+
-  esc(guide.title)+'</a><small>'+esc(guide.subtitle)+'</small></aside>';
+ const focused=modelGuides.GUIDES.find(g=>modelGuides.matches(g,{query_text:query}));
+ if(!guide&&!focused)return '';
+ return '<aside class="cmp-contextual-guide" aria-label="Guías de compra relacionadas">'+
+  '<span>Antes de elegir una oferta</span>'+
+  (focused?'<a href="'+modelGuides.pathFor(focused.slug)+'">'+esc(focused.title)+'</a>':'')+
+  (guide?'<a href="'+landingPages.pathFor(guide.slug)+'">'+esc(guide.title)+'</a>':'')+
+  '<small>Consulta variantes y comprueba condiciones con cada vendedor.</small></aside>';
 }
 function landingPageMarkup(page,comparisons){
  const path=landingPages.pathFor(page.slug);
@@ -408,6 +414,9 @@ function landingPageMarkup(page,comparisons){
   '<ul class="cmp-landing-search-grid">'+searches+'</ul></section>'+
   '<section class="cmp-landing-faq" aria-label="Preguntas frecuentes"><h2>Preguntas frecuentes</h2>'+
   questions+'</section>'+
+  '<section class="cmp-model-guide-section"><h2>Guías de modelos de esta categoría</h2>'+
+  modelGuideView.cards(modelGuides.GUIDES.filter(g=>g.category===page.slug))+
+  '<p><a href="'+modelGuides.HUB+'">Explorar todas las guías de modelos</a></p></section>'+
   '<section class="cmp-landing-related"><h2>Otras guías</h2>'+
   '<ul class="cmp-landings-grid">'+landingCards(page)+'</ul></section>'+
   '<p class="cmp-landing-disclosure">Metodología: RedLibertad utiliza resultados guardados de comparaciones y filtra las fichas que no reúnen suficiente evidencia. No certificamos precios, existencias ni estados; confirma todos los detalles con el vendedor. No vendemos los productos de estas ofertas.</p></div>';
@@ -485,7 +494,7 @@ router.get('/comparar',async(req,res,next)=>{
     '. Revisa el producto y pulsa «Comparar precios» para consultar las ofertas. Abrir este enlace no consume cuota.</p>':'')+
    formMarkup('',prepared,csrfToken)+
    '<p class="cmp-home-trust"><span>Precios por producto y estado</span><span>Enlaces a vendedores</span><span>Comparaciones guardadas</span></p></section>'+
-   '<section class="cmp-landing-home-link"><h2>Compara por categoría</h2><p>Guías prácticas para elegir bien antes de comparar precios.</p><ul class="cmp-landings-grid">'+landingCards()+'</ul><a class="cmp-landing-view-all" href="'+landingPages.HUB+'">Ver todas las guías de compra</a></section>'+ 
+   '<section class="cmp-landing-home-link"><h2>Compara por categoría</h2><p>Guías prácticas para elegir bien antes de comparar precios.</p><ul class="cmp-landings-grid">'+landingCards()+'</ul><a class="cmp-landing-view-all" href="'+landingPages.HUB+'">Ver todas las guías de compra</a> · <a href="/comparar/guias">Guías de marcas y modelos</a></section>'+ 
    '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a><span class="cmp-cta-sep">·</span>¿Tienes una tienda? <a href="/comparar/comercios">Añádela gratis</a></p>'+
    '<section class="info cmp-home-panel" aria-labelledby="cmp-recent-title"><span class="cmp-section-eyebrow">Explora productos</span>'+
    '<h2 id="cmp-recent-title">Comparaciones recientes</h2>'+
