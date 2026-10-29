@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.11 rental prices separated from purchases
+        run: node --test tests/marketplace-comparador-alquiler-no-compra-v34611.test.js
       - name: V3.4.6.10 saved-offer price and network diagnostics
         run: node --test tests/marketplace-comparador-diagnostico-variantes-v34610.test.js
       - name: V3.4.6.9 exact consoles and non misleading shopping SEO
