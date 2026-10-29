@@ -2,6 +2,7 @@
 // V3.4.5.8 — páginas de comparación útiles, no necesariamente teléfonos con 256GB.
 // Se evalúan ofertas REALES y guardadas, sin IA, APIs extra ni aprobación masiva.
 const provider=require('./marketplace-comparador-provider-v32133');
+const consoleModels=require('./marketplace-comparador-console-models-v3469');
 const quality=require('./marketplace-comparador-offer-quality-v3419');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
 const {uniqueOffers}=require('./marketplace-comparador-offer-dedupe-v3446');
@@ -37,6 +38,7 @@ function classifyQuery(query){
  const words=norm.split(' ').filter(w=>w.length>=2&&!IGNORE.has(w));
  if(words.length<2)return null;
  if(footwearFamily(query))return 'family';
+ if(consoleModels.consoleModel(query))return 'exact';
  if(modelEvidence(query))return 'exact';
  // Una familia concreta (p. ej. «portátil ASUS ROG Strix Gaming») puede
  // compararse como FAMILIA, sin decir que todas las ofertas son el mismo SKU.
@@ -74,6 +76,7 @@ function evaluate(page,offers,now=Date.now()){
   const qFamily=auto.family(page.query_text),qCapacity=auto.capacity(page.query_text),
    qColor=auto.color(page.query_text);
   const phone=quality.isPhoneSearch(page.query_text);
+  const console=Boolean(consoleModels.consoleModel(page.query_text));
   const network=title=>auto.normalize(title).match(/\b(?:4g|5g)\b/)?.[0]||'sin-indicar';
   const queryNetwork=network(page.query_text);
   const actualCap=new Set(selected.map(o=>auto.capacity(o.title)||'sin-indicar'));
@@ -81,8 +84,8 @@ function evaluate(page,offers,now=Date.now()){
   if(selected.some(o=>auto.family(o.title)!==qFamily||
     (qCapacity&&auto.capacity(o.title)!==qCapacity)||
     (qColor&&auto.color(o.title)!==qColor))||
-    (!qCapacity&&actualCap.size>1)||
-    (!qColor&&!phone&&actualColors.size>1))
+    (!qCapacity&&!console&&actualCap.size>1)||
+    (!qColor&&!phone&&!console&&actualColors.size>1))
    return no('Ofertas con modelos, capacidades o colores diferentes');
   // V3.4.6.8: la búsqueda sin color puede comparar teléfonos del mismo
   // modelo/capacidad en distintos acabados. No crea un SKU único ni
@@ -118,4 +121,4 @@ function summary(page,evaluation,now=Date.now()){
   (older?'Son precios históricos, no necesariamente vigentes. ':'')+
   'Comprueba el estado, el envío y el precio final con cada vendedor.';
 }
-module.exports={MAX_AGE_MS,modelEvidence,footwearFamily,footwearGenderCompatible,classifyQuery,evaluate,summary};
+module.exports={MAX_AGE_MS,modelEvidence,consoleModel:consoleModels.consoleModel,footwearFamily,footwearGenderCompatible,classifyQuery,evaluate,summary};
