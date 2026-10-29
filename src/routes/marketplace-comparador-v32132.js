@@ -32,6 +32,7 @@ const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
 const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
 const adminMerchants=require('../services/marketplace-comparador-admin-merchants-v3453');
+const merchantGrowth=require('../services/marketplace-comparador-merchant-growth-v3454');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
@@ -1068,6 +1069,8 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
    }
   }
   const report=adminMerchants.summarize(data.rows);
+  // Cohorte piloto sobre las tiendas recientes ya consultadas: cero SQL adicional.
+  const cohort=merchantGrowth.overview(report.items);
   const filters=['todas','pendientes','aprobadas','incidencias','suspendidas'];
   const chosen=filters.includes(req.query?.estado)?req.query.estado:'todas';
   const selected=report.items.filter(item=>chosen==='todas'||
@@ -1099,11 +1102,35 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
     ['attention','Con incidencias'],['stale','Con sincronización atrasada']]
     .map(([key,label])=>'<div><strong>'+report.counts[key]+'</strong><span>'+label+'</span></div>').join('')+
    '</div>';
+  const onboardingCards=cohort.rows.map(item=>
+   '<li class="cmp-growth-card"><div class="cmp-growth-card-top"><strong>'+esc(item.name)+'</strong>'+
+   '<span>'+esc(item.label)+'</span></div>'+
+   '<p>'+esc(item.action)+'</p><small>'+item.linked+' productos vinculados · '+
+   item.available+' ofertas aptas según datos guardados</small></li>').join('');
+  const onboarding='<section id="primeros-comercios" class="cmp-growth" aria-labelledby="cmp-growth-title">'+
+   '<span class="cmp-section-eyebrow">Incorporación de comercios · Seguimiento manual</span>'+
+   '<h2 id="cmp-growth-title">Cohorte piloto: 20 tiendas recientes</h2>'+
+   '<p>Seguimiento de hasta 20 tiendas de la muestra reciente. No representa el total de comercios '+
+   'ni acredita ventas o alta completa. Las recomendaciones requieren revisión humana.</p>'+
+   '<div class="cmp-growth-metrics"><div><strong>'+cohort.sampled+'</strong><span>En la muestra piloto</span></div>'+
+   '<div><strong>'+cohort.needsAction+'</strong><span>Necesitan una revisión o un paso</span></div>'+
+   '<div><strong>'+cohort.ready+'</strong><span>Con ofertas preparadas</span></div></div>'+
+   (onboardingCards?'<ol class="cmp-growth-list">'+onboardingCards+'</ol>':
+    '<p class="cmp-growth-empty">Todavía no hay comercios en la cohorte.</p>')+
+   '<details class="cmp-growth-invite"><summary>Invitación para nuevos comercios (envío manual)</summary>'+
+   '<p>Texto orientativo para copiar y enviar individualmente, sin mensajes automáticos.</p>'+
+   '<textarea readonly rows="5" aria-label="Invitación de alta gratuita">Hola. Estamos incorporando tiendas al comparador de RedLibertad. '+
+   'El alta es gratuita y revisamos cada comercio antes de mostrar sus productos. '+
+   'Los clientes compran y pagan directamente en tu propia web. '+
+   'Puedes solicitar tu incorporación en https://redlibertad.com/comparar/comercios. '+
+   'El alta no garantiza ventas ni una posición concreta.</textarea>'+
+   '<p><a href="/comparar/comercios">Abrir la página de incorporación</a></p></details>'+
+   '</section>';
   const html='<div class="cmp-merchant-admin"><p class="crumb"><a href="/admin/comparador">Administración del comparador</a> / Comercios</p>'+
    '<h1>Administración de comercios</h1><p>Supervisión de una muestra de hasta 80 tiendas recientes. '+
    'Estas cifras no son totales históricos ni confirman precios o disponibilidad en tiempo real. '+
    'La aprobación, la conexión de catálogos y las compras siguen sus controles habituales. ' +
-   'Los clics registrados no son ventas, ingresos ni visitantes únicos.</p>'+summary+
+   'Los clics registrados no son ventas, ingresos ni visitantes únicos.</p>'+summary+onboarding+
    '<nav class="cmp-merchant-admin-tabs" aria-label="Filtrar comercios">'+tabs+'</nav>'+
    (cards?'<ol class="cmp-merchant-admin-list">'+cards+'</ol>':
     '<p class="cmp-merchant-admin-empty">No hay comercios en este filtro de la muestra.</p>')+
