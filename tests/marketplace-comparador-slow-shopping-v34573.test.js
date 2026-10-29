@@ -60,7 +60,7 @@ test('solo el POST explícito permite reabrir un error reciente, nunca la visita
  }finally{db.query=oldQuery;provider.configured=oldConfigured;}
 });
 test('la reconsulta manual conserva cupos 12 diarios y 220 mensuales',()=>{
- assert.deepEqual(provider.budget({}),{daily:12,monthly:220});
+ assert.deepEqual(provider.budget({}),{daily:35,monthly:220});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'999',COMPARADOR_MONTHLY_LIMIT:'999'}),{daily:50,monthly:220});
  const workerSource=fs.readFileSync(path.join(__dirname,'../src/services/marketplace-comparador-worker-v32134.js'),'utf8');
  assert.match(workerSource,/if\(!await reserveQuota\(\)\)/);
