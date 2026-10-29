@@ -1091,3 +1091,27 @@ body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters[open]>.cmp-facet-gro
   max-width:100%;white-space:normal;overflow-wrap:anywhere;
  }
 }
+
+
+/* V3.4.4.24 — acceso a una oferta real de cada grupo de variantes.
+   Navegación interna sin consultas nuevas ni clasificaciones inventadas. */
+body.cmp-premium .cmp-rich-comparison .compare-variant-jump{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:max-content;max-width:100%;min-height:44px;
+ margin:7px 0 0;padding:9px 12px;border-radius:10px;
+ border:1px solid #c1dbed;background:#f0f8ff;
+ color:#175481;text-decoration:none;font-size:.77rem;
+ font-weight:760;line-height:1.4;text-align:center;
+ white-space:normal;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-rich-comparison .compare-variant-jump:hover{
+ background:#e1f0fc;border-color:#90bddc;
+}
+body.cmp-premium .cmp-rich-comparison .compare-variant-jump:focus-visible{
+ outline:3px solid #79abd4;outline-offset:2px;
+}
+@media(max-width:620px){
+ body.cmp-premium .cmp-rich-comparison .compare-variant-jump{
+  display:flex;width:100%;min-height:46px;
+ }
+}
