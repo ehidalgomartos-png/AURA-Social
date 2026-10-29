@@ -44,6 +44,7 @@ async function withUser(fn,{authenticated=true,storeStatus='approved',storePlatf
  process.env.JWT_SECRET='test-merchant-catalog-v3451-only-secret';
  db.query=async(sql,params=[])=>{
   calls.push({sql,params});
+  if(sql.startsWith('ALTER TABLE users ADD COLUMN IF NOT EXISTS'))return {rowCount:0,rows:[]};
   if(sql.includes('FROM users')&&sql.includes('auth_token_version'))
    return {rowCount:1,rows:[{
     id:517,username:'comerciante',status:'active',is_admin:false,
