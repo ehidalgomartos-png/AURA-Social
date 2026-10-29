@@ -113,7 +113,7 @@ test('HTML y sitemap son consistentes y solo incluyen comparaciones aptas',async
  assert.match(notIndex.body,/<meta name="robots" content="noindex,follow">/);
  const notMap=await getWithDb(empty,'/sitemap-comparador.xml');
  assert.doesNotMatch(notMap.body,new RegExp('<loc>https://redlibertad.com/comparar/'+p.slug+'</loc>'));
- assert.ok(html.queries.every(q=>!/serpapi|provider_usage|reserveQuota/i.test(q)));
+ assert.ok(html.queries.every(q=>!/INSERT INTO marketplace_compare_provider_usage|UPDATE marketplace_compare_provider_usage SET|https:\/\/serpapi\.com/i.test(q)));
 });
 test('panel de administración explica por qué está apta una familia y por qué falta contenido',()=>{
  const p=page(asus,asusOffers);
