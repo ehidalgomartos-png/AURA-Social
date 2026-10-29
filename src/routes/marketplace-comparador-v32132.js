@@ -1089,7 +1089,7 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
    const issues=item.reasons.length?
     '<ul class="cmp-merchant-admin-issues">'+item.reasons.map(reason=>'<li>'+esc(reason)+'</li>').join('')+'</ul>':
     '<p class="cmp-merchant-admin-ok">Sin incidencias detectadas con estas reglas. No se confirma stock en tiempo real.</p>';
-   const anchor=/^[1-9]\\d{0,15}$/.test(item.id)?' id="comercio-'+item.id+'"':'';
+   const anchor=/^[1-9]\d{0,15}$/.test(item.id)?' id="comercio-'+item.id+'"':'';
    return '<li class="cmp-merchant-admin-card"'+anchor+'><div class="cmp-merchant-admin-card-top"><h2>'+
     esc(item.name)+'</h2><span>'+esc(item.status)+'</span></div>'+
     '<p class="cmp-merchant-admin-meta">Cuenta: '+esc(item.username)+' · Plataforma: '+esc(item.platform)+
@@ -1106,7 +1106,7 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
     .map(([key,label])=>'<div><strong>'+report.counts[key]+'</strong><span>'+label+'</span></div>').join('')+
    '</div>';
   const onboardingCards=pilotQueue.rows.map(item=>{
-   const diagnosis=/^[1-9]\\d{0,15}$/.test(item.id)?
+   const diagnosis=/^[1-9]\d{0,15}$/.test(item.id)?
     '<a class="cmp-growth-review-link" href="/admin/comparador/comercios-panel?estado=todas#comercio-'+item.id+'">Ver diagnóstico</a>':'';
    return '<li class="cmp-growth-card"><div class="cmp-growth-card-top"><strong>'+esc(item.name)+'</strong>'+
     '<span>'+esc(item.label)+'</span></div>'+
