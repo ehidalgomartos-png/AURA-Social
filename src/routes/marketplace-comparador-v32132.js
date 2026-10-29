@@ -38,6 +38,7 @@ const budgetInfo=require('../services/marketplace-comparador-budget-info-v34574'
 const seoPriorities=require('../services/marketplace-comparador-seo-priorities-v3460');
 const mediaAudit=require('../services/marketplace-comparador-media-link-audit-v3461');
 const recovery=require('../services/marketplace-comparador-recovery-v3464');
+const indexAudit=require('../services/marketplace-comparador-indexation-audit-v3465');
 const modelSuggestions=require('../services/marketplace-comparador-model-suggestions-v3462');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
@@ -483,7 +484,8 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p>'+ 
   '<p><a class="cmp-audit-entry" href="/admin/comparador/diagnostico">Ver diagnóstico de calidad de las comparaciones</a></p>'+
   '<p><a class="cmp-audit-entry" href="/admin/comparador/comercios-panel">Supervisar solicitudes y catálogos de comercios</a></p>'+
-  '<p><a class="cmp-audit-entry" href="/admin/comparador/recuperacion">Revisar la cola de recuperación SEO sin gastar consultas</a></p></div>'+
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/recuperacion">Revisar la cola de recuperación SEO sin gastar consultas</a></p>'+
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/indexacion">Auditar indexación y sitemap de comparaciones</a></p></div>'+
   (quota?'<section class="seo-quota-panel" aria-labelledby="seo-quota-title"><h2 id="seo-quota-title">Consultas del comparador</h2>'+
    '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy (Europe/Madrid)</span></p>'+
    '<p><strong>'+Number(quota.monthlyUsed||0)+' / '+Number(quota.monthly)+'</strong><span>Este mes</span></p></div>'+
@@ -719,6 +721,70 @@ router.get('/admin/comparador/recuperacion',requireAdmin,async(req,res,next)=>{
   res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('Recuperación de comparaciones | RedLibertad',
    'Cola privada de calidad y recuperación SEO.',body,'/admin/comparador/recuperacion'));
+ }catch(error){next(error);}
+});
+// V3.4.6.5 — contraste privado del sitemap generado con estado SEO guardado.
+// Las cuentas aquí son una muestra de 80 fichas y hasta 2000 candidatos, no Google.
+router.get('/admin/comparador/indexacion',requireAdmin,async(req,res,next)=>{
+ try{
+  await ensureSchema();
+  const [candidates,recent]=await Promise.all([
+   db.query(indexAudit.SITEMAP_CANDIDATES_SQL),
+   db.query(indexAudit.SAMPLE_SQL)
+  ]);
+  const report=indexAudit.audit(candidates.rows,recent.rows);
+  const view=indexAudit.filter(report,req.query?.estado);
+  const filters=[['todas','Todas'],['en-sitemap','Previstas en sitemap'],
+   ['noindex','No indexables'],['revisar-sitemap','Revisar sitemap']]
+   .map(([key,name])=>'<a href="/admin/comparador/indexacion?estado='+key+'"'+
+    (view.selected===key?' aria-current="page"':'')+'>'+
+    esc(name)+' <span>'+(key==='todas'?report.counts.sample:report.counts[key])+'</span></a>').join('');
+  const cards=view.rows.map(r=>{
+   const p=r.page;
+   const url=r.canonical;
+   const title=esc(p.query_text);
+   const publicLink=url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir comparación</a>':'';
+   const googleInstructions=r.inSitemap?
+    'Después de verificar la propiedad en Search Console, utiliza Inspección de URLs. Una URL apta no tiene por qué estar indexada.':
+    'Revisa primero el motivo técnico en RedLibertad. No solicites indexación de páginas noindex o sin ofertas fiables.';
+   const date=r.lastmod?'<time datetime="'+esc(r.lastmod)+'">'+esc(r.lastmod.slice(0,10))+'</time>':'Sin fecha de modificación verificable';
+   return '<li class="cmp-index-card"><div class="cmp-index-card-head"><h2>'+title+'</h2>'+
+    '<span class="cmp-index-state">'+(r.inSitemap?'Prevista en sitemap':
+      r.eligible?'Revisar sitemap':'No indexable')+'</span></div>'+
+    '<p class="cmp-index-reason">'+esc(r.detail)+'</p>'+
+    '<p class="cmp-index-meta">Robots esperado: <strong>'+ (r.eligible?'index,follow':'noindex,follow')+
+    '</strong> · Última modificación: '+date+'</p>'+
+    (url?'<p class="cmp-index-url">'+esc(url)+'</p>':'')+
+    '<p class="cmp-index-help">'+esc(googleInstructions)+'</p>'+
+    '<nav class="cmp-index-links" aria-label="Comprobaciones de '+title+'">'+publicLink+
+    '<a href="/sitemap-comparador.xml" target="_blank" rel="noopener noreferrer">Abrir sitemap</a>'+
+    '<a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Abrir Search Console</a>'+
+    '</nav></li>';
+  }).join('');
+  const body='<div class="cmp-index-audit">'+
+   '<p class="crumb"><a href="/admin/comparador">Administración SEO</a> / Indexación y sitemap</p>'+
+   '<h1>Auditoría de indexación y sitemap</h1>'+
+   '<p>Datos de las últimas '+report.counts.sample+' comparaciones (máximo 80). '+
+   'El sitemap evalúa hasta '+indexAudit.SITEMAP_LIMIT+' candidatos recientes; estas cifras no representan todas las páginas de RedLibertad.</p>'+
+   '<div class="cmp-index-metrics"><div><strong>'+report.sitemapExpected+
+   '</strong><span>URLs previstas en sitemap entre los candidatos</span></div>'+
+   '<div><strong>'+report.counts['en-sitemap']+
+   '</strong><span>En sitemap en esta muestra</span></div>'+
+   '<div><strong>'+report.counts.noindex+
+   '</strong><span>No indexables en esta muestra</span></div>'+
+   '<div><strong>'+report.counts['revisar-sitemap']+
+   '</strong><span>Discrepancias por revisar</span></div></div>'+
+   (report.truncated?'<p class="cmp-index-warning">Se alcanzó el límite de 2000 candidatos. El informe puede omitir otras comparaciones; revisa la cobertura del sitemap antes de interpretar los totales.</p>':'')+
+   '<p class="cmp-index-disclaimer">'+esc(report.note)+'</p>'+
+   '<p class="cmp-index-disclaimer"><strong>Importante:</strong> "Prevista en sitemap" no confirma que el XML esté desplegado, que Google lo haya rastreado o que la URL esté indexada. Compruébalo en la propiedad correcta de Google Search Console. No se ha conectado ni consultado Search Console.</p>'+
+   '<nav class="cmp-index-filters" aria-label="Filtrar auditoría de indexación">'+filters+'</nav>'+
+   (cards?'<ol class="cmp-index-list">'+cards+'</ol>':
+    '<p role="status">No hay comparaciones en este filtro.</p>')+
+   '<p class="cmp-index-disclaimer">Esta revisión no consume SerpApi ni cambia las etiquetas robots. Abrir una ficha pública puede activar su actualización normal si corresponde por antigüedad.</p></div>';
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Auditoría de indexación | RedLibertad',
+   'Revisión privada de reglas de indexación y sitemap.',body,'/admin/comparador/indexacion'));
  }catch(error){next(error);}
 });
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
@@ -1730,12 +1796,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
 router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
  try{
   await ensureSchema();
-  const result=await db.query(
-   "SELECT slug,query_text,index_approved,seo_blocked,editorial_summary,external_results,provider_status,last_checked_at,updated_at "+
-   "FROM marketplace_compare_pages WHERE seo_blocked=false AND provider_status IN ('ok','queued','checking') "+
-   "AND last_checked_at>now()-interval '7 days' AND jsonb_array_length(external_results)>=2 "+
-   "ORDER BY updated_at DESC LIMIT 2000"
-  );
+  const result=await db.query(indexAudit.SITEMAP_CANDIDATES_SQL);
   const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>'];
   for(const p of result.rows){
    if(!seo.indexEligible(p,p.external_results))continue;
