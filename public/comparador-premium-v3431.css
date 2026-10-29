@@ -1292,3 +1292,75 @@ body.cmp-premium .cmp-application-page .cmp-commerce-form :is(input,select,butto
 @media(prefers-reduced-motion:reduce){
  body.cmp-premium .cmp-application-page #solicitar-comercio{scroll-behavior:auto}
 }
+
+/* V3.4.5.1 — portal privado de preparación de catálogos y revisión local CSV. */
+body.cmp-premium .cmp-catalog-onboarding{max-width:1060px}
+body.cmp-premium .cmp-catalog-onboarding>h1{font-size:clamp(1.65rem,3.4vw,2.35rem);letter-spacing:-.035em}
+body.cmp-premium .cmp-catalog-onboarding>p{max-width:80ch;line-height:1.55;color:#506d85}
+body.cmp-premium .cmp-catalog-paths{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:22px 0 26px;
+}
+body.cmp-premium .cmp-catalog-paths>section{
+ min-width:0;display:flex;flex-direction:column;gap:10px;padding:22px;
+ border:1px solid #d8e5f0;background:#fff;border-radius:16px;
+ box-shadow:0 4px 20px rgba(21,65,107,.045);
+}
+body.cmp-premium .cmp-catalog-paths h2{margin:0;font-size:1.15rem;color:#183c5a}
+body.cmp-premium .cmp-catalog-paths p{
+ font-size:.86rem;line-height:1.5;color:#516c84;margin:0 0 5px;
+}
+body.cmp-premium .cmp-catalog-start{
+ display:inline-flex;align-items:center;justify-content:center;min-height:46px;
+ padding:10px 14px;border-radius:10px;background:#e9f5ff;
+ border:1px solid #bed8eb;color:#185787;text-decoration:none;font-size:.83rem;
+ font-weight:760;max-width:100%;overflow-wrap:anywhere;text-align:center;margin-top:auto;
+}
+body.cmp-premium .cmp-catalog-onboarding .cmp-catalog-form-panel{
+ border:1px solid #d8e5f0;border-radius:17px;background:#f8fbff;
+ padding:clamp(15px,2.8vw,26px);max-width:100%;
+}
+body.cmp-premium .cmp-catalog-form-panel h2{color:#1a3d5a;font-size:1.18rem;margin:0 0 10px}
+body.cmp-premium .cmp-catalog-form-panel>p{font-size:.85rem;line-height:1.6;color:#506a81}
+body.cmp-premium .cmp-catalog-form{max-width:100%;margin:15px 0;background:white}
+body.cmp-premium .cmp-catalog-form label{display:block;font-weight:730;font-size:.86rem;margin:11px 0 7px}
+body.cmp-premium .cmp-catalog-form input[type=file],
+body.cmp-premium .cmp-catalog-form textarea{
+ display:block;width:100%;max-width:100%;min-width:0;
+ border:1px solid #bdcee0;background:#fff;color:#223e57;
+ border-radius:10px;padding:12px;font:inherit;font-size:.86rem;line-height:1.5;
+}
+body.cmp-premium .cmp-catalog-form textarea{min-height:130px;resize:vertical}
+body.cmp-premium .cmp-catalog-form small{display:block;color:#5b7185;line-height:1.5}
+body.cmp-premium .cmp-catalog-form button{
+ min-height:48px;max-width:100%;border:0;border-radius:11px;
+ background:#145b95;color:white;padding:11px 18px;font:inherit;
+ font-size:.88rem;font-weight:770;cursor:pointer;white-space:normal;
+}
+body.cmp-premium .cmp-csv-feedback{min-height:1.1em;color:#2e628b;font-size:.82rem;line-height:1.5}
+body.cmp-premium .cmp-catalog-preview{
+ background:#fff;border:1px solid #cfe1ec;border-radius:13px;
+ padding:16px;margin-top:16px;max-width:100%;
+}
+body.cmp-premium .cmp-catalog-preview>p,
+body.cmp-premium .cmp-catalog-note{font-size:.82rem;color:#516b80;line-height:1.55}
+body.cmp-premium .cmp-catalog-preview-items{display:grid;gap:8px;margin:12px 0;padding-left:20px}
+body.cmp-premium .cmp-catalog-preview-items li{
+ padding:9px 11px;border:1px solid #e0e9f2;border-radius:9px;
+ background:#fafcff;min-width:0;overflow-wrap:anywhere;font-size:.83rem;
+}
+body.cmp-premium .cmp-catalog-preview-items li strong{display:block}
+body.cmp-premium .cmp-catalog-preview-items li span{font-weight:740;color:#1c6087}
+body.cmp-premium .cmp-catalog-preview-items li small{display:block;font-size:.77rem;line-height:1.5}
+body.cmp-premium .cmp-catalog-error{padding:11px 13px;color:#833f20;background:#fff1e9;border-radius:8px}
+body.cmp-premium .cmp-catalog-onboarding a:focus-visible,
+body.cmp-premium .cmp-catalog-onboarding :is(input,textarea,button):focus-visible{
+ outline:3px solid #7bafe1;outline-offset:3px;
+}
+@media(max-width:650px){
+ body.cmp-premium .cmp-catalog-paths{grid-template-columns:minmax(0,1fr);gap:12px}
+ body.cmp-premium .cmp-catalog-paths>section{padding:16px}
+ body.cmp-premium .cmp-catalog-start,body.cmp-premium .cmp-catalog-form button{
+  width:100%;min-height:48px;
+ }
+ body.cmp-premium .cmp-catalog-form-panel{padding:14px}
+}
