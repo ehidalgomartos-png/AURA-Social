@@ -34,7 +34,7 @@ function inspect(page){
    ratio:cents.length>=2?Math.round(100*Math.max(...cents)/Math.min(...cents))/100:null,
    rentalCount:rentals.length,
    rentals:rentals.slice(0,6).map(o=>({shop:String(o.shop).slice(0,80),priceCents:o.price_cents})),
-   suggestions:[],note:'La diferencia máximo/mínimo utiliza solo precios de compra. Las cuotas de alquiler se muestran aparte y no forman parte del mínimo. Comprueba en cada tienda el estado y las condiciones; los anuncios particulares pueden ser usados.'};
+   suggestions:[],note:'La diferencia máximo/mínimo utiliza solo precios de compra. Las cuotas de alquiler se muestran aparte y no forman parte del mínimo. Con menos de cuatro comercios no se descarta automáticamente un precio extremo. Comprueba en cada tienda el estado y las condiciones; los anuncios particulares pueden ser usados.'};
  }
  const buckets=[['4g','4G'],['5g','5G'],['unknown','Sin identificar']];
  const groups=new Map(buckets.map(([key])=>[key,{shops:new Set(),offers:0}]));
