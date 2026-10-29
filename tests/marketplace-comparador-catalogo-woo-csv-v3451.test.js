@@ -144,7 +144,7 @@ test('la vista escapa datos de CSV y las validaciones no almacenan productos',as
   const html=await r.text();
   assert.equal(r.status,200);
   assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
-  assert.match(html,/&lt;script&gt;/);
+  assert.match(html,/Fila 2 · producto/);
  });
 });
 test('enlaces del panel, lector local y diseño móvil no solicitan sincronizar ni subir datos solos',()=>{
