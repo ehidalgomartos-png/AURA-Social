@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.7 independent sellers and footwear extreme price review
+        run: node --test tests/marketplace-comparador-precios-atipicos-calzado-v3467.test.js
       - name: V3.4.6.6 model family SEO safeguards for shoes and Redmi
         run: node --test tests/marketplace-comparador-seo-familias-v3466.test.js
       - name: V3.4.6.5 SEO sitemap and admin indexation audit
