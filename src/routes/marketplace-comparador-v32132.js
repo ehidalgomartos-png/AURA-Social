@@ -724,7 +724,7 @@ router.get('/comparar/comercios', (req,res)=>{
   '<div class="cmp-merchant-section-head"><h2>Cómo empezar</h2><p>Tres pasos sencillos, con revisión antes de publicar productos.</p></div>'+
   '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra la web de tu tienda desde tu cuenta de RedLibertad.</span></li><li><strong>Verifica tu dominio</strong><span>Comprueba la titularidad mediante el código proporcionado y espera la revisión.</span></li><li><strong>Comparte tus productos</strong><span>Si usas WooCommerce, podrás conectar el catálogo con acceso de solo lectura tras la aprobación; otras plataformas se revisan individualmente.</span></li></ol>'+
   '<div class="cmp-merchant-section-head"><h2>Solicita el alta de tu comercio</h2><p>Rellena los datos básicos; no pedimos claves ni acceso a pedidos.</p></div>'+ 
-  '<div id="solicitar-comercio" class="cmp-application-panel"><form class="compare-search cmp-commerce-form" aria-label="Solicitud de alta de comercio" method="post" action="/comparar/comercios/solicitar">'+
+  '<div id="solicitar-comercio" class="cmp-application-panel"><form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
   '<label for="comercioNombre">Nombre comercial</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization" placeholder="Ej. Mi Tienda Online">'+
   '<label for="comercioWeb">Dirección HTTPS de tu tienda</label><input id="comercioWeb" type="url" name="storeUrl" maxlength="500" placeholder="https://mitienda.es/" required autocomplete="url" aria-describedby="cmp-merchant-url-hint">'+
