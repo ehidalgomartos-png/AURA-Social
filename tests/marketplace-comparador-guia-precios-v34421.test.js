@@ -63,7 +63,7 @@ test('comparación sin precios comparables no añade instrucciones fuera de cont
 test('el texto distingue datos declarados y búsquedas alternativas de ofertas reales',async()=>{
  const r=await render(sample);
  assert.match(r.html,/El estado del producto es el declarado en el anuncio/);
- assert.match(r.html,/«Buscar en Google» muestra otras opciones/);
+ assert.match(r.html,/La búsqueda externa ofrece otras opciones/);
  assert.match(r.html,/no garantiza llegar a esta misma oferta/);
 });
 test('el desplegable no requiere JS ni altera los enlaces existentes',async()=>{
