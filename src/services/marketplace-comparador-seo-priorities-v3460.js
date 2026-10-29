@@ -10,6 +10,7 @@ function plan(page,matching=[],eligible=false,discovery=null){
   .map(o=>clear(o?.shop)).filter(Boolean));
  const direct=(Array.isArray(matching)?matching:[]).filter(o=>safeHttps(o?.href)).length;
  const reason=discovery?.reason||'';
+ const reasonKey=clear(reason);
  const kind=seo.discovery.classifyQuery(page?.query_text||'');
  const base={reason,offerCount:count,sellerCount:shops.size,directCount:direct};
  const next=(priority,title,action,extra='')=>({...base,priority,title,action,extra});
@@ -21,17 +22,17 @@ function plan(page,matching=[],eligible=false,discovery=null){
   'No hay una búsqueda completada que sustente el SEO. Comprueba el diagnóstico de errores antes de repetirla.');
  if(count===0)return next('sin-datos','Sin ofertas verificables',
   'No basta con un nombre de producto: necesita ofertas guardadas con precios y enlaces reales.');
- if(!kind||/genérica|generica/.test(reason))return next('baja','Búsqueda demasiado amplia',
+ if(!kind||/genérica|generica/.test(reasonKey))return next('baja','Búsqueda demasiado amplia',
   'Crear otra comparación para un modelo o familia identificable usando solo nombres presentes en las ofertas.');
- if(/capacidad|modelos, capacidades o colores/.test(reason))return next('media','Variantes que deben separarse',
+ if(/capacidad|modelos, capacidades o colores/.test(reasonKey))return next('media','Variantes que deben separarse',
   'Verifica el modelo, la capacidad y el color; evita mezclar versiones en una misma página.');
- if(/precios incompatibles/.test(reason))return next('alta','Revisar precios extremos',
+ if(/precios incompatibles/.test(reasonKey))return next('alta','Revisar precios extremos',
   'Comprueba si las ofertas mezclan accesorios o modelos distintos. No indexar hasta tener precios coherentes.');
- if(/comercios diferentes/.test(reason))return next('alta','Falta diversidad de tiendas',
+ if(/comercios diferentes/.test(reasonKey))return next('alta','Falta diversidad de tiendas',
   'Conservar únicamente ofertas independientes y comprobar si hay más vendedores distintos. No duplicar comercios.');
- if(/ofertas independientes/.test(reason))return next('alta','Faltan ofertas verificables',
+ if(/ofertas independientes/.test(reasonKey))return next('alta','Faltan ofertas verificables',
   'Revisa coincidencia de modelo, estado, moneda EUR y enlaces HTTPS. No inventar ofertas.');
- if(/antiguas|fecha/.test(reason))return next('media','Precios por actualizar',
+ if(/antiguas|fecha/.test(reasonKey))return next('media','Precios por actualizar',
   'Revisa una actualización dentro de la cuota disponible y confirma si las ofertas siguen vigentes.');
  return next('media','Revisión de calidad pendiente',
   'Comprueba las variantes, los comercios y los enlaces de tienda antes de solicitar indexación.');
