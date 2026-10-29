@@ -33,6 +33,7 @@ const catalogDiagnostics=require('../services/marketplace-comparador-catalog-dia
 const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
 const adminMerchants=require('../services/marketplace-comparador-admin-merchants-v3453');
 const merchantGrowth=require('../services/marketplace-comparador-merchant-growth-v3454');
+const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
@@ -1448,7 +1449,8 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):null;
   const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
   const csrfToken=issueCsrf(req,res);
-  const pending=['queued','checking'].includes(page.provider_status);
+  const empty=emptyState(page.provider_status,provider.configured());
+  const pending=empty.pending;
   const bestOffer=ordinary.length?ordinary[0]:null;
   const best=bestOffer?.price_cents??null;
   const bestCondition=bestOffer?insights.conditionOf(bestOffer):null;
@@ -1472,14 +1474,14 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<section class="info cmp-only-repair-status" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite"><h2>Solo se han encontrado anuncios para reparar</h2><p>Ninguna de las ofertas actuales está libre de averías expresamente declaradas. Puedes consultar los anuncios por piezas más abajo.</p></section>':
    sponsored.length?
    '<section class="info cmp-only-sponsored-status" role="status"><h2>Solo hay ofertas publicitarias</h2><p>No se han encontrado ofertas independientes para destacar un precio mínimo. Puedes consultar los anuncios etiquetados como publicidad más abajo.</p></section>':
-   '<section class="compare-awaiting" data-comparison-status="'+esc(page.provider_status)+'" aria-live="polite">'+
+   '<section class="compare-awaiting" data-comparison-status="'+esc(empty.status)+'" aria-live="polite">'+
    (pending?'<span class="compare-loading-indicator compare-awaiting-spinner" aria-hidden="true"></span>':'<div class="compare-awaiting-icon" aria-hidden="true">⌕</div>')+
-   '<h2>'+(pending?'Buscando precios y tiendas…':page.provider_status==='ok'?'Todavía no encontramos ofertas':'Estamos preparando esta comparación')+'</h2>'+
-   '<p>'+(pending?'Estamos consultando los precios disponibles. Los resultados aparecerán aquí cuando termine la búsqueda.':
-     page.provider_status==='ok'?'Prueba con un modelo diferente o una búsqueda más general.':
-     'Esta página está guardada. Puedes volver más tarde o explorar otras comparaciones.')+'</p>'+
+   '<h2>'+esc(empty.title)+'</h2>'+
+   '<p>'+esc(empty.description)+'</p>'+
    (pending?'<div class="compare-progress-track" aria-hidden="true"><span></span></div><p class="compare-progress-note">Esta página se actualiza automáticamente. No necesitas pulsar nada.</p>':'')+
-   '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a>'+
+   '<nav class="compare-awaiting-actions" aria-label="Opciones de comparación">'+
+   (!pending?'<a class="compare-awaiting-link" href="#cambiar-producto">Cambiar producto</a>':'')+
+   '<a class="compare-awaiting-link" href="/comparar">Ver otras comparaciones</a></nav>'+
    '</section>';
   const access=directAccess.summary(ordinary);
   const filters=offerFilters.choices(ordinary,{specificModel:exact});
@@ -1562,7 +1564,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
    '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+
    richHero+
-   '<details class="cmp-change-search"><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
+   '<details class="cmp-change-search"'+(!ordinary.length&&!pending?' id="cambiar-producto" open':'')+'><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
    richFacts+relatedMarkup+

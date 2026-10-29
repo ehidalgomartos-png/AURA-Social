@@ -86,8 +86,8 @@ test('GET comparador, POST real y página permanente; rechazo seguro de POST sin
   assert.match(itemHtml,/Comparar iphone/);
   assert.match(itemHtml,/name="_csrf"/);
   assert.match(itemHtml,/noindex,follow/);
-  assert.match(itemHtml,/Estamos preparando esta comparación/);
-  assert.match(itemHtml,/Esta página está guardada/);
+  assert.match(itemHtml,/La consulta de tiendas externas no está disponible/);
+  assert.match(itemHtml,/Puedes consultar otras comparaciones/);
   assert.doesNotMatch(itemHtml,/Límite de consultas externas/);
   const again=await fetch(base+'/comparar/buscar',{
    method:'POST',redirect:'manual',headers:{'content-type':'application/x-www-form-urlencoded',cookie},

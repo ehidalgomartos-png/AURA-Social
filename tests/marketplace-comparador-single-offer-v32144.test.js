@@ -100,7 +100,7 @@ test('dos variantes diferentes conservan agrupación para evitar comparaciones e
 
 test('búsqueda sin resultados conserva el estado de espera y no genera fichas vacías',async()=>{
  const {html}=await publicPage('iphone 12 128 GB',[],'limit_reached');
- assert.match(html,/Estamos preparando esta comparación/);
+ assert.match(html,/Las búsquedas externas están temporalmente en pausa/);
  assert.doesNotMatch(html,/compare-single-product|Versiones encontradas/);
  assert.match(html,/data-comparison-results/);
 });

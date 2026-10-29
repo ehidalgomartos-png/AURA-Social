@@ -479,3 +479,24 @@ footer{background:#fff;border-top-color:var(--cmp-border);color:var(--cmp-muted)
 .compare-awaiting-spinner{display:block;margin:4px auto 2px;width:39px;height:39px;border-width:4px}
 .compare-awaiting .compare-progress-note{font-size:.83rem;color:#526f88}
 @media(prefers-reduced-motion:reduce){.compare-progress-track>span{animation:none;width:100%;opacity:.5}}
+
+/* V3.4.5.7.1 — estado terminal claro, búsqueda recuperable y móvil. */
+.compare-awaiting-actions{
+ display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+ gap:9px;margin-top:8px;
+}
+.compare-awaiting-actions .compare-awaiting-link{margin-top:0}
+.compare-awaiting-actions .compare-awaiting-link:first-child{
+ background:#155c98;border-color:#155c98;color:#fff;
+}
+.compare-awaiting-actions .compare-awaiting-link:first-child:hover{
+ background:#0f4c80;
+}
+.compare-awaiting-actions .compare-awaiting-link:focus-visible{
+ outline:3px solid #8cb9e6;outline-offset:3px;
+}
+.cmp-change-search[open] summary{font-weight:780}
+@media(max-width:520px){
+ .compare-awaiting-actions{width:100%;flex-direction:column}
+ .compare-awaiting-actions .compare-awaiting-link{width:100%}
+}
