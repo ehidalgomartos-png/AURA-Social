@@ -51,7 +51,7 @@ test('precios externos antiguos avisan en cada tarjeta sin ocultar la oferta ni 
  assert.match(r.html,/Precio guardado de una consulta anterior/);
  assert.match(r.html,/Comprueba el importe y la disponibilidad en la tienda/);
  assert.match(r.html,/Último precio guardado:/);
- assert.match(r.html,/Desde 185,00/);
+ assert.match(r.html,/data-offer-price-cents="18500"/);
  assert.equal((r.html.match(/<li class="offer"/g)||[]).length,2);
 });
 test('precios recientes no generan alertas de antigüedad en tarjetas',async()=>{
