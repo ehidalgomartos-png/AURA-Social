@@ -61,13 +61,14 @@ test('nunca modifica fotos externas a las tarjetas del comparador',()=>{
  assert.equal(b.state.replaced.length,0);
 });
 test('una foto que falló antes de cargar el script también tiene fallback',()=>{
- const b=setup();
+ const earlyPhotos=[];
+ const b=setup({early:earlyPhotos});
  const earlier=b.photo({complete:true,naturalWidth:0});
- // Simular imagen que ya falló cuando se analiza el DOM.
- const early=setup({early:[earlier]});
- early.fire('DOMContentLoaded');
- assert.equal(early.state.replaced.length,1);
- assert.equal(early.state.fetches,0);
+ // Simular imagen que ya falló cuando se analiza el DOM en esta misma instancia.
+ earlyPhotos.push(earlier);
+ b.fire('DOMContentLoaded');
+ assert.equal(b.state.replaced.length,1);
+ assert.equal(b.state.fetches,0);
 });
 test('las fotografías válidas ya cargadas quedan intactas',()=>{
  const p={complete:true,naturalWidth:100,matches:()=>true,closest:()=>({}),replaceWith(){throw Error('Do not replace');}};
