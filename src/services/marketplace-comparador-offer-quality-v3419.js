@@ -53,6 +53,29 @@ function deviceEvidence(query,offer){
   /\bgalaxy\s+[saz]\s*\d{1,2}\b/.test(title)||
   /\b(?:samsung|galaxy)\b.*\b[saz]\s*\d{1,2}\b.*\b(?:64|128|256|512|1024)\s*(?:gb|g|tb)\b/.test(title);
 }
+// Identifica un calzado New Balance con número de modelo; no generaliza a zapatos
+// mezclados de marcas distintas ni a consultas «zapatillas mujer» genéricas.
+function footwearFamily(query){
+ const q=normalize(query);
+ return /\bnew balance\s+\d{2,4}[a-z]{0,3}\b/.test(q) &&
+  /\b(?:zapatillas|deportivas|sneakers|calzado|mujer|hombre|unisex)\b/.test(q);
+}
+function footwearGenderCompatible(query,title){
+ if(!footwearFamily(query))return true;
+ const q=normalize(query),t=normalize(title);
+ const women=/\b(?:mujer|mujeres|femenino|femenina|women|womens|woman|ladies|dama)\b/;
+ const men=/\b(?:hombre|hombres|masculino|masculina|men|mens|man)\b/;
+ const unisex=/\bunisex\b/;
+ if(women.test(q)&&men.test(t)&&!women.test(t)&&!unisex.test(t))return false;
+ if(men.test(q)&&women.test(t)&&!men.test(t)&&!unisex.test(t))return false;
+ return true;
+}
+function footwearModelCompatible(query,title){
+ if(!footwearFamily(query))return true;
+ const requested=normalize(query).match(/\bnew balance\s+(\d{2,4}[a-z]{0,3})\b/);
+ const observed=normalize(title).match(/\bnew balance\s+(\d{2,4}[a-z]{0,3})\b/);
+ return Boolean(requested&&observed&&requested[1]===observed[1]);
+}
 function medianPrice(values){
  const list=values.filter(v=>Number.isSafeInteger(v)&&v>0).sort((a,b)=>a-b);
  if(!list.length)return 0;
@@ -64,6 +87,11 @@ function groupOffers(query,offers){
  const explicitRepair=isRepairSearch(query),phone=isPhoneSearch(query)&&!isAccessorySearch(query);
  for(const offer of Array.isArray(offers)?offers:[]){
   if(!explicitRepair&&repairReason(offer)){repair.push(offer);continue;}
+  if(footwearFamily(query)&&(!footwearModelCompatible(query,offer.title)||
+   !footwearGenderCompatible(query,offer.title))){
+   review.push({...offer,quality_reason:'Modelo o público distinto del calzado buscado'});
+   continue;
+  }
   const accessory=phone?accessoryReason(offer):null;
   if(accessory){accessories.push({...offer,quality_reason:accessory});continue;}
   if(phone&&!deviceEvidence(query,offer)){
@@ -85,6 +113,30 @@ function groupOffers(query,offers){
    }
   }
  }
+ // V3.4.6.7: excluir SOLO una anomalía extrema de una familia identificable
+ // si hay al menos cuatro vendedores y quedan tres vendedores coherentes.
+ // No eliminarla: aparecerá como anuncio relacionado pendiente de revisión.
+ // Un simple descuento no activa esta regla si la disparidad es moderada.
+ if(footwearFamily(query)&&main.length>=4){
+  const eligible=main.filter(o=>Number.isSafeInteger(o.price_cents)&&o.price_cents>0);
+  const shops=new Set(eligible.map(o=>normalize(o.shop)).filter(Boolean));
+  if(eligible.length===main.length&&shops.size>=4){
+   const median=medianPrice(eligible.map(o=>o.price_cents));
+   const suspects=eligible.filter(o=>o.price_cents<median*.40||o.price_cents>median*2.75);
+   if(suspects.length===1){
+    const remaining=eligible.filter(o=>o!==suspects[0]);
+    const restShops=new Set(remaining.map(o=>normalize(o.shop)).filter(Boolean));
+    const prices=remaining.map(o=>o.price_cents);
+    if(restShops.size>=3&&Math.max(...prices)/Math.min(...prices)<=2.5){
+     const index=main.indexOf(suspects[0]);
+     if(index!==-1){
+      review.push({...suspects[0],quality_reason:'Precio extremo pendiente de confirmar; separado del mínimo comparable'});
+      main.splice(index,1);
+     }
+    }
+   }
+  }
+ }
  return {main,repair,accessories,review};
 }
-module.exports={normalize,repairReason,isRepairSearch,groupOffers,accessoryReason,isAccessorySearch,isPhoneSearch,deviceEvidence};
+module.exports={normalize,repairReason,isRepairSearch,groupOffers,accessoryReason,isAccessorySearch,isPhoneSearch,deviceEvidence,footwearFamily,footwearGenderCompatible,footwearModelCompatible};
