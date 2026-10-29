@@ -33,6 +33,7 @@ const catalogDiagnostics=require('../services/marketplace-comparador-catalog-dia
 const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
 const adminMerchants=require('../services/marketplace-comparador-admin-merchants-v3453');
 const merchantGrowth=require('../services/marketplace-comparador-merchant-growth-v3454');
+const failureReport=require('../services/marketplace-comparador-failures-v34572');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
@@ -562,6 +563,7 @@ router.get('/admin/comparador/diagnostico',requireAdmin,async(req,res,next)=>{
    '<div><strong>'+count.attention+'</strong><span>Con incidencias</span></div>'+
    '<div><strong>'+count.stale+'</strong><span>Con precios externos antiguos o sin fecha</span></div>'+
    '<div><strong>'+count.indexEligible+'</strong><span>Aptas según reglas SEO</span></div></div>'+
+   '<p><a class="cmp-audit-review" href="/admin/comparador/errores">Diagnóstico de errores de búsquedas externas</a></p>'+
    '<nav class="cmp-audit-tabs" aria-label="Filtrar diagnósticos">'+links+'</nav>'+
    (cards?'<ol class="cmp-audit-list">'+cards+'</ol>':
     '<p class="cmp-audit-empty">No hay comparaciones en este filtro.</p>')+
@@ -571,6 +573,46 @@ router.get('/admin/comparador/diagnostico',requireAdmin,async(req,res,next)=>{
   res.send(shell('Diagnóstico del comparador | RedLibertad',
    'Resumen privado de calidad de comparaciones guardadas.',html,'/admin/comparador/diagnostico'));
  }catch(error){next(error);}
+});
+// V3.4.5.7.2 — fallos recientes de SerpApi, solo administración y datos guardados.
+// No llama al proveedor ni vuelve a encolar búsquedas: diagnóstico sin costes.
+router.get('/admin/comparador/errores',requireAdmin,async(req,res,next)=>{
+ try{
+  await compareWorker.ensureSchema(ensureSchema);
+  const q=typeof req.query?.q==='string'?req.query.q.trim().slice(0,70):'';
+  const records=await db.query(
+   "SELECT p.id,p.slug,p.query_text,p.provider_status,j.status AS job_status,"+
+   "j.failure_code,j.finished_at,j.attempts "+
+   "FROM marketplace_compare_jobs j JOIN marketplace_compare_pages p ON p.id=j.page_id "+
+   "WHERE j.status='failed' AND ($1::text='' OR p.query_text ILIKE $2 ESCAPE '\\') "+
+   "ORDER BY j.finished_at DESC NULLS LAST,j.page_id DESC LIMIT 80",
+   [q,'%'+escapeLike(q)+'%']);
+  const items=records.rows.map(item=>{
+   const report=item.failure_code?
+    failureReport.explain(item.failure_code):
+    {label:'Fallo anterior sin diagnóstico',action:'Este registro es anterior a la incorporación del diagnóstico. Se necesita una consulta futura para identificar su causa.'};
+   const when=item.finished_at instanceof Date&&!Number.isNaN(item.finished_at.getTime())?
+    item.finished_at.toISOString():
+    typeof item.finished_at==='string'&&!Number.isNaN(Date.parse(item.finished_at))?
+    new Date(item.finished_at).toISOString():null;
+   return '<li class="cmp-failure-card"><h2><a href="/comparar/'+esc(item.slug)+'">'+esc(item.query_text)+'</a></h2>'+
+    '<p><strong>'+esc(report.label)+'</strong>'+(when?' · <time datetime="'+esc(when)+'">'+esc(when.slice(0,16).replace('T',' ')+' UTC')+'</time>':'')+'</p>'+
+    '<p>'+esc(report.action)+'</p><small>Estado guardado: '+esc(String(item.provider_status||'desconocido'))+
+    ' · Intentos registrados en este trabajo: '+Math.max(0,Math.min(999,Number(item.attempts)||0))+'</small></li>';
+  }).join('');
+  const html='<div class="cmp-failures"><p class="crumb"><a href="/admin/comparador/diagnostico">Calidad del comparador</a> / Errores de búsqueda</p>'+
+   '<h1>Errores de búsquedas externas</h1><p>Últimos fallos guardados (hasta 80). Códigos sanitizados, sin claves ni respuestas completas de SerpApi. '+
+   'No se consulta al proveedor ni se ejecutan nuevas búsquedas desde esta pantalla.</p>'+
+   '<form class="cmp-failure-search" method="get" action="/admin/comparador/errores">'+
+   '<label for="cmp-failure-term">Buscar producto</label><div><input id="cmp-failure-term" type="search" name="q" maxlength="70" value="'+esc(q)+'" placeholder="Ej.: AirPods Pro"><button type="submit">Filtrar</button></div></form>'+
+   (items?'<ol class="cmp-failure-list">'+items+'</ol>':
+    '<p role="status">No hay fallos guardados para esta búsqueda en la muestra disponible. Esto no confirma que el servicio funcione.</p>')+
+   '<p class="cmp-failure-footnote">Los errores anteriores al despliegue pueden no tener un motivo detallado. Las soluciones dependen de la configuración real y del proveedor.</p></div>';
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Errores de búsqueda | RedLibertad',
+   'Diagnóstico privado de búsquedas externas fallidas.',html,'/admin/comparador/errores'));
+ }catch(e){next(e);}
 });
 router.get('/admin/comparador',requireAdmin,async(req,res,next)=>{
  try{
