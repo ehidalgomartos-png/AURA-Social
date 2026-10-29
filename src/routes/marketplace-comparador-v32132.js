@@ -1132,13 +1132,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '<p>Los importes son los publicados por los vendedores o los últimos guardados en la comparación. El precio final, la disponibilidad y el envío se confirman con cada tienda. El estado del producto es el declarado en el anuncio, no una certificación de RedLibertad. «Buscar en Google» muestra otras opciones y no garantiza llegar a esta misma oferta.</p></details>';
   const results=singleOffer?
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
-   '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'priceLegend+
+   '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+priceLegend+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    cards+relatedCards+repairCards+sponsoredCards+
    '<p class="compare-help">Solo tenemos una oferta coincidente. El precio, la disponibilidad y el envío se confirman con el vendedor.</p></section>':
    ordinary.length?
    '<section data-comparison-results>'+(exact?insightsMarkup(page.query_text,insight):'')+historyMarkup(history.rows)+
-   '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'priceLegend+
+   '<h2 id="precios-y-tiendas">'+(exact?'Precios y tiendas':'Productos y modelos relacionados')+'</h2>'+priceLegend+
    (req.query?.enlace==='sin-verificar'?'<p class="compare-merchant-notice" role="status">No se ha podido confirmar un enlace directo para esa oferta. Puedes utilizar «Buscar en Google» para consultar otras opciones.</p>':'')+
    (!insight.variants.length?'<p class="compare-guide">Comprueba el modelo y su estado antes de comprar.</p>':'')+
    cards+relatedCards+repairCards+sponsoredCards+
