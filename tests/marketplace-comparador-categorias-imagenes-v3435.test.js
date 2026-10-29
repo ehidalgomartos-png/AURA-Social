@@ -30,7 +30,7 @@ test('Samsung: una URL de imagen opaca no acredita un móvil aunque el título c
  assert.equal(recentFallback('samsung s26'),'/assets/comparador-movil-generico-v3435.svg');
  assert.equal(recentFallback('samsung s26 256 GB'),'/assets/comparador-movil-generico-v3435.svg');
  assert.equal(recentFallback('armario'),'/assets/comparador-armarios-generico-v3435.svg');
- assert.equal(recentFallback('mesa'),'/assets/comparador-producto-v3432.svg');
+ assert.equal(recentFallback('mesa'),'/assets/comparador-ilustracion-muebles-v3459.svg');
 });
 test('la búsqueda genérica de armarios no tiene foto de modelo ni características generales inventadas',()=>{
  const offers=[
