@@ -13,7 +13,7 @@ function inspect(page){
  const consoleType=/^(?:sony )?(?:playstation 5|ps5) pro(?: 2 tb)?$/.test(norm);
  const mobile=quality.isPhoneSearch(q)&&/\b(?:redmi|poco)\b/.test(norm)&&Boolean(auto.capacity(q));
  if(!consoleType&&!mobile)return null;
- const rows=uniqueOffers((Array.isArray(page?.external_results)?page.external_results:[])
+ const matched=uniqueOffers((Array.isArray(page?.external_results)?page.external_results:[])
   .filter(o=>o&&!o.internal&&!o.sponsored &&
    o.price_currency==='EUR'&&Number.isSafeInteger(o.price_cents)&&o.price_cents>0 &&
    typeof o.shop==='string'&&o.shop.trim()&&
@@ -21,6 +21,8 @@ function inspect(page){
    auto.clearCondition(o)&&!quality.repairReason(o)&&
    provider.titleMatches(q,o.title)&&provider.safeHttps(o.href)))
   .slice(0,40);
+ const rentals=matched.filter(o=>quality.rentalReason(o));
+ const rows=matched.filter(o=>!quality.rentalReason(o));
  if(consoleType){
   const shops=new Set(rows.map(o=>quality.normalize(o.shop)));
   const sorted=[...rows].sort((a,b)=>a.price_cents-b.price_cents);
@@ -30,7 +32,9 @@ function inspect(page){
    offers:sorted.slice(0,6).map(o=>({shop:String(o.shop).slice(0,80),priceCents:o.price_cents})),
    total:rows.length,sellers:shops.size,excluded:info.review.filter(o=>/Precio extremo de consola/.test(o.quality_reason||'')).length,
    ratio:cents.length>=2?Math.round(100*Math.max(...cents)/Math.min(...cents))/100:null,
-   suggestions:[],note:'Precios originales de anuncios coincidentes. Con menos de cuatro comercios no se descarta automáticamente un precio extremo; revisa en las tiendas el estado, los extras y el enlace exacto.'};
+   rentalCount:rentals.length,
+   rentals:rentals.slice(0,6).map(o=>({shop:String(o.shop).slice(0,80),priceCents:o.price_cents})),
+   suggestions:[],note:'La diferencia máximo/mínimo utiliza solo precios de compra. Las cuotas de alquiler se muestran aparte y no forman parte del mínimo. Con menos de cuatro comercios no se descarta automáticamente un precio extremo. Comprueba en cada tienda el estado y las condiciones; los anuncios particulares pueden ser usados.'};
  }
  const buckets=[['4g','4G'],['5g','5G'],['unknown','Sin identificar']];
  const groups=new Map(buckets.map(([key])=>[key,{shops:new Set(),offers:0}]));
