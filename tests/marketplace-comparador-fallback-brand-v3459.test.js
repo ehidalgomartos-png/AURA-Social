@@ -38,24 +38,24 @@ test('ilustraciones locales en todos los productos de la captura y fallback gene
   assert.match(xml,/<\/svg>/);
   assert.ok(xml.length<5000);
   assert.match(xml,/Ilustración|ilustración|gráfica/i);
-  assert.doesNotMatch(xml,/https?:\/\/|<script|<foreignObject/);
+  assert.doesNotMatch(xml,/<(?:image|script|foreignObject)|href="https?:/i);
  }
 });
 test('la foto real fiable prevalece; una foto sin acreditar muestra ilustración y texto veraz',()=>{
- const query='auriculares wireless apple airpods pro';
- const photo={title:query,image:'https://images1.gstatic.com/products/auriculares-wireless-apple-airpods-pro.jpg',
+ const query='samsung s26 256 GB';
+ const photo={title:'Samsung Galaxy S26 256 GB Smartphone',image:'https://images1.gstatic.com/products/samsung-s26-front.jpg',
   condition:'Nuevo',price_cents:12900,price_currency:'EUR',href:'https://tienda.es/airpods',shop:'Tienda A'};
  const noPhoto={...photo,image:'https://images1.gstatic.com/images?q=tbn:opaque'};
  assert.equal(recentImage(query,[noPhoto]),null);
  assert.equal(recentImage(query,[photo]),photo.image);
  const html=detail.heroMarkup(query,[noPhoto],null);
- assert.match(html,/comparador-ilustracion-auriculares-v3459\.svg/);
+ assert.match(html,/comparador-movil-generico-v3435\.svg/);
  assert.match(html,/class="cmp-illustration"/);
  assert.match(html,/Fotografía no verificada · Ilustración de la categoría/);
  const real=detail.heroMarkup(query,[photo],null);
  assert.match(real,/class="cmp-detail-photo"/);
- assert.match(real,/data-compare-fallback="\/assets\/comparador-ilustracion-auriculares-v3459\.svg"/);
- assert.match(real,/auriculares-wireless-apple-airpods-pro\.jpg/);
+ assert.match(real,/data-compare-fallback="\/assets\/comparador-movil-generico-v3435\.svg"/);
+ assert.match(real,/samsung-s26-front\.jpg/);
 });
 test('la portada mantiene imágenes de ofertas y usa ilustraciones diversas cuando faltan',async()=>{
  const old=db.query;
