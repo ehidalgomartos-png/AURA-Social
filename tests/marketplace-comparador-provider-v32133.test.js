@@ -60,7 +60,7 @@ test('consulta servidor: España y clave solo en backend, rechazo de respuestas 
 });
 
 test('cuotas limitadas y respetan parada a 0',()=>{
- assert.deepEqual(provider.budget({}),{daily:12,monthly:220});
+ assert.deepEqual(provider.budget({}),{daily:35,monthly:220});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'0',COMPARADOR_MONTHLY_LIMIT:'0'}),{daily:0,monthly:0});
  assert.deepEqual(provider.budget({COMPARADOR_DAILY_LIMIT:'1000',COMPARADOR_MONTHLY_LIMIT:'9999'}),{daily:50,monthly:220});
 });
