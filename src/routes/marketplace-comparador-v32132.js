@@ -713,20 +713,33 @@ router.post('/comparar/tienda/:slug/:offerKey',
 router.get('/comparar/comercios', (req,res)=>{
  const token=issueCsrf(req,res);
  const content='<div class="cmp-commerce-intro cmp-application-page"><p class="crumb"><a href="/comparar">Comparador</a> / Comercios</p>'+
-  '<span class="cmp-section-eyebrow">Programa de comercios · Gratis</span><h1>Tu tienda en el comparador de RedLibertad</h1>'+
+  '<section class="cmp-merchant-hero" aria-labelledby="cmp-merchant-hero-title"><div class="cmp-merchant-hero-text">'+
+  '<span class="cmp-section-eyebrow">Programa de comercios · Alta gratuita</span><h1 id="cmp-merchant-hero-title">Haz que descubran tu tienda mientras comparan productos</h1>'+
   '<p class="cmp-commerce-lead">Lleva tus productos a quienes ya están comparando precios. El alta es gratuita: sin cuota, sin comisiones y sin gestionar pagos de tus clientes.</p>'+
-  '<p>Las tiendas se revisan antes de habilitar enlaces de compra. La venta se realiza exclusivamente en tu propia web.</p>'+
+  '<p>Tu catálogo se revisa antes de aparecer en el comparador. La venta y el pago se realizan exclusivamente en tu web. No prometemos posiciones ni ventas.</p>'+ 
+  '<div class="cmp-merchant-hero-actions"><a class="cmp-merchant-primary-cta" href="#solicitar-comercio">Solicitar mi tienda gratis</a><a class="cmp-merchant-secondary-cta" href="/comparar/comercios/tiendas">Ver tiendas participantes</a></div>'+ 
+  '</div><aside class="cmp-merchant-promise" aria-label="Cómo funciona el programa">'+
+  '<strong>Tu comercio, tus ventas</strong><p>RedLibertad muestra ofertas que cumplan los requisitos y enlaza al vendedor para finalizar la compra.</p>'+ 
+  '<ul><li>Sin cuota ni comisión por venta</li><li>Revisión manual de las tiendas</li><li>Sin cobros ni checkout de RedLibertad</li></ul></aside></section>'+ 
+  '<div class="cmp-merchant-section-head"><h2>Cómo empezar</h2><p>Tres pasos sencillos, con revisión antes de publicar productos.</p></div>'+
   '<ol class="cmp-commerce-steps"><li><strong>Solicita el alta</strong><span>Registra la web de tu tienda desde tu cuenta de RedLibertad.</span></li><li><strong>Verifica tu dominio</strong><span>Comprueba la titularidad mediante el código proporcionado y espera la revisión.</span></li><li><strong>Comparte tus productos</strong><span>Si usas WooCommerce, podrás conectar el catálogo con acceso de solo lectura tras la aprobación; otras plataformas se revisan individualmente.</span></li></ol>'+
-  '<div class="cmp-application-panel"><form class="compare-search cmp-commerce-form" method="post" action="/comparar/comercios/solicitar">'+
+  '<div class="cmp-merchant-section-head"><h2>Solicita el alta de tu comercio</h2><p>Rellena los datos básicos; no pedimos claves ni acceso a pedidos.</p></div>'+ 
+  '<div id="solicitar-comercio" class="cmp-application-panel"><form class="compare-search cmp-commerce-form" aria-label="Solicitud de alta de comercio" method="post" action="/comparar/comercios/solicitar">'+
   '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
-  '<label for="comercioNombre">Nombre de la tienda</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization">'+
-  '<label for="comercioWeb">Web de la tienda (HTTPS)</label><input id="comercioWeb" type="url" name="storeUrl" maxlength="500" placeholder="https://mitienda.es/" required autocomplete="url">'+
+  '<label for="comercioNombre">Nombre comercial</label><input id="comercioNombre" name="name" maxlength="120" minlength="3" required autocomplete="organization" placeholder="Ej. Mi Tienda Online">'+
+  '<label for="comercioWeb">Dirección HTTPS de tu tienda</label><input id="comercioWeb" type="url" name="storeUrl" maxlength="500" placeholder="https://mitienda.es/" required autocomplete="url" aria-describedby="cmp-merchant-url-hint">'+
+  '<small id="cmp-merchant-url-hint" class="cmp-merchant-field-hint">Introduce la dirección principal de la tienda con https://. La verificaremos antes de la aprobación.</small>'+
   '<label for="comercioPlataforma">Plataforma</label><select id="comercioPlataforma" name="platform"><option value="woocommerce">WooCommerce</option><option value="prestashop">PrestaShop</option><option value="shopify">Shopify</option><option value="other">Otra</option></select>'+ 
    '<small class="cmp-merchant-platform-hint">WooCommerce permite conexión de lectura tras la aprobación. Para otras plataformas revisaremos la incorporación de productos contigo.</small>'+
-  '<button type="submit">Solicitar incorporación gratuita</button>'+
+  '<button type="submit">Enviar solicitud gratuita</button>'+
   '<small>Se requiere una cuenta de RedLibertad. No introduzcas contraseñas ni claves de tu tienda en este formulario.</small><p class="cmp-merchant-form-help">¿Ya la has solicitado? <a href="/comparar/comercios/mi-panel">Consulta el estado desde tu panel</a>. No es necesario repetir el registro.</p></form>'+ 
   '<aside class="cmp-application-note"><strong>Venderás en tu propia tienda</strong><p>Los compradores irán directamente a tu web para finalizar la compra. RedLibertad no cobra ninguna comisión.</p><strong>Tú mantienes el control</strong><p>Las tiendas pasan una revisión manual y cada producto conserva su precio, estado y enlace original.</p><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a></aside></div>'+
-  '<nav class="cmp-section-subnav" aria-label="Opciones de comercios"><a href="/app">Entrar o crear cuenta</a><a href="/comparar/comercios/mi-panel">Mi panel de comercios</a></nav></div>';
+  '<section class="cmp-merchant-faq" aria-labelledby="cmp-merchant-faq-title"><h2 id="cmp-merchant-faq-title">Preguntas frecuentes</h2>'+ 
+  '<details><summary>¿Cuánto cuesta aparecer?</summary><p>Solicitar el alta es gratis. El programa actual no cobra cuotas ni comisiones por las ventas realizadas en tu web.</p></details>'+ 
+  '<details><summary>¿Se publican mis productos al solicitarlo?</summary><p>No. Primero revisamos la tienda, su titularidad y los requisitos de las ofertas. El alta no garantiza publicación ni posicionamiento.</p></details>'+ 
+  '<details><summary>¿Necesito WooCommerce?</summary><p>No. WooCommerce permite conectar un catálogo con permisos de solo lectura tras la aprobación. Si usas otra plataforma, revisaremos las alternativas contigo.</p></details>'+ 
+  '<details><summary>¿Dónde compra el cliente?</summary><p>En la web del vendedor. RedLibertad no gestiona el pago ni requiere claves comerciales en esta solicitud.</p></details></section>'+ 
+  '<nav class="cmp-section-subnav" aria-label="Opciones de comercios"><a href="/app">Entrar o crear cuenta</a><a href="/comparar/comercios/mi-panel">Mi panel de comercios</a><a href="#solicitar-comercio">Solicitar mi tienda</a></nav></div>';
  res.set('Cache-Control','private,no-store');
  res.send(shell('Comercios en el comparador | RedLibertad','Solicitud gratuita para incorporar una tienda online al comparador.',content,'/comparar/comercios',true));
 });
