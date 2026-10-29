@@ -106,10 +106,28 @@ function rentalReason(o){
   return 'Oferta de alquiler o suscripción, no precio de compra';
  return null;
 }
+// V3.4.6.12 — Roborock S8 básico no es S8+, S8 Pro, S8 Max ni Ultra.
+// Separar anuncios de variantes en revisión sin borrarlos; solo este modelo
+// exacto, no extender heurísticas a otros fabricantes.
+function roborockBase(query){
+ return normalize(query)==='robot aspirador roborock s8';
+}
+function roborockCompatible(title){
+ const raw=String(title||'');
+ const t=normalize(raw);
+ return /\broborock\s+s8\b/.test(t)&&
+  !/\bs8\s*\+/.test(raw.toLowerCase())&&
+  !/\bs8\s+(?:pro|plus|max|ultra|v|maxv)\b/.test(t)&&
+  !/\b(?:recambio|filtro|bolsas|mopas|accesorios|compatible con)\b/.test(t);
+}
 function groupOffers(query,offers){
  const main=[],repair=[],accessories=[],review=[],rentals=[];
  const explicitRepair=isRepairSearch(query),phone=isPhoneSearch(query)&&!isAccessorySearch(query);
  for(const offer of Array.isArray(offers)?offers:[]){
+  if(roborockBase(query)&&!roborockCompatible(offer?.title)){
+   review.push({...offer,quality_reason:'Variante distinta de Roborock S8 (Pro/Max/Ultra/Plus) o artículo no confirmado'});
+   continue;
+  }
   const rental=rentalReason(offer);
   if(rental){
    rentals.push({...offer,quality_reason:rental});
@@ -197,4 +215,4 @@ function groupOffers(query,offers){
  }
  return {main,repair,accessories,review,rentals};
 }
-module.exports={normalize,repairReason,isRepairSearch,groupOffers,rentalReason,accessoryReason,isAccessorySearch,isPhoneSearch,deviceEvidence,footwearFamily,footwearGenderCompatible,footwearModelCompatible};
+module.exports={normalize,repairReason,isRepairSearch,groupOffers,rentalReason,roborockBase,roborockCompatible,accessoryReason,isAccessorySearch,isPhoneSearch,deviceEvidence,footwearFamily,footwearGenderCompatible,footwearModelCompatible};
