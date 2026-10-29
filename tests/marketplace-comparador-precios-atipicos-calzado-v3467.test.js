@@ -99,7 +99,9 @@ test('los vetos y el comportamiento de otras categorías no cambian',()=>{
   offer('Tienda '+i,i===0?600:150000,title));
  const laptop=page(asus,{query_text:'portatil asus rog strix gaming'});
  assert.equal(seo.indexEligible(laptop,asus),false);
- assert.equal(seo.discovery.classifyQuery('zapatillas skechers mujer'),null);
+ assert.equal(seo.discovery.classifyQuery('zapatillas skechers mujer'),'category');
+ // Reconocer la intención no permite indexar una categoría sin ofertas.
+ assert.equal(seo.discovery.classifyQuery('zapatillas mujer'),null);
  assert.equal(seo.discovery.evaluate(page([],{query_text:'zapatillas skechers mujer'}),[]).eligible,false);
 });
 async function publicHtml(pageData){

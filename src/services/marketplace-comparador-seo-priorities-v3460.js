@@ -28,7 +28,7 @@ function plan(page,matching=[],eligible=false,discovery=null){
   'Revisa la conectividad real de cada oferta y crea una búsqueda con 4G o 5G solo si la variante se confirma; no mezcles ambas.');
  if(/capacidad|modelos, capacidades o colores/.test(reasonKey))return next('media','Variantes que deben separarse',
   'Verifica el modelo, la capacidad y el color; evita mezclar versiones en una misma página.');
- if(/precios incompatibles/.test(reasonKey))return next('alta','Revisar precios extremos',
+ if(/precios incompatibles|precios o numero de ofertas incoherentes/.test(reasonKey))return next('alta','Revisar precios extremos',
   'Comprueba si las ofertas mezclan accesorios o modelos distintos. No indexar hasta tener precios coherentes.');
  if(/comercios diferentes/.test(reasonKey))return next('alta','Falta diversidad de tiendas',
   'Conservar únicamente ofertas independientes y comprobar si hay más vendedores distintos. No duplicar comercios.');

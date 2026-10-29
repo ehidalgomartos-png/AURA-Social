@@ -3,6 +3,7 @@
 // Se evalúan ofertas REALES y guardadas, sin IA, APIs extra ni aprobación masiva.
 const provider=require('./marketplace-comparador-provider-v32133');
 const consoleModels=require('./marketplace-comparador-console-models-v3469');
+const categories=require('./marketplace-comparador-categorias-seo-v34612');
 const quality=require('./marketplace-comparador-offer-quality-v3419');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
 const {uniqueOffers}=require('./marketplace-comparador-offer-dedupe-v3446');
@@ -37,6 +38,7 @@ function classifyQuery(query){
  const norm=auto.normalize(query);
  const words=norm.split(' ').filter(w=>w.length>=2&&!IGNORE.has(w));
  if(words.length<2)return null;
+ if(categories.rule(query))return 'category';
  if(footwearFamily(query))return 'family';
  if(consoleModels.consoleModel(query))return 'exact';
  if(modelEvidence(query))return 'exact';
@@ -65,13 +67,25 @@ function evaluate(page,offers,now=Date.now()){
    typeof o.shop==='string'&&o.shop.trim()&&
    o.shop.toLowerCase().trim()!=='tienda no identificada'&&
    auto.clearCondition(o)&&!quality.repairReason(o)&&
-   provider.titleMatches(page.query_text,o.title)&&
+   (kind==='category'?categories.suitable(page.query_text,o):
+    provider.titleMatches(page.query_text,o.title))&&
    footwearGenderCompatible(page.query_text,o.title)&&
    provider.safeHttps(o.href)&&provider.resolveOfferLink(o)?.href)).main);
  const min=kind==='exact'?2:3;
  if(selected.length<min)return no('Faltan ofertas independientes con precio real');
  const sellers=new Set(selected.map(o=>auto.normalize(o.shop)));
  if(sellers.size<min)return no('Faltan comercios diferentes');
+ let families=[];
+ if(kind==='category'){
+  const result=categories.evidence(page.query_text,selected);
+  if(!result.eligible)return no(result.reason);
+  families=result.lines.map(x=>x.name);
+ }
+ if(kind==='family'&&categories.asusFamily(page.query_text)){
+  const result=categories.asusEvidence(selected);
+  if(!result.eligible)return no(result.reason);
+  families=result.lines.map(x=>x.name);
+ }
  if(kind==='exact'){
   const qFamily=auto.family(page.query_text),qCapacity=auto.capacity(page.query_text),
    qColor=auto.color(page.query_text);
@@ -102,22 +116,34 @@ function evaluate(page,offers,now=Date.now()){
  }
  // No indexar páginas con rango incoherente, potencialmente accesorios o modelos erróneos.
  const values=selected.map(o=>o.price_cents),low=Math.min(...values),high=Math.max(...values);
- if(high/low>(kind==='exact'?2.5:4))
+ // Una familia ASUS puede incluir portátiles G15/G16 con precios distintos.
+ // Solo se permite esa dispersión si identifica al menos dos modelos reales,
+ // tres vendedores y precios razonables; nunca como precio de un mismo SKU.
+ const recognizedFamily=kind==='category'||
+  kind==='family'&&categories.asusFamily(page.query_text)&&families.length>=2;
+ if(high/low>(kind==='exact'?2.5:recognizedFamily?8:4))
   return no('Precios incompatibles para una comparación fiable');
- return {eligible:true,reason:kind==='family'?'Comparación válida de una familia de productos':
-  'Comparación válida de un modelo identificado',kind,offers:selected,
+ return {eligible:true,reason:kind==='category'?'Selección válida de categoría con líneas reales':
+  kind==='family'?'Comparación válida de una familia de productos':
+  'Comparación válida de un modelo identificado',kind,modelLines:families,offers:selected,
   sellerCount:sellers.size,lowPriceCents:low,highPriceCents:high,updatedAt:last};
 }
 function summary(page,evaluation,now=Date.now()){
  if(!evaluation?.eligible)return null;
  const eur=c=>(c/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
  const older=now-evaluation.updatedAt>=48*60*60*1000;
- const first=evaluation.kind==='family'?
-  'Ofertas guardadas de la familia '+page.query_text+' en ':
+ const broad=['family','category'].includes(evaluation.kind);
+ const multipleModels=evaluation.kind==='category'||
+  evaluation.kind==='family'&&categories.asusFamily(page.query_text);
+ const first=multipleModels?'Ofertas guardadas de distintos modelos de '+page.query_text+' en ':
+  evaluation.kind==='family'?'Ofertas guardadas de la familia '+page.query_text+' en ':
   'Ofertas guardadas de '+page.query_text+' en ';
  return first+evaluation.sellerCount+' tiendas, entre '+eur(evaluation.lowPriceCents)+' y '+
-  eur(evaluation.highPriceCents)+'. '+(evaluation.kind==='family'?
-   'Pueden corresponder a distintas versiones: compara el modelo exacto. ':'')+
+  eur(evaluation.highPriceCents)+'. '+(broad?
+   'Pueden corresponder a distintas versiones: compara el modelo exacto. '+
+   (multipleModels?'Los importes corresponden a modelos, tallas o versiones diferentes, no al mismo producto. ':''):'')+
+  (evaluation.modelLines?.length?
+   'Líneas identificadas en las ofertas: '+evaluation.modelLines.slice(0,5).join(', ')+'. ':'')+
   (older?'Son precios históricos, no necesariamente vigentes. ':'')+
   'Comprueba el estado, el envío y el precio final con cada vendedor.';
 }

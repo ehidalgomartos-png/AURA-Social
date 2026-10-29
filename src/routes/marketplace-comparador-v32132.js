@@ -40,6 +40,7 @@ const mediaAudit=require('../services/marketplace-comparador-media-link-audit-v3
 const recovery=require('../services/marketplace-comparador-recovery-v3464');
 const indexAudit=require('../services/marketplace-comparador-indexation-audit-v3465');
 const indexDetails=require('../services/marketplace-comparador-indexation-details-v34610');
+const categorySeo=require('../services/marketplace-comparador-categorias-seo-v34612');
 const modelSuggestions=require('../services/marketplace-comparador-model-suggestions-v3462');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
@@ -1655,7 +1656,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   // Aplicar el mismo filtro también a ofertas antiguas ya guardadas.
   // Así una búsqueda base «iPhone 12 128 GB» no anunciará el precio del Pro
   // ni requiere volver a gastar créditos de SerpApi.
-  const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title,
+  const offers=[...local,...external].filter(o=>
+   categorySeo.suitable(page.query_text,o) ||
+   provider.titleMatches(page.query_text,o.title,
     {includeAccessories:offerQuality.isPhoneSearch(page.query_text)&&!offerQuality.isAccessorySearch(page.query_text)}))
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
@@ -1665,9 +1668,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   // no puede sesgar el umbral ni formar parte del precio mínimo independiente.
   const {ordinary:unpaidOffers,sponsored:paidOffers}=splitPaidOffers(offers);
   const grouped=offerQuality.groupOffers(page.query_text,unpaidOffers);
-  const ordinary=uniqueOffers(grouped.main),sponsored=uniqueOffers(paidOffers);
+  const categoryRule=categorySeo.rule(page.query_text);
+  const categoryExcluded=categoryRule?grouped.main.filter(o=>!categorySeo.suitable(page.query_text,o)):[];
+  const ordinary=uniqueOffers(categoryRule?grouped.main.filter(o=>categorySeo.suitable(page.query_text,o)):grouped.main),sponsored=uniqueOffers(paidOffers);
   const repair=uniqueOffers(grouped.repair);
-  const accessories=uniqueOffers(grouped.accessories),review=uniqueOffers(grouped.review);
+  const accessories=uniqueOffers(grouped.accessories),review=uniqueOffers([
+   ...grouped.review,...categoryExcluded.map(o=>({...o,quality_reason:'Otra categoría o modelo no identificado'}))
+  ]);
   const rentals=uniqueOffers(grouped.rentals||[]);
   const insight=insights.buildInsights(page.query_text,ordinary);
   // El historial anterior puede incluir mínimos averiados sin desglose por condición.
@@ -1693,6 +1700,13 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const discovered=seo.discovery.evaluate(snapshot,ordinary);
   const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):
    discovered.eligible?seo.discovery.summary(page,discovered):null;
+  const categoryGuide=approved&&discovered.eligible&&discovered.kind==='category'?
+   '<section class="info cmp-category-guide" aria-labelledby="cmp-category-guide-title">'+
+   '<h2 id="cmp-category-guide-title">Modelos incluidos en esta selección</h2>'+
+   '<p>Esta página reúne distintos modelos de '+esc(page.query_text)+
+   '. Los precios corresponden a productos y variantes diferentes; no son descuentos del mismo artículo.</p>'+
+   '<ul>'+discovered.modelLines.slice(0,8).map(line=>'<li>'+esc(line)+'</li>').join('')+'</ul>'+
+   '<p>Compara la talla, la versión, el estado anunciado y el coste final en cada tienda antes de elegir.</p></section>':'';
   const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
   const csrfToken=issueCsrf(req,res);
   const empty=emptyState(page.provider_status,provider.configured());
@@ -1811,7 +1825,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
    '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+
-   richHero+
+   richHero+categoryGuide+
    '<details class="cmp-change-search"'+(!ordinary.length&&!pending?' id="cambiar-producto" open':'')+'><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
