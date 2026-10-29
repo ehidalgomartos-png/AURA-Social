@@ -37,6 +37,7 @@ const failureReport=require('../services/marketplace-comparador-failures-v34572'
 const budgetInfo=require('../services/marketplace-comparador-budget-info-v34574');
 const seoPriorities=require('../services/marketplace-comparador-seo-priorities-v3460');
 const mediaAudit=require('../services/marketplace-comparador-media-link-audit-v3461');
+const modelSuggestions=require('../services/marketplace-comparador-model-suggestions-v3462');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
@@ -427,6 +428,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
  const cards=visible.map(({p,evaluation,eligible,state,matching,discovered,plan,audit})=>{
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
   const suggestion=seoRefinementSuggestions(p);
+  const observedModels=modelSuggestions.models(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
    eligible?(evaluation.eligible?'Modelo y ofertas válidos para SEO automático':
     discovered.eligible?discovered.reason:
@@ -461,6 +463,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
    '<p>'+esc(audit.photoAction)+'</p><p>'+esc(audit.linkAction)+'</p>'+
    '<a href="/admin/comparador/fotos/'+esc(p.slug)+'">Revisar imágenes</a>'+
    '<span aria-hidden="true"> · </span><a href="#seo-links-'+id+'">Revisar enlaces</a></div>'+
+   (observedModels.length?'<section class="seo-model-suggestions" aria-label="Modelos concretos"><strong>Modelos concretos encontrados en ofertas guardadas</strong><ul>'+observedModels.map(m=>'<li><a href="/comparar?q='+encodeURIComponent(m.query)+'">'+esc(m.query)+'</a><small>'+m.sellerCount+' tiendas observadas</small></li>').join('')+'</ul><small>Al abrir la búsqueda no se consultará SerpApi hasta enviarla. Son sugerencias, no páginas indexadas.</small></section>':'')+
    '<section class="seo-next-action" aria-label="Siguiente mejora SEO"><strong>Qué hacer ahora: '+esc(plan.title)+'</strong>'+
    '<p>'+esc(plan.action)+'</p><small>'+plan.sellerCount+' tiendas distintas · '+plan.directCount+
    ' enlaces HTTPS guardados · '+plan.offerCount+' ofertas coincidentes. Son datos guardados, no un análisis en directo.</small></section>'+links+
