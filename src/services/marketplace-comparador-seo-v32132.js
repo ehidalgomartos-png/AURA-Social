@@ -8,13 +8,16 @@ const STABLE_MS=7*24*60*60*1000;
 const provider=require('./marketplace-comparador-provider-v32133');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
 const discovery=require('./marketplace-comparador-index-discovery-v3458');
+const categories=require('./marketplace-comparador-categorias-seo-v34612');
 const quality=require('./marketplace-comparador-offer-quality-v3419');
 const {uniqueOffers}=require('./marketplace-comparador-offer-dedupe-v3446');
 function externalOffers(offers){
  return (Array.isArray(offers)?offers:[]).filter(o=>o && !o.internal && !o.sponsored && typeof o.shop==='string' && o.shop.trim() && Number.isSafeInteger(o.price_cents) && o.price_cents>0 && o.price_cents<1e10);
 }
 function matchingOffers(page,offers){
- const matching=(Array.isArray(offers)?offers:[]).filter(o=>o&&provider.titleMatches(page?.query_text,o.title)&&!quality.repairReason(o));
+ const matching=(Array.isArray(offers)?offers:[]).filter(o=>o&&!quality.repairReason(o)&&
+  (categories.rule(page?.query_text)?categories.suitable(page.query_text,o):
+   provider.titleMatches(page?.query_text,o.title)));
  return uniqueOffers(quality.groupOffers(page?.query_text,matching).main);
 }
 // Una actualización en cola no invalida los resultados reales del último éxito.
