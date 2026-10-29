@@ -1742,3 +1742,23 @@ body.cmp-premium .cmp-detail-image .cmp-detail-photo-source{
   width:100%;height:100%;object-fit:contain;
  }
 }
+
+/* V3.4.6.0 — próximos pasos editoriales y filtro de prioridades. */
+body.cmp-premium .seo-priority-note{
+ color:#546f86;font-size:.83rem;line-height:1.5;margin:12px 0;
+}
+body.cmp-premium .seo-next-action{
+ padding:13px 14px;margin:13px 0 17px;border:1px solid #d0e2f0;
+ border-radius:12px;background:linear-gradient(135deg,#f3f9fd,#fbfcfe);
+}
+body.cmp-premium .seo-next-action strong{display:block;font-size:.86rem;color:#194a71}
+body.cmp-premium .seo-next-action p{
+ margin:7px 0;font-size:.82rem;line-height:1.52;color:#365f7c;
+}
+body.cmp-premium .seo-next-action small{
+ display:block;font-size:.74rem;color:#607b91;line-height:1.45;
+}
+@media(max-width:620px){
+ body.cmp-premium .seo-next-action{padding:12px}
+ body.cmp-premium .seo-admin-filters{flex-wrap:wrap;gap:7px}
+}
