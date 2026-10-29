@@ -107,7 +107,7 @@ test('HTML privado y XML público aplican exactamente las mismas reglas SEO',asy
   assert.match(res.html,/No se ha conectado ni consultado Search Console/);
   assert.match(res.html,/sitemap-comparador\.xml/);
   assert.doesNotMatch(res.html,/solicitar indexación automáticamente/i);
-  assert.equal(audit.SITEMAP_CANDIDATES_SQL,queries[0]);
+  assert.equal(audit.SITEMAP_CANDIDATES_SQL,queries.find(sql=>sql.startsWith('SELECT')));
   assert.equal(seo.indexEligible(good,good.external_results),true);
  }finally{db.query=original;}
 });
