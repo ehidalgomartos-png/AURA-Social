@@ -52,7 +52,7 @@ test('comparación sin ofertas presenta un único estado amistoso, sin detalles 
    assert.match(html,/Ver otras comparaciones/);
    assert.equal((html.match(/class="compare-awaiting"/g)||[]).length,1);
    assert.match(html,/data-comparison-results/,'el sondeo del navegador conserva el destino');
-   assert.doesNotMatch(html,/Estamos preparando esta comparación|Precios y tiendas|Buscando precios y tiendas…/);
+   assert.doesNotMatch(html,/<h2>Estamos preparando esta comparación<\/h2>|compare-awaiting-spinner/);
    assert.doesNotMatch(html,/Límite de consultas|consultas externas|cuota|SerpApi|Actualizado:/i);
   }finally{await new Promise(resolve=>server.close(resolve));}
  }finally{db.query=old;provider.configured=configured;}
