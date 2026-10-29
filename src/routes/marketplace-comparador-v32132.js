@@ -1072,6 +1072,7 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
   const report=adminMerchants.summarize(data.rows);
   // Cohorte piloto sobre las tiendas recientes ya consultadas: cero SQL adicional.
   const cohort=merchantGrowth.overview(report.items);
+  const pilotQueue=merchantGrowth.queue(cohort,req.query?.paso);
   const filters=['todas','pendientes','aprobadas','incidencias','suspendidas'];
   const chosen=filters.includes(req.query?.estado)?req.query.estado:'todas';
   const selected=report.items.filter(item=>chosen==='todas'||
@@ -1088,7 +1089,8 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
    const issues=item.reasons.length?
     '<ul class="cmp-merchant-admin-issues">'+item.reasons.map(reason=>'<li>'+esc(reason)+'</li>').join('')+'</ul>':
     '<p class="cmp-merchant-admin-ok">Sin incidencias detectadas con estas reglas. No se confirma stock en tiempo real.</p>';
-   return '<li class="cmp-merchant-admin-card"><div class="cmp-merchant-admin-card-top"><h2>'+
+   const anchor=/^[1-9]\\d{0,15}$/.test(item.id)?' id="comercio-'+item.id+'"':'';
+   return '<li class="cmp-merchant-admin-card"'+anchor+'><div class="cmp-merchant-admin-card-top"><h2>'+
     esc(item.name)+'</h2><span>'+esc(item.status)+'</span></div>'+
     '<p class="cmp-merchant-admin-meta">Cuenta: '+esc(item.username)+' · Plataforma: '+esc(item.platform)+
     ' · Compras externas: '+(item.purchasing?'Habilitadas':'No habilitadas')+'</p>'+
@@ -1103,11 +1105,19 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
     ['attention','Con incidencias'],['stale','Con sincronización atrasada']]
     .map(([key,label])=>'<div><strong>'+report.counts[key]+'</strong><span>'+label+'</span></div>').join('')+
    '</div>';
-  const onboardingCards=cohort.rows.map(item=>
-   '<li class="cmp-growth-card"><div class="cmp-growth-card-top"><strong>'+esc(item.name)+'</strong>'+
-   '<span>'+esc(item.label)+'</span></div>'+
-   '<p>'+esc(item.action)+'</p><small>'+item.linked+' productos vinculados · '+
-   item.available+' ofertas aptas según datos guardados</small></li>').join('');
+  const onboardingCards=pilotQueue.rows.map(item=>{
+   const diagnosis=/^[1-9]\\d{0,15}$/.test(item.id)?
+    '<a class="cmp-growth-review-link" href="/admin/comparador/comercios-panel?estado=todas#comercio-'+item.id+'">Ver diagnóstico</a>':'';
+   return '<li class="cmp-growth-card"><div class="cmp-growth-card-top"><strong>'+esc(item.name)+'</strong>'+
+    '<span>'+esc(item.label)+'</span></div>'+
+    '<p>'+esc(item.action)+'</p><small>'+item.linked+' productos vinculados · '+
+    item.available+' ofertas aptas según datos guardados</small>'+diagnosis+'</li>';
+  }).join('');
+  const pilotTabs='<nav class="cmp-growth-filters" aria-label="Filtrar la cohorte por siguiente paso">'+
+   pilotQueue.filters.map(({key,label,count})=>
+    '<a href="/admin/comparador/comercios-panel?paso='+key+'#primeros-comercios"'+
+    (pilotQueue.selected===key?' aria-current="page"':'')+'>'+esc(label)+' ('+count+')</a>').join('')+
+   '</nav>';
   const onboarding='<section id="primeros-comercios" class="cmp-growth" aria-labelledby="cmp-growth-title">'+
    '<span class="cmp-section-eyebrow">Incorporación de comercios · Seguimiento manual</span>'+
    '<h2 id="cmp-growth-title">Cohorte piloto: 20 tiendas recientes</h2>'+
@@ -1116,8 +1126,10 @@ router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=
    '<div class="cmp-growth-metrics"><div><strong>'+cohort.sampled+'</strong><span>En la muestra piloto</span></div>'+
    '<div><strong>'+cohort.needsAction+'</strong><span>Necesitan una revisión o un paso</span></div>'+
    '<div><strong>'+cohort.ready+'</strong><span>Con ofertas preparadas</span></div></div>'+
+   '<p class="cmp-growth-order-note">Orden orientativo: solicitudes por revisar primero y tiendas preparadas después. No implica prioridad contractual ni comprobación en tiempo real.</p>'+
+   pilotTabs+
    (onboardingCards?'<ol class="cmp-growth-list">'+onboardingCards+'</ol>':
-    '<p class="cmp-growth-empty">Todavía no hay comercios en la cohorte.</p>')+
+    '<p class="cmp-growth-empty">'+(cohort.sampled?'No hay tiendas en este filtro de la cohorte.':'Todavía no hay comercios en la cohorte.')+'</p>')+
    '<details class="cmp-growth-invite"><summary>Invitación para nuevos comercios (envío manual)</summary>'+
    '<p>Texto orientativo para copiar y enviar individualmente, sin mensajes automáticos.</p>'+
    '<textarea readonly rows="5" aria-label="Invitación de alta gratuita">Hola. Estamos incorporando tiendas al comparador de RedLibertad. '+
