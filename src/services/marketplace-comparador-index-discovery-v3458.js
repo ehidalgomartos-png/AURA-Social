@@ -11,7 +11,7 @@ function modelEvidence(q){
  const words=auto.normalize(q).split(' ').filter(Boolean);
  const withoutCapacity=auto.normalize(q).replace(/\b(64|128|256|512|1024)\s*(gb|g|tb)\b/g,' ');
  const rest=withoutCapacity.split(' ').filter(Boolean);
- return rest.some(w=>/\d/.test(w) && (/[a-z]/.test(w)&&!^(?:5g|4g|wifi6|wifi7)$/.test(w)||
+ return rest.some(w=>/\d/.test(w) && (/[a-z]/.test(w)&&!/^(?:5g|4g|wifi6|wifi7)$/.test(w)||
   /^\d{2,4}$/.test(w)&&rest.length>=2));
 }
 function classifyQuery(query){
