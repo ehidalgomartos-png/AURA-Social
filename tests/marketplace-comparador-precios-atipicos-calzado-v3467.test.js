@@ -56,7 +56,7 @@ test('no se recuperan con solo dos tiendas coherentes, dos extremos o precios a�
   [offer('Tienda A',2000),offer('Tienda B',8900),offer('Tienda C',24000),offer('Tienda D',91000)],
   [offer('Tienda A',8900),offer('Tienda A',9500),offer('Tienda B',10300),offer('Tienda C',550)],
   [offer('Tienda A',8900),offer('Tienda B',9500),offer('Tienda C',10300),
-   offer('Tienda D',550,{sponsored:true})]
+   offer('Tienda D',550,'New Balance 530 Mujer Zapatillas',{sponsored:true})]
  ];
  for(const list of scenarios){
   const p=page(list);
@@ -136,5 +136,5 @@ test('la revisión SEO no consume llamadas externas ni automatiza la indexación
  const code=fs.readFileSync(path.join(__dirname,'../src/services/marketplace-comparador-offer-quality-v3419.js'),'utf8');
  assert.doesNotMatch(code,/\bfetch\s*\(|\bdb\.query|reserveQuota|setInterval|stripe|resend/i);
  const source=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
- assert.match(source,/Precio extremo pendiente de confirmar/);
+ assert.match(source,/No forman parte del mínimo comparable/);
 });
