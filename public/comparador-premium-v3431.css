@@ -984,3 +984,33 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-noimage{
   font-size:.7rem;line-height:1.28;padding:6px;
  }
 }
+
+
+/* V3.4.4.21 — guía de lectura plegada para precios y enlaces comerciales.
+   No sobrecarga la tarjeta ni añade consultas o módulos externos. */
+body.cmp-premium .cmp-rich-comparison .cmp-price-legend{
+ margin:10px 0 15px;border:1px solid #dce7f2;border-radius:12px;
+ background:#f8fbff;color:#304e69;max-width:100%;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-price-legend>summary{
+ cursor:pointer;min-height:44px;padding:11px 15px;font-size:.84rem;
+ font-weight:740;line-height:1.4;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-price-legend>summary:focus-visible{
+ outline:3px solid #80b1dc;outline-offset:2px;border-radius:9px;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-price-legend>p{
+ margin:0;padding:0 15px 14px;font-size:.81rem;
+ line-height:1.55;color:#46617b;max-width:75ch;
+}
+@media(max-width:620px){
+ body.cmp-premium .cmp-rich-comparison .cmp-price-legend{
+  margin:10px 0 13px;border-radius:10px;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-price-legend>summary{
+  min-height:46px;padding:12px;font-size:.82rem;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-price-legend>p{
+  padding:0 12px 13px;font-size:.79rem;line-height:1.5;
+ }
+}
