@@ -45,7 +45,7 @@ function evaluate(page,offers,now=Date.now()){
    o.shop.toLowerCase().trim()!=='tienda no identificada'&&
    auto.clearCondition(o)&&!quality.repairReason(o)&&
    provider.titleMatches(page.query_text,o.title)&&
-   provider.resolveOfferLink(o)?.href)).main);
+   provider.safeHttps(o.href)&&provider.resolveOfferLink(o)?.href)).main);
  const min=kind==='exact'?2:3;
  if(selected.length<min)return no('Faltan ofertas independientes con precio real');
  const sellers=new Set(selected.map(o=>auto.normalize(o.shop)));
