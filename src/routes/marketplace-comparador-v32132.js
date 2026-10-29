@@ -25,6 +25,7 @@ const {splitPaidOffers}=require('../services/marketplace-comparador-sponsored-v3
 const {requireAdmin,requireAuth,optionalAuth}=require('../middleware/auth');
 const {enrichLocalOffers}=require('../services/marketplace-comparador-merchant-offers-v3421');
 const merchantClicks=require('../services/marketplace-comparador-clicks-v3422');
+const merchantDashboard=require('../services/marketplace-comparador-merchant-dashboard-v3452');
 const merchantFollowup=require('../services/marketplace-comparador-merchant-followup-v3424');
 const {sellerProgress}=require('../services/marketplace-comparador-merchant-guide-v3425');
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
@@ -930,14 +931,15 @@ router.get('/comparar/comercios/mis-estadisticas',requireAuth,async(req,res,next
  try{
   await merchantClicks.ensureSchema();
   const result=await db.query(
-   "SELECT s.name,s.store_url,s.status,COUNT(DISTINCT x.listing_id)::integer AS products,"+
+   "SELECT s.id,s.name,s.store_url,s.status,COUNT(DISTINCT x.listing_id)::integer AS products,"+
    "COALESCE(SUM(t.click_count),0)::integer AS clicks "+
    "FROM marketplace_professional_stores s "+
    "LEFT JOIN marketplace_external_products x ON x.store_id=s.id AND x.seller_id=s.seller_id "+
    "LEFT JOIN marketplace_comparison_store_clicks t ON t.store_id=s.id AND t.listing_id=x.listing_id AND t.clicked_day>=CURRENT_DATE-INTERVAL '29 days' "+
    "WHERE s.seller_id=$1 GROUP BY s.id ORDER BY s.id DESC LIMIT 30",[req.user.id]);
   const cards=result.rows.map(row=>'<li><strong>'+esc(row.name)+'</strong> · '+esc(row.status)+
-    '<span>'+Number(row.products)+' productos vinculados · '+Number(row.clicks)+' clics registrados (30 días)</span></li>').join('');
+    '<span>'+Number(row.products)+' productos vinculados · '+Number(row.clicks)+' clics registrados (30 días)</span>'+
+    '<a href="/comparar/comercios/estadisticas/'+esc(row.id)+'">Ver detalle de mi tienda</a></li>').join('');
   res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
   res.send(shell('Estadísticas de mis comercios | RedLibertad','Clics agregados en tiendas.',
    '<div class="cmp-commerce-intro"><h1>Estadísticas de mis comercios</h1>'+
@@ -945,6 +947,75 @@ router.get('/comparar/comercios/mis-estadisticas',requireAuth,async(req,res,next
    '<ul class="cmp-commerce-stat-list">'+(cards||'<li>Todavía no tienes tiendas registradas.</li>')+'</ul>'+
    '<a href="/comparar/comercios">Solicitar otra tienda</a></div>',
    '/comparar/comercios/mis-estadisticas'));
+ }catch(error){next(error);}
+});
+// V3.4.5.2 — informe profesional propio: clicks agregados (no ventas o usuarios).
+router.get('/comparar/comercios/estadisticas/:id',requireAuth,async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');
+  res.set('X-Robots-Tag','noindex,nofollow');
+  const id=String(req.params.id||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(id))return res.sendStatus(400);
+  await merchantClicks.ensureSchema();
+  // Aislamiento de comerciante aplicado en TODAS las consultas.
+  const result=await db.query(
+   'SELECT id,name,status,platform,store_url,purchase_enabled FROM marketplace_professional_stores '+
+   'WHERE id=$1 AND seller_id=$2 LIMIT 1',[id,req.user.id]);
+  if(!result.rowCount)return res.sendStatus(404);
+  const store=result.rows[0];
+  const [daily,top]=await Promise.all([
+   db.query("SELECT clicked_day::text AS day,COALESCE(SUM(click_count),0)::bigint AS clicks "+
+    "FROM marketplace_comparison_store_clicks WHERE store_id=$1 "+
+    "AND clicked_day BETWEEN (now() AT TIME ZONE 'UTC')::date-INTERVAL '29 days' "+
+    "AND (now() AT TIME ZONE 'UTC')::date "+
+    "GROUP BY clicked_day ORDER BY clicked_day ASC LIMIT 30",[id]),
+   db.query("SELECT l.id,l.title,COALESCE(SUM(t.click_count),0)::bigint AS clicks "+
+    "FROM marketplace_external_products x "+
+    "JOIN marketplace_listings l ON l.id=x.listing_id AND l.seller_id=x.seller_id "+
+    "LEFT JOIN marketplace_comparison_store_clicks t ON t.store_id=x.store_id "+
+    "AND t.listing_id=x.listing_id "+
+    "AND t.clicked_day BETWEEN (now() AT TIME ZONE 'UTC')::date-INTERVAL '29 days' "+
+    "AND (now() AT TIME ZONE 'UTC')::date "+
+    "WHERE x.store_id=$1 AND x.seller_id=$2 "+
+    "GROUP BY l.id,l.title ORDER BY clicks DESC,l.id DESC LIMIT 10",[id,req.user.id])
+  ]);
+  const trend=merchantDashboard.dailyTrend(daily.rows);
+  const products=merchantDashboard.productRows(top.rows);
+  const last14=trend.series.slice(-14);
+  const bars=last14.map(item=>{
+   const height=trend.peak?Math.max(3,Math.round(100*item.clicks/trend.peak)):3;
+   const dd=item.day.slice(8,10)+'/'+item.day.slice(5,7);
+   return '<div class="cmp-merchant-bar" title="'+esc(item.day)+' · '+item.clicks+' clics">'+
+    '<span class="cmp-merchant-bar-value">'+item.clicks+'</span>'+
+    '<span class="cmp-merchant-bar-track"><span style="height:'+height+'%" aria-hidden="true"></span></span>'+
+    '<small>'+esc(dd)+'</small></div>';
+  }).join('');
+  const ranked=products.map(p=>'<tr><td>'+esc(p.title)+'</td><td class="cmp-merchant-numeric">'+
+   p.clicks+'</td></tr>').join('');
+  const html='<div class="cmp-merchant-analytics"><p class="crumb"><a href="/comparar/comercios/mi-panel">Mis tiendas</a> / Estadísticas</p>'+
+   '<span class="cmp-section-eyebrow">Área privada · Estadísticas gratuitas</span>'+
+   '<h1>Estadísticas de '+esc(store.name)+'</h1>'+
+   '<p>Datos agregados de los últimos 30 días. Son clics registrados hacia la tienda, <strong>no ventas, ingresos ni visitantes únicos</strong>. El gráfico muestra los últimos 14 días.</p>'+
+   '<div class="cmp-merchant-stat-cards">'+
+   '<div><strong>'+trend.total+'</strong><span>Clics registrados · 30 días</span></div>'+
+   '<div><strong>'+products.length+'</strong><span>Productos vinculados mostrados (máximo 10)</span></div>'+
+   '<div><strong>'+esc(store.status)+'</strong><span>Estado de la tienda</span></div></div>'+
+   '<section class="cmp-merchant-analytics-panel" aria-labelledby="cmp-daily-analytics-title">'+
+   '<h2 id="cmp-daily-analytics-title">Clics diarios</h2><div class="cmp-merchant-bars" role="img" aria-label="Clics diarios durante los últimos 14 días: '+
+   last14.map(d=>esc(d.day)+' '+d.clicks).join('; ')+'">'+bars+'</div>'+
+   '<p class="cmp-merchant-chart-note">Los días sin clics registrados se muestran con 0. El periodo utiliza fechas UTC.</p></section>'+
+   '<section class="cmp-merchant-analytics-panel" aria-labelledby="cmp-product-analytics-title">'+
+   '<h2 id="cmp-product-analytics-title">Productos con clics registrados</h2>'+
+   (ranked?'<div class="cmp-merchant-table-scroll"><table><thead><tr><th scope="col">Producto</th><th scope="col">Clics · 30 días</th></tr></thead><tbody>'+ranked+'</tbody></table></div>':
+   '<p>No hay productos vinculados con métricas disponibles para esta tienda.</p>')+
+   '<p class="cmp-merchant-chart-note">La tabla incluye hasta 10 productos vinculados, ordenados por clics. Un 0 no significa que el producto esté agotado.</p></section>'+
+   '<nav class="cmp-section-subnav" aria-label="Opciones de esta tienda">'+
+   '<a href="/comparar/comercios/catalogo/'+esc(id)+'">Preparar catálogo</a>'+
+   '<a href="/comparar/comercios/productos/'+esc(id)+'">Diagnóstico de productos</a>'+
+   '<a href="/comparar/comercios/mi-panel">Volver a mis tiendas</a></nav></div>';
+  res.send(shell('Estadísticas de comercio | RedLibertad',
+   'Estadísticas privadas de clics registrados en el comparador.',html,
+   '/comparar/comercios/estadisticas/'+esc(id)));
  }catch(error){next(error);}
 });
 router.get('/admin/comparador/comercios-estadisticas',requireAdmin,async(req,res,next)=>{
@@ -1162,6 +1233,7 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
     '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
     '<p>'+esc(info.next)+'</p>'+verification+
     '<p><a href="/comparar/comercios/catalogo/'+esc(store.id)+'">Preparar catálogo: WooCommerce y CSV</a></p>'+
+    '<p><a href="/comparar/comercios/estadisticas/'+esc(store.id)+'">Ver estadísticas de esta tienda</a></p>'+
     (info.linked?'<p><a href="/comparar/comercios/productos/'+esc(store.id)+'">Ver diagnóstico de mis productos</a></p>':'')+'</li>';
   }).join('');
   const content='<div class="cmp-commerce-intro cmp-dashboard-page"><span class="cmp-section-eyebrow">Área privada de comercios</span><h1>Mis tiendas del comparador</h1>'+
