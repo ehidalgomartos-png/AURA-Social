@@ -1092,6 +1092,14 @@ router.get('/comparar/:slug',async(req,res,next)=>{
    '</select></label>':'';
   // Navegación interna sin JS, solo en fichas con suficientes ofertas para desplazar en móvil.
   const longList=ordinary.length>=4;
+  // V3.4.4.22: los filtros avanzados se pueden plegar sin JavaScript.
+  // Los filtros de enlace y la navegación a ofertas permanecen visibles.
+  const advancedFilters=conditionMenu||capacityMenu?
+   (longList?
+    '<details class="cmp-advanced-filters" data-advanced-filters><summary>Más filtros <span data-advanced-summary>Estado y capacidad</span></summary>'+
+    '<div class="cmp-facet-group">'+conditionMenu+capacityMenu+'</div></details>':
+    '<div class="cmp-facet-group">'+conditionMenu+capacityMenu+'</div>'):'';
+
   const directControls=ordinary.length>1?
    '<div class="cmp-access-toolbar" data-direct-filter'+(longList?' id="filtros-ofertas"':'')+'>'+
    '<div class="cmp-access-intro"><strong>'+access.direct+' '+(access.direct===1?'oferta con enlace directo':'ofertas con enlace directo')+'</strong>'+
@@ -1100,7 +1108,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
     '<div class="cmp-access-options" role="group" aria-label="Filtrar ofertas por tipo de enlace">'+
     '<button type="button" class="cmp-access-option" data-access-choice="all" aria-pressed="true">Todas ('+access.total+')</button>'+
     '<button type="button" class="cmp-access-option" data-access-choice="direct" aria-pressed="false">Solo acceso directo ('+access.direct+')</button></div>':'')+
-   (conditionMenu||capacityMenu?'<div class="cmp-facet-group">'+conditionMenu+capacityMenu+'</div>':'')+
+   advancedFilters+
    '<p class="cmp-access-filter-note" data-access-note hidden>El precio mínimo destacado corresponde a todas las ofertas comparables, no solo a las filtradas.</p>'+
    '<p class="cmp-access-filter-result" role="status" data-filter-results hidden></p>'+
    '<button class="cmp-filter-reset" type="button" data-clear-comparison-filters hidden>Quitar filtros</button>'+
