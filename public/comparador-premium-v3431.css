@@ -1014,3 +1014,39 @@ body.cmp-premium .cmp-rich-comparison .cmp-price-legend>p{
   padding:0 12px 13px;font-size:.79rem;line-height:1.5;
  }
 }
+
+
+/* V3.4.4.22 — filtros avanzados plegables para listas largas, sin JavaScript obligatorio. */
+body.cmp-premium .cmp-rich-comparison .cmp-access-toolbar .cmp-advanced-filters{
+ width:100%;min-width:0;margin:1px 0;border:1px solid #d5e4f1;
+ border-radius:11px;background:#f9fcff;color:#274e70;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters>summary{
+ min-height:44px;display:list-item;cursor:pointer;padding:11px 14px;
+ line-height:1.45;font-size:.84rem;font-weight:750;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters>summary [data-advanced-summary]{
+ display:inline-block;margin-left:8px;color:#4b6b86;font-size:.77rem;font-weight:660;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters>summary:focus-visible{
+ outline:3px solid #6aa5d6;outline-offset:3px;border-radius:9px;
+}
+body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters[open]>.cmp-facet-group{
+ padding:0 12px 12px;margin:0;width:100%;max-width:100%;
+}
+@media(max-width:620px){
+ body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters>summary{
+  min-height:46px;padding:12px;font-size:.82rem;overflow-wrap:anywhere;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters>summary [data-advanced-summary]{
+  margin-left:6px;font-size:.75rem;
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters[open]>.cmp-facet-group{
+  padding:0 10px 12px;gap:9px;
+ }
+}
+@media(max-width:380px){
+ body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters[open]>.cmp-facet-group{
+  grid-template-columns:1fr;
+ }
+}
