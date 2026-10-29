@@ -392,3 +392,28 @@ document.addEventListener('DOMContentLoaded',()=>{
  });
  if(typeof window!=='undefined')window.addEventListener('hashchange',updateSharedOffer);
 })();
+
+
+/* V3.4.5.1 — selección CSV local para previsualización; sin peticiones ni importación. */
+document.addEventListener('change',event=>{
+ const input=event.target;
+ if(!input?.matches?.('[data-cmp-csv-file]'))return;
+ const form=input.closest('form');
+ const text=form?.querySelector?.('[data-cmp-csv-text]');
+ const feedback=form?.querySelector?.('[data-cmp-csv-feedback]');
+ const file=input.files?.[0];
+ if(!file||!text)return;
+ if(file.size>128*1024){
+  if(feedback)feedback.textContent='El CSV supera el máximo de 128 KB.';
+  input.value='';return;
+ }
+ if(feedback)feedback.textContent='Leyendo CSV local…';
+ file.text().then(contents=>{
+  // No sobrescribir el texto si el usuario cambió de archivo durante la lectura.
+  if(input.files?.[0]!==file)return;
+  text.value=contents;
+  if(feedback)feedback.textContent='CSV listo para comprobar. No se ha guardado ni importado ningún producto.';
+ }).catch(()=>{
+  if(feedback)feedback.textContent='No se pudo leer el CSV. Puedes pegar el texto manualmente.';
+ });
+});

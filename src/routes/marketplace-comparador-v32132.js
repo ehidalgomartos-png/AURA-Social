@@ -30,6 +30,7 @@ const {sellerProgress}=require('../services/marketplace-comparador-merchant-guid
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
 const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
+const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
 const {ensureProfessionalSchema}=require('./marketplace-professional-v3276');
@@ -1032,6 +1033,102 @@ router.get('/admin/comparador/comercios-seguimiento',requireAdmin,async(req,res,
   res.send(shell('Seguimiento de comercios | RedLibertad','Panel privado de seguimiento.',content,'/admin/comparador/comercios-seguimiento'));
  }catch(error){next(error);}
 });
+// V3.4.5.1 — preparación de catálogo: sólo lectura, sin importar o publicar productos.
+function catalogHub(store,token,report=null,error=''){
+ const id=esc(store.id),name=esc(store.name),approved=store.status==='approved';
+ const woo=approved&&store.platform==='woocommerce'?
+  '<a class="cmp-catalog-start" href="/comparar/comercios/woocommerce/'+id+'">Conectar WooCommerce con claves de solo lectura</a>':
+  '<p>'+(store.platform==='woocommerce'?'La conexión WooCommerce se habilita después de aprobar la tienda.':
+   'Si no utilizas WooCommerce, podrás preparar un CSV para revisión.')+'</p>';
+ const summary=report?'<div class="cmp-catalog-preview" role="status"><h2>Resultado de la previsualización</h2>'+
+  '<p>'+report.counts.total+' filas · '+report.counts.ready+' preparadas · '+report.counts.invalid+
+  ' con errores · '+report.counts.duplicate+' repetidas dentro del CSV · '+
+  report.counts.skipped+' omitidas por tipo de producto</p>'+
+  '<p>Esta comprobación no guarda el catálogo ni comprueba duplicados de importaciones anteriores. '+ 
+  'Una importación real requiere confirmación y revisión posteriores.</p>'+
+  '<ol class="cmp-catalog-preview-items">'+report.items.map(item=>
+   '<li><strong>Fila '+item.line+' · '+esc(item.title||'Sin título')+'</strong> '+
+   '<span>'+esc(({pending:'Preparada',invalid:'Revisar',duplicate:'Duplicada',skipped:'Omitida'})[item.state]||'Revisar')+'</span>'+
+   (item.reason?'<small>'+esc(item.reason)+'</small>':'')+
+   item.warnings.map(w=>'<small>'+esc(w)+'</small>').join('')+'</li>').join('')+'</ol>'+
+  (report.truncated?'<p>Mostrando las primeras 25 filas; los totales incluyen todo el archivo.</p>':'')+
+  '</div>':'';
+ const html='<div class="cmp-commerce-intro cmp-catalog-onboarding">'+
+  '<p class="crumb"><a href="/comparar/comercios/mi-panel">Mis tiendas</a> / Preparar catálogo</p>'+
+  '<span class="cmp-section-eyebrow">Área privada · Sin publicación automática</span>'+
+  '<h1>Prepara el catálogo de '+name+'</h1>'+
+  '<p>Elige cómo organizar los productos antes de solicitar su incorporación al comparador. '+
+  'La revisión de productos y la autorización de enlaces de compra siguen siendo manuales.</p>'+
+  '<div class="cmp-catalog-paths"><section><h2>WooCommerce</h2><p>Para comercios aprobados: conecta una cuenta API con permisos de lectura. '+
+  'La conexión no activa sincronizaciones, compras ni importaciones.</p>'+woo+'</section>'+
+  '<section><h2>CSV de WooCommerce</h2><p>Valida una exportación con productos, precios y fotografías '+
+  'sin guardar ni publicar nada. Se admiten hasta 250 filas y '+Math.floor(MAX_PREVIEW_BYTES/1024)+' KB para esta comprobación.</p>'+
+  '<a class="cmp-catalog-start" href="#validar-catalogo">Previsualizar mi CSV</a></section></div>'+
+  '<section id="validar-catalogo" class="cmp-catalog-form-panel"><h2>Comprobar CSV sin importar</h2>'+
+  '<p>Exporta tus productos en WooCommerce. Incluye SKU o ID, nombre, descripción, precio, categoría y URL HTTPS de imagen. '+
+  'Las variaciones necesitan su producto padre en el mismo CSV. Esta prueba no solicita claves.</p>'+
+  (error?'<p class="cmp-catalog-error" role="alert">'+esc(error)+'</p>':'')+
+  '<form class="compare-search cmp-catalog-form" method="post" action="/comparar/comercios/catalogo/'+id+'/validar-csv">'+
+  '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+
+  '<label for="cmpCsvFile">Seleccionar CSV local</label>'+
+  '<input id="cmpCsvFile" type="file" accept=".csv,text/csv" data-cmp-csv-file aria-describedby="cmp-csv-help">'+
+  '<small id="cmp-csv-help">El archivo se lee en tu navegador, sin enviarlo hasta que pulses Comprobar CSV.</small>'+
+  '<label for="cmpCsvText">Contenido CSV</label>'+
+  '<textarea id="cmpCsvText" name="csvText" rows="5" maxlength="131072" required placeholder="También puedes pegar aquí tu CSV" data-cmp-csv-text></textarea>'+
+  '<p class="cmp-csv-feedback" data-cmp-csv-feedback role="status" aria-live="polite"></p>'+
+  '<button type="submit">Comprobar CSV sin guardar</button></form>'+summary+
+  '<p class="cmp-catalog-note">Previsualizar no importa productos a esta tienda. '+
+  'Los duplicados con catálogos importados anteriormente se comprueban en la importación definitiva. '+
+  'Ningún producto se publica ni se activa una compra al usar esta pantalla.</p></section>'+
+  '<nav class="cmp-section-subnav"><a href="/comparar/comercios/mi-panel">Volver a mis tiendas</a>'+
+  '<a href="/comparar/comercios">Solicitar otra tienda</a></nav></div>';
+ return shell('Preparar catálogo de tienda | RedLibertad','Previsualización privada de importación de productos.',html,
+  '/comparar/comercios/catalogo/'+id);
+}
+async function catalogStore(req,res){
+ const id=String(req.params.id||'');
+ if(!/^[1-9]\d{0,15}$/.test(id)){res.sendStatus(400);return null;}
+ const result=await db.query('SELECT id,name,platform,status,store_url FROM marketplace_professional_stores WHERE id=$1 AND seller_id=$2',
+  [id,req.user.id]);
+ if(!result.rowCount){res.sendStatus(404);return null;}
+ return result.rows[0];
+}
+router.get('/comparar/comercios/catalogo/:id',requireAuth,async(req,res,next)=>{
+ try{
+  const store=await catalogStore(req,res);if(!store)return;
+  const token=issueCsrf(req,res);
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(catalogHub(store,token));
+ }catch(error){next(error);}
+});
+router.post('/comparar/comercios/catalogo/:id/validar-csv',requireAuth,
+ rateLimit({windowMs:60*60*1000,limit:10,standardHeaders:'draft-7',legacyHeaders:false}),
+ async(req,res,next)=>{
+ try{
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  if(!validCsrf(req))return res.status(403).send('Formulario caducado. Recarga la página.');
+  const store=await catalogStore(req,res);if(!store)return;
+  const token=issueCsrf(req,res);
+  let report=null,error='',status=200;
+  try{report=previewCsv(req.body?.csvText);}
+  catch(err){
+   status=400;
+   const codes={
+    csv_too_large:'El CSV supera el límite de 128 KB.',
+    csv_empty:'El archivo está vacío.',
+    csv_invalid_header:'La cabecera del CSV no es válida.',
+    csv_not_woocommerce:'El CSV no tiene las columnas de un catálogo WooCommerce.',
+    csv_too_many_rows:'La previsualización admite hasta 250 filas.',
+    csv_unclosed_quote:'El CSV contiene comillas sin cerrar.',
+    csv_no_products:'El CSV debe incluir al menos un producto.',
+    csv_invalid_encoding:'El archivo contiene caracteres no válidos.',
+    csv_field_too_long:'Una columna excede el tamaño admitido.'
+   };
+   error=codes[err.message]||'No se pudo leer este CSV. Comprueba su formato y vuelve a intentarlo.';
+  }
+  res.status(status).send(catalogHub(store,token,report,error));
+ }catch(error){next(error);}
+});
 router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
  try{
   await ensureProfessionalSchema();
@@ -1064,7 +1161,7 @@ router.get('/comparar/comercios/mi-panel',requireAuth,async(req,res,next)=>{
     '<span>'+esc(info.label)+' · '+esc(store.platform)+'</span>'+
     '<span>'+info.linked+' productos vinculados · '+info.available+' con existencias aptas</span>'+
     '<p>'+esc(info.next)+'</p>'+verification+
-    (store.status==='approved'&&store.platform==='woocommerce'?'<p><a href="/comparar/comercios/woocommerce/'+esc(store.id)+'">Conectar WooCommerce con claves de lectura</a></p>':'')+
+    '<p><a href="/comparar/comercios/catalogo/'+esc(store.id)+'">Preparar catálogo: WooCommerce y CSV</a></p>'+
     (info.linked?'<p><a href="/comparar/comercios/productos/'+esc(store.id)+'">Ver diagnóstico de mis productos</a></p>':'')+'</li>';
   }).join('');
   const content='<div class="cmp-commerce-intro cmp-dashboard-page"><span class="cmp-section-eyebrow">Área privada de comercios</span><h1>Mis tiendas del comparador</h1>'+
