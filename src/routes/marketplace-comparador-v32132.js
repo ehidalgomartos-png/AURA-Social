@@ -36,6 +36,7 @@ const merchantGrowth=require('../services/marketplace-comparador-merchant-growth
 const failureReport=require('../services/marketplace-comparador-failures-v34572');
 const budgetInfo=require('../services/marketplace-comparador-budget-info-v34574');
 const seoPriorities=require('../services/marketplace-comparador-seo-priorities-v3460');
+const mediaAudit=require('../services/marketplace-comparador-media-link-audit-v3461');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
@@ -404,20 +405,26 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   const state=p.seo_blocked?'bloqueadas':eligible?'aptas':'pendientes';
   const discovered=seo.discovery.evaluate(p,matching);
   const plan=seoPriorities.plan(p,matching,eligible,discovered);
-  return {p,evaluation,eligible,state,matching,discovered,plan};
+  const audit=mediaAudit.summary(p);
+  return {p,evaluation,eligible,state,matching,discovered,plan,audit};
  });
- const states=['todas','prioritarias','aptas','pendientes','bloqueadas'];
+ const states=['todas','prioritarias','sin-foto','sin-enlace','aptas','pendientes','bloqueadas'];
  const chosen=states.includes(filter)?filter:'todas';
  const prioritized=seoPriorities.queue(prepared);
- const counts={todas:prepared.length,prioritarias:prioritized.priorityCount,aptas:0,pendientes:0,bloqueadas:0};
+ const audited=mediaAudit.queue(prepared);
+ const counts={todas:prepared.length,prioritarias:prioritized.priorityCount,
+  'sin-foto':audited.counts['sin-foto'],'sin-enlace':audited.counts['sin-enlace'],
+  aptas:0,pendientes:0,bloqueadas:0};
  for(const item of prepared)counts[item.state]++;
  const chips=[
-  ['todas','Todas'],['prioritarias','Prioritarias'],['aptas','Aptas'],['pendientes','Por mejorar'],['bloqueadas','Bloqueadas']
+  ['todas','Todas'],['prioritarias','Prioritarias'],['sin-foto','Sin foto fiable'],
+  ['sin-enlace','Sin enlace directo'],['aptas','Aptas'],['pendientes','Por mejorar'],['bloqueadas','Bloqueadas']
  ].map(([key,label])=>'<a class="seo-filter'+(key===chosen?' is-active':'')+'" href="/admin/comparador?estado='+key+'">'+
    esc(label)+' <span>'+counts[key]+'</span></a>').join('');
  const visible=seoPriorities.queue(prepared,chosen).rows.filter(x=>
-  chosen==='todas'||chosen==='prioritarias'||x.state===chosen);
- const cards=visible.map(({p,evaluation,eligible,state,matching,discovered,plan})=>{
+  chosen==='todas'||chosen==='prioritarias'||chosen==='sin-foto'&&x.audit.noPhoto||
+  chosen==='sin-enlace'&&x.audit.noDirect||x.state===chosen);
+ const cards=visible.map(({p,evaluation,eligible,state,matching,discovered,plan,audit})=>{
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
   const suggestion=seoRefinementSuggestions(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
@@ -448,6 +455,12 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
    '<span class="seo-admin-chip seo-admin-chip-'+state+'">'+
    (state==='aptas'?'Apta para Google':state==='bloqueadas'?'Bloqueada':'Por mejorar')+'</span></div>'+
    '<p class="seo-admin-reason">'+esc(reason)+'</p><p class="seo-admin-detail">'+esc(info)+'</p>'+
+   '<div class="seo-media-audit"><strong>Fotografías y enlaces</strong>'+
+   '<p>Fotos verificadas: '+audit.photoCount+' · Candidatas a revisión: '+audit.candidateCount+
+   ' · Enlaces directos: '+audit.directCount+' de '+audit.total+' ofertas coincidentes</p>'+
+   '<p>'+esc(audit.photoAction)+'</p><p>'+esc(audit.linkAction)+'</p>'+
+   '<a href="/admin/comparador/fotos/'+esc(p.slug)+'">Revisar imágenes</a>'+
+   '<span aria-hidden="true"> · </span><a href="#seo-links-'+id+'">Revisar enlaces</a></div>'+
    '<section class="seo-next-action" aria-label="Siguiente mejora SEO"><strong>Qué hacer ahora: '+esc(plan.title)+'</strong>'+
    '<p>'+esc(plan.action)+'</p><small>'+plan.sellerCount+' tiendas distintas · '+plan.directCount+
    ' enlaces HTTPS guardados · '+plan.offerCount+' ofertas coincidentes. Son datos guardados, no un análisis en directo.</small></section>'+links+
@@ -458,7 +471,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
    '<label for="seo-summary-'+id+'">Comentario original (mínimo 80 caracteres)</label>'+
    '<textarea id="seo-summary-'+id+'" name="summary" rows="4" maxlength="2000" minlength="80" placeholder="Aporta información propia y útil sobre este modelo.">'+esc(p.editorial_summary||'')+'</textarea>'+
    '<button type="submit" name="action" value="approve" class="seo-btn seo-btn-primary">Aprobar con comentario</button></form>'+
-   '</details></div><p><a href="/admin/comparador/fotos/'+esc(p.slug)+'">Revisar fotografía principal</a></p>'+linkDiagnosticsMarkup(p,merchantCache,quota,manualCache,token)+'</li>';
+   '</details></div><div id="seo-links-'+id+'">'+linkDiagnosticsMarkup(p,merchantCache,quota,manualCache,token)+'</div></li>';
  }).join('');
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+

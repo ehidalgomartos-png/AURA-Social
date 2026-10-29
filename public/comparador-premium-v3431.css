@@ -1762,3 +1762,22 @@ body.cmp-premium .seo-next-action small{
  body.cmp-premium .seo-next-action{padding:12px}
  body.cmp-premium .seo-admin-filters{flex-wrap:wrap;gap:7px}
 }
+
+/* V3.4.6.1 — inventario de fotos y enlaces sin consultas externas. */
+body.cmp-premium .seo-media-audit{
+ margin:12px 0 15px;padding:13px 14px;border-radius:12px;
+ background:#f7f9fc;border:1px solid #d4e2ed;color:#375b78;
+}
+body.cmp-premium .seo-media-audit>strong{font-size:.86rem;color:#193f5e}
+body.cmp-premium .seo-media-audit p{
+ margin:8px 0;font-size:.8rem;line-height:1.52;
+}
+body.cmp-premium .seo-media-audit a{
+ font-size:.8rem;font-weight:760;color:#145c92;text-underline-offset:3px;
+}
+body.cmp-premium .seo-media-audit a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
+body.cmp-premium [id^="seo-links-"]{scroll-margin-top:20px}
+@media(max-width:550px){
+ body.cmp-premium .seo-media-audit{padding:12px}
+ body.cmp-premium .seo-media-audit a{display:inline-flex;min-height:40px;align-items:center}
+}
