@@ -285,6 +285,25 @@ document.addEventListener('click',async event=>{
  inform('No se ha podido copiar. Mantén pulsado el enlace para copiarlo.');
 });
 
+/* V3.4.4.20 — si la foto remota falla, mantener la tarjeta estable.
+   Fallback local sin imagen adicional, consultas de pago ni datos de terceros. */
+function replaceFailedComparisonImage(photo){
+ if(!photo?.matches?.('img.offer-photo')||!photo.closest?.('.comparison-list'))return;
+ const fallback=document.createElement('div');
+ fallback.className='offer-noimage';
+ fallback.setAttribute('aria-hidden','true');
+ fallback.textContent='Sin fotografía';
+ photo.replaceWith?.(fallback);
+}
+document.addEventListener('error',event=>{
+ replaceFailedComparisonImage(event.target);
+},true);
+document.addEventListener('DOMContentLoaded',()=>{
+ for(const photo of document.querySelectorAll?.('.comparison-list img.offer-photo')||[]){
+  if(photo.complete&&photo.naturalWidth===0)replaceFailedComparisonImage(photo);
+ }
+});
+
 /* V3.4.4.15 — Enlaces compartidos: avisar si una oferta ya no está disponible.
    El realce de una tarjeta existente funciona con CSS incluso sin JavaScript. */
 (()=>{
@@ -364,23 +383,3 @@ document.addEventListener('click',async event=>{
  });
  if(typeof window!=='undefined')window.addEventListener('hashchange',updateSharedOffer);
 })();
-
-
-/* V3.4.4.20 — si la foto remota falla, mantener la tarjeta estable.
-   Fallback local sin imagen adicional, consultas de pago ni datos de terceros. */
-function replaceFailedComparisonImage(photo){
- if(!photo?.matches?.('img.offer-photo')||!photo.closest?.('.comparison-list'))return;
- const fallback=document.createElement('div');
- fallback.className='offer-noimage';
- fallback.setAttribute('aria-hidden','true');
- fallback.textContent='Sin fotografía';
- photo.replaceWith?.(fallback);
-}
-document.addEventListener('error',event=>{
- replaceFailedComparisonImage(event.target);
-},true);
-document.addEventListener('DOMContentLoaded',()=>{
- for(const photo of document.querySelectorAll?.('.comparison-list img.offer-photo')||[]){
-  if(photo.complete&&photo.naturalWidth===0)replaceFailedComparisonImage(photo);
- }
-});
