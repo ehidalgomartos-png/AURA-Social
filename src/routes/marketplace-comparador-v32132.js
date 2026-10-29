@@ -407,7 +407,8 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
   const suggestion=seoRefinementSuggestions(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
-   eligible?(evaluation.eligible?'Modelo y ofertas válidos para SEO automático':'Aprobación editorial vigente'):
+   eligible?(evaluation.eligible?'Modelo y ofertas válidos para SEO automático':
+    (p.index_approved?'Aprobación editorial vigente':'Ficha válida conservada temporalmente; precios pendientes de actualización')):
    evaluation.reason;
   const info=eligible?'Preparada para indexación; Google decide si la indexa.':
    p.seo_blocked?'Puedes volver a permitir el SEO cuando quieras.':
@@ -1525,7 +1526,7 @@ router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
   const result=await db.query(
    "SELECT slug,query_text,index_approved,seo_blocked,editorial_summary,external_results,provider_status,last_checked_at,updated_at "+
    "FROM marketplace_compare_pages WHERE seo_blocked=false AND provider_status='ok' "+
-   "AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 "+
+   "AND last_checked_at>now()-interval '7 days' AND jsonb_array_length(external_results)>=2 "+
    "ORDER BY updated_at DESC LIMIT 2000"
   );
   const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>'];
