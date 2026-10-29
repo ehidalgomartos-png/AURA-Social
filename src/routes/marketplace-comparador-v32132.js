@@ -368,6 +368,14 @@ function landingHubMarkup(){
   '<li>Confirma precio final, envío, garantía y disponibilidad con el vendedor antes de comprar.</li></ol>'+
   '<a href="/comparar">Ir a buscar un producto</a></section></div>';
 }
+
+function comparisonTopicMarkup(query){
+ const guide=landingPages.PAGES.find(p=>landingPages.matches(p,{query_text:query}));
+ if(!guide)return '';
+ return '<aside class="cmp-contextual-guide" aria-label="Guía de compra relacionada">'+
+  '<span>Antes de elegir una oferta</span><a href="'+landingPages.pathFor(guide.slug)+'">'+
+  esc(guide.title)+'</a><small>'+esc(guide.subtitle)+'</small></aside>';
+}
 function landingPageMarkup(page,comparisons){
  const path=landingPages.pathFor(page.slug);
  const items=page.checks.map(([heading,detail])=>
@@ -1947,7 +1955,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const content='<div class="cmp-rich-comparison"><p class="crumb"><a href="/marketplace/explorar">Marketplace</a> / <a href="/comparar">Comparador</a></p>'+
    '<h1 class="cmp-detail-page-title">Comparador de precios</h1>'+
    '<p class="cmp-page-subtitle">Compara tiendas y comprueba el estado antes de comprar.</p>'+
-   richHero+categoryGuide+
+   comparisonTopicMarkup(page.query_text)+richHero+categoryGuide+
    '<details class="cmp-change-search"'+(!ordinary.length&&!pending?' id="cambiar-producto" open':'')+'><summary>Cambiar de producto</summary>'+formMarkup('',page.query_text,csrfToken)+'</details>'+
    (approved&&(factualSummary||page.editorial_summary)?'<section class="info"><h2>Comparación de precios</h2><p>'+esc(factualSummary||page.editorial_summary)+'</p></section>':'')+
    '<div data-comparison-status-wrapper>'+status+'</div>'+results+
