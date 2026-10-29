@@ -91,7 +91,8 @@ function asusEvidence(offers){
   identified++;
  }
  const prices=clean.map(o=>o.price_cents);
- const coherent=prices.length>=4&&Math.max(...prices)/Math.min(...prices)<=8;
+ const coherent=prices.length>=3&&clean.length===(Array.isArray(offers)?offers.length:0)&&
+  Math.max(...prices)/Math.min(...prices)<=8;
  const eligible=coherent&&identified===clean.length&&shops.size>=3&&lines.size>=2;
  return {eligible,reason:eligible?'Familia ASUS de distintos modelos':
   !coherent?'Precios o número de ofertas incoherentes para una familia ASUS':
