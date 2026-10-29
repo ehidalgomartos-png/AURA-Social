@@ -31,6 +31,7 @@ const {sellerProgress}=require('../services/marketplace-comparador-merchant-guid
 const merchantWoo=require('../services/marketplace-woocommerce-v3277');
 const catalogDiagnostics=require('../services/marketplace-comparador-catalog-diagnostics-v3429');
 const adminQuality=require('../services/marketplace-comparador-admin-quality-v34427');
+const adminMerchants=require('../services/marketplace-comparador-admin-merchants-v3453');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
 const {PLATFORMS,normalizeStoreUrl}=require('../services/marketplace-professional-v3276');
@@ -442,7 +443,8 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
  return '<div class="seo-admin">'+
   '<p class="crumb"><a href="/comparar">Comparador</a> / Administración</p>'+
   '<div class="seo-admin-intro"><h1>SEO del comparador</h1><p>Consulta qué páginas están listas y cuáles necesitan mejoras.</p>'+ 
-  '<p><a class="cmp-audit-entry" href="/admin/comparador/diagnostico">Ver diagnóstico de calidad de las comparaciones</a></p></div>'+
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/diagnostico">Ver diagnóstico de calidad de las comparaciones</a></p>'+
+  '<p><a class="cmp-audit-entry" href="/admin/comparador/comercios-panel">Supervisar solicitudes y catálogos de comercios</a></p></div>'+
   (quota?'<section class="seo-quota-panel" aria-labelledby="seo-quota-title"><h2 id="seo-quota-title">Consultas del comparador</h2>'+
    '<div class="seo-quota-numbers"><p><strong>'+Number(quota.dailyUsed||0)+' / '+Number(quota.daily)+'</strong><span>Hoy</span></p>'+
    '<p><strong>'+Number(quota.monthlyUsed||0)+' / '+Number(quota.monthly)+'</strong><span>Este mes</span></p></div>'+
@@ -1016,6 +1018,84 @@ router.get('/comparar/comercios/estadisticas/:id',requireAuth,async(req,res,next
   res.send(shell('Estadísticas de comercio | RedLibertad',
    'Estadísticas privadas de clics registrados en el comparador.',html,
    '/comparar/comercios/estadisticas/'+esc(id)));
+ }catch(error){next(error);}
+});
+// V3.4.5.3 — una vista de administración para solicitudes y calidad de catálogos.
+// Solo una SELECT de la muestra reciente. La revisión y las aprobaciones mantienen su flujo actual.
+router.get('/admin/comparador/comercios-panel',requireAdmin,async(req,res,next)=>{
+ try{
+  const data=await db.query(
+   "SELECT s.id,s.name,s.status,s.platform,s.purchase_enabled,u.username,"+
+   "COALESCE(p.linked_count,0)::integer AS linked_count,"+
+   "COALESCE(p.available_count,0)::integer AS available_count,"+
+   "COALESCE(p.stale_api_count,0)::integer AS stale_api_count,"+
+   "COALESCE(p.no_stock_count,0)::integer AS no_stock_count,"+
+   "COALESCE(w.connected,false) AS connected,COALESCE(w.sync_enabled,false) AS sync_enabled "+
+   "FROM marketplace_professional_stores s "+
+   "JOIN users u ON u.id=s.seller_id "+
+   "LEFT JOIN LATERAL (SELECT "+
+   "COUNT(x.listing_id) AS linked_count,"+
+   "COUNT(x.listing_id) FILTER (WHERE s.status='approved' AND s.purchase_enabled=true "+
+   "AND x.stock_status='in_stock' AND (x.source<>'api' OR x.last_checked_at>now()-interval '48 hours') "+
+   "AND l.kind='product' AND l.deal='sale' AND l.status='active' AND l.moderation_status='published') AS available_count,"+
+   "COUNT(x.listing_id) FILTER (WHERE x.source='api' AND (x.last_checked_at IS NULL "+
+   "OR x.last_checked_at<=now()-interval '48 hours')) AS stale_api_count,"+
+   "COUNT(x.listing_id) FILTER (WHERE x.stock_status='out_of_stock') AS no_stock_count "+
+   "FROM marketplace_external_products x "+
+   "LEFT JOIN marketplace_listings l ON l.id=x.listing_id AND l.seller_id=x.seller_id "+
+   "WHERE x.store_id=s.id AND x.seller_id=s.seller_id) p ON true "+
+   "LEFT JOIN LATERAL (SELECT COALESCE(BOOL_OR(c.credentials_encrypted IS NOT NULL),false) AS connected,"+
+   "COALESCE(BOOL_OR(c.sync_enabled),false) AS sync_enabled "+
+   "FROM marketplace_woocommerce_connections c WHERE c.store_id=s.id) w ON true "+
+   "ORDER BY s.created_at DESC,s.id DESC LIMIT 80"
+  );
+  const report=adminMerchants.summarize(data.rows);
+  const filters=['todas','pendientes','aprobadas','incidencias','suspendidas'];
+  const chosen=filters.includes(req.query?.estado)?req.query.estado:'todas';
+  const selected=report.items.filter(item=>chosen==='todas'||
+   (chosen==='pendientes'&&item.status==='pending')||
+   (chosen==='aprobadas'&&item.status==='approved')||
+   (chosen==='incidencias'&&item.attention)||
+   (chosen==='suspendidas'&&item.status==='suspended'));
+  const tabs=[['todas','Todas',report.counts.sampled],['pendientes','Pendientes',report.counts.pending],
+   ['aprobadas','Aprobadas',report.counts.approved],['incidencias','Con incidencias',report.counts.attention],
+   ['suspendidas','Suspendidas',report.counts.suspended]]
+   .map(([key,label,count])=>'<a href="/admin/comparador/comercios-panel?estado='+key+'"'+
+    (chosen===key?' aria-current="page"':'')+'>'+esc(label)+' ('+count+')</a>').join('');
+  const cards=selected.map(item=>{
+   const issues=item.reasons.length?
+    '<ul class="cmp-merchant-admin-issues">'+item.reasons.map(reason=>'<li>'+esc(reason)+'</li>').join('')+'</ul>':
+    '<p class="cmp-merchant-admin-ok">Sin incidencias detectadas con estas reglas. No se confirma stock en tiempo real.</p>';
+   return '<li class="cmp-merchant-admin-card"><div class="cmp-merchant-admin-card-top"><h2>'+
+    esc(item.name)+'</h2><span>'+esc(item.status)+'</span></div>'+
+    '<p class="cmp-merchant-admin-meta">Cuenta: '+esc(item.username)+' · Plataforma: '+esc(item.platform)+
+    ' · Compras externas: '+(item.purchasing?'Habilitadas':'No habilitadas')+'</p>'+
+    '<p class="cmp-merchant-admin-facts">'+item.linked+' productos vinculados · '+
+    item.available+' aptos para compra externa · '+item.stale+' API desactualizados · '+
+    item.noStock+' declarados sin existencias</p>'+issues+'</li>';
+  }).join('');
+  const summary='<div class="cmp-merchant-admin-metrics">'+
+   [['sampled','Comercios revisados'],['pending','Solicitudes pendientes'],
+    ['attention','Con incidencias'],['stale','Con sincronización atrasada']]
+    .map(([key,label])=>'<div><strong>'+report.counts[key]+'</strong><span>'+label+'</span></div>').join('')+
+   '</div>';
+  const html='<div class="cmp-merchant-admin"><p class="crumb"><a href="/admin/comparador">Administración del comparador</a> / Comercios</p>'+
+   '<h1>Administración de comercios</h1><p>Supervisión de una muestra de hasta 80 tiendas recientes. '+
+   'Estas cifras no son totales históricos ni confirman precios o disponibilidad en tiempo real. '+
+   'La aprobación, la conexión de catálogos y las compras siguen sus controles habituales.</p>'+summary+
+   '<nav class="cmp-merchant-admin-tabs" aria-label="Filtrar comercios">'+tabs+'</nav>'+
+   (cards?'<ol class="cmp-merchant-admin-list">'+cards+'</ol>':
+    '<p class="cmp-merchant-admin-empty">No hay comercios en este filtro de la muestra.</p>')+
+   '<nav class="cmp-section-subnav" aria-label="Herramientas del administrador">'+
+   '<a href="/admin/comparador/comercios-estadisticas">Estadísticas agregadas de clics (JSON)</a>'+
+   '<a href="/admin/comparador/diagnostico">Calidad de las comparaciones</a>'+
+   '<a href="/admin/comparador">Administración SEO</a></nav>'+
+   '<p class="cmp-merchant-admin-note">Panel de diagnóstico sin acciones de modificación. '+
+   'Una tienda pendiente no se aprueba desde esta pantalla y la ausencia de enlace directo no demuestra falta de stock.</p></div>';
+  res.set('Cache-Control','private,no-store');res.set('X-Robots-Tag','noindex,nofollow');
+  res.send(shell('Administración de comercios | RedLibertad',
+   'Supervisión privada de solicitudes y calidad de catálogos.',html,
+   '/admin/comparador/comercios-panel'));
  }catch(error){next(error);}
 });
 router.get('/admin/comparador/comercios-estadisticas',requireAdmin,async(req,res,next)=>{
