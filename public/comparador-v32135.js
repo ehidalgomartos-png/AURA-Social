@@ -209,12 +209,13 @@ function applyComparisonFilters(toolbar){
   jump.hidden=!firstVisible;
   if(firstVisible)jump.setAttribute('href','#'+firstVisible.id);
  }
+ // Sin red: mantener coherente el aviso de una oferta compartida al cambiar filtros.
+ if(typeof document.dispatchEvent==='function' && typeof Event==='function')
+  document.dispatchEvent(new Event('comparison:filters-updated'));
 }
 // V3.4.4.10: resumen del mínimo VISIBLE sin alterar el precio general de la ficha.
-document.addEventListener('click',event=>{
- const reset=event.target?.closest?.('[data-clear-comparison-filters]');
- if(!reset)return;
- const toolbar=reset.closest('[data-direct-filter]');
+// V3.4.4.18: compartir un restablecimiento local para los filtros y las ofertas enlazadas.
+function resetComparisonFilters(toolbar){
  if(!toolbar)return;
  toolbar.dataset.activeAccess='all';
  for(const option of toolbar.querySelectorAll('[data-access-choice]'))
@@ -222,6 +223,11 @@ document.addEventListener('click',event=>{
  for(const filter of toolbar.querySelectorAll('[data-condition-filter],[data-capacity-filter]'))
   filter.value='all';
  applyComparisonFilters(toolbar);
+}
+document.addEventListener('click',event=>{
+ const reset=event.target?.closest?.('[data-clear-comparison-filters]');
+ if(!reset)return;
+ resetComparisonFilters(reset.closest('[data-direct-filter]'));
 });
 document.addEventListener('click',event=>{
  const button=event.target?.closest?.('[data-access-choice]');
@@ -295,6 +301,28 @@ document.addEventListener('click',async event=>{
   const present=card?.matches?.('li.offer') &&
    Boolean(card.closest?.('[data-primary-offers]'));
   if(present){
+   if(card.hidden){
+    // El filtro no borra la oferta: ofrecer mostrarla antes de afirmar que falta.
+    if(!notice){
+     notice=document.createElement('p');
+     notice.className='cmp-shared-offer-notice';
+     notice.setAttribute('role','status');
+     notice.setAttribute('data-shared-offer-notice','');
+     results.insertBefore(notice,results.firstChild);
+    }
+    notice.textContent='Esta oferta compartida está oculta por los filtros actuales. ';
+    const toolbar=results.querySelector?.('[data-direct-filter]');
+    if(toolbar){
+     const reveal=document.createElement('button');
+     reveal.type='button';
+     reveal.className='cmp-shared-offer-reveal';
+     reveal.setAttribute('data-reveal-shared-offer','');
+     reveal.textContent='Mostrar esta oferta';
+     notice.appendChild(reveal);
+    }
+    notice.hidden=false;
+    return;
+   }
    if(notice)notice.hidden=true;
    // Si la tarjeta acaba de llegar con un refresco, recuperar el destino del enlace.
    if(event?.type==='comparison:results-updated')card.scrollIntoView?.({block:'center',behavior:'auto'});
@@ -318,5 +346,21 @@ document.addEventListener('click',async event=>{
  };
  document.addEventListener('DOMContentLoaded',updateSharedOffer);
  document.addEventListener('comparison:results-updated',updateSharedOffer);
+ document.addEventListener('comparison:filters-updated',updateSharedOffer);
+ document.addEventListener('click',event=>{
+  const trigger=event.target?.closest?.('[data-reveal-shared-offer]');
+  if(!trigger||!/^#oferta-[a-f0-9]{64}$/.test(location.hash))return;
+  const results=document.querySelector('[data-comparison-results]');
+  const card=document.getElementById(location.hash.slice(1));
+  if(!card?.matches?.('li.offer')||!card.closest?.('[data-primary-offers]')||!card.hidden)return;
+  const toolbar=results?.querySelector?.('[data-direct-filter]');
+  if(!toolbar)return;
+  resetComparisonFilters(toolbar);
+  if(card.hidden)return;
+  updateSharedOffer();
+  card.scrollIntoView?.({block:'center',behavior:'auto'});
+  // El acceso al vendedor conserva su destino y el teclado puede continuar desde la tarjeta.
+  card.querySelector?.('a.offer-link')?.focus?.({preventScroll:true});
+ });
  if(typeof window!=='undefined')window.addEventListener('hashchange',updateSharedOffer);
 })();
