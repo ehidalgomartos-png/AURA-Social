@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.21 clear comparison prices and commercial destinations
+        run: node --test tests/marketplace-comparador-guia-precios-v34421.test.js
       - name: V3.4.4.20 resilient product images and placeholders
         run: node --test tests/marketplace-comparador-imagenes-estables-v34420.test.js
       - name: V3.4.4.19 professional offer card hierarchy and mobile actions
