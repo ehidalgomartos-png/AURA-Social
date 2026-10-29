@@ -306,13 +306,13 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  // No confundir «0 ofertas» con fallo técnico ni fabricar precios.
  const success=data?.search_metadata?.status==='Success';
  const hasResults=Array.isArray(data?.shopping_results)||Array.isArray(data?.inline_shopping_results);
- const noResults=/\\b(?:no results|fully empty|hasn.t returned any results|sin resultados)\\b/i.test(
+ const noResults=/\b(?:no results|fully empty|hasn.t returned any results|sin resultados)\b/i.test(
   String(data?.error||'')+' '+String(data?.search_information?.shopping_results_state||'')
  );
  if(success&&!hasResults&&noResults)return [];
  if(data?.error){
   const reason=String(data.error).toLowerCase();
-  const code=/\\b(?:invalid|incorrect|unauthorized|not valid)\\b.*\\b(?:api[_ -]?key|token)\\b|\\b(?:api[_ -]?key|token)\\b.*\\b(?:invalid|incorrect|unauthorized|not valid)\\b/.test(reason)?'provider_invalid_key':
+  const code=/\b(?:invalid|incorrect|unauthorized|not valid)\b.*\b(?:api[_ -]?key|token)\b|\b(?:api[_ -]?key|token)\b.*\b(?:invalid|incorrect|unauthorized|not valid)\b/.test(reason)?'provider_invalid_key':
    /(?:monthly|credits|quota|plan|searches).*?(?:limit|exhaust|reached)|(?:limit|exhaust|reached).*?(?:monthly|credits|quota|plan|searches)/.test(reason)?'provider_remote_quota':
    /rate.?limit|too many requests/.test(reason)?'provider_rate_limit':'provider_error';
   throw new Error(code);
