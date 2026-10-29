@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.5.8 selective SEO indexing for real comparable families and exact models
+        run: node --test tests/marketplace-comparador-seo-descubrimiento-v3458.test.js
       - name: V3.4.5.7.4 revised daily quota, monthly reserve and admin explanation
         run: node --test tests/marketplace-comparador-presupuesto-diario-v34574.test.js
       - name: V3.4.5.7.3 Google Shopping slow replies and explicit retry safeguards
