@@ -1716,3 +1716,29 @@ body.cmp-premium .seo-quota-panel .seo-quota-remaining strong{
  font-variant-numeric:tabular-nums;color:#154f7a;
 }
 body.cmp-premium .seo-quota-panel small{display:block;line-height:1.5}
+
+/* V3.4.5.9 — imagen de categoría elegante con identidad de RedLibertad. */
+body.cmp-premium .cmp-recent-image img.cmp-illustration{
+ background:linear-gradient(145deg,#e9f4fa,#f7f9fc);
+ object-fit:contain;
+}
+body.cmp-premium .cmp-detail-image-placeholder{
+ background:linear-gradient(145deg,#edf5fb 0%,#f9f7fb 100%);
+}
+body.cmp-premium .cmp-detail-noimage img.cmp-illustration{
+ display:block;max-width:min(100%,180px);
+ width:160px;height:160px;object-fit:contain;margin-inline:auto;
+ filter:drop-shadow(0 8px 18px rgba(33,76,119,.09));
+}
+body.cmp-premium .cmp-detail-noimage small,
+body.cmp-premium .cmp-detail-image .cmp-detail-photo-source{
+ display:block;line-height:1.45;color:#5a748a;font-size:.77rem;
+}
+@media(max-width:550px){
+ body.cmp-premium .cmp-detail-noimage img.cmp-illustration{
+  width:134px;height:134px;
+ }
+ body.cmp-premium .cmp-recent-image img.cmp-illustration{
+  width:100%;height:100%;object-fit:contain;
+ }
+}
