@@ -20,7 +20,7 @@
    const status=doc.querySelector('[data-comparison-status]');
    if(!fresh||!status)return;
    // V3.4.4.17: conservar la selección local cuando llega un resultado nuevo.
-   // El HTML actualizado sigue viniendo del servidor; nunca reenvía filtros a SerpApi.
+   // El HTML actualizado sigue viniendo del servidor; no hace consultas nuevas.
    const previousToolbar=target.querySelector?.('[data-direct-filter]');
    const previousFilters=previousToolbar?{
     access:previousToolbar.dataset.activeAccess==='direct'?'direct':'all',
