@@ -68,10 +68,17 @@ test('no se inventa una categoría para búsquedas que no coinciden con guías r
  assert.doesNotMatch(r.html,/cmp-contextual-guide/);
 });
 test('todos los enlaces de guías son internos, escapados y no envían búsquedas externas',()=>{
+ const sampleByCategory={
+  moviles:'iphone 16 128 GB',portatiles:'portatil asus rog strix gaming',
+  consolas:'playstation 5 pro',zapatillas:'zapatillas skechers mujer',
+  'robots-aspiradores':'robot aspirador roborock s8',
+  auriculares:'auriculares Apple AirPods Pro',
+  smartwatches:'smartwatch samsung galaxy watch 7'
+ };
  for(const guide of landings.PAGES){
   const url=landings.pathFor(guide.slug);
   assert.match(url,/^\/comparar\/categorias\/[a-z0-9-]+$/);
-  assert.equal(landings.matches(guide,{query_text:guide.title}),true,guide.slug);
+  assert.equal(landings.matches(guide,{query_text:sampleByCategory[guide.slug]}),true,guide.slug);
  }
  const route=fs.readFileSync(path.join(__dirname,'../src/routes/marketplace-comparador-v32132.js'),'utf8');
  const css=fs.readFileSync(path.join(__dirname,'../public/comparador-premium-v3431.css'),'utf8');
