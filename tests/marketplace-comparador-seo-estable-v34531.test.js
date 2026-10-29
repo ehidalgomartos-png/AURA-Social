@@ -34,10 +34,11 @@ test('al superar siete días caduca el margen SEO, incluso si antes era válida'
 });
 test('nunca indexa mezclas de capacidades, modelos, estados ni comercios insuficientes',()=>{
  const p=page(54);
- assert.equal(seo.indexEligible(p,offers.slice(0,2)),false);
+ assert.equal(seo.indexEligible(p,offers.slice(0,1)),false);
+ assert.equal(seo.indexEligible(p,offers.slice(0,2)),true,'dos vendedores son suficientes para la nueva vía selectiva');
  assert.equal(seo.indexEligible(p,[offers[0],offers[1],offer('Tienda C',21000,'Apple iPhone 12 256 GB Negro')]),false);
  assert.equal(seo.indexEligible(p,[offers[0],offers[1],offer('Tienda C',21000,'Apple iPhone 12 128 GB Usado')]),false);
- assert.equal(seo.indexEligible(p,offers.map(o=>({...o,href:'https://google.com/search?q=iphone'}))),false);
+ assert.equal(seo.indexEligible(p,offers.map(o=>({...o,href:'javascript:alert(1)'}))),false);
  assert.equal(seo.indexEligible({...p,query_text:'samsung s26'},offers),false);
 });
 test('bloqueos editoriales y fallos del proveedor siguen prevaleciendo',()=>{
@@ -47,11 +48,13 @@ test('bloqueos editoriales y fallos del proveedor siguen prevaleciendo',()=>{
  assert.equal(seo.indexEligible({...p,last_checked_at:null},offers),false);
  assert.equal(seo.indexEligible({...p,last_checked_at:new Date(Date.now()+HOUR).toISOString()},offers),false);
 });
-test('la aprobación editorial vigente tiene margen limitado y exige resumen, modelo y dos tiendas',()=>{
+test('la aprobación editorial no sustituye ofertas reales; la vía nueva se basa en ellas',()=>{
  const summary='Análisis editorial original del modelo exacto, con capacidad y características identificadas. Consulta el precio real en el comercio y verifica la disponibilidad y las condiciones del envío antes de decidir tu compra.';
  const p=page(50,{index_approved:true,editorial_summary:summary});
  assert.equal(seo.indexEligible(p,offers.slice(0,2)),true);
- assert.equal(seo.indexEligible({...p,editorial_summary:'Sin información suficiente'},offers.slice(0,2)),false);
+ assert.equal(seo.indexEligible({...p,editorial_summary:'Sin información suficiente'},offers.slice(0,2)),true,
+  'la indexación basada en datos no exige un comentario editorial manual');
+ assert.equal(seo.indexEligible({...p,editorial_summary:'Sin información suficiente'},offers.slice(0,1)),false);
  assert.equal(seo.indexEligible(page(8*24,{index_approved:true,editorial_summary:summary}),offers.slice(0,2)),false);
 });
 test('el margen de indexación no genera Product ni precios enriquecidos obsoletos',()=>{
