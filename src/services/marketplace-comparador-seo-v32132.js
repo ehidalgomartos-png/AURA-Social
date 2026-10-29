@@ -32,7 +32,7 @@ function structuredData(page,offers,approved,canonical){
  const graph=[
   {'@type':'WebSite','@id':ORIGIN+'/#website',url:ORIGIN+'/',name:'RedLibertad',inLanguage:'es-ES'},
   {'@type':'WebPage','@id':url+'#webpage',url,name:page?'Comparar '+page.query_text+' | RedLibertad':'Comparador de precios | RedLibertad',
-   description:page?.editorial_summary||auto.autoSummary(page,auto.eligibleOffers(page,offers))||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'}},
+   description:page?.editorial_summary||auto.autoSummary(page,auto.eligibleOffers(page,offers))||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'},breadcrumb:{'@id':url+'#breadcrumb'}},
   {'@type':'BreadcrumbList','@id':url+'#breadcrumb',itemListElement:[
    {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
    {'@type':'ListItem',position:2,name:'Comparador',item:ORIGIN+'/comparar'}
@@ -42,6 +42,7 @@ function structuredData(page,offers,approved,canonical){
   graph[2].itemListElement.push({'@type':'ListItem',position:3,name:page.query_text,item:url});
   const evaluation=auto.eligibleOffers(page,matchingOffers(page,offers));
   if(approved && evaluation.eligible){
+   graph[1].mainEntity={'@id':url+'#product'};
    const cents=evaluation.offers.map(o=>o.price_cents);
    graph.push({'@type':'Product','@id':url+'#product',name:page.query_text,url,
     description:auto.autoSummary(page,evaluation),
@@ -51,9 +52,15 @@ function structuredData(page,offers,approved,canonical){
  }
  return {'@context':'https://schema.org','@graph':graph};
 }
+// V3.4.4.26: sitemapLastmod evita fechas inválidas o futuras sin inventar cambios.
+function sitemapLastmod(page,now=Date.now()){
+ const stamps=[page?.updated_at,page?.last_checked_at].map(value=>value?Date.parse(value):NaN)
+  .filter(value=>Number.isFinite(value)&&value>=0&&value<=now);
+ return stamps.length?new Date(Math.max(...stamps)).toISOString():null;
+}
 function jsonLd(data){
  return JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026')
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
 const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2";
-module.exports={ORIGIN,indexEligible,structuredData,jsonLd,APPROVED_SQL,externalOffers,auto};
+module.exports={ORIGIN,indexEligible,structuredData,jsonLd,sitemapLastmod,APPROVED_SQL,externalOffers,auto};
