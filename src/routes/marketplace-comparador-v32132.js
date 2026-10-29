@@ -1656,7 +1656,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   // Aplicar el mismo filtro también a ofertas antiguas ya guardadas.
   // Así una búsqueda base «iPhone 12 128 GB» no anunciará el precio del Pro
   // ni requiere volver a gastar créditos de SerpApi.
-  const offers=[...local,...external].filter(o=>provider.titleMatches(page.query_text,o.title,
+  const offers=[...local,...external].filter(o=>
+   categorySeo.suitable(page.query_text,o) ||
+   provider.titleMatches(page.query_text,o.title,
     {includeAccessories:offerQuality.isPhoneSearch(page.query_text)&&!offerQuality.isAccessorySearch(page.query_text)}))
    .sort((a,b)=>a.price_cents-b.price_cents);
   await attachCachedMerchantLinks(offers);
