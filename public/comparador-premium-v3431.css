@@ -1703,3 +1703,16 @@ body.cmp-premium .cmp-failure-search :is(input,button):focus-visible{outline:3px
  body.cmp-premium .cmp-failure-search button{width:100%}
  body.cmp-premium .cmp-failure-card{padding:13px}
 }
+
+/* V3.4.5.7.4 — estado interno de cuota visible para administradores. */
+body.cmp-premium .seo-quota-panel .seo-quota-status{
+ padding:11px 13px;margin:10px 0 6px;border-radius:9px;
+ background:#eaf5fd;color:#184e77;font-size:.87rem;line-height:1.55;font-weight:730;
+}
+body.cmp-premium .seo-quota-panel .seo-quota-remaining{
+ font-size:.83rem;line-height:1.5;color:#335b79;margin:8px 0 11px;
+}
+body.cmp-premium .seo-quota-panel .seo-quota-remaining strong{
+ font-variant-numeric:tabular-nums;color:#154f7a;
+}
+body.cmp-premium .seo-quota-panel small{display:block;line-height:1.5}
