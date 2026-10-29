@@ -296,8 +296,8 @@ router.get('/comparar',async(req,res,next)=>{
  try{
   await ensureSchema();
   // Páginas guardadas con ofertas reales: no equivalen a páginas indexadas por Google.
-  const recent=await db.query("SELECT slug,query_text,jsonb_array_length(external_results) AS offer_count,external_results FROM marketplace_compare_pages WHERE jsonb_array_length(external_results)>0 AND provider_status IN ('ok','limit_reached','unavailable') ORDER BY last_checked_at DESC NULLS LAST,created_at DESC LIMIT 12");
-  const potential=await db.query("SELECT slug,query_text,external_results,provider_status,last_checked_at,index_approved,editorial_summary,seo_blocked FROM marketplace_compare_pages WHERE provider_status='ok' AND seo_blocked=false AND last_checked_at>now()-interval '48 hours' AND jsonb_array_length(external_results)>=2 ORDER BY updated_at DESC LIMIT 400");
+  const recent=await db.query("SELECT slug,query_text,jsonb_array_length(external_results) AS offer_count,external_results FROM marketplace_compare_pages WHERE jsonb_array_length(external_results)>0 AND provider_status IN ('ok','queued','checking','limit_reached','unavailable') ORDER BY last_checked_at DESC NULLS LAST,created_at DESC LIMIT 12");
+  const potential=await db.query("SELECT slug,query_text,external_results,provider_status,last_checked_at,index_approved,editorial_summary,seo_blocked FROM marketplace_compare_pages WHERE provider_status IN ('ok','queued','checking') AND seo_blocked=false AND last_checked_at>now()-interval '7 days' AND jsonb_array_length(external_results)>=2 ORDER BY updated_at DESC LIMIT 400");
   const indexed=potential.rows.filter(p=>seo.indexEligible(p,p.external_results)).slice(0,8).map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('');
   const items=recent.rows.map(p=>{
    const photo=recentImage(p.query_text,p.external_results);
@@ -401,11 +401,12 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
  const quotaDetails=budgetInfo.describe(quota);
  const prepared=rows.map(p=>{
   const matching=(Array.isArray(p.external_results)?p.external_results:[]).filter(o=>o&&provider.titleMatches(p.query_text,o.title));
-  const evaluation=seo.auto.eligibleOffers(p,matching);
+  const snapshot=seo.stableSnapshot(p);
+  const evaluation=seo.auto.eligibleOffers(snapshot,matching);
   const eligible=seo.indexEligible(p,p.external_results);
   const state=p.seo_blocked?'bloqueadas':eligible?'aptas':'pendientes';
-  const discovered=seo.discovery.evaluate(p,matching);
-  const plan=seoPriorities.plan(p,matching,eligible,discovered);
+  const discovered=seo.discovery.evaluate(snapshot,matching);
+  const plan=seoPriorities.plan(snapshot,matching,eligible,discovered);
   const audit=mediaAudit.summary(p);
   return {p,evaluation,eligible,state,matching,discovered,plan,audit};
  });
@@ -1522,9 +1523,10 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const externalPriceInfo={...priceInfo,isStale:freshness.isStale};
   const exact=provider.isSpecificModel(page.query_text);
   const approved=seo.indexEligible(page,ordinary);
+  const snapshot=seo.stableSnapshot(page);
   const title='Comparar '+page.query_text+' | RedLibertad';
-  const automatic=seo.auto.eligibleOffers(page,ordinary);
-  const discovered=seo.discovery.evaluate(page,ordinary);
+  const automatic=seo.auto.eligibleOffers(snapshot,ordinary);
+  const discovered=seo.discovery.evaluate(snapshot,ordinary);
   const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):
    discovered.eligible?seo.discovery.summary(page,discovered):null;
   const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
@@ -1660,7 +1662,7 @@ router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
   await ensureSchema();
   const result=await db.query(
    "SELECT slug,query_text,index_approved,seo_blocked,editorial_summary,external_results,provider_status,last_checked_at,updated_at "+
-   "FROM marketplace_compare_pages WHERE seo_blocked=false AND provider_status='ok' "+
+   "FROM marketplace_compare_pages WHERE seo_blocked=false AND provider_status IN ('ok','queued','checking') "+
    "AND last_checked_at>now()-interval '7 days' AND jsonb_array_length(external_results)>=2 "+
    "ORDER BY updated_at DESC LIMIT 2000"
   );
