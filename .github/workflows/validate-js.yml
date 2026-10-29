@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.5 SEO sitemap and admin indexation audit
+        run: node --test tests/marketplace-comparador-indexacion-v3465.test.js
       - name: V3.4.6.4 recovery review without external searches
         run: node --test tests/marketplace-comparador-recuperacion-v3464.test.js
       - name: V3.4.6.3 SEO continuity while refresh is queued
