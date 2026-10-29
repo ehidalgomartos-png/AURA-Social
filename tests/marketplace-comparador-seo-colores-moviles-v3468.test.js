@@ -131,7 +131,10 @@ test('HTML público y XML reflejan la misma aceptación, sin simular AggregateOf
  const excluded=await renderPublic(mixed,'/sitemap-comparador.xml');
  assert.match(forbidden.body,/<meta name="robots" content="noindex,follow">/);
  assert.doesNotMatch(excluded.body,new RegExp('<loc>https://redlibertad.com/comparar/'+mixed.slug+'</loc>'));
- assert.ok(html.calls.every(sql=>!/marketplace_compare_provider_usage|serpapi\.com/i.test(sql)));
+ // La carga de esquema puede mencionar la tabla de cuota en CREATE/ALTER.
+ // Solo sería consumo real una escritura DML sobre ella o una petición externa.
+ assert.ok(html.calls.every(sql=>!/^\s*(?:INSERT|UPDATE|DELETE)\b[^;]*marketplace_compare_provider_usage/i.test(sql)));
+ assert.ok(html.calls.every(sql=>!/https:\/\/serpapi\.com/i.test(sql)));
 });
 test('no hay nuevas llamadas externas, ni cambios de cuota o indexaciones forzadas',()=>{
  const source=fs.readFileSync(path.join(__dirname,
