@@ -39,6 +39,7 @@ const seoPriorities=require('../services/marketplace-comparador-seo-priorities-v
 const mediaAudit=require('../services/marketplace-comparador-media-link-audit-v3461');
 const recovery=require('../services/marketplace-comparador-recovery-v3464');
 const indexAudit=require('../services/marketplace-comparador-indexation-audit-v3465');
+const indexDetails=require('../services/marketplace-comparador-indexation-details-v34610');
 const modelSuggestions=require('../services/marketplace-comparador-model-suggestions-v3462');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
@@ -742,6 +743,21 @@ router.get('/admin/comparador/indexacion',requireAdmin,async(req,res,next)=>{
   const cards=view.rows.map(r=>{
    const p=r.page;
    const url=r.canonical;
+   const diagnosis=r.eligible?null:indexDetails.inspect(p);
+   const diagnosticMarkup=diagnosis?.kind==='price'?
+    '<div class="cmp-index-detail"><strong>Ofertas y precios que requieren revisión</strong>'+
+    '<p>'+diagnosis.sellers+' tiendas distintas; '+diagnosis.total+' ofertas guardadas'+
+    (diagnosis.ratio?' · diferencia máximo/mínimo: '+esc(String(diagnosis.ratio))+'×':'')+'</p>'+
+    (diagnosis.offers.length?'<ul>'+diagnosis.offers.map(x=>
+     '<li>'+esc(x.shop)+' · '+(x.priceCents/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'})+'</li>').join('')+'</ul>':'')+
+    '<small>'+esc(diagnosis.note)+'</small></div>':
+    diagnosis?.kind==='network'?
+    '<div class="cmp-index-detail"><strong>Conectividad de las ofertas guardadas</strong><ul>'+
+    diagnosis.breakdown.map(x=>'<li>'+esc(x.label)+': '+x.offers+' ofertas, '+x.sellers+' tiendas distintas</li>').join('')+
+    '</ul><small>'+esc(diagnosis.note)+'</small>'+
+    (diagnosis.suggestions.length?'<p>Comparaciones más concretas:</p><ul>'+diagnosis.suggestions.map(q=>
+     '<li><a href="/comparar?q='+encodeURIComponent(q)+'">'+esc(q)+'</a></li>').join('')+'</ul>':'')+
+    '</div>':'';
    const refinements=r.eligible?[]:[...new Set([
     ...seoRefinementSuggestions(p),...modelSuggestions.models(p).map(m=>m.query)
    ])].slice(0,3);
@@ -760,7 +776,7 @@ router.get('/admin/comparador/indexacion',requireAdmin,async(req,res,next)=>{
     '<p class="cmp-index-meta">Robots esperado: <strong>'+ (r.eligible?'index,follow':'noindex,follow')+
     '</strong> · Última modificación: '+date+'</p>'+
     (url?'<p class="cmp-index-url">'+esc(url)+'</p>':'')+
-    '<p class="cmp-index-help">'+esc(googleInstructions)+'</p>'+refineMarkup+
+    '<p class="cmp-index-help">'+esc(googleInstructions)+'</p>'+diagnosticMarkup+refineMarkup+
     '<nav class="cmp-index-links" aria-label="Comprobaciones de '+title+'">'+publicLink+
     '<a href="/sitemap-comparador.xml" target="_blank" rel="noopener noreferrer">Abrir sitemap</a>'+
     '<a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Abrir Search Console</a>'+
