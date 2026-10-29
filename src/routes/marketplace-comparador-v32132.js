@@ -413,18 +413,21 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
  const visible=prepared.filter(x=>chosen==='todas'||x.state===chosen);
  const cards=visible.map(({p,evaluation,eligible,state,matching})=>{
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
+  const discovered=seo.discovery.evaluate(p,matching);
   const suggestion=seoRefinementSuggestions(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
    eligible?(evaluation.eligible?'Modelo y ofertas válidos para SEO automático':
+    discovered.eligible?discovered.reason:
     (p.index_approved?'Aprobación editorial vigente':'Ficha válida conservada temporalmente; precios pendientes de actualización')):
-   evaluation.reason;
+   discovered.reason;
   const info=eligible?'Preparada para indexación; Google decide si la indexa.':
    p.seo_blocked?'Puedes volver a permitir el SEO cuando quieras.':
-   evaluation.reason==='Falta capacidad o variante exacta'?'Especifica modelo y almacenamiento, por ejemplo 128 GB o 256 GB.':
-   evaluation.reason==='Precios sin actualizar'?'Se revisará cuando haya precios recientes.':
-   evaluation.reason==='Menos de tres ofertas independientes'||evaluation.reason==='Menos de tres tiendas diferentes'?
-    'Se necesitan al menos tres comercios independientes con ofertas verificadas.':
-    'Revisa que todas las ofertas sean el mismo modelo, capacidad, color y estado, con enlaces directos a las tiendas.';
+   discovered.reason==='Consulta demasiado genérica para indexarse'?
+    'Utiliza una búsqueda con modelo identificable o una familia de productos concreta.':
+   discovered.reason==='Ofertas demasiado antiguas o sin fecha'?'Esta ficha necesita una consulta con precios recientes.':
+   discovered.reason==='Faltan comercios diferentes'||discovered.reason==='Faltan ofertas independientes con precio real'?
+    'Necesita más ofertas de vendedores distintos con precios verificables.':
+    'Revisa los modelos, los estados y las variantes; no se indexarán comparaciones confusas.';
   const links=suggestion.length?
    '<div class="seo-suggestions"><span>Búsquedas más específicas:</span>'+
    suggestion.map(q=>'<a href="/comparar?q='+encodeURIComponent(q)+'">'+esc(q)+'</a>').join('')+
@@ -1496,7 +1499,9 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const approved=seo.indexEligible(page,ordinary);
   const title='Comparar '+page.query_text+' | RedLibertad';
   const automatic=seo.auto.eligibleOffers(page,ordinary);
-  const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):null;
+  const discovered=seo.discovery.evaluate(page,ordinary);
+  const factualSummary=automatic.eligible?seo.auto.autoSummary(page,automatic):
+   discovered.eligible?seo.discovery.summary(page,discovered):null;
   const description=(factualSummary||String(page.editorial_summary||'')||('Compara ofertas para '+page.query_text+' en España. Consulta vendedores y precios orientativos.')).slice(0,155);
   const csrfToken=issueCsrf(req,res);
   const empty=emptyState(page.provider_status,provider.configured());

@@ -32,7 +32,7 @@ test('panel SEO de RedLibertad muestra filtros y bloques comprensibles',()=>{
  assert.match(html,/Bloqueadas/);
  assert.match(html,/data-seo-state="pendientes"/);
  assert.match(html,/data-seo-state="bloqueadas"/);
- assert.match(html,/Falta capacidad o variante exacta/);
+ assert.match(html,/Especifica la capacidad del teléfono para evitar mezclar variantes/);
  assert.match(html,/\/comparar\?q=iphone%2012%2064%20GB/);
  assert.match(html,/\/comparar\?q=iphone%2012%20128%20GB/);
  assert.match(html,/Ejemplos basados en anuncios existentes; no garantizan indexación/);
