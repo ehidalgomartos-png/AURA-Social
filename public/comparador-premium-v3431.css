@@ -1791,3 +1791,32 @@ body.cmp-premium .seo-model-suggestions a{font-size:.85rem;font-weight:700;text-
 body.cmp-premium .seo-model-suggestions small{display:block;color:#566e83;line-height:1.5;font-size:.75rem}
 body.cmp-premium .seo-model-suggestions a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
 @media(max-width:550px){body.cmp-premium .seo-model-suggestions{padding:12px}body.cmp-premium .seo-model-suggestions a{display:inline-flex;align-items:center;min-height:40px}}
+
+/* V3.4.6.4 — cola privada, compacta y legible en móvil. */
+body.cmp-premium .cmp-recovery{max-width:940px;margin:0 auto}
+body.cmp-premium .cmp-recovery h1{font-size:clamp(1.35rem,3.8vw,2rem);line-height:1.2}
+body.cmp-premium .cmp-recovery>p{line-height:1.55;color:#49657d}
+body.cmp-premium .cmp-recovery-budget{padding:12px 14px;border:1px solid #caddec;background:#f5f9fd;border-radius:12px}
+body.cmp-premium .cmp-recovery-metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+body.cmp-premium .cmp-recovery-metrics-grid>div{background:#fff;border:1px solid #d6e1ec;border-radius:12px;padding:12px;min-width:0}
+body.cmp-premium .cmp-recovery-metrics-grid strong{display:block;font-size:1.4rem;color:#153f64;font-variant-numeric:tabular-nums}
+body.cmp-premium .cmp-recovery-metrics-grid span{font-size:.78rem;color:#536b7f}
+body.cmp-premium .cmp-recovery-filters{display:flex;flex-wrap:wrap;gap:7px;margin:15px 0 18px}
+body.cmp-premium .cmp-recovery-filters a{border:1px solid #c4d8ea;border-radius:100px;padding:9px 12px;background:white;font-size:.78rem;text-decoration:none;color:#174b72;font-weight:700}
+body.cmp-premium .cmp-recovery-filters a[aria-current="page"]{background:#174b72;color:white}
+body.cmp-premium .cmp-recovery-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+body.cmp-premium .cmp-recovery-card{background:#fff;border:1px solid #d7e3ec;border-radius:13px;padding:14px 16px;overflow-wrap:anywhere}
+body.cmp-premium .cmp-recovery-card-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px}
+body.cmp-premium .cmp-recovery-card h2{font-size:.98rem;margin:0;line-height:1.4}
+body.cmp-premium .cmp-recovery-state{background:#eff5fa;border-radius:7px;font-size:.7rem;font-weight:750;padding:5px 9px;color:#254968}
+body.cmp-premium .cmp-recovery-action{font-size:.84rem;line-height:1.52;margin:10px 0;color:#314d65}
+body.cmp-premium .cmp-recovery-card .cmp-recovery-metrics{font-size:.76rem;color:#597289;margin:8px 0}
+body.cmp-premium .cmp-recovery-links{display:flex;gap:12px;flex-wrap:wrap}
+body.cmp-premium .cmp-recovery-links a{font-size:.81rem;font-weight:700;text-underline-offset:3px}
+body.cmp-premium .cmp-recovery-disclaimer{font-size:.78rem;line-height:1.6}
+body.cmp-premium .cmp-recovery a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
+@media(max-width:620px){
+ body.cmp-premium .cmp-recovery-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.cmp-premium .cmp-recovery-card{padding:12px}
+ body.cmp-premium .cmp-recovery-filters a,body.cmp-premium .cmp-recovery-links a{display:inline-flex;align-items:center;min-height:42px}
+}
