@@ -1871,3 +1871,10 @@ body.cmp-premium .cmp-index-detail small{font-size:.75rem;line-height:1.55;displ
 body.cmp-premium .cmp-index-detail a{font-weight:700;text-underline-offset:3px}
 body.cmp-premium .cmp-index-detail a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
 @media(max-width:620px){body.cmp-premium .cmp-index-detail{padding:11px}body.cmp-premium .cmp-index-detail a{display:inline-flex;align-items:center;min-height:42px}}
+
+/* V3.4.6.11 — alquiler claramente separado del precio de compra. */
+body.cmp-premium .cmp-rental-section{border:1px solid #bcd8e4;background:#f6fbff;border-radius:13px;margin:14px 0}
+body.cmp-premium .cmp-rental-section>details>summary{font-weight:750;color:#1c5873}
+body.cmp-premium .cmp-rental-section .cmp-noncomparable-item{min-width:0}
+body.cmp-premium .cmp-rental-price-label{display:block;font-weight:750;font-size:.79rem;color:#27536c;line-height:1.5}
+@media(max-width:620px){body.cmp-premium .cmp-rental-section{margin:12px 0}body.cmp-premium .cmp-rental-price-label{font-size:.76rem}}
