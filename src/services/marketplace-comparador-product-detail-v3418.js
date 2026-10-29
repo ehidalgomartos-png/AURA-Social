@@ -71,8 +71,8 @@ function heroMarkup(query,offers,lastCheckedAt,isStale=false,repairCount=0,revie
  const count=offers.length;
  const sellers=new Set(offers.map(x=>String(x.shop||'').toLocaleLowerCase('es-ES'))).size;
  const chips=commonFacts(query,offers).filter(f=>f.label!=='Estado').slice(0,4);
- const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" alt="'+safe(photoTitle)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
-  '<div class="cmp-detail-noimage"><img src="'+safe(recentFallback(query))+'" alt="" width="140" height="140"><small>Fotografía no verificada · Imagen ilustrativa</small></div>';
+ const imageBlock=image?'<img class="cmp-detail-photo" src="'+safe(image)+'" data-compare-fallback="'+safe(recentFallback(query))+'" alt="'+safe(photoTitle)+'" loading="eager" decoding="async" referrerpolicy="no-referrer">':
+  '<div class="cmp-detail-noimage"><img class="cmp-illustration" src="'+safe(recentFallback(query))+'" alt="" width="140" height="140"><small>Fotografía no verificada · Ilustración de la categoría</small></div>';
  return '<section class="cmp-detail-hero" aria-labelledby="cmp-detail-name">'+
   '<div class="cmp-detail-image'+(image?'':' cmp-detail-image-placeholder')+'">'+imageBlock+(image?'<small class="cmp-detail-photo-source">'+(reviewedPhoto?'Fotografía revisada por RedLibertad':'Fotografía de una oferta')+'</small>':'')+'</div>'+
   '<div class="cmp-detail-copy"><p class="cmp-detail-eyebrow">Ficha del producto · RedLibertad</p>'+
