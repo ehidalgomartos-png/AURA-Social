@@ -962,3 +962,25 @@ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-destination
 @media(prefers-reduced-motion:reduce){
  body.cmp-premium .cmp-rich-comparison .comparison-list .offer{transition:none}
 }
+
+
+/* V3.4.4.20 — fotografías proporcionadas y marcador neutro si faltan o fallan. */
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer img.offer-photo{
+ display:block;object-fit:contain;object-position:center;
+ aspect-ratio:110 / 108;background:#f8fafc;border:1px solid #e5ebf2;
+ border-radius:12px;min-width:0;max-width:100%;
+}
+body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-noimage{
+ display:flex;align-items:center;justify-content:center;
+ text-align:center;max-width:100%;min-width:0;
+ padding:9px;border:1px dashed #cedce9;
+ border-radius:12px;color:#526b82;
+ background:linear-gradient(145deg,#f7faff,#edf3f9);
+ font-size:.74rem;line-height:1.35;font-weight:700;
+ overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .offer-noimage{
+  font-size:.7rem;line-height:1.28;padding:6px;
+ }
+}
