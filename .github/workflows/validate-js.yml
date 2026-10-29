@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.4.24 variant groups linked to real offers
+        run: node --test tests/marketplace-comparador-grupos-variantes-v34424.test.js
       - name: V3.4.4.23 tablet and narrow mobile responsive regression
         run: node --test tests/marketplace-comparador-responsive-v34423.test.js
       - name: V3.4.4.22 compact advanced filters and mobile navigation
