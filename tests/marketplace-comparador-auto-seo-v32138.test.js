@@ -113,12 +113,16 @@ test('administrador puede bloquear URL y deja de ser indexable en el siguiente r
  assert.equal(graph['@graph'].some(x=>x['@type']==='Product'),false);
 });
 
-test('la caducidad de 48 horas sigue bloqueando precios y fichas enriquecidas',()=>{
+test('los precios caducan a las 48 horas sin eliminar de inmediato la ficha exacta',()=>{
  const page=fixture({last_checked_at:STALE});
  const result=auto.eligibleOffers(page,page.external_results,Date.parse(NOW));
  assert.equal(result.eligible,false);
  assert.equal(result.reason,'Precios sin actualizar');
- assert.equal(seo.indexEligible(page,page.external_results,Date.parse(NOW)),false);
+ // Sólo se conserva temporalmente el documento si el modelo exacto y las
+ // tres tiendas siguen satisfaciendo las restricciones de comparación.
+ assert.equal(seo.indexEligible(page,page.external_results,Date.parse(NOW)),true);
+ assert.equal(seo.indexEligible({...page,last_checked_at:new Date(Date.parse(NOW)-8*24*60*60*1000).toISOString()},
+   page.external_results,Date.parse(NOW)),false);
  const graph=seo.structuredData(page,page.external_results,true,'/comparar/'+page.slug);
  assert.equal(graph['@graph'].some(entry=>entry['@type']==='Product'),false);
 });

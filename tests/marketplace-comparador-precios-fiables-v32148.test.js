@@ -152,7 +152,7 @@ test('la cola sigue respetando caché 24h, cuota mensual y pausa tras un fallo',
  }finally{db.query=oldQuery;provider.configured=oldConfigured;}
 });
 
-test('SEO y sitemap excluyen cifras externas anteriores a 48 horas',()=>{
+test('SEO editorial mantiene una ventana limitada sin anunciar precios antiguos como actuales',()=>{
  const date=new Date(Date.now()-3*DAY).toISOString();
  const fakePage={query_text:'iphone 12 128 GB',last_checked_at:date,provider_status:'ok',
   index_approved:true,seo_blocked:false,editorial_summary:'Evaluación editorial con detalles originales sobre los vendedores y el estado de este modelo. Información independiente para decidir antes de comprar.'};
@@ -160,10 +160,11 @@ test('SEO y sitemap excluyen cifras externas anteriores a 48 horas',()=>{
   {...product,shop:'Tienda A',href:'https://tienda-a.example/producto'},
   {...product,shop:'Tienda B',href:'https://tienda-b.example/producto'}
  ];
- assert.equal(seo.indexEligible(fakePage,offers),false);
- const data=seo.structuredData(fakePage,offers,false,'/comparar/iphone-12');
+ assert.equal(seo.indexEligible(fakePage,offers),true);
+ const data=seo.structuredData(fakePage,offers,true,'/comparar/iphone-12');
  assert.equal(data['@graph'].some(x=>x['@type']==='Product'),false);
- assert.match(seo.APPROVED_SQL,/48 hours/);
+ assert.equal(seo.indexEligible({...fakePage,last_checked_at:new Date(Date.now()-8*DAY).toISOString()},offers),false);
+ assert.match(seo.APPROVED_SQL,/7 days/);
 });
 
 test('la UI de alerta se puede seguir desde móvil y se actualiza con el sondeo existente',()=>{
