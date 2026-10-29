@@ -109,7 +109,7 @@ document.addEventListener('submit',event=>{
  const button=form.querySelector('button[type="submit"]');
  if(button){button.textContent='Buscando…';button.setAttribute('aria-disabled','true');}
 });
-window.addEventListener('pageshow',()=>{
+if(typeof window!=='undefined')window.addEventListener('pageshow',()=>{
  document.querySelectorAll('form.compare-search').forEach(form=>{
   const progress=form.querySelector('[data-compare-submit-progress]');
   if(progress)progress.hidden=true;
