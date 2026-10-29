@@ -1050,3 +1050,44 @@ body.cmp-premium .cmp-rich-comparison .cmp-advanced-filters[open]>.cmp-facet-gro
   grid-template-columns:1fr;
  }
 }
+
+
+/* V3.4.4.23 — control de anchuras en tablets y móviles muy estrechos.
+   Sólo cambia distribución: no altera tarjetas, imágenes, precios o enlaces. */
+@media(min-width:761px) and (max-width:1024px){
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer{
+  grid-template-columns:92px minmax(0,1fr) minmax(150px,174px);
+  gap:10px 13px;padding:16px;min-width:0;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-photo,
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-noimage{
+  width:92px;height:96px;max-width:100%;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-main{
+  min-width:0;overflow-wrap:anywhere;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-side{
+  min-width:0;max-width:100%;
+ }
+ body.cmp-premium .cmp-rich-comparison section[data-comparison-results]:not(.compare-single-product)>.comparison-list .offer>.offer-side .price{
+  font-size:1.45rem;white-space:normal;overflow-wrap:anywhere;
+ }
+}
+@media(max-width:340px){
+ body.cmp-premium .cmp-rich-comparison .cmp-access-options{
+  grid-template-columns:minmax(0,1fr);
+ }
+ body.cmp-premium .cmp-rich-comparison .cmp-access-option{
+  min-height:48px;white-space:normal;overflow-wrap:anywhere;
+ }
+ body.cmp-premium .cmp-rich-comparison .offer .cmp-offer-meta{
+  flex-direction:column;align-items:flex-start;gap:5px;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side a.offer-link,
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer>.offer-side button.offer-link{
+  min-width:0;min-height:48px;white-space:normal;overflow-wrap:anywhere;
+ }
+ body.cmp-premium .cmp-rich-comparison .comparison-list .offer .cmp-share-offer{
+  max-width:100%;white-space:normal;overflow-wrap:anywhere;
+ }
+}
