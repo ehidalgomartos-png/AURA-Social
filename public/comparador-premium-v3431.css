@@ -1179,3 +1179,116 @@ body.cmp-premium .seo-admin .cmp-audit-entry:focus-visible{outline:3px solid #79
  body.cmp-premium .cmp-audit-tabs{display:grid;grid-template-columns:1fr}
  body.cmp-premium .cmp-audit-tabs a,body.cmp-premium .cmp-audit-review{width:100%;justify-content:center;min-height:46px}
 }
+
+/* V3.4.5.0 — captación gratuita de comercios, presentación mobile-first y accesible. */
+body.cmp-premium .cmp-application-page .cmp-merchant-hero{
+ display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.8fr);
+ align-items:center;gap:28px;margin:10px 0 30px;padding:clamp(21px,4vw,42px);
+ border:1px solid #d4e4f1;border-radius:22px;
+ background:linear-gradient(118deg,#f6fbff 0%,#edf6ff 62%,#e8f2fd 100%);
+ overflow:hidden;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-hero-text{min-width:0}
+body.cmp-premium .cmp-application-page .cmp-merchant-hero h1{
+ max-width:670px;margin:12px 0 13px;line-height:1.12;
+ font-size:clamp(1.85rem,3.4vw,2.95rem);letter-spacing:-.045em;color:#133550;
+ overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-hero .cmp-commerce-lead{
+ font-weight:650;font-size:1rem!important;line-height:1.55;color:#294d6d;max-width:670px;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-hero-text>p:not(.cmp-commerce-lead){
+ font-size:.86rem;line-height:1.57;color:#4f6c82;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-hero-actions{
+ display:flex;align-items:stretch;flex-wrap:wrap;gap:10px;margin-top:22px;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-hero-actions a{
+ display:inline-flex;align-items:center;justify-content:center;text-align:center;
+ min-height:48px;padding:11px 18px;border-radius:12px;font-size:.88rem;
+ font-weight:790;text-decoration:none;white-space:normal;overflow-wrap:anywhere;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-primary-cta{
+ background:#155f9f;color:#fff;border:1px solid #155f9f;
+ box-shadow:0 4px 11px rgba(21,87,144,.15);
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-primary-cta:hover{background:#0f4e84;color:#fff}
+body.cmp-premium .cmp-application-page .cmp-merchant-secondary-cta{
+ background:#fff;color:#155f9f;border:1px solid #bdd5e7;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-secondary-cta:hover{background:#f4f9ff}
+body.cmp-premium .cmp-application-page .cmp-merchant-promise{
+ padding:23px;border-radius:17px;background:#fff;
+ border:1px solid #d9e8f5;box-shadow:0 12px 27px rgba(22,77,122,.065);
+ color:#2d4f6e;min-width:0;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-promise>strong{
+ display:block;font-size:1.16rem;letter-spacing:-.023em;color:#173d59;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-promise p{
+ font-size:.84rem;line-height:1.57;margin:10px 0 14px;color:#526d83;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-promise ul{
+ padding:0;margin:0;list-style:none;display:grid;gap:11px;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-promise li{
+ position:relative;padding-left:22px;font-size:.84rem;line-height:1.4;font-weight:670;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-promise li:before{
+ content:'✓';position:absolute;left:0;color:#157353;font-weight:900;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-section-head{margin:18px 0 13px}
+body.cmp-premium .cmp-application-page .cmp-merchant-section-head h2{
+ font-size:clamp(1.24rem,2.6vw,1.6rem);margin:0 0 4px;letter-spacing:-.025em;
+ color:#183d5b;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-section-head p{
+ font-size:.87rem;line-height:1.5;margin:0;color:#557186;
+}
+body.cmp-premium .cmp-application-page #solicitar-comercio{scroll-margin-top:22px}
+body.cmp-premium .cmp-application-page .cmp-merchant-field-hint{
+ display:block;font-size:.77rem;line-height:1.43;color:#5c748a;margin:5px 0 6px;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-faq{
+ margin:34px 0 24px;max-width:100%;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-faq h2{
+ margin:0 0 15px;font-size:1.38rem;color:#183d5b;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-faq details{
+ margin:0 0 9px;background:#fff;border:1px solid #dce6ef;
+ border-radius:12px;overflow:hidden;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-faq summary{
+ cursor:pointer;min-height:48px;padding:13px 17px;
+ font-size:.89rem;font-weight:750;line-height:1.5;color:#214968;
+}
+body.cmp-premium .cmp-application-page .cmp-merchant-faq details p{
+ padding:0 17px 16px;margin:0;color:#536f85;
+ font-size:.85rem;line-height:1.6;max-width:80ch;
+}
+body.cmp-premium .cmp-application-page a:focus-visible,
+body.cmp-premium .cmp-application-page .cmp-merchant-faq summary:focus-visible,
+body.cmp-premium .cmp-application-page .cmp-commerce-form :is(input,select,button):focus-visible{
+ outline:3px solid #79b0dd;outline-offset:3px;
+}
+@media(max-width:800px){
+ body.cmp-premium .cmp-application-page .cmp-merchant-hero{
+  grid-template-columns:minmax(0,1fr);gap:16px;padding:26px;
+ }
+ body.cmp-premium .cmp-application-page .cmp-merchant-promise{padding:19px}
+}
+@media(max-width:540px){
+ body.cmp-premium .cmp-application-page .cmp-merchant-hero{
+  margin:4px 0 23px;padding:21px 16px;border-radius:15px;
+ }
+ body.cmp-premium .cmp-application-page .cmp-merchant-hero h1{font-size:1.83rem}
+ body.cmp-premium .cmp-application-page .cmp-merchant-hero-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+ body.cmp-premium .cmp-application-page .cmp-merchant-hero-actions a{width:100%;min-height:48px}
+ body.cmp-premium .cmp-application-page .cmp-merchant-promise{padding:16px}
+ body.cmp-premium .cmp-application-page .cmp-merchant-faq summary{min-height:48px;padding:13px 12px}
+ body.cmp-premium .cmp-application-page .cmp-merchant-faq details p{padding:0 12px 14px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.cmp-premium .cmp-application-page #solicitar-comercio{scroll-behavior:auto}
+}
