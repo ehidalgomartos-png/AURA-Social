@@ -23,6 +23,10 @@
    target.innerHTML=fresh.innerHTML;
    root.dataset.comparisonStatus=status.dataset.comparisonStatus||'unknown';
    root.innerHTML=status.innerHTML;
+   // V3.4.4.16: el cambio de ofertas notifica a enlaces profundos compartidos.
+   // No lanza otra consulta de precios ni modifica el foco al refrescar.
+   if(typeof document.dispatchEvent==='function' && typeof Event==='function')
+    document.dispatchEvent(new Event('comparison:results-updated'));
    if(!['queued','checking'].includes(root.dataset.comparisonStatus)){
     clearInterval(interval);
    }
@@ -237,7 +241,7 @@ document.addEventListener('click',async event=>{
 /* V3.4.4.15 — Enlaces compartidos: avisar si una oferta ya no está disponible.
    El realce de una tarjeta existente funciona con CSS incluso sin JavaScript. */
 (()=>{
- const updateSharedOffer=()=>{
+ const updateSharedOffer=(event)=>{
   const results=document.querySelector('[data-comparison-results]');
   if(!results)return;
   let notice=results.querySelector('[data-shared-offer-notice]');
@@ -250,6 +254,14 @@ document.addEventListener('click',async event=>{
   const present=card?.matches?.('li.offer') &&
    Boolean(card.closest?.('[data-primary-offers]'));
   if(present){
+   if(notice)notice.hidden=true;
+   // Si la tarjeta acaba de llegar con un refresco, recuperar el destino del enlace.
+   if(event?.type==='comparison:results-updated')card.scrollIntoView?.({block:'center',behavior:'auto'});
+   return;
+  }
+  // Mientras se siguen buscando precios, ausencia temporal no equivale a desaparición.
+  const status=document.querySelector('[data-comparison-status]')?.dataset?.comparisonStatus;
+  if(status==='queued'||status==='checking'){
    if(notice)notice.hidden=true;
    return;
   }
@@ -264,5 +276,6 @@ document.addEventListener('click',async event=>{
   notice.hidden=false;
  };
  document.addEventListener('DOMContentLoaded',updateSharedOffer);
+ document.addEventListener('comparison:results-updated',updateSharedOffer);
  if(typeof window!=='undefined')window.addEventListener('hashchange',updateSharedOffer);
 })();
