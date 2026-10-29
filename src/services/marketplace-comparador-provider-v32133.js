@@ -309,7 +309,7 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  const noResults=/\b(?:no results|fully empty|hasn.t returned any results|sin resultados)\b/i.test(
   String(data?.error||'')+' '+String(data?.search_information?.shopping_results_state||'')
  );
- if(success&&!hasResults&&noResults)return [];
+ if(success&&noResults&&(!hasResults||!(data.shopping_results||[]).length&&!(data.inline_shopping_results||[]).length))return [];
  if(data?.error){
   const reason=String(data.error).toLowerCase();
   const code=/\b(?:invalid|incorrect|unauthorized|not valid)\b.*\b(?:api[_ -]?key|token)\b|\b(?:api[_ -]?key|token)\b.*\b(?:invalid|incorrect|unauthorized|not valid)\b/.test(reason)?'provider_invalid_key':
