@@ -7,6 +7,7 @@ const rateLimit=require('express-rate-limit');
 const db=require('../db');
 const {ensureMarketplaceSchema}=require('./marketplace-v3250');
 const seo=require('../services/marketplace-comparador-seo-v32132');
+const landingPages=require('../services/marketplace-comparador-landing-pages-v34613');
 const provider=require('../services/marketplace-comparador-provider-v32133');
 const compareWorker=require('../services/marketplace-comparador-worker-v32134');
 const insights=require('../services/marketplace-comparador-insights-v32140');
@@ -119,7 +120,7 @@ function formMarkup(message='',term='',csrfToken=''){
 function shell(title,description,body,canonical,allowIndex=false,structured=null){
  const robots=allowIndex?'index,follow':'noindex,follow';
  const styles=':root{font-family:system-ui,-apple-system,sans-serif;color:#17324c;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}header{background:#102a47;color:white;padding:15px max(18px,calc((100% - 1050px)/2))}header a{color:white;text-decoration:none;font-weight:700}header span{opacity:.8;margin-left:16px}main{max-width:1000px;margin:auto;padding:20px 16px 55px}h1{font-size:clamp(1.5rem,5vw,2.4rem);line-height:1.18}p{line-height:1.55}a{color:#065ca6}.muted,small{color:#526277}.compare-search,.offer,.info{background:white;border:1px solid #dde5ec;border-radius:14px;padding:18px;margin:16px 0}.compare-search label{display:block;font-weight:700;margin-bottom:10px}.compare-search-row{display:flex;gap:8px}.compare-search input{flex:1;min-width:0;padding:13px;border:1px solid #acbdc9;border-radius:9px;font-size:16px}.compare-search button{padding:12px 18px;background:#134f81;color:white;border:0;border-radius:9px;font-weight:700;cursor:pointer}.compare-search small{display:block;margin-top:10px}.compare-error{color:#9c2020}.offer{display:flex;gap:14px;align-items:center}.offer img{width:82px;height:82px;object-fit:contain}.offer-main{min-width:0;flex:1}.offer strong{display:block}.price{font-size:1.2rem;font-weight:800;white-space:nowrap}.offer-link{display:inline-block;margin-top:6px}.crumb{font-size:.9rem}.offer small{display:block}.offer-photo{background:#f8fbfd;border-radius:9px}.offer-noimage{width:82px;height:82px;display:grid;place-items:center;background:#ecf2f8;border-radius:10px;font-size:28px}.compare-guide{font-weight:650;color:#075986}.compare-section-desc{font-size:.96rem}.offer-link{font-weight:700}.offer .price{color:#0c5a35}.comparison-list{list-style:none;padding:0}footer{padding:20px;text-align:center;border-top:1px solid #dae3e9}@media(max-width:540px){.compare-search-row{flex-direction:column}.compare-search button{min-height:46px}.offer{align-items:flex-start;flex-wrap:wrap}.offer img{width:64px;height:64px}.price{width:100%}}';
- return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+robots+'"><meta property=\"og:type\" content=\"website\"><meta property=\"og:title\" content=\"'+esc(title)+'\"><meta property=\"og:description\" content=\"'+esc(description)+'\"><meta property=\"og:url\" content=\"'+esc(ORIGIN+canonical)+'\"><meta property=\"og:locale\" content=\"es_ES\"><meta property=\"og:site_name\" content=\"RedLibertad\"><meta name=\"twitter:card\" content=\"summary\"><meta name=\"twitter:title\" content=\"'+esc(title)+'\"><meta name=\"twitter:description\" content=\"'+esc(description)+'\"><meta name=\"twitter:url\" content=\"'+esc(ORIGIN+canonical)+'\">'+(structured?'<script type=\"application/ld+json\">'+seo.jsonLd(structured)+'</script>':'')+'<link rel="canonical" href="'+esc(ORIGIN+canonical)+'"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><style>'+styles+'</style><link rel="stylesheet" href="/comparador-v32135.css"><link rel="stylesheet" href="/comparador-premium-v3431.css"><script defer src="/comparador-v32135.js"></script></head><body class="cmp-premium"><a class="cmp-skip" href="#contenido">Saltar al contenido</a><header class="cmp-site-header"><nav class="cmp-site-nav" aria-label="Navegación del comparador"><a class="cmp-brand" href="/comparar" aria-label="RedLibertad, comparador"><img class="cmp-brand-logo" src="/assets/logo-mark.svg" width="44" height="44" alt="" decoding="async"><span class="cmp-brand-copy">RedLibertad <span>· Comparador</span></span></a><div class="cmp-top-links"><a href="/comparar">Comparar</a><a href="/comparar/comercios/tiendas">Tiendas</a><a href="/comparar/comercios" class="cmp-top-cta">Para comercios</a></div></nav></header><main id="contenido">'+body+'</main><footer class="cmp-site-footer"><div class="cmp-footer-inner"><nav aria-label="Enlaces de pie de página"><a href="/marketplace/explorar">Marketplace</a><a href="/comparar">Comparador</a><a href="/comparar/comercios/tiendas">Tiendas participantes</a><a href="/comparar/comercios">Añadir una tienda</a></nav><p>Precios orientativos · Compra siempre en la tienda del vendedor.</p></div></footer></body></html>';
+ return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>'+esc(title)+'</title><meta name="description" content="'+esc(description)+'"><meta name="robots" content="'+robots+'"><meta property=\"og:type\" content=\"website\"><meta property=\"og:title\" content=\"'+esc(title)+'\"><meta property=\"og:description\" content=\"'+esc(description)+'\"><meta property=\"og:url\" content=\"'+esc(ORIGIN+canonical)+'\"><meta property=\"og:locale\" content=\"es_ES\"><meta property=\"og:site_name\" content=\"RedLibertad\"><meta name=\"twitter:card\" content=\"summary\"><meta name=\"twitter:title\" content=\"'+esc(title)+'\"><meta name=\"twitter:description\" content=\"'+esc(description)+'\"><meta name=\"twitter:url\" content=\"'+esc(ORIGIN+canonical)+'\">'+(structured?'<script type=\"application/ld+json\">'+seo.jsonLd(structured)+'</script>':'')+'<link rel="canonical" href="'+esc(ORIGIN+canonical)+'"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><style>'+styles+'</style><link rel="stylesheet" href="/comparador-v32135.css"><link rel="stylesheet" href="/comparador-premium-v3431.css"><script defer src="/comparador-v32135.js"></script></head><body class="cmp-premium"><a class="cmp-skip" href="#contenido">Saltar al contenido</a><header class="cmp-site-header"><nav class="cmp-site-nav" aria-label="Navegación del comparador"><a class="cmp-brand" href="/comparar" aria-label="RedLibertad, comparador"><img class="cmp-brand-logo" src="/assets/logo-mark.svg" width="44" height="44" alt="" decoding="async"><span class="cmp-brand-copy">RedLibertad <span>· Comparador</span></span></a><div class="cmp-top-links"><a href="/comparar">Comparar</a><a href="/comparar/comercios/tiendas">Tiendas</a><a href="/comparar/comercios" class="cmp-top-cta">Para comercios</a></div></nav></header><main id="contenido">'+body+'</main><footer class="cmp-site-footer"><div class="cmp-footer-inner"><nav aria-label="Enlaces de pie de página"><a href="/marketplace/explorar">Marketplace</a><a href="/comparar">Comparador</a><a href="/comparar/categorias">Guías de compra</a><a href="/comparar/comercios/tiendas">Tiendas participantes</a><a href="/comparar/comercios">Añadir una tienda</a></nav><p>Precios orientativos · Compra siempre en la tienda del vendedor.</p></div></footer></body></html>';
 }
 function offerKey(o){
  return crypto.createHash('sha256').update([String(o.product_id||''),String(o.shop||''),String(o.title||''),String(o.price_cents||'')].join('|')).digest('hex');
@@ -299,6 +300,126 @@ function validCsrf(req){
  if(typeof token!=='string'||!CSRF_PATTERN.test(token)||typeof cookie!=='string'||!CSRF_PATTERN.test(cookie))return false;
  return crypto.timingSafeEqual(Buffer.from(token,'hex'),Buffer.from(cookie,'hex'));
 }
+
+// V3.4.6.13 — landings editoriales seleccionadas a mano; ninguna URL
+// contiene filtros infinitos, contenido especulativo ni precios inventados.
+const LANDING_SOURCE_SQL=
+ "SELECT slug,query_text,external_results,provider_status,seo_blocked,index_approved,"+
+ "editorial_summary,last_checked_at,updated_at "+
+ "FROM marketplace_compare_pages WHERE seo_blocked=false AND "+
+ "provider_status IN ('ok','queued','checking') AND "+
+ "last_checked_at>now()-interval '7 days' AND "+
+ "jsonb_array_length(external_results)>=2 "+
+ "ORDER BY updated_at DESC LIMIT 220";
+function landingSchema(path,title,description,items=[]){
+ const url=ORIGIN+path;
+ const crumbs=[
+  {name:'RedLibertad',url:ORIGIN+'/'},
+  {name:'Comparador',url:ORIGIN+'/comparar'},
+  {name:'Categorías',url:ORIGIN+landingPages.HUB}
+ ];
+ if(path!==landingPages.HUB)crumbs.push({name:title,url});
+ const graph=[
+  {'@type':path===landingPages.HUB?'CollectionPage':'WebPage','@id':url+'#page',
+   url,name:title,description,inLanguage:'es-ES',
+   isPartOf:{'@id':ORIGIN+'/#website'},
+   breadcrumb:{'@id':url+'#breadcrumb'}},
+  {'@type':'BreadcrumbList','@id':url+'#breadcrumb',
+   itemListElement:crumbs.map((c,i)=>({'@type':'ListItem',position:i+1,name:c.name,item:c.url}))}
+ ];
+ if(items.length)graph.push({'@type':'ItemList','@id':url+'#comparaciones',
+  itemListElement:items.map((p,i)=>({'@type':'ListItem',position:i+1,
+   name:p.query_text,url:ORIGIN+'/comparar/'+p.slug}))});
+ return {'@context':'https://schema.org','@graph':graph};
+}
+function landingCards(current=null){
+ return landingPages.PAGES.filter(p=>!current||p.slug!==current.slug)
+  .map(p=>'<li><a href="'+landingPages.pathFor(p.slug)+'"><strong>'+
+   esc(p.title)+'</strong><small>'+esc(p.subtitle)+'</small></a></li>').join('');
+}
+async function landingComparisons(page){
+ // El mismo filtro de indexación de las fichas públicas; URLs ya existentes.
+ // Leer los datos no crea fichas, no llama SerpApi y no reserva cuota.
+ const result=await db.query(LANDING_SOURCE_SQL);
+ return result.rows.filter(p=>landingPages.matches(page,p)&&
+  seo.indexEligible(p,p.external_results)).slice(0,6);
+}
+function landingNav(active=null){
+ return '<nav class="cmp-landing-nav" aria-label="Categorías del comparador">'+
+  '<a href="/comparar">Comparador</a><a href="'+landingPages.HUB+'"'+
+  (!active?' aria-current="page"':'')+'>Todas las categorías</a>'+
+  landingPages.PAGES.map(p=>'<a href="'+landingPages.pathFor(p.slug)+'"'+
+   (active===p.slug?' aria-current="page"':'')+'>'+esc(p.title.replace('Comparar precios de ','').replace('Comparar ','').replace(' por marca y modelo',''))+'</a>').join('')+'</nav>';
+}
+function landingHubMarkup(){
+ return '<div class="cmp-landings"><p class="crumb"><a href="/comparar">Comparador</a> / Categorías</p>'+
+  landingNav()+
+  '<header class="cmp-landings-hero"><span class="cmp-landing-eyebrow">Guías del comparador · RedLibertad</span>'+
+  '<h1>Explora categorías y aprende a comparar precios</h1>'+
+  '<p>Antes de elegir una oferta, identifica qué versión, estado y condiciones necesitas. Estas guías reúnen criterios prácticos de compra y enlazan con comparaciones publicadas que reúnen datos suficientemente coherentes.</p>'+
+  '<p class="cmp-landing-caution">Las guías no son rankings patrocinados ni prometen precios en tiempo real. Las ofertas disponibles se verifican en la web de cada vendedor.</p></header>'+
+  '<section aria-labelledby="cmp-landing-categories"><h2 id="cmp-landing-categories">Guías por tipo de producto</h2>'+
+  '<ul class="cmp-landings-grid">'+landingCards()+'</ul></section>'+
+  '<section class="cmp-landing-method" aria-labelledby="cmp-landing-method-title">'+
+  '<h2 id="cmp-landing-method-title">Cómo usar el comparador</h2>'+
+  '<ol><li>Elige una categoría y consulta qué características diferencian las ofertas.</li>'+
+  '<li>Busca un modelo específico; comprueba su versión y estado.</li>'+
+  '<li>Abre la comparación si existe y revisa la fecha de consulta de precios.</li>'+
+  '<li>Confirma precio final, envío, garantía y disponibilidad con el vendedor antes de comprar.</li></ol>'+
+  '<a href="/comparar">Ir a buscar un producto</a></section></div>';
+}
+function landingPageMarkup(page,comparisons){
+ const path=landingPages.pathFor(page.slug);
+ const items=page.checks.map(([heading,detail])=>
+  '<li><h3>'+esc(heading)+'</h3><p>'+esc(detail)+'</p></li>').join('');
+ const questions=page.faq.map(([question,answer])=>
+  '<details><summary>'+esc(question)+'</summary><p>'+esc(answer)+'</p></details>').join('');
+ const searches=page.searches.map(q=>
+  '<li><a href="/comparar?q='+encodeURIComponent(q)+'">'+esc(q)+'</a></li>').join('');
+ const vetted=comparisons.length?
+  '<section class="cmp-landing-vetted"><h2>Comparaciones disponibles de esta categoría</h2>'+
+   '<p>Fichas guardadas que cumplen actualmente los criterios de calidad del comparador. El precio y la disponibilidad pueden cambiar.</p><ul>'+
+   comparisons.map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('')+'</ul></section>':
+  '<section class="cmp-landing-vetted"><h2>Comparaciones verificadas</h2>'+
+   '<p>No hay comparaciones recientes de esta categoría que cumplan todos los requisitos para destacar aquí. Puedes explorar los productos sugeridos sin generar automáticamente una consulta externa.</p></section>';
+ return '<div class="cmp-landings"><p class="crumb"><a href="/comparar">Comparador</a> / '+
+  '<a href="'+landingPages.HUB+'">Categorías</a> / '+esc(page.title)+'</p>'+
+  landingNav(page.slug)+
+  '<header class="cmp-landings-hero"><span class="cmp-landing-eyebrow">Guía de compra · RedLibertad</span>'+
+  '<h1>'+esc(page.title)+'</h1><p class="cmp-landing-subtitle">'+esc(page.subtitle)+'</p>'+
+  '<p>'+esc(page.lead)+'</p></header>'+
+  '<section class="cmp-landing-method" aria-labelledby="cmp-landing-steps">'+
+  '<h2 id="cmp-landing-steps">Qué revisar antes de comprar</h2><ol class="cmp-landing-checks">'+items+'</ol></section>'+
+  vetted+
+  '<section class="cmp-landing-searches"><h2>Búsquedas para empezar</h2>'+
+  '<p>Estos enlaces rellenan el buscador. No consultan precios ni consumen cuota hasta que envíes la búsqueda.</p>'+
+  '<ul>'+searches+'</ul></section>'+
+  '<section class="cmp-landing-faq" aria-label="Preguntas frecuentes"><h2>Preguntas frecuentes</h2>'+
+  questions+'</section>'+
+  '<section class="cmp-landing-related"><h2>Otras guías</h2>'+
+  '<ul class="cmp-landings-grid">'+landingCards(page)+'</ul></section>'+
+  '<p class="cmp-landing-disclosure">Metodología: RedLibertad utiliza resultados guardados de comparaciones y filtra las fichas que no reúnen suficiente evidencia. No certificamos precios, existencias ni estados; confirma todos los detalles con el vendedor. No vendemos los productos de estas ofertas.</p></div>';
+}
+router.get('/comparar/categorias',(_req,res)=>{
+ const title='Guías para comparar precios por categorías | RedLibertad';
+ const description='Guías de compra de móviles, portátiles, consolas, zapatillas, robots aspiradores, auriculares y relojes inteligentes.';
+ res.set('Cache-Control','public,max-age=300');
+ res.send(shell(title,description,landingHubMarkup(),landingPages.HUB,true,
+  landingSchema(landingPages.HUB,title,description)));
+});
+router.get('/comparar/categorias/:slug',async(req,res,next)=>{
+ try{
+  const page=landingPages.get(req.params.slug);
+  if(!page)return res.status(404).sendStatus(404);
+  const items=await landingComparisons(page);
+  const path=landingPages.pathFor(page.slug);
+  const title=page.title+' | RedLibertad';
+  res.set('Cache-Control','public,max-age=300');
+  res.send(shell(title,page.description,landingPageMarkup(page,items),path,true,
+   landingSchema(path,page.title,page.description,items)));
+ }catch(error){next(error);}
+});
+
 router.get('/comparar',async(req,res,next)=>{
  try{
   await ensureSchema();
@@ -326,6 +447,7 @@ router.get('/comparar',async(req,res,next)=>{
    '<img class="cmp-home-art" src="/assets/comparador-hero-v3432.svg" width="470" height="330" alt="" decoding="async" aria-hidden="true">'+
    formMarkup('',cleanQuery(req.query?.q)||'',csrfToken)+
    '<p class="cmp-home-trust"><span>Precios por producto y estado</span><span>Enlaces a vendedores</span><span>Comparaciones guardadas</span></p></section>'+
+   '<section class="cmp-landing-home-link"><h2>Compara por categoría</h2><p>Guías prácticas para elegir bien antes de comparar precios.</p><ul class="cmp-landings-grid">'+landingCards()+'</ul><a class="cmp-landing-view-all" href="'+landingPages.HUB+'">Ver todas las guías de compra</a></section>'+ 
    '<p class="cmp-commerce-cta"><a href="/comparar/comercios/tiendas">Explorar tiendas participantes</a><span class="cmp-cta-sep">·</span>¿Tienes una tienda? <a href="/comparar/comercios">Añádela gratis</a></p>'+
    '<section class="info cmp-home-panel" aria-labelledby="cmp-recent-title"><span class="cmp-section-eyebrow">Explora productos</span>'+
    '<h2 id="cmp-recent-title">Comparaciones recientes</h2>'+
@@ -1842,6 +1964,8 @@ router.get('/sitemap-comparador.xml',async(_req,res,next)=>{
   await ensureSchema();
   const result=await db.query(indexAudit.SITEMAP_CANDIDATES_SQL);
   const urls=['<url><loc>'+esc(ORIGIN+'/comparar')+'</loc></url>'];
+  // Guías editoriales permanentes, independientes de las fichas de precios.
+  for(const path of landingPages.urlPaths())urls.push('<url><loc>'+esc(ORIGIN+path)+'</loc></url>');
   for(const p of result.rows){
    if(!seo.indexEligible(p,p.external_results))continue;
    const lastmod=seo.sitemapLastmod(p);
