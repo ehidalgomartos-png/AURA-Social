@@ -1588,3 +1588,39 @@ body.cmp-premium .cmp-growth :is(summary,textarea):focus-visible{
  body.cmp-premium .cmp-growth-metrics{grid-template-columns:minmax(0,1fr)}
  body.cmp-premium .cmp-growth-invite summary{min-height:48px}
 }
+
+/* V3.4.5.6 — cola operativa de la cohorte: filtros y diagnóstico directo. */
+body.cmp-premium .cmp-merchant-admin .cmp-growth-order-note{
+ font-size:.8rem;color:#536e83;margin:5px 0 12px;max-width:76ch;line-height:1.5;
+}
+body.cmp-premium .cmp-growth-filters{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 17px;
+}
+body.cmp-premium .cmp-growth-filters a{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:44px;padding:9px 13px;border:1px solid #cbddea;border-radius:999px;
+ background:white;text-decoration:none;color:#285677;font-weight:740;font-size:.8rem;
+}
+body.cmp-premium .cmp-growth-filters a[aria-current="page"]{
+ background:#e4f3ff;border-color:#81b7dc;color:#12496f;
+}
+body.cmp-premium .cmp-growth-review-link{
+ display:inline-flex;align-items:center;margin-top:13px;padding:9px 12px;
+ min-height:44px;border-radius:9px;background:#eaf4fc;color:#155780;
+ font-weight:760;text-decoration:none;font-size:.8rem;
+}
+body.cmp-premium .cmp-merchant-admin-card:target{
+ border-color:#60a3d7;box-shadow:0 0 0 3px rgba(88,161,216,.18);
+ scroll-margin-top:22px;
+}
+body.cmp-premium .cmp-growth-filters a:focus-visible,
+body.cmp-premium .cmp-growth-review-link:focus-visible{
+ outline:3px solid #76afd9;outline-offset:3px;
+}
+@media(max-width:420px){
+ body.cmp-premium .cmp-growth-filters{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ body.cmp-premium .cmp-growth-filters a{font-size:.77rem;padding:9px 7px}
+ body.cmp-premium .cmp-growth-review-link{width:100%;justify-content:center}
+}
