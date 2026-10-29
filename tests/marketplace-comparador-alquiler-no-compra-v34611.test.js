@@ -126,7 +126,7 @@ test('auditoría administrativa etiqueta Grover y no lo incluye como precio de c
  const layer=compare.router.stack.find(x=>x.route?.path==='/admin/comparador/indexacion');
  assert.ok(layer);
  const handler=layer.route.stack.at(-1).handle;
- const p=page([rent,...purchases],{external_results:[rent,purchases[0]]});
+ const p=page([rent,purchases[0],{...purchases[1],price_cents:210000}]);
  const old=db.query,queries=[];
  try{
   db.query=async sql=>{
