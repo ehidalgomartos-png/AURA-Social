@@ -84,10 +84,8 @@ async function render(p,route){
 }
 test('HTML y sitemap coinciden en mantener la URL durante el margen temporal',async()=>{
  const p=page(52);
- const [html,map]=await Promise.all([
-  render(p,'/comparar/'+p.slug),
-  render(p,'/sitemap-comparador.xml')
- ]);
+ const html=await render(p,'/comparar/'+p.slug);
+ const map=await render(p,'/sitemap-comparador.xml');
  assert.equal(html.status,200);
  assert.match(html.body,/<meta name="robots" content="index,follow">/);
  assert.match(html.body,/Último precio guardado|Precios sin actualizar|precios (?:consultados|guardados)/i);
@@ -99,10 +97,8 @@ test('HTML y sitemap coinciden en mantener la URL durante el margen temporal',as
 });
 test('una ficha caducada vuelve a noindex y desaparece del sitemap',async()=>{
  const p=page(8*24);
- const [html,map]=await Promise.all([
-  render(p,'/comparar/'+p.slug),
-  render(p,'/sitemap-comparador.xml')
- ]);
+ const html=await render(p,'/comparar/'+p.slug);
+ const map=await render(p,'/sitemap-comparador.xml');
  assert.match(html.body,/<meta name="robots" content="noindex,follow">/);
  assert.doesNotMatch(map.body,new RegExp('<loc>https://redlibertad.com/comparar/'+p.slug+'</loc>'));
 });
