@@ -29,7 +29,7 @@ async function ensureSchema(ensurePages=async()=>{}){
  }
  return schemaPromise;
 }
-async function enqueue(page,ensurePages){
+async function enqueue(page,ensurePages,manualRetry=false){
  if(!provider.configured())return false;
  await ensureSchema(ensurePages);
  const id=String(page?.id||'');
@@ -48,10 +48,14 @@ async function enqueue(page,ensurePages){
   "ON CONFLICT(page_id) DO UPDATE SET status='queued',requested_at=now(),available_at=now(),started_at=NULL,finished_at=NULL,attempts=0,failure_code=NULL "+
   "WHERE marketplace_compare_jobs.status IN ('done','failed') AND (marketplace_compare_jobs.status!='failed' "+
   "OR marketplace_compare_jobs.finished_at<now()-interval '2 hours' "+
+  // Solo una solicitud POST explícita permite repetir un fallo reciente (>2 min).
+  // Un GET, un sondeo o recarga de la ficha nunca consume un intento adicional.
+  "OR ($2::boolean AND marketplace_compare_jobs.finished_at<now()-interval '2 minutes' AND EXISTS "+
+  "(SELECT 1 FROM marketplace_compare_pages q WHERE q.id=$1 AND q.provider_status='unavailable')) "+
   "OR EXISTS (SELECT 1 FROM marketplace_compare_pages q WHERE q.id=$1 AND q.provider_status='limit_reached')) AND EXISTS "+
   "(SELECT 1 FROM marketplace_compare_pages p WHERE p.id=$1 AND (p.last_checked_at IS NULL OR p.last_checked_at<now()-interval '24 hours' OR (p.provider_status='limit_reached' AND jsonb_array_length(p.external_results)=0) "+
   "OR (p.provider_status IN ('queued','checking') AND jsonb_array_length(p.external_results)=0 AND marketplace_compare_jobs.finished_at<now()-interval '2 minutes'))) "+
-  "RETURNING page_id",[id]
+  "RETURNING page_id",[id,Boolean(manualRetry)]
  );
  if(result.rowCount)await db.query("UPDATE marketplace_compare_pages SET provider_status='queued' WHERE id=$1",[id]);
  return Boolean(result.rowCount);
