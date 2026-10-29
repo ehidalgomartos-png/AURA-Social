@@ -122,7 +122,10 @@ test('auditoría privada sugiere capacidades existentes pero no crea páginas ni
   assert.match(res.html,/solo enviarlo solicita precios externos/);
   assert.equal(headers['X-Robots-Tag'],'noindex,nofollow');
   assert.ok(queries.includes(audit.SAMPLE_SQL));
-  assert.ok(queries.every(q=>!/marketplace_compare_provider_usage|serpapi|INSERT INTO marketplace_compare_pages/i.test(q)));
+  // ensureSchema ejecuta DDL idempotente; no es un consumo de presupuesto.
+  assert.equal(queries.filter(q=>/^\s*(?:INSERT|UPDATE|DELETE)\b/i.test(q)).length,0);
+  assert.equal(queries.filter(q=>/^SELECT\b/i.test(q)).length,2);
+  assert.ok(queries.every(q=>!/serpapi\.com|api_key/i.test(q)));
   assert.doesNotMatch(res.html,/form method="post"/);
  }finally{db.query=old;}
 });
