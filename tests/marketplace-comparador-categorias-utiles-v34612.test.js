@@ -117,7 +117,8 @@ test('Roborock S8 base se separa de Pro/Plus/Ultra y solo se indexa si queda ofe
 });
 test('página de categoría ofrece una guía propia; sitemap y robots conservan la misma validación',async()=>{
  const q='zapatillas skechers mujer',p=page(q,[...skechers,
-  offer('Tienda 5','Skechers Go Walk hombre',7000)]);
+  offer('Tienda 5','Skechers Go Walk hombre',7000),
+  offer('Tienda 6','Skechers zapatillas mujer sin modelo',7600)]);
  const old=db.query,oldConfigured=provider.configured,sql=[];
  try{
   provider.configured=()=>false;
