@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Ilustración de reloj inteligente; no es una fotografía real">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E9F0FA"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient></defs>
+<rect width="160" height="160" rx="24" fill="url(#bg)"/>
+<circle cx="80" cy="83" r="64" fill="#fff" opacity=".55"/>
+<rect x="61" y="18" width="38" height="40" rx="9" fill="#BCCEE3"/><rect x="61" y="101" width="38" height="41" rx="9" fill="#BCCEE3"/><rect x="44" y="47" width="72" height="67" rx="19" fill="#fff" stroke="#284E75" stroke-width="6"/><rect x="55" y="58" width="50" height="45" rx="10" fill="#DCEAF7"/><path d="M80 66v16l10 7" fill="none" stroke="#2E679B" stroke-width="5" stroke-linecap="round"/>
+<rect x="120" y="8" width="32" height="28" rx="10" fill="#102D49"/>
+<path d="M128 15h9c6 0 9 3 9 7 0 4-3 6-7 7l6 7h-7l-6-8h-1v8h-5V15zm5 4v6h4c2 0 4-1 4-3s-2-3-4-3z" fill="#fff" transform="translate(0 -3) scale(.96)"/>
+<path d="m145 7 9-5-4 10" fill="#F56A5E"/>
+</svg>

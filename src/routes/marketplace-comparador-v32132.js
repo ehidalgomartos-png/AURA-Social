@@ -298,8 +298,9 @@ router.get('/comparar',async(req,res,next)=>{
   const indexed=potential.rows.filter(p=>seo.indexEligible(p,p.external_results)).slice(0,8).map(p=>'<li><a href="/comparar/'+esc(p.slug)+'">'+esc(p.query_text)+'</a></li>').join('');
   const items=recent.rows.map(p=>{
    const photo=recentImage(p.query_text,p.external_results);
-   const image=photo?'<img src="'+esc(photo)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="82" height="82">':
-    '<img src="'+esc(recentFallback(p.query_text))+'" alt="" loading="lazy" width="82" height="82">';
+   const fallback=recentFallback(p.query_text);
+   const image=photo?'<img src="'+esc(photo)+'" data-compare-fallback="'+esc(fallback)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="82" height="82">':
+    '<img class="cmp-illustration" src="'+esc(fallback)+'" alt="" loading="lazy" width="82" height="82">';
    return '<li class="cmp-recent-card"><a href="/comparar/'+esc(p.slug)+'">'+
     '<span class="cmp-recent-image">'+image+'</span><span class="cmp-recent-copy"><strong>'+esc(p.query_text)+'</strong>'+
     '<small>'+Number(p.offer_count)+' ofertas guardadas</small></span></a></li>';

@@ -19,7 +19,7 @@ test('la misma búsqueda Samsung utiliza el mismo icono en portada y ficha',()=>
  const html=detail.heroMarkup(query,[offer],null,false,0);
  assert.match(html,/class="cmp-detail-image cmp-detail-image-placeholder"/);
  assert.ok(html.includes('src="'+expected+'"'));
- assert.match(html,/Fotografía no verificada · Imagen ilustrativa/);
+ assert.match(html,/Fotografía no verificada · Ilustración de la categoría/);
  assert.doesNotMatch(html,/src="\/assets\/comparador-producto-v3432\.svg"/);
  assert.match(html,/600,00/);
  assert.match(html,/href="#precios-y-tiendas"/);
@@ -44,7 +44,7 @@ test('una fotografía realmente identificable conserva el tratamiento habitual',
 });
 test('categorías y búsqueda genérica mantienen comportamiento anterior',()=>{
  assert.equal(recentFallback('armario'),'/assets/comparador-armarios-generico-v3435.svg');
- assert.equal(recentFallback('mesa de comedor'),'/assets/comparador-producto-v3432.svg');
+ assert.equal(recentFallback('mesa de comedor'),'/assets/comparador-ilustracion-muebles-v3459.svg');
  const html=detail.broadResultsMarkup('armario',[{title:'Armario 2 puertas',price_cents:6499,shop:'Tienda A'}],false);
  assert.match(html,/Búsqueda general/);
  assert.doesNotMatch(html,/cmp-detail-image-placeholder/);

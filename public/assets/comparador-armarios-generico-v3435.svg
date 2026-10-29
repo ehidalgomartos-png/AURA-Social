@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Icono ilustrativo de armario"><rect width="160" height="160" rx="25" fill="#eef5fc"/><rect x="28" y="30" width="104" height="103" rx="7" fill="#fff" stroke="#83a9c7" stroke-width="5"/><path d="M80 34v95" stroke="#acc6dc" stroke-width="4"/><path d="M71 72v19M89 72v19" stroke="#416d91" stroke-width="5" stroke-linecap="round"/><path d="M42 134v8M118 134v8" stroke="#568bad" stroke-width="6" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Ilustración de armario RedLibertad; no es una fotografía">
+<rect width="160" height="160" rx="24" fill="#F2EFE7"/><circle cx="80" cy="82" r="64" fill="#fff" opacity=".62"/>
+<rect x="30" y="28" width="100" height="110" rx="7" fill="#fff" stroke="#58677A" stroke-width="5"/>
+<path d="M80 31v103" stroke="#ABB7C2" stroke-width="4"/><path d="M70 81v15m20-15v15" stroke="#50728C" stroke-width="6" stroke-linecap="round"/><path d="M43 140v4m75-4v4" stroke="#58677A" stroke-width="5"/>
+<rect x="122" y="8" width="30" height="27" rx="9" fill="#102D49"/><text x="137" y="27" fill="#fff" font-size="17" font-family="Arial,sans-serif" font-weight="800" text-anchor="middle">R</text><path d="m146 8 10-6-4 12" fill="#F56A5E"/>
+</svg>

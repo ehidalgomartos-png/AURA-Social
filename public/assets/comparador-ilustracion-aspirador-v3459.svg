@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Ilustración de robot aspirador; no es una fotografía real">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E4F5F2"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient></defs>
+<rect width="160" height="160" rx="24" fill="url(#bg)"/>
+<circle cx="80" cy="83" r="64" fill="#fff" opacity=".55"/>
+<ellipse cx="80" cy="98" rx="49" ry="31" fill="#fff" stroke="#24586F" stroke-width="5"/><path d="M31 92c7-36 91-36 98 0" fill="#BEDFDD" stroke="#24586F" stroke-width="4"/><ellipse cx="80" cy="92" rx="22" ry="10" fill="#fff" stroke="#478B93" stroke-width="4"/><circle cx="80" cy="91" r="4" fill="#24586F"/><path d="M47 116v8m66-8v8" stroke="#478B93" stroke-width="5" stroke-linecap="round"/>
+<rect x="120" y="8" width="32" height="28" rx="10" fill="#102D49"/>
+<path d="M128 15h9c6 0 9 3 9 7 0 4-3 6-7 7l6 7h-7l-6-8h-1v8h-5V15zm5 4v6h4c2 0 4-1 4-3s-2-3-4-3z" fill="#fff" transform="translate(0 -3) scale(.96)"/>
+<path d="m145 7 9-5-4 10" fill="#F56A5E"/>
+</svg>
