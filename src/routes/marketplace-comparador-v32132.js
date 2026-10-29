@@ -35,6 +35,7 @@ const adminMerchants=require('../services/marketplace-comparador-admin-merchants
 const merchantGrowth=require('../services/marketplace-comparador-merchant-growth-v3454');
 const failureReport=require('../services/marketplace-comparador-failures-v34572');
 const budgetInfo=require('../services/marketplace-comparador-budget-info-v34574');
+const seoPriorities=require('../services/marketplace-comparador-seo-priorities-v3460');
 const {emptyState}=require('../services/marketplace-comparador-empty-state-v34571');
 const {previewCsv,MAX_PREVIEW_BYTES}=require('../services/marketplace-comparador-csv-preflight-v3451');
 const {recentImage,recentFallback}=require('../services/marketplace-comparador-recent-images-v3432');
@@ -401,20 +402,23 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   const evaluation=seo.auto.eligibleOffers(p,matching);
   const eligible=seo.indexEligible(p,p.external_results);
   const state=p.seo_blocked?'bloqueadas':eligible?'aptas':'pendientes';
-  return {p,evaluation,eligible,state,matching};
+  const discovered=seo.discovery.evaluate(p,matching);
+  const plan=seoPriorities.plan(p,matching,eligible,discovered);
+  return {p,evaluation,eligible,state,matching,discovered,plan};
  });
- const states=['todas','aptas','pendientes','bloqueadas'];
+ const states=['todas','prioritarias','aptas','pendientes','bloqueadas'];
  const chosen=states.includes(filter)?filter:'todas';
- const counts={todas:prepared.length,aptas:0,pendientes:0,bloqueadas:0};
+ const prioritized=seoPriorities.queue(prepared);
+ const counts={todas:prepared.length,prioritarias:prioritized.priorityCount,aptas:0,pendientes:0,bloqueadas:0};
  for(const item of prepared)counts[item.state]++;
  const chips=[
-  ['todas','Todas'],['aptas','Aptas'],['pendientes','Por mejorar'],['bloqueadas','Bloqueadas']
+  ['todas','Todas'],['prioritarias','Prioritarias'],['aptas','Aptas'],['pendientes','Por mejorar'],['bloqueadas','Bloqueadas']
  ].map(([key,label])=>'<a class="seo-filter'+(key===chosen?' is-active':'')+'" href="/admin/comparador?estado='+key+'">'+
    esc(label)+' <span>'+counts[key]+'</span></a>').join('');
- const visible=prepared.filter(x=>chosen==='todas'||x.state===chosen);
- const cards=visible.map(({p,evaluation,eligible,state,matching})=>{
+ const visible=seoPriorities.queue(prepared,chosen).rows.filter(x=>
+  chosen==='todas'||chosen==='prioritarias'||x.state===chosen);
+ const cards=visible.map(({p,evaluation,eligible,state,matching,discovered,plan})=>{
   const id=Number(p.id),action='/admin/comparador/'+id+'/seo';
-  const discovered=seo.discovery.evaluate(p,matching);
   const suggestion=seoRefinementSuggestions(p);
   const reason=p.seo_blocked?'Excluida por decisión del administrador':
    eligible?(evaluation.eligible?'Modelo y ofertas válidos para SEO automático':
@@ -443,7 +447,10 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
    '<div class="seo-admin-meta">'+matching.length+' '+(matching.length===1?'oferta coincidente':'ofertas coincidentes')+checked+'</div></div>'+
    '<span class="seo-admin-chip seo-admin-chip-'+state+'">'+
    (state==='aptas'?'Apta para Google':state==='bloqueadas'?'Bloqueada':'Por mejorar')+'</span></div>'+
-   '<p class="seo-admin-reason">'+esc(reason)+'</p><p class="seo-admin-detail">'+esc(info)+'</p>'+links+
+   '<p class="seo-admin-reason">'+esc(reason)+'</p><p class="seo-admin-detail">'+esc(info)+'</p>'+
+   '<section class="seo-next-action" aria-label="Siguiente mejora SEO"><strong>Qué hacer ahora: '+esc(plan.title)+'</strong>'+
+   '<p>'+esc(plan.action)+'</p><small>'+plan.sellerCount+' tiendas distintas · '+plan.directCount+
+   ' enlaces HTTPS guardados · '+plan.offerCount+' ofertas coincidentes. Son datos guardados, no un análisis en directo.</small></section>'+links+
    '<div class="seo-admin-controls"><form method="post" action="'+action+'">'+
    '<input type="hidden" name="_csrf" value="'+esc(token)+'">'+actionControl+'</form>'+
    '<details class="seo-admin-editor"><summary>Editar comentario editorial</summary>'+
@@ -470,6 +477,7 @@ function seoAdminView(rows,token,filter,quota=null,merchantCache=new Map(),manua
   '<div><strong>'+counts.aptas+'</strong><span>Aptas para Google</span></div>'+
   '<div><strong>'+counts.pendientes+'</strong><span>Por mejorar</span></div>'+
   '<div><strong>'+counts.bloqueadas+'</strong><span>Bloqueadas</span></div></div>'+
+  '<p class="seo-priority-note">Las prioridades indican qué revisar primero. No convierten una ficha en indexable ni realizan búsquedas adicionales.</p>'+
   '<nav class="seo-admin-filters" aria-label="Filtrar comparaciones">'+chips+'</nav>'+
   (cards?'<ol class="seo-admin-grid">'+cards+'</ol>':'<div class="seo-admin-empty">No hay comparaciones en este filtro.</div>')+
   '<p class="seo-admin-disclaimer">Las páginas aptas se incluyen en el sitemap. Google decide si las indexa.</p></div>';
