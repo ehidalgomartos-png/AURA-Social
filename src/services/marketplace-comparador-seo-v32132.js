@@ -7,6 +7,7 @@ const FRESH_MS=48*60*60*1000;
 const STABLE_MS=7*24*60*60*1000;
 const provider=require('./marketplace-comparador-provider-v32133');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
+const discovery=require('./marketplace-comparador-index-discovery-v3458');
 const quality=require('./marketplace-comparador-offer-quality-v3419');
 const {uniqueOffers}=require('./marketplace-comparador-offer-dedupe-v3446');
 function externalOffers(offers){
@@ -20,6 +21,9 @@ function indexEligible(page,offers,now=Date.now()){
  if(!page || page.seo_blocked===true || quality.isRepairSearch(page.query_text))return false;
  const matching=matchingOffers(page,offers);
  if(auto.eligibleOffers(page,matching,now).eligible)return true;
+ // Segunda vía: precios reales de familias y modelos específicos, sin exigir
+ // una capacidad de almacenamiento a categorías que no la tienen.
+ if(discovery.evaluate(page,matching,now).eligible)return true;
  // Una ficha exacta, ya verificada por su contenido, puede conservar indexación
  // hasta siete días cuando falla una actualización. No sustituye una verificación real.
  const last=Date.parse(page.last_checked_at||'');
@@ -40,7 +44,7 @@ function structuredData(page,offers,approved,canonical){
  const graph=[
   {'@type':'WebSite','@id':ORIGIN+'/#website',url:ORIGIN+'/',name:'RedLibertad',inLanguage:'es-ES'},
   {'@type':'WebPage','@id':url+'#webpage',url,name:page?'Comparar '+page.query_text+' | RedLibertad':'Comparador de precios | RedLibertad',
-   description:page?.editorial_summary||auto.autoSummary(page,auto.eligibleOffers(page,offers))||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'},breadcrumb:{'@id':url+'#breadcrumb'}},
+   description:page?.editorial_summary||auto.autoSummary(page,auto.eligibleOffers(page,offers))||discovery.summary(page,discovery.evaluate(page,matchingOffers(page,offers)))||'Busca productos y compara precios en tiendas y anuncios de España.',inLanguage:'es-ES',isPartOf:{'@id':ORIGIN+'/#website'},breadcrumb:{'@id':url+'#breadcrumb'}},
   {'@type':'BreadcrumbList','@id':url+'#breadcrumb',itemListElement:[
    {'@type':'ListItem',position:1,name:'RedLibertad',item:ORIGIN+'/'},
    {'@type':'ListItem',position:2,name:'Comparador',item:ORIGIN+'/comparar'}
@@ -71,4 +75,4 @@ function jsonLd(data){
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
 const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '7 days' AND length(trim(editorial_summary))>=80 AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2";
-module.exports={ORIGIN,FRESH_MS,STABLE_MS,indexEligible,structuredData,jsonLd,sitemapLastmod,APPROVED_SQL,externalOffers,auto};
+module.exports={ORIGIN,FRESH_MS,STABLE_MS,indexEligible,structuredData,jsonLd,sitemapLastmod,APPROVED_SQL,externalOffers,auto,discovery};
