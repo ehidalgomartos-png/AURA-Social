@@ -32,12 +32,16 @@ test('al superar siete días caduca el margen SEO, incluso si antes era válida'
  assert.equal(seo.indexEligible(page(8*24),offers),false);
  assert.equal(seo.indexEligible(page(7*24+1),offers),false);
 });
-test('nunca indexa mezclas de capacidades, modelos, estados ni comercios insuficientes',()=>{
+test('rechaza ofertas insuficientes y excluye variantes o estados incorrectos antes de indexar',()=>{
  const p=page(54);
  assert.equal(seo.indexEligible(p,offers.slice(0,1)),false);
  assert.equal(seo.indexEligible(p,offers.slice(0,2)),true,'dos vendedores son suficientes para la nueva vía selectiva');
- assert.equal(seo.indexEligible(p,[offers[0],offers[1],offer('Tienda C',21000,'Apple iPhone 12 256 GB Negro')]),false);
- assert.equal(seo.indexEligible(p,[offers[0],offers[1],offer('Tienda C',21000,'Apple iPhone 12 128 GB Usado')]),false);
+ assert.equal(seo.indexEligible(p,[offers[0],offers[1],offer('Tienda C',21000,'Apple iPhone 12 256 GB Negro')]),true,
+  'la variante incompatible se excluye de las dos ofertas correctas, no arruina la ficha');
+ assert.equal(seo.indexEligible(p,[offers[0],offer('Tienda C',21000,'Apple iPhone 12 256 GB Negro')]),false);
+ assert.equal(seo.indexEligible(p,[offers[0],offers[1],offer('Tienda C',21000,'Apple iPhone 12 128 GB Usado')]),true,
+  'solo las dos ofertas sin daños ni condición usada cuentan');
+ assert.equal(seo.indexEligible(p,[offers[0],offer('Tienda C',21000,'Apple iPhone 12 128 GB Usado')]),false);
  assert.equal(seo.indexEligible(p,offers.map(o=>({...o,href:'javascript:alert(1)'}))),false);
  assert.equal(seo.indexEligible({...p,query_text:'samsung s26'},offers),false);
 });
