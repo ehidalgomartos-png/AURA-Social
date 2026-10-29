@@ -31,11 +31,11 @@ const CATEGORY_FALLBACKS=Object.freeze({
 const RULES=[
  ['auriculares',/\b(?:auriculares?|airpods|earbuds|cascos?|headphones)\b/],
  ['reloj',/\b(?:smartwatch|reloj(?:es)?(?: inteligentes?)?|galaxy watch|apple watch)\b/],
+ ['clima',/\b(?:aire acondicionado|climatizadores?|ventiladores?)\b/],
  ['portatil',/\b(?:portatiles?|portatil|laptops?|macbook|notebooks?|rog strix)\b/],
  ['aspirador',/\b(?:aspirador(?:a|es|as)?|roborock|roomba|robot aspirador)\b/],
  ['cafetera',/\b(?:cafeteras?|delonghi|nespresso)\b/],
  ['freidora',/\b(?:freidoras?|airfryer|air fryer|cecofry)\b/],
- ['clima',/\b(?:aire acondicionado|climatizadores?|ventiladores?)\b/],
  ['zapatillas',/\b(?:zapatillas?|sneakers?|skechers)\b/],
  ['chaqueta',/\b(?:chaquetas?|abrigos?|anoraks?|cazadoras?)\b/],
  ['television',/\b(?:televisor(?:es)?|television(?:es)?|smart tv|oled tv)\b/],
