@@ -1850,3 +1850,13 @@ body.cmp-premium .cmp-index-audit a:focus-visible{outline:3px solid #86b9e3;outl
  body.cmp-premium .cmp-index-card{padding:12px}
  body.cmp-premium .cmp-index-links a,body.cmp-premium .cmp-index-filters a{display:inline-flex;align-items:center;min-height:42px}
 }
+
+/* V3.4.6.6 — alternativas de capacidad y modelo, derivadas de datos guardados. */
+body.cmp-premium .cmp-index-refinements{margin:12px 0;padding:11px 13px;background:#f5f9ff;border:1px solid #d4e4f4;border-radius:11px}
+body.cmp-premium .cmp-index-refinements>strong{font-size:.81rem;color:#254b70;display:block}
+body.cmp-premium .cmp-index-refinements ul{margin:8px 0;padding-left:19px}
+body.cmp-premium .cmp-index-refinements li{font-size:.81rem;overflow-wrap:anywhere;margin:7px 0}
+body.cmp-premium .cmp-index-refinements a{font-weight:700;text-underline-offset:3px}
+body.cmp-premium .cmp-index-refinements small{font-size:.74rem;color:#4f6d82;line-height:1.45;display:block}
+body.cmp-premium .cmp-index-refinements a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
+@media(max-width:620px){body.cmp-premium .cmp-index-refinements{padding:10px}body.cmp-premium .cmp-index-refinements a{display:inline-flex;align-items:center;min-height:42px}}
