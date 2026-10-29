@@ -77,7 +77,7 @@
     clearInterval(interval);
    }
   }catch(_){
-   // El botón de actualizar manualmente permanece visible.
+   // Un fallo temporal del refresco no genera búsquedas externas adicionales.
   }finally{
    polling=false;
    if(attempts>=maxAttempts){
@@ -86,7 +86,10 @@
      const title=root.querySelector('h2');
      const description=root.querySelector('p');
      if(title)title.textContent='Esta comparación está tardando más de lo habitual';
-     if(description)description.textContent='La página está guardada. Puedes regresar más tarde para consultar las ofertas.';
+     if(description)description.textContent='La página está guardada. Puedes volver más tarde para consultar las ofertas.';
+     root.querySelector('.compare-progress-track')?.remove();
+     root.querySelector('.compare-progress-note')?.remove();
+     root.querySelector('.compare-awaiting-spinner')?.remove();
      root.dataset.comparisonStatus='waiting';
     }
    }
@@ -95,6 +98,25 @@
  const interval=setInterval(refresh,5000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden && attempts<maxAttempts)refresh();});
 })();
+
+/* V3.4.5.5 — Feedback inmediato al enviar una búsqueda, sin cancelar su navegación. */
+document.addEventListener('submit',event=>{
+ const form=event.target;
+ if(!form?.matches?.('form.compare-search'))return;
+ if(typeof form.checkValidity==='function' && !form.checkValidity())return;
+ const progress=form.querySelector('[data-compare-submit-progress]');
+ if(progress)progress.hidden=false;
+ const button=form.querySelector('button[type="submit"]');
+ if(button){button.textContent='Buscando…';button.setAttribute('aria-disabled','true');}
+});
+window.addEventListener('pageshow',()=>{
+ document.querySelectorAll('form.compare-search').forEach(form=>{
+  const progress=form.querySelector('[data-compare-submit-progress]');
+  if(progress)progress.hidden=true;
+  const button=form.querySelector('button[type="submit"]');
+  if(button){button.textContent='Comparar precios';button.removeAttribute('aria-disabled');}
+ });
+});
 
 /* V3.4.2.2: registrar clic sin interrumpir la compra; nunca redirigir por RedLibertad. */
 document.addEventListener('click',event=>{
