@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.0 actionable SEO priorities and administrative filters
+        run: node --test tests/marketplace-comparador-seo-prioridades-v3460.test.js
       - name: V3.4.5.9 brand category illustrations and image fallback
         run: node --test tests/marketplace-comparador-fallback-brand-v3459.test.js
       - name: V3.4.5.8 selective SEO indexing for real comparable families and exact models
