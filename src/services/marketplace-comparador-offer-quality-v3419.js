@@ -113,6 +113,35 @@ function groupOffers(query,offers){
    }
   }
  }
+ // V3.4.6.10: al comparar PlayStation 5 Pro no usar un único anuncio
+ // extremadamente anómalo como precio mínimo/máximo. Solo se separa
+ // con al menos 4 vendedores y 3 ofertas limpias/coherentes restantes.
+ // Con 2-3 ofertas dispares NO hay certeza suficiente: sigue noindex.
+ if(/^(?:sony )?(?:playstation 5|ps5) pro(?: 2 tb)?$/.test(normalize(query))&&main.length>=4){
+  const clean=o=>o && !o.internal && !o.sponsored && o.price_currency==='EUR' &&
+   Number.isSafeInteger(o.price_cents)&&o.price_cents>0 &&
+   ['','Nuevo','No indicado','Consultar estado'].includes(String(o.condition||'')) &&
+   !/\b(?:usado|reacondicionado|used|refurbished|bundle|pack|juego|funda|mando|accesorio|lector externo|disc drive)\b/.test(normalize(o.title)) &&
+   /\b(?:playstation 5|ps5) pro\b/.test(normalize(o.title)) &&
+   typeof o.shop==='string'&&o.shop.trim()&&
+   typeof o.href==='string'&&/^https:\/\//i.test(o.href);
+  if(main.every(clean)){
+   const shops=new Set(main.map(o=>normalize(o.shop)));
+   if(shops.size>=4){
+    const mid=medianPrice(main.map(o=>o.price_cents));
+    const extreme=main.filter(o=>o.price_cents<mid*.40||o.price_cents>mid*2.75);
+    if(extreme.length===1){
+     const others=main.filter(o=>o!==extreme[0]);
+     const sellers=new Set(others.map(o=>normalize(o.shop)));
+     const values=others.map(o=>o.price_cents);
+     if(sellers.size>=3&&Math.max(...values)/Math.min(...values)<=2){
+      review.push({...extreme[0],quality_reason:'Precio extremo de consola pendiente de confirmar; fuera del mínimo comparable'});
+      main.splice(main.indexOf(extreme[0]),1);
+     }
+    }
+   }
+  }
+ }
  // V3.4.6.7: excluir SOLO una anomalía extrema de una familia identificable
  // si hay al menos cuatro vendedores y quedan tres vendedores coherentes.
  // No eliminarla: aparecerá como anuncio relacionado pendiente de revisión.

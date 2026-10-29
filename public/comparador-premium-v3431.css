@@ -1860,3 +1860,14 @@ body.cmp-premium .cmp-index-refinements a{font-weight:700;text-underline-offset:
 body.cmp-premium .cmp-index-refinements small{font-size:.74rem;color:#4f6d82;line-height:1.45;display:block}
 body.cmp-premium .cmp-index-refinements a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
 @media(max-width:620px){body.cmp-premium .cmp-index-refinements{padding:10px}body.cmp-premium .cmp-index-refinements a{display:inline-flex;align-items:center;min-height:42px}}
+
+/* V3.4.6.10: diagnóstico SEO de precios y variantes, sin acciones automáticas. */
+body.cmp-premium .cmp-index-detail{background:#f8fbff;border:1px solid #ccdef0;border-radius:12px;padding:12px 14px;margin:12px 0}
+body.cmp-premium .cmp-index-detail>strong{color:#214867;font-weight:750;font-size:.87rem}
+body.cmp-premium .cmp-index-detail p{font-size:.81rem;color:#385973;line-height:1.5;margin:8px 0}
+body.cmp-premium .cmp-index-detail ul{padding-left:19px;margin:8px 0;display:grid;gap:5px}
+body.cmp-premium .cmp-index-detail li{font-size:.8rem;color:#2d526d;overflow-wrap:anywhere}
+body.cmp-premium .cmp-index-detail small{font-size:.75rem;line-height:1.55;display:block;color:#5c7185}
+body.cmp-premium .cmp-index-detail a{font-weight:700;text-underline-offset:3px}
+body.cmp-premium .cmp-index-detail a:focus-visible{outline:3px solid #86b9e3;outline-offset:3px}
+@media(max-width:620px){body.cmp-premium .cmp-index-detail{padding:11px}body.cmp-premium .cmp-index-detail a{display:inline-flex;align-items:center;min-height:42px}}
