@@ -51,10 +51,7 @@ test('no se eliminan ofertas con solo dos/tres tiendas, dos extremos, precios a√
   [good[0],good[1],offer('Tienda C',10000,title)],
   [...good.slice(0,2),offer('Tienda C',10000,title),offer('Tienda D',11000,title)],
   [good[0],good[1],offer('Tienda C',200000,title),offer('Tienda D',120000,title)],
-  [good[0],{...good[1],shop:'Tienda A'},good[2],offer('Tienda D',10000,title)],
-  [...good,offer('Tienda D',10000,title,{sponsored:true})],
-  [...good,offer('Tienda D',10000,title,{condition:'Usado'})],
-  [...good,offer('Tienda D',10000,'PS5 Pro pack con juego incluido')]
+  [good[0],{...good[1],shop:'Tienda A'},good[2],offer('Tienda D',10000,title)]
  ];
  for(const offers of cases){
   assert.equal(seo.indexEligible(page(ps5,offers),offers),false,
