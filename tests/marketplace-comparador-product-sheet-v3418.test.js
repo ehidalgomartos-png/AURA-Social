@@ -136,7 +136,7 @@ test('cuando no hay ofertas no presenta una ficha ficticia ni consulta relaciona
  const {html,relatedQueryCalled}=await render({offers:[]});
  assert.equal(relatedQueryCalled,false);
  assert.doesNotMatch(html,/cmp-detail-hero|cmp-detail-specifications/);
- assert.match(html,/Todavía no encontramos ofertas/);
+ assert.match(html,/No hemos encontrado ofertas coincidentes/);
 });
 test('la ficha de muebles presenta las dimensiones reales sin inferir su orden',async()=>{
  const {status,html}=await render({q:'armario bajo tibet blanco 120x74x33 cm',offers:[cabinet]});
