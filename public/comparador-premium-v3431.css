@@ -1966,3 +1966,26 @@ body.cmp-premium #compareQ{scroll-margin-top:100px}
 @media(prefers-reduced-motion:reduce){
  body.cmp-premium .cmp-landing-searches .cmp-landing-search-link{transition:none}
 }
+
+/* V3.4.6.16 — tarjetas y guías específicas, mobile-first y alto contraste. */
+body.cmp-premium .cmp-model-guide-section{background:#fff;border:1px solid #d6e5f0;border-radius:15px;
+ padding:clamp(16px,3vw,27px);margin:19px 0}
+body.cmp-premium .cmp-model-guide-section h2{font-size:clamp(1.12rem,2vw,1.45rem);color:#153c60;margin:0 0 12px}
+body.cmp-premium .cmp-model-guide-section p{line-height:1.6;color:#4e6c81}
+body.cmp-premium .cmp-model-guide-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));
+ gap:11px;list-style:none;padding:0;margin:14px 0 18px}
+body.cmp-premium .cmp-model-guide-cards li{min-width:0;margin:0}
+body.cmp-premium .cmp-model-guide-cards a{display:flex;flex-direction:column;justify-content:space-between;gap:12px;
+ border:1px solid #cee0ee;border-radius:13px;background:#f5f9fd;padding:17px;height:100%;
+ color:#154b76;text-decoration:none}
+body.cmp-premium .cmp-model-guide-cards a strong{font-size:.94rem;line-height:1.4;color:#143c60}
+body.cmp-premium .cmp-model-guide-cards a span{font-size:.81rem;color:#356b97;font-weight:650}
+body.cmp-premium .cmp-model-guide-cards a:hover{border-color:#67a3ca;background:#eaf5fc}
+body.cmp-premium .cmp-model-guide-cards a:focus-visible{outline:3px solid #5aa6d2;outline-offset:3px}
+body.cmp-premium .cmp-model-guides .cmp-landings-hero h1{color:#fff}
+body.cmp-premium .cmp-contextual-guide>a+a{margin-left:12px}
+@media(max-width:600px){
+ body.cmp-premium .cmp-model-guide-cards{grid-template-columns:1fr}
+ body.cmp-premium .cmp-model-guide-cards a{min-height:85px;padding:15px}
+ body.cmp-premium .cmp-contextual-guide>a+a{margin-left:0}
+}
