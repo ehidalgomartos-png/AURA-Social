@@ -56,6 +56,7 @@ const marketplaceRoutes = require('./src/routes/marketplace-v3250');
 const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/marketplace-woocommerce-sync-v3277');
 const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
 const marketplaceComparadorV32132=require('./src/routes/marketplace-comparador-v32132');
+const {router:resuelveV350}=require('./src/routes/resuelve-v350');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
@@ -265,6 +266,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace',marketplaceRoutes);
 app.use(marketplaceSeoV3251.router);
 app.use(marketplaceComparadorV32132.router);
+app.use('/api/resuelve',resuelveV350);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/messages', messageRoutes);
@@ -1356,6 +1358,11 @@ function sendHtmlShell(file){
   };
 }
 app.get('/marketplace',sendHtmlShell('marketplace.html'));
+app.get('/resuelve',(_req,res)=>{
+ res.setHeader('Cache-Control','no-cache');
+ res.setHeader('X-Robots-Tag','noindex,follow');
+ res.sendFile(path.join(__dirname,'public','resuelve.html'));
+});
 app.get('/marketplace/google',(_req,res)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex,nofollow');res.sendFile(path.join(__dirname,'public','marketplace-google-v3264.html'));});
 app.get('/app', sendHtmlShell('app.html'));
 app.get('/admin', sendHtmlShell('admin.html'));
