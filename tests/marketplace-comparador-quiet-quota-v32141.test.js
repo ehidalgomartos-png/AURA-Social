@@ -22,7 +22,7 @@ test('administración muestra presupuesto interno, no se muestra en público',()
  assert.match(html,/Consultas del comparador/);
  assert.match(html,/6 \/ 12/);
  assert.match(html,/7 \/ 220/);
- assert.match(html,/Presupuesto interno de RedLibertad/);
+ assert.match(html,/Hay presupuesto interno disponible para nuevas búsquedas/);
  assert.match(html,/SerpApi/);
 });
 
