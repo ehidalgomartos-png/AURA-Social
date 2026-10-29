@@ -25,7 +25,8 @@
    const previousFilters=previousToolbar?{
     access:previousToolbar.dataset.activeAccess==='direct'?'direct':'all',
     condition:previousToolbar.querySelector?.('[data-condition-filter]')?.value||'all',
-    capacity:previousToolbar.querySelector?.('[data-capacity-filter]')?.value||'all'
+    capacity:previousToolbar.querySelector?.('[data-capacity-filter]')?.value||'all',
+    advancedOpen:previousToolbar.querySelector?.('[data-advanced-filters]')?.open===true
    }:null;
    const focused=document.activeElement;
    let focusSelector=null;
@@ -36,6 +37,8 @@
      const option=focused.getAttribute('data-access-choice');
      if(option==='direct'||option==='all')focusSelector='[data-access-choice="'+option+'"]';
     }
+    else if(focused?.matches?.('[data-advanced-filters] summary'))
+     focusSelector='[data-advanced-filters] summary';
     else if(focused?.matches?.('[data-clear-comparison-filters]'))
      focusSelector='[data-clear-comparison-filters]';
    }
@@ -56,6 +59,8 @@
       if(select && Array.from(select.options||[]).some(option=>option.value===value))
        select.value=value;
      }
+     const advancedPanel=toolbar.querySelector?.('[data-advanced-filters]');
+     if(advancedPanel)advancedPanel.open=previousFilters.advancedOpen;
      applyComparisonFilters(toolbar);
      const nextFocus=focusSelector?toolbar.querySelector?.(focusSelector):null;
      if(nextFocus && !nextFocus.hidden && !nextFocus.disabled)
@@ -189,6 +194,10 @@ function applyComparisonFilters(toolbar){
     lowestVisible=cents;
   }
  }
+ const advanced=Number(condition!=='all')+Number(capacity!=='all');
+ const advancedSummary=toolbar.querySelector?.('[data-advanced-summary]');
+ if(advancedSummary)advancedSummary.textContent=advanced?
+  advanced+' '+(advanced===1?'filtro activo':'filtros activos'):'Estado y capacidad';
  const filtered=mode!=='all'||condition!=='all'||capacity!=='all';
  const note=toolbar.querySelector('[data-access-note]');
  if(note)note.hidden=!filtered;
