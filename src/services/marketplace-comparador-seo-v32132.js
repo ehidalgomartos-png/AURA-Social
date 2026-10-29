@@ -3,6 +3,8 @@
 // El JSON-LD es informativo: los resultados enriquecidos dependen de Google.
 const ORIGIN='https://redlibertad.com';
 const FRESH_MS=48*60*60*1000;
+// V3.4.5.3.1: breve margen SEO, sin convertir precios antiguos en ofertas actuales.
+const STABLE_MS=7*24*60*60*1000;
 const provider=require('./marketplace-comparador-provider-v32133');
 const auto=require('./marketplace-comparador-auto-seo-v32138');
 const quality=require('./marketplace-comparador-offer-quality-v3419');
@@ -18,12 +20,18 @@ function indexEligible(page,offers,now=Date.now()){
  if(!page || page.seo_blocked===true || quality.isRepairSearch(page.query_text))return false;
  const matching=matchingOffers(page,offers);
  if(auto.eligibleOffers(page,matching,now).eligible)return true;
+ // Una ficha exacta, ya verificada por su contenido, puede conservar indexación
+ // hasta siete días cuando falla una actualización. No sustituye una verificación real.
+ const last=Date.parse(page.last_checked_at||'');
+ const age=now-last;
+ const stable=page.provider_status==='ok' && Number.isFinite(last) &&
+  Number.isFinite(now) && age>=FRESH_MS && age<STABLE_MS;
+ if(stable && auto.eligibleOffers(page,matching,last+FRESH_MS-1).eligible)return true;
  if(page.index_approved!==true || page.provider_status!=='ok')return false;
  // Una búsqueda genérica («iphone») puede mezclar dispositivos distintos.
  if(!provider.isSpecificModel(page.query_text))return false;
  if(String(page.editorial_summary||'').trim().length<80)return false;
- const last=Date.parse(page.last_checked_at||'');
- if(!Number.isFinite(last)||now<last||now-last>=FRESH_MS)return false;
+ if(!Number.isFinite(last)||!Number.isFinite(now)||now<last||now-last>=STABLE_MS)return false;
  const ext=externalOffers(matching);
  return ext.length>=2 && new Set(ext.map(o=>o.shop.toLowerCase().trim())).size>=2;
 }
@@ -62,5 +70,5 @@ function jsonLd(data){
  return JSON.stringify(data).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026')
   .replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
 }
-const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '48 hours' AND length(trim(editorial_summary))>=80 AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2";
-module.exports={ORIGIN,indexEligible,structuredData,jsonLd,sitemapLastmod,APPROVED_SQL,externalOffers,auto};
+const APPROVED_SQL= "query_text ~ '[0-9]' AND btrim(query_text) LIKE '% %' AND index_approved=true AND provider_status='ok' AND last_checked_at>now()-interval '7 days' AND length(trim(editorial_summary))>=80 AND (SELECT COUNT(*) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2 AND (SELECT COUNT(DISTINCT lower(trim(o->>'shop'))) FROM jsonb_array_elements(external_results) AS o WHERE COALESCE(o->>'sponsored','false')<>'true')>=2";
+module.exports={ORIGIN,FRESH_MS,STABLE_MS,indexEligible,structuredData,jsonLd,sitemapLastmod,APPROVED_SQL,externalOffers,auto};
