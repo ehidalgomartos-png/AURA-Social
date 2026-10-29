@@ -1129,7 +1129,7 @@ router.get('/comparar/:slug',async(req,res,next)=>{
   const relatedMarkup=productDetail.relatedMarkup(related.rows,slug);
   // V3.4.4.21: guía contextual opcional, sin duplicar botones ni comprometer el ranking.
   const priceLegend='<details class="cmp-price-legend"><summary>Cómo leer estos precios</summary>'+
-   '<p>Los importes son los publicados por los vendedores o los últimos guardados en la comparación. El precio final, la disponibilidad y el envío se confirman con cada tienda. El estado del producto es el declarado en el anuncio, no una certificación de RedLibertad. «Buscar en Google» muestra otras opciones y no garantiza llegar a esta misma oferta.</p></details>';
+   '<p>Los importes son los publicados por los vendedores o los últimos guardados en la comparación. El precio final, la disponibilidad y el envío se confirman con cada tienda. El estado del producto es el declarado en el anuncio, no una certificación de RedLibertad. La búsqueda externa ofrece otras opciones y no garantiza llegar a esta misma oferta.</p></details>';
   const results=singleOffer?
    '<section class="compare-single-product" data-comparison-results aria-labelledby="precios-y-tiendas">'+
    '<h2 id="precios-y-tiendas">'+(hasExternal&&freshness.isStale?'Oferta guardada':'Oferta encontrada')+'</h2>'+priceLegend+
