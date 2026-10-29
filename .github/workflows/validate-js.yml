@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.6.16.1 comparison homepage order
+        run: node --test tests/marketplace-comparador-orden-portada-v346161.test.js
       - name: V3.4.6.16 brand and model guides, sitemap, links and SEO
         run: node --test tests/marketplace-comparador-model-guides-v34616.test.js
       - name: V3.4.6.15 landing contrast and guided comparison UX
