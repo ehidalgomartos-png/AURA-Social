@@ -133,11 +133,15 @@ function summary(page,evaluation,now=Date.now()){
  const eur=c=>(c/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
  const older=now-evaluation.updatedAt>=48*60*60*1000;
  const broad=['family','category'].includes(evaluation.kind);
- const first=broad?'Ofertas guardadas de distintos modelos de '+page.query_text+' en ':
+ const multipleModels=evaluation.kind==='category'||
+  evaluation.kind==='family'&&categories.asusFamily(page.query_text);
+ const first=multipleModels?'Ofertas guardadas de distintos modelos de '+page.query_text+' en ':
+  evaluation.kind==='family'?'Ofertas guardadas de la familia '+page.query_text+' en ':
   'Ofertas guardadas de '+page.query_text+' en ';
  return first+evaluation.sellerCount+' tiendas, entre '+eur(evaluation.lowPriceCents)+' y '+
   eur(evaluation.highPriceCents)+'. '+(broad?
-   'Los importes corresponden a modelos, tallas o versiones diferentes, no al mismo producto. ':'')+
+   (multipleModels?'Los importes corresponden a modelos, tallas o versiones diferentes, no al mismo producto. ':
+    'Pueden corresponder a distintas versiones: compara el modelo exacto. '):'')+
   (evaluation.modelLines?.length?
    'Líneas identificadas en las ofertas: '+evaluation.modelLines.slice(0,5).join(', ')+'. ':'')+
   (older?'Son precios históricos, no necesariamente vigentes. ':'')+
