@@ -78,6 +78,7 @@ function asusEvidence(offers){
   o&&Number.isSafeInteger(o.price_cents)&&o.price_cents>=30000&&o.price_cents<=600000 &&
   !quality.accessoryReason(o)&&!quality.rentalReason(o)&&!quality.repairReason(o));
  const lines=new Map(),shops=new Set();
+ let identified=0;
  for(const o of clean){
   const title=quality.normalize(o.title);
   if(!/\basus\b/.test(title)||!/\brog\b/.test(title)||!/\bstrix\b/.test(title))continue;
@@ -86,10 +87,11 @@ function asusEvidence(offers){
   const label=model.toUpperCase();
   lines.set(label,(lines.get(label)||0)+1);
   shops.add(quality.normalize(o.shop));
+  identified++;
  }
  const prices=clean.map(o=>o.price_cents);
  const coherent=prices.length>=4&&Math.max(...prices)/Math.min(...prices)<=8;
- const eligible=coherent&&shops.size>=3&&lines.size>=2;
+ const eligible=coherent&&identified===clean.length&&shops.size>=3&&lines.size>=2;
  return {eligible,reason:eligible?'Familia ASUS de distintos modelos':
   !coherent?'Precios o número de ofertas incoherentes para una familia ASUS':
   shops.size<3?'Faltan comercios diferentes':
