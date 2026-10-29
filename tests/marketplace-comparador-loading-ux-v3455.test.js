@@ -31,8 +31,8 @@ test('sin foto no aparece un candado: hay icono neutro y texto claro',()=>{
  const image=read('public/assets/comparador-producto-v3432.svg');
  const route=read('src/routes/marketplace-comparador-v32132.js');
  assert.match(image,/<svg /);
- assert.match(image,/aria-label="Producto sin fotografía"/);
- assert.match(image,/circle cx="47"/);
+ assert.match(image,/aria-label="Ilustración gráfica de RedLibertad; no es una fotografía del producto"/);
+ assert.match(image,/fill="#102D49"/);
  assert.doesNotMatch(image,/M45 47V36/);
  assert.match(route,/Sin fotografía/);
 });
