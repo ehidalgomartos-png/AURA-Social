@@ -1,4 +1,19 @@
 /* RedLibertad V3.2.135 — refresco sin interrumpir la lectura ni repetir búsquedas de pago. */
+/* V3.4.5.9 — si una foto remota falla, mostrar ilustración local sin icono roto. */
+if(typeof document!=='undefined' && document.addEventListener){
+ document.addEventListener('error',event=>{
+  const img=event.target;
+  if(!img?.matches?.('img[data-compare-fallback]'))return;
+  const fallback=img.getAttribute('data-compare-fallback');
+  if(!/^\/assets\/comparador-(?:ilustracion-[a-z]+-v3459|movil-generico-v3435|armarios-generico-v3435|producto-v3432)\.svg$/.test(fallback||''))return;
+  img.removeAttribute('data-compare-fallback');
+  img.src=fallback;
+  img.classList.add('cmp-illustration');
+  img.setAttribute('alt','');
+  const description=img.closest?.('.cmp-detail-image')?.querySelector?.('.cmp-detail-photo-source');
+  if(description)description.textContent='Ilustración de la categoría · Sin fotografía verificada';
+ },true);
+}
 'use strict';
 (()=>{
  const root=document.querySelector('[data-comparison-status]');
