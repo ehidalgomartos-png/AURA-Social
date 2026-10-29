@@ -1671,3 +1671,35 @@ body.cmp-premium .cmp-dashboard-page .cmp-merchant-secondary-links a:focus-visib
  body.cmp-premium .cmp-dashboard-page .cmp-merchant-next-button{width:100%}
  body.cmp-premium .cmp-dashboard-page .cmp-merchant-secondary-links{flex-direction:column;gap:12px}
 }
+
+/* V3.4.5.7.2 — diagnóstico privado de fallos externos. */
+body.cmp-premium .cmp-failures{max-width:990px;margin:0 auto;padding:12px 0 36px}
+body.cmp-premium .cmp-failures>h1{color:#173f5c;font-size:clamp(1.55rem,3vw,2.3rem)}
+body.cmp-premium .cmp-failures>p{color:#526c80;max-width:76ch;line-height:1.6}
+body.cmp-premium .cmp-failure-search{
+ border:1px solid #d4e3ee;border-radius:14px;background:#fff;padding:15px;margin:18px 0;
+}
+body.cmp-premium .cmp-failure-search label{display:block;font-weight:760;color:#244d6d;margin-bottom:8px}
+body.cmp-premium .cmp-failure-search>div{display:flex;gap:9px;min-width:0}
+body.cmp-premium .cmp-failure-search input{
+ flex:1;min-width:0;width:100%;border:1px solid #b8d2e7;border-radius:9px;
+ min-height:46px;padding:10px 12px;font:inherit;
+}
+body.cmp-premium .cmp-failure-search button{
+ border:0;border-radius:9px;padding:10px 16px;min-height:46px;background:#165d93;
+ color:white;font:inherit;font-weight:750;cursor:pointer;
+}
+body.cmp-premium .cmp-failure-list{display:grid;gap:12px;list-style:none;padding:0;margin:16px 0}
+body.cmp-premium .cmp-failure-card{
+ border:1px solid #d6e4ed;border-radius:14px;padding:16px;background:#fff;overflow-wrap:anywhere
+}
+body.cmp-premium .cmp-failure-card h2{font-size:1rem;margin:0 0 9px;color:#183d5a}
+body.cmp-premium .cmp-failure-card p{font-size:.85rem;line-height:1.55;color:#49687f;margin:8px 0}
+body.cmp-premium .cmp-failure-card small{color:#617a8f;font-size:.78rem}
+body.cmp-premium .cmp-failures a:focus-visible,
+body.cmp-premium .cmp-failure-search :is(input,button):focus-visible{outline:3px solid #80b2df;outline-offset:3px}
+@media(max-width:550px){
+ body.cmp-premium .cmp-failure-search>div{flex-direction:column}
+ body.cmp-premium .cmp-failure-search button{width:100%}
+ body.cmp-premium .cmp-failure-card{padding:13px}
+}

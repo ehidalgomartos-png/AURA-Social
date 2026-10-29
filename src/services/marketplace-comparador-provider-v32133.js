@@ -301,8 +301,23 @@ async function fetchOffers(q,fetchFn=fetch,env=process.env){
  });
  if(!response.ok)throw new Error('provider_http_'+response.status);
  const data=await response.json();
- if(data?.error)throw new Error('provider_error');
- if(!Array.isArray(data?.shopping_results)&&!Array.isArray(data?.inline_shopping_results))throw new Error('provider_missing_results');
+ // SerpApi considera correctas algunas búsquedas sin resultados e incluye
+ // `error` como mensaje informativo incluso con search_metadata.status=Success.
+ // No confundir «0 ofertas» con fallo técnico ni fabricar precios.
+ const success=data?.search_metadata?.status==='Success';
+ const hasResults=Array.isArray(data?.shopping_results)||Array.isArray(data?.inline_shopping_results);
+ const noResults=/\b(?:no results|fully empty|hasn.t returned any results|sin resultados)\b/i.test(
+  String(data?.error||'')+' '+String(data?.search_information?.shopping_results_state||'')
+ );
+ if(success&&noResults&&(!hasResults||!(data.shopping_results||[]).length&&!(data.inline_shopping_results||[]).length))return [];
+ if(data?.error){
+  const reason=String(data.error).toLowerCase();
+  const code=/\b(?:invalid|incorrect|unauthorized|not valid)\b.*\b(?:api[_ -]?key|token)\b|\b(?:api[_ -]?key|token)\b.*\b(?:invalid|incorrect|unauthorized|not valid)\b/.test(reason)?'provider_invalid_key':
+   /(?:monthly|credits|quota|plan|searches).*?(?:limit|exhaust|reached)|(?:limit|exhaust|reached).*?(?:monthly|credits|quota|plan|searches)/.test(reason)?'provider_remote_quota':
+   /rate.?limit|too many requests/.test(reason)?'provider_rate_limit':'provider_error';
+  throw new Error(code);
+ }
+ if(!hasResults)throw new Error('provider_missing_results');
  const organic=parseExternal(data.shopping_results||[],q);
  const sponsored=parseInlineStores(data.inline_shopping_results||[],q);
  return mergeOffers(organic,sponsored);

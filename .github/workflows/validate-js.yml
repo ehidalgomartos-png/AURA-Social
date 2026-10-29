@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.4.5.7.2 SerpApi zero-results and safe provider error diagnostics
+        run: node --test tests/marketplace-comparador-provider-diagnostics-v34572.test.js
       - name: V3.4.5.7.1 comparison states, empty results and accessible recovery
         run: node --test tests/marketplace-comparador-empty-status-v34571.test.js
       - name: V3.4.5.7 merchant dashboard with a clear next step and safe routes
