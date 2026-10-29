@@ -14,10 +14,29 @@ function modelEvidence(q){
  return rest.some(w=>/\d/.test(w) && (/[a-z]/.test(w)&&!/^(?:5g|4g|wifi6|wifi7)$/.test(w)||
   /^\d{2,4}$/.test(w)&&rest.length>=2));
 }
+// V3.4.6.6: una referencia de zapatillas (New Balance 530 mujer) representa
+// una gama de tallas y colores; no es un SKU único como un móvil de 256 GB.
+// Acotado a New Balance numérica y contexto explícito de calzado/sexo.
+function footwearFamily(query){
+ const q=auto.normalize(query);
+ return /\bnew balance\s+\d{2,4}[a-z]{0,3}\b/.test(q) &&
+  /\b(?:zapatillas|deportivas|sneakers|calzado|mujer|hombre|unisex)\b/.test(q);
+}
+function footwearGenderCompatible(query,title){
+ if(!footwearFamily(query))return true;
+ const q=auto.normalize(query),t=auto.normalize(title);
+ const women=/\b(?:mujer|mujeres|femenino|femenina|women|womens|woman|ladies|dama)\b/;
+ const men=/\b(?:hombre|hombres|masculino|masculina|men|mens|man)\b/;
+ const unisex=/\bunisex\b/;
+ if(women.test(q) && men.test(t) && !women.test(t) && !unisex.test(t))return false;
+ if(men.test(q) && women.test(t) && !men.test(t) && !unisex.test(t))return false;
+ return true;
+}
 function classifyQuery(query){
  const norm=auto.normalize(query);
  const words=norm.split(' ').filter(w=>w.length>=2&&!IGNORE.has(w));
  if(words.length<2)return null;
+ if(footwearFamily(query))return 'family';
  if(modelEvidence(query))return 'exact';
  // Una familia concreta (p. ej. «portátil ASUS ROG Strix Gaming») puede
  // compararse como FAMILIA, sin decir que todas las ofertas son el mismo SKU.
@@ -45,6 +64,7 @@ function evaluate(page,offers,now=Date.now()){
    o.shop.toLowerCase().trim()!=='tienda no identificada'&&
    auto.clearCondition(o)&&!quality.repairReason(o)&&
    provider.titleMatches(page.query_text,o.title)&&
+   footwearGenderCompatible(page.query_text,o.title)&&
    provider.safeHttps(o.href)&&provider.resolveOfferLink(o)?.href)).main);
  const min=kind==='exact'?2:3;
  if(selected.length<min)return no('Faltan ofertas independientes con precio real');
@@ -82,4 +102,4 @@ function summary(page,evaluation,now=Date.now()){
   (older?'Son precios históricos, no necesariamente vigentes. ':'')+
   'Comprueba el estado, el envío y el precio final con cada vendedor.';
 }
-module.exports={MAX_AGE_MS,modelEvidence,classifyQuery,evaluate,summary};
+module.exports={MAX_AGE_MS,modelEvidence,footwearFamily,footwearGenderCompatible,classifyQuery,evaluate,summary};

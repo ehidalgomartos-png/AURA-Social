@@ -38,7 +38,9 @@ function isAccessorySearch(query){return Boolean(accessoryReason({title:query}))
 function isPhoneSearch(query){
  const q=normalize(query);
  return /\biphone\s*\d{1,2}\b/.test(q)||
-  /\b(?:samsung|galaxy)\s+(?:galaxy\s+)?[saz]\s*\d{1,2}\b/.test(q);
+  /\b(?:samsung|galaxy)\s+(?:galaxy\s+)?[saz]\s*\d{1,2}\b/.test(q)||
+  /\b(?:xiaomi\s+)?redmi\s+note\s+\d{1,2}\b/.test(q)||
+  /\b(?:xiaomi\s+)?poco\s+[fxm]\s*\d{1,2}\b/.test(q);
 }
 function isSamsungSearch(query){
  const q=normalize(query);

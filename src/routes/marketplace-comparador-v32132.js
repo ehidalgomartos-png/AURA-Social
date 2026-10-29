@@ -742,6 +742,11 @@ router.get('/admin/comparador/indexacion',requireAdmin,async(req,res,next)=>{
   const cards=view.rows.map(r=>{
    const p=r.page;
    const url=r.canonical;
+   const refinements=r.eligible?[]:[...new Set([
+    ...seoRefinementSuggestions(p),...modelSuggestions.models(p).map(m=>m.query)
+   ])].slice(0,3);
+   const refineMarkup=refinements.length?'<div class="cmp-index-refinements"><strong>Opciones más precisas basadas en ofertas guardadas</strong><ul>'+refinements.map(q=>
+    '<li><a href="/comparar?q='+encodeURIComponent(q)+'">'+esc(q)+'</a></li>').join('')+'</ul><small>Abren el formulario: solo enviarlo solicita precios externos y puede consumir cuota.</small></div>':'';
    const title=esc(p.query_text);
    const publicLink=url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir comparación</a>':'';
    const googleInstructions=r.inSitemap?
@@ -755,7 +760,7 @@ router.get('/admin/comparador/indexacion',requireAdmin,async(req,res,next)=>{
     '<p class="cmp-index-meta">Robots esperado: <strong>'+ (r.eligible?'index,follow':'noindex,follow')+
     '</strong> · Última modificación: '+date+'</p>'+
     (url?'<p class="cmp-index-url">'+esc(url)+'</p>':'')+
-    '<p class="cmp-index-help">'+esc(googleInstructions)+'</p>'+
+    '<p class="cmp-index-help">'+esc(googleInstructions)+'</p>'+refineMarkup+
     '<nav class="cmp-index-links" aria-label="Comprobaciones de '+title+'">'+publicLink+
     '<a href="/sitemap-comparador.xml" target="_blank" rel="noopener noreferrer">Abrir sitemap</a>'+
     '<a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Abrir Search Console</a>'+
