@@ -199,7 +199,7 @@ function nonComparableMarkup(accessories,review,slug,csrfToken,priceInfo){
  const sections=[];
  for(const [items,kind,title,advice] of [
   [accessories,'accessory','Accesorios relacionados','Estas ofertas describen accesorios. Sus precios no corresponden al teléfono buscado.'],
-  [review,'review','Ofertas por verificar','No se ha podido confirmar que estos anuncios correspondan al teléfono o su precio parece atípico. Comprueba el producto y su estado.']
+  [review,'review','Ofertas por verificar','No se ha podido confirmar que estos anuncios correspondan al producto buscado, o su precio es atípico. Comprueba el modelo, el estado y el precio con la tienda. No forman parte del mínimo comparable.']
  ]){
   if(!items.length)continue;
   const rows=items.map(o=>'<li class="cmp-noncomparable-item">'+
