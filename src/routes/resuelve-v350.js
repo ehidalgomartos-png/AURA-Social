@@ -81,6 +81,24 @@ router.get('/questions',wrap(async(req,res)=>{
  const items=await service.list({filter,before:before||null,category:category||null,query:query.trim(),professionalOnly:professional==='si'});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
+// V3.5.16: temas elegidos voluntariamente; solo cada usuario puede consultarlos o cambiarlos.
+router.get('/help-topics',requireAuth,wrap(async(req,res)=>{
+ const categories=await service.getHelpTopics(req.user.id);
+ res.json({ok:true,categories});
+}));
+router.post('/help-topics',requireAuth,checkOrigin,limiter(20),wrap(async(req,res)=>{
+ if(!service.validHelpTopics(req.body?.categories))
+  return fail(res,400,'temas_invalidos');
+ const saved=await service.setHelpTopics(req.user.id,req.body.categories);
+ if(!saved)return fail(res,400,'temas_invalidos');
+ res.json({ok:true,categories:saved.categories});
+}));
+router.get('/questions/for-me',requireAuth,wrap(async(req,res)=>{
+ const before=req.query?.antes;
+ if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
+ const items=await service.listToHelp(req.user.id,{before:before||null});
+ res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
+}));
 router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
