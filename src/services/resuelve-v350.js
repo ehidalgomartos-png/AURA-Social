@@ -27,6 +27,9 @@ async function ensureSchema(){
   ].join(' ');
   await db.query(ddl);
   await db.query(answers);
+  // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_approved_answer_id BIGINT");
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_opt_out BOOLEAN NOT NULL DEFAULT FALSE");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_feed ON resuelve_questions(status,created_at DESC,id DESC)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_answers_question ON resuelve_answers(question_id,created_at ASC,id ASC) WHERE status='visible'");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_author ON resuelve_questions(author_id,created_at DESC)");
@@ -75,6 +78,7 @@ async function detail(id){
  await ensureSchema();
  const q=await db.query([
   "SELECT q.id,q.author_id,q.title,q.body,q.category,q.status,q.accepted_answer_id,",
+  "q.library_approved_answer_id,q.library_opt_out,",
   "q.created_at,q.solved_at,u.username AS author_username",
   "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
   "WHERE q.id=$1 AND q.status<>'hidden'"
@@ -126,22 +130,66 @@ async function solve(userId,qid,aid){
 async function reopen(userId,qid){
  await ensureSchema();
  const r=await db.query([
-  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,solved_at=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status='resolved' RETURNING id"
  ].join(' '),[qid,userId]);return r.rows[0]||null;
 }
 async function moderate(kind,id){
  await ensureSchema();
  if(kind==='question'){
-  const r=await db.query("UPDATE resuelve_questions SET status='hidden',accepted_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE id=$1 RETURNING id",[id]);
+  const r=await db.query("UPDATE resuelve_questions SET status='hidden',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE id=$1 RETURNING id",[id]);
   return r.rows[0]||null;
  }
  if(kind==='answer'){
   const r=await db.query("UPDATE resuelve_answers SET status='hidden' WHERE id=$1 RETURNING id,question_id",[id]);
   if(!r.rowCount)return null;
-  await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
+  await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
   return r.rows[0];
  }
  return null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,CATEGORIES};
+// V3.5.7: solo respuestas elegidas y aprobadas manualmente por administración.
+async function library({before=null}={}){
+ await ensureSchema();
+ const sql=[
+  "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
+  "u.username AS author_username FROM resuelve_questions q",
+  "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
+  "AND q.library_approved_answer_id=q.accepted_answer_id",
+  "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
+  "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
+  "ORDER BY q.id DESC LIMIT 12"
+ ].join(' ');
+ return (await db.query(sql,[validId(before)?String(before):null])).rows;
+}
+async function approveLibrary(questionId,approved){
+ await ensureSchema();
+ const sql=approved?[
+  "UPDATE resuelve_questions q SET library_approved_answer_id=q.accepted_answer_id,updated_at=now()",
+  "WHERE q.id=$1 AND q.status='resolved' AND q.library_opt_out=FALSE",
+  "AND char_length(trim(q.body))>=50",
+  "AND EXISTS(SELECT 1 FROM users author WHERE author.id=q.author_id AND author.status='active')",
+  "AND EXISTS(SELECT 1 FROM resuelve_answers a JOIN users respondent",
+  "ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
+  "AND char_length(trim(a.body))>=80)",
+  "RETURNING q.id,q.library_approved_answer_id"
+ ].join(' '):[
+  "UPDATE resuelve_questions SET library_approved_answer_id=NULL,updated_at=now()",
+  "WHERE id=$1 RETURNING id,library_approved_answer_id"
+ ].join(' ');
+ return (await db.query(sql,[questionId])).rows[0]||null;
+}
+async function optOutLibrary(questionId,authorId){
+ await ensureSchema();
+ const sql=[
+  "UPDATE resuelve_questions SET library_opt_out=TRUE,library_approved_answer_id=NULL,updated_at=now()",
+  "WHERE id=$1 AND author_id=$2 AND status<>'hidden'",
+  "RETURNING id"
+ ].join(' ');
+ return (await db.query(sql,[questionId,authorId])).rows[0]||null;
+}
+module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,approveLibrary,optOutLibrary,CATEGORIES};
