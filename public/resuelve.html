@@ -61,6 +61,9 @@
   <form id="answerForm" hidden>
    <label for="answerBody">Tu respuesta</label>
    <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required placeholder="Comparte una experiencia, una recomendación concreta o un paso que haya funcionado."></textarea>
+   <label for="answerListingUrl">Enlace a un anuncio de Marketplace (opcional)</label>
+   <input id="answerListingUrl" type="url" maxlength="500" inputmode="url" placeholder="https://redlibertad.com/marketplace/..." autocomplete="off">
+   <p class="muted">Pega un enlace de un anuncio existente si es útil para la petición. No se realiza ninguna compra ni publicación automática.</p>
    <p class="muted">Tu respuesta será pública. Evita compartir información personal de terceros.</p>
    <button type="submit" class="primary">Enviar respuesta</button>
   </form>
