@@ -491,7 +491,7 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(js,/a\.self_professional_role,a\.self_commercial_interest/);
  assert.match(html,/class="professional-help-option"/);
  assert.match(js,/professional-advice/);
- assert.match(js,/answerContent\(a\.body,a\.professional_role\)/);
+ assert.match(js,/answerContent\(a\.body,a\.professional_role,a\.self_professional_role,a\.self_commercial_interest\)/);
  assert.match(html,/id="resuelveExtras"/);
  assert.match(html,/class="optional-listing"/);
  assert.match(html,/Nadie tiene que comprar/i);
