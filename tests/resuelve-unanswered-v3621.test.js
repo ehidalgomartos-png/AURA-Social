@@ -33,7 +33,7 @@ test('V3.6.21: SQL identifica solo preguntas públicas sin respuestas visibles',
  assert.match(sql,/NOT EXISTS \(SELECT 1 FROM resuelve_answers a_unanswered/);
  assert.match(sql,/a_unanswered.question_id=q.id AND a_unanswered.status='visible'/);
  assert.match(sql,/ORDER BY q.id DESC LIMIT 24/);
- assert.deepEqual(args,['open',null,'consejo','fotos',false,true]);
+ assert.deepEqual(Array.from(args),['open',null,'consejo','fotos',false,true]);
  assert.doesNotMatch(sql,/INSERT|DELETE|UPDATE|users\.email|recipient_id|a_unanswered\.body/i);
  await run({filter:'open'});
  assert.equal(calls[1].args[5],false);
