@@ -490,6 +490,30 @@
   if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
+  if(mine&&!solved){
+   const details=create('details','resuelve-clarification');
+   details.append(create('summary',null,'Añadir una aclaración a mi pregunta'));
+   details.append(create('p','muted','Puedes completar información útil sin cambiar el texto anterior. La aclaración será pública: no escribas teléfonos, direcciones ni datos privados.'));
+   const form=create('form','resuelve-clarification-form');
+   const label=create('label',null,'Nueva aclaración (20 a 300 caracteres)');
+   const textarea=create('textarea');textarea.minLength=20;textarea.maxLength=300;textarea.rows=3;textarea.required=true;
+   textarea.placeholder='Por ejemplo, qué has intentado hasta ahora o qué dato necesitas aclarar';
+   label.append(textarea);
+   const send=create('button','secondary','Añadir aclaración');
+   send.type='submit';
+   form.append(label,send);
+   form.addEventListener('submit',async(event)=>{
+    event.preventDefault();
+    if(send.disabled||!form.reportValidity())return;
+    send.disabled=true;
+    try{
+     await write('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/clarify',{text:textarea.value.trim()});
+     message('Tu aclaración se ha añadido a la pregunta.');
+     await openDetail(q.id,false);
+    }catch(error){message(error.message);send.disabled=false;}
+   });
+   details.append(form);host.append(details);
+  }
   if(state.user && mine && solved && !q.library_opt_out){
    host.append(button('Excluir mi petición de la biblioteca',async()=>{
     if(!confirm('¿Excluir esta petición de la biblioteca de forma permanente? Seguirá visible como petición normal.'))return;
