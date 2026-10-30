@@ -733,3 +733,30 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .resuelve-seo-solution{padding:17px 14px}
  .resuelve-topic-item{padding:13px}
 }
+
+/* V3.6.17 — apoyo discreto para responder con experiencia, sin venta forzada. */
+.resuelve-answer-tips-v3617{
+ display:flex;
+ align-items:flex-start;
+ flex-wrap:wrap;
+ justify-content:space-between;
+ gap:8px 12px;
+ margin:0 0 7px;
+ padding:11px 13px;
+ border:1px solid #d5e8e3;
+ border-radius:13px;
+ background:#f6fbf9;
+}
+.resuelve-answer-tips-v3617 p{margin:0;flex:1 1 270px;line-height:1.55;overflow-wrap:anywhere}
+.resuelve-answer-counter-v3617{
+ flex:0 0 auto;
+ font-size:12px;
+ font-weight:750;
+ color:#28646a;
+ font-variant-numeric:tabular-nums;
+}
+.resuelve-answer-counter-v3617[data-near-limit="true"]{color:#87500e}
+@media(max-width:650px){
+ .resuelve-answer-tips-v3617{padding:10px 11px;gap:7px}
+ .resuelve-answer-counter-v3617{width:100%;text-align:right}
+}
