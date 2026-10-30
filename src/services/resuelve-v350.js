@@ -271,6 +271,24 @@ async function ask(userId,data){
  if(row)await notifyVolunteers(row.id,userId,data.category);
  return row;
 }
+// V3.5.24 — aclaraciones anexadas por el autor, nunca reemplazan lo que ya se publicó.
+function validateClarification(value){
+ const text=clean(value,300);
+ return text.length>=20&&text.length<=300?text:null;
+}
+async function clarifyQuestion(questionId,userId,content){
+ await ensureSchema();
+ const text=validateClarification(content);
+ if(!validId(questionId)||!text)return null;
+ const addition=' · Aclaración: '+text;
+ const r=await db.query([
+  "UPDATE resuelve_questions SET body=body||$3,updated_at=now()",
+  "WHERE id=$1 AND author_id=$2 AND status='open'",
+  "AND char_length(body)+char_length($3)<=1800",
+  "RETURNING id,body"
+ ].join(' '),[questionId,userId,addition]);
+ return r.rows[0]||null;
+}
 async function answer(userId,id,body,professionalRole=null,disclosure={role:null,commercialInterest:false}){
  await ensureSchema();
  const r=await db.query([
@@ -483,4 +501,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
