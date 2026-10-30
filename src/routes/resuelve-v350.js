@@ -8,6 +8,7 @@ const router=express.Router();
 const fail=(res,status,error)=>res.status(status).json({error});
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
 const limiter=(max)=>rateLimit({windowMs:60*60*1000,limit:max,standardHeaders:'draft-7',legacyHeaders:false,
+ keyGenerator:req=>String(req.user.id),
  message:{error:'demasiados_intentos'}});
 function checkOrigin(req,res,next){
  const origin=req.headers.origin, bearer=/^Bearer\s+\S+$/i.test(String(req.headers.authorization||''));
@@ -39,7 +40,7 @@ router.get('/questions/:id',wrap(async(req,res)=>{
  if(!result)return fail(res,404,'peticion_no_encontrada');
  res.json({ok:true,...result});
 }));
-router.post('/questions',requireAuth,checkOrigin,limiter(5),wrap(async(req,res)=>{
+router.post('/questions',requireAuth,checkOrigin,limiter(10),wrap(async(req,res)=>{
  const data=service.validateQuestion(req.body);
  if(!data)return fail(res,400,'peticion_invalida');
  const row=await service.ask(req.user.id,data);
