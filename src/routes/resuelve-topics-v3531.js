@@ -28,6 +28,16 @@ function renderTopicPage(topic,items,count,allCounts={}){
   inLanguage:'es',url:canonical
  }:null;
  const structured=meta?'<script type="application/ld+json">'+JSON.stringify(meta).replace(/</g,'\\u003c')+'</script>':'';
+ const breadcrumbSchema=indexable?{
+  '@context':'https://schema.org','@type':'BreadcrumbList',
+  itemListElement:[
+   {'@type':'ListItem',position:1,name:'Cómo funciona Resuelve',item:ORIGIN+'/resuelve/como-funciona'},
+   {'@type':'ListItem',position:2,name:info.title,item:canonical}
+  ]
+ }:null;
+ const breadcrumbJson=breadcrumbSchema?
+  '<script type="application/ld+json">'+JSON.stringify(breadcrumbSchema).replace(/</g,'\\u003c')+'</script>':'';
+
  // V3.6.5 — promover solo temas que ya tengan al menos 3 soluciones públicas.
  const otherTopics=Object.entries(topics.TOPICS)
   .filter(([slug])=>slug!==topic&&Number(allCounts[slug])>=3);
@@ -50,7 +60,12 @@ function renderTopicPage(topic,items,count,allCounts={}){
   '<meta property="og:type" content="website">'+
   '<meta property="og:title" content="'+escapeHtml(title)+'">'+
   '<meta property="og:description" content="'+escapeHtml(description)+'">'+
-  '<meta property="og:url" content="'+escapeHtml(canonical)+'">'+structured+
+  '<meta property="og:url" content="'+escapeHtml(canonical)+'">'+
+  '<meta property="og:image" content="'+ORIGIN+'/assets/og-redlibertad-v1922.jpg">'+
+  '<meta name="twitter:card" content="summary_large_image">'+
+  '<meta name="twitter:title" content="'+escapeHtml(title)+'">'+
+  '<meta name="twitter:description" content="'+escapeHtml(description)+'">'+
+  '<meta name="twitter:image" content="'+ORIGIN+'/assets/og-redlibertad-v1922.jpg">'+structured+breadcrumbJson+
   '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
   '<link rel="stylesheet" href="/resuelve-v350.css">'+
   '<script src="/resuelve-public-share-v366.js" defer></script></head><body>'+
@@ -58,7 +73,7 @@ function renderTopicPage(topic,items,count,allCounts={}){
   '<header class="topbar"><a class="brand" href="/resuelve"><strong>RedLibertad Resuelve</strong></a>'+
   '<nav aria-label="Navegación"><a href="/resuelve#solutions">Biblioteca de ayuda</a></nav></header>'+
   '<main id="main" class="wrap"><section class="resuelve-seo-solution resuelve-topic-page">'+breadcrumb+
-  '<p class="eyebrow dark">PERSONAS QUE AYUDAN A PERSONAS</p><h1>'+escapeHtml(info.title)+'</h1>'+
+  '<p class="eyebrow dark">PERSONAS QUE AYUDAN A PERSONAS</p><h1>Consejos y soluciones: '+escapeHtml(info.title)+'</h1>'+
   '<p>'+escapeHtml(info.description)+'</p>'+
   '<p class="muted">Estas soluciones fueron elegidas por quienes preguntaron, revisadas antes de publicarse y autorizadas para aparecer en páginas públicas. Nadie tiene que comprar nada para recibir ayuda.</p>'+
   (items.length?'<h2>Soluciones compartidas</h2><ol class="resuelve-topic-list">'+entries+'</ol>':
