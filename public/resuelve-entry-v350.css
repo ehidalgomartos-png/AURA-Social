@@ -1,0 +1,5 @@
+/* V3.5.0: acceso al nuevo servicio sin alterar el dock inferior de cinco botones. */
+.resuelve-mobile-entry-v350{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:7px 10px;border-radius:99px;background:#e8f5fc;color:#155b78;text-decoration:none;font-weight:760;font-size:.82rem;white-space:nowrap;border:1px solid #bcdbe9}
+.resuelve-mobile-entry-v350:focus-visible{outline:3px solid #73b5d4;outline-offset:2px}
+@media(min-width:801px){.resuelve-mobile-entry-v350{display:none}}
+@media(max-width:380px){.resuelve-mobile-entry-v350{padding:6px 7px;font-size:.75rem}}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12304b">
+<title>RedLibertad Resuelve — Personas que ayudan a personas</title>
+<meta name="description" content="Comparte una necesidad, ofrece una recomendación y descubre soluciones reales de la comunidad RedLibertad.">
+<meta name="robots" content="noindex,follow">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/resuelve-v350.css">
+<script src="/resuelve-v350.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="topbar">
+ <a class="brand" href="/app"><img alt="" src="/assets/logo-mark.svg" width="37" height="37"><strong>RedLibertad</strong></a>
+ <nav aria-label="Navegación">
+  <a href="/app">Inicio</a><a href="/marketplace">Marketplace</a>
+  <a class="selected" href="/resuelve" aria-current="page">Resuelve</a>
+ </nav>
+</header>
+<main id="main" class="wrap">
+ <section class="hero" aria-labelledby="hero-title">
+  <p class="eyebrow">REDLIBERTAD RESUELVE · VERSIÓN INICIAL</p>
+  <h1 id="hero-title">Una pregunta puede conectar a muchas personas.</h1>
+  <p>Comparte algo que necesitas, recomienda desde tu experiencia y ayuda a otros a encontrar una solución. Sin respuestas artificiales: personas que ayudan a personas.</p>
+  <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a></div>
+ </section>
+ <div id="banner" role="status" aria-live="polite"></div>
+ <section id="askPanel" class="panel editor" hidden aria-labelledby="askTitle">
+  <div class="panel-head"><h2 id="askTitle">¿Qué necesitas resolver?</h2><button id="closeAsk" type="button" class="plain">Cerrar</button></div>
+  <p class="muted">Esta petición será pública. Evita publicar teléfonos, direcciones exactas u otros datos personales.</p>
+  <form id="askForm">
+   <label for="askCategory">Tipo de petición</label><select name="category" id="askCategory" required>
+    <option value="consejo">Necesito consejo</option><option value="busco">Estoy buscando algo</option>
+    <option value="ayuda">Necesito ayuda</option><option value="experiencia">Quiero conocer experiencias</option>
+   </select>
+   <label for="askTitleInput">Título breve</label>
+   <input id="askTitleInput" name="title" minlength="8" maxlength="125" required placeholder="Ej.: ¿Qué sofá elegir para un salón pequeño?">
+   <label for="askBody">Cuéntanos los detalles</label>
+   <textarea id="askBody" name="body" minlength="20" maxlength="1800" rows="5" required placeholder="Explica lo que necesitas. Incluye datos útiles, pero no información personal."></textarea>
+   <div class="form-bottom"><span class="muted">Solo se publicará si pulsas el botón.</span><button class="primary" type="submit">Publicar petición</button></div>
+  </form>
+ </section>
+ <section id="questions" class="section" aria-labelledby="questionsTitle">
+  <div class="section-top"><div><p class="eyebrow dark">LA COMUNIDAD</p><h2 id="questionsTitle">Peticiones y soluciones</h2></div>
+   <div class="filters" role="group" aria-label="Filtrar peticiones">
+    <button data-filter="open" class="active" type="button" aria-pressed="true">Por resolver</button>
+    <button data-filter="resolved" type="button" aria-pressed="false">Resueltas</button>
+   </div>
+  </div>
+  <div id="listStatus" class="muted" role="status" aria-live="polite">Cargando peticiones…</div>
+  <div id="questionList" class="cards"></div>
+  <button id="moreButton" class="secondary more" hidden type="button">Ver más peticiones</button>
+ </section>
+ <section id="detailPanel" class="panel detail" hidden aria-labelledby="detailTitle">
+  <button id="backButton" class="plain back" type="button">← Volver a las peticiones</button>
+  <article id="questionDetail"></article>
+  <div id="answerList" class="answers"></div>
+  <form id="answerForm" hidden>
+   <label for="answerBody">Tu respuesta</label>
+   <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required placeholder="Comparte una experiencia, una recomendación concreta o un paso que haya funcionado."></textarea>
+   <p class="muted">Tu respuesta será pública. Evita compartir información personal de terceros.</p>
+   <button type="submit" class="primary">Enviar respuesta</button>
+  </form>
+ </section>
+</main>
+<footer class="foot"><p>Resuelve es un espacio entre personas. Las recomendaciones son experiencias de usuarios, no verificaciones profesionales ni ofertas garantizadas. <a href="/app">Volver a RedLibertad</a>.</p></footer>
+</body>
+</html>
