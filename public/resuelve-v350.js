@@ -481,7 +481,7 @@
    select.replaceChildren();status.textContent='Cargando tus comunidades…';
    try{
     const data=await request('/api/communities?scope=joined');
-    members=(Array.isArray(data.communities)?data.communities:[]).filter(c=>c.is_member && /^[1-9]\\d{0,15}$/.test(String(c.id)));
+    members=(Array.isArray(data.communities)?data.communities:[]).filter(c=>c.is_member && /^[1-9]\d{0,15}$/.test(String(c.id)));
     select.append(create('option',null,'Selecciona una comunidad'));
     select.firstChild.value='';
     for(const c of members){
@@ -606,6 +606,54 @@
   }
   void refresh();
   return section;
+ }
+ // V3.5.35 — sugerencias reales y orientativas; no publica ni cambia el borrador.
+ let similarTimer=null,similarRequestNumber=0;
+ function clearSimilar(){
+  if(similarTimer!==null){clearTimeout(similarTimer);similarTimer=null;}
+  similarRequestNumber++;
+  el('askSimilarPanel').hidden=true;
+  el('askSimilarList').replaceChildren();
+  el('askSimilarStatus').textContent='';
+ }
+ async function loadSimilarQuestions(title,requestNumber){
+  const panel=el('askSimilarPanel'),status=el('askSimilarStatus'),list=el('askSimilarList');
+  if(el('askPanel').hidden||requestNumber!==similarRequestNumber)return;
+  try{
+   const data=await request('/api/resuelve/questions/similar?'+new URLSearchParams({titulo:title}));
+   if(requestNumber!==similarRequestNumber||el('askPanel').hidden)return;
+   list.replaceChildren();
+   const items=Array.isArray(data.items)?data.items:[];
+   for(const q of items){
+    if(!/^[1-9]\\d{0,15}$/.test(String(q.id||'')))continue;
+    const item=create('li','resuelve-similar-item');
+    const link=create('a',null,q.title);
+    link.href='/resuelve?id='+encodeURIComponent(q.id);
+    link.target='_blank';link.rel='noopener noreferrer';
+    item.append(link,create('span','muted',q.reviewed_solution?
+     'Solución revisada disponible':'Pregunta pública'));
+    list.append(item);
+   }
+   panel.hidden=false;
+   status.textContent=list.childElementCount?
+    'Estas preguntas podrían ayudarte. Se abrirán en una pestaña nueva para conservar tu borrador.':
+    'No encontramos coincidencias entre las preguntas públicas. Puedes continuar escribiendo.';
+  }catch(error){
+   if(requestNumber!==similarRequestNumber)return;
+   panel.hidden=false;list.replaceChildren();
+   status.textContent='No se pudieron consultar preguntas parecidas. Puedes publicar igualmente.';
+  }
+ }
+ function bindSimilarQuestions(){
+  el('askTitleInput').addEventListener('input',()=>{
+   if(similarTimer!==null){clearTimeout(similarTimer);similarTimer=null;}
+   const title=el('askTitleInput').value.trim();
+   const requestNumber=++similarRequestNumber;
+   if(title.length<8){clearSimilar();return;}
+   el('askSimilarPanel').hidden=false;
+   el('askSimilarStatus').textContent='Buscando preguntas similares…';
+   similarTimer=setTimeout(()=>{similarTimer=null;void loadSimilarQuestions(title,requestNumber);},450);
+  });
  }
  function questionTopicControls(q){
   const details=create('details','resuelve-question-topic');
@@ -977,7 +1025,8 @@
    el('askPanel').scrollIntoView({block:'start',behavior:'smooth'});
    el('askTitleInput').focus({preventScroll:true});
   });
-  el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;});
+  bindSimilarQuestions();
+  el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;clearSimilar();});
   el('backButton').addEventListener('click',goList);
   for(const btn of document.querySelectorAll('[data-filter]')){
    btn.addEventListener('click',async()=>{
@@ -1075,7 +1124,7 @@
     const data=Object.fromEntries(new FormData(form).entries());
     data.professionalHelpRequested=el('askProfessionalHelp').checked;
     const created=await write('/api/resuelve/questions',data);
-    form.reset();message('Tu petición se ha publicado.');await openDetail(created.id);
+    form.reset();clearSimilar();message('Tu petición se ha publicado.');await openDetail(created.id);
    }catch(err){message(err.message);}
    finally{submit.disabled=false;}
   });
