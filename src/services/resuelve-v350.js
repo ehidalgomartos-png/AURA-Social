@@ -40,6 +40,8 @@ async function ensureSchema(){
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_approved_answer_id BIGINT");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_opt_out BOOLEAN NOT NULL DEFAULT FALSE");
+  // Consentimiento individual, expresamente dado por el autor; nunca indexación por defecto.
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS seo_public_opt_in BOOLEAN NOT NULL DEFAULT FALSE");
   // Los avisos nunca ocultan respuestas automáticamente ni revelan la identidad del denunciante.
   await db.query([
    "CREATE TABLE IF NOT EXISTS resuelve_answer_reports (",
@@ -399,10 +401,45 @@ async function shareResolvedPreview(userId,qid){
  ].join(' ');
  return (await db.query(sql,[qid,userId])).rows[0]||null;
 }
+// V3.5.29 — autoriza una ficha independiente para buscadores, distinta de la biblioteca.
+async function getSeoConsent(userId,questionId){
+ await ensureSchema();
+ const r=await db.query(
+  "SELECT seo_public_opt_in AS enabled FROM resuelve_questions WHERE id=$1 AND author_id=$2 AND status<>'hidden'",
+  [questionId,userId]);
+ return r.rows[0]||null;
+}
+async function setSeoConsent(userId,questionId,enabled){
+ if(typeof enabled!=='boolean'||!validId(questionId))return null;
+ await ensureSchema();
+ const r=await db.query([
+  "UPDATE resuelve_questions SET seo_public_opt_in=$3,updated_at=now()",
+  "WHERE id=$1 AND author_id=$2 AND status='resolved' AND library_opt_out=FALSE",
+  "RETURNING seo_public_opt_in AS enabled"
+ ].join(' '),[questionId,userId,enabled]);
+ return r.rows[0]||null;
+}
+async function publicSeoSolution(questionId){
+ if(!validId(questionId))return null;
+ await ensureSchema();
+ const r=await db.query([
+  "SELECT q.id,q.title,q.category,q.solved_at,",
+  "trim(split_part(a.body,' Anuncio recomendado:',1)) AS solution",
+  "FROM resuelve_questions q",
+  "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE q.id=$1 AND q.seo_public_opt_in=TRUE AND q.library_opt_out=FALSE",
+  "AND q.status='resolved' AND q.library_approved_answer_id=q.accepted_answer_id",
+  "AND char_length(trim(split_part(a.body,' Anuncio recomendado:',1)))>=80",
+  "AND char_length(trim(q.body))>=50 LIMIT 1"
+ ].join(' '),[questionId]);
+ return r.rows[0]||null;
+}
 async function reopen(userId,qid){
  await ensureSchema();
  const r=await db.query([
-  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,thanked_at=NULL,solved_at=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,thanked_at=NULL,seo_public_opt_in=FALSE,solved_at=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status='resolved' RETURNING id"
  ].join(' '),[qid,userId]);return r.rows[0]||null;
 }
@@ -603,4 +640,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
