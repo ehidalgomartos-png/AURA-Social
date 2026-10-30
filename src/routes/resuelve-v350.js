@@ -48,6 +48,20 @@ router.get('/solutions/summary',wrap(async(req,res)=>{
  const counts=await service.librarySummary({query:query.trim()});
  res.json({ok:true,...counts});
 }));
+// V3.5.29: consentimiento separado y revocable para una ficha indexable.
+router.get('/questions/:id/seo-consent',requireAuth,wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const value=await service.getSeoConsent(req.user.id,req.params.id);
+ if(!value)return fail(res,404,'peticion_no_disponible');
+ res.json({ok:true,enabled:value.enabled===true});
+}));
+router.post('/questions/:id/seo-consent',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id)||typeof req.body?.enabled!=='boolean')
+  return fail(res,400,'preferencia_invalida');
+ const value=await service.setSeoConsent(req.user.id,req.params.id,req.body.enabled);
+ if(!value)return fail(res,409,'publicacion_no_disponible');
+ res.json({ok:true,enabled:value.enabled===true});
+}));
 router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const row=await service.optOutLibrary(req.params.id,req.user.id);
