@@ -112,6 +112,39 @@ function validateProfessionalDisclosure(data){
  if(interest!=='yes'&&interest!=='no')return null;
  return {role,commercialInterest:interest==='yes'};
 }
+// V3.5.35 — coincidencias orientativas, nunca respuestas inventadas ni publicidad.
+function similarQueryTokens(raw){
+ const text=clean(raw,125).toLocaleLowerCase('es');
+ if(text.length<8||text.length>125)return [];
+ const ignored=new Set(['para','como','cómo','cuando','donde','quiero','necesito',
+  'ayuda','consejo','problema','problemas','tengo','hacer','sobre','desde','porque',
+  'estas','estos','esta','este','entre','puedo','podría','alguien','otra','otras']);
+ return [...new Set(text.match(/[a-záéíóúñü0-9]{4,}/gu)||[])]
+  .filter(t=>!ignored.has(t)).sort((a,b)=>b.length-a.length).slice(0,5);
+}
+async function similarQuestions(raw){
+ const tokens=similarQueryTokens(raw);
+ if(!tokens.length)return [];
+ await ensureSchema();
+ const sql=[
+  "SELECT q.id,q.title,q.status,",
+  "(q.status='resolved' AND q.library_approved_answer_id=q.accepted_answer_id",
+  "AND q.library_opt_out=FALSE AND a.status='visible') AS reviewed_solution",
+  "FROM resuelve_questions q",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "LEFT JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id",
+  "WHERE q.status='open' OR (q.status='resolved' AND",
+  "q.library_approved_answer_id=q.accepted_answer_id AND q.library_opt_out=FALSE",
+  "AND a.status='visible')",
+  "AND EXISTS (SELECT 1 FROM unnest($1::text[]) token",
+  "WHERE position(lower(token) in lower(q.title))>0)",
+  "ORDER BY reviewed_solution DESC,",
+  "(SELECT count(*) FROM unnest($1::text[]) token",
+  "WHERE position(lower(token) in lower(q.title))>0) DESC, q.id DESC LIMIT 5"
+ ].join(' ');
+ const r=await db.query(sql,[tokens]);
+ return r.rows;
+}
 async function list({filter='open',before=null,category=null,query='',professionalOnly=false}={}){
  await ensureSchema();
  const state=['open','resolved','all'].includes(filter)?filter:'open';
@@ -682,4 +715,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={publicQuestionSharePreview,TOPICS,setQuestionTopic,sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={similarQueryTokens,similarQuestions,publicQuestionSharePreview,TOPICS,setQuestionTopic,sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
