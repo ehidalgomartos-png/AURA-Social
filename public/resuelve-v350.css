@@ -389,3 +389,16 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-email-settings input{width:19px;height:19px;min-width:19px;margin:2px 0 0;accent-color:#176c80}
 .resuelve-email-settings a{color:#145d83;font-weight:750}
 @media(max-width:650px){.resuelve-email-settings{padding:13px;margin:13px 0}}
+
+/* V3.5.22 — Mis ayudas: cifras reales y listado de aportaciones del titular. */
+.my-help-dashboard{margin:15px 0;border-radius:14px;background:#f5fafc;border:1px solid #c7dfe8;padding:15px}
+.my-help-dashboard h3{margin:2px 0 7px;color:#164e6b}
+.my-help-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}
+.my-help-metric{background:white;border:1px solid #cee0e8;border-radius:11px;padding:11px}
+.my-help-metric strong{display:block;font-size:1.55rem;color:#144a67;font-variant-numeric:tabular-nums}
+.my-help-metric span{font-size:.79rem;color:#486577}
+@media(max-width:740px){
+ .my-help-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .filters.with-help{overflow-x:auto;scrollbar-width:thin;justify-content:flex-start}
+ .filters.with-help button{flex:none;white-space:nowrap;padding:9px 11px}
+}

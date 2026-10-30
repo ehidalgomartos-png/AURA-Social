@@ -41,6 +41,6 @@ test('V3.5.15.2: alternar, aplicar, limpiar y preservar filtros API',()=>{
  assert.match(js,/if\(more&&state\.next\)params\.set\('antes',state\.next\)/);
  assert.match(js,/setQuestionAdvancedFilters\(false\);\s*loadList\(\)/);
  assert.match(js,/el\('questionSearchForm'\)\.reset\(\);state\.search='';state\.category='';state\.professionalOnly=false/);
- assert.match(js,/el\('questionSearchForm'\)\.hidden=state\.filter==='mine'/);
+ assert.match(js,/el\('questionSearchForm'\)\.hidden=\['mine','help','contributed'\]\.includes\(state\.filter\)/);
  assert.match(js,/el\('questionSearchClear'\)\.addEventListener\('click'/);
 });

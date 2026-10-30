@@ -39,7 +39,8 @@
   article.append(
    meta(chip(q.status==='resolved'?'Resuelta':'Por resolver',q.status==='resolved'),
     chip(categories[q.category]||'Petición'),
-    ...(q.professional_help_requested?[chip('Orientación profesional solicitada')]:[])),
+    ...(q.professional_help_requested?[chip('Orientación profesional solicitada')]:[]),
+    ...(q.my_answer_id?[chip(q.my_answer_selected?'✓ Tu ayuda fue elegida':'Has aportado una respuesta',q.my_answer_selected)]:[])),
    heading,create('p',null,q.body),
    meta(create('span',null,'@'+q.author_username),
     create('span',null,date(q.created_at)),
@@ -50,6 +51,31 @@
   return article;
  }
 // V3.5.16 — intereses privados, sin perfiles públicos ni mensajes automáticos.
+ async function loadMyHelpStats(){
+  const panel=el('myHelpDashboard');
+  if(!state.user||!['mine','contributed'].includes(state.filter)){panel.hidden=true;return;}
+  panel.hidden=false;
+  const status=el('myHelpStatus'),metrics=el('myHelpMetrics');
+  status.textContent='Consultando tus ayudas…';metrics.replaceChildren();
+  try{
+   const data=await request('/api/resuelve/my-activity');
+   if(!['mine','contributed'].includes(state.filter))return;
+   const fields=[
+    ['open_questions','Tus peticiones abiertas'],
+    ['questions_with_answers','Tus peticiones con respuestas'],
+    ['resolved_questions','Tus problemas resueltos'],
+    ['contributed_questions','Peticiones a las que has ayudado']
+   ];
+   for(const [key,label] of fields){
+    const value=Number(data.stats?.[key]);
+    if(!Number.isSafeInteger(value)||value<0)throw Error('No se pudo consultar el resumen.');
+    const item=create('article','my-help-metric');
+    item.append(create('strong',null,value.toLocaleString('es-ES')),create('span',null,label));
+    metrics.append(item);
+   }
+   status.textContent='Datos privados de tu actividad real. Se actualizan al volver a abrir esta sección.';
+  }catch(error){status.textContent=error.message;}
+ }
  function renderHelpTopicSelection(){
   for(const input of el('helpTopicsForm').querySelectorAll('input[name="helpTopic"]'))
    input.checked=state.helpTopics.includes(input.value);
@@ -76,7 +102,7 @@
   if(!more){list.replaceChildren();status.textContent='Cargando peticiones…';}
   try{
    const params=new URLSearchParams();
-   if(state.filter!=='mine'&&state.filter!=='help'){
+   if(!['mine','help','contributed'].includes(state.filter)){
     params.set('estado',state.filter);
     if(state.category)params.set('categoria',state.category);
     if(state.search)params.set('q',state.search);
@@ -84,6 +110,7 @@
    }
    if(more&&state.next)params.set('antes',state.next);
    const endpoint=state.filter==='mine'?'/api/resuelve/questions/mine':
+    state.filter==='contributed'?'/api/resuelve/questions/answered-by-me':
     state.filter==='help'?'/api/resuelve/questions/for-me':'/api/resuelve/questions';
    const data=await request(endpoint+'?'+params.toString());
    for(const q of data.items)list.append(card(q));
@@ -91,6 +118,7 @@
    btn.hidden=!state.next;
    status.textContent=list.childElementCount?'':(
     state.filter==='mine'?'Todavía no has publicado ninguna petición.':
+    state.filter==='contributed'?'Todavía no has respondido a ninguna petición. Puedes empezar por «Puedo ayudar».':
     state.filter==='help'?(state.helpTopics.length?'No hay peticiones abiertas de tus temas por ahora.':'Elige los temas en los que quieres ayudar para descubrir peticiones.') :
     'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.');
   }catch(err){status.textContent=err.message;}
@@ -560,6 +588,8 @@
   el('resuelveAuthPanel').hidden=!guest;
   if(guest)el('resuelveAuthPanel').hidden=true;
   document.querySelector('[data-filter="mine"]').hidden=guest;
+  document.querySelector('[data-filter="contributed"]').hidden=guest;
+  el('myHelpDashboard').hidden=guest||!['mine','contributed'].includes(state.filter);
   document.querySelector('[data-filter="help"]').hidden=guest;
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
@@ -685,7 +715,7 @@
   for(const btn of document.querySelectorAll('[data-filter]')){
    btn.addEventListener('click',async()=>{
     state.filter=btn.dataset.filter;
-    el('questionSearchForm').hidden=state.filter==='mine'||state.filter==='help';
+    el('questionSearchForm').hidden=['mine','help','contributed'].includes(state.filter);
     el('helpTopicsPanel').hidden=state.filter!=='help';
     for(const t of document.querySelectorAll('[data-filter]')){
      const active=t===btn;t.classList.toggle('active',active);t.setAttribute('aria-pressed',active?'true':'false');
@@ -693,7 +723,7 @@
     if(state.filter==='help'){
      try{await loadHelpTopics();}catch(err){el('helpTopicsStatus').textContent=err.message;return;}
     }
-    await loadList();
+    await Promise.all([loadList(),loadMyHelpStats()]);
    });
   }
   el('helpTopicsForm').addEventListener('submit',async(event)=>{

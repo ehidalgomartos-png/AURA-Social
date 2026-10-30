@@ -102,6 +102,7 @@
     <button data-filter="resolved" type="button" aria-pressed="false">Resueltas</button>
     <button data-filter="help" type="button" aria-pressed="false" hidden>Puedo ayudar</button>
     <button data-filter="mine" type="button" aria-pressed="false" hidden>Mis peticiones</button>
+    <button data-filter="contributed" type="button" aria-pressed="false" hidden>He ayudado</button>
    </div>
   </div>
   <section id="helpTopicsPanel" class="help-topics-panel" aria-labelledby="helpTopicsTitle" hidden>
@@ -120,6 +121,12 @@
    </div>
   </form>
   <p id="helpTopicsStatus" class="muted" role="status" aria-live="polite"></p>
+ </section>
+ <section id="myHelpDashboard" class="my-help-dashboard" aria-labelledby="myHelpDashboardTitle" hidden>
+  <h3 id="myHelpDashboardTitle">Mis ayudas en Resuelve</h3>
+  <p class="muted">Solo ves tu propia actividad. Una respuesta no significa que el problema esté resuelto.</p>
+  <div id="myHelpMetrics" class="my-help-metrics"></div>
+  <p id="myHelpStatus" class="muted" role="status" aria-live="polite"></p>
  </section>
  <details id="resuelveReplyEmailSettings" class="resuelve-email-settings" hidden>
   <summary>Avisos cuando respondan a mis preguntas</summary>
