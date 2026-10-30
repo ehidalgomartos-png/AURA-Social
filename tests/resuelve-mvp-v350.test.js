@@ -150,7 +150,7 @@ test('lectura pública, escritura restringida, creación y respuesta entre perso
   assert.equal(other.status,201);
   const notices=dbMock.audit.filter(call=>call.sql.startsWith('INSERT INTO notifications('));
   assert.equal(notices.length,1);
-  assert.deepEqual(notices[0].args,[String(id),2].map((v,i)=>i===0?v:v));
+  assert.deepEqual(notices[0].args,[String(id),2]);
   assert.match(notices[0].sql,/\'system\',\'resuelve\'/);
   const detail=await req('/api/resuelve/questions/'+id);
   assert.equal(detail.status,200);
