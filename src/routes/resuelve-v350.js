@@ -26,6 +26,27 @@ function checkOrigin(req,res,next){
  return fail(res,403,'origen_no_permitido');
 }
 router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();});
+// V3.5.7: biblioteca pública exclusivamente de soluciones revisadas por un administrador.
+router.get('/solutions',wrap(async(req,res)=>{
+ const before=req.query?.antes;
+ if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
+ const items=await service.library({before:before||null});
+ res.json({ok:true,items,next:items.length===12?items[items.length-1].id:null});
+}));
+router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const row=await service.optOutLibrary(req.params.id,req.user.id);
+ if(!row)return fail(res,404,'peticion_no_encontrada');
+ res.json({ok:true,id:row.id});
+}));
+router.post('/admin/solutions/:id/:action',requireAuth,checkOrigin,limiter(40),wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ if(!service.validId(req.params.id)||!['approve','revoke'].includes(req.params.action))
+  return fail(res,400,'accion_invalida');
+ const row=await service.approveLibrary(req.params.id,req.params.action==='approve');
+ if(!row)return fail(res,409,'solucion_no_apta');
+ res.json({ok:true,id:row.id,approved:!!row.library_approved_answer_id});
+}));
 router.get('/questions',wrap(async(req,res)=>{
  const filter=String(req.query?.estado||'open');
  if(!['open','resolved','all'].includes(filter))return fail(res,400,'filtro_invalido');
