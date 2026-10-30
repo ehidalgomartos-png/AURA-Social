@@ -27,6 +27,8 @@ async function ensureSchema(){
   ].join(' ');
   await db.query(ddl);
   await db.query(answers);
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_at TIMESTAMPTZ");
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_approved_answer_id BIGINT");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_opt_out BOOLEAN NOT NULL DEFAULT FALSE");
@@ -162,7 +164,7 @@ async function library({before=null,category=null,query=''}={}){
   "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
   "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
   "AND q.library_approved_answer_id=q.accepted_answer_id",
-  "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
+  "AND char_length(trim(split_part(a.body,\' Anuncio recomendado:\',1)))>=80 AND char_length(trim(q.body))>=50",
   "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
   "AND ($2::text IS NULL OR q.category=$2)",
   "AND ($3::text='' OR position(lower($3::text) in lower(q.title))>0",
@@ -182,34 +184,34 @@ async function pendingSolutions({before=null}={}){
   "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
   "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
   "AND (q.library_approved_answer_id IS NULL OR q.library_approved_answer_id<>q.accepted_answer_id)",
-  "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
+  "AND char_length(trim(split_part(a.body,\' Anuncio recomendado:\',1)))>=80 AND char_length(trim(q.body))>=50",
   "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
   "ORDER BY q.id DESC LIMIT 12"
  ].join(' ');
  return (await db.query(sql,[validId(before)?String(before):null])).rows;
 }
-async function approveLibrary(questionId,approved){
+async function approveLibrary(questionId,approved,reviewerId=null){
  await ensureSchema();
  const sql=approved?[
-  "UPDATE resuelve_questions q SET library_approved_answer_id=q.accepted_answer_id,updated_at=now()",
+  "UPDATE resuelve_questions q SET library_approved_answer_id=q.accepted_answer_id,library_reviewed_at=now(),library_reviewed_by=$2,updated_at=now()",
   "WHERE q.id=$1 AND q.status='resolved' AND q.library_opt_out=FALSE",
   "AND char_length(trim(q.body))>=50",
   "AND EXISTS(SELECT 1 FROM users author WHERE author.id=q.author_id AND author.status='active')",
   "AND EXISTS(SELECT 1 FROM resuelve_answers a JOIN users respondent",
   "ON respondent.id=a.author_id AND respondent.status='active'",
   "WHERE a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
-  "AND char_length(trim(a.body))>=80)",
+  "AND char_length(trim(split_part(a.body,\' Anuncio recomendado:\',1)))>=80)",
   "RETURNING q.id,q.library_approved_answer_id"
  ].join(' '):[
-  "UPDATE resuelve_questions SET library_approved_answer_id=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,updated_at=now()",
   "WHERE id=$1 RETURNING id,library_approved_answer_id"
  ].join(' ');
- return (await db.query(sql,[questionId])).rows[0]||null;
+ return (await db.query(sql,approved?[questionId,reviewerId]:[questionId])).rows[0]||null;
 }
 async function optOutLibrary(questionId,authorId){
  await ensureSchema();
  const sql=[
-  "UPDATE resuelve_questions SET library_opt_out=TRUE,library_approved_answer_id=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET library_opt_out=TRUE,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status<>'hidden'",
   "RETURNING id"
  ].join(' ');
