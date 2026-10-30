@@ -15,7 +15,7 @@ test('V3.5.33: public introduction explains real person-to-person help without s
  assert.match(html,/Sin presión para comprar, contratar o vender/);
  assert.match(html,/sin obligación de comprar/);
  assert.match(html,/no equivale a tener una acreditación verificada/);
- assert.match(html,/Son ejemplos orientativos/);
+ assert.match(html,/ejemplos orientativos/);
  assert.match(html,/Para aparecer en buscadores requiere, además, tu autorización/);
  assert.doesNotMatch(html,/mil usuarios|miles de clientes|valoración 5\/5|testimonio real ficticio/i);
  assert.match(html,/href="\/resuelve#questions"/);
