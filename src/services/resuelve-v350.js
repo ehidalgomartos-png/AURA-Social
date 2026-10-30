@@ -32,6 +32,8 @@ async function ensureSchema(){
   await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS self_professional_role VARCHAR(70)");
   await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS self_commercial_interest BOOLEAN NOT NULL DEFAULT FALSE");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS professional_help_requested BOOLEAN NOT NULL DEFAULT FALSE");
+  // Un agradecimiento voluntario, ligado a la solución elegida. No es una puntuación ni una recompensa.
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS thanked_at TIMESTAMPTZ");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_at TIMESTAMPTZ");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
@@ -171,7 +173,7 @@ async function detail(id){
  await ensureSchema();
  const q=await db.query([
   "SELECT q.id,q.author_id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.accepted_answer_id,",
-  "q.library_approved_answer_id,q.library_opt_out,",
+  "q.library_approved_answer_id,q.library_opt_out,q.thanked_at,",
   "q.created_at,q.solved_at,u.username AS author_username",
   "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
   "WHERE q.id=$1 AND q.status<>'hidden'"
@@ -220,10 +222,35 @@ async function solve(userId,qid,aid){
   "RETURNING q.id,q.accepted_answer_id"
  ].join(' '),[qid,userId,aid]);return r.rows[0]||null;
 }
+// V3.5.17: un solo agradecimiento por resolución, visible en el detalle público.
+async function thankResolved(userId,qid){
+ await ensureSchema();
+ const sql=[
+  "UPDATE resuelve_questions SET thanked_at=now(),updated_at=now()",
+  "WHERE id=$1 AND author_id=$2 AND status='resolved'",
+  "AND accepted_answer_id IS NOT NULL AND thanked_at IS NULL",
+  "AND EXISTS(SELECT 1 FROM resuelve_answers a WHERE a.id=accepted_answer_id AND a.status='visible')",
+  "RETURNING id,thanked_at"
+ ].join(' ');
+ return (await db.query(sql,[qid,userId])).rows[0]||null;
+}
+// Previsualización autorizada: nunca copia respuestas de terceros al editor de RedLibertad.
+async function shareResolvedPreview(userId,qid){
+ await ensureSchema();
+ const sql=[
+  "SELECT q.id,q.title FROM resuelve_questions q",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "WHERE q.id=$1 AND q.author_id=$2 AND q.status='resolved'",
+  "AND q.accepted_answer_id IS NOT NULL",
+  "AND EXISTS(SELECT 1 FROM resuelve_answers a",
+  "WHERE a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible')"
+ ].join(' ');
+ return (await db.query(sql,[qid,userId])).rows[0]||null;
+}
 async function reopen(userId,qid){
  await ensureSchema();
  const r=await db.query([
-  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,thanked_at=NULL,solved_at=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status='resolved' RETURNING id"
  ].join(' '),[qid,userId]);return r.rows[0]||null;
 }
@@ -343,4 +370,4 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
