@@ -80,10 +80,22 @@
   for(const input of el('helpTopicsForm').querySelectorAll('input[name="helpTopic"]'))
    input.checked=state.helpTopics.includes(input.value);
  }
+ async function loadHelpAlerts(){
+  const toggle=el('helpAlertsToggle'),status=el('helpAlertsStatus');
+  toggle.disabled=true;status.textContent='Comprobando tu preferencia…';
+  try{
+   const result=await request('/api/resuelve/help-alerts/preference');
+   toggle.checked=result.enabled===true;toggle.disabled=false;
+   status.textContent=toggle.checked?
+    'Recibirás como máximo un aviso al día de nuevos temas que hayas elegido.':
+    'Los avisos están desactivados. Puedes seguir ayudando sin recibir notificaciones.';
+  }catch(error){toggle.disabled=true;status.textContent=error.message;}
+ }
  async function loadHelpTopics(){
   const result=await request('/api/resuelve/help-topics');
   state.helpTopics=Array.isArray(result.categories)?result.categories:[];
   renderHelpTopicSelection();
+  await loadHelpAlerts();
  }
  async function saveHelpTopics(categories){
   const response=await write('/api/resuelve/help-topics',{categories});
@@ -726,6 +738,15 @@
     await Promise.all([loadList(),loadMyHelpStats()]);
    });
   }
+  el('helpAlertsToggle').addEventListener('change',async()=>{
+   if(!state.user)return;
+   const toggle=el('helpAlertsToggle'),status=el('helpAlertsStatus');
+   toggle.disabled=true;status.textContent='Guardando tu preferencia…';
+   try{
+    await write('/api/resuelve/help-alerts/preference',{enabled:toggle.checked});
+   }catch(error){status.textContent=error.message;}
+   await loadHelpAlerts();
+  });
   el('helpTopicsForm').addEventListener('submit',async(event)=>{
    event.preventDefault();
    if(!state.user)return openAuth('login');
