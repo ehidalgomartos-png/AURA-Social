@@ -198,7 +198,7 @@
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
    btn.hidden=!state.next;
-   const topicName=topicLabels.find(([slug])=>slug===state.topic)?.[1];
+   const topicName=state.topic?topicLabels.find(([slug])=>slug===state.topic)?.[1]:null;
    status.textContent=list.childElementCount?(topicName?'Peticiones de '+topicName+' con los filtros seleccionados.':''):(
     state.filter==='mine'?'Todavía no has publicado ninguna petición.':
     state.filter==='contributed'?'Todavía no has respondido a ninguna petición. Puedes empezar por «Puedo ayudar».':
