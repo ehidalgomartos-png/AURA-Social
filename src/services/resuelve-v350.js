@@ -63,6 +63,8 @@ async function ensureSchema(){
    "categories <@ ARRAY['consejo','busco','ayuda','experiencia']::text[]",
    "AND cardinality(categories)<=4))"
   ].join(' '));
+  // V3.5.23: avisos voluntarios para ayudar; opt-in independiente de elegir temas.
+  await db.query("ALTER TABLE resuelve_help_preferences ADD COLUMN IF NOT EXISTS notify_new_questions BOOLEAN NOT NULL DEFAULT FALSE");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_feed ON resuelve_questions(status,created_at DESC,id DESC)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_answers_question ON resuelve_answers(question_id,created_at ASC,id ASC) WHERE status='visible'");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_author ON resuelve_questions(author_id,created_at DESC)");
@@ -139,6 +141,42 @@ async function setHelpTopics(userId,categories){
   "RETURNING categories"
  ].join(' ');
  return (await db.query(sql,[userId,categories])).rows[0]||null;
+}
+async function getHelpAlertPreference(userId){
+ await ensureSchema();
+ const r=await db.query('SELECT notify_new_questions FROM resuelve_help_preferences WHERE user_id=$1',[userId]);
+ return r.rows[0]?.notify_new_questions===true;
+}
+async function setHelpAlertPreference(userId,enabled){
+ if(typeof enabled!=='boolean')return null;
+ await ensureSchema();
+ const sql=[
+  "INSERT INTO resuelve_help_preferences(user_id,notify_new_questions,updated_at)",
+  "VALUES($1,$2,now()) ON CONFLICT(user_id) DO UPDATE",
+  "SET notify_new_questions=excluded.notify_new_questions,updated_at=now()",
+  "RETURNING notify_new_questions"
+ ].join(' ');
+ return (await db.query(sql,[userId,enabled])).rows[0]||null;
+}
+// Hasta 20 personas por pregunta y como máximo un aviso por día por persona.
+async function notifyVolunteers(questionId,authorId,category){
+ if(!validId(questionId)||!validId(authorId)||!CATEGORIES.includes(category))return;
+ try{
+  await db.query([
+   "INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)",
+   "SELECT p.user_id,$2,'system','resuelve',$1,",
+   "'Nueva petición en un tema en el que quieres ayudar.'",
+   "FROM resuelve_help_preferences p JOIN users u ON u.id=p.user_id AND u.status='active'",
+   "WHERE p.notify_new_questions=true AND $3=ANY(p.categories) AND p.user_id<>$2",
+   "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE",
+   "(b.blocker_id=p.user_id AND b.blocked_id=$2) OR (b.blocker_id=$2 AND b.blocked_id=p.user_id))",
+   "AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=p.user_id AND m.muted_id=$2)",
+   "AND NOT EXISTS(SELECT 1 FROM notifications n WHERE n.user_id=p.user_id",
+   "AND n.entity_type='resuelve' AND n.text='Nueva petición en un tema en el que quieres ayudar.'",
+   "AND n.created_at>=now()-interval '24 hours')",
+   "ORDER BY p.user_id LIMIT 20"
+  ].join(' '),[questionId,authorId,category]);
+ }catch(error){console.warn('Resuelve: avisos voluntarios no disponibles',error?.code||error?.message||'error');}
 }
 async function listToHelp(userId,{before=null}={}){
  await ensureSchema();
@@ -228,7 +266,10 @@ async function detail(id){
 async function ask(userId,data){
  await ensureSchema();
  const r=await db.query("INSERT INTO resuelve_questions(author_id,title,body,category,professional_help_requested) VALUES($1,$2,$3,$4,$5) RETURNING id",
-  [userId,data.title,data.body,data.category,data.professionalHelpRequested===true]);return r.rows[0];
+  [userId,data.title,data.body,data.category,data.professionalHelpRequested===true]);
+ const row=r.rows[0];
+ if(row)await notifyVolunteers(row.id,userId,data.category);
+ return row;
 }
 async function answer(userId,id,body,professionalRole=null,disclosure={role:null,commercialInterest:false}){
  await ensureSchema();
@@ -442,4 +483,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};

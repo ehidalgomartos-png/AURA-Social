@@ -280,7 +280,7 @@ test('lectura pública, escritura restringida, creación y respuesta entre perso
   const other=await req('/api/resuelve/questions/'+id+'/answers',{user:2,method:'POST',
    body:{body:'Mide la pared primero y prueba un sofá de dos plazas.'}});
   assert.equal(other.status,201);
-  const notices=dbMock.audit.filter(call=>call.sql.startsWith('INSERT INTO notifications('));
+  const notices=dbMock.audit.filter(call=>call.sql.startsWith('INSERT INTO notifications(') && call.sql.includes("'Han respondido a tu petición en RedLibertad Resuelve.'"));
   assert.equal(notices.length,1);
   assert.deepEqual(notices[0].args,[String(id),2]);
   assert.match(notices[0].sql,/\'system\',\'resuelve\'/);

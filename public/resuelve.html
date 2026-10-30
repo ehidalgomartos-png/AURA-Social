@@ -107,7 +107,7 @@
   </div>
   <section id="helpTopicsPanel" class="help-topics-panel" aria-labelledby="helpTopicsTitle" hidden>
   <h3 id="helpTopicsTitle">¿En qué temas puedes ayudar?</h3>
-  <p class="muted">Elige los temas en los que te apetezca compartir experiencias o consejos. Solo verás peticiones abiertas de otras personas; nadie recibirá mensajes ni avisos automáticos.</p>
+  <p class="muted">Elige los temas en los que te apetezca compartir experiencias o consejos. No se enviarán avisos a menos que los actives voluntariamente.</p>
   <form id="helpTopicsForm">
    <div class="help-topics-choices">
     <label><input type="checkbox" name="helpTopic" value="consejo"> Consejos cotidianos</label>
@@ -121,6 +121,10 @@
    </div>
   </form>
   <p id="helpTopicsStatus" class="muted" role="status" aria-live="polite"></p>
+  <div class="help-alerts-settings">
+   <label class="help-alerts-opt-in"><input type="checkbox" id="helpAlertsToggle" disabled> Avísame de nuevas peticiones de mis temas (máximo un aviso al día)</label>
+   <p id="helpAlertsStatus" class="muted" role="status" aria-live="polite">Comprobando tu preferencia…</p>
+  </div>
  </section>
  <section id="myHelpDashboard" class="my-help-dashboard" aria-labelledby="myHelpDashboardTitle" hidden>
   <h3 id="myHelpDashboardTitle">Mis ayudas en Resuelve</h3>
