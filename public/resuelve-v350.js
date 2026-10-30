@@ -747,6 +747,54 @@
   return details;
  }
  // V3.6.1 — seguir una pregunta abierta es opcional y revocable.
+ // V3.6.2 — recordatorio semanal opcional únicamente para el autor.
+ function ownerReminderControl(q){
+  const userId=String(state.user?.id??'');
+  const panel=create('section','resuelve-owner-reminder');
+  const title=create('h3',null,'Recordatorio de mi petición');
+  const status=create('p','muted','Comprobando tu preferencia…');
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const description=create('p','muted',
+   'Solo si lo activas, recibirás un aviso dentro de RedLibertad, como máximo una vez cada 7 días, cuando tu pregunta lleve al menos 3 días abierta. Sin correos.');
+  const action=button('Activar recordatorio semanal',async()=>{
+   if(action.disabled)return;
+   const enabled=action.dataset.enabled!=='true';
+   action.disabled=true;
+   try{
+    const response=await write('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/reminder',{enabled});
+    if(!state.user||String(state.user.id)!==userId||String(state.question?.id)!==String(q.id))return;
+    update(response.enabled===true,q.status);
+   }catch(error){
+    if(state.user&&String(state.user.id)===userId&&String(state.question?.id)===String(q.id)){
+     action.disabled=false;status.textContent=error.message;
+    }
+   }
+  },'secondary');
+  action.disabled=true;
+  action.setAttribute('aria-pressed','false');
+  function update(enabled,questionStatus){
+   panel.hidden=questionStatus!=='open'&&!enabled;
+   action.dataset.enabled=String(enabled);
+   action.setAttribute('aria-pressed',String(enabled));
+   action.textContent=enabled?'Desactivar recordatorio':'Activar recordatorio semanal';
+   action.disabled=questionStatus!=='open'&&!enabled;
+   status.textContent=enabled?'Recordatorio voluntario activo. Puedes desactivarlo cuando quieras.':
+    'Recordatorio desactivado. No enviaremos avisos de esta petición.';
+  }
+  panel.append(title,description,action,status);
+  void (async()=>{
+   try{
+    const data=await request('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/reminder');
+    if(!state.user||String(state.user.id)!==userId||String(state.question?.id)!==String(q.id))return;
+    update(data.enabled===true,data.status);
+   }catch(error){
+    if(state.user&&String(state.user.id)===userId&&String(state.question?.id)===String(q.id)){
+     action.disabled=true;status.textContent='No se pudo consultar el recordatorio.';
+    }
+   }
+  })();
+  return panel;
+ }
  function questionFollowControl(q){
   const followerId=String(state.user?.id??'');
   const wrap=create('section','resuelve-follow-control');
@@ -796,7 +844,7 @@
   if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
-  if(mine)host.append(questionTopicControls(q));
+  if(mine)host.append(questionTopicControls(q),ownerReminderControl(q));
   if(state.user&&!mine)host.append(questionFollowControl(q));
   if(mine&&!solved){
    const details=create('details','resuelve-clarification');
