@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>RedLibertad — Moderación</title>
+  <title>Centro de administración | RedLibertad y Resuelve</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
@@ -16,20 +16,22 @@
 <body>
 <header>
   <a href="/app" class="brand"><img class="brand-logo" src="/assets/logo-mark.svg" alt="">RedLibertad</a>
-  <div><b>Moderación</b><small>V2.19 · Centro de crecimiento</small></div>
+  <div class="admin-header-context-v3616"><b>Administración</b><small>RedLibertad · Resuelve</small></div>
 </header>
 
 <main>
   <section class="admin-hero">
-    <span class="eyebrow">PANEL</span>
-    <h1>Seguridad y moderación</h1>
-    <p>Revisa denuncias, contexto, cuentas y acciones de moderación desde un solo lugar.</p>
-    <p><a class="activity-center-entry-v3317" href="/admin/actividad">Centro de actividad · Posts, Reels, mensajes y más</a></p>
-    <p><a class="activity-center-entry-v3317" href="/resuelve/admin">Centro de administración de Resuelve · Ayuda y moderación</a></p>
+    <span class="eyebrow">PANEL PRIVADO</span>
+    <h1>Centro de administración</h1>
+    <p>Supervisa la actividad y las incidencias de RedLibertad y Resuelve. Las decisiones de moderación siempre requieren revisión humana.</p>
+    <div class="admin-hero-links-v3616" aria-label="Centros de administración">
+      <a class="activity-center-entry-v3317" href="/admin/actividad">Actividad social · Posts, Reels y comentarios</a>
+      <a class="activity-center-entry-v3317" href="/resuelve/admin">Resuelve · Preguntas y moderación</a>
+    </div>
     <div id="metrics" class="metrics"></div>
   </section>
 
-  <nav class="admin-quick-nav-v3610" aria-label="Accesos rápidos de administración">
+  <nav class="admin-quick-nav-v3610" aria-label="Accesos rápidos de administración" aria-describedby="adminQuickHintV3616">
     <span class="admin-quick-label-v3610">Ir directamente a</span>
     <a href="#admin-overview-v3611">Resumen</a>
     <a href="#admin-priorities-v3612">Prioridades</a>
@@ -42,6 +44,7 @@
     <a href="#admin-seo-v3610">SEO</a>
     <a href="#admin-alerts-v3610">Alertas técnicas</a>
   </nav>
+  <p class="admin-quick-hint-v3616" id="adminQuickHintV3616">Desliza las pestañas para ver más apartados.</p>
 
   <section class="panel admin-overview-v3611" id="admin-overview-v3611" aria-labelledby="adminOverviewTitleV3611">
     <div class="admin-overview-head-v3611">
