@@ -60,3 +60,32 @@
 .resuelve-activity-table td{text-align:right}
 .resuelve-admin-trend #activity7dStatus{margin:8px 0 0}
 @media(max-width:650px){.resuelve-activity-table th,.resuelve-activity-table td{padding:10px 8px;font-size:.83rem}}
+
+
+/* V3.6.7 — Coherencia de esquinas en el centro privado de Resuelve. */
+.resuelve-admin-hero{border-radius:26px}
+.resuelve-admin-wrap .panel,.resuelve-admin-work{border-radius:24px}
+.resuelve-admin-wrap .review-item,.resuelve-admin-work-card{
+ border-radius:21px;
+ min-width:0;
+}
+.resuelve-admin-tabs a{border-radius:14px}
+.resuelve-admin-work-card{
+ box-shadow:0 4px 16px rgba(16,55,77,.045);
+ transition:border-color .18s ease,box-shadow .18s ease;
+}
+@media(hover:hover){
+ .resuelve-admin-work-card:hover{
+  border-color:#8fc4cd;
+  box-shadow:0 7px 21px rgba(16,55,77,.085);
+ }
+}
+.resuelve-activity-table-wrap{border-radius:18px}
+@media(max-width:650px){
+ .resuelve-admin-hero,.resuelve-admin-work,.resuelve-admin-wrap .panel{border-radius:20px}
+ .resuelve-admin-wrap .review-item,.resuelve-admin-work-card{border-radius:18px}
+ .resuelve-admin-tabs a{border-radius:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .resuelve-admin-work-card{transition:none}
+}
