@@ -2,6 +2,7 @@
 // V3.5.29 — página HTML rastreable solo con consentimiento explícito y aprobación editorial.
 const express=require('express');
 const service=require('../services/resuelve-v350');
+const topics=require('../services/resuelve-topics-v3531');
 const router=express.Router();
 const CANONICAL_ORIGIN='https://redlibertad.com';
 const CATEGORY_LABELS={consejo:'Consejos',busco:'Orientación',ayuda:'Ayuda',experiencia:'Experiencias'};
@@ -10,7 +11,23 @@ function escapeHtml(text){
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
  })[ch]);
 }
-function renderApprovedSolution(item){
+// V3.6.5 — enlaces únicamente a páginas autorizadas y con contenido suficiente.
+function approvedTopicLinks(item,extra={}){
+ if(!topics.validTopic(item.topic)||extra.topicIndexable!==true)return '';
+ const label=topics.TOPICS[item.topic].title;
+ const hub='/resuelve/temas/'+encodeURIComponent(item.topic);
+ const related=Array.isArray(extra.related)?extra.related:[];
+ const links=related.filter(row=>service.validId(row?.id)&&String(row.id)!==String(item.id))
+  .slice(0,3).map(row=>'<li><a href="/resuelve/solucion/'+encodeURIComponent(String(row.id))+'">'+
+   escapeHtml(String(row.title||'Solución revisada'))+'</a></li>').join('');
+ return '<section class="resuelve-related-links" aria-labelledby="relatedSolutionsTitle">'+
+  '<h2 id="relatedSolutionsTitle">Más experiencias útiles sobre '+escapeHtml(label)+'</h2>'+
+  '<p><a href="'+escapeHtml(hub)+'">Explorar soluciones de '+escapeHtml(label)+'</a></p>'+
+  (links?'<ul>'+links+'</ul>':'')+
+  '<p class="muted">Solo se muestran soluciones revisadas y autorizadas para publicación pública.</p>'+
+  '</section>';
+}
+function renderApprovedSolution(item,extra={}){
  const id=String(item.id);
  if(!service.validId(id))throw Error('invalid_id');
  const title=String(item.title||'Solución útil').trim().slice(0,125);
@@ -55,6 +72,7 @@ function renderApprovedSolution(item){
 <h2>Orientación compartida</h2>
 <p class="resuelve-seo-solution-body">${escapeHtml(text)}</p>
 <p class="muted">Se comparte con autorización del autor de la petición. La información procede de experiencias de otras personas y no sustituye asesoramiento profesional cuando sea necesario.</p>
+${approvedTopicLinks(item,extra)}
 <div class="resuelve-seo-actions">
 <a class="secondary" href="/resuelve?id=${encodeURIComponent(id)}">Ver la petición y su contexto</a>
 <a class="primary" href="/resuelve">Pedir ayuda o ayudar a alguien</a>
@@ -111,11 +129,21 @@ router.get('/solucion/:id',async(req,res)=>{
  try{
   const item=await service.publicSeoSolution(id);
   if(!item)return res.status(404).type('text/plain').send('Solución no disponible.');
+  const extra={topicIndexable:false,related:[]};
+  if(topics.validTopic(item.topic)){
+   try{
+    const collection=await topics.publishedTopic(item.topic);
+    if(Array.isArray(collection)&&collection.length>=3){
+     extra.topicIndexable=true;
+     extra.related=collection.filter(row=>String(row.id)!==String(item.id)).slice(0,3);
+    }
+   }catch(_){/* Los enlaces son opcionales y no bloquean la solución. */}
+  }
   res.set('X-Robots-Tag','index,follow');
-  res.type('html').send(renderApprovedSolution(item));
+  res.type('html').send(renderApprovedSolution(item,extra));
  }catch(error){
   console.error('Resuelve SEO page not available:',error?.code||error?.message||'error');
   res.status(503).type('text/plain').send('La solución no está disponible temporalmente.');
  }
 });
-module.exports={router,escapeHtml,renderApprovedSolution,renderQuestionSharePreview};
+module.exports={router,escapeHtml,renderApprovedSolution,renderQuestionSharePreview,approvedTopicLinks};
