@@ -146,3 +146,13 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .editorial-review-item span{flex:1}
 .editorial-review .primary:disabled{opacity:.5}
 @media(max-width:650px){.editorial-review{padding:13px}.editorial-review>.primary,.editorial-review>.secondary{width:100%}}
+
+/* V3.5.11: consejos, orientación profesional y productos al final */
+.professional-help-option{margin-top:12px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#f7fafc}
+.professional-help-option summary{cursor:pointer;font-weight:650;color:#295e72}
+.professional-help-option label{display:block;margin:9px 0 6px}
+.professional-help-option input{width:100%}
+.professional-advice{margin:12px 0;padding:12px 14px;border-inline-start:3px solid #4a8b9a;background:#f3f9fb;border-radius:0 9px 9px 0;overflow-wrap:anywhere}
+.professional-advice strong{font-weight:750}
+.professional-advice .muted{margin:7px 0 0}
+@media(max-width:650px){.professional-advice,.professional-help-option{padding:11px}}
