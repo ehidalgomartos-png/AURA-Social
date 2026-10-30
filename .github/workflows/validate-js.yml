@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.25 Resuelve direct help for guests and volunteers
+        run: node --test tests/resuelve-direct-help-v3625.test.js
       - name: V3.6.24 Resuelve real-topic discovery, safe filters, race and mobile regressions
         run: node --test tests/resuelve-topic-discovery-v3624.test.js
       - name: V3.6.23 Resuelve desktop hero, filters and mobile layout regression
