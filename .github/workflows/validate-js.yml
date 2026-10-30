@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.18 Resuelve voluntary invitation directly from the landing
+        run: node --test tests/resuelve-invite-direct-v3618.test.js
       - name: V3.6.17 Resuelve answer guidance and accessible character count
         run: node --test tests/resuelve-answer-guidance-v3617.test.js
       - name: V3.6.16 Admin center consistent header and mobile shortcuts
