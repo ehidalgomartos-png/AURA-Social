@@ -11599,6 +11599,36 @@ async function prepareMarketplaceCommunityShareV3269(id){
  if(hint)hint.classList.remove('hidden');
 }
 
+// V3.5.17: la persona autora puede preparar un texto editable sobre un problema resuelto.
+// Nunca se publica automáticamente ni se copia el contenido de quien aportó la solución.
+async function prepareResuelveSolvedPostV3517(id){
+ if(!/^[1-9]\d{0,15}$/.test(String(id||''))||!me)return;
+ const caption=$('#createForm [name="caption"]');
+ if(!caption)return;
+ if(caption.value.trim()){
+  toast('Ya hay una publicación empezada. No hemos cambiado tu borrador.');
+  return;
+ }
+ const {r,d}=await api('/api/resuelve/questions/'+encodeURIComponent(id)+'/share-preview');
+ if(!r.ok||!d?.ok||String(d.id)!==String(id)||
+    typeof d.title!=='string'||d.title.length>125||
+    String(d.url||'')!=='/resuelve?id='+id){
+  toast('Esta petición no está disponible para compartir desde tu cuenta.');
+  return;
+ }
+ await openModal('post');
+ if(caption.value.trim())return;
+ caption.value=('Una petición que publiqué en Resuelve ya se ha solucionado. Gracias a quienes ayudaron.\n\n'+
+  d.title+'\n'+location.origin+d.url).slice(0,2200);
+ caption.dispatchEvent(new Event('input',{bubbles:true}));
+ // Evita volver a abrir el mismo borrador tras actualizar, publicar o regresar.
+ const params=new URLSearchParams(location.search);
+ if(params.get('compartirResuelve')===String(id)){
+  params.delete('compartirResuelve');
+  history.replaceState(history.state,'',location.pathname+(params.toString()?'?'+params:'')+location.hash);
+ }
+ toast('Borrador preparado. Revisa el texto y su privacidad antes de publicar en RedLibertad.');
+}
 async function handleInitialDeepLink() {
   const params = new URLSearchParams(location.search);
   const profile = params.get('profile');
@@ -11609,6 +11639,7 @@ async function handleInitialDeepLink() {
   const conversation = params.get('conversation');
   const trust = params.get('trust');
   const marketShareId = params.get('compartirAnuncio');
+  const resuelveShareId = params.get('compartirResuelve');
 
   if (profile) {
     await openPublicProfile(profile);
@@ -11635,6 +11666,10 @@ async function handleInitialDeepLink() {
     showView(view);
     if(view==='feed' && /^[1-9]\d{0,15}$/.test(String(marketShareId||''))){
       await prepareMarketplaceCommunityShareV3269(marketShareId);
+      return;
+    }
+    if(view==='feed' && /^[1-9]\d{0,15}$/.test(String(resuelveShareId||''))){
+      await prepareResuelveSolvedPostV3517(resuelveShareId);
       return;
     }
     // A news visitor entering their authenticated communities retains a safe
