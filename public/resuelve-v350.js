@@ -630,6 +630,7 @@
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
   el('resuelveAdminEntry').hidden=!isAdmin;
+  el('helperProfileSettings').hidden=guest;
   el('resuelveReplyEmailSettings').hidden=guest;
   return isAdmin;
  }
@@ -659,7 +660,7 @@
   el('resuelveRegisterForm').reset();
   el('resuelveLoginForm').reset();
   renderSession();
-  await loadReplyEmailPreference();
+  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference()]);
   if(state.question)await openDetail(state.question.id,false);
   else await loadList();
  }
@@ -683,6 +684,53 @@
    try{await write('/api/resuelve/reply-email/preference',{enabled:toggle.checked});}
    catch(error){el('resuelveReplyEmailStatus').textContent=error.message;}
    await loadReplyEmailPreference();
+  });
+ }
+ async function loadHelperProfilePreference(){
+  if(!state.user)return;
+  const toggle=el('helperProfileToggle'),status=el('helperProfileStatus'),share=el('helperProfileShare');
+  toggle.disabled=true;share.hidden=true;
+  try{
+   const data=await request('/api/resuelve/helper-profile/preference');
+   toggle.checked=data.enabled===true;toggle.disabled=false;
+   const username=String(state.user.username||'');
+   const valid=/^[A-Za-z0-9_.]{3,30}$/.test(username);
+   share.hidden=!toggle.checked||!valid;
+   if(!share.hidden)share.href='/resuelve?colaborador='+encodeURIComponent(username);
+   status.textContent=toggle.checked?
+    'Tu ficha de ayuda es visible. Puedes compartir el enlace o desactivarla cuando quieras.':
+    'Tu ficha no es pública. Puedes seguir ayudando sin mostrarla.';
+  }catch(error){toggle.disabled=true;status.textContent=error.message;}
+ }
+ async function loadPublicHelperProfile(){
+  const username=new URLSearchParams(location.search).get('colaborador');
+  if(!username)return;
+  const panel=el('helperPublicPanel'),status=el('helperPublicStatus'),grid=el('helperPublicStats');
+  panel.hidden=false;grid.replaceChildren();
+  if(!/^[A-Za-z0-9_.]{3,30}$/.test(username)){status.textContent='Perfil no disponible.';return;}
+  try{
+   const data=await request('/api/resuelve/helpers/'+encodeURIComponent(username));
+   status.textContent='@'+data.helper.username+' · Esta persona ha compartido ayuda en Resuelve.';
+   const fields=[
+    ['helped_questions','Peticiones ajenas en las que ha ayudado'],
+    ['chosen_solutions','Respuestas elegidas como solución']
+   ];
+   for(const [key,label] of fields){
+    const value=Number(data.helper[key]);
+    if(!Number.isSafeInteger(value)||value<0)throw Error('Datos de perfil incompletos.');
+    const tile=create('article','my-help-metric');
+    tile.append(create('strong',null,value.toLocaleString('es-ES')),create('span',null,label));
+    grid.append(tile);
+   }
+  }catch(_){status.textContent='Este perfil no está disponible o su propietario ha desactivado la visibilidad.';}
+ }
+ function bindHelperProfile(){
+  el('helperProfileToggle').addEventListener('change',async()=>{
+   const toggle=el('helperProfileToggle');
+   toggle.disabled=true;el('helperProfileStatus').textContent='Guardando tu elección…';
+   try{await write('/api/resuelve/helper-profile/preference',{enabled:toggle.checked});}
+   catch(error){el('helperProfileStatus').textContent=error.message;}
+   await loadHelperProfilePreference();
   });
  }
  function bindResuelveAuth(){
@@ -737,9 +785,11 @@
   catch(_){state.user=null;}
   bindResuelveAuth();
   bindReplyEmailPreferences();
+  bindHelperProfile();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(state.user)await loadReplyEmailPreference();
+  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference()]);
+  await loadPublicHelperProfile();
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;

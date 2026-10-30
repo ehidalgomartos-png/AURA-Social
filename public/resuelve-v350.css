@@ -417,3 +417,9 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-clarification-form textarea{min-height:96px;max-width:100%;width:100%;resize:vertical}
 .resuelve-clarification-form button{justify-self:start;min-height:44px}
 @media(max-width:650px){.resuelve-clarification-form button{width:100%}}
+
+/* V3.5.25 — opt-in helper profile: simple, no fictitious trust badges. */
+.helper-public-panel{margin:16px 0;padding:17px;background:#f8fbfd;border:1px solid #c9e0e9;border-radius:15px}
+.helper-public-panel h2{font-size:1.3rem;color:#184d65;margin:2px 0 9px}
+.helper-public-panel .my-help-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:650px){.helper-public-panel{padding:14px}.helper-public-panel .my-help-metrics{grid-template-columns:1fr}}
