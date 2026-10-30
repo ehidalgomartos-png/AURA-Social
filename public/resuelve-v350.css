@@ -408,3 +408,12 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .help-alerts-opt-in{display:flex;gap:10px;align-items:flex-start;font-weight:650;line-height:1.45}
 .help-alerts-opt-in input{width:19px;height:19px;min-width:19px;margin:2px 0 0;accent-color:#18778a}
 .help-alerts-settings p{margin:8px 0 0}
+
+/* V3.5.24 — seguimiento abierto y sin mensajes comerciales. */
+.resuelve-clarification{margin:16px 0;border:1px solid #c1dce8;background:#f8fbfd;padding:14px;border-radius:12px}
+.resuelve-clarification summary{cursor:pointer;font-weight:750;color:#115377}
+.resuelve-clarification-form{display:grid;gap:11px;margin-top:12px}
+.resuelve-clarification-form label{display:grid;gap:7px;font-weight:650}
+.resuelve-clarification-form textarea{min-height:96px;max-width:100%;width:100%;resize:vertical}
+.resuelve-clarification-form button{justify-self:start;min-height:44px}
+@media(max-width:650px){.resuelve-clarification-form button{width:100%}}
