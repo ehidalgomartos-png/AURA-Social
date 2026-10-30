@@ -456,3 +456,24 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-seo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
 .resuelve-seo-actions a{display:inline-flex;align-items:center;min-height:44px;padding:10px 15px}
 @media(max-width:650px){.resuelve-seo-consent-actions button,.resuelve-seo-consent-actions a,.resuelve-seo-actions a{width:100%}}
+
+/* V3.5.31 — Temas elegidos, nunca inventados ni indexados sin contenido suficiente. */
+.resuelve-question-topic{margin:14px 0;padding:14px;border-radius:12px;background:#f7fafb;border:1px solid #c6dde7}
+.resuelve-question-topic summary{cursor:pointer;font-weight:750;color:#145671}
+.resuelve-question-topic .muted{margin:9px 0}
+.resuelve-topic-form{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.resuelve-topic-form label{display:grid;gap:7px;flex:1 1 210px;font-weight:650}
+.resuelve-topic-form select{min-height:44px;width:100%}
+.resuelve-topic-form button{min-height:44px}
+.resuelve-topics-directory{margin:22px 0 0;padding:17px;border:1px solid #c6e0dd;border-radius:15px;background:#f7fcfa}
+.resuelve-topics-directory h3{margin:0 0 8px;color:#195c5c}
+.resuelve-topics-links{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.resuelve-topic-link{display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;color:#145763;background:white;border:1px solid #afdbd5;border-radius:999px;text-decoration:none;font-weight:750}
+.resuelve-topic-link:focus-visible{outline:3px solid #107f89;outline-offset:2px}
+.resuelve-topic-page h1{margin-bottom:16px}
+.resuelve-topic-list{margin:18px 0;list-style:none;padding:0;display:grid;gap:11px}
+.resuelve-topic-item{padding:14px 16px;border:1px solid #d5e5e9;border-radius:12px;background:#fbfdfd}
+.resuelve-topic-item h2{margin:0 0 9px;font-size:1.12rem}
+.resuelve-topic-item p{margin:0;line-height:1.6;overflow-wrap:anywhere}
+.resuelve-topic-cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px}
+@media(max-width:650px){.resuelve-topic-form button,.resuelve-topic-cta{width:100%}.resuelve-topics-directory{padding:13px}.resuelve-topics-links{display:grid;grid-template-columns:1fr}.resuelve-topic-link{border-radius:12px}}
