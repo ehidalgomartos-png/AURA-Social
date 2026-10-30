@@ -481,7 +481,7 @@
    select.replaceChildren();status.textContent='Cargando tus comunidades…';
    try{
     const data=await request('/api/communities?scope=joined');
-    members=(Array.isArray(data.communities)?data.communities:[]).filter(c=>c.is_member && /^[1-9]\\d{0,15}$/.test(String(c.id)));
+    members=(Array.isArray(data.communities)?data.communities:[]).filter(c=>c.is_member && /^[1-9]\d{0,15}$/.test(String(c.id)));
     select.append(create('option',null,'Selecciona una comunidad'));
     select.firstChild.value='';
     for(const c of members){
