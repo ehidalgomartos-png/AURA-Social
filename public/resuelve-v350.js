@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Estoy buscando algo',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,reviewNext:null,reviewLoading:false};
+ const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -91,12 +91,15 @@
   btn.hidden=true;
   if(!more){list.replaceChildren();status.textContent='Cargando soluciones…';}
   try{
-   const url='/api/resuelve/solutions'+(more&&state.solutionNext?'?antes='+encodeURIComponent(state.solutionNext):'');
-   const data=await request(url);
+   const params=new URLSearchParams();
+   if(state.solutionCategory)params.set('categoria',state.solutionCategory);
+   if(state.solutionSearch)params.set('q',state.solutionSearch);
+   if(more&&state.solutionNext)params.set('antes',state.solutionNext);
+   const data=await request('/api/resuelve/solutions?'+params.toString());
    for(const q of data.items)list.append(solutionCard(q));
    state.solutionNext=data.next;
    btn.hidden=!state.solutionNext;
-   status.textContent=list.childElementCount?'':'Aún no hay soluciones revisadas. Iremos incorporándolas cuando existan respuestas útiles.';
+   status.textContent=list.childElementCount?'':(state.solutionSearch||state.solutionCategory?'No hay soluciones revisadas que coincidan con estos filtros. Prueba con otra categoría o búsqueda.':'Aún no hay soluciones revisadas. Iremos incorporándolas cuando existan respuestas útiles.');
   }catch(err){status.textContent=err.message;}
   finally{state.solutionLoading=false;}
  }
@@ -368,6 +371,20 @@
    message('Filtros eliminados.');loadList();
   });
   el('moreButton').addEventListener('click',()=>loadList(true));
+  el('solutionFilterForm').addEventListener('submit',event=>{
+   event.preventDefault();
+   const search=el('solutionSearch').value.trim();
+   if(search.length===1){message('Escribe al menos dos caracteres para buscar soluciones.');return;}
+   state.solutionSearch=search;
+   state.solutionCategory=el('solutionCategory').value;
+   loadSolutions();
+  });
+  el('clearSolutionFilters').addEventListener('click',()=>{
+   el('solutionFilterForm').reset();
+   state.solutionSearch='';
+   state.solutionCategory='';
+   loadSolutions();
+  });
   el('moreSolutions').addEventListener('click',()=>loadSolutions(true));
   el('moreLibraryReview').addEventListener('click',()=>loadReviewQueue(true));
   el('askForm').addEventListener('submit',async event=>{

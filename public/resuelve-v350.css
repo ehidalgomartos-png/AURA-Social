@@ -120,3 +120,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .review-item-actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:9px}
 .review-item-actions .secondary{color:var(--blue);min-height:42px;border-color:#b5d6e4;background:#fff}
 @media(max-width:650px){.review-item-actions .secondary{width:100%}}
+
+/* V3.5.9 — filtros de biblioteca mobile-first, independientes de peticiones */
+.solution-filter-form{display:grid;grid-template-columns:minmax(150px,2fr) minmax(130px,1fr) auto auto;align-items:end;gap:9px;padding:13px;margin:14px 0 17px;background:#f8fbfd;border:1px solid var(--line);border-radius:14px}
+.solution-filter-form label{display:grid;gap:5px;font-weight:650;font-size:.85rem}
+.solution-filter-form input,.solution-filter-form select{width:100%;max-width:100%;min-height:43px}
+.solution-filter-form button{min-height:43px}
+.solution-filter-form .secondary{color:var(--blue);border-color:#b5d6e4;background:white}
+@media(max-width:650px){.solution-filter-form{grid-template-columns:repeat(2,minmax(0,1fr));padding:11px}.solution-filter-form label{grid-column:1/-1}.solution-filter-form button{width:100%}}

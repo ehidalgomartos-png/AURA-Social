@@ -87,6 +87,22 @@
     <h2 id="solutionsTitle">Biblioteca de soluciones útiles</h2>
     <p class="muted">Respuestas elegidas por quien preguntó y revisadas antes de aparecer aquí. La biblioteca puede estar vacía al principio.</p>
    </div></div>
+   <form id="solutionFilterForm" class="solution-filter-form" role="search" aria-label="Buscar soluciones revisadas">
+     <label for="solutionSearch">Buscar en las soluciones
+       <input id="solutionSearch" type="search" maxlength="80" placeholder="Ej.: cómo elegir un sofá" autocomplete="off">
+     </label>
+     <label for="solutionCategory">Categoría
+       <select id="solutionCategory">
+         <option value="">Todas</option>
+         <option value="consejo">Consejos</option>
+         <option value="busco">Busco algo</option>
+         <option value="ayuda">Ayuda</option>
+         <option value="experiencia">Experiencias</option>
+       </select>
+     </label>
+     <button class="secondary" type="submit">Buscar soluciones</button>
+     <button class="plain" id="clearSolutionFilters" type="button">Limpiar filtros</button>
+   </form>
    <div id="solutionStatus" class="muted" role="status" aria-live="polite">Cargando soluciones…</div>
    <div id="solutionList" class="cards"></div>
    <button id="moreSolutions" class="secondary more" type="button" hidden>Ver más soluciones</button>
