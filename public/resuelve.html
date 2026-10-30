@@ -147,9 +147,16 @@
  </details>
  <details id="helperProfileSettings" class="resuelve-email-settings" hidden>
   <summary>Mi perfil voluntario de ayuda</summary>
-  <p class="muted">Si lo autorizas, otras personas podrán ver tu usuario y el número de preguntas en las que has ayudado y soluciones elegidas. No se publicarán tus respuestas ni datos personales nuevos en esa ficha. Puedes desactivarlo cuando quieras.</p>
+  <p class="muted">Si lo autorizas, otras personas verán tu usuario, tus aportaciones reales y, si tú lo decides, el oficio o especialidad que declares. Nunca se mostrarán acreditaciones como verificadas sin comprobarlas. Puedes desactivar la ficha cuando quieras.</p>
   <label class="resuelve-email-opt-in"><input id="helperProfileToggle" type="checkbox" disabled> Mostrar mi perfil de colaboración</label>
   <p id="helperProfileStatus" class="muted" role="status" aria-live="polite"></p>
+  <form id="helperSpecialityForm" class="helper-speciality-form">
+   <label for="helperSpecialityInput">Tu oficio o especialidad (opcional, declarado por ti)</label>
+   <input id="helperSpecialityInput" type="text" maxlength="70" placeholder="Ej.: electricista, docente, jardinero" autocomplete="off">
+   <p class="muted">No introduzcas teléfonos, empresas, enlaces ni datos personales. Esta información solo se mostrará si has activado tu ficha de ayuda.</p>
+   <button class="secondary" type="submit">Guardar mi especialidad</button>
+   <p id="helperSpecialityStatus" class="muted" role="status" aria-live="polite"></p>
+  </form>
   <p><a id="helperProfileShare" href="#" hidden>Ver mi perfil para compartir</a></p>
  </details>
  <form id="questionSearchForm" class="resuelve-search" role="search">
