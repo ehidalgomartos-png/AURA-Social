@@ -11,6 +11,12 @@ const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(nex
 const limiter=(max)=>rateLimit({windowMs:60*60*1000,limit:max,standardHeaders:'draft-7',legacyHeaders:false,
  keyGenerator:req=>String(req.user.id),
  message:{error:'demasiados_intentos'}});
+// V3.6.0: el buscador público se protege por IP; el limiter autenticado no sirve para visitantes.
+const publicSimilarityLimiter=rateLimit({
+ windowMs:60*1000,limit:120,
+ standardHeaders:'draft-7',legacyHeaders:false,
+ message:{error:'demasiadas_busquedas'}
+});
 function checkOrigin(req,res,next){
  const origin=req.headers.origin, bearer=/^Bearer\s+\S+$/i.test(String(req.headers.authorization||''));
  if(!origin){
@@ -100,7 +106,7 @@ router.post('/admin/solutions/:id/:action',requireAuth,checkOrigin,limiter(40),w
  res.json({ok:true,id:row.id,approved:!!row.library_approved_answer_id});
 }));
 // V3.5.35: búsqueda orientativa de preguntas públicas, sin consultar textos privados.
-router.get('/questions/similar',wrap(async(req,res)=>{
+router.get('/questions/similar',publicSimilarityLimiter,wrap(async(req,res)=>{
  const title=req.query?.titulo;
  if(typeof title!=='string'||title.length>125||title.trim().length<8)
   return fail(res,400,'titulo_invalido');
