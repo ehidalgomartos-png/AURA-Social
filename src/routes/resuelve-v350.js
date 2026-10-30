@@ -156,6 +156,14 @@ router.post('/questions',requireAuth,checkOrigin,limiter(10),wrap(async(req,res)
  const row=await service.ask(req.user.id,data);
  res.status(201).json({ok:true,id:row.id});
 }));
+// V3.5.24: aclarar una pregunta propia abierta sin sustituir respuestas ni cambiar autor.
+router.post('/questions/:id/clarify',requireAuth,checkOrigin,limiter(5),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id)||!service.validateClarification(req.body?.text))
+  return fail(res,400,'aclaracion_invalida');
+ const row=await service.clarifyQuestion(req.params.id,req.user.id,req.body.text);
+ if(!row)return fail(res,409,'no_se_puede_aclarar');
+ res.json({ok:true,id:row.id});
+}));
 // Avisos de confianza: solo personas autenticadas, sin sanción ni ocultación automática.
 router.post('/answers/:id/report',requireAuth,checkOrigin,limiter(20),wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
