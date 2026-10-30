@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.23 Resuelve desktop hero, filters and mobile layout regression
+        run: node --test tests/resuelve-desktop-layout-v3623.test.js
       - name: V3.6.22 Resuelve admin impact count of unanswered public questions
         run: node --test tests/resuelve-impact-unanswered-v3622.test.js
       - name: V3.6.21 Resuelve unanswered public questions and readable mobile filters
