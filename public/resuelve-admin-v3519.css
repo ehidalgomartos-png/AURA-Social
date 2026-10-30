@@ -89,3 +89,48 @@
 @media(prefers-reduced-motion:reduce){
  .resuelve-admin-work-card{transition:none}
 }
+
+
+/* V3.6.8 — Navegación compacta y desplazable sin tapar apartados en móvil. */
+.resuelve-admin-tabs{
+ display:flex;
+ flex-wrap:nowrap;
+ overflow-x:auto;
+ overscroll-behavior-inline:contain;
+ scroll-snap-type:x proximity;
+ scrollbar-width:thin;
+ gap:8px;
+ padding:10px 2px 12px;
+ max-width:100%;
+}
+.resuelve-admin-tabs a{
+ flex:0 0 auto;
+ white-space:nowrap;
+ scroll-snap-align:start;
+}
+.resuelve-admin-tabs a:focus-visible{
+ outline:3px solid #14799b;
+ outline-offset:2px;
+}
+.resuelve-admin-wrap #trabajo,
+.resuelve-admin-wrap #impacto,
+.resuelve-admin-wrap #actividad,
+.resuelve-admin-wrap #soluciones,
+.resuelve-admin-wrap #confianza,
+.resuelve-admin-wrap #avisos{scroll-margin-top:95px}
+@media(max-width:650px){
+ .resuelve-admin-tabs{
+  display:flex;
+  grid-template-columns:none;
+  flex-wrap:nowrap;
+  gap:7px;
+  margin-inline:-12px;
+  padding-inline:12px;
+ }
+ .resuelve-admin-tabs a{
+  min-width:max-content;
+  padding:9px 13px;
+  font-size:.85rem;
+ }
+ .resuelve-admin-tabs a:first-child{grid-column:auto}
+}
