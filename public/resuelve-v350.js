@@ -65,7 +65,7 @@
    if(!state.user||String(state.user.id)!==userId||state.filter!=='mine')return;
    const items=Array.isArray(response.items)?response.items:[];
    for(const q of items){
-    if(!/^[1-9]\\d{0,15}$/.test(String(q.id||'')))continue;
+    if(!/^[1-9]\d{0,15}$/.test(String(q.id||'')))continue;
     const count=Number(q.answer_count);
     if(!Number.isSafeInteger(count)||count<0)continue;
     const card=create('article','resuelve-pending-card');
@@ -688,7 +688,7 @@
    list.replaceChildren();
    const items=Array.isArray(data.items)?data.items:[];
    for(const q of items){
-    if(!/^[1-9]\\d{0,15}$/.test(String(q.id||'')))continue;
+    if(!/^[1-9]\d{0,15}$/.test(String(q.id||'')))continue;
     const item=create('li','resuelve-similar-item');
     const link=create('a',null,q.title);
     link.href='/resuelve?id='+encodeURIComponent(q.id);
