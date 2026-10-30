@@ -106,7 +106,13 @@
    </label>
    <p class="muted" id="askProfessionalHelpExplanation">No es una solicitud de presupuesto ni obliga a contratar. La comunidad puede ayudarte primero con consejos.</p>
    <label for="askTitleInput">Título breve</label>
-   <input id="askTitleInput" name="title" minlength="8" maxlength="125" required placeholder="Ej.: Necesito orientación para hacer un trámite">
+   <input id="askTitleInput" name="title" minlength="8" maxlength="125" required placeholder="Ej.: Necesito orientación para hacer un trámite" aria-describedby="askSimilarStatus">
+   <section id="askSimilarPanel" class="resuelve-similar-panel" aria-labelledby="askSimilarTitle" hidden>
+    <h3 id="askSimilarTitle">¿Ya existe una pregunta parecida?</h3>
+    <p class="muted">Revisa las experiencias de otras personas antes de publicar. Son sugerencias, no respuestas automáticas.</p>
+    <p id="askSimilarStatus" class="muted" role="status" aria-live="polite"></p>
+    <ul id="askSimilarList" class="resuelve-similar-list"></ul>
+   </section>
    <label for="askBody">Cuéntanos los detalles</label>
    <textarea id="askBody" name="body" minlength="20" maxlength="1800" rows="5" required placeholder="Explica lo que necesitas. Incluye datos útiles, pero no información personal."></textarea>
    <div class="form-bottom"><span class="muted">Solo se publicará si pulsas el botón.</span><button class="primary" type="submit">Publicar petición</button></div>
