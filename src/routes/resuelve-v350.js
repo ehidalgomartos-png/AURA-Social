@@ -40,6 +40,14 @@ router.get('/solutions',wrap(async(req,res)=>{
  const items=await service.library({before:before||null,category:category||null,query:query.trim()});
  res.json({ok:true,items,next:items.length===12?items[items.length-1].id:null});
 }));
+// V3.5.28: public read-only summary, with the same search validation as the library itself.
+router.get('/solutions/summary',wrap(async(req,res)=>{
+ const query=req.query?.q??'';
+ if(typeof query!=='string'||query.length>80||query.trim().length===1)
+  return fail(res,400,'busqueda_invalida');
+ const counts=await service.librarySummary({query:query.trim()});
+ res.json({ok:true,...counts});
+}));
 router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const row=await service.optOutLibrary(req.params.id,req.user.id);
