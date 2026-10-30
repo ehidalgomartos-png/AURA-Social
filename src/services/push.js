@@ -107,7 +107,7 @@ function notificationUrl(notification){
   const entityType=String(notification.entity_type || '');
   const entityId=notification.entity_id;
 
-  if(type==='system' && entityType==='resuelve' && /^[1-9]\\d{0,15}$/.test(String(entityId))){
+  if(type==='system' && entityType==='resuelve' && /^[1-9]\d{0,15}$/.test(String(entityId))){
     return `/resuelve?id=${encodeURIComponent(String(entityId))}`;
   }
   if(type==='message' && entityType==='conversation' && entityId){
