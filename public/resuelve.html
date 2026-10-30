@@ -123,24 +123,30 @@
    </div>
   </div>
   <form id="questionSearchForm" class="resuelve-search" role="search">
-   <label for="questionSearch">Buscar peticiones
+   <label class="resuelve-search-main" for="questionSearch">Buscar peticiones
     <input id="questionSearch" type="search" maxlength="80" placeholder="Ej.: ayuda para hacer un trámite" autocomplete="off">
    </label>
-   <label for="questionCategoryFilter">Categoría
-    <select id="questionCategoryFilter">
-     <option value="">Todas las categorías</option>
-     <option value="consejo">Consejos</option>
-     <option value="busco">Busco orientación</option>
-     <option value="ayuda">Ayuda</option>
-     <option value="experiencia">Experiencias</option>
-    </select>
-   </label>
-   <label class="professional-filter">
-    <input id="questionProfessionalFilter" type="checkbox">
-    <span>Solo peticiones que solicitan orientación profesional</span>
-   </label>
-   <button type="submit" class="secondary">Buscar</button>
-   <button type="button" class="plain" id="questionSearchClear">Limpiar</button>
+   <div class="resuelve-search-actions">
+    <button type="submit" class="secondary resuelve-search-submit">Buscar</button>
+    <button type="button" class="secondary resuelve-search-toggle" id="questionMoreFiltersToggle"
+      aria-expanded="false" aria-controls="questionAdvancedFilters">Más filtros</button>
+   </div>
+   <div id="questionAdvancedFilters" class="resuelve-search-advanced" hidden>
+    <label for="questionCategoryFilter">Categoría
+     <select id="questionCategoryFilter">
+      <option value="">Todas las categorías</option>
+      <option value="consejo">Consejos</option>
+      <option value="busco">Busco orientación</option>
+      <option value="ayuda">Ayuda</option>
+      <option value="experiencia">Experiencias</option>
+     </select>
+    </label>
+    <label class="professional-filter">
+     <input id="questionProfessionalFilter" type="checkbox">
+     <span>Solo peticiones que solicitan orientación profesional</span>
+    </label>
+    <button type="button" class="plain" id="questionSearchClear">Limpiar filtros</button>
+   </div>
   </form>
   <div id="listStatus" class="muted" role="status" aria-live="polite">Cargando peticiones…</div>
   <div id="questionList" class="cards"></div>
