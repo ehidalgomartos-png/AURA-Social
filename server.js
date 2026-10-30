@@ -59,6 +59,7 @@ const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
 const marketplaceComparadorV32132=require('./src/routes/marketplace-comparador-v32132');
 const {router:resuelveV350}=require('./src/routes/resuelve-v350');
 const {router:resuelvePublicSeoV3529}=require('./src/routes/resuelve-public-seo-v3529');
+const {router:resuelveTopicsV3531,topicApiRouter,topicsSitemapHandler}=require('./src/routes/resuelve-topics-v3531');
 const {resuelveSitemapHandler}=require('./src/routes/resuelve-sitemap-v3530');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
@@ -269,6 +270,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/marketplace',marketplaceRoutes);
 app.use(marketplaceSeoV3251.router);
 app.use(marketplaceComparadorV32132.router);
+app.use('/api/resuelve/topics',topicApiRouter);
 app.use('/api/resuelve',resuelveV350);
 app.use('/api/media', mediaRoutes);
 app.use('/api/stories', storyRoutes);
@@ -1250,7 +1252,7 @@ app.get('/sitemap-hashtags.xml',async(req,res)=>{
 app.get('/sitemap-index.xml',(req,res)=>{
   const origin=publicOrigin(req);
   const now=new Date().toISOString();
-  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-productos.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-servicios.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-inmuebles.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-categorias.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-comparador.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-resuelve.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>${escapeHtml(origin+'/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-profiles.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-hashtags.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-communities.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-events.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-reels.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-topics.xml')}</loc><lastmod>${now}</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-guias.xml')}</loc><lastmod>2026-10-08</lastmod></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-productos.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-servicios.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-inmuebles.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-marketplace-categorias.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-comparador.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-resuelve.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/sitemap-resuelve-temas.xml')}</loc></sitemap><sitemap><loc>${escapeHtml(origin+'/noticias/sitemap.xml')}</loc><lastmod>${now}</lastmod></sitemap></sitemapindex>`);
 });
 
 app.get('/robots.txt',(req,res)=>{
@@ -1303,6 +1305,7 @@ app.get('/robots.txt',(req,res)=>{
     `Sitemap: ${origin}/sitemap-marketplace-categorias.xml`,
     `Sitemap: ${origin}/sitemap-comparador.xml`,
     `Sitemap: ${origin}/sitemap-resuelve.xml`,
+    `Sitemap: ${origin}/sitemap-resuelve-temas.xml`,
     `Sitemap: ${origin}/noticias/sitemap.xml`
   ].join('\n'));
 });
@@ -1364,7 +1367,9 @@ function sendHtmlShell(file){
 app.get('/marketplace',sendHtmlShell('marketplace.html'));
 // V3.5.29 — fichas de soluciones sólo con consentimiento y revisión humana.
 app.use('/resuelve',resuelvePublicSeoV3529);
+app.use('/resuelve',resuelveTopicsV3531);
 app.get('/sitemap-resuelve.xml',resuelveSitemapHandler);
+app.get('/sitemap-resuelve-temas.xml',topicsSitemapHandler);
 // V3.5.19 — HTML de administración fuera de /public, protegido antes de servirlo.
 app.get('/resuelve/admin',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','no-store');
