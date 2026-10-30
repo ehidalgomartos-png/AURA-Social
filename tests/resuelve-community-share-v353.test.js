@@ -7,7 +7,7 @@ test('V3.5.3: comparte solo en comunidades propias tras confirmación expresa',(
  const js=fs.readFileSync(path.join(__dirname,'../public/resuelve-v350.js'),'utf8');
  const css=fs.readFileSync(path.join(__dirname,'../public/resuelve-v350.css'),'utf8');
  assert.match(js,/function communitySharePanel\(q\)/);
- assert.match(js,/if\(state\.user\)host\.append\(communitySharePanel\(q\)\)/);
+ assert.match(js,/if\(state\.user\)extras\.append\(communitySharePanel\(q\)\)/);
  assert.match(js,/\/api\/communities\?scope=joined/);
  assert.match(js,/c\.is_member/);
  assert.match(js,/if\(!confirm\('¿Quieres publicar esta petición/);
