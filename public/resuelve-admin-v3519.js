@@ -124,6 +124,34 @@
   publicidad_encubierta:'Publicidad encubierta',cualificacion_falsa:'Posible cualificación engañosa',
   datos_personales:'Datos personales',consejo_peligroso:'Consejo potencialmente peligroso',otro:'Otro problema'
  };
+ async function trustSummary(){
+  const button=el('refreshAdminTrust'),status=el('adminTrustStatus'),grid=el('adminTrustMetrics');
+  if(button.disabled)return;
+  button.disabled=true;status.textContent='Consultando motivos de revisión…';
+  try{
+   const data=await api('/api/resuelve/admin/trust-summary');
+   const definitions=[
+    ['publicidad_encubierta','Posible publicidad encubierta'],
+    ['cualificacion_falsa','Posible cualificación engañosa'],
+    ['datos_personales','Posibles datos personales'],
+    ['consejo_peligroso','Posible consejo peligroso'],
+    ['otro','Otros avisos']
+   ];
+   const cards=definitions.map(([key,label])=>{
+    const count=Number(data.pendingByReason?.[key]);
+    if(!Number.isSafeInteger(count)||count<0)throw Error('Resumen incompleto');
+    const card=node('article','resuelve-impact-tile');
+    card.append(node('strong',null,count.toLocaleString('es-ES')),node('span',null,label));
+    return card;
+   });
+   grid.replaceChildren(...cards);
+   const total=Number(data.totalPending);
+   status.textContent=Number.isSafeInteger(total)&&total>=0?
+    total+' avisos pendientes para revisión humana. No se aplica ninguna sanción automática.':
+    'Resumen recibido con datos incompletos.';
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
+ }
  function reportCard(report){
   const item=node('article','review-item admin-review-card');
   item.append(node('h3',null,report.title),
@@ -140,6 +168,7 @@
    try{
     await write('/api/resuelve/admin/reports/'+encodeURIComponent(report.id)+'/dismiss',{});
     item.remove();updateWork();el('adminReportsStatus').textContent='Aviso desestimado tras revisión.';
+    await trustSummary();
    }catch(err){el('adminReportsStatus').textContent=err.message;dismiss.disabled=false;hide.disabled=false;}
   });
   const hide=action('Ocultar respuesta',async()=>{
@@ -148,7 +177,7 @@
    try{
     await write('/api/resuelve/admin/answer/'+encodeURIComponent(report.answer_id)+'/hide',{});
     el('adminReportsStatus').textContent='Respuesta ocultada por moderación.';
-    await reports();await impact();
+    await Promise.all([reports(),impact(),trustSummary()]);
    }catch(err){el('adminReportsStatus').textContent=err.message;dismiss.disabled=false;hide.disabled=false;}
   },'admin-danger');
   actions.append(dismiss,hide);
@@ -179,10 +208,11 @@
    el('refreshAdminWork').addEventListener('click',async()=>{await Promise.all([solutions(),reports()]);});
    el('refreshLibraryReview').addEventListener('click',()=>solutions());
    el('refreshAdminReports').addEventListener('click',()=>reports());
+   el('refreshAdminTrust').addEventListener('click',trustSummary);
    el('moreLibraryReview').addEventListener('click',()=>solutions(true));
    el('moreAdminReports').addEventListener('click',()=>reports(true));
    // Cargar de forma independiente para que un error no impida acceder a otros paneles.
-   await Promise.all([impact(),solutions(),reports()]);
+   await Promise.all([impact(),solutions(),reports(),trustSummary()]);
   }catch(err){
    el('resuelveAdminAccess').textContent=err.message+
     ' Puedes volver a Resuelve para iniciar sesión con tu cuenta administradora.';
