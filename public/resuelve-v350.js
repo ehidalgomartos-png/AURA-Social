@@ -638,6 +638,21 @@
     loadList();
    });
   }
+  // V3.5.15.2: controles avanzados plegados, accesibles y sin perder filtros aplicados.
+  function setQuestionAdvancedFilters(open){
+   el('questionAdvancedFilters').hidden=!open;
+   el('questionMoreFiltersToggle').setAttribute('aria-expanded',open?'true':'false');
+  }
+  function updateQuestionFilterCount(){
+   const count=Number(Boolean(state.category))+Number(state.professionalOnly);
+   const label=count?'Más filtros ('+count+')':'Más filtros';
+   el('questionMoreFiltersToggle').textContent=label;
+   el('questionMoreFiltersToggle').setAttribute('aria-label',
+    count?'Más filtros, '+count+' filtro'+(count===1?' activo':'s activos'):'Más filtros');
+  }
+  el('questionMoreFiltersToggle').addEventListener('click',()=>{
+   setQuestionAdvancedFilters(el('questionAdvancedFilters').hidden);
+  });
   el('questionSearchForm').addEventListener('submit',event=>{
    event.preventDefault();
    const term=el('questionSearch').value.trim();
@@ -645,10 +660,14 @@
    state.search=term;
    state.category=el('questionCategoryFilter').value;
    state.professionalOnly=el('questionProfessionalFilter').checked;
+   updateQuestionFilterCount();
+   setQuestionAdvancedFilters(false);
    loadList();
   });
   el('questionSearchClear').addEventListener('click',()=>{
    el('questionSearchForm').reset();state.search='';state.category='';state.professionalOnly=false;
+   updateQuestionFilterCount();
+   setQuestionAdvancedFilters(false);
    message('Filtros eliminados.');loadList();
   });
   el('moreButton').addEventListener('click',()=>loadList(true));
