@@ -45,4 +45,21 @@ async function topicSummary(){
  }
  return counts;
 }
-module.exports={TOPICS,validTopic,publishedTopic,topicSummary,eligibility};
+// V3.6.5 — solo enlaces entre soluciones autorizadas para publicación y revisadas.
+// COUNT(*) OVER() permite confirmar si la landing temática tiene >=3 soluciones reales.
+async function relatedApprovedTopicSolutions(topic,excludeId){
+ if(!validTopic(topic)||!resuelve.validId(excludeId))return {topicCount:0,related:[]};
+ await resuelve.ensureSchema();
+ const r=await db.query([
+  "SELECT q.id,q.title,q.solved_at,count(*) OVER()::int AS topic_count",
+  eligibility,
+  "AND q.topic=$1",
+  "ORDER BY q.solved_at DESC,q.id DESC LIMIT 5"
+ ].join(' '),[topic]);
+ const rawCount=Number(r.rows[0]?.topic_count??0);
+ const topicCount=Number.isSafeInteger(rawCount)&&rawCount>=0?rawCount:0;
+ const related=r.rows.filter(row=>resuelve.validId(row.id)&&String(row.id)!==String(excludeId))
+  .slice(0,3).map(row=>({id:row.id,title:String(row.title||'').slice(0,125)}));
+ return {topicCount,related};
+}
+module.exports={TOPICS,validTopic,publishedTopic,topicSummary,relatedApprovedTopicSolutions,eligibility};

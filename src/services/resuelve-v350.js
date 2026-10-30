@@ -544,7 +544,7 @@ async function publicSeoSolution(questionId){
  if(!validId(questionId))return null;
  await ensureSchema();
  const r=await db.query([
-  "SELECT q.id,q.title,q.category,q.solved_at,",
+  "SELECT q.id,q.title,q.category,q.topic,q.solved_at,",
   "trim(split_part(a.body,' Anuncio recomendado:',1)) AS solution",
   "FROM resuelve_questions q",
   "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
