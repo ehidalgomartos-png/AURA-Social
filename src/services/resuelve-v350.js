@@ -50,6 +50,16 @@ async function ensureSchema(){
    "UNIQUE(answer_id,reporter_id))"
   ].join(' '));
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_reports_pending ON resuelve_answer_reports(status,id DESC)");
+  // V3.5.16: elección privada de temas. Sin notificaciones, contactos automáticos ni perfiles públicos.
+  await db.query([
+   "CREATE TABLE IF NOT EXISTS resuelve_help_preferences (",
+   "user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,",
+   "categories TEXT[] NOT NULL DEFAULT '{}'::text[],",
+   "updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),",
+   "CONSTRAINT resuelve_help_categories_valid CHECK(",
+   "categories <@ ARRAY['consejo','busco','ayuda','experiencia']::text[]",
+   "AND cardinality(categories)<=4))"
+  ].join(' '));
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_feed ON resuelve_questions(status,created_at DESC,id DESC)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_answers_question ON resuelve_answers(question_id,created_at ASC,id ASC) WHERE status='visible'");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_author ON resuelve_questions(author_id,created_at DESC)");
@@ -103,6 +113,45 @@ async function list({filter='open',before=null,category=null,query='',profession
   "ORDER BY q.id DESC LIMIT 24"
  ].join(' ');
  return (await db.query(sql,[state,cursor,chosenCategory,search,professionalOnly===true])).rows;
+}
+// V3.5.16: el usuario elige temas para descubrir peticiones reales que puede ayudar a resolver.
+function validHelpTopics(categories){
+ return Array.isArray(categories)&&categories.length<=4&&
+  categories.every(c=>typeof c==='string'&&CATEGORIES.includes(c))&&
+  new Set(categories).size===categories.length;
+}
+async function getHelpTopics(userId){
+ await ensureSchema();
+ const sql="SELECT categories FROM resuelve_help_preferences WHERE user_id=$1";
+ const row=(await db.query(sql,[userId])).rows[0];
+ return row?.categories||[];
+}
+async function setHelpTopics(userId,categories){
+ if(!validHelpTopics(categories))return null;
+ await ensureSchema();
+ const sql=[
+  "INSERT INTO resuelve_help_preferences(user_id,categories,updated_at)",
+  "VALUES($1,$2::text[],now())",
+  "ON CONFLICT(user_id) DO UPDATE SET categories=EXCLUDED.categories,updated_at=now()",
+  "RETURNING categories"
+ ].join(' ');
+ return (await db.query(sql,[userId,categories])).rows[0]||null;
+}
+async function listToHelp(userId,{before=null}={}){
+ await ensureSchema();
+ const cursor=validId(before)?String(before):null;
+ const sql=[
+  "SELECT q.id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.created_at,q.solved_at,",
+  "u.username AS author_username,",
+  "(SELECT count(*)::int FROM resuelve_answers a WHERE a.question_id=q.id AND a.status='visible') AS answer_count",
+  "FROM resuelve_questions q",
+  "JOIN resuelve_help_preferences p ON p.user_id=$1 AND q.category=ANY(p.categories)",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "WHERE q.status='open' AND q.author_id<>$1",
+  "AND ($2::bigint IS NULL OR q.id<$2::bigint)",
+  "ORDER BY q.id DESC LIMIT 24"
+ ].join(' ');
+ return (await db.query(sql,[userId,cursor])).rows;
 }
 // V3.5.4 — solo el autor autenticado consulta sus peticiones (paginación estable).
 async function listMine(userId,{before=null}={}){
@@ -294,4 +343,4 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
