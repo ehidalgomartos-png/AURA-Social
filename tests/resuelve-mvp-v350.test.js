@@ -34,7 +34,7 @@ function database(){
     const a=answers.get(q.accepted_answer_id);
     return q.status==='resolved'&&!q.library_opt_out&&
       q.library_approved_answer_id!==q.accepted_answer_id&&
-      a?.status==='visible'&&a.body.trim().length>=80&&q.body.trim().length>=50&&
+      a?.status==='visible'&&a.body.split(' Anuncio recomendado:')[0].trim().length>=80&&q.body.trim().length>=50&&
       (!args[0]||q.id<Number(args[0]));
    }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
      author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
@@ -44,7 +44,7 @@ function database(){
    const rows=[...questions.values()].filter(q=>{
     const a=answers.get(q.accepted_answer_id);
     return q.status==='resolved'&&!q.library_opt_out&&q.accepted_answer_id===q.library_approved_answer_id &&
-     a?.status==='visible'&&a.body.trim().length>=80&&q.body.trim().length>=50 &&
+     a?.status==='visible'&&a.body.split(' Anuncio recomendado:')[0].trim().length>=80&&q.body.trim().length>=50 &&
      (!args[0]||q.id<Number(args[0]))&&(!args[1]||q.category===args[1])&&
      (!args[2]||(q.title+' '+a.body).toLowerCase().includes(String(args[2]).toLowerCase()));
    }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
@@ -54,8 +54,9 @@ function database(){
   if(sql.startsWith('UPDATE resuelve_questions q SET library_approved_answer_id=')){
    const q=questions.get(Number(args[0])),a=answers.get(q?.accepted_answer_id);
    if(!q||q.status!=='resolved'||q.library_opt_out||q.body.trim().length<50||
-    !a||a.status!=='visible'||a.body.trim().length<80)return {rows:[],rowCount:0};
+    !a||a.status!=='visible'||a.body.split(' Anuncio recomendado:')[0].trim().length<80)return {rows:[],rowCount:0};
    q.library_approved_answer_id=q.accepted_answer_id;
+   q.library_reviewed_by=Number(args[1]);
    return {rows:[{id:q.id,library_approved_answer_id:q.library_approved_answer_id}],rowCount:1};
   }
   if(sql.startsWith('UPDATE resuelve_questions SET library_approved_answer_id=NULL')){
@@ -296,16 +297,20 @@ test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, c
   assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:short}})).status,200);
   assert.equal((await req('/api/resuelve/solutions')).data.items.length,0);
   const admin='/api/resuelve/admin/solutions/'+q+'/approve';
+  const reviewed={qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true};
   assert.equal((await req(admin,{method:'POST',body:{}})).status,401);
   assert.equal((await req(admin,{user:2,method:'POST',body:{}})).status,403);
   assert.equal((await req(admin,{user:3,method:'POST',origin:'foreign',body:{}})).status,403);
-  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,409);
+  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,400);
+  assert.equal((await req(admin,{user:3,method:'POST',body:{qualityReviewed:true,privacyReviewed:false,nonCommercialReviewed:true}})).status,400);
+  assert.equal((await req(admin,{user:3,method:'POST',body:reviewed})).status,409);
   const reopened=await req('/api/resuelve/questions/'+q+'/reopen',{user:1,method:'POST',body:{}});
   assert.equal(reopened.status,200);
   const good=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{
    body:'Primero mide el ancho de la habitación y deja al menos un paso cómodo. Después compara fondos reales, prueba el respaldo y revisa las medidas del ascensor antes de elegir.'}})).data.id;
   assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:good}})).status,200);
-  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,200);
+  assert.equal((await req(admin,{user:3,method:'POST',body:reviewed})).status,200);
+  assert.equal(stub.questions.get(Number(q)).library_reviewed_by,3);
   const library=await req('/api/resuelve/solutions');
   assert.equal(library.status,200);
   assert.deepEqual(library.data.items.map(x=>Number(x.id)),[Number(q)]);
@@ -325,7 +330,7 @@ test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, c
   assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:2,method:'POST',body:{}})).status,404);
   assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:1,method:'POST',body:{}})).status,200);
   assert.equal((await req('/api/resuelve/solutions')).data.items.length,0);
-  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,409);
+  assert.equal((await req(admin,{user:3,method:'POST',body:reviewed})).status,409);
   assert.ok(stub.audit.some(entry=>entry.sql.includes('library_opt_out=FALSE')));
  });
 });
@@ -345,12 +350,28 @@ test('V3.5.8 revisión: cola exclusiva de admin y actualizada tras aprobar o exc
   const pending=await req(url,{user:3});
   assert.equal(pending.status,200);
   assert.deepEqual(pending.data.items.map(q=>Number(q.id)),[Number(q)]);
-  assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/approve',{user:3,method:'POST',body:{}})).status,200);
+  assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/approve',{user:3,method:'POST',body:{qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true}})).status,200);
   assert.equal((await req(url,{user:3})).data.items.length,0);
   assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/revoke',{user:3,method:'POST',body:{}})).status,200);
   assert.equal((await req(url,{user:3})).data.items.length,1);
   assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:1,method:'POST',body:{}})).status,200);
   assert.equal((await req(url,{user:3})).data.items.length,0);
+ });
+});
+test('V3.5.10: un enlace comercial no sustituye una respuesta realmente útil',async()=>{
+ await withApp(async(req,dbMock)=>{
+  const q=(await req('/api/resuelve/questions',{user:1,method:'POST',body:{
+   title:'Busco orientación para comprar sin gastar de más',
+   body:'Quiero opiniones y pasos concretos para comparar opciones sin comprometer mi presupuesto familiar.',
+   category:'busco'}})).data.id;
+  const sales='Compra aquí. Anuncio recomendado: https://redlibertad.com/marketplace/explorar?'+('ofertas'.repeat(14));
+  const answer=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{body:sales}})).data.id;
+  assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:answer}})).status,200);
+  const flag={qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true};
+  assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/approve',{user:3,method:'POST',body:flag})).status,409);
+  assert.equal((await req('/api/resuelve/admin/solutions/pending',{user:3})).data.items.length,0);
+  assert.equal((await req('/api/resuelve/solutions')).data.items.length,0);
+  assert.ok(dbMock.audit.some(e=>e.sql.includes('split_part(a.body')));
  });
 });
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
@@ -364,6 +385,13 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(app,/href="\/resuelve"/);
  assert.match(html,/id="askForm"/);
  assert.match(html,/id="answerForm"/);
+ assert.match(html,/id="resuelveExtras"/);
+ assert.match(html,/class="optional-listing"/);
+ assert.match(html,/no hace falta comprar/i);
+ assert.match(js,/editorialReviewControls/);
+ assert.match(js,/nonCommercialReviewed:true/);
+ assert.match(js,/create\('details','answer-related-link'\)/);
+ assert.doesNotMatch(js,/action\('Explorar Marketplace'/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
  assert.match(html,/id="solutionList"/);
