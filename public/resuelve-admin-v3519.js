@@ -78,7 +78,7 @@
    const data=await api('/api/resuelve/admin/activity-7d');
    if(!Array.isArray(data.days)||data.days.length!==7)throw Error('Datos diarios incompletos.');
    const rows=data.days.map(day=>{
-    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(day.day||'')))throw Error('Fecha inválida.');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(day.day||'')))throw Error('Fecha inválida.');
     const tr=node('tr');
     tr.append(node('th',null,day.day));
     for(const key of ['questions','answers','resolutions']){
