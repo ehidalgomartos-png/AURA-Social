@@ -87,11 +87,14 @@
   const panel=el('helpSuggestions'),list=el('helpSuggestionsList'),status=el('helpSuggestionsStatus');
   panel.hidden=true;list.replaceChildren();
   if(!state.user)return;
+  const currentUserId=String(state.user.id??'');
   try{
    const data=await request('/api/resuelve/help-topics');
+   if(!state.user||String(state.user.id??'')!==currentUserId)return;
    const selected=Array.isArray(data.categories)?data.categories:[];
    if(!selected.length)return;
    const response=await request('/api/resuelve/questions/for-me');
+   if(!state.user||String(state.user.id??'')!==currentUserId)return;
    const matches=Array.isArray(response.items)?response.items.filter(q=>
     q.status==='open'&&selected.includes(q.category)&&/^[1-9]\d{0,15}$/.test(String(q.id||''))):[];
    if(!matches.length)return;
