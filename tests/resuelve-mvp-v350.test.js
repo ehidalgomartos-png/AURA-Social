@@ -97,6 +97,12 @@ function database(){
        answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
    return {rows,rowCount:rows.length};
   }
+  if(sql.startsWith('SELECT q.id,q.title FROM resuelve_questions q')){
+   const q=questions.get(Number(args[0])),a=answers.get(q?.accepted_answer_id);
+   if(!q||q.author_id!==Number(args[1])||q.status!=='resolved'||!a||
+    a.status!=='visible'||a.question_id!==q.id)return {rows:[],rowCount:0};
+   return {rows:[{id:q.id,title:q.title}],rowCount:1};
+  }
   if(sql.startsWith('SELECT q.id,q.title')){
    const rows=[...questions.values()].filter(q=>q.status!=='hidden'&&
     (args[0]==='all'||q.status===args[0])&&(!args[1]||q.id<Number(args[1]))&&
@@ -113,12 +119,6 @@ function database(){
     !a||a.status!=='visible')return {rows:[],rowCount:0};
    q.thanked_at=new Date().toISOString();
    return {rows:[{id:q.id,thanked_at:q.thanked_at}],rowCount:1};
-  }
-  if(sql.startsWith('SELECT q.id,q.title FROM resuelve_questions q')){
-   const q=questions.get(Number(args[0])),a=answers.get(q?.accepted_answer_id);
-   if(!q||q.author_id!==Number(args[1])||q.status!=='resolved'||!a||
-    a.status!=='visible'||a.question_id!==q.id)return {rows:[],rowCount:0};
-   return {rows:[{id:q.id,title:q.title}],rowCount:1};
   }
   if(sql.startsWith('SELECT q.id,q.author_id')){
    const q=questions.get(Number(args[0]));
