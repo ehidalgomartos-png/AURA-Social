@@ -186,3 +186,27 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 #adminReportsPanel .review-item{border-color:#d9e1e6}
 #adminReportsPanel .review-item p{white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:650px){.answer-report .secondary,.answer-report select,#adminReportsPanel .review-item-actions .secondary{width:100%}}
+
+/* V3.5.15 — registro y acceso únicos desde Resuelve, mobile-first */
+.resuelve-auth-panel{max-width:760px;margin:23px auto;border-color:#c6dee6}
+.resuelve-auth-panel .panel-head{align-items:start}
+.resuelve-auth-panel .panel-head p{margin:6px 0 0}
+.resuelve-auth-tabs{display:flex;gap:8px;padding:4px;background:#f0f6f8;border-radius:12px;margin:16px 0}
+.resuelve-auth-tabs button{flex:1;min-height:43px;padding:8px 12px;border:0;border-radius:9px;background:transparent;color:var(--ink);font-weight:700}
+.resuelve-auth-tabs button[aria-pressed="true"]{background:white;box-shadow:0 1px 5px #12334a1b}
+.resuelve-auth-form{display:grid;gap:8px}
+.resuelve-auth-form>label:not(.resuelve-legal-consent){font-weight:650;margin-top:5px}
+.resuelve-auth-form>input{width:100%;min-height:45px;max-width:100%;padding:10px 12px;border:1px solid #bfd3df;border-radius:10px;background:white;color:var(--ink)}
+.resuelve-auth-form>.muted{margin:0 0 4px;font-size:.84rem}
+.resuelve-auth-form>.primary{justify-self:start;background:#12648b;color:white;border-color:#12648b;min-height:46px;margin-top:10px}
+.resuelve-legal-consent{display:flex;align-items:flex-start;gap:10px;font-size:.9rem;line-height:1.55;padding:12px;background:#f8fbfc;border-radius:10px;margin-top:12px}
+.resuelve-legal-consent input{width:19px;height:19px;min-width:19px;margin:2px 0 0}
+.resuelve-auth-status:not(:empty){padding:12px;border-radius:10px;background:#eff6f9;color:#234b64;margin:12px 0 0}
+.resuelve-guest-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.resuelve-guest-actions .secondary{color:#135b78;border-color:#accbd8}
+@media(max-width:650px){
+ .resuelve-auth-panel{padding:16px;margin-top:14px}
+ .resuelve-auth-tabs button{padding:8px 6px;font-size:.9rem}
+ .resuelve-auth-form>.primary,.resuelve-guest-actions .secondary{width:100%}
+ .resuelve-guest-actions{display:grid;grid-template-columns:1fr}
+}
