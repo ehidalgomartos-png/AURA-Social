@@ -402,3 +402,9 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .filters.with-help{overflow-x:auto;scrollbar-width:thin;justify-content:flex-start}
  .filters.with-help button{flex:none;white-space:nowrap;padding:9px 11px}
 }
+
+/* V3.5.23 — controles independientes para recibir preguntas por temas. */
+.help-alerts-settings{margin-top:15px;border:1px solid #d1e3e9;border-radius:12px;padding:13px;background:#fff}
+.help-alerts-opt-in{display:flex;gap:10px;align-items:flex-start;font-weight:650;line-height:1.45}
+.help-alerts-opt-in input{width:19px;height:19px;min-width:19px;margin:2px 0 0;accent-color:#18778a}
+.help-alerts-settings p{margin:8px 0 0}
