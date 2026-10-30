@@ -8489,7 +8489,7 @@ async function navigateNotification(notification) {
     return;
   }
 
-  if(type==='system' && entityType==='resuelve' && /^[1-9]\\d{0,15}$/.test(String(entityId))){
+  if(type==='system' && entityType==='resuelve' && /^[1-9]\d{0,15}$/.test(String(entityId))){
     window.location.assign('/resuelve?id='+encodeURIComponent(String(entityId)));
     return;
   }
