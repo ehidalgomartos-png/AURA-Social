@@ -93,7 +93,7 @@
    if(!selected.length)return;
    const response=await request('/api/resuelve/questions/for-me');
    const matches=Array.isArray(response.items)?response.items.filter(q=>
-    q.status==='open'&&selected.includes(q.category)&&/^[1-9]\\d{0,15}$/.test(String(q.id||''))):[];
+    q.status==='open'&&selected.includes(q.category)&&/^[1-9]\d{0,15}$/.test(String(q.id||''))):[];
    if(!matches.length)return;
    panel.hidden=false;
    for(const q of matches.slice(0,3)){
@@ -650,7 +650,7 @@
    list.replaceChildren();
    const items=Array.isArray(data.items)?data.items:[];
    for(const q of items){
-    if(!/^[1-9]\\d{0,15}$/.test(String(q.id||'')))continue;
+    if(!/^[1-9]\d{0,15}$/.test(String(q.id||'')))continue;
     const item=create('li','resuelve-similar-item');
     const link=create('a',null,q.title);
     link.href='/resuelve?id='+encodeURIComponent(q.id);
