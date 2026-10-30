@@ -223,6 +223,20 @@ router.post('/questions',requireAuth,checkOrigin,limiter(10),wrap(async(req,res)
  res.status(201).json({ok:true,id:row.id});
 }));
 // V3.5.31: temas opcionales definidos por el autor, no implica indexación o promoción.
+// V3.6.1 — seguir voluntariamente preguntas públicas, sin correo ni publicación automática.
+router.get('/questions/:id/follow',requireAuth,wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const row=await service.questionFollowPreference(req.user.id,req.params.id);
+ if(!row)return fail(res,404,'peticion_no_disponible');
+ res.json({ok:true,enabled:row.enabled===true});
+}));
+router.post('/questions/:id/follow',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id)||typeof req.body?.enabled!=='boolean')
+  return fail(res,400,'preferencia_invalida');
+ const row=await service.setQuestionFollow(req.user.id,req.params.id,req.body.enabled);
+ if(!row)return fail(res,409,'seguimiento_no_disponible');
+ res.json({ok:true,enabled:row.enabled===true});
+}));
 router.post('/questions/:id/topic',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
  const topic=req.body?.topic;
  if(!service.validId(req.params.id)||!(topic===null||topic===''||service.TOPICS.includes(topic)))
