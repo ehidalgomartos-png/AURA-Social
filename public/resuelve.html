@@ -35,6 +35,12 @@
   </div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
+ <section id="helperPublicPanel" class="helper-public-panel" aria-labelledby="helperPublicTitle" hidden>
+  <h2 id="helperPublicTitle">Persona que ayuda en Resuelve</h2>
+  <p id="helperPublicStatus" role="status" aria-live="polite">Consultando perfil voluntario…</p>
+  <div id="helperPublicStats" class="my-help-metrics"></div>
+  <p class="muted">Estos datos son aportaciones reales, no una acreditación profesional ni una valoración.</p>
+ </section>
  <section id="resuelveAuthPanel" class="panel resuelve-auth-panel" hidden aria-labelledby="resuelveAuthTitle">
   <div class="panel-head">
    <div><p class="eyebrow dark">UNA CUENTA PARA AYUDAR Y PARTICIPAR</p>
@@ -138,6 +144,13 @@
   <label class="resuelve-email-opt-in"><input id="resuelveReplyEmailToggle" type="checkbox" disabled> Quiero recibir avisos opcionales por correo electrónico</label>
   <p id="resuelveReplyEmailStatus" class="muted" role="status" aria-live="polite">Comprobando preferencias…</p>
   <p><a href="/app?view=notifications">Ver mis notificaciones en RedLibertad</a></p>
+ </details>
+ <details id="helperProfileSettings" class="resuelve-email-settings" hidden>
+  <summary>Mi perfil voluntario de ayuda</summary>
+  <p class="muted">Si lo autorizas, otras personas podrán ver tu usuario y el número de preguntas en las que has ayudado y soluciones elegidas. No se publicarán tus respuestas ni datos personales nuevos en esa ficha. Puedes desactivarlo cuando quieras.</p>
+  <label class="resuelve-email-opt-in"><input id="helperProfileToggle" type="checkbox" disabled> Mostrar mi perfil de colaboración</label>
+  <p id="helperProfileStatus" class="muted" role="status" aria-live="polite"></p>
+  <p><a id="helperProfileShare" href="#" hidden>Ver mi perfil para compartir</a></p>
  </details>
  <form id="questionSearchForm" class="resuelve-search" role="search">
    <label class="resuelve-search-main" for="questionSearch">Buscar peticiones
