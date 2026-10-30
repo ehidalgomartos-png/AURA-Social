@@ -160,6 +160,33 @@
     'Todavía no hay suficientes soluciones públicas por tema. Puedes seguir consultando toda la biblioteca.';
   }catch(_){status.textContent='No se pudieron consultar los temas. La biblioteca general sigue disponible.';}
  }
+ // V3.5.32: compartir una solución solo si el autor permite su ficha pública.
+ function solutionShareControl(q){
+  const panel=create('details','solution-share');
+  panel.append(create('summary',null,'Compartir solución revisada'));
+  const links=create('div','solution-share-links');
+  const status=create('p','muted');status.setAttribute('role','status');
+  const url=new URL('/resuelve/solucion/'+encodeURIComponent(q.id),location.origin).href;
+  const text='Esta solución revisada puede ayudar: '+String(q.title||'')+' '+url;
+  const options=[
+   ['WhatsApp','https://api.whatsapp.com/send?text='+encodeURIComponent(text)],
+   ['Facebook','https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url)],
+   ['Telegram','https://t.me/share/url?'+new URLSearchParams({url,text:'Solución útil revisada en Resuelve'})],
+   ['Correo electrónico','mailto:?'+new URLSearchParams({subject:'Solución útil revisada en Resuelve',body:text}).toString().replace(/\\+/g,'%20')]
+  ];
+  for(const [label,href] of options){
+   const a=create('a','secondary',label);a.href=href;
+   if(!href.startsWith('mailto:')){a.target='_blank';a.rel='noopener noreferrer';}
+   links.append(a);
+  }
+  const copy=button('Copiar enlace',async()=>{
+   try{
+    if(!navigator.clipboard||!window.isSecureContext)throw Error('no_clipboard');
+    await navigator.clipboard.writeText(url);status.textContent='Enlace copiado.';
+   }catch(_){window.prompt('Copia el enlace de la solución:',url);}
+  },'secondary');
+  links.append(copy);panel.append(links,status);return panel;
+ }
  function solutionCard(q){
   const article=create('article','question-card solution-card');
   const heading=create('h3');
@@ -175,7 +202,7 @@
   if(q.seo_public_opt_in===true){
    const publicLink=create('a','secondary resuelve-solution-public-link','Ver página pública');
    publicLink.href='/resuelve/solucion/'+encodeURIComponent(q.id);
-   article.append(publicLink);
+   article.append(publicLink,solutionShareControl(q));
   }
   return article;
  }
@@ -298,7 +325,8 @@
   const options=create('div','question-share-options');options.hidden=true;
   const status=create('p','muted question-share-status');
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-  const questionUrl=new URL('/resuelve?id='+encodeURIComponent(q.id),location.origin).href;
+  // La página de vista previa es pública pero NOINDEX y no incluye respuestas.
+  const questionUrl=new URL('/resuelve/pregunta/'+encodeURIComponent(q.id),location.origin).href;
   const title=String(q.title||'Petición en Resuelve').slice(0,125);
   const text='¿Puedes ayudar con esta pregunta en RedLibertad Resuelve?\n'+title+'\n'+questionUrl;
   const hint=create('p','muted','Elige a quién se la envías. Podrá leerla sin cuenta; para responder necesitará registrarse. No se envía nada automáticamente.');
@@ -310,6 +338,7 @@
    methods.append(a);
   }
   link('WhatsApp','https://api.whatsapp.com/send?text='+encodeURIComponent(text),true);
+  link('Facebook','https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(questionUrl),true);
   link('Telegram','https://t.me/share/url?'+new URLSearchParams({url:questionUrl,text:'¿Puedes ayudar con esta pregunta? '+title}),true);
   link('Correo electrónico','mailto:?'+new URLSearchParams({
    subject:'¿Puedes ayudar con esta pregunta?',body:text
