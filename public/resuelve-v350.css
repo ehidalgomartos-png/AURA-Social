@@ -100,3 +100,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-search input,.resuelve-search select{width:100%;max-width:100%;min-height:43px}
 .resuelve-search button{min-height:43px}
 @media(max-width:650px){.resuelve-search{grid-template-columns:repeat(2,minmax(0,1fr));padding:11px}.resuelve-search label{grid-column:1/-1}.resuelve-search button{width:100%}}
+
+/* V3.5.7: biblioteca editorial de soluciones revisadas */
+#solutions .section-top{align-items:start}
+#solutions .section-top p{margin:8px 0 0}
+.solution-card{border-color:#cde5dd;background:#fbfffd}
+.solution-card .solution-excerpt{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.solution-card .card-meta{margin-top:auto}
+@media(max-width:650px){#solutions .cards{grid-template-columns:1fr}.solution-card{padding:15px}}
