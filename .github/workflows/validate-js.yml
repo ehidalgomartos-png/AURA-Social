@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.17.1 Send an individual Resuelve question to known contacts
+        run: node --test tests/resuelve-send-question-v35171.test.js
       - name: V3.5.17 Resuelve share invite and resolved post draft
         run: node --test tests/resuelve-sharing-v3517.test.js
       - name: V3.5.15.2 Resuelve compact search and expandable filters

@@ -44,7 +44,8 @@
    meta(create('span',null,'@'+q.author_username),
     create('span',null,date(q.created_at)),
     create('span',null,(Number(q.answer_count)||0)+' respuestas')),
-   button('Ver petición',()=>openDetail(q.id))
+   button('Ver petición',()=>openDetail(q.id)),
+   questionShareControl(q,true)
   );
   return article;
  }
@@ -258,26 +259,63 @@
   }catch(err){el('questionDetail').textContent=err.message;}
  }
 
+ // V3.5.17.1 — cada petición pública puede enviarse voluntariamente a un conocido.
+ // Solo se comparte el título y un enlace directo, nunca respuestas o datos privados.
+ function questionShareControl(q,compact=false){
+  const wrap=create('section','question-share'+(compact?' question-share-compact':''));
+  const toggle=button('Enviar esta pregunta',()=>{
+   const open=options.hidden;
+   options.hidden=!open;
+   toggle.setAttribute('aria-expanded',open?'true':'false');
+  },'secondary question-share-toggle');
+  toggle.setAttribute('aria-expanded','false');
+  const options=create('div','question-share-options');options.hidden=true;
+  const status=create('p','muted question-share-status');
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const questionUrl=new URL('/resuelve?id='+encodeURIComponent(q.id),location.origin).href;
+  const title=String(q.title||'Petición en Resuelve').slice(0,125);
+  const text='¿Puedes ayudar con esta pregunta en RedLibertad Resuelve?\n'+title+'\n'+questionUrl;
+  const hint=create('p','muted','Elige a quién se la envías. Podrá leerla sin cuenta; para responder necesitará registrarse. No se envía nada automáticamente.');
+  const preview=create('p','question-share-preview','Pregunta: '+title);
+  const methods=create('div','question-share-methods');
+  function link(label,href,external=false){
+   const a=create('a','secondary',label);a.href=href;
+   if(external){a.target='_blank';a.rel='noopener noreferrer';}
+   methods.append(a);
+  }
+  link('WhatsApp','https://api.whatsapp.com/send?text='+encodeURIComponent(text),true);
+  link('Telegram','https://t.me/share/url?'+new URLSearchParams({url:questionUrl,text:'¿Puedes ayudar con esta pregunta? '+title}),true);
+  link('Correo electrónico','mailto:?'+new URLSearchParams({
+   subject:'¿Puedes ayudar con esta pregunta?',body:text
+  }).toString().replace(/\+/g,'%20'));
+  link('SMS','sms:?body='+encodeURIComponent(text));
+  const native=button('Compartir desde mi móvil',async()=>{
+   try{await navigator.share({title,text:'¿Puedes ayudar con esta pregunta?',url:questionUrl});}
+   catch(err){if(err.name!=='AbortError')status.textContent='No se pudo abrir el menú de compartir. Prueba otro canal o copia el enlace.';}
+  },'secondary');
+  native.hidden=typeof navigator.share!=='function';
+  const copy=button('Copiar enlace',async()=>{
+   try{
+    if(!navigator.clipboard||!window.isSecureContext)throw Error('clipboard_unavailable');
+    await navigator.clipboard.writeText(questionUrl);
+    status.textContent='Enlace directo copiado. Puedes enviarlo a quien quieras.';
+   }catch(_){window.prompt('Copia este enlace para enviarlo a quien quieras:',questionUrl);}
+  },'secondary');
+  methods.append(native,copy);
+  options.append(hint,preview,methods,status);
+  wrap.append(toggle,options);
+  return wrap;
+ }
  function connectedActions(q){
   const wrap=create('section','resuelve-related');
-  const title=create('h3',null,'Difunde esta petición para recibir más ayuda');
-  const info=create('p','muted','Compartir una pregunta puede acercarla a quien sabe responder. No se publicará nada sin tu permiso.');
+  wrap.append(create('h3',null,'Difunde esta petición para recibir más ayuda'),
+   create('p','muted','Si conoces a alguien que pueda orientar, envíale la pregunta directamente. Siempre decides con quién compartirla.'),
+   questionShareControl(q));
   const links=create('div','resuelve-related-actions');
-  function action(label,href){
-   const a=create('a','secondary',label);a.href=href;links.append(a);
-  }
-  action('Explorar comunidades','/comunidades');
-  const share=button('Compartir petición',async()=>{
-   const url=new URL('/resuelve?id='+encodeURIComponent(q.id),location.origin).href;
-   try{
-    if(navigator.share){await navigator.share({title:q.title,url});return;}
-    if(navigator.clipboard&&window.isSecureContext){
-     await navigator.clipboard.writeText(url);message('Enlace copiado. Compártelo donde quieras.');return;
-    }
-   }catch(e){if(e.name==='AbortError')return;}
-   window.prompt('Copia el enlace de la petición:',url);
-  },'secondary');
-  links.append(share);wrap.append(title,info,links);
+  const communities=create('a','secondary','Explorar comunidades');
+  communities.href='/comunidades';
+  links.append(communities);
+  wrap.append(links);
   if(q.category==='busco'){
    const extra=create('details','resuelve-market-optional');
    extra.append(create('summary',null,'Si estás buscando un producto: ver otras opciones (opcional)'));
