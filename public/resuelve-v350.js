@@ -8,6 +8,8 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
+ const topicLabels=[['','Sin tema específico'],['hogar','Hogar'],['tecnologia','Tecnología'],
+  ['tramites','Trámites'],['estudios','Estudios'],['vida-cotidiana','Vida cotidiana']];
  const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false,impactLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
@@ -137,6 +139,27 @@
   finally{state.loading=false;}
  }
 // V3.5.7 — mostrar exclusivamente soluciones aprobadas por revisión editorial.
+ // V3.5.31 — solamente enlaza páginas temáticas que ya tengan contenido indexable.
+ async function loadTopicHubs(){
+  const links=el('resuelveTopicsLinks'),status=el('resuelveTopicsStatus');
+  links.replaceChildren();status.textContent='Consultando temas con soluciones aprobadas…';
+  try{
+   const data=await request('/api/resuelve/topics/summary');
+   let shown=0;
+   for(const [slug,label] of topicLabels){
+    if(!slug)continue;
+    const count=Number(data.counts?.[slug]);
+    if(!Number.isSafeInteger(count)||count<0)throw new Error('Resumen no disponible.');
+    if(count<3)continue;
+    const anchor=create('a','resuelve-topic-link',label+' · '+count+' soluciones');
+    anchor.href='/resuelve/temas/'+encodeURIComponent(slug);
+    links.append(anchor);shown++;
+   }
+   status.textContent=shown?
+    'Solo se muestran páginas con soluciones reales, autorizadas y revisadas.':
+    'Todavía no hay suficientes soluciones públicas por tema. Puedes seguir consultando toda la biblioteca.';
+  }catch(_){status.textContent='No se pudieron consultar los temas. La biblioteca general sigue disponible.';}
+ }
  function solutionCard(q){
   const article=create('article','question-card solution-card');
   const heading=create('h3');
@@ -555,6 +578,34 @@
   void refresh();
   return section;
  }
+ function questionTopicControls(q){
+  const details=create('details','resuelve-question-topic');
+  details.append(create('summary',null,'Elegir tema para esta pregunta (opcional)'));
+  details.append(create('p','muted','Sirve para organizar consejos y facilitar la ayuda. Cambiar el tema no activa el permiso para Google.'));
+  const form=create('form','resuelve-topic-form');
+  const label=create('label',null,'Tema de la petición');
+  const selector=create('select');
+  for(const [value,text] of topicLabels){
+   const option=create('option',null,text);option.value=value;
+   if(value===(q.topic||''))option.selected=true;
+   selector.append(option);
+  }
+  label.append(selector);
+  const submit=create('button','secondary','Guardar tema');submit.type='submit';
+  form.append(label,submit);
+  form.addEventListener('submit',async event=>{
+   event.preventDefault();
+   if(submit.disabled||!form.reportValidity())return;
+   submit.disabled=true;
+   try{
+    await write('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/topic',{topic:selector.value||null});
+    message('Tema actualizado. No se ha modificado el consentimiento para buscadores.');
+    await openDetail(q.id,false);
+   }catch(error){message(error.message);submit.disabled=false;}
+  });
+  details.append(form);
+  return details;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -568,6 +619,7 @@
   if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
+  if(mine)host.append(questionTopicControls(q));
   if(mine&&!solved){
    const details=create('details','resuelve-clarification');
    details.append(create('summary',null,'Añadir una aclaración a mi pregunta'));
@@ -1032,6 +1084,7 @@
   const start=new URLSearchParams(location.search).get('id');
   if(start)await openDetail(start,false);else await loadList();
   await loadSolutions();
+  await loadTopicHubs();
  }
  init().catch(()=>message('No se pudo iniciar Resuelve. Inténtalo de nuevo.'));
 })();
