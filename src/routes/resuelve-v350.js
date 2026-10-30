@@ -5,6 +5,7 @@ const rateLimit=require('express-rate-limit');
 const {requireAuth}=require('../middleware/auth');
 const service=require('../services/resuelve-v350');
 const {resuelveReplyEmailService}=require('../services/resuelve-reply-email-v3521');
+const {resuelvePendingService}=require('../services/resuelve-pending-v362');
 const router=express.Router();
 const fail=(res,status,error)=>res.status(status).json({error});
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -202,6 +203,11 @@ router.get('/questions/answered-by-me',requireAuth,wrap(async(req,res)=>{
  const items=await service.listMyContributions(req.user.id,{before:before||null});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].my_answer_id:null});
 }));
+// V3.6.2 — lista privada de pendientes; solo títulos, fechas y cifras reales.
+router.get('/questions/mine/pending',requireAuth,wrap(async(req,res)=>{
+ const items=await resuelvePendingService.listPending(req.user.id);
+ res.json({ok:true,items});
+}));
 router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
@@ -236,6 +242,20 @@ router.post('/questions/:id/follow',requireAuth,checkOrigin,limiter(12),wrap(asy
  const row=await service.setQuestionFollow(req.user.id,req.params.id,req.body.enabled);
  if(!row)return fail(res,409,'seguimiento_no_disponible');
  res.json({ok:true,enabled:row.enabled===true});
+}));
+// V3.6.2 — recordatorios voluntarios solo para peticiones propias.
+router.get('/questions/:id/reminder',requireAuth,wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const result=await resuelvePendingService.reminderPreference(req.user.id,req.params.id);
+ if(!result)return fail(res,404,'peticion_no_disponible');
+ res.json({ok:true,enabled:result.enabled===true,status:result.status});
+}));
+router.post('/questions/:id/reminder',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id)||typeof req.body?.enabled!=='boolean')
+  return fail(res,400,'preferencia_invalida');
+ const result=await resuelvePendingService.saveReminder(req.user.id,req.params.id,req.body.enabled);
+ if(!result)return fail(res,409,'recordatorio_no_disponible');
+ res.json({ok:true,enabled:result.enabled===true});
 }));
 router.post('/questions/:id/topic',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
  const topic=req.body?.topic;
