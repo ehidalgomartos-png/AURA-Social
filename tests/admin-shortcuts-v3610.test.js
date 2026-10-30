@@ -23,7 +23,10 @@ test('V3.6.10: atajos internos a secciones realmente existentes sin duplicar mó
 });
 test('V3.6.10: navegación responsiva usable por teclado sin recargar acciones',()=>{
  const css=read('public/admin.css');
- const block=css.slice(css.indexOf('/* V3.6.10'));
+ const start=css.indexOf('/* V3.6.10');
+ const end=css.indexOf('/* V3.6.16',start);
+ assert.ok(start>=0&&end>start);
+ const block=css.slice(start,end);
  assert.ok(block.startsWith('/* V3.6.10'));
  assert.match(block,/\.admin-quick-nav-v3610/);
  assert.match(block,/min-height:44px/);
