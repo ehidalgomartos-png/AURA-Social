@@ -71,6 +71,17 @@ async function ensureSchema(){
   ].join(' '));
   // V3.5.23: avisos voluntarios para ayudar; opt-in independiente de elegir temas.
   await db.query("ALTER TABLE resuelve_help_preferences ADD COLUMN IF NOT EXISTS notify_new_questions BOOLEAN NOT NULL DEFAULT FALSE");
+  // V3.6.1: seguimiento privado, opt-in por pregunta, con un aviso en app como máximo por 24 horas.
+  await db.query([
+   "CREATE TABLE IF NOT EXISTS resuelve_question_follows_v361 (",
+   "user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,",
+   "question_id BIGINT NOT NULL REFERENCES resuelve_questions(id) ON DELETE CASCADE,",
+   "enabled BOOLEAN NOT NULL DEFAULT TRUE,",
+   "last_notified_at TIMESTAMPTZ,",
+   "created_at TIMESTAMPTZ NOT NULL DEFAULT now(),",
+   "PRIMARY KEY(user_id,question_id))"
+  ].join(' '));
+  await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_follows_question_v361 ON resuelve_question_follows_v361(question_id) WHERE enabled=TRUE");
   // V3.5.25: solo se muestra una ficha pública tras consentimiento voluntario.
   await db.query("CREATE TABLE IF NOT EXISTS resuelve_helper_profiles_v3525 ("+
    "user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"+
@@ -402,6 +413,56 @@ async function clarifyQuestion(questionId,userId,content){
  ].join(' '),[questionId,userId,addition]);
  return r.rows[0]||null;
 }
+// V3.6.1: la decisión se guarda en privado y no permite seguir una pregunta propia u oculta.
+async function questionFollowPreference(userId,questionId){
+ if(!validId(questionId))return null;
+ await ensureSchema();
+ const r=await db.query([
+  "SELECT COALESCE(f.enabled,FALSE) AS enabled",
+  "FROM resuelve_questions q",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "LEFT JOIN resuelve_question_follows_v361 f ON f.question_id=q.id AND f.user_id=$1",
+  "WHERE q.id=$2 AND q.status<>'hidden' AND q.author_id<>$1"
+ ].join(' '),[userId,questionId]);
+ return r.rows[0]||null;
+}
+async function setQuestionFollow(userId,questionId,enabled){
+ if(!validId(questionId)||typeof enabled!=='boolean')return null;
+ await ensureSchema();
+ if(!enabled){
+  await db.query("DELETE FROM resuelve_question_follows_v361 WHERE user_id=$1 AND question_id=$2",[userId,questionId]);
+  return {enabled:false};
+ }
+ const r=await db.query([
+  "INSERT INTO resuelve_question_follows_v361(user_id,question_id,enabled)",
+  "SELECT $1,q.id,TRUE FROM resuelve_questions q",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "WHERE q.id=$2 AND q.status='open' AND q.author_id<>$1",
+  "ON CONFLICT(user_id,question_id) DO UPDATE SET enabled=TRUE",
+  "RETURNING enabled"
+ ].join(' '),[userId,questionId]);
+ return r.rows[0]||null;
+}
+// No se envían emails ni se expone el nombre de seguidores; solo aviso interno voluntario.
+async function notifyQuestionFollowers(questionId,answererId){
+ try{
+  await db.query([
+   "WITH eligible AS (",
+   "UPDATE resuelve_question_follows_v361 f SET last_notified_at=now()",
+   "FROM resuelve_questions q, users follower",
+   "WHERE f.question_id=$1 AND q.id=f.question_id AND q.status='open'",
+   "AND follower.id=f.user_id AND follower.status='active'",
+   "AND f.enabled=TRUE AND f.user_id<>$2 AND f.user_id<>q.author_id",
+   "AND (f.last_notified_at IS NULL OR f.last_notified_at<now()-interval '24 hours')",
+   "RETURNING f.user_id)",
+   "INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)",
+   "SELECT user_id,$2,'system','resuelve',$1,",
+   "'Una petición que sigues tiene una nueva respuesta en Resuelve.' FROM eligible"
+  ].join(' '),[questionId,answererId]);
+ }catch(error){
+  console.warn('Resuelve: aviso de seguimiento no disponible',error?.code||error?.message||'error');
+ }
+}
 async function answer(userId,id,body,professionalRole=null,disclosure={role:null,commercialInterest:false}){
  await ensureSchema();
  const r=await db.query([
@@ -420,6 +481,8 @@ async function answer(userId,id,body,professionalRole=null,disclosure={role:null
     "FROM resuelve_questions q WHERE q.id=$1 AND q.author_id<>$2 AND q.status<>'hidden'"
    ].join(' '),[id,userId]);
   }catch(error){console.warn('Resuelve: notificación no disponible',error?.code||error?.message||'error');}
+  // El seguimiento tampoco afecta a la publicación; no envía correos adicionales.
+  await notifyQuestionFollowers(id,userId);
   // El correo opcional no afecta a la publicación de la respuesta.
   await resuelveReplyEmailService.enqueue(id,saved.id,userId);
  }
@@ -759,4 +822,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={adminActivity7d,similarQueryTokens,similarQuestions,publicQuestionSharePreview,TOPICS,setQuestionTopic,sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={questionFollowPreference,setQuestionFollow,notifyQuestionFollowers,adminActivity7d,similarQueryTokens,similarQuestions,publicQuestionSharePreview,TOPICS,setQuestionTopic,sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
