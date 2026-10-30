@@ -48,3 +48,15 @@
 .resuelve-admin-work-card small{color:#526577}
 #adminWorkStatus{margin:0;font-size:.85rem}
 @media(max-width:650px){.resuelve-admin-work{padding:14px}.resuelve-admin-work-grid{grid-template-columns:1fr}.resuelve-admin-work-head button{width:100%}}
+
+/* V3.5.37 — actividad diaria accesible y privada. */
+.resuelve-activity-table-wrap{overflow-x:auto;margin:14px 0 8px;border:1px solid #d2e3e9;border-radius:13px}
+.resuelve-activity-table{width:100%;border-collapse:collapse;background:#fff;text-align:left;min-width:340px}
+.resuelve-activity-table th,.resuelve-activity-table td{padding:11px 14px;border-bottom:1px solid #e3edf1;font-variant-numeric:tabular-nums}
+.resuelve-activity-table thead th{background:#f2f8fa;color:#1a4c65;font-weight:750}
+.resuelve-activity-table tbody th{font-weight:650;color:#38596b}
+.resuelve-activity-table tbody tr:last-child th,.resuelve-activity-table tbody tr:last-child td{border-bottom:0}
+.resuelve-activity-table tbody tr:hover{background:#f8fbfc}
+.resuelve-activity-table td{text-align:right}
+.resuelve-admin-trend #activity7dStatus{margin:8px 0 0}
+@media(max-width:650px){.resuelve-activity-table th,.resuelve-activity-table td{padding:10px 8px;font-size:.83rem}}
