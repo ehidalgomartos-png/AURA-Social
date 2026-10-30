@@ -121,6 +121,22 @@ router.post('/reply-email/preference',requireAuth,checkOrigin,limiter(12),wrap(a
  const enabled=await resuelveReplyEmailService.savePreference(req.user.id,req.body.enabled);
  res.json({ok:true,enabled,available:resuelveReplyEmailService.config.enabled});
 }));
+// V3.5.25 — privacy-first helper profiles; no username enumeration without opt-in.
+router.get('/helper-profile/preference',requireAuth,wrap(async(req,res)=>{
+ const enabled=await service.helperProfilePreference(req.user.id);
+ res.json({ok:true,enabled});
+}));
+router.post('/helper-profile/preference',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(typeof req.body?.enabled!=='boolean')return fail(res,400,'preferencia_invalida');
+ const value=await service.setHelperProfilePreference(req.user.id,req.body.enabled);
+ if(!value)return fail(res,400,'preferencia_invalida');
+ res.json({ok:true,enabled:value.enabled===true});
+}));
+router.get('/helpers/:username',wrap(async(req,res)=>{
+ const item=await service.publicHelperProfile(req.params.username);
+ if(!item)return fail(res,404,'perfil_no_disponible');
+ res.json({ok:true,helper:item});
+}));
 router.get('/questions/for-me',requireAuth,wrap(async(req,res)=>{
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
