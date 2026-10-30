@@ -20,7 +20,6 @@ async function countsWithinBudget(getCounts,budgetMs=1800){
    Promise.resolve().then(getCounts),
    new Promise(resolve=>{
     timer=setTimeout(()=>resolve({}),limit);
-    timer.unref?.();
    })
   ]);
  }finally{
