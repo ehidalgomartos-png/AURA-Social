@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.21 Resuelve unanswered public questions and readable mobile filters
+        run: node --test tests/resuelve-unanswered-v3621.test.js
       - name: V3.6.20 Resuelve directory timeout, security and live consent checks
         run: node --test tests/resuelve-public-stability-v3620.test.js
       - name: V3.6.19 Resuelve consent-safe public topic links and cross-network SEO
