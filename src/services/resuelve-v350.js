@@ -132,20 +132,20 @@ async function solve(userId,qid,aid){
 async function reopen(userId,qid){
  await ensureSchema();
  const r=await db.query([
-  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status='resolved' RETURNING id"
  ].join(' '),[qid,userId]);return r.rows[0]||null;
 }
 async function moderate(kind,id){
  await ensureSchema();
  if(kind==='question'){
-  const r=await db.query("UPDATE resuelve_questions SET status='hidden',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE id=$1 RETURNING id",[id]);
+  const r=await db.query("UPDATE resuelve_questions SET status='hidden',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now() WHERE id=$1 RETURNING id",[id]);
   return r.rows[0]||null;
  }
  if(kind==='answer'){
   const r=await db.query("UPDATE resuelve_answers SET status='hidden' WHERE id=$1 RETURNING id,question_id",[id]);
   if(!r.rowCount)return null;
-  await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
+  await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
   return r.rows[0];
  }
  return null;
