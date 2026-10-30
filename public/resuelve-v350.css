@@ -603,3 +603,16 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-followup-form button{min-height:44px;justify-self:start}
 .resuelve-followup-form-panel summary:focus-visible,.resuelve-followup-form button:focus-visible{outline:3px solid #14818a;outline-offset:3px}
 @media(max-width:650px){.resuelve-answer-followups,.resuelve-followup-form-panel{padding:10px}.resuelve-followup-form button{width:100%}}
+
+/* V3.6.4 — biblioteca personal de soluciones revisadas. */
+.resuelve-saved-panel{margin:18px 0;padding:16px;border:1px solid #c9e2da;border-radius:15px;background:#f7fbf9}
+.resuelve-saved-panel h3{margin:0 0 7px;color:#16515d}
+.resuelve-saved-panel .muted{line-height:1.5}
+.resuelve-saved-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.resuelve-saved-item{padding:13px 15px;border-radius:12px;border:1px solid #d4e4df;background:#fff;min-width:0}
+.resuelve-saved-item a{font-weight:750;line-height:1.45;overflow-wrap:anywhere;color:#15596a}
+.resuelve-saved-item p{font-size:.82rem;line-height:1.5;margin:7px 0 0;overflow-wrap:anywhere}
+.resuelve-solution-save{margin-top:8px;min-height:44px;border-radius:11px;padding:10px 14px}
+.resuelve-solution-save[aria-pressed="true"]{background:#e8f6f0;color:#12604f;border-color:#9acdb9}
+.resuelve-solution-save:focus-visible,.resuelve-saved-item a:focus-visible{outline:3px solid #0c8290;outline-offset:3px}
+@media(max-width:650px){.resuelve-saved-panel{padding:12px}.resuelve-saved-list{grid-template-columns:1fr}.resuelve-solution-save{width:100%}}

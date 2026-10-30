@@ -10,7 +10,7 @@
  const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
  const topicLabels=[['','Sin tema específico'],['hogar','Hogar'],['tecnologia','Tecnología'],
   ['tramites','Trámites'],['estudios','Estudios'],['vida-cotidiana','Vida cotidiana']];
- const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false,impactLoading:false};
+ const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false,impactLoading:false,savedSolutionIds:new Set()};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -250,6 +250,57 @@
   },'secondary');
   links.append(copy);panel.append(links,status);return panel;
  }
+ // V3.6.4 — colección privada, nunca puntuaciones ni indexación automática.
+ async function loadSavedSolutions(){
+  const panel=el('savedSolutionsPanel'),list=el('savedSolutionsList'),status=el('savedSolutionsStatus');
+  panel.hidden=!state.user;
+  if(!state.user){state.savedSolutionIds.clear();list.replaceChildren();return;}
+  const userId=String(state.user.id);
+  list.replaceChildren();status.textContent='Consultando tus soluciones guardadas…';
+  try{
+   const response=await request('/api/resuelve/solutions/saved');
+   if(!state.user||String(state.user.id)!==userId)return;
+   state.savedSolutionIds.clear();
+   const items=Array.isArray(response.items)?response.items:[];
+   for(const item of items){
+    if(!/^[1-9]\d{0,15}$/.test(String(item.id||'')))continue;
+    state.savedSolutionIds.add(String(item.id));
+    const card=create('article','resuelve-saved-item');
+    const link=create('a',null,item.title);
+    link.href='/resuelve?id='+encodeURIComponent(item.id);
+    const excerpt=create('p','muted',item.solution);
+    card.append(link,excerpt);list.append(card);
+   }
+   status.textContent=list.childElementCount
+    ?'Solo tú ves estas soluciones. Aparecen mientras sigan aprobadas para la biblioteca.'
+    :'Todavía no has guardado soluciones. Puedes guardar cualquiera de la biblioteca.';
+  }catch(_){
+   if(state.user&&String(state.user.id)===userId)
+    status.textContent='No se pudieron consultar tus guardadas. Puedes seguir explorando la biblioteca.';
+  }
+ }
+ function savedSolutionButton(q){
+  const saved=state.savedSolutionIds.has(String(q.id));
+  const userId=String(state.user.id);
+  const btn=button(saved?'Quitar de guardadas':'Guardar solución',async()=>{
+   if(btn.disabled)return;
+   const enabled=btn.dataset.saved!=='true';
+   btn.disabled=true;
+   try{
+    await write('/api/resuelve/solutions/'+encodeURIComponent(q.id)+'/save',{enabled});
+    if(!state.user||String(state.user.id)!==userId)return;
+    if(enabled)state.savedSolutionIds.add(String(q.id));
+    else state.savedSolutionIds.delete(String(q.id));
+    btn.dataset.saved=String(enabled);
+    btn.setAttribute('aria-pressed',String(enabled));
+    btn.textContent=enabled?'Quitar de guardadas':'Guardar solución';
+    await loadSavedSolutions();
+   }catch(error){message(error.message);}
+   finally{btn.disabled=false;}
+  },'secondary resuelve-solution-save');
+  btn.dataset.saved=String(saved);btn.setAttribute('aria-pressed',String(saved));
+  return btn;
+ }
  function solutionCard(q){
   const article=create('article','question-card solution-card');
   const heading=create('h3');
@@ -262,6 +313,7 @@
    meta(create('span',null,'Petición de @'+q.author_username),create('span',null,date(q.solved_at))),
    button('Leer solución completa',()=>openDetail(q.id))
   );
+  if(state.user)article.append(savedSolutionButton(q));
   if(q.seo_public_opt_in===true){
    const publicLink=create('a','secondary resuelve-solution-public-link','Ver página pública');
    publicLink.href='/resuelve/solucion/'+encodeURIComponent(q.id);
@@ -1059,6 +1111,8 @@
   el('resuelveAdminEntry').hidden=!isAdmin;
   el('helperProfileSettings').hidden=guest;
   el('resuelveReplyEmailSettings').hidden=guest;
+  el('savedSolutionsPanel').hidden=guest;
+  if(guest)state.savedSolutionIds.clear();
   if(guest)el('helpSuggestions').hidden=true;
   return isAdmin;
  }
@@ -1088,7 +1142,7 @@
   el('resuelveRegisterForm').reset();
   el('resuelveLoginForm').reset();
   renderSession();
-  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions()]);
+  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions()]);
   if(state.question)await openDetail(state.question.id,false);
   else await loadList();
  }
@@ -1237,7 +1291,7 @@
   bindHelperProfile();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions()]);
+  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions()]);
   await loadPublicHelperProfile();
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
