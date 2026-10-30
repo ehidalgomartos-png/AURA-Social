@@ -1111,6 +1111,8 @@
    if(id)openDetail(id,false);else{displayDetail(false);loadList();}
   });
   const start=new URLSearchParams(location.search).get('id');
+  // Al entrar desde la landing, crear cuenta directamente en Resuelve.
+  if(!state.user&&new URLSearchParams(location.search).get('registro')==='1')openAuth('register');
   if(start)await openDetail(start,false);else await loadList();
   await loadSolutions();
   await loadTopicHubs();
