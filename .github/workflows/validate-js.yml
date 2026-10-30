@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.33 Public Resuelve introduction and direct shared signup
+        run: node --test tests/resuelve-landing-v3533.test.js
       - name: V3.5.32 Safe sharing of questions and opt-in solutions
         run: node --test tests/resuelve-share-preview-v3532.test.js
       - name: V3.5.31 Topic landings with author consent and thin-page noindex
