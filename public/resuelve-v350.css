@@ -347,3 +347,25 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .resuelve-resolved-actions{display:grid;grid-template-columns:1fr}
  .resuelve-resolved-actions button{width:100%}
 }
+
+/* V3.5.17.1 — envio de una pregunta a un conocido, sin mensajeria automatica */
+.question-share{margin:12px 0 5px}
+.question-share-toggle{display:inline-flex;justify-content:center;align-items:center;min-height:44px;padding:9px 14px;color:#105978;border:1px solid #aacbd8;background:#f6fbfd;border-radius:10px;font-weight:700}
+.question-share-toggle[aria-expanded="true"]{background:#eaf5f9;border-color:#73a9be}
+.question-share-options{padding:13px;margin-top:9px;border:1px solid #cedfe8;border-radius:12px;background:#f8fbfd;max-width:100%;overflow-wrap:anywhere}
+.question-share-options[hidden]{display:none!important}
+.question-share-options>.muted{line-height:1.45;margin:0 0 9px}
+.question-share-preview{margin:9px 0;padding:10px 12px;background:white;border-radius:9px;border:1px solid #dce9ed;font-weight:650}
+.question-share-methods{display:flex;flex-wrap:wrap;gap:8px}
+.question-share-methods>a,.question-share-methods>button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 11px;border:1px solid #b8d0dc;background:#fff;border-radius:9px;color:#125777;font-weight:700;text-decoration:none;font-size:.89rem}
+.question-share-methods>button[hidden]{display:none!important}
+.question-share-status:not(:empty){margin:10px 0 0}
+.question-share-compact{margin-top:9px;padding-top:9px;border-top:1px solid #e0e8ed}
+.question-share-compact .question-share-toggle{background:transparent}
+@media(max-width:650px){
+ .question-share-toggle{width:100%}
+ .question-share-options{padding:11px}
+ .question-share-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .question-share-methods>a,.question-share-methods>button{width:100%;min-width:0;font-size:.83rem}
+}
+@media(max-width:360px){.question-share-methods{grid-template-columns:1fr}}
