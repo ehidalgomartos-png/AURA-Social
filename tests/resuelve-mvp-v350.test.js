@@ -28,6 +28,13 @@ function database(){
     status:'open',accepted_answer_id:null,created_at:new Date().toISOString()};
    questions.set(row.id,row);return {rows:[{id:row.id}],rowCount:1};
   }
+  if(sql.startsWith('SELECT q.id, q.title')) {
+   const rows=[...questions.values()].filter(q=>q.author_id===Number(args[0])&&q.status!=='hidden'&&
+     (!args[1]||q.id<Number(args[1]))).sort((a,b)=>b.id-a.id).slice(0,24)
+     .map(q=>({...q,author_username:users.get(q.author_id).username,
+       answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
+   return {rows,rowCount:rows.length};
+  }
   if(sql.startsWith('SELECT q.id,q.title')){
    const rows=[...questions.values()].filter(q=>q.status!=='hidden'&&
     (args[0]==='all'||q.status===args[0])&&(!args[1]||q.id<Number(args[1])))
@@ -200,6 +207,21 @@ test('errores de entrada y filtros no generan consultas a base de datos insegura
   assert.ok(stub.audit.every(call=>!call.sql.includes('serpapi.com')));
  });
 });
+test('V3.5.4 Mis peticiones: requiere sesión y no revela preguntas ajenas',async()=>{
+ await withApp(async req=>{
+  const input={title:'Necesito una recomendación',body:'¿Qué artículo conviene comprar para un salón pequeño?',category:'consejo'};
+  const mine=await req('/api/resuelve/questions',{user:1,method:'POST',body:input});
+  const other=await req('/api/resuelve/questions',{user:2,method:'POST',body:input});
+  assert.equal(mine.status,201);assert.equal(other.status,201);
+  assert.equal((await req('/api/resuelve/questions/mine')).status,401);
+  assert.equal((await req('/api/resuelve/questions/mine?antes=-1',{user:1})).status,400);
+  const own=await req('/api/resuelve/questions/mine',{user:1});
+  assert.equal(own.status,200);
+  assert.deepEqual(own.data.items.map(q=>Number(q.id)),[Number(mine.data.id)]);
+  const theirs=await req('/api/resuelve/questions/mine',{user:2});
+  assert.deepEqual(theirs.data.items.map(q=>Number(q.id)),[Number(other.data.id)]);
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -211,6 +233,8 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(app,/href="\/resuelve"/);
  assert.match(html,/id="askForm"/);
  assert.match(html,/id="answerForm"/);
+ assert.match(html,/data-filter="mine"[^>]*hidden/);
+ assert.match(js,/\/api\/resuelve\/questions\/mine/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(js,/textContent/);
  assert.doesNotMatch(js,/\.innerHTML\s*=/);
