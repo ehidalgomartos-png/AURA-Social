@@ -68,7 +68,7 @@
   byId('adminOverviewSocialV3611').replaceChildren();
   byId('adminOverviewHelpV3611').replaceChildren();
   const results=await Promise.allSettled([
-   read('/api/admin/activity?days=7&type=all&page=0'),
+   read('/api/admin/activity/summary-7d'),
    read('/api/resuelve/admin/activity-7d')
   ]);
   const groups=[
