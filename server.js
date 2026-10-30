@@ -17,6 +17,7 @@ const { createOperationalAlertService } = require('./src/services/operational-al
 const { createOperationalAlertAdminRoutes } = require('./src/routes/admin-alerts-v215');
 const { createAlertDeliveryService } = require('./src/services/alert-delivery-v216');
 const {messageEmailService}=require('./src/services/message-email-v3275');
+const {resuelveReplyEmailService}=require('./src/services/resuelve-reply-email-v3521');
 const {createImportantUpdatesService}=require('./src/services/important-updates-v3316');
 const {createImportantUpdatesRouter}=require('./src/routes/important-updates-v3316');
 const { createAlertDeliveryAdminRoutes } = require('./src/routes/admin-delivery-v216');
@@ -1393,6 +1394,7 @@ async function gracefulShutdown(signal){
   marketplaceComparadorV32132.stopBackgroundWorker();
   alertDelivery.stop();
   messageEmailService.stop();
+  resuelveReplyEmailService.stop();
    importantUpdates.stop();
   console.log(`RedLibertad received ${signal}; shutting down gracefully.`);
 
@@ -1423,6 +1425,7 @@ process.on('unhandledRejection',error=>console.error('RedLibertad unhandled reje
 operationalAlerts.start();
 alertDelivery.start();
 messageEmailService.start();
+resuelveReplyEmailService.start();
  importantUpdates.start();
 marketplaceComparadorV32132.startBackgroundWorker();
 startWooCommerceSyncScheduler();
