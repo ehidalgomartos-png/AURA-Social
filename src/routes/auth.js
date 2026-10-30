@@ -289,7 +289,7 @@ const registerSchema = z.object({
   entryPath: z.string().max(280).optional().default('')
 });
 
-const PUBLIC_ENTRY_TYPES=new Set(['profile','post','community','event','reel','topic','story','guide','marketplace_contact','marketplace_share']);
+const PUBLIC_ENTRY_TYPES=new Set(['profile','post','community','event','reel','topic','story','guide','marketplace_contact','marketplace_share','resuelve']);
 function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
   const type=String(entryType||'').trim().toLowerCase();
   const key=String(entryKey||'').trim().slice(0,120);
@@ -304,6 +304,7 @@ function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
     topic:/^\/tema\/[a-z0-9-]{1,80}$/,
     guide:/^\/guias\/[a-z0-9-]{1,80}$/,
     story:/^\/historia\/\d+$/,
+    resuelve:/^\/resuelve$/,
     marketplace_contact:/^\/marketplace\?contact=[A-Za-z0-9_.-]{3,30}&listing=[1-9]\d{0,15}$/,
     marketplace_share:/^\/app\?view=feed&compartirAnuncio=[1-9]\d{0,15}$/
   }[type];
@@ -317,6 +318,7 @@ function normalizeSignupAttribution({entryType='',entryKey='',entryPath=''}) {
     topic:/^[a-z0-9-]{1,80}$/,
     guide:/^[a-z0-9-]{1,80}$/,
     story:/^\d+$/,
+    resuelve:/^resuelve$/,
     marketplace_contact:/^[1-9]\d{0,15}$/,
     marketplace_share:/^[1-9]\d{0,15}$/
   }[type];

@@ -25,9 +25,49 @@
   <p class="eyebrow">PERSONAS QUE AYUDAN A PERSONAS</p>
   <h1 id="hero-title">Pide ayuda. Comparte lo que sabes.</h1>
   <p>Un consejo sincero o una experiencia real pueden resolver mucho. Si el problema necesita un especialista, podemos orientar sobre qué profesional consultar. Nadie tiene que comprar ni contratar nada para participar.</p>
-  <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
+  <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><button id="joinResuelveButton" class="primary" type="button" hidden>Crear cuenta y pedir ayuda</button><button id="loginResuelveButton" class="secondary" type="button" hidden>Ya tengo cuenta</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
+ <section id="resuelveAuthPanel" class="panel resuelve-auth-panel" hidden aria-labelledby="resuelveAuthTitle">
+  <div class="panel-head">
+   <div><p class="eyebrow dark">UNA CUENTA PARA AYUDAR Y PARTICIPAR</p>
+    <h2 id="resuelveAuthTitle">Únete a Resuelve</h2>
+    <p class="muted">Regístrate aquí sin salir de Resuelve. Con esta misma cuenta podrás entrar en todo RedLibertad.</p></div>
+   <button id="closeResuelveAuth" class="plain" type="button">Cerrar</button>
+  </div>
+  <div class="resuelve-auth-tabs" role="group" aria-label="Acceso a Resuelve">
+   <button id="resuelveAuthRegisterTab" type="button" aria-pressed="true">Crear cuenta</button>
+   <button id="resuelveAuthLoginTab" type="button" aria-pressed="false">Ya tengo cuenta</button>
+  </div>
+  <form id="resuelveRegisterForm" class="resuelve-auth-form" aria-label="Crear cuenta de RedLibertad desde Resuelve">
+   <label for="resuelveSignupName">Nombre visible</label>
+   <input id="resuelveSignupName" name="displayName" autocomplete="name" maxlength="80" required placeholder="Cómo quieres que te conozcan">
+   <label for="resuelveSignupUsername">Nombre de usuario</label>
+   <input id="resuelveSignupUsername" name="username" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_.]+" required placeholder="Ej.: usuario123">
+   <p class="muted">Entre 3 y 30 caracteres, sin espacios. Letras, números, punto y guion bajo.</p>
+   <label for="resuelveSignupEmail">Correo electrónico</label>
+   <input id="resuelveSignupEmail" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="tu@email.com">
+   <label for="resuelveSignupPassword">Contraseña</label>
+   <input id="resuelveSignupPassword" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required placeholder="Mínimo 10 caracteres">
+   <label for="resuelveSignupBirthDate">Fecha de nacimiento</label>
+   <input id="resuelveSignupBirthDate" name="birthDate" type="date" required>
+   <label class="resuelve-legal-consent">
+    <input id="resuelveSignupTerms" name="acceptTerms" type="checkbox" required>
+    <span>Confirmo que soy mayor de 18 años y acepto los <a href="/terms/" target="_blank" rel="noopener noreferrer">Términos de Uso</a> y las <a href="/community-guidelines/" target="_blank" rel="noopener noreferrer">Normas de la Comunidad</a>. He leído la <a href="/privacy/" target="_blank" rel="noopener noreferrer">Política de Privacidad</a> de RedLibertad.</span>
+   </label>
+   <p class="muted">Una única cuenta para Resuelve y RedLibertad. No se publicará ninguna petición automáticamente.</p>
+   <button class="primary" type="submit">Crear mi cuenta y seguir en Resuelve</button>
+  </form>
+  <form id="resuelveLoginForm" class="resuelve-auth-form" hidden aria-label="Entrar con mi cuenta de RedLibertad">
+   <label for="resuelveLoginEmail">Correo electrónico</label>
+   <input id="resuelveLoginEmail" name="email" type="email" autocomplete="username" maxlength="254" required>
+   <label for="resuelveLoginPassword">Contraseña</label>
+   <input id="resuelveLoginPassword" name="password" type="password" autocomplete="current-password" required>
+   <button class="primary" type="submit">Entrar y seguir en Resuelve</button>
+   <p class="muted"><a href="/recuperar-contrasena/">¿Has olvidado tu contraseña?</a></p>
+  </form>
+  <p id="resuelveAuthStatus" class="resuelve-auth-status" role="status" aria-live="polite"></p>
+ </section>
  <section id="libraryReviewPanel" class="panel" hidden aria-labelledby="libraryReviewTitle">
   <div class="panel-head"><div>
    <p class="eyebrow dark">SOLO ADMINISTRACIÓN</p>
