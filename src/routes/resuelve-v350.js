@@ -30,7 +30,13 @@ router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();});
 router.get('/solutions',wrap(async(req,res)=>{
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
- const items=await service.library({before:before||null});
+ const category=req.query?.categoria;
+ if(category!==undefined&&(typeof category!=='string'||!service.CATEGORIES.includes(category)))
+  return fail(res,400,'categoria_invalida');
+ const query=req.query?.q??'';
+ if(typeof query!=='string'||query.length>80||query.trim().length===1)
+  return fail(res,400,'busqueda_invalida');
+ const items=await service.library({before:before||null,category:category||null,query:query.trim()});
  res.json({ok:true,items,next:items.length===12?items[items.length-1].id:null});
 }));
 router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
