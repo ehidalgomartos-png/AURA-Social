@@ -39,6 +39,13 @@ router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12)
  if(!row)return fail(res,404,'peticion_no_encontrada');
  res.json({ok:true,id:row.id});
 }));
+router.get('/admin/solutions/pending',requireAuth,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ const before=req.query?.antes;
+ if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
+ const items=await service.pendingSolutions({before:before||null});
+ res.json({ok:true,items,next:items.length===12?items[items.length-1].id:null});
+}));
 router.post('/admin/solutions/:id/:action',requireAuth,checkOrigin,limiter(40),wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
  if(!service.validId(req.params.id)||!['approve','revoke'].includes(req.params.action))
