@@ -483,7 +483,13 @@
   }
   const form=el('answerForm');
   form.hidden=!(state.user&&!mine&&!solved);
-  if(!state.user&&!solved)list.append(create('p','muted','Entra en tu cuenta de RedLibertad para responder. La lectura es pública.'));
+  if(!state.user&&!solved){
+   list.append(create('p','muted','Puedes responder creando tu cuenta aquí mismo, sin abandonar Resuelve. La misma cuenta sirve para todo RedLibertad.'));
+   const actions=create('div','resuelve-guest-actions');
+   actions.append(button('Crear cuenta para ayudar',()=>openAuth('register'),'secondary'),
+    button('Ya tengo cuenta',()=>openAuth('login'),'secondary'));
+   list.append(actions);
+  }
   else if(mine&&!solved)list.append(create('p','muted','Puedes marcar la respuesta que te haya ayudado.'));
   else if(solved)list.append(create('p','muted','Esta petición está resuelta. Su autor puede reabrirla si necesita más ayuda.'));
   const extras=el('resuelveExtras');extras.replaceChildren();
@@ -497,16 +503,123 @@
   history.pushState({},'', '/resuelve');
   displayDetail(false);loadList();
  }
- async function init(){
-  try{const me=await request('/api/auth/me');state.user=me.user;}
-  catch(_){state.user=null;}
-  el('askButton').hidden=!state.user;
-  document.querySelector('[data-filter="mine"]').hidden=!state.user;
+// V3.5.15: registro único en la misma pantalla. Sin credenciales guardadas en JS.
+ function setAuthMode(mode){
+  const signup=mode!=='login';
+  el('resuelveRegisterForm').hidden=!signup;
+  el('resuelveLoginForm').hidden=signup;
+  el('resuelveAuthRegisterTab').setAttribute('aria-pressed',signup?'true':'false');
+  el('resuelveAuthLoginTab').setAttribute('aria-pressed',signup?'false':'true');
+  el('resuelveAuthTitle').textContent=signup?'Únete a Resuelve':'Entra en Resuelve';
+  el('resuelveAuthStatus').textContent='';
+ }
+ function openAuth(mode='register'){
+  if(state.user)return;
+  setAuthMode(mode);
+  el('resuelveAuthPanel').hidden=false;
+  el('resuelveAuthPanel').scrollIntoView({block:'start',behavior:'smooth'});
+  (mode==='login'?el('resuelveLoginEmail'):el('resuelveSignupName')).focus({preventScroll:true});
+ }
+ function renderSession(){
+  const guest=!state.user;
+  el('joinResuelveButton').hidden=!guest;
+  el('loginResuelveButton').hidden=!guest;
+  el('askButton').hidden=guest;
+  el('resuelveAuthPanel').hidden=!guest;
+  if(guest)el('resuelveAuthPanel').hidden=true;
+  document.querySelector('[data-filter="mine"]').hidden=guest;
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
   el('libraryReviewPanel').hidden=!isAdmin;
   el('adminReportsPanel').hidden=!isAdmin;
+  return isAdmin;
+ }
+ function authError(error,status){
+  if(status===409||error==='account_exists')return 'Ya existe una cuenta con ese correo o nombre de usuario. Puedes entrar desde aquí.';
+  if(error==='adult_only')return 'Para registrarte en RedLibertad debes tener 18 años o más.';
+  if(error==='invalid_birth_date')return 'Comprueba la fecha de nacimiento.';
+  if(error==='invalid_data')return 'Revisa los datos, la contraseña y la aceptación de las condiciones.';
+  if(error==='invalid_credentials')return 'Correo o contraseña incorrectos.';
+  if(error==='account_suspended'||error==='account_banned'||error==='account_unavailable')return 'Esta cuenta no puede acceder. Consulta con soporte.';
+  if(status===429)return 'Demasiados intentos. Prueba de nuevo más tarde.';
+  return 'No se ha podido completar el acceso. Comprueba tu conexión e inténtalo otra vez.';
+ }
+ async function authSubmit(endpoint,payload){
+  const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json','Accept':'application/json'},
+   body:JSON.stringify(payload)});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){const err=new Error(authError(data.error,response.status));err.code=data.error;throw err;}
+  return data;
+ }
+ async function finishAuth(){
+  // La cookie HttpOnly la emite la misma API de RedLibertad: ninguna sesión duplicada.
+  const me=await request('/api/auth/me');
+  if(!me?.user)throw new Error('Cuenta creada, pero aún no se pudo confirmar la sesión. Puedes entrar con tus datos.');
+  state.user=me.user;
+  el('resuelveRegisterForm').reset();
+  el('resuelveLoginForm').reset();
+  renderSession();
+  if(state.user?.is_admin||state.user?.isAdmin){
+   await loadReviewQueue();
+   await loadAnswerReports();
+  }
+  if(state.question)await openDetail(state.question.id,false);
+  else await loadList();
+ }
+ function bindResuelveAuth(){
+  el('joinResuelveButton').addEventListener('click',()=>openAuth('register'));
+  el('loginResuelveButton').addEventListener('click',()=>openAuth('login'));
+  el('resuelveAuthRegisterTab').addEventListener('click',()=>setAuthMode('register'));
+  el('resuelveAuthLoginTab').addEventListener('click',()=>setAuthMode('login'));
+  el('closeResuelveAuth').addEventListener('click',()=>{el('resuelveAuthPanel').hidden=true;});
+  const dob=el('resuelveSignupBirthDate');
+  const now=new Date(),cutoff=new Date(Date.UTC(now.getUTCFullYear()-18,now.getUTCMonth(),now.getUTCDate()));
+  dob.max=cutoff.toISOString().slice(0,10);
+  el('resuelveRegisterForm').addEventListener('submit',async(event)=>{
+   event.preventDefault();
+   const form=event.currentTarget,submit=form.querySelector('[type="submit"]');
+   if(submit.disabled||!form.reportValidity())return;
+   if(!el('resuelveSignupTerms').checked){el('resuelveAuthStatus').textContent='Debes aceptar las condiciones para crear la cuenta.';return;}
+   submit.disabled=true;
+   const status=el('resuelveAuthStatus');
+   status.textContent='Creando tu cuenta…';
+   try{
+    const v=Object.fromEntries(new FormData(form).entries());
+    const data=await authSubmit('/api/auth/register',{
+     email:String(v.email||'').trim(),username:String(v.username||'').trim(),
+     displayName:String(v.displayName||'').trim(),password:v.password,
+     birthDate:v.birthDate,acceptTerms:true,
+     entryType:'resuelve',entryKey:'resuelve',entryPath:'/resuelve'
+    });
+    await finishAuth();
+    message(data.verificationEmailSent?'Cuenta creada. Revisa tu correo para verificarla. Ya puedes participar en Resuelve y utilizar tu cuenta en RedLibertad.':
+     'Cuenta creada y sesión iniciada. Puedes participar aquí y entrar en RedLibertad con la misma cuenta. Si no recibes el email de verificación, podrás solicitar otro.');
+    status.textContent='';
+   }catch(err){status.textContent=err.message;}
+   finally{submit.disabled=false;}
+  });
+  el('resuelveLoginForm').addEventListener('submit',async(event)=>{
+   event.preventDefault();
+   const form=event.currentTarget,submit=form.querySelector('[type="submit"]');
+   if(submit.disabled||!form.reportValidity())return;
+   submit.disabled=true;
+   const status=el('resuelveAuthStatus');status.textContent='Entrando…';
+   try{
+    const v=Object.fromEntries(new FormData(form).entries());
+    await authSubmit('/api/auth/login',{email:String(v.email||'').trim(),password:v.password});
+    await finishAuth();
+    message('Ya has iniciado sesión. Puedes participar en Resuelve y en RedLibertad con la misma cuenta.');
+   }catch(err){status.textContent=err.message;}
+   finally{submit.disabled=false;}
+  });
+ }
+ async function init(){
+  try{const me=await request('/api/auth/me');state.user=me.user;}
+  catch(_){state.user=null;}
+  bindResuelveAuth();
+  const isAdmin=renderSession();
   if(isAdmin){await loadReviewQueue();await loadAnswerReports();}
-  if(!state.user)message('Puedes leer las peticiones sin entrar. Para publicar o responder, inicia sesión en RedLibertad.');
+  if(!state.user)message('Puedes leer las peticiones sin registrarte. Para publicar o responder, crea tu cuenta aquí mismo o entra si ya tienes una.');
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;el('askTitleInput').focus();
   });
