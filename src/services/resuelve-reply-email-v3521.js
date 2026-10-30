@@ -22,6 +22,8 @@ function createResuelveReplyEmailService({db=dbDefault,fetchFn=global.fetch,env=
  let initialized=null,running=null,timer=null,closed=false;
  async function ensureSchema(){
   if(!initialized)initialized=(async()=>{
+   // Los trabajos dependen de las tablas de Resuelve, también tras un despliegue vacío.
+   await require('./resuelve-v350').ensureSchema();
    await db.query("CREATE TABLE IF NOT EXISTS resuelve_reply_email_preferences_v3521 ("+
     "user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"+
     "enabled BOOLEAN NOT NULL DEFAULT FALSE,updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
