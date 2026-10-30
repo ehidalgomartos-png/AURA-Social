@@ -564,6 +564,7 @@
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
   el('resuelveAdminEntry').hidden=!isAdmin;
+  el('resuelveReplyEmailSettings').hidden=guest;
   return isAdmin;
  }
  function authError(error,status){
@@ -592,8 +593,31 @@
   el('resuelveRegisterForm').reset();
   el('resuelveLoginForm').reset();
   renderSession();
+  await loadReplyEmailPreference();
   if(state.question)await openDetail(state.question.id,false);
   else await loadList();
+ }
+ async function loadReplyEmailPreference(){
+  if(!state.user)return;
+  const toggle=el('resuelveReplyEmailToggle'),status=el('resuelveReplyEmailStatus');
+  toggle.disabled=true;status.textContent='Cargando tus preferencias…';
+  try{
+   const data=await request('/api/resuelve/reply-email/preference');
+   toggle.checked=data.enabled===true;
+   toggle.disabled=data.available!==true;
+   status.textContent=data.available?
+    'Solo se envían recordatorios de respuestas nuevas si has dado permiso y has verificado tu correo.':
+    'Los avisos dentro de la web están disponibles. El envío opcional de correos aún no está habilitado.';
+  }catch(error){toggle.disabled=true;status.textContent=error.message;}
+ }
+ function bindReplyEmailPreferences(){
+  const toggle=el('resuelveReplyEmailToggle');
+  toggle.addEventListener('change',async()=>{
+   toggle.disabled=true;el('resuelveReplyEmailStatus').textContent='Guardando tu preferencia…';
+   try{await write('/api/resuelve/reply-email/preference',{enabled:toggle.checked});}
+   catch(error){el('resuelveReplyEmailStatus').textContent=error.message;}
+   await loadReplyEmailPreference();
+  });
  }
  function bindResuelveAuth(){
   el('joinResuelveButton').addEventListener('click',()=>openAuth('register'));
@@ -646,8 +670,10 @@
   try{const me=await request('/api/auth/me');state.user=me.user;}
   catch(_){state.user=null;}
   bindResuelveAuth();
+  bindReplyEmailPreferences();
   bindHelpInvitation();
   const isAdmin=renderSession();
+  if(state.user)await loadReplyEmailPreference();
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;
