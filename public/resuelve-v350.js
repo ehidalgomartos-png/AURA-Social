@@ -80,6 +80,29 @@
    el('detailPanel').scrollIntoView({block:'start',behavior:'auto'});
   }catch(err){el('questionDetail').textContent=err.message;}
  }
+
+ function connectedActions(q){
+  const wrap=create('section','resuelve-related');
+  const title=create('h3',null,'Conecta esta petición con RedLibertad');
+  const info=create('p','muted','Encuentra opciones en Marketplace, conversa en comunidades o comparte esta petición. No se publicará nada automáticamente.');
+  const links=create('div','resuelve-related-actions');
+  function action(label,href){
+   const a=create('a','secondary',label);a.href=href;links.append(a);
+  }
+  action('Explorar Marketplace','/marketplace/explorar');
+  action('Ver comunidades','/comunidades');
+  const share=button('Compartir petición',async()=>{
+   const url=new URL('/resuelve?id='+encodeURIComponent(q.id),location.origin).href;
+   try{
+    if(navigator.share){await navigator.share({title:q.title,url});return;}
+    if(navigator.clipboard&&window.isSecureContext){
+     await navigator.clipboard.writeText(url);message('Enlace copiado. Compártelo donde quieras.');return;
+    }
+   }catch(e){if(e.name==='AbortError')return;}
+   window.prompt('Copia el enlace de la petición:',url);
+  },'secondary');
+  links.append(share);wrap.append(title,info,links);return wrap;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -89,6 +112,7 @@
    create('h2','',q.title),meta(create('span',null,'Publicado por @'+q.author_username),
     create('span',null,date(q.created_at))),
    create('p','detail-body',q.body));
+  host.append(connectedActions(q));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   if(mine&&solved)host.append(button('Reabrir mi petición',async()=>{
    if(!confirm('¿Quieres volver a aceptar respuestas?'))return;

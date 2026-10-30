@@ -70,3 +70,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .foot p{max-width:960px;margin:auto}
 @media(max-width:650px){.topbar{padding:9px 13px}.topbar nav a{padding:8px 7px}.topbar nav a[href="/marketplace"]{display:none}.wrap{padding:13px 12px 55px}.hero{border-radius:14px;padding:23px 18px}.hero-actions>*{flex:1}.cards{grid-template-columns:1fr}.filters{width:100%}.filters button{flex:1}.section-top{align-items:stretch}.panel{padding:17px}.form-bottom .primary{width:100%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* V3.5.1 — conexiones contextuales opcionales, mobile-first */
+.resuelve-related{margin:22px 0;padding:16px;border:1px solid #dce7ed;border-radius:14px;background:#f8fbfd}
+.resuelve-related h3{font-size:1rem;margin:0 0 6px}
+.resuelve-related p{margin:0 0 12px}
+.resuelve-related-actions{display:flex;flex-wrap:wrap;gap:9px}
+.resuelve-related-actions .secondary{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 13px;text-decoration:none;cursor:pointer}
+@media(max-width:650px){.resuelve-related{padding:13px}.resuelve-related-actions{display:grid;grid-template-columns:1fr}.resuelve-related-actions .secondary{width:100%}}
