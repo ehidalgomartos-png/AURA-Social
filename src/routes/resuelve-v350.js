@@ -163,6 +163,19 @@ router.post('/questions/:id/solve',requireAuth,checkOrigin,limiter(30),wrap(asyn
  if(!row)return fail(res,409,'no_se_puede_marcar_solucion');
  res.json({ok:true,id:row.id,acceptedAnswerId:row.accepted_answer_id});
 }));
+// V3.5.17 — dar las gracias sin puntuaciones y preparar una publicación editable.
+router.post('/questions/:id/thank',requireAuth,checkOrigin,limiter(15),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const row=await service.thankResolved(req.user.id,req.params.id);
+ if(!row)return fail(res,409,'agradecimiento_no_disponible');
+ res.json({ok:true,id:row.id,thankedAt:row.thanked_at});
+}));
+router.get('/questions/:id/share-preview',requireAuth,wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const row=await service.shareResolvedPreview(req.user.id,req.params.id);
+ if(!row)return fail(res,404,'peticion_resuelta_no_disponible');
+ res.json({ok:true,id:row.id,title:row.title,url:'/resuelve?id='+row.id});
+}));
 router.post('/questions/:id/reopen',requireAuth,checkOrigin,limiter(15),wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const row=await service.reopen(req.user.id,req.params.id);

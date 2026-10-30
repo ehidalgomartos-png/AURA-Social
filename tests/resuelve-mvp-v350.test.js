@@ -97,6 +97,12 @@ function database(){
        answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
    return {rows,rowCount:rows.length};
   }
+  if(sql.startsWith('SELECT q.id,q.title FROM resuelve_questions q')){
+   const q=questions.get(Number(args[0])),a=answers.get(q?.accepted_answer_id);
+   if(!q||q.author_id!==Number(args[1])||q.status!=='resolved'||!a||
+    a.status!=='visible'||a.question_id!==q.id)return {rows:[],rowCount:0};
+   return {rows:[{id:q.id,title:q.title}],rowCount:1};
+  }
   if(sql.startsWith('SELECT q.id,q.title')){
    const rows=[...questions.values()].filter(q=>q.status!=='hidden'&&
     (args[0]==='all'||q.status===args[0])&&(!args[1]||q.id<Number(args[1]))&&
@@ -106,6 +112,13 @@ function database(){
      author_username:users.get(q.author_id)?.username||'desconocido',
      answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
    return {rows,rowCount:rows.length};
+  }
+  if(sql.startsWith('UPDATE resuelve_questions SET thanked_at=now()')){
+   const q=questions.get(Number(args[0])),a=answers.get(q?.accepted_answer_id);
+   if(!q||q.author_id!==Number(args[1])||q.status!=='resolved'||q.thanked_at||
+    !a||a.status!=='visible')return {rows:[],rowCount:0};
+   q.thanked_at=new Date().toISOString();
+   return {rows:[{id:q.id,thanked_at:q.thanked_at}],rowCount:1};
   }
   if(sql.startsWith('SELECT q.id,q.author_id')){
    const q=questions.get(Number(args[0]));
@@ -172,7 +185,7 @@ function database(){
   if(sql.startsWith("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL")&&sql.includes('WHERE id=$1 AND author_id=')){
    const q=questions.get(Number(args[0]));
    if(!q||q.author_id!==Number(args[1])||q.status!=='resolved')return {rows:[],rowCount:0};
-   q.status='open';q.accepted_answer_id=null;q.library_approved_answer_id=null;return {rows:[{id:q.id}],rowCount:1};
+   q.status='open';q.accepted_answer_id=null;q.library_approved_answer_id=null;q.thanked_at=null;return {rows:[{id:q.id}],rowCount:1};
   }
   if(sql.startsWith("UPDATE resuelve_questions SET status='hidden'")){
    const q=questions.get(Number(args[0]));if(!q)return {rows:[],rowCount:0};
@@ -614,6 +627,38 @@ test('V3.5.16: áreas voluntarias, consulta privada y sin recomendar peticiones 
   assert.ok(stub.audit.some(x=>x.sql.includes('q.category=ANY(p.categories)')));
  });
 });
+test('V3.5.17: agradecimiento único y previsualización social solo para autora y resueltas',async()=>{
+ await withApp(async(req,stub)=>{
+  const q=981,a=982;
+  stub.questions.set(q,{id:q,author_id:1,title:'Cómo solucionar un problema con una gestión',
+   body:'Una consulta sobre un trámite que hemos podido resolver con consejos útiles.',
+   category:'ayuda',status:'open',accepted_answer_id:null,thanked_at:null,library_opt_out:false});
+  stub.answers.set(a,{id:a,question_id:q,author_id:2,body:'Comprueba las instrucciones oficiales y conserva el justificante del trámite.',
+   status:'visible',created_at:new Date().toISOString()});
+  const preview='/api/resuelve/questions/'+q+'/share-preview';
+  const thank='/api/resuelve/questions/'+q+'/thank';
+  assert.equal((await req(preview)).status,401);
+  assert.equal((await req(preview,{user:2})).status,404);
+  assert.equal((await req(preview,{user:1})).status,404);
+  assert.equal((await req(thank,{user:1,method:'POST',origin:'foreign',body:{}})).status,403);
+  assert.equal((await req(thank,{user:1,method:'POST',body:{}})).status,409);
+  assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:a}})).status,200);
+  assert.equal((await req(preview,{user:2})).status,404);
+  const shared=await req(preview,{user:1});
+  assert.equal(shared.status,200);
+  assert.deepEqual(shared.data,{ok:true,id:q,title:stub.questions.get(q).title,url:'/resuelve?id='+q});
+  assert.ok(!JSON.stringify(shared.data).includes(stub.answers.get(a).body));
+  assert.equal((await req(thank,{user:2,method:'POST',body:{}})).status,409);
+  assert.equal((await req(thank,{user:1,method:'POST',body:{}})).status,200);
+  assert.ok(stub.questions.get(q).thanked_at);
+  assert.equal((await req(thank,{user:1,method:'POST',body:{}})).status,409);
+  assert.ok((await req('/api/resuelve/questions/'+q)).data.question.thanked_at);
+  assert.equal((await req('/api/resuelve/questions/'+q+'/reopen',{user:1,method:'POST',body:{}})).status,200);
+  assert.equal(stub.questions.get(q).thanked_at,null);
+  assert.equal((await req(preview,{user:1})).status,404);
+  assert.ok(stub.audit.some(x=>x.sql.includes('q.author_id=$2')&&x.sql.includes("q.status='resolved'")));
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -649,6 +694,19 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.doesNotMatch(js,/action\('Explorar Marketplace'/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
+ assert.match(html,/id="inviteHelpSection"/);
+ assert.match(html,/id="inviteHelpToggle"/);
+ assert.match(html,/id="inviteWhatsApp"/);
+ assert.match(html,/id="inviteTelegram"/);
+ assert.match(html,/id="inviteEmail"/);
+ assert.match(html,/id="inviteCopyLink"/);
+ assert.match(js,/function bindHelpInvitation\(\)/);
+ assert.match(js,/compartirResuelve=/);
+ assert.match(js,/if\(mine&&solved\)/);
+ assert.match(js,/Publícalo en RedLibertad/);
+ assert.match(js,/Dar las gracias/);
+ assert.match(js,/\/api\/resuelve\/questions\/'.*?'\/thank/);
+
  assert.match(html,/data-filter="help"[^>]*hidden>Puedo ayudar/);
  assert.match(html,/id="helpTopicsPanel"/);
  assert.match(html,/id="helpTopicsForm"/);
