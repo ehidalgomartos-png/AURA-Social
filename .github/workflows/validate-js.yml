@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.35 Suggest similar real public questions before publishing
+        run: node --test tests/resuelve-similar-questions-v3535.test.js
       - name: V3.5.34 Rounded Resuelve search controls and mobile accessibility
         run: node --test tests/resuelve-mobile-polish-v3534.test.js
       - name: V3.5.33 Public Resuelve introduction and direct shared signup
@@ -797,7 +799,8 @@ jobs:
       - name: Push preferences and notification tests
         run: npm run test:notifications
       - name: V3.2.40 mobile push preferences layout and account safety
-        run: npm run test:push-settings-mobile
+        timeout-minutes: 3
+        run: timeout --signal=TERM 120s npm run test:push-settings-mobile
 
   stripe-test-postgres:
     name: Stripe TEST canceled-to-new-Plus PostgreSQL 18

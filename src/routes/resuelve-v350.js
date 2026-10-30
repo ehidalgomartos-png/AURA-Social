@@ -94,6 +94,14 @@ router.post('/admin/solutions/:id/:action',requireAuth,checkOrigin,limiter(40),w
  if(!row)return fail(res,409,'solucion_no_apta');
  res.json({ok:true,id:row.id,approved:!!row.library_approved_answer_id});
 }));
+// V3.5.35: búsqueda orientativa de preguntas públicas, sin consultar textos privados.
+router.get('/questions/similar',wrap(async(req,res)=>{
+ const title=req.query?.titulo;
+ if(typeof title!=='string'||title.length>125||title.trim().length<8)
+  return fail(res,400,'titulo_invalido');
+ const items=await service.similarQuestions(title);
+ res.json({ok:true,items});
+}));
 router.get('/questions',wrap(async(req,res)=>{
  const filter=String(req.query?.estado||'open');
  if(!['open','resolved','all'].includes(filter))return fail(res,400,'filtro_invalido');

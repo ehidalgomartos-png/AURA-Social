@@ -538,3 +538,14 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
   #solutionFilterForm #solutionCategory,
   #questionSearchForm #questionCategoryFilter {transition:none}
 }
+
+/* V3.5.35 — previsualizaciones orientativas, sin interrumpir el formulario. */
+.resuelve-similar-panel{padding:14px 16px;border:1px solid #bedad3;background:#f6fbfa;border-radius:14px;margin:5px 0 13px}
+.resuelve-similar-panel h3{margin:0 0 7px;font-size:1rem;color:#175a58}
+.resuelve-similar-panel p{margin:5px 0 10px}
+.resuelve-similar-list{display:grid;gap:8px;list-style:none;margin:9px 0 0;padding:0}
+.resuelve-similar-item{display:flex;gap:5px;flex-direction:column;background:#fff;border:1px solid #d4e6e3;border-radius:10px;padding:10px 13px}
+.resuelve-similar-item a{font-weight:750;overflow-wrap:anywhere}
+.resuelve-similar-item .muted{font-size:.8rem}
+.resuelve-similar-item a:focus-visible{outline:2px solid #146b82;outline-offset:3px}
+@media(max-width:650px){.resuelve-similar-panel{padding:12px}.resuelve-similar-item a{min-height:42px;display:flex;align-items:center}}
