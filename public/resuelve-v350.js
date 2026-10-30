@@ -53,10 +53,45 @@
   return article;
  }
 // V3.5.16 — intereses privados, sin perfiles públicos ni mensajes automáticos.
+ // V3.6.2: pendientes propios, nunca muestra preguntas o recordatorios de otras cuentas.
+ async function loadPendingMine(){
+  const panel=el('myPendingPanel'),list=el('myPendingList'),status=el('myPendingStatus');
+  panel.hidden=!state.user||state.filter!=='mine';
+  if(panel.hidden){list.replaceChildren();return;}
+  const userId=String(state.user.id);
+  list.replaceChildren();status.textContent='Consultando tus peticiones pendientes…';
+  try{
+   const response=await request('/api/resuelve/questions/mine/pending');
+   if(!state.user||String(state.user.id)!==userId||state.filter!=='mine')return;
+   const items=Array.isArray(response.items)?response.items:[];
+   for(const q of items){
+    if(!/^[1-9]\\d{0,15}$/.test(String(q.id||'')))continue;
+    const count=Number(q.answer_count);
+    if(!Number.isSafeInteger(count)||count<0)continue;
+    const card=create('article','resuelve-pending-card');
+    const link=create('a',null,q.title);
+    link.href='/resuelve?id='+encodeURIComponent(q.id);
+    card.append(link,create('span','muted',count
+     ?count+' respuesta'+(count===1?'':'s')+' para revisar'
+     :'Aún no tiene respuestas'));
+    list.append(card);
+   }
+   status.textContent=list.childElementCount
+    ?'Hasta 12 peticiones abiertas, ordenadas para revisar primero las que no tienen respuesta.'
+    :'No tienes preguntas pendientes. Puedes publicar una nueva cuando necesites ayuda.';
+  }catch(error){
+   if(state.user&&String(state.user.id)===userId&&state.filter==='mine')
+    status.textContent='No se pudo consultar el resumen. Tus peticiones siguen disponibles arriba.';
+  }
+ }
  async function loadMyHelpStats(){
   const panel=el('myHelpDashboard');
-  if(!state.user||!['mine','contributed'].includes(state.filter)){panel.hidden=true;return;}
+  if(!state.user||!['mine','contributed'].includes(state.filter)){
+   panel.hidden=true;el('myPendingPanel').hidden=true;return;
+  }
   panel.hidden=false;
+  el('myPendingPanel').hidden=state.filter!=='mine';
+  if(state.filter==='mine')void loadPendingMine();
   const status=el('myHelpStatus'),metrics=el('myHelpMetrics');
   status.textContent='Consultando tus ayudas…';metrics.replaceChildren();
   try{
@@ -900,6 +935,7 @@
   document.querySelector('[data-filter="mine"]').hidden=guest;
   document.querySelector('[data-filter="contributed"]').hidden=guest;
   el('myHelpDashboard').hidden=guest||!['mine','contributed'].includes(state.filter);
+  el('myPendingPanel').hidden=guest||state.filter!=='mine';
   document.querySelector('[data-filter="help"]').hidden=guest;
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
