@@ -17,6 +17,7 @@
    response.status===403?'No tienes permiso para realizar esta acción.':
    response.status===429?'Has hecho demasiadas solicitudes. Inténtalo más tarde.':
    data.error==='peticion_no_disponible'?'Esta petición ya no acepta respuestas.':
+   data.error==='aviso_no_disponible_o_ya_enviado'?'Este aviso ya se ha enviado o la respuesta no está disponible.':
    'No se pudo completar la operación. Vuelve a intentarlo.');
   return data;
  }
