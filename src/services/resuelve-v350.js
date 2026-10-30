@@ -156,7 +156,7 @@ async function similarQuestions(raw){
  const r=await db.query(sql,[tokens]);
  return r.rows;
 }
-async function list({filter='open',before=null,category=null,query='',professionalOnly=false}={}){
+async function list({filter='open',before=null,category=null,query='',professionalOnly=false,unansweredOnly=false}={}){
  await ensureSchema();
  const state=['open','resolved','all'].includes(filter)?filter:'open';
  const cursor=validId(before)?String(before):null;
@@ -171,9 +171,12 @@ async function list({filter='open',before=null,category=null,query='',profession
   "AND ($3::text IS NULL OR q.category=$3) AND ($4::text='' OR",
   "position(lower($4::text) in lower(q.title))>0 OR position(lower($4::text) in lower(q.body))>0)",
   "AND ($5::boolean=FALSE OR q.professional_help_requested=TRUE)",
+  // V3.6.21 — solo se considera respondida una petición con respuestas visibles.
+  "AND ($6::boolean=FALSE OR NOT EXISTS (SELECT 1 FROM resuelve_answers a_unanswered",
+  "WHERE a_unanswered.question_id=q.id AND a_unanswered.status='visible'))",
   "ORDER BY q.id DESC LIMIT 24"
  ].join(' ');
- return (await db.query(sql,[state,cursor,chosenCategory,search,professionalOnly===true])).rows;
+ return (await db.query(sql,[state,cursor,chosenCategory,search,professionalOnly===true,unansweredOnly===true])).rows;
 }
 // V3.5.16: el usuario elige temas para descubrir peticiones reales que puede ayudar a resolver.
 function validHelpTopics(categories){
