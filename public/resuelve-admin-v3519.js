@@ -9,7 +9,22 @@
   return n;
  };
  const validId=value=>/^[1-9]\d{0,15}$/.test(String(value||''));
- const state={impactBusy:false,solutionsBusy:false,reportsBusy:false,solutionsCursor:null,reportsCursor:null};
+ const state={impactBusy:false,solutionsBusy:false,reportsBusy:false,solutionsCursor:null,reportsCursor:null,solutionsLoaded:false,reportsLoaded:false,solutionsError:false,reportsError:false};
+ function updateWork(){
+  const counts=[
+   ['adminWorkSolutions','libraryReviewList',state.solutionsLoaded,state.solutionsError,state.solutionsCursor],
+   ['adminWorkReports','adminReportsList',state.reportsLoaded,state.reportsError,state.reportsCursor]
+  ];
+  for(const [id,listId,loaded,error,next] of counts){
+   el(id).textContent=error?'Error':loaded?(el(listId).childElementCount+(next?'+':'')):'—';
+  }
+  el('adminWorkStatus').textContent=state.solutionsError||state.reportsError?
+   'Alguna cola no se ha podido consultar. Vuelve a actualizar.':
+   !state.solutionsLoaded||!state.reportsLoaded?'Consultando revisiones…':
+   state.solutionsCursor||state.reportsCursor?
+    'Hay más páginas por consultar. Las cifras muestran solo lo cargado.':
+    'Cifras de las páginas consultadas; actualizar para comprobar nuevas entradas.';
+ }
  async function api(url,options={}){
   const response=await fetch(url,{...options,credentials:'same-origin',cache:'no-store',
    headers:{Accept:'application/json',...(options.headers||{})}});
@@ -76,7 +91,7 @@
    try{
     await write('/api/resuelve/admin/solutions/'+encodeURIComponent(q.id)+'/approve',
      {qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true});
-    item.remove();el('libraryReviewStatus').textContent='Solución aprobada tras revisión humana.';
+    item.remove();updateWork();el('libraryReviewStatus').textContent='Solución aprobada tras revisión humana.';
     await impact();
    }catch(err){el('libraryReviewStatus').textContent=err.message;approve.disabled=false;}
   });
@@ -95,15 +110,15 @@
   const status=el('libraryReviewStatus'),list=el('libraryReviewList');
   const moreButton=el('moreLibraryReview'),refresh=el('refreshLibraryReview');
   moreButton.hidden=true;refresh.disabled=true;
-  if(!more){list.replaceChildren();state.solutionsCursor=null;status.textContent='Cargando soluciones pendientes…';}
+  if(!more){list.replaceChildren();state.solutionsCursor=null;state.solutionsLoaded=false;status.textContent='Cargando soluciones pendientes…';}state.solutionsError=false;updateWork();
   try{
    const cursor=more&&state.solutionsCursor?'?antes='+encodeURIComponent(state.solutionsCursor):'';
    const data=await api('/api/resuelve/admin/solutions/pending'+cursor);
    for(const q of data.items||[])if(validId(q.id))list.append(solutionCard(q));
-   state.solutionsCursor=data.next;
+   state.solutionsCursor=data.next;state.solutionsLoaded=true;
    moreButton.hidden=!state.solutionsCursor;
    status.textContent=list.childElementCount?'':'No hay soluciones pendientes de revisión.';
-  }catch(err){status.textContent=err.message;}finally{state.solutionsBusy=false;refresh.disabled=false;}
+  }catch(err){state.solutionsError=true;status.textContent=err.message;}finally{state.solutionsBusy=false;refresh.disabled=false;updateWork();}
  }
  const reasons={
   publicidad_encubierta:'Publicidad encubierta',cualificacion_falsa:'Posible cualificación engañosa',
@@ -119,21 +134,24 @@
    (report.self_commercial_interest?' · Indica interés económico':' · Declara no tener interés económico')));
   const actions=node('div','review-item-actions');
   actions.append(questionLink(report.question_id));
-  actions.append(action('Desestimar aviso',async()=>{
+  const dismiss=action('Desestimar aviso',async()=>{
    if(!confirm('¿Has revisado el contexto y quieres desestimar este aviso?'))return;
+   dismiss.disabled=true;hide.disabled=true;
    try{
     await write('/api/resuelve/admin/reports/'+encodeURIComponent(report.id)+'/dismiss',{});
-    item.remove();el('adminReportsStatus').textContent='Aviso desestimado tras revisión.';
-   }catch(err){el('adminReportsStatus').textContent=err.message;}
-  }));
-  actions.append(action('Ocultar respuesta',async()=>{
+    item.remove();updateWork();el('adminReportsStatus').textContent='Aviso desestimado tras revisión.';
+   }catch(err){el('adminReportsStatus').textContent=err.message;dismiss.disabled=false;hide.disabled=false;}
+  });
+  const hide=action('Ocultar respuesta',async()=>{
    if(!confirm('¿Has revisado el contenido? Esta acción ocultará la respuesta y cerrará sus avisos pendientes.'))return;
+   dismiss.disabled=true;hide.disabled=true;
    try{
     await write('/api/resuelve/admin/answer/'+encodeURIComponent(report.answer_id)+'/hide',{});
     el('adminReportsStatus').textContent='Respuesta ocultada por moderación.';
     await reports();await impact();
-   }catch(err){el('adminReportsStatus').textContent=err.message;}
-  },'admin-danger'));
+   }catch(err){el('adminReportsStatus').textContent=err.message;dismiss.disabled=false;hide.disabled=false;}
+  },'admin-danger');
+  actions.append(dismiss,hide);
   item.append(actions);return item;
  }
  async function reports(more=false){
@@ -142,14 +160,14 @@
   const status=el('adminReportsStatus'),list=el('adminReportsList');
   const moreButton=el('moreAdminReports'),refresh=el('refreshAdminReports');
   moreButton.hidden=true;refresh.disabled=true;
-  if(!more){list.replaceChildren();state.reportsCursor=null;status.textContent='Comprobando avisos pendientes…';}
+  if(!more){list.replaceChildren();state.reportsCursor=null;state.reportsLoaded=false;status.textContent='Comprobando avisos pendientes…';}state.reportsError=false;updateWork();
   try{
    const cursor=more&&state.reportsCursor?'?antes='+encodeURIComponent(state.reportsCursor):'';
    const data=await api('/api/resuelve/admin/reports/pending'+cursor);
    for(const report of data.items||[])if(validId(report.id)&&validId(report.answer_id))list.append(reportCard(report));
-   state.reportsCursor=data.next;moreButton.hidden=!state.reportsCursor;
+   state.reportsCursor=data.next;state.reportsLoaded=true;moreButton.hidden=!state.reportsCursor;
    status.textContent=list.childElementCount?'':'No hay avisos pendientes.';
-  }catch(err){status.textContent=err.message;}finally{state.reportsBusy=false;refresh.disabled=false;}
+  }catch(err){state.reportsError=true;status.textContent=err.message;}finally{state.reportsBusy=false;refresh.disabled=false;updateWork();}
  }
  async function init(){
   try{
@@ -158,6 +176,7 @@
    el('resuelveAdminAccess').hidden=true;
    el('resuelveAdminContent').hidden=false;
    el('refreshAdminImpact').addEventListener('click',impact);
+   el('refreshAdminWork').addEventListener('click',async()=>{await Promise.all([solutions(),reports()]);});
    el('refreshLibraryReview').addEventListener('click',()=>solutions());
    el('refreshAdminReports').addEventListener('click',()=>reports());
    el('moreLibraryReview').addEventListener('click',()=>solutions(true));

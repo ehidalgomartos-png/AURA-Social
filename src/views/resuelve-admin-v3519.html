@@ -30,6 +30,19 @@
    <a href="#soluciones">Soluciones pendientes</a>
    <a href="#avisos">Avisos y denuncias</a>
   </nav>
+  <section id="trabajo" class="resuelve-admin-work" aria-labelledby="adminWorkTitle">
+   <div class="resuelve-admin-work-head">
+    <div><p class="eyebrow dark">PENDIENTES DE REVISIÓN</p>
+     <h2 id="adminWorkTitle">Bandeja de trabajo</h2>
+     <p class="muted">Accesos directos a lo que necesita una revisión humana.</p></div>
+    <button id="refreshAdminWork" type="button" class="secondary">Actualizar bandeja</button>
+   </div>
+   <div class="resuelve-admin-work-grid">
+    <a href="#soluciones" class="resuelve-admin-work-card"><strong id="adminWorkSolutions">—</strong><span>Soluciones pendientes cargadas</span><small>Revisar antes de publicar</small></a>
+    <a href="#avisos" class="resuelve-admin-work-card"><strong id="adminWorkReports">—</strong><span>Avisos pendientes cargados</span><small>Examinar el contexto antes de actuar</small></a>
+   </div>
+   <p id="adminWorkStatus" class="muted" role="status" aria-live="polite">Consultando revisiones…</p>
+  </section>
   <section id="impacto" class="panel resuelve-impact-panel" aria-labelledby="adminImpactTitle">
    <div class="panel-head">
     <div><p class="eyebrow dark">DATOS REALES</p>
