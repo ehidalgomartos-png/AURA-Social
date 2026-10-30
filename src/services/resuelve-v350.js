@@ -39,19 +39,23 @@ function validateQuestion(body){
   CATEGORIES.includes(category)?{title,body:description,category}:null;
 }
 function validateAnswer(body){const v=clean(body?.body,1500);return v.length>=10&&v.length<=1500?v:null;}
-async function list({filter='open',before=null}={}){
+async function list({filter='open',before=null,category=null,query=''}={}){
  await ensureSchema();
  const state=['open','resolved','all'].includes(filter)?filter:'open';
  const cursor=validId(before)?String(before):null;
+ const chosenCategory=CATEGORIES.includes(category)?category:null;
+ const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
   "SELECT q.id,q.title,q.body,q.category,q.status,q.created_at,q.solved_at,",
   "u.username AS author_username,",
   "(SELECT count(*)::int FROM resuelve_answers a WHERE a.question_id=q.id AND a.status='visible') AS answer_count",
   "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
   "WHERE q.status <> 'hidden' AND ($1='all' OR q.status=$1) AND ($2::bigint IS NULL OR q.id<$2::bigint)",
+  "AND ($3::text IS NULL OR q.category=$3) AND ($4::text='' OR",
+  "position(lower($4::text) in lower(q.title))>0 OR position(lower($4::text) in lower(q.body))>0)",
   "ORDER BY q.id DESC LIMIT 24"
  ].join(' ');
- return (await db.query(sql,[state,cursor])).rows;
+ return (await db.query(sql,[state,cursor,chosenCategory,search])).rows;
 }
 // V3.5.4 — solo el autor autenticado consulta sus peticiones (paginación estable).
 async function listMine(userId,{before=null}={}){
