@@ -422,3 +422,15 @@ body{
 @media(prefers-reduced-motion:reduce){
   .dark-card .auth-help-link{transition:none}
 }
+
+/* V3.6.9 — Bloque de ayuda real en portada, legible en pantallas pequeñas. */
+.home-help-v369{background:#eff7f4}
+.home-help-v369 .section-head{max-width:900px}
+.home-help-actions-v369{display:flex;flex-wrap:wrap;gap:12px;margin-top:23px}
+.home-help-actions-v369 .button{text-align:center;min-height:46px}
+@media(max-width:639px){
+ .home-help-v369{padding-block:48px}
+ .home-help-v369 .section-head h2{font-size:clamp(29px,8vw,42px);line-height:1.14}
+ .home-help-actions-v369{display:grid;grid-template-columns:minmax(0,1fr)}
+ .home-help-actions-v369 .button{width:100%;min-width:0}
+}

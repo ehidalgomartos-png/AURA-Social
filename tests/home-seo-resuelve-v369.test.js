@@ -1,0 +1,43 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+
+test('V3.6.9: portada presenta identidad SEO descriptiva sin promesas de ranking',()=>{
+ const html=read('public/index.html');
+ const title=html.match(/<title>(.*?)<\/title>/)[1];
+ const description=html.match(/<meta name="description" content="([^"]+)"/)[1];
+ assert.equal(title,'RedLibertad | Red social para conectar, compartir y ayudar');
+ assert.ok(title.length<70);
+ assert.ok(description.length>=110&&description.length<165);
+ assert.match(description,/consejos y soluciones en Resuelve/);
+ assert.match(html,/name="robots" content="index,follow,max-image-preview:large"/);
+ assert.match(html,/rel="canonical" href="https:\/\/redlibertad.com\/"/);
+ assert.match(html,/property="og:title" content="RedLibertad \| Red social/);
+ assert.match(html,/name="twitter:title" content="RedLibertad \| Red social/);
+ assert.doesNotMatch(html,/name="keywords"|posicionamiento garantizado|miles de usuarios/i);
+ const schema=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+ assert.ok(schema);
+ const info=JSON.parse(schema[1]);
+ assert.equal(info['@type'],'WebSite');
+ assert.equal(info.url,'https://redlibertad.com/');
+ assert.equal(info.name,'RedLibertad');
+ assert.ok(!('aggregateRating' in info||'potentialAction' in info));
+});
+test('V3.6.9: contenido coherente, Resuelve público y formulario conservado',()=>{
+ const html=read('public/index.html');
+ const css=read('public/styles.css');
+ assert.equal((html.match(/<h1\b/g)||[]).length,1);
+ assert.match(html,/<h1>Una red social para/);
+ assert.match(html,/id="homeHelpTitleV369"/);
+ assert.match(html,/href="\/resuelve\/como-funciona"/);
+ assert.match(html,/href="\/resuelve">Ver peticiones de ayuda/);
+ assert.match(html,/id="registerForm"/);
+ assert.match(html,/id="loginForm"/);
+ assert.match(html,/Sin obligaci[oó]n|No necesitas comprar nada/);
+ assert.match(css,/\/\* V3\.6\.9/);
+ assert.match(css,/@media\(max-width:639px\)/);
+ assert.match(css,/\.home-help-actions-v369/);
+});
