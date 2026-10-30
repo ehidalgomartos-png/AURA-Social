@@ -161,7 +161,7 @@ async function list({filter='open',before=null,category=null,query='',profession
  const state=['open','resolved','all'].includes(filter)?filter:'open';
  const cursor=validId(before)?String(before):null;
  const chosenCategory=CATEGORIES.includes(category)?category:null;
- const chosenTopic=TOPICS.includes(topic)?topic:null;
+ const chosenTopic=topic&&TOPICS.includes(topic)?topic:null;
  const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
   "SELECT q.id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.created_at,q.solved_at,",
