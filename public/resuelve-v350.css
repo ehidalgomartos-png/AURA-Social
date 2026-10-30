@@ -681,3 +681,27 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 @media(prefers-reduced-motion:reduce){
  .question-card,.solution-card{transition:none}
 }
+
+/* V3.6.14 — navegación móvil sin desbordar el ancho ni esconder el acceso a Resuelve. */
+@media(max-width:650px){
+ .topbar{min-width:0;max-width:100%;gap:8px}
+ .topbar .brand{flex:0 0 auto;min-width:0}
+ .topbar nav{
+  flex:1 1 auto;
+  min-width:0;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;
+ }
+ .topbar nav a{
+  display:inline-flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  padding:9px 11px;
+ }
+ .topbar nav a:focus-visible{outline:3px solid #12648b;outline-offset:-3px}
+}
