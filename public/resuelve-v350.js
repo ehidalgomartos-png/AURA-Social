@@ -510,6 +510,46 @@
   panel.append(checklist,submit);
   return panel;
  }
+ // V3.5.29 — permiso individual y revocable; no habilita indexación sin revisión editorial.
+ function seoConsentControls(q,reviewed){
+  const section=create('section','resuelve-seo-consent');
+  section.append(create('h3',null,'Compartir esta solución en Google (opcional)'),
+   create('p','muted','Tú decides si una página independiente de tu solución puede aparecer en buscadores. Solo se habilita si la solución está aprobada para la biblioteca. Puedes retirar el permiso cuando quieras.'));
+  const status=create('p','muted','Consultando tu permiso…');
+  status.setAttribute('role','status');
+  const actions=create('div','resuelve-seo-consent-actions');
+  const toggle=button('Autorizar página pública',async()=>{
+   if(toggle.disabled)return;
+   const enabled=toggle.dataset.enabled!=='true';
+   if(enabled&&!confirm('¿Autorizas que el título y la solución revisada se publiquen en una página que puede aparecer en Google?'))return;
+   toggle.disabled=true;
+   try{
+    await write('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/seo-consent',{enabled});
+    await refresh();
+   }catch(error){status.textContent=error.message;toggle.disabled=false;}
+  },'secondary');
+  const link=create('a','secondary','Ver página pública de la solución');
+  link.href='/resuelve/solucion/'+encodeURIComponent(q.id);
+  link.hidden=true;
+  actions.append(toggle,link);
+  section.append(status,actions);
+  async function refresh(){
+   try{
+    const data=await request('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/seo-consent');
+    const enabled=data.enabled===true;
+    toggle.dataset.enabled=enabled?'true':'false';
+    toggle.textContent=enabled?'Retirar permiso de buscadores':'Autorizar página pública';
+    toggle.disabled=false;
+    link.hidden=!enabled||!reviewed;
+    status.textContent=!enabled?
+     'Sin permiso: la página no puede aparecer en buscadores.':
+     reviewed?'Permiso activo y solución revisada. Tu página se puede compartir.':
+     'Permiso guardado. La página solo estará disponible después de la revisión humana.';
+   }catch(error){status.textContent=error.message;toggle.disabled=true;link.hidden=true;}
+  }
+  void refresh();
+  return section;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -556,6 +596,7 @@
     }catch(error){message(error.message);}
    }));
   }
+  if(mine&&solved&&!q.library_opt_out)host.append(seoConsentControls(q,reviewed));
   if(solved&&q.thanked_at)host.append(create('p','resuelve-thanks-note','El autor de la petición ha dado las gracias por la ayuda recibida.'));
   if(mine&&solved){
    const block=create('section','resuelve-resolved-share');
