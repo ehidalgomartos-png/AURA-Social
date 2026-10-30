@@ -124,6 +124,19 @@
    <label for="answerBody">Tu respuesta</label>
    <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required placeholder="Explica qué harías tú, qué has aprendido o qué pasos concretos pueden servir. Evita respuestas que solo intenten vender."></textarea>
    <p class="muted">Primero ayuda con tu experiencia. No es necesario mencionar tiendas, anuncios ni productos.</p>
+   <details class="professional-perspective-option">
+    <summary>¿Respondes desde tu experiencia profesional? (opcional)</summary>
+    <p class="muted">Puedes compartir conocimientos de tu oficio. Es una declaración personal, no una verificación de títulos o acreditación.</p>
+    <label for="answerSelfProfessionalRole">Tu oficio o especialidad (sin nombres de empresas ni contactos)</label>
+    <input id="answerSelfProfessionalRole" type="text" maxlength="70" placeholder="Ej.: electricista, trabajador social..." autocomplete="off">
+    <label for="answerCommercialInterest">¿Tienes interés comercial en la solución que propones?</label>
+    <select id="answerCommercialInterest">
+     <option value="">Selecciona una respuesta si indicas tu oficio</option>
+     <option value="no">No, solo comparto mi experiencia</option>
+     <option value="yes">Sí, podría beneficiarme económicamente</option>
+    </select>
+    <p class="muted">Si existe interés comercial, se señalará públicamente. No se permite utilizar esta opción para solicitar presupuestos ni hacer publicidad encubierta.</p>
+   </details>
    <details class="professional-help-option">
     <summary>¿Crees que hace falta ayuda profesional? (opcional)</summary>
     <label for="answerProfessionalRole">Tipo de profesional que podría ayudar</label>
