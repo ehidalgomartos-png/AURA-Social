@@ -569,3 +569,20 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-follow-control button:focus-visible{outline:3px solid #16858c;outline-offset:3px}
 .resuelve-follow-control p{margin:0;line-height:1.5}
 @media(max-width:650px){.resuelve-follow-control{padding:12px}.resuelve-follow-control button{width:100%}}
+
+/* V3.6.2 — Mis peticiones pendientes y recordatorios semanales opt-in. */
+.resuelve-pending-panel{margin:14px 0 20px;padding:17px;border-radius:16px;border:1px solid #cbdedb;background:#f7fcfa}
+.resuelve-pending-panel h3{margin:0 0 8px;color:#16545a}
+.resuelve-pending-panel .muted{margin:7px 0;line-height:1.5}
+.resuelve-pending-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.resuelve-pending-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:13px 15px;border:1px solid #d2e3df;border-radius:12px;background:white}
+.resuelve-pending-card a{color:#135a6d;font-weight:750;overflow-wrap:anywhere;line-height:1.4}
+.resuelve-pending-card a:focus-visible{outline:3px solid #13828b;outline-offset:2px}
+.resuelve-pending-card .muted{font-size:.82rem;margin:0}
+.resuelve-owner-reminder{margin:16px 0;padding:15px;border:1px solid #bcdad8;border-radius:14px;background:#f5fbfa}
+.resuelve-owner-reminder h3{margin:0 0 8px;color:#145561}
+.resuelve-owner-reminder p{margin:8px 0;line-height:1.55}
+.resuelve-owner-reminder button{min-height:44px;padding:11px 15px;border-radius:11px}
+.resuelve-owner-reminder button[aria-pressed="true"]{color:white;border-color:#185f63;background:#185f63}
+.resuelve-owner-reminder button:focus-visible{outline:3px solid #16818f;outline-offset:3px}
+@media(max-width:650px){.resuelve-pending-panel,.resuelve-owner-reminder{padding:13px}.resuelve-pending-list{grid-template-columns:1fr}.resuelve-owner-reminder button{width:100%}}
