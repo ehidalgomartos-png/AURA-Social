@@ -82,6 +82,30 @@
   for(const input of el('helpTopicsForm').querySelectorAll('input[name="helpTopic"]'))
    input.checked=state.helpTopics.includes(input.value);
  }
+ // V3.5.36 — solo peticiones reales de temas elegidos; ninguna notificación automática.
+ async function loadHelpSuggestions(){
+  const panel=el('helpSuggestions'),list=el('helpSuggestionsList'),status=el('helpSuggestionsStatus');
+  panel.hidden=true;list.replaceChildren();
+  if(!state.user)return;
+  try{
+   const data=await request('/api/resuelve/help-topics');
+   const selected=Array.isArray(data.categories)?data.categories:[];
+   if(!selected.length)return;
+   const response=await request('/api/resuelve/questions/for-me');
+   const matches=Array.isArray(response.items)?response.items.filter(q=>
+    q.status==='open'&&selected.includes(q.category)&&/^[1-9]\\d{0,15}$/.test(String(q.id||''))):[];
+   if(!matches.length)return;
+   panel.hidden=false;
+   for(const q of matches.slice(0,3)){
+    const article=create('article','resuelve-help-suggestion');
+    const link=create('a',null,q.title);
+    link.href='/resuelve?id='+encodeURIComponent(q.id);
+    article.append(link,create('p','muted',categories[q.category]||'Petición abierta'));
+    list.append(article);
+   }
+   status.textContent='Solo preguntas públicas y abiertas. No se envían avisos por mostrarlas.';
+  }catch(_){panel.hidden=true;list.replaceChildren();}
+ }
  async function loadHelpAlerts(){
   const toggle=el('helpAlertsToggle'),status=el('helpAlertsStatus');
   toggle.disabled=true;status.textContent='Comprobando tu preferencia…';
@@ -107,6 +131,7 @@
    ?'Temas guardados. Aquí encontrarás peticiones abiertas en las que puedes ayudar.'
    :'Temas desactivados. Puedes volver a elegirlos cuando quieras.';
   await loadList();
+  await loadHelpSuggestions();
  }
  async function loadList(more=false){
   if(state.loading)return;
@@ -868,7 +893,7 @@
   el('resuelveRegisterForm').reset();
   el('resuelveLoginForm').reset();
   renderSession();
-  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference()]);
+  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions()]);
   if(state.question)await openDetail(state.question.id,false);
   else await loadList();
  }
@@ -1017,7 +1042,7 @@
   bindHelperProfile();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference()]);
+  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions()]);
   await loadPublicHelperProfile();
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
@@ -1028,6 +1053,7 @@
   bindSimilarQuestions();
   el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;clearSimilar();});
   el('backButton').addEventListener('click',goList);
+  el('helpSuggestionsMore').addEventListener('click',()=>document.querySelector('[data-filter="help"]')?.click());
   for(const btn of document.querySelectorAll('[data-filter]')){
    btn.addEventListener('click',async()=>{
     state.filter=btn.dataset.filter;
