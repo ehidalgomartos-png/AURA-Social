@@ -6,6 +6,7 @@ const {requireAuth}=require('../middleware/auth');
 const service=require('../services/resuelve-v350');
 const {resuelveReplyEmailService}=require('../services/resuelve-reply-email-v3521');
 const {resuelvePendingService}=require('../services/resuelve-pending-v362');
+const {resuelveAnswerFollowups}=require('../services/resuelve-answer-followups-v363');
 const router=express.Router();
 const fail=(res,status,error)=>res.status(status).json({error});
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -214,6 +215,13 @@ router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
  const items=await service.listMine(req.user.id,{before:before||null});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
+// V3.6.3 — aclaraciones públicas de respuestas visibles, sin nuevo contenido SEO.
+router.get('/questions/:id/followups',wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const items=await resuelveAnswerFollowups.list(req.params.id);
+ if(!items)return fail(res,404,'peticion_no_disponible');
+ res.json({ok:true,items});
+}));
 router.get('/questions/:id',wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const result=await service.detail(req.params.id);
@@ -317,6 +325,12 @@ router.post('/questions/:id/answers',requireAuth,checkOrigin,limiter(30),wrap(as
  if(!row)return fail(res,409,'peticion_no_disponible');
  res.status(201).json({ok:true,id:row.id});
 }));
+router.post('/answers/:id/followups',requireAuth,checkOrigin,limiter(8),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const result=await resuelveAnswerFollowups.add(req.user.id,req.params.id,req.body?.body);
+ if(!result)return fail(res,409,'aclaracion_no_disponible');
+ res.status(201).json({ok:true,id:result.id,answerId:result.answer_id});
+}));
 router.post('/questions/:id/solve',requireAuth,checkOrigin,limiter(30),wrap(async(req,res)=>{
  if(!service.validId(req.params.id)||!service.validId(req.body?.answerId))
   return fail(res,400,'respuesta_invalida');
@@ -342,6 +356,13 @@ router.post('/questions/:id/reopen',requireAuth,checkOrigin,limiter(15),wrap(asy
  const row=await service.reopen(req.user.id,req.params.id);
  if(!row)return fail(res,409,'no_se_puede_reabrir');
  res.json({ok:true,id:row.id});
+}));
+router.post('/admin/followup/:id/hide',requireAuth,checkOrigin,limiter(50),wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const result=await resuelveAnswerFollowups.hide(req.params.id);
+ if(!result)return fail(res,404,'aclaracion_no_disponible');
+ res.json({ok:true,id:result.id});
 }));
 router.post('/admin/:kind/:id/hide',requireAuth,checkOrigin,limiter(50),wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');

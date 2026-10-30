@@ -831,6 +831,40 @@
   wrap.append(action,description,status);
   void refresh();return wrap;
  }
+ // V3.6.3 — aclaraciones públicas ligadas a una respuesta específica.
+ async function loadAnswerFollowups(questionId){
+  const currentId=String(questionId);
+  const hosts=()=>[...el('answerList').querySelectorAll('.resuelve-answer-followups')];
+  try{
+   const result=await request('/api/resuelve/questions/'+encodeURIComponent(questionId)+'/followups');
+   if(String(state.question?.id)!==currentId)return;
+   for(const host of hosts())host.replaceChildren();
+   const items=Array.isArray(result.items)?result.items:[];
+   for(const item of items){
+    if(!/^[1-9]\d{0,15}$/.test(String(item.id||''))||
+       !/^[1-9]\d{0,15}$/.test(String(item.answer_id||'')))continue;
+    const target=el('resuelve-followups-'+item.answer_id);
+    if(!target)continue;
+    const line=create('div','resuelve-followup-item');
+    line.append(create('p','resuelve-followup-author','@'+item.author_username+' · '+date(item.created_at)),
+     create('p','resuelve-followup-body',item.body));
+    if(state.user?.is_admin||state.user?.isAdmin)
+     line.append(button('Ocultar aclaración',async()=>{
+      if(!confirm('¿Ocultar esta aclaración?'))return;
+      try{
+       await write('/api/resuelve/admin/followup/'+encodeURIComponent(item.id)+'/hide',{});
+       await loadAnswerFollowups(questionId);
+      }catch(error){message(error.message);}
+     },'secondary'));
+    target.append(line);
+   }
+   for(const host of hosts())if(!host.childElementCount)
+    host.append(create('p','muted','Sin aclaraciones adicionales.'));
+  }catch(error){
+   if(String(state.question?.id)!==currentId)return;
+   for(const host of hosts()){host.replaceChildren(create('p','muted','No se pudieron cargar las aclaraciones.'));}
+  }
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -931,8 +965,43 @@
     try{await write('/api/resuelve/admin/answer/'+a.id+'/hide',{});message('Respuesta oculta.');await openDetail(q.id,false);}
     catch(e){message(e.message);}
    }));
-   item.append(actions);list.append(item);
+   item.append(actions);
+   const followups=create('section','resuelve-answer-followups');
+   followups.id='resuelve-followups-'+a.id;
+   followups.append(create('h4',null,'Aclaraciones sobre esta respuesta'),
+    create('p','muted','Consultando aclaraciones…'));
+   item.append(followups);
+   if(state.user&&!solved&&(mine||String(state.user.id)===String(a.author_id))){
+    const details=create('details','resuelve-followup-form-panel');
+    details.append(create('summary',null,'Pedir o añadir una aclaración'));
+    details.append(create('p','muted',
+     'La aclaración será pública. Añade información útil, sin datos de contacto ni publicidad.'));
+    const form=create('form','resuelve-followup-form');
+    const label=create('label',null,'Tu aclaración (20 a 600 caracteres)');
+    const input=create('textarea');input.minLength=20;input.maxLength=600;
+    input.required=true;input.rows=3;
+    input.placeholder='Explica qué detalle necesitas o añade un paso que pueda ayudar';
+    label.append(input);
+    const submit=create('button','secondary','Publicar aclaración');
+    submit.type='submit';
+    form.append(label,submit);
+    form.addEventListener('submit',async event=>{
+     event.preventDefault();
+     if(submit.disabled||!form.reportValidity())return;
+     submit.disabled=true;
+     try{
+      await write('/api/resuelve/answers/'+encodeURIComponent(a.id)+'/followups',{body:input.value.trim()});
+      input.value='';details.open=false;
+      await loadAnswerFollowups(q.id);
+      message('Aclaración publicada en la respuesta.');
+     }catch(error){message(error.message);}
+     finally{submit.disabled=false;}
+    });
+    details.append(form);item.append(details);
+   }
+   list.append(item);
   }
+  void loadAnswerFollowups(q.id);
   const form=el('answerForm');
   form.hidden=!(state.user&&!mine&&!solved);
   if(!state.user&&!solved){
