@@ -27,6 +27,7 @@
  <div id="resuelveAdminContent" hidden>
   <nav class="resuelve-admin-tabs" aria-label="Apartados de administración">
    <a href="#impacto">Estadísticas</a>
+   <a href="#actividad">Últimos 7 días</a>
    <a href="#soluciones">Soluciones pendientes</a>
    <a href="#avisos">Avisos y denuncias</a>
   </nav>
@@ -53,6 +54,23 @@
    <p id="adminImpactStatus" class="muted" role="status" aria-live="polite"></p>
    <div id="adminImpactMetrics" class="resuelve-impact-grid"></div>
    <p class="muted">Una respuesta no significa que el problema esté resuelto. Los agradecimientos son voluntarios.</p>
+  </section>
+  <section id="actividad" class="panel resuelve-admin-trend" aria-labelledby="activity7dTitle">
+   <div class="panel-head">
+    <div>
+     <p class="eyebrow dark">ACTIVIDAD REAL</p>
+     <h2 id="activity7dTitle">Evolución de los últimos 7 días</h2>
+     <p class="muted">Peticiones nuevas, respuestas visibles y problemas resueltos. Solo cifras agregadas; no se exponen perfiles ni mensajes.</p>
+    </div>
+    <button type="button" class="secondary" id="refreshActivity7d">Actualizar evolución</button>
+   </div>
+   <div class="resuelve-activity-table-wrap">
+    <table class="resuelve-activity-table" aria-describedby="activity7dStatus">
+     <thead><tr><th scope="col">Fecha</th><th scope="col">Peticiones</th><th scope="col">Respuestas</th><th scope="col">Resueltas</th></tr></thead>
+     <tbody id="activity7dRows"></tbody>
+    </table>
+   </div>
+   <p id="activity7dStatus" class="muted" role="status" aria-live="polite">Consultando actividad…</p>
   </section>
   <section id="soluciones" class="panel" aria-labelledby="libraryReviewTitle">
    <div class="panel-head"><div>
