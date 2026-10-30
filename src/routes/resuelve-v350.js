@@ -34,6 +34,12 @@ router.get('/questions',wrap(async(req,res)=>{
  const items=await service.list({filter,before:before||null});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
+router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
+ const before=req.query?.antes;
+ if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
+ const items=await service.listMine(req.user.id,{before:before||null});
+ res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
+}));
 router.get('/questions/:id',wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const result=await service.detail(req.params.id);
