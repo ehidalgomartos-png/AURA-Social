@@ -498,6 +498,35 @@ async function library({before=null,category=null,query=''}={}){
  ].join(' ');
  return (await db.query(sql,[validId(before)?String(before):null,chosenCategory,search])).rows;
 }
+// V3.5.28 — categorías y cifras reales, únicamente de soluciones que ya superaron revisión humana.
+// La búsqueda se aplica a todas las categorías; un filtro por categoría no esconde las alternativas.
+async function librarySummary({query=''}={}){
+ await ensureSchema();
+ const search=typeof query==='string'?query.trim().slice(0,80):'';
+ const sql=[
+  "SELECT q.category,count(*)::int AS approved_count",
+  "FROM resuelve_questions q",
+  "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
+  "AND q.library_approved_answer_id=q.accepted_answer_id",
+  "AND char_length(trim(split_part(a.body,' Anuncio recomendado:',1)))>=80",
+  "AND char_length(trim(q.body))>=50",
+  "AND ($1::text='' OR position(lower($1::text) in lower(q.title))>0",
+  "OR position(lower($1::text) in lower(split_part(a.body,' Anuncio recomendado:',1)))>0)",
+  "GROUP BY q.category"
+ ].join(' ');
+ const r=await db.query(sql,[search]);
+ const byCategory=Object.fromEntries(CATEGORIES.map(category=>[category,0]));
+ for(const row of r.rows){
+  if(Object.hasOwn(byCategory,row.category)){
+   const count=Number(row.approved_count);
+   if(Number.isSafeInteger(count)&&count>=0)byCategory[row.category]=count;
+  }
+ }
+ return {byCategory,total:Object.values(byCategory).reduce((a,b)=>a+b,0)};
+}
 // V3.5.8: cola privada para revisión manual, sin exponer contenido nuevo en la biblioteca.
 async function pendingSolutions({before=null}={}){
  await ensureSchema();
@@ -574,4 +603,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
