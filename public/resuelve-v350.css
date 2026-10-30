@@ -164,3 +164,15 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .professional-request input,.professional-filter input{width:18px!important;min-width:18px;min-height:18px!important;margin:1px 0 0;flex:none;accent-color:#1a6b75}
 #askProfessionalHelpExplanation{margin:0 0 12px}
 @media(max-width:650px){.professional-request,.professional-filter{font-size:.9rem}.professional-request{padding:11px}.professional-filter{grid-column:1/-1}}
+
+/* V3.5.13 — experiencia profesional autodeclarada, sin apariencia de verificación */
+.professional-perspective-option{margin-top:12px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:#f7fafc}
+.professional-perspective-option summary{cursor:pointer;font-weight:650;color:#295e72}
+.professional-perspective-option label{display:block;margin:12px 0 6px}
+.professional-perspective-option input,.professional-perspective-option select{display:block;width:100%;max-width:100%;min-height:43px}
+.professional-perspective-option p{margin:9px 0}
+.resuelve-professional-disclosure{margin:12px 0;padding:12px 14px;border:1px solid #d5e1e6;border-radius:11px;background:#f8fafb;overflow-wrap:anywhere}
+.resuelve-professional-disclosure strong{font-weight:700}
+.resuelve-professional-disclosure p{margin:7px 0 0}
+.resuelve-commercial-note{font-weight:650;color:#785322}
+@media(max-width:650px){.professional-perspective-option,.resuelve-professional-disclosure{padding:11px}}
