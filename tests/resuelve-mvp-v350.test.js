@@ -13,7 +13,7 @@ const SECRET='local-test-only-resuelve-350';
 const TOKENS=new Map();
 function token(id){if(!TOKENS.has(id))TOKENS.set(id,jwt.sign({id,authVersion:0},SECRET));return TOKENS.get(id);}
 function database(){
- const questions=new Map(),answers=new Map();let qi=1,ai=1;
+ const questions=new Map(),answers=new Map(),reports=new Map();let qi=1,ai=1,ri=1;
  const audit=[];
  const users=new Map([[1,{id:1,username:'ana',is_admin:false}],[2,{id:2,username:'luis',is_admin:false}],[3,{id:3,username:'admin',is_admin:true}]]);
  async function query(sql,args=[]){
@@ -108,6 +108,41 @@ function database(){
     status:'visible',created_at:new Date().toISOString()};
    answers.set(a.id,a);return {rows:[{id:a.id}],rowCount:1};
   }
+  if(sql.startsWith('INSERT INTO resuelve_answer_reports(')){
+   const a=answers.get(Number(args[0]));
+   const q=questions.get(a?.question_id);
+   if(!a||!q||a.status!=='visible'||q.status==='hidden'||a.author_id===Number(args[1])||
+    [...reports.values()].some(r=>r.answer_id===a.id&&r.reporter_id===Number(args[1])))
+    return {rows:[],rowCount:0};
+   const report={id:ri++,answer_id:a.id,reporter_id:Number(args[1]),reason:args[2],
+    status:'pending',created_at:new Date().toISOString()};
+   reports.set(report.id,report);
+   return {rows:[{id:report.id}],rowCount:1};
+  }
+  if(sql.startsWith('SELECT r.id,r.answer_id,r.reason,r.created_at,')){
+   const rows=[...reports.values()].filter(r=>{
+    const a=answers.get(r.answer_id),q=questions.get(a?.question_id);
+    return r.status==='pending'&&a?.status==='visible'&&q?.status!=='hidden'&&
+     (!args[0]||r.id<Number(args[0]));
+   }).sort((a,b)=>b.id-a.id).slice(0,20).map(r=>{
+    const a=answers.get(r.answer_id),q=questions.get(a.question_id);
+    return {id:r.id,answer_id:a.id,reason:r.reason,created_at:r.created_at,
+     question_id:q.id,title:q.title,body:a.body,self_professional_role:a.self_professional_role,
+     self_commercial_interest:a.self_commercial_interest};
+   });
+   return {rows,rowCount:rows.length};
+  }
+  if(sql.startsWith("UPDATE resuelve_answer_reports SET status='dismissed'")){
+   const r=reports.get(Number(args[0]));
+   if(!r||r.status!=='pending')return {rows:[],rowCount:0};
+   r.status='dismissed';r.reviewed_by=Number(args[1]);r.reviewed_at=new Date().toISOString();
+   return {rows:[{id:r.id}],rowCount:1};
+  }
+  if(sql.startsWith("UPDATE resuelve_answer_reports SET status='resolved'")){
+   const rows=[...reports.values()].filter(r=>r.answer_id===Number(args[0])&&r.status==='pending');
+   for(const r of rows){r.status='resolved';r.reviewed_at=new Date().toISOString();}
+   return {rows:[],rowCount:rows.length};
+  }
   if(sql.startsWith('INSERT INTO notifications('))return {rows:[],rowCount:1};
   if(sql.startsWith('UPDATE resuelve_questions q SET status=')){
    const q=questions.get(Number(args[0])),a=answers.get(Number(args[2]));
@@ -135,7 +170,7 @@ function database(){
   }
   throw Error('SQL no esperado en prueba: '+sql.slice(0,145));
  }
- return {query,audit,questions,answers};
+ return {query,audit,questions,answers,reports};
 }
 async function withApp(callback){
  const previous=db.query,previousJwt=process.env.JWT_SECRET;
@@ -471,6 +506,51 @@ test('V3.5.13: experiencia autodeclarada sin verificación ni publicidad encubie
   assert.equal(again.data.answers[1].self_commercial_interest,false);
  });
 });
+test('V3.5.14: avisos privados, permisos, duplicados y moderación humana',async()=>{
+ await withApp(async(req,stub)=>{
+  const q=976,a=977;
+  stub.questions.set(q,{id:q,author_id:1,title:'Orientación ante una reparación',
+   body:'Quiero conocer experiencias antes de pedir ayuda especializada.',
+   category:'ayuda',status:'open',accepted_answer_id:null,library_opt_out:false});
+  stub.answers.set(a,{id:a,question_id:q,author_id:2,body:'Antes de intervenir en una instalación es mejor revisar la documentación y consultar con una persona cualificada.',
+   status:'visible',self_professional_role:'electricista',self_commercial_interest:true,created_at:new Date().toISOString()});
+  const endpoint='/api/resuelve/answers/'+a+'/report';
+  const report={reason:'publicidad_encubierta'};
+  assert.equal((await req(endpoint,{method:'POST',body:report})).status,401);
+  assert.equal((await req(endpoint,{user:1,method:'POST',origin:'foreign',body:report})).status,403);
+  assert.equal((await req(endpoint,{user:1,method:'POST',body:{reason:'inventada'}})).status,400);
+  assert.equal((await req(endpoint,{user:2,method:'POST',body:report})).status,409);
+  assert.equal((await req('/api/resuelve/answers/0/report',{user:1,method:'POST',body:report})).status,400);
+  const first=await req(endpoint,{user:1,method:'POST',body:report});
+  assert.equal(first.status,201);
+  assert.equal((await req(endpoint,{user:1,method:'POST',body:report})).status,409);
+  assert.equal(stub.answers.get(a).status,'visible');
+  const second=await req(endpoint,{user:3,method:'POST',body:{reason:'cualificacion_falsa'}});
+  assert.equal(second.status,201);
+  const list='/api/resuelve/admin/reports/pending';
+  assert.equal((await req(list)).status,401);
+  assert.equal((await req(list,{user:1})).status,403);
+  assert.equal((await req(list+'?antes=mal',{user:3})).status,400);
+  const queue=await req(list,{user:3});
+  assert.equal(queue.status,200);
+  assert.deepEqual(queue.data.items.map(r=>Number(r.id)),[Number(second.data.id),Number(first.data.id)]);
+  assert.ok(!Object.hasOwn(queue.data.items[0],'reporter_id'));
+  assert.ok(!Object.hasOwn(queue.data.items[0],'reporter_username'));
+  const dismiss='/api/resuelve/admin/reports/'+first.data.id+'/dismiss';
+  assert.equal((await req(dismiss,{user:1,method:'POST',body:{}})).status,403);
+  assert.equal((await req(dismiss,{user:3,method:'POST',origin:'foreign',body:{}})).status,403);
+  assert.equal((await req(dismiss,{user:3,method:'POST',body:{}})).status,200);
+  assert.equal(stub.reports.get(Number(first.data.id)).reviewed_by,3);
+  assert.equal((await req(dismiss,{user:3,method:'POST',body:{}})).status,409);
+  assert.deepEqual((await req(list,{user:3})).data.items.map(r=>Number(r.id)),[Number(second.data.id)]);
+  const hide=await req('/api/resuelve/admin/answer/'+a+'/hide',{user:3,method:'POST',body:{}});
+  assert.equal(hide.status,200);
+  assert.equal(stub.answers.get(a).status,'hidden');
+  assert.equal(stub.reports.get(Number(second.data.id)).status,'resolved');
+  assert.equal((await req(list,{user:3})).data.items.length,0);
+  assert.equal(stub.reports.get(Number(first.data.id)).status,'dismissed');
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -485,6 +565,11 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(html,/id="answerProfessionalRole"/);
  assert.match(html,/id="answerSelfProfessionalRole"/);
  assert.match(html,/id="answerCommercialInterest"/);
+ assert.match(html,/id="adminReportsPanel"/);
+ assert.match(js,/function answerReportControl\(answer\)/);
+ assert.match(js,/function loadAnswerReports\(more=false\)/);
+ assert.match(js,/\/api\/resuelve\/admin\/reports\/pending/);
+ assert.match(js,/\/api\/resuelve\/answers\/'/);
  assert.match(html,/no una verificación de títulos/);
  assert.match(js,/resuelve-professional-disclosure/);
  assert.match(js,/Esta persona declara un posible interés económico/);

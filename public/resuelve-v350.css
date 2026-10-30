@@ -176,3 +176,13 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-professional-disclosure p{margin:7px 0 0}
 .resuelve-commercial-note{font-weight:650;color:#785322}
 @media(max-width:650px){.professional-perspective-option,.resuelve-professional-disclosure{padding:11px}}
+
+/* V3.5.14 — denuncias discretas y revisión administrativa sin automatismos */
+.answer-report{width:100%;margin:9px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fafbfc}
+.answer-report summary{cursor:pointer;font-size:.86rem;color:var(--muted);font-weight:600}
+.answer-report label{display:grid;gap:6px;margin:10px 0}
+.answer-report select{width:100%;max-width:390px;min-height:43px}
+.answer-report .secondary{min-height:42px}
+#adminReportsPanel .review-item{border-color:#d9e1e6}
+#adminReportsPanel .review-item p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:650px){.answer-report .secondary,.answer-report select,#adminReportsPanel .review-item-actions .secondary{width:100%}}

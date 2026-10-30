@@ -37,6 +37,19 @@ async function ensureSchema(){
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_approved_answer_id BIGINT");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_opt_out BOOLEAN NOT NULL DEFAULT FALSE");
+  // Los avisos nunca ocultan respuestas automáticamente ni revelan la identidad del denunciante.
+  await db.query([
+   "CREATE TABLE IF NOT EXISTS resuelve_answer_reports (",
+   "id BIGSERIAL PRIMARY KEY,",
+   "answer_id BIGINT NOT NULL REFERENCES resuelve_answers(id) ON DELETE CASCADE,",
+   "reporter_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,",
+   "reason VARCHAR(36) NOT NULL CHECK(reason IN ('publicidad_encubierta','cualificacion_falsa','datos_personales','consejo_peligroso','otro')),",
+   "status VARCHAR(12) NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','dismissed','resolved')),",
+   "reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,",
+   "reviewed_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),",
+   "UNIQUE(answer_id,reporter_id))"
+  ].join(' '));
+  await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_reports_pending ON resuelve_answer_reports(status,id DESC)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_feed ON resuelve_questions(status,created_at DESC,id DESC)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_answers_question ON resuelve_answers(question_id,created_at ASC,id ASC) WHERE status='visible'");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_author ON resuelve_questions(author_id,created_at DESC)");
@@ -175,9 +188,44 @@ async function moderate(kind,id){
   const r=await db.query("UPDATE resuelve_answers SET status='hidden' WHERE id=$1 RETURNING id,question_id",[id]);
   if(!r.rowCount)return null;
   await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
+  await db.query("UPDATE resuelve_answer_reports SET status='resolved',reviewed_at=now() WHERE answer_id=$1 AND status='pending'",[id]);
   return r.rows[0];
  }
  return null;
+}
+// V3.5.14 — canal de confianza. Una denuncia no implica culpabilidad ni oculta contenido.
+const REPORT_REASONS=['publicidad_encubierta','cualificacion_falsa','datos_personales','consejo_peligroso','otro'];
+async function reportAnswer(answerId,reporterId,reason){
+ await ensureSchema();
+ const sql=[
+  "INSERT INTO resuelve_answer_reports(answer_id,reporter_id,reason)",
+  "SELECT a.id,$2,$3 FROM resuelve_answers a",
+  "JOIN resuelve_questions q ON q.id=a.question_id",
+  "WHERE a.id=$1 AND a.status='visible' AND q.status<>'hidden' AND a.author_id<>$2",
+  "ON CONFLICT(answer_id,reporter_id) DO NOTHING RETURNING id"
+ ].join(' ');
+ return (await db.query(sql,[answerId,reporterId,reason])).rows[0]||null;
+}
+async function pendingAnswerReports({before=null}={}){
+ await ensureSchema();
+ const sql=[
+  "SELECT r.id,r.answer_id,r.reason,r.created_at,",
+  "q.id AS question_id,q.title,a.body,a.self_professional_role,a.self_commercial_interest",
+  "FROM resuelve_answer_reports r",
+  "JOIN resuelve_answers a ON a.id=r.answer_id AND a.status='visible'",
+  "JOIN resuelve_questions q ON q.id=a.question_id AND q.status<>'hidden'",
+  "WHERE r.status='pending' AND ($1::bigint IS NULL OR r.id<$1::bigint)",
+  "ORDER BY r.id DESC LIMIT 20"
+ ].join(' ');
+ return (await db.query(sql,[validId(before)?String(before):null])).rows;
+}
+async function dismissAnswerReport(reportId,moderatorId){
+ await ensureSchema();
+ const sql=[
+  "UPDATE resuelve_answer_reports SET status='dismissed',reviewed_by=$2,reviewed_at=now()",
+  "WHERE id=$1 AND status='pending' RETURNING id"
+ ].join(' ');
+ return (await db.query(sql,[reportId,moderatorId])).rows[0]||null;
 }
 // V3.5.7: solo respuestas elegidas y aprobadas manualmente por administración.
 // V3.5.9: búsqueda literal solo sobre soluciones autorizadas y visibles.
@@ -246,4 +294,4 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};

@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false};
+ const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -17,6 +17,7 @@
    response.status===403?'No tienes permiso para realizar esta acción.':
    response.status===429?'Has hecho demasiadas solicitudes. Inténtalo más tarde.':
    data.error==='peticion_no_disponible'?'Esta petición ya no acepta respuestas.':
+   data.error==='aviso_no_disponible_o_ya_enviado'?'Este aviso ya se ha enviado o la respuesta no está disponible.':
    'No se pudo completar la operación. Vuelve a intentarlo.');
   return data;
  }
@@ -131,11 +132,93 @@
   }catch(err){status.textContent=err.message;}
   finally{state.reviewLoading=false;}
  }
+// V3.5.14: avisos discretos sobre respuestas, sin sanción automática.
+ function answerReportControl(answer){
+  const details=create('details','answer-report');
+  const heading=create('summary',null,'Informar de un problema con esta respuesta');
+  const explanation=create('p','muted','El aviso es privado y no oculta la respuesta. Un administrador revisará el contexto.');
+  const label=create('label',null,'Motivo del aviso');
+  const select=create('select');
+  const reasons=[
+   ['', 'Selecciona un motivo'],
+   ['publicidad_encubierta','Publicidad encubierta'],
+   ['cualificacion_falsa','Posible cualificación engañosa'],
+   ['datos_personales','Datos personales'],
+   ['consejo_peligroso','Consejo potencialmente peligroso'],
+   ['otro','Otro problema']
+  ];
+  for(const [value,caption] of reasons){
+   const opt=create('option',null,caption);opt.value=value;select.append(opt);
+  }
+  label.append(select);
+  const send=button('Enviar aviso para revisión',async()=>{
+   if(!select.value){message('Selecciona el motivo del aviso.');return;}
+   send.disabled=true;
+   try{
+    await write('/api/resuelve/answers/'+encodeURIComponent(answer.id)+'/report',{reason:select.value});
+    details.replaceChildren(create('p','muted','Aviso enviado para revisión. Gracias por cuidar la comunidad.'));
+    message('Tu aviso se ha enviado para revisión privada.');
+    if(state.user?.is_admin||state.user?.isAdmin)await loadAnswerReports();
+   }catch(err){send.disabled=false;message(err.message);}
+  },'secondary');
+  details.append(heading,explanation,label,send);
+  return details;
+ }
+ async function loadAnswerReports(more=false){
+  if(!(state.user?.is_admin||state.user?.isAdmin)||state.reportLoading)return;
+  state.reportLoading=true;
+  const list=el('adminReportsList'),status=el('adminReportsStatus'),moreButton=el('moreAdminReports');
+  moreButton.hidden=true;
+  if(!more){list.replaceChildren();status.textContent='Comprobando avisos pendientes…';}
+  try{
+   const url='/api/resuelve/admin/reports/pending'+
+    (more&&state.reportNext?'?antes='+encodeURIComponent(state.reportNext):'');
+   const data=await request(url);
+   const names={
+    publicidad_encubierta:'Publicidad encubierta',
+    cualificacion_falsa:'Posible cualificación engañosa',
+    datos_personales:'Datos personales',
+    consejo_peligroso:'Consejo potencialmente peligroso',
+    otro:'Otro problema'
+   };
+   for(const report of data.items){
+    const item=create('article','review-item');
+    item.append(create('h3',null,report.title),
+      create('p','muted','Motivo: '+(names[report.reason]||'Aviso de revisión')),
+      create('p',null,report.body));
+    if(report.self_professional_role)
+     item.append(create('p','muted','Experiencia declarada: '+report.self_professional_role+
+      (report.self_commercial_interest?' · Posible interés económico declarado':' · Sin interés económico declarado')));
+    const actions=create('div','review-item-actions');
+    actions.append(button('Abrir respuesta',async()=>{
+     await openDetail(report.question_id);
+     const target=document.getElementById('resuelve-answer-'+report.answer_id);
+     if(target)target.scrollIntoView({block:'center',behavior:'smooth'});
+    },'secondary'));
+    actions.append(button('Desestimar aviso',async()=>{
+     if(!confirm('¿Has revisado el contexto y quieres desestimar este aviso?'))return;
+     try{
+      await write('/api/resuelve/admin/reports/'+encodeURIComponent(report.id)+'/dismiss',{});
+      message('Aviso desestimado tras revisión.');
+      await loadAnswerReports();
+     }catch(err){message(err.message);}
+    },'secondary'));
+    item.append(actions);list.append(item);
+   }
+   state.reportNext=data.next;
+   moreButton.hidden=!state.reportNext;
+   status.textContent=list.childElementCount?'':'No hay avisos pendientes.';
+  }catch(err){status.textContent=err.message;}
+  finally{state.reportLoading=false;}
+ }
  function displayDetail(open){
   el('detailPanel').hidden=!open;
   el('questions').hidden=open;
   el('solutions').hidden=open;
-  if(state.user?.is_admin||state.user?.isAdmin)el('libraryReviewPanel').hidden=open;
+  if(state.user?.is_admin||state.user?.isAdmin){
+   el('libraryReviewPanel').hidden=open;
+   el('adminReportsPanel').hidden=open;
+  }
   el('askPanel').hidden=true;
  }
  async function openDetail(id,push=true){
@@ -380,10 +463,12 @@
   for(const a of data.answers){
    const accepted=String(a.id)===String(q.accepted_answer_id);
    const item=create('article','answer'+(accepted?' accepted':''));
+   item.id='resuelve-answer-'+a.id;
    item.append(create('header','', '@'+a.author_username+' · '+date(a.created_at)),
     answerContent(a.body,a.professional_role,a.self_professional_role,a.self_commercial_interest));
    const actions=create('div','answer-actions');
    if(accepted)actions.append(chip('✓ Solución elegida',true));
+   if(state.user && String(state.user.id)!==String(a.author_id))actions.append(answerReportControl(a));
    if(mine&&!solved)actions.append(button('Marcar como solución',async()=>{
     if(!confirm('¿Esta respuesta resolvió tu petición?'))return;
     try{await write('/api/resuelve/questions/'+q.id+'/solve',{answerId:a.id});message('Has marcado una solución. ¡Gracias por compartirla!');await openDetail(q.id,false);}
@@ -391,7 +476,7 @@
    }));
    if(state.user?.is_admin||state.user?.isAdmin)actions.append(button('Ocultar respuesta',async()=>{
     if(!confirm('¿Ocultar esta respuesta?'))return;
-    try{await write('/api/resuelve/admin/answer/'+a.id+'/hide',{});message('Respuesta oculta.');await openDetail(q.id,false);}
+    try{await write('/api/resuelve/admin/answer/'+a.id+'/hide',{});message('Respuesta oculta.');await openDetail(q.id,false);await loadAnswerReports();}
     catch(e){message(e.message);}
    }));
    item.append(actions);list.append(item);
@@ -419,7 +504,8 @@
   document.querySelector('[data-filter="mine"]').hidden=!state.user;
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
   el('libraryReviewPanel').hidden=!isAdmin;
-  if(isAdmin)await loadReviewQueue();
+  el('adminReportsPanel').hidden=!isAdmin;
+  if(isAdmin){await loadReviewQueue();await loadAnswerReports();}
   if(!state.user)message('Puedes leer las peticiones sin entrar. Para publicar o responder, inicia sesión en RedLibertad.');
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;el('askTitleInput').focus();
@@ -466,6 +552,7 @@
   });
   el('moreSolutions').addEventListener('click',()=>loadSolutions(true));
   el('moreLibraryReview').addEventListener('click',()=>loadReviewQueue(true));
+  el('moreAdminReports').addEventListener('click',()=>loadAnswerReports(true));
   el('askForm').addEventListener('submit',async event=>{
    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');
    if(submit.disabled)return;submit.disabled=true;
