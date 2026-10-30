@@ -28,7 +28,7 @@ function database(){
     status:'open',accepted_answer_id:null,library_approved_answer_id:null,library_opt_out:false,created_at:new Date().toISOString()};
    questions.set(row.id,row);return {rows:[{id:row.id}],rowCount:1};
   }
-  if(sql.startsWith('SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution') &&
+  if(sql.startsWith("SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body") &&
      sql.includes('library_approved_answer_id IS NULL OR')){
    const rows=[...questions.values()].filter(q=>{
     const a=answers.get(q.accepted_answer_id);
@@ -36,18 +36,18 @@ function database(){
       q.library_approved_answer_id!==q.accepted_answer_id&&
       a?.status==='visible'&&a.body.split(' Anuncio recomendado:')[0].trim().length>=80&&q.body.trim().length>=50&&
       (!args[0]||q.id<Number(args[0]));
-   }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
+   }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body.split(' Anuncio recomendado:')[0],
      author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
    return {rows,rowCount:rows.length};
   }
-  if(sql.startsWith('SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution')){
+  if(sql.startsWith("SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body")){
    const rows=[...questions.values()].filter(q=>{
     const a=answers.get(q.accepted_answer_id);
     return q.status==='resolved'&&!q.library_opt_out&&q.accepted_answer_id===q.library_approved_answer_id &&
      a?.status==='visible'&&a.body.split(' Anuncio recomendado:')[0].trim().length>=80&&q.body.trim().length>=50 &&
      (!args[0]||q.id<Number(args[0]))&&(!args[1]||q.category===args[1])&&
-     (!args[2]||(q.title+' '+a.body).toLowerCase().includes(String(args[2]).toLowerCase()));
-   }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
+     (!args[2]||(q.title+' '+a.body.split(' Anuncio recomendado:')[0]).toLowerCase().includes(String(args[2]).toLowerCase()));
+   }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body.split(' Anuncio recomendado:')[0],
      author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
    return {rows,rowCount:rows.length};
   }
@@ -307,7 +307,7 @@ test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, c
   const reopened=await req('/api/resuelve/questions/'+q+'/reopen',{user:1,method:'POST',body:{}});
   assert.equal(reopened.status,200);
   const good=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{
-   body:'Primero mide el ancho de la habitación y deja al menos un paso cómodo. Después compara fondos reales, prueba el respaldo y revisa las medidas del ascensor antes de elegir.'}})).data.id;
+   body:'Primero mide el ancho de la habitación y deja al menos un paso cómodo. Después compara fondos reales, prueba el respaldo y revisa las medidas del ascensor antes de elegir. Anuncio recomendado: https://redlibertad.com/marketplace/sofa-123'}})).data.id;
   assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:good}})).status,200);
   assert.equal((await req(admin,{user:3,method:'POST',body:reviewed})).status,200);
   assert.equal(stub.questions.get(Number(q)).library_reviewed_by,3);
@@ -315,6 +315,8 @@ test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, c
   assert.equal(library.status,200);
   assert.deepEqual(library.data.items.map(x=>Number(x.id)),[Number(q)]);
   assert.ok(library.data.items[0].solution.includes('Primero mide'));
+  assert.ok(!library.data.items[0].solution.includes('Anuncio recomendado:'));
+  assert.equal((await req('/api/resuelve/solutions?q=marketplace')).data.items.length,0);
   const byCategory=await req('/api/resuelve/solutions?categoria=consejo&q=medidas');
   assert.equal(byCategory.status,200);
   assert.deepEqual(byCategory.data.items.map(x=>Number(x.id)),[Number(q)]);
