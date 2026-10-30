@@ -105,7 +105,12 @@ router.post('/questions/:id/answers',requireAuth,checkOrigin,limiter(30),wrap(as
  if(!body)return fail(res,400,'respuesta_invalida');
  const professionalRole=service.validateProfessionalRole(req.body?.professionalRole);
  if(professionalRole===undefined)return fail(res,400,'profesion_invalida');
- const row=await service.answer(req.user.id,req.params.id,body,professionalRole);
+ const disclosure=service.validateProfessionalDisclosure(req.body);
+ if(!disclosure)return fail(res,400,'declaracion_profesional_invalida');
+ // Una autodeclaración debe ir acompañada de una explicación útil, no solo un anuncio.
+ if(disclosure.role && body.split(' Anuncio recomendado:')[0].trim().length<60)
+  return fail(res,400,'respuesta_profesional_demasiado_breve');
+ const row=await service.answer(req.user.id,req.params.id,body,professionalRole,disclosure);
  if(!row)return fail(res,409,'peticion_no_disponible');
  res.status(201).json({ok:true,id:row.id});
 }));
