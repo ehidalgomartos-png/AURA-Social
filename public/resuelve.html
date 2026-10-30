@@ -25,7 +25,7 @@
   <p class="eyebrow">REDLIBERTAD RESUELVE · VERSIÓN INICIAL</p>
   <h1 id="hero-title">Una pregunta puede conectar a muchas personas.</h1>
   <p>Comparte algo que necesitas, recomienda desde tu experiencia y ayuda a otros a encontrar una solución. Sin respuestas artificiales: personas que ayudan a personas.</p>
-  <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a></div>
+  <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
  <section id="askPanel" class="panel editor" hidden aria-labelledby="askTitle">
@@ -70,6 +70,16 @@
   <div id="listStatus" class="muted" role="status" aria-live="polite">Cargando peticiones…</div>
   <div id="questionList" class="cards"></div>
   <button id="moreButton" class="secondary more" hidden type="button">Ver más peticiones</button>
+ </section>
+ <section id="solutions" class="section" aria-labelledby="solutionsTitle">
+  <div class="section-top"><div>
+    <p class="eyebrow dark">EXPERIENCIAS REALES</p>
+    <h2 id="solutionsTitle">Biblioteca de soluciones útiles</h2>
+    <p class="muted">Respuestas elegidas por quien preguntó y revisadas antes de aparecer aquí. La biblioteca puede estar vacía al principio.</p>
+   </div></div>
+   <div id="solutionStatus" class="muted" role="status" aria-live="polite">Cargando soluciones…</div>
+   <div id="solutionList" class="cards"></div>
+   <button id="moreSolutions" class="secondary more" type="button" hidden>Ver más soluciones</button>
  </section>
  <section id="detailPanel" class="panel detail" hidden aria-labelledby="detailTitle">
   <button id="backButton" class="plain back" type="button">← Volver a las peticiones</button>
