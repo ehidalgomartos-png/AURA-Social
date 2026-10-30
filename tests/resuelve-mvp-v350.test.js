@@ -24,7 +24,7 @@ function database(){
    return {rowCount:u?1:0,rows:u?[{...u,age_verified:true,show_sensitive:false,status:'active',auth_token_version:0,suspended_until:null,suspension_reason:''}]:[]};
   }
   if(sql.startsWith('INSERT INTO resuelve_questions(')){
-   const row={id:qi++,author_id:Number(args[0]),title:args[1],body:args[2],category:args[3],
+   const row={id:qi++,author_id:Number(args[0]),title:args[1],body:args[2],category:args[3],professional_help_requested:args[4]===true,
     status:'open',accepted_answer_id:null,library_approved_answer_id:null,library_opt_out:false,created_at:new Date().toISOString()};
    questions.set(row.id,row);return {rows:[{id:row.id}],rowCount:1};
   }
@@ -81,7 +81,8 @@ function database(){
   if(sql.startsWith('SELECT q.id,q.title')){
    const rows=[...questions.values()].filter(q=>q.status!=='hidden'&&
     (args[0]==='all'||q.status===args[0])&&(!args[1]||q.id<Number(args[1]))&&
-    (!args[2]||q.category===args[2])&&(!args[3]||(q.title+' '+q.body).toLowerCase().includes(String(args[3]).toLowerCase())))
+    (!args[2]||q.category===args[2])&&(!args[3]||(q.title+' '+q.body).toLowerCase().includes(String(args[3]).toLowerCase()))&&
+    (!args[4]||q.professional_help_requested===true))
     .sort((a,b)=>b.id-a.id).slice(0,24).map(q=>({...q,
      author_username:users.get(q.author_id)?.username||'desconocido',
      answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
@@ -178,13 +179,14 @@ test('lectura pública, escritura restringida, creación y respuesta entre perso
   const denied=await req('/api/resuelve/questions',{method:'POST',body:{title:'Quiero consejo',body:'Necesito recomendaciones para elegir una silla',category:'consejo'}});
   assert.equal(denied.status,401);
   const created=await req('/api/resuelve/questions',{user:1,method:'POST',
-   body:{title:'Consejo para sofá pequeño',body:'Quiero recomendaciones para un salón con poco espacio.',category:'consejo'}});
+   body:{title:'Necesito orientación para un trámite',body:'No sé qué documentos debo preparar para realizar un trámite administrativo.',category:'consejo',professionalHelpRequested:true}});
   assert.equal(created.status,201);
   const id=created.data.id;
   assert.ok(id);
   const list=await req('/api/resuelve/questions');
   assert.equal(list.data.items.length,1);
   assert.equal(list.data.items[0].author_username,'ana');
+  assert.equal(list.data.items[0].professional_help_requested,true);
   assert.equal(list.data.items[0].answer_count,0);
   assert.ok(!Object.hasOwn(list.data.items[0],'email'));
   const own=await req('/api/resuelve/questions/'+id+'/answers',{user:1,method:'POST',body:{body:'Yo tengo una respuesta muy útil'}});
@@ -284,6 +286,27 @@ test('V3.5.6: búsqueda literal y categorías sin fuga entre filtros',async()=>{
   assert.equal((await req('/api/resuelve/questions?estado=all&q=%25')).status,400);
   assert.equal((await req('/api/resuelve/questions?categoria=inventada')).status,400);
   assert.equal((await req('/api/resuelve/questions?q='+('a'.repeat(81)))).status,400);
+ });
+});
+test('V3.5.12: buscar ayuda profesional sin mezclar anuncios o peticiones corrientes',async()=>{
+ const base={title:'Orientación para trámite',body:'Necesito entender un procedimiento administrativo sin compartir mis datos.',category:'ayuda'};
+ assert.equal(service.validateQuestion({...base,professionalHelpRequested:'on'}),null);
+ assert.equal(service.validateQuestion({...base}).professionalHelpRequested,false);
+ assert.equal(service.validateQuestion({...base,professionalHelpRequested:true}).professionalHelpRequested,true);
+ await withApp(async(req,stub)=>{
+  stub.questions.set(900,{id:900,author_id:1,title:'Necesito ayuda para un trámite',body:'No encuentro a quién preguntar sobre mi documentación.',
+   category:'ayuda',professional_help_requested:true,status:'open',created_at:new Date().toISOString()});
+  stub.questions.set(901,{id:901,author_id:2,title:'Busco consejos para organizarme',body:'Quiero conocer experiencias de otras personas sin contratar servicios.',
+   category:'consejo',professional_help_requested:false,status:'open',created_at:new Date().toISOString()});
+  const endpoint='/api/resuelve/questions?estado=all&profesional=si';
+  const result=await req(endpoint);
+  assert.equal(result.status,200);
+  assert.deepEqual(result.data.items.map(x=>Number(x.id)),[900]);
+  assert.equal((await req('/api/resuelve/questions?profesional=no')).status,400);
+  assert.equal((await req('/api/resuelve/questions?profesional=si&categoria=consejo')).data.items.length,0);
+  assert.equal((await req('/api/resuelve/questions?estado=all')).data.items.length,2);
+  assert.equal((await req('/api/resuelve/questions/900')).data.question.professional_help_requested,true);
+  assert.ok(stub.audit.some(x=>x.sql.includes('q.professional_help_requested=TRUE')));
  });
 });
 test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, con baja del autor',async()=>{
@@ -431,6 +454,14 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.doesNotMatch(js,/action\('Explorar Marketplace'/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
+ assert.match(html,/placeholder="Ej.: ayuda para hacer un trámite"/);
+ assert.match(html,/placeholder="Ej.: cómo actuar ante una avería"/);
+ assert.match(html,/id="askProfessionalHelp"/);
+ assert.match(html,/id="questionProfessionalFilter"/);
+ assert.match(js,/professionalOnly/);
+ assert.match(js,/profesional','si'/);
+ assert.doesNotMatch(html,/placeholder="Ej.: sofá pequeño"/);
+ assert.doesNotMatch(html,/placeholder="Ej.: cómo elegir un sofá"/);
  assert.match(html,/id="solutionList"/);
  assert.match(html,/id="solutionFilterForm"/);
  assert.match(html,/id="solutionCategory"/);

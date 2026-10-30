@@ -156,3 +156,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .professional-advice strong{font-weight:750}
 .professional-advice .muted{margin:7px 0 0}
 @media(max-width:650px){.professional-advice,.professional-help-option{padding:11px}}
+
+/* V3.5.12 — peticiones de ayuda profesional optativas y discretas */
+.professional-request,.professional-filter{display:flex!important;align-items:flex-start;gap:10px;cursor:pointer;font-size:.9rem;font-weight:600;line-height:1.35}
+.professional-request{margin:12px 0 5px;padding:13px;border:1px solid #cfe0e4;border-radius:12px;background:#f4faf9}
+.professional-filter{min-height:43px;align-items:center;padding:7px 4px;grid-column:1/-1}
+.professional-request input,.professional-filter input{width:18px!important;min-width:18px;min-height:18px!important;margin:1px 0 0;flex:none;accent-color:#1a6b75}
+#askProfessionalHelpExplanation{margin:0 0 12px}
+@media(max-width:650px){.professional-request,.professional-filter{font-size:.9rem}.professional-request{padding:11px}.professional-filter{grid-column:1/-1}}

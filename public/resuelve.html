@@ -43,11 +43,16 @@
   <p class="muted">Cuéntanos qué necesitas de verdad, sin datos personales. No tienes que comprar nada para recibir ayuda. La petición será pública.</p>
   <form id="askForm">
    <label for="askCategory">Tipo de petición</label><select name="category" id="askCategory" required>
-    <option value="consejo">Necesito consejo</option><option value="busco">Estoy buscando algo</option>
+    <option value="consejo">Necesito consejo</option><option value="busco">Busco orientación</option>
     <option value="ayuda">Necesito ayuda</option><option value="experiencia">Quiero conocer experiencias</option>
    </select>
+   <label class="professional-request">
+    <input id="askProfessionalHelp" type="checkbox">
+    <span>Me vendría bien orientación sobre qué profesional consultar (opcional)</span>
+   </label>
+   <p class="muted" id="askProfessionalHelpExplanation">No es una solicitud de presupuesto ni obliga a contratar. La comunidad puede ayudarte primero con consejos.</p>
    <label for="askTitleInput">Título breve</label>
-   <input id="askTitleInput" name="title" minlength="8" maxlength="125" required placeholder="Ej.: ¿Qué sofá elegir para un salón pequeño?">
+   <input id="askTitleInput" name="title" minlength="8" maxlength="125" required placeholder="Ej.: Necesito orientación para hacer un trámite">
    <label for="askBody">Cuéntanos los detalles</label>
    <textarea id="askBody" name="body" minlength="20" maxlength="1800" rows="5" required placeholder="Explica lo que necesitas. Incluye datos útiles, pero no información personal."></textarea>
    <div class="form-bottom"><span class="muted">Solo se publicará si pulsas el botón.</span><button class="primary" type="submit">Publicar petición</button></div>
@@ -63,16 +68,20 @@
   </div>
   <form id="questionSearchForm" class="resuelve-search" role="search">
    <label for="questionSearch">Buscar peticiones
-    <input id="questionSearch" type="search" maxlength="80" placeholder="Ej.: sofá pequeño" autocomplete="off">
+    <input id="questionSearch" type="search" maxlength="80" placeholder="Ej.: ayuda para hacer un trámite" autocomplete="off">
    </label>
    <label for="questionCategoryFilter">Categoría
     <select id="questionCategoryFilter">
      <option value="">Todas las categorías</option>
      <option value="consejo">Consejos</option>
-     <option value="busco">Busco algo</option>
+     <option value="busco">Busco orientación</option>
      <option value="ayuda">Ayuda</option>
      <option value="experiencia">Experiencias</option>
     </select>
+   </label>
+   <label class="professional-filter">
+    <input id="questionProfessionalFilter" type="checkbox">
+    <span>Solo peticiones que solicitan orientación profesional</span>
    </label>
    <button type="submit" class="secondary">Buscar</button>
    <button type="button" class="plain" id="questionSearchClear">Limpiar</button>
@@ -89,7 +98,7 @@
    </div></div>
    <form id="solutionFilterForm" class="solution-filter-form" role="search" aria-label="Buscar soluciones revisadas">
      <label for="solutionSearch">Buscar en las soluciones
-       <input id="solutionSearch" type="search" maxlength="80" placeholder="Ej.: cómo elegir un sofá" autocomplete="off">
+       <input id="solutionSearch" type="search" maxlength="80" placeholder="Ej.: cómo actuar ante una avería" autocomplete="off">
      </label>
      <label for="solutionCategory">Categoría
        <select id="solutionCategory">

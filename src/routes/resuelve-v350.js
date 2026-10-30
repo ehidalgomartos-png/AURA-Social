@@ -76,7 +76,9 @@ router.get('/questions',wrap(async(req,res)=>{
  const query=req.query?.q??'';
  if(typeof query!=='string'||query.length>80||(query.trim().length===1))
   return fail(res,400,'busqueda_invalida');
- const items=await service.list({filter,before:before||null,category:category||null,query:query.trim()});
+ const professional=req.query?.profesional;
+ if(professional!==undefined&&professional!=='si')return fail(res,400,'filtro_profesional_invalido');
+ const items=await service.list({filter,before:before||null,category:category||null,query:query.trim(),professionalOnly:professional==='si'});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
 router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{

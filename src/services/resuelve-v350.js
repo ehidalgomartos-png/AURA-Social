@@ -28,6 +28,7 @@ async function ensureSchema(){
   await db.query(ddl);
   await db.query(answers);
   await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS professional_role VARCHAR(70)");
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS professional_help_requested BOOLEAN NOT NULL DEFAULT FALSE");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_at TIMESTAMPTZ");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
@@ -41,8 +42,10 @@ async function ensureSchema(){
 }
 function validateQuestion(body){
  const title=clean(body?.title,125),description=clean(body?.body,1800),category=body?.category;
+ const professionalHelpRequested=body?.professionalHelpRequested??false;
  return title.length>=8&&title.length<=125&&description.length>=20&&description.length<=1800&&
-  CATEGORIES.includes(category)?{title,body:description,category}:null;
+  CATEGORIES.includes(category)&&typeof professionalHelpRequested==='boolean'
+  ?{title,body:description,category,professionalHelpRequested}:null;
 }
 function validateAnswer(body){const v=clean(body?.body,1500);return v.length>=10&&v.length<=1500?v:null;}
 // V3.5.11: sugerir un oficio, no un proveedor, contacto comercial ni acreditación.
@@ -54,30 +57,31 @@ function validateProfessionalRole(value){
  if(/(?:https?:\/\/|www\.|@|\b[\w-]+\.(?:com|es|net|org)\b|(?:\+?\d[\s()./-]?){7,})/i.test(v))return undefined;
  return v;
 }
-async function list({filter='open',before=null,category=null,query=''}={}){
+async function list({filter='open',before=null,category=null,query='',professionalOnly=false}={}){
  await ensureSchema();
  const state=['open','resolved','all'].includes(filter)?filter:'open';
  const cursor=validId(before)?String(before):null;
  const chosenCategory=CATEGORIES.includes(category)?category:null;
  const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
-  "SELECT q.id,q.title,q.body,q.category,q.status,q.created_at,q.solved_at,",
+  "SELECT q.id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.created_at,q.solved_at,",
   "u.username AS author_username,",
   "(SELECT count(*)::int FROM resuelve_answers a WHERE a.question_id=q.id AND a.status='visible') AS answer_count",
   "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
   "WHERE q.status <> 'hidden' AND ($1='all' OR q.status=$1) AND ($2::bigint IS NULL OR q.id<$2::bigint)",
   "AND ($3::text IS NULL OR q.category=$3) AND ($4::text='' OR",
   "position(lower($4::text) in lower(q.title))>0 OR position(lower($4::text) in lower(q.body))>0)",
+  "AND ($5::boolean=FALSE OR q.professional_help_requested=TRUE)",
   "ORDER BY q.id DESC LIMIT 24"
  ].join(' ');
- return (await db.query(sql,[state,cursor,chosenCategory,search])).rows;
+ return (await db.query(sql,[state,cursor,chosenCategory,search,professionalOnly===true])).rows;
 }
 // V3.5.4 — solo el autor autenticado consulta sus peticiones (paginación estable).
 async function listMine(userId,{before=null}={}){
  await ensureSchema();
  const cursor=validId(before)?String(before):null;
  const sql=[
-  "SELECT q.id, q.title, q.body, q.category, q.status, q.created_at, q.solved_at,",
+  "SELECT q.id, q.title, q.body, q.category, q.professional_help_requested, q.status, q.created_at, q.solved_at,",
   "u.username AS author_username,",
   "(SELECT count(*)::int FROM resuelve_answers a WHERE a.question_id=q.id AND a.status='visible') AS answer_count",
   "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
@@ -89,7 +93,7 @@ async function listMine(userId,{before=null}={}){
 async function detail(id){
  await ensureSchema();
  const q=await db.query([
-  "SELECT q.id,q.author_id,q.title,q.body,q.category,q.status,q.accepted_answer_id,",
+  "SELECT q.id,q.author_id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.accepted_answer_id,",
   "q.library_approved_answer_id,q.library_opt_out,",
   "q.created_at,q.solved_at,u.username AS author_username",
   "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
@@ -106,8 +110,8 @@ async function detail(id){
 }
 async function ask(userId,data){
  await ensureSchema();
- const r=await db.query("INSERT INTO resuelve_questions(author_id,title,body,category) VALUES($1,$2,$3,$4) RETURNING id",
-  [userId,data.title,data.body,data.category]);return r.rows[0];
+ const r=await db.query("INSERT INTO resuelve_questions(author_id,title,body,category,professional_help_requested) VALUES($1,$2,$3,$4,$5) RETURNING id",
+  [userId,data.title,data.body,data.category,data.professionalHelpRequested===true]);return r.rows[0];
 }
 async function answer(userId,id,body,professionalRole=null){
  await ensureSchema();

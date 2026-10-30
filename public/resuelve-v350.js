@@ -7,8 +7,8 @@
   if(text!==undefined)n.textContent=String(text);return n;
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
- const categories={consejo:'Necesito consejo',busco:'Estoy buscando algo',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false};
+ const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
+ const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -37,7 +37,8 @@
   heading.textContent='';heading.append(headingLink);
   article.append(
    meta(chip(q.status==='resolved'?'Resuelta':'Por resolver',q.status==='resolved'),
-    chip(categories[q.category]||'Petición')),
+    chip(categories[q.category]||'Petición'),
+    ...(q.professional_help_requested?[chip('Orientación profesional solicitada')]:[])),
    heading,create('p',null,q.body),
    meta(create('span',null,'@'+q.author_username),
     create('span',null,date(q.created_at)),
@@ -58,6 +59,7 @@
     params.set('estado',state.filter);
     if(state.category)params.set('categoria',state.category);
     if(state.search)params.set('q',state.search);
+    if(state.professionalOnly)params.set('profesional','si');
    }
    if(more&&state.next)params.set('antes',state.next);
    const url=(state.filter==='mine'?'/api/resuelve/questions/mine':'/api/resuelve/questions')+'?'+params.toString();
@@ -332,10 +334,12 @@
   host.replaceChildren();list.replaceChildren();
   const solved=q.status==='resolved';
   host.append(meta(chip(solved?'Solución encontrada':'Por resolver',solved),
-   chip(categories[q.category]||'Petición')),
+   chip(categories[q.category]||'Petición'),
+   ...(q.professional_help_requested?[chip('Pide orientación profesional')]:[])),
    create('h2','',q.title),meta(create('span',null,'Publicado por @'+q.author_username),
     create('span',null,date(q.created_at))),
    create('p','detail-body',q.body));
+  if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
   if(state.user && mine && solved && !q.library_opt_out){
@@ -425,10 +429,11 @@
    if(term.length===1){message('Escribe al menos dos caracteres para buscar.');return;}
    state.search=term;
    state.category=el('questionCategoryFilter').value;
+   state.professionalOnly=el('questionProfessionalFilter').checked;
    loadList();
   });
   el('questionSearchClear').addEventListener('click',()=>{
-   el('questionSearchForm').reset();state.search='';state.category='';
+   el('questionSearchForm').reset();state.search='';state.category='';state.professionalOnly=false;
    message('Filtros eliminados.');loadList();
   });
   el('moreButton').addEventListener('click',()=>loadList(true));
@@ -453,6 +458,7 @@
    if(submit.disabled)return;submit.disabled=true;
    try{
     const data=Object.fromEntries(new FormData(form).entries());
+    data.professionalHelpRequested=el('askProfessionalHelp').checked;
     const created=await write('/api/resuelve/questions',data);
     form.reset();message('Tu petición se ha publicado.');await openDetail(created.id);
    }catch(err){message(err.message);}
