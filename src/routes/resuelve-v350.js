@@ -116,6 +116,17 @@ router.get('/questions/for-me',requireAuth,wrap(async(req,res)=>{
  const items=await service.listToHelp(req.user.id,{before:before||null});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
+// V3.5.22: resumen y respuestas propias, siempre ligado a req.user.id.
+router.get('/my-activity',requireAuth,wrap(async(req,res)=>{
+ const stats=await service.myActivityStats(req.user.id);
+ res.json({ok:true,stats,asOf:new Date().toISOString()});
+}));
+router.get('/questions/answered-by-me',requireAuth,wrap(async(req,res)=>{
+ const before=req.query?.antes;
+ if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
+ const items=await service.listMyContributions(req.user.id,{before:before||null});
+ res.json({ok:true,items,next:items.length===24?items[items.length-1].my_answer_id:null});
+}));
 router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
