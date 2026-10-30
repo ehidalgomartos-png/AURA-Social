@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Estoy buscando algo',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',next:null,question:null,loading:false};
+ const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -53,9 +53,14 @@
   btn.hidden=true;
   if(!more){list.replaceChildren();status.textContent='Cargando peticiones…';}
   try{
-   const url=(state.filter==='mine'?'/api/resuelve/questions/mine':
-    '/api/resuelve/questions?estado='+encodeURIComponent(state.filter))+
-    (more&&state.next?(state.filter==='mine'?'?':'&')+'antes='+encodeURIComponent(state.next):'');
+   const params=new URLSearchParams();
+   if(state.filter!=='mine'){
+    params.set('estado',state.filter);
+    if(state.category)params.set('categoria',state.category);
+    if(state.search)params.set('q',state.search);
+   }
+   if(more&&state.next)params.set('antes',state.next);
+   const url=(state.filter==='mine'?'/api/resuelve/questions/mine':'/api/resuelve/questions')+'?'+params.toString();
    const data=await request(url);
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
@@ -259,12 +264,25 @@
   for(const btn of document.querySelectorAll('[data-filter]')){
    btn.addEventListener('click',()=>{
     state.filter=btn.dataset.filter;
+    el('questionSearchForm').hidden=state.filter==='mine';
     for(const t of document.querySelectorAll('[data-filter]')){
      const active=t===btn;t.classList.toggle('active',active);t.setAttribute('aria-pressed',active?'true':'false');
     }
     loadList();
    });
   }
+  el('questionSearchForm').addEventListener('submit',event=>{
+   event.preventDefault();
+   const term=el('questionSearch').value.trim();
+   if(term.length===1){message('Escribe al menos dos caracteres para buscar.');return;}
+   state.search=term;
+   state.category=el('questionCategoryFilter').value;
+   loadList();
+  });
+  el('questionSearchClear').addEventListener('click',()=>{
+   el('questionSearchForm').reset();state.search='';state.category='';
+   message('Filtros eliminados.');loadList();
+  });
   el('moreButton').addEventListener('click',()=>loadList(true));
   el('askForm').addEventListener('submit',async event=>{
    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');
