@@ -300,3 +300,23 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .resuelve-search .resuelve-search-toggle{width:auto;flex:0 1 auto;max-width:calc(100% - 129px);padding-inline:9px;font-size:.87rem}
  .resuelve-search .resuelve-search-advanced{padding:11px}
 }
+
+/* V3.5.16 — «Puedo ayudar» voluntario, sin empujar servicios ni productos */
+.help-topics-panel{padding:15px;border:1px solid #d1e3eb;border-radius:13px;background:#f8fbfd;margin:0 0 13px}
+.help-topics-panel h3{font-size:1.05rem;line-height:1.35;margin:0 0 6px}
+.help-topics-panel>.muted{margin:0 0 13px;line-height:1.5}
+.help-topics-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.help-topics-choices label{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #dce8ee;border-radius:9px;padding:10px;font-size:.91rem;font-weight:650;cursor:pointer}
+.help-topics-choices input{width:18px;height:18px;min-width:18px;accent-color:#12648b}
+.help-topics-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.help-topics-actions button{min-height:44px}
+.help-topics-actions .secondary{color:#125979;background:#fff}
+.help-topics-panel #helpTopicsStatus:not(:empty){padding:8px 0 0;margin:0}
+@media(max-width:650px){
+ .filters.with-help{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+ .filters.with-help button{min-width:0;width:100%;padding:10px 6px}
+ .help-topics-panel{padding:12px}
+ .help-topics-choices{grid-template-columns:1fr}
+ .help-topics-actions{display:grid;grid-template-columns:1fr}
+ .help-topics-actions button{width:100%}
+}
