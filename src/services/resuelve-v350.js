@@ -156,11 +156,12 @@ async function similarQuestions(raw){
  const r=await db.query(sql,[tokens]);
  return r.rows;
 }
-async function list({filter='open',before=null,category=null,query='',professionalOnly=false,unansweredOnly=false}={}){
+async function list({filter='open',before=null,category=null,query='',professionalOnly=false,unansweredOnly=false,topic=null}={}){
  await ensureSchema();
  const state=['open','resolved','all'].includes(filter)?filter:'open';
  const cursor=validId(before)?String(before):null;
  const chosenCategory=CATEGORIES.includes(category)?category:null;
+ const chosenTopic=topic&&TOPICS.includes(topic)?topic:null;
  const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
   "SELECT q.id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.created_at,q.solved_at,",
@@ -174,9 +175,13 @@ async function list({filter='open',before=null,category=null,query='',profession
   // V3.6.21 — solo se considera respondida una petición con respuestas visibles.
   "AND ($6::boolean=FALSE OR NOT EXISTS (SELECT 1 FROM resuelve_answers a_unanswered",
   "WHERE a_unanswered.question_id=q.id AND a_unanswered.status='visible'))",
+  // V3.6.24 — el tema se filtra en servidor, con parámetro, no en la interfaz.
+  ...(chosenTopic?["AND q.topic=$7::text"]:[]),
   "ORDER BY q.id DESC LIMIT 24"
  ].join(' ');
- return (await db.query(sql,[state,cursor,chosenCategory,search,professionalOnly===true,unansweredOnly===true])).rows;
+ const args=[state,cursor,chosenCategory,search,professionalOnly===true,unansweredOnly===true];
+ if(chosenTopic)args.push(chosenTopic);
+ return (await db.query(sql,args)).rows;
 }
 // V3.5.16: el usuario elige temas para descubrir peticiones reales que puede ayudar a resolver.
 function validHelpTopics(categories){

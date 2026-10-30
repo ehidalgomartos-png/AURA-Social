@@ -10,7 +10,7 @@
  const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
  const topicLabels=[['','Sin tema específico'],['hogar','Hogar'],['tecnologia','Tecnología'],
   ['tramites','Trámites'],['estudios','Estudios'],['vida-cotidiana','Vida cotidiana']];
- const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false,impactLoading:false,savedSolutionIds:new Set()};
+ const state={user:null,filter:'open',category:'',topic:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false,impactLoading:false,savedSolutionIds:new Set()};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -172,17 +172,20 @@
   await loadHelpSuggestions();
  }
  async function loadList(more=false){
-  if(state.loading)return;
+  if(more&&state.loading)return;
+  // V3.6.24: evitar mostrar respuestas tardías de otro tema.
+  const requestId=state.listRequestId=(state.listRequestId||0)+1;
   state.loading=true;
   const list=el('questionList'),status=el('listStatus'),btn=el('moreButton');
   btn.hidden=true;
-  if(!more){list.replaceChildren();status.textContent='Cargando peticiones…';}
+  if(!more){state.next=null;list.replaceChildren();status.textContent='Cargando peticiones…';}
   try{
    const params=new URLSearchParams();
    if(!['mine','help','contributed'].includes(state.filter)){
     params.set('estado',state.filter==='unanswered'?'open':state.filter);
     if(state.filter==='unanswered')params.set('sin_respuestas','si');
     if(state.category)params.set('categoria',state.category);
+    if(state.topic)params.set('tema',state.topic);
     if(state.search)params.set('q',state.search);
     if(state.professionalOnly)params.set('profesional','si');
    }
@@ -191,17 +194,20 @@
     state.filter==='contributed'?'/api/resuelve/questions/answered-by-me':
     state.filter==='help'?'/api/resuelve/questions/for-me':'/api/resuelve/questions';
    const data=await request(endpoint+'?'+params.toString());
+   if(requestId!==state.listRequestId)return;
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
    btn.hidden=!state.next;
-   status.textContent=list.childElementCount?'':(
+   const topicName=state.topic?topicLabels.find(([slug])=>slug===state.topic)?.[1]:null;
+   status.textContent=list.childElementCount?(topicName?'Peticiones de '+topicName+' con los filtros seleccionados.':''):(
     state.filter==='mine'?'Todavía no has publicado ninguna petición.':
     state.filter==='contributed'?'Todavía no has respondido a ninguna petición. Puedes empezar por «Puedo ayudar».':
     state.filter==='help'?(state.helpTopics.length?'No hay peticiones abiertas de tus temas por ahora.':'Elige los temas en los que quieres ayudar para descubrir peticiones.') :
+    state.topic?'No hay peticiones visibles de '+(topicName||'este tema')+' con los filtros actuales. Prueba otro tema o cambia los filtros.':
     state.filter==='unanswered'?'Ahora mismo no hay peticiones abiertas sin respuestas visibles. Puedes seguir ayudando en «Por resolver».':
     'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.');
-  }catch(err){status.textContent=err.message;}
-  finally{state.loading=false;}
+  }catch(err){if(requestId===state.listRequestId)status.textContent=err.message;}
+  finally{if(requestId===state.listRequestId)state.loading=false;}
  }
 // V3.5.7 — mostrar exclusivamente soluciones aprobadas por revisión editorial.
  // V3.5.31 — solamente enlaza páginas temáticas que ya tengan contenido indexable.
@@ -1314,6 +1320,7 @@
    btn.addEventListener('click',async()=>{
     state.filter=btn.dataset.filter;
     el('questionSearchForm').hidden=['mine','help','contributed'].includes(state.filter);
+    el('questionTopicDiscovery').hidden=['mine','help','contributed'].includes(state.filter);
     el('helpTopicsPanel').hidden=state.filter!=='help';
     for(const t of document.querySelectorAll('[data-filter]')){
      const active=t===btn;t.classList.toggle('active',active);t.setAttribute('aria-pressed',active?'true':'false');
@@ -1366,6 +1373,23 @@
   el('questionMoreFiltersToggle').addEventListener('click',()=>{
    setQuestionAdvancedFilters(el('questionAdvancedFilters').hidden);
   });
+  // V3.6.24 — temas de preguntas reales, combinables con estado, categoría y búsqueda.
+  function syncQuestionTopics(){
+   for(const button of document.querySelectorAll('[data-question-topic]')){
+    const active=button.dataset.questionTopic===state.topic;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',active?'true':'false');
+   }
+  }
+  for(const button of document.querySelectorAll('[data-question-topic]')){
+   button.addEventListener('click',()=>{
+    const topic=button.dataset.questionTopic;
+    if(topic!==''&&!topicLabels.some(([slug])=>slug===topic))return;
+    state.topic=topic;
+    syncQuestionTopics();
+    void loadList();
+   });
+  }
   el('questionSearchForm').addEventListener('submit',event=>{
    event.preventDefault();
    const term=el('questionSearch').value.trim();
@@ -1378,7 +1402,8 @@
    loadList();
   });
   el('questionSearchClear').addEventListener('click',()=>{
-   el('questionSearchForm').reset();state.search='';state.category='';state.professionalOnly=false;
+   el('questionSearchForm').reset();state.search='';state.category='';state.professionalOnly=false;state.topic='';
+   syncQuestionTopics();
    updateQuestionFilterCount();
    setQuestionAdvancedFilters(false);
    message('Filtros eliminados.');loadList();

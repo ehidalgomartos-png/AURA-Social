@@ -136,6 +136,10 @@ router.get('/questions',wrap(async(req,res)=>{
  const category=req.query?.categoria;
  if(category!==undefined&&(typeof category!=='string'||!service.CATEGORIES.includes(category)))
   return fail(res,400,'categoria_invalida');
+ // V3.6.24 — el tema debe ser uno de los temas permitidos en las peticiones.
+ const topic=req.query?.tema;
+ if(topic!==undefined&&(typeof topic!=='string'||!service.TOPICS.includes(topic)))
+  return fail(res,400,'tema_invalido');
  const query=req.query?.q??'';
  if(typeof query!=='string'||query.length>80||(query.trim().length===1))
   return fail(res,400,'busqueda_invalida');
@@ -145,7 +149,7 @@ router.get('/questions',wrap(async(req,res)=>{
  const unanswered=req.query?.sin_respuestas;
  if(unanswered!==undefined&&unanswered!=='si')return fail(res,400,'filtro_sin_respuestas_invalido');
  if(unanswered==='si'&&filter!=='open')return fail(res,400,'filtros_incompatibles');
- const items=await service.list({filter,before:before||null,category:category||null,query:query.trim(),professionalOnly:professional==='si',unansweredOnly:unanswered==='si'});
+ const items=await service.list({filter,before:before||null,category:category||null,query:query.trim(),professionalOnly:professional==='si',unansweredOnly:unanswered==='si',topic:topic||null});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
 // V3.5.16: temas elegidos voluntariamente; solo cada usuario puede consultarlos o cambiarlos.
