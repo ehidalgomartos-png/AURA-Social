@@ -63,6 +63,46 @@ function renderApprovedSolution(item){
 <footer class="foot">Resuelve · Personas que ayudan a personas</footer>
 </body></html>`;
 }
+// V3.5.32: vista previa para compartir una pregunta, siempre NOINDEX.
+function renderQuestionSharePreview(question){
+ const id=String(question.id);
+ if(!service.validId(id))throw Error('id_invalido');
+ const title=String(question.title||'Petición de ayuda').slice(0,125);
+ const url=CANONICAL_ORIGIN+'/resuelve/pregunta/'+encodeURIComponent(id);
+ const desc='¿Puedes ayudar con esta pregunta? Resuelve conecta personas que necesitan orientación con quienes desean ayudar, sin obligación de comprar nada.';
+ return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
+  '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+  '<title>'+escapeHtml(title)+' | RedLibertad Resuelve</title>'+
+  '<meta name="description" content="'+escapeHtml(desc)+'">'+
+  '<meta name="robots" content="noindex,follow">'+
+  '<link rel="canonical" href="'+escapeHtml(url)+'">'+
+  '<meta property="og:type" content="website">'+
+  '<meta property="og:site_name" content="RedLibertad Resuelve">'+
+  '<meta property="og:title" content="'+escapeHtml(title)+'">'+
+  '<meta property="og:description" content="'+escapeHtml(desc)+'">'+
+  '<meta property="og:url" content="'+escapeHtml(url)+'">'+
+  '<meta property="og:image" content="'+CANONICAL_ORIGIN+'/assets/og-redlibertad-v1922.jpg">'+
+  '<link rel="stylesheet" href="/resuelve-v350.css"></head><body>'+
+  '<a class="skip" href="#main">Saltar al contenido</a>'+
+  '<header class="topbar"><a class="brand" href="/resuelve"><strong>RedLibertad Resuelve</strong></a></header>'+
+  '<main id="main" class="wrap"><section class="resuelve-seo-solution">'+
+  '<p class="eyebrow dark">UNA PERSONA PIDE AYUDA</p><h1>'+escapeHtml(title)+'</h1>'+
+  '<p>'+escapeHtml(desc)+'</p>'+
+  '<p class="muted">La pregunta es pública. No se publica aquí ninguna respuesta ni dato de contacto.</p>'+
+  '<a class="primary resuelve-topic-cta" href="/resuelve?id='+encodeURIComponent(id)+'">Ver pregunta y ayudar</a>'+
+  '</section></main></body></html>';
+}
+router.get('/pregunta/:id',async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ res.set('X-Robots-Tag','noindex,follow');
+ const id=String(req.params.id||'');
+ if(!service.validId(id))return res.status(404).type('text/plain').send('Pregunta no disponible.');
+ try{
+  const question=await service.publicQuestionSharePreview(id);
+  if(!question)return res.status(404).type('text/plain').send('Pregunta no disponible.');
+  res.type('html').send(renderQuestionSharePreview(question));
+ }catch(_){res.status(503).type('text/plain').send('Vista previa no disponible temporalmente.');}
+});
 router.get('/solucion/:id',async(req,res)=>{
  res.set('Cache-Control','no-store');
  res.set('X-Robots-Tag','noindex,nofollow');
@@ -78,4 +118,4 @@ router.get('/solucion/:id',async(req,res)=>{
   res.status(503).type('text/plain').send('La solución no está disponible temporalmente.');
  }
 });
-module.exports={router,escapeHtml,renderApprovedSolution};
+module.exports={router,escapeHtml,renderApprovedSolution,renderQuestionSharePreview};
