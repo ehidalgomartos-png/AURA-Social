@@ -233,6 +233,8 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(app,/href="\/resuelve"/);
  assert.match(html,/id="askForm"/);
  assert.match(html,/id="answerForm"/);
+ assert.match(html,/data-filter="mine"[^>]*hidden/);
+ assert.match(js,/\/api\/resuelve\/questions\/mine/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(js,/textContent/);
  assert.doesNotMatch(js,/\.innerHTML\s*=/);
