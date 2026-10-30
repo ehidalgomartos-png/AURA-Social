@@ -875,3 +875,41 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  #questions .section-top{align-items:stretch}
  #questions .filters{width:max-content;max-width:100%;flex-wrap:wrap}
 }
+
+/* V3.6.24 — descubrir preguntas reales por temas, con controles táctiles y sin cifras ficticias. */
+.resuelve-topic-discovery{
+ display:grid;grid-template-columns:minmax(0,1fr);
+ gap:11px;padding:16px 19px;
+ margin:0 0 17px;
+ background:#fff;border:1px solid #d8e8ef;border-radius:19px;
+ box-shadow:0 3px 15px rgba(16,55,77,.035);
+ min-width:0;
+}
+.resuelve-topic-discovery-head{min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 15px}
+.resuelve-topic-discovery-head h3{margin:0;color:#133b52;font-size:1rem;line-height:1.4}
+.resuelve-topic-discovery-head p{flex:1 1 370px;margin:0;color:#567284;font-size:.85rem;line-height:1.55}
+.resuelve-topic-discovery-filters{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.resuelve-topic-discovery-filters button{
+ min-height:43px;padding:9px 14px;
+ border:1px solid #c6dce7;border-radius:999px;
+ background:#f6fbfd;color:#24536e;font-weight:750;font-size:.88rem;
+ line-height:1.35;white-space:nowrap;
+}
+.resuelve-topic-discovery-filters button.active{
+ background:#145f74;color:#fff;border-color:#145f74;
+ box-shadow:0 2px 8px rgba(20,95,116,.12);
+}
+.resuelve-topic-discovery-filters button:focus-visible{
+ outline:3px solid #3ba7b5;outline-offset:3px;
+}
+@media (max-width:650px){
+ .resuelve-topic-discovery{margin:0 0 13px;padding:13px 12px;border-radius:17px;gap:9px}
+ .resuelve-topic-discovery-head{gap:3px}
+ .resuelve-topic-discovery-head h3{font-size:.93rem}
+ .resuelve-topic-discovery-head p{font-size:.81rem}
+ .resuelve-topic-discovery-filters{
+  flex-wrap:nowrap;overflow-x:auto;padding:3px 2px 9px;gap:7px;
+  overscroll-behavior-x:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+ }
+ .resuelve-topic-discovery-filters button{flex:0 0 auto;min-height:44px}
+}
