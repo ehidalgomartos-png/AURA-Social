@@ -1358,6 +1358,12 @@ function sendHtmlShell(file){
   };
 }
 app.get('/marketplace',sendHtmlShell('marketplace.html'));
+// V3.5.19 — HTML de administración fuera de /public, protegido antes de servirlo.
+app.get('/resuelve/admin',requireAdmin,(_req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ res.setHeader('X-Robots-Tag','noindex,nofollow,noarchive');
+ res.sendFile(path.join(__dirname,'src','views','resuelve-admin-v3519.html'));
+});
 app.get('/resuelve',(_req,res)=>{
  res.setHeader('Cache-Control','no-cache');
  res.setHeader('X-Robots-Tag','noindex,follow');

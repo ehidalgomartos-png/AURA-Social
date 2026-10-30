@@ -1,0 +1,35 @@
+/* Centro privado de administración Resuelve V3.5.19 */
+.resuelve-admin-wrap{max-width:1120px}
+.resuelve-admin-hero{padding:25px;border-radius:17px;background:linear-gradient(120deg,#102e48,#145f74);color:white}
+.resuelve-admin-hero h1{margin:6px 0 10px;color:white;font-size:clamp(1.6rem,3.2vw,2.5rem);line-height:1.17}
+.resuelve-admin-hero p:last-child{max-width:700px;margin:0;color:#e8f5fb}
+.resuelve-admin-tabs{display:flex;flex-wrap:wrap;gap:9px;position:sticky;top:0;z-index:3;padding:12px 0;background:var(--bg)}
+.resuelve-admin-tabs a{display:inline-flex;align-items:center;min-height:44px;border-radius:10px;padding:9px 14px;border:1px solid #bcd6e3;background:white;color:#125778;text-decoration:none;font-weight:750;font-size:.9rem}
+.resuelve-admin-wrap .panel{scroll-margin-top:85px}
+.resuelve-admin-wrap .panel-head{gap:12px;align-items:center;flex-wrap:wrap}
+.resuelve-admin-wrap .panel-head .secondary{min-height:44px;color:#135878;background:#fff;border-color:#a9cbd9}
+.resuelve-admin-wrap .review-list{display:grid;gap:11px}
+.resuelve-admin-wrap .review-item{background:white;border:1px solid var(--line);border-radius:12px;padding:15px;overflow-wrap:anywhere}
+.resuelve-admin-wrap .review-item h3{margin:0 0 7px;font-size:1.05rem}
+.resuelve-admin-wrap .review-item p{white-space:pre-wrap;line-height:1.5}
+.resuelve-admin-wrap .review-item-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
+.resuelve-admin-wrap .review-item-actions a{display:inline-flex;align-items:center;min-height:44px}
+.resuelve-admin-wrap .review-item-actions button,.resuelve-admin-wrap .admin-review-checklist button{min-height:44px}
+.resuelve-admin-wrap .admin-danger{border:1px solid #c77b7b;color:#8b2828;background:#fff5f5;border-radius:9px;padding:10px 13px;font-weight:700}
+.resuelve-admin-wrap .admin-review-checklist{margin:11px 0 0;border:1px solid #cde0e8;border-radius:11px;background:#f7fafc;padding:13px}
+.resuelve-admin-wrap .admin-review-checklist summary{cursor:pointer;font-weight:750;color:#175779}
+.resuelve-admin-wrap .admin-review-option{display:flex!important;gap:10px;align-items:start;margin:11px 0;line-height:1.45;font-weight:500!important}
+.resuelve-admin-wrap .admin-review-option input{width:18px!important;height:18px!important;min-width:18px;margin:3px 0 0}
+.resuelve-admin-wrap .admin-review-checklist button:disabled{opacity:.5}
+.resuelve-admin-wrap #resuelveAdminAccess:not([hidden]){padding:15px;margin-top:14px;background:#e8f3f8;border-radius:11px}
+@media(max-width:650px){
+ .resuelve-admin-wrap{padding:12px}
+ .resuelve-admin-hero{padding:19px 16px}
+ .resuelve-admin-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .resuelve-admin-tabs a{font-size:.81rem;padding:8px;justify-content:center;text-align:center;min-width:0}
+ .resuelve-admin-tabs a:first-child{grid-column:1/-1}
+ .resuelve-admin-wrap .panel{padding:14px;margin-top:14px}
+ .resuelve-admin-wrap .panel-head button{width:100%}
+ .resuelve-admin-wrap .review-item-actions{display:grid;grid-template-columns:1fr}
+ .resuelve-admin-wrap .review-item-actions button,.resuelve-admin-wrap .review-item-actions a{width:100%;justify-content:center;text-align:center}
+}

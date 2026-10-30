@@ -18,6 +18,7 @@
  <nav aria-label="Navegación">
   <a href="/app">Inicio</a><a href="/marketplace">Marketplace</a>
   <a class="selected" href="/resuelve" aria-current="page">Resuelve</a>
+  <a id="resuelveAdminEntry" href="/resuelve/admin" hidden>Administración</a>
  </nav>
 </header>
 <main id="main" class="wrap">
@@ -73,39 +74,6 @@
    <p class="muted"><a href="/recuperar-contrasena/">¿Has olvidado tu contraseña?</a></p>
   </form>
   <p id="resuelveAuthStatus" class="resuelve-auth-status" role="status" aria-live="polite"></p>
- </section>
- <section id="adminImpactPanel" class="panel resuelve-impact-panel" hidden aria-labelledby="adminImpactTitle">
-  <div class="panel-head">
-   <div>
-    <p class="eyebrow dark">SOLO ADMINISTRACIÓN · DATOS REALES</p>
-    <h2 id="adminImpactTitle">Impacto de Resuelve</h2>
-    <p class="muted">Actividad registrada de la comunidad. No incluye respuestas ocultas ni cifras estimadas. Los agradecimientos son voluntarios.</p>
-   </div>
-   <button id="refreshAdminImpact" class="secondary" type="button">Actualizar datos</button>
-  </div>
-  <p id="adminImpactStatus" class="muted" role="status" aria-live="polite">Cargando estadísticas…</p>
-  <div id="adminImpactMetrics" class="resuelve-impact-grid"></div>
-  <p class="muted">Una petición con respuestas no significa necesariamente que esté resuelta. Las soluciones son las que sus autores han confirmado.</p>
- </section>
- <section id="libraryReviewPanel" class="panel" hidden aria-labelledby="libraryReviewTitle">
-  <div class="panel-head"><div>
-   <p class="eyebrow dark">SOLO ADMINISTRACIÓN</p>
-   <h2 id="libraryReviewTitle">Revisión de soluciones pendientes</h2>
-   <p class="muted">La ayuda real va primero: comprueba utilidad, privacidad y ausencia de publicidad encubierta antes de aprobar. Ninguna solución se publica aquí automáticamente.</p>
-  </div></div>
-  <div id="libraryReviewStatus" class="muted" role="status" aria-live="polite"></div>
-  <div id="libraryReviewList" class="review-list"></div>
-  <button id="moreLibraryReview" type="button" class="secondary more" hidden>Ver más pendientes</button>
- </section>
- <section id="adminReportsPanel" class="panel" hidden aria-labelledby="adminReportsTitle">
-  <div class="panel-head"><div>
-   <p class="eyebrow dark">MODERACIÓN · SOLO ADMINISTRACIÓN</p>
-   <h2 id="adminReportsTitle">Avisos de confianza pendientes</h2>
-   <p class="muted">Una denuncia no demuestra que una respuesta sea engañosa. Revisa el contexto antes de retirarla o descartar el aviso. La identidad de quien denuncia no se muestra aquí.</p>
-  </div></div>
-  <div id="adminReportsStatus" class="muted" role="status" aria-live="polite"></div>
-  <div id="adminReportsList" class="review-list"></div>
-  <button id="moreAdminReports" class="secondary more" type="button" hidden>Ver más avisos</button>
  </section>
  <section id="askPanel" class="panel editor" hidden aria-labelledby="askTitle">
   <div class="panel-head"><h2 id="askTitle">¿Qué necesitas resolver?</h2><button id="closeAsk" type="button" class="plain">Cerrar</button></div>

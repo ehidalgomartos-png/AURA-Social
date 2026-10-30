@@ -132,65 +132,6 @@
  }
 // V3.5.8: cola editorial disponible solo en sesiones de administración.
  // V3.5.18 — cifras verificables en servidor, visibles solo para administración.
- async function loadAdminImpact(){
-  if(!(state.user?.is_admin||state.user?.isAdmin)||state.impactLoading)return;
-  state.impactLoading=true;
-  const status=el('adminImpactStatus'),grid=el('adminImpactMetrics'),refresh=el('refreshAdminImpact');
-  refresh.disabled=true;
-  status.textContent='Actualizando datos reales…';
-  try{
-   const result=await request('/api/resuelve/admin/impact');
-   if(!result.ok||!result.metrics)throw Error('estadisticas_no_disponibles');
-   const definitions=[
-    ['public_questions','Peticiones públicas'],
-    ['open_questions','Pendientes de resolver'],
-    ['questions_with_answers','Peticiones con respuestas'],
-    ['resolved_questions','Problemas resueltos'],
-    ['unique_helpers','Personas que han respondido'],
-    ['thanked_resolutions','Soluciones agradecidas'],
-    ['questions_30d','Peticiones · últimos 30 días'],
-    ['resolved_30d','Resueltas · últimos 30 días']
-   ];
-   const tiles=[];
-   for(const [key,label] of definitions){
-    const raw=result.metrics[key],value=Number(raw);
-    if(!Number.isSafeInteger(value)||value<0)throw Error('estadisticas_no_validas');
-    const tile=create('div','resuelve-impact-tile');
-    tile.append(create('strong',null,value.toLocaleString('es-ES')),
-     create('span',null,label));
-    tiles.push(tile);
-   }
-   grid.replaceChildren(...tiles);
-   const at=new Date(result.asOf);
-   status.textContent='Actualizado: '+(Number.isNaN(at.getTime())?'recientemente':at.toLocaleString('es-ES'));
-  }catch(_){status.textContent='No se pudieron cargar las estadísticas. Inténtalo de nuevo.';}
-  finally{state.impactLoading=false;refresh.disabled=false;}
- }
- async function loadReviewQueue(more=false){
-  if(!(state.user?.is_admin||state.user?.isAdmin)||state.reviewLoading)return;
-  state.reviewLoading=true;
-  const list=el('libraryReviewList'),status=el('libraryReviewStatus'),btn=el('moreLibraryReview');
-  btn.hidden=true;
-  if(!more){list.replaceChildren();status.textContent='Cargando pendientes de revisión…';}
-  try{
-   const url='/api/resuelve/admin/solutions/pending'+
-    (more&&state.reviewNext?'?antes='+encodeURIComponent(state.reviewNext):'');
-   const data=await request(url);
-   for(const q of data.items){
-    const item=create('article','review-item');
-    const title=create('h3',null,q.title);
-    const body=create('p','muted',q.solution);
-    const actions=create('div','review-item-actions');
-    actions.append(chip(categories[q.category]||'Petición'),
-      button('Revisar petición',()=>openDetail(q.id),'secondary'));
-    item.append(title,body,actions);list.append(item);
-   }
-   state.reviewNext=data.next;
-   btn.hidden=!state.reviewNext;
-   status.textContent=list.childElementCount?'':'No hay soluciones pendientes que cumplan los requisitos mínimos.';
-  }catch(err){status.textContent=err.message;}
-  finally{state.reviewLoading=false;}
- }
 // V3.5.14: avisos discretos sobre respuestas, sin sanción automática.
  function answerReportControl(answer){
   const details=create('details','answer-report');
@@ -217,68 +158,16 @@
     await write('/api/resuelve/answers/'+encodeURIComponent(answer.id)+'/report',{reason:select.value});
     details.replaceChildren(create('p','muted','Aviso enviado para revisión. Gracias por cuidar la comunidad.'));
     message('Tu aviso se ha enviado para revisión privada.');
-    if(state.user?.is_admin||state.user?.isAdmin)await loadAnswerReports();
+    // Los avisos se revisan desde /resuelve/admin.
    }catch(err){send.disabled=false;message(err.message);}
   },'secondary');
   details.append(heading,explanation,label,send);
   return details;
  }
- async function loadAnswerReports(more=false){
-  if(!(state.user?.is_admin||state.user?.isAdmin)||state.reportLoading)return;
-  state.reportLoading=true;
-  const list=el('adminReportsList'),status=el('adminReportsStatus'),moreButton=el('moreAdminReports');
-  moreButton.hidden=true;
-  if(!more){list.replaceChildren();status.textContent='Comprobando avisos pendientes…';}
-  try{
-   const url='/api/resuelve/admin/reports/pending'+
-    (more&&state.reportNext?'?antes='+encodeURIComponent(state.reportNext):'');
-   const data=await request(url);
-   const names={
-    publicidad_encubierta:'Publicidad encubierta',
-    cualificacion_falsa:'Posible cualificación engañosa',
-    datos_personales:'Datos personales',
-    consejo_peligroso:'Consejo potencialmente peligroso',
-    otro:'Otro problema'
-   };
-   for(const report of data.items){
-    const item=create('article','review-item');
-    item.append(create('h3',null,report.title),
-      create('p','muted','Motivo: '+(names[report.reason]||'Aviso de revisión')),
-      create('p',null,report.body));
-    if(report.self_professional_role)
-     item.append(create('p','muted','Experiencia declarada: '+report.self_professional_role+
-      (report.self_commercial_interest?' · Posible interés económico declarado':' · Sin interés económico declarado')));
-    const actions=create('div','review-item-actions');
-    actions.append(button('Abrir respuesta',async()=>{
-     await openDetail(report.question_id);
-     const target=document.getElementById('resuelve-answer-'+report.answer_id);
-     if(target)target.scrollIntoView({block:'center',behavior:'smooth'});
-    },'secondary'));
-    actions.append(button('Desestimar aviso',async()=>{
-     if(!confirm('¿Has revisado el contexto y quieres desestimar este aviso?'))return;
-     try{
-      await write('/api/resuelve/admin/reports/'+encodeURIComponent(report.id)+'/dismiss',{});
-      message('Aviso desestimado tras revisión.');
-      await loadAnswerReports();
-     }catch(err){message(err.message);}
-    },'secondary'));
-    item.append(actions);list.append(item);
-   }
-   state.reportNext=data.next;
-   moreButton.hidden=!state.reportNext;
-   status.textContent=list.childElementCount?'':'No hay avisos pendientes.';
-  }catch(err){status.textContent=err.message;}
-  finally{state.reportLoading=false;}
- }
  function displayDetail(open){
   el('detailPanel').hidden=!open;
   el('questions').hidden=open;
   el('solutions').hidden=open;
-  if(state.user?.is_admin||state.user?.isAdmin){
-   el('libraryReviewPanel').hidden=open;
-   el('adminReportsPanel').hidden=open;
-   el('adminImpactPanel').hidden=open;
-  }
   el('askPanel').hidden=true;
  }
  async function openDetail(id,push=true){
@@ -514,7 +403,7 @@
     try{
      await write('/api/resuelve/admin/solutions/'+q.id+'/revoke',{});
      message('Solución retirada de la biblioteca.');
-     await openDetail(q.id,false);await loadSolutions();await loadReviewQueue();
+     await openDetail(q.id,false);await loadSolutions();
     }catch(error){message(error.message);}
    },'secondary'));
    return panel;
@@ -535,7 +424,7 @@
     await write('/api/resuelve/admin/solutions/'+q.id+'/approve',
      {qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true});
     message('Solución aprobada tras revisión humana.');
-    await openDetail(q.id,false);await loadSolutions();await loadReviewQueue();
+    await openDetail(q.id,false);await loadSolutions();
    }catch(error){message(error.message);submit.disabled=false;}
   },'primary');
   submit.disabled=true;
@@ -618,7 +507,7 @@
    }));
    if(state.user?.is_admin||state.user?.isAdmin)actions.append(button('Ocultar respuesta',async()=>{
     if(!confirm('¿Ocultar esta respuesta?'))return;
-    try{await write('/api/resuelve/admin/answer/'+a.id+'/hide',{});message('Respuesta oculta.');await openDetail(q.id,false);await loadAnswerReports();}
+    try{await write('/api/resuelve/admin/answer/'+a.id+'/hide',{});message('Respuesta oculta.');await openDetail(q.id,false);}
     catch(e){message(e.message);}
    }));
    item.append(actions);list.append(item);
@@ -674,9 +563,7 @@
   document.querySelector('[data-filter="help"]').hidden=guest;
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
-  el('libraryReviewPanel').hidden=!isAdmin;
-  el('adminReportsPanel').hidden=!isAdmin;
-  el('adminImpactPanel').hidden=!isAdmin;
+  el('resuelveAdminEntry').hidden=!isAdmin;
   return isAdmin;
  }
  function authError(error,status){
@@ -705,11 +592,6 @@
   el('resuelveRegisterForm').reset();
   el('resuelveLoginForm').reset();
   renderSession();
-  if(state.user?.is_admin||state.user?.isAdmin){
-   await loadAdminImpact();
-   await loadReviewQueue();
-   await loadAnswerReports();
-  }
   if(state.question)await openDetail(state.question.id,false);
   else await loadList();
  }
@@ -766,7 +648,6 @@
   bindResuelveAuth();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(isAdmin){await loadAdminImpact();await loadReviewQueue();await loadAnswerReports();}
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;
@@ -855,9 +736,6 @@
    loadSolutions();
   });
   el('moreSolutions').addEventListener('click',()=>loadSolutions(true));
-  el('moreLibraryReview').addEventListener('click',()=>loadReviewQueue(true));
-  el('moreAdminReports').addEventListener('click',()=>loadAnswerReports(true));
-  el('refreshAdminImpact').addEventListener('click',()=>loadAdminImpact());
   el('askForm').addEventListener('submit',async event=>{
    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');
    if(submit.disabled)return;submit.disabled=true;
