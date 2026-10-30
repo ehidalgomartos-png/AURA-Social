@@ -27,6 +27,8 @@ async function ensureSchema(){
   ].join(' ');
   await db.query(ddl);
   await db.query(answers);
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_at TIMESTAMPTZ");
+  await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_approved_answer_id BIGINT");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_opt_out BOOLEAN NOT NULL DEFAULT FALSE");
@@ -130,20 +132,20 @@ async function solve(userId,qid,aid){
 async function reopen(userId,qid){
  await ensureSchema();
  const r=await db.query([
-  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status='resolved' RETURNING id"
  ].join(' '),[qid,userId]);return r.rows[0]||null;
 }
 async function moderate(kind,id){
  await ensureSchema();
  if(kind==='question'){
-  const r=await db.query("UPDATE resuelve_questions SET status='hidden',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE id=$1 RETURNING id",[id]);
+  const r=await db.query("UPDATE resuelve_questions SET status='hidden',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now() WHERE id=$1 RETURNING id",[id]);
   return r.rows[0]||null;
  }
  if(kind==='answer'){
   const r=await db.query("UPDATE resuelve_answers SET status='hidden' WHERE id=$1 RETURNING id,question_id",[id]);
   if(!r.rowCount)return null;
-  await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
+  await db.query("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,solved_at=NULL,updated_at=now() WHERE accepted_answer_id=$1 AND status='resolved'",[id]);
   return r.rows[0];
  }
  return null;
@@ -155,18 +157,18 @@ async function library({before=null,category=null,query=''}={}){
  const chosenCategory=CATEGORIES.includes(category)?category:null;
  const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
-  "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
+  "SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body,' Anuncio recomendado:',1) AS solution,",
   "u.username AS author_username FROM resuelve_questions q",
   "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
   "JOIN users u ON u.id=q.author_id AND u.status='active'",
   "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
   "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
   "AND q.library_approved_answer_id=q.accepted_answer_id",
-  "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
+  "AND char_length(trim(split_part(a.body,\' Anuncio recomendado:\',1)))>=80 AND char_length(trim(q.body))>=50",
   "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
   "AND ($2::text IS NULL OR q.category=$2)",
   "AND ($3::text='' OR position(lower($3::text) in lower(q.title))>0",
-  "OR position(lower($3::text) in lower(a.body))>0)",
+  "OR position(lower($3::text) in lower(split_part(a.body,' Anuncio recomendado:',1)))>0)",
   "ORDER BY q.id DESC LIMIT 12"
  ].join(' ');
  return (await db.query(sql,[validId(before)?String(before):null,chosenCategory,search])).rows;
@@ -175,41 +177,41 @@ async function library({before=null,category=null,query=''}={}){
 async function pendingSolutions({before=null}={}){
  await ensureSchema();
  const sql=[
-  "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
+  "SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body,' Anuncio recomendado:',1) AS solution,",
   "u.username AS author_username FROM resuelve_questions q",
   "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
   "JOIN users u ON u.id=q.author_id AND u.status='active'",
   "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
   "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
   "AND (q.library_approved_answer_id IS NULL OR q.library_approved_answer_id<>q.accepted_answer_id)",
-  "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
+  "AND char_length(trim(split_part(a.body,\' Anuncio recomendado:\',1)))>=80 AND char_length(trim(q.body))>=50",
   "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
   "ORDER BY q.id DESC LIMIT 12"
  ].join(' ');
  return (await db.query(sql,[validId(before)?String(before):null])).rows;
 }
-async function approveLibrary(questionId,approved){
+async function approveLibrary(questionId,approved,reviewerId=null){
  await ensureSchema();
  const sql=approved?[
-  "UPDATE resuelve_questions q SET library_approved_answer_id=q.accepted_answer_id,updated_at=now()",
+  "UPDATE resuelve_questions q SET library_approved_answer_id=q.accepted_answer_id,library_reviewed_at=now(),library_reviewed_by=$2,updated_at=now()",
   "WHERE q.id=$1 AND q.status='resolved' AND q.library_opt_out=FALSE",
   "AND char_length(trim(q.body))>=50",
   "AND EXISTS(SELECT 1 FROM users author WHERE author.id=q.author_id AND author.status='active')",
   "AND EXISTS(SELECT 1 FROM resuelve_answers a JOIN users respondent",
   "ON respondent.id=a.author_id AND respondent.status='active'",
   "WHERE a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
-  "AND char_length(trim(a.body))>=80)",
+  "AND char_length(trim(split_part(a.body,\' Anuncio recomendado:\',1)))>=80)",
   "RETURNING q.id,q.library_approved_answer_id"
  ].join(' '):[
-  "UPDATE resuelve_questions SET library_approved_answer_id=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,updated_at=now()",
   "WHERE id=$1 RETURNING id,library_approved_answer_id"
  ].join(' ');
- return (await db.query(sql,[questionId])).rows[0]||null;
+ return (await db.query(sql,approved?[questionId,reviewerId]:[questionId])).rows[0]||null;
 }
 async function optOutLibrary(questionId,authorId){
  await ensureSchema();
  const sql=[
-  "UPDATE resuelve_questions SET library_opt_out=TRUE,library_approved_answer_id=NULL,updated_at=now()",
+  "UPDATE resuelve_questions SET library_opt_out=TRUE,library_approved_answer_id=NULL,library_reviewed_at=NULL,library_reviewed_by=NULL,updated_at=now()",
   "WHERE id=$1 AND author_id=$2 AND status<>'hidden'",
   "RETURNING id"
  ].join(' ');

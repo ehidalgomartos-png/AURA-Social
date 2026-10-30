@@ -128,3 +128,21 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .solution-filter-form button{min-height:43px}
 .solution-filter-form .secondary{color:var(--blue);border-color:#b5d6e4;background:white}
 @media(max-width:650px){.solution-filter-form{grid-template-columns:repeat(2,minmax(0,1fr));padding:11px}.solution-filter-form label{grid-column:1/-1}.solution-filter-form button{width:100%}}
+
+/* V3.5.10: Resuelve existe para ayudar, no para promover compras */
+.resuelve-extras{margin-top:22px;display:grid;gap:12px}
+.resuelve-extras .resuelve-related{margin:0}
+.resuelve-market-optional,.answer-related-link,.optional-listing{margin-top:12px;border:1px solid var(--line);border-radius:11px;background:#f6f9fa;padding:11px 13px}
+.resuelve-market-optional summary,.answer-related-link summary,.optional-listing summary{cursor:pointer;color:#32596d;font-weight:650}
+.resuelve-market-optional a,.answer-related-link a{display:inline-block;margin-top:8px}
+.answer-related-link{background:transparent}
+.optional-listing label{display:block;margin:9px 0 6px}
+.optional-listing input{width:100%}
+.editorial-review{padding:17px;border:1px solid #c6dce4;border-radius:13px;background:#f7fafb}
+.editorial-review h3{margin:0 0 8px}
+.editorial-review-checklist{display:grid;gap:10px;margin:14px 0}
+.editorial-review-item{display:flex!important;gap:10px;align-items:start;font-weight:500!important}
+.editorial-review-item input{margin:4px 0 0;min-width:18px;min-height:18px;flex:none}
+.editorial-review-item span{flex:1}
+.editorial-review .primary:disabled{opacity:.5}
+@media(max-width:650px){.editorial-review{padding:13px}.editorial-review>.primary,.editorial-review>.secondary{width:100%}}

@@ -22,9 +22,9 @@
 </header>
 <main id="main" class="wrap">
  <section class="hero" aria-labelledby="hero-title">
-  <p class="eyebrow">REDLIBERTAD RESUELVE · VERSIÓN INICIAL</p>
-  <h1 id="hero-title">Una pregunta puede conectar a muchas personas.</h1>
-  <p>Comparte algo que necesitas, recomienda desde tu experiencia y ayuda a otros a encontrar una solución. Sin respuestas artificiales: personas que ayudan a personas.</p>
+  <p class="eyebrow">PERSONAS QUE AYUDAN A PERSONAS</p>
+  <h1 id="hero-title">Pide ayuda. Comparte lo que sabes.</h1>
+  <p>Un consejo sincero, una experiencia real o una explicación útil pueden resolver mucho. No hace falta comprar ni contratar nada para participar.</p>
   <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
@@ -32,7 +32,7 @@
   <div class="panel-head"><div>
    <p class="eyebrow dark">SOLO ADMINISTRACIÓN</p>
    <h2 id="libraryReviewTitle">Revisión de soluciones pendientes</h2>
-   <p class="muted">Abre cada petición para comprobar utilidad, datos personales y contenido original antes de aprobarla. Ninguna solución se publica aquí automáticamente.</p>
+   <p class="muted">La ayuda real va primero: comprueba utilidad, privacidad y ausencia de publicidad encubierta antes de aprobar. Ninguna solución se publica aquí automáticamente.</p>
   </div></div>
   <div id="libraryReviewStatus" class="muted" role="status" aria-live="polite"></div>
   <div id="libraryReviewList" class="review-list"></div>
@@ -40,7 +40,7 @@
  </section>
  <section id="askPanel" class="panel editor" hidden aria-labelledby="askTitle">
   <div class="panel-head"><h2 id="askTitle">¿Qué necesitas resolver?</h2><button id="closeAsk" type="button" class="plain">Cerrar</button></div>
-  <p class="muted">Esta petición será pública. Evita publicar teléfonos, direcciones exactas u otros datos personales.</p>
+  <p class="muted">Cuéntanos qué necesitas de verdad, sin datos personales. No tienes que comprar nada para recibir ayuda. La petición será pública.</p>
   <form id="askForm">
    <label for="askCategory">Tipo de petición</label><select name="category" id="askCategory" required>
     <option value="consejo">Necesito consejo</option><option value="busco">Estoy buscando algo</option>
@@ -113,15 +113,20 @@
   <div id="answerList" class="answers"></div>
   <form id="answerForm" hidden>
    <label for="answerBody">Tu respuesta</label>
-   <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required placeholder="Comparte una experiencia, una recomendación concreta o un paso que haya funcionado."></textarea>
-   <label for="answerListingUrl">Enlace a un anuncio de Marketplace (opcional)</label>
-   <input id="answerListingUrl" type="url" maxlength="500" inputmode="url" placeholder="https://redlibertad.com/marketplace/..." autocomplete="off">
-   <p class="muted">Pega un enlace de un anuncio existente si es útil para la petición. No se realiza ninguna compra ni publicación automática.</p>
+   <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required placeholder="Explica qué harías tú, qué has aprendido o qué pasos concretos pueden servir. Evita respuestas que solo intenten vender."></textarea>
+   <p class="muted">Primero ayuda con tu experiencia. No es necesario mencionar tiendas, anuncios ni productos.</p>
+   <details class="optional-listing">
+    <summary>¿Tienes un enlace que de verdad pueda ayudar? (opcional)</summary>
+    <label for="answerListingUrl">Enlace a un anuncio de RedLibertad Marketplace</label>
+    <input id="answerListingUrl" type="url" maxlength="500" inputmode="url" placeholder="https://redlibertad.com/marketplace/..." autocomplete="off">
+    <p class="muted">Solo como complemento a una respuesta útil; no como publicidad ni requisito para ayudar.</p>
+   </details>
    <p class="muted">Tu respuesta será pública. Evita compartir información personal de terceros.</p>
    <button type="submit" class="primary">Enviar respuesta</button>
   </form>
+  <div id="resuelveExtras" class="resuelve-extras"></div>
  </section>
 </main>
-<footer class="foot"><p>Resuelve es un espacio entre personas. Las recomendaciones son experiencias de usuarios, no verificaciones profesionales ni ofertas garantizadas. <a href="/app">Volver a RedLibertad</a>.</p></footer>
+<footer class="foot"><p>Resuelve es un espacio entre personas. La ayuda es voluntaria; no se exige ninguna compra. Las experiencias de usuarios no sustituyen el asesoramiento profesional cuando sea necesario. <a href="/app">Volver a RedLibertad</a>.</p></footer>
 </body>
 </html>

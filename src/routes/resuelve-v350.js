@@ -56,7 +56,12 @@ router.post('/admin/solutions/:id/:action',requireAuth,checkOrigin,limiter(40),w
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
  if(!service.validId(req.params.id)||!['approve','revoke'].includes(req.params.action))
   return fail(res,400,'accion_invalida');
- const row=await service.approveLibrary(req.params.id,req.params.action==='approve');
+ const approve=req.params.action==='approve';
+ // La revisión humana no se puede omitir mediante el cliente ni dar por hecha automáticamente.
+ if(approve&&(!req.body||req.body.qualityReviewed!==true||
+  req.body.privacyReviewed!==true||req.body.nonCommercialReviewed!==true))
+  return fail(res,400,'revision_editorial_incompleta');
+ const row=await service.approveLibrary(req.params.id,approve,approve?req.user.id:null);
  if(!row)return fail(res,409,'solucion_no_apta');
  res.json({ok:true,id:row.id,approved:!!row.library_approved_answer_id});
 }));

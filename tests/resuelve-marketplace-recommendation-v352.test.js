@@ -11,7 +11,8 @@ test('V3.5.2: enlaces recomendados controlados y voluntarios',()=>{
  assert.match(js,/function validatedMarketplaceUrl\(value\)/);
  assert.match(js,/url\.protocol!=='https:'/);
  assert.match(js,/url\.origin!==location\.origin/);
- assert.match(js,/marketplace-recommendation/);
+ assert.match(js,/answer-related-link/);
+ assert.match(html,/class="optional-listing"/);
  assert.match(js,/a\.rel='noopener noreferrer'/);
  assert.match(js,/if\(listing&&!safe\)throw/);
  assert.match(js,/if\(body\.length>1500\)throw/);
