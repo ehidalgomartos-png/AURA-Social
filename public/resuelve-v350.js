@@ -195,8 +195,20 @@
    return url.href;
   }catch(_){return null;}
  }
- function answerContent(body,professionalRole){
+ function answerContent(body,professionalRole,selfProfessionalRole,commercialInterest){
   const wrap=create('div','answer-content');
+  function appendSelfDisclosure(){
+   if(typeof selfProfessionalRole!=='string'||!selfProfessionalRole.trim())return;
+   const note=create('aside','resuelve-professional-disclosure');
+   note.append(create('strong',null,'Experiencia profesional declarada por esta persona:'),
+    create('span',null,' '+selfProfessionalRole));
+   note.append(create('p','muted','Identidad profesional y cualificación no verificadas por RedLibertad.'));
+   if(commercialInterest===true)
+    note.append(create('p','resuelve-commercial-note','Esta persona declara un posible interés económico en la solución.'));
+   else
+    note.append(create('p','muted','Esta persona declara que no tiene interés comercial en esta recomendación.'));
+   wrap.append(note);
+  }
   function appendProfessionalAdvice(){
    if(typeof professionalRole!=='string'||!professionalRole.trim())return;
    const advice=create('aside','professional-advice');
@@ -206,10 +218,11 @@
    wrap.append(advice);
   }
   const match=String(body||'').match(/^(.*?)\s+Anuncio recomendado: (https:\/\/\S+)$/);
-  if(!match){wrap.append(create('p',null,body));appendProfessionalAdvice();return wrap;}
+  if(!match){wrap.append(create('p',null,body));appendSelfDisclosure();appendProfessionalAdvice();return wrap;}
   const safe=validatedMarketplaceUrl(match[2]);
-  if(!safe){wrap.append(create('p',null,body));appendProfessionalAdvice();return wrap;}
+  if(!safe){wrap.append(create('p',null,body));appendSelfDisclosure();appendProfessionalAdvice();return wrap;}
   if(match[1])wrap.append(create('p',null,match[1]));
+  appendSelfDisclosure();
   appendProfessionalAdvice();
   const extra=create('details','answer-related-link');
   extra.append(create('summary',null,'Ver enlace de Marketplace compartido (opcional)'));
@@ -368,7 +381,7 @@
    const accepted=String(a.id)===String(q.accepted_answer_id);
    const item=create('article','answer'+(accepted?' accepted':''));
    item.append(create('header','', '@'+a.author_username+' · '+date(a.created_at)),
-    answerContent(a.body,a.professional_role));
+    answerContent(a.body,a.professional_role,a.self_professional_role,a.self_commercial_interest));
    const actions=create('div','answer-actions');
    if(accepted)actions.append(chip('✓ Solución elegida',true));
    if(mine&&!solved)actions.append(button('Marcar como solución',async()=>{
@@ -477,7 +490,16 @@
     if(body.length>1500)throw new Error('La respuesta con el enlace supera los 1500 caracteres.');
     const professionalRole=el('answerProfessionalRole').value.trim();
     if(professionalRole.length>70)throw new Error('Indica una profesión en menos de 70 caracteres.');
-    await write('/api/resuelve/questions/'+state.question.id+'/answers',{body,professionalRole});
+    const selfProfessionalRole=el('answerSelfProfessionalRole').value.trim();
+    const commercialInterest=el('answerCommercialInterest').value;
+    if(selfProfessionalRole&&!['yes','no'].includes(commercialInterest))
+     throw new Error('Si indicas tu oficio, señala si tienes interés comercial.');
+    if(!selfProfessionalRole&&commercialInterest)
+     throw new Error('Indica el oficio o elimina la selección de interés comercial.');
+    if(selfProfessionalRole&&raw.length<60)
+     throw new Error('Explica tu consejo profesional con al menos 60 caracteres útiles.');
+    await write('/api/resuelve/questions/'+state.question.id+'/answers',
+     {body,professionalRole,selfProfessionalRole,commercialInterest});
     form.reset();message('Respuesta publicada. Gracias por ayudar.');await openDetail(state.question.id,false);
    }catch(err){message(err.message);}
    finally{submit.disabled=false;}
