@@ -809,6 +809,10 @@ async function adminImpactStats(){
   ") SELECT",
   "(SELECT count(*)::int FROM public_questions) AS public_questions,",
   "(SELECT count(*)::int FROM public_questions WHERE status='open') AS open_questions,",
+  // V3.6.22 — pendiente de ayuda: abierta y sin respuestas visibles.
+  "(SELECT count(*)::int FROM public_questions q WHERE q.status='open'",
+  "AND NOT EXISTS(SELECT 1 FROM resuelve_answers a",
+  "WHERE a.question_id=q.id AND a.status='visible')) AS open_without_answers,",
   "(SELECT count(*)::int FROM public_questions q WHERE q.status='resolved'",
   "AND EXISTS(SELECT 1 FROM visible_answers a WHERE a.id=q.accepted_answer_id)) AS resolved_questions,",
   "(SELECT count(DISTINCT question_id)::int FROM visible_answers) AS questions_with_answers,",
@@ -821,7 +825,7 @@ async function adminImpactStats(){
   "AND EXISTS(SELECT 1 FROM visible_answers a WHERE a.id=q.accepted_answer_id)) AS resolved_30d"
  ].join(' ');
  const result=(await db.query(sql)).rows[0]||{};
- const names=['public_questions','open_questions','resolved_questions','questions_with_answers',
+ const names=['public_questions','open_questions','open_without_answers','resolved_questions','questions_with_answers',
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
