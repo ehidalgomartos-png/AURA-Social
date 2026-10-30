@@ -33,3 +33,18 @@
  .resuelve-admin-wrap .review-item-actions{display:grid;grid-template-columns:1fr}
  .resuelve-admin-wrap .review-item-actions button,.resuelve-admin-wrap .review-item-actions a{width:100%;justify-content:center;text-align:center}
 }
+
+/* V3.5.20 — resumen de trabajo: los valores son solo de las páginas cargadas. */
+.resuelve-admin-work{padding:19px;margin:16px 0;border:1px solid #c5dce7;border-radius:15px;background:#f4f9fc}
+.resuelve-admin-work-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.resuelve-admin-work-head h2{margin:3px 0;font-size:1.3rem}
+.resuelve-admin-work-head p{margin:5px 0}
+.resuelve-admin-work-head button{min-height:44px}
+.resuelve-admin-work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.resuelve-admin-work-card{display:flex;flex-direction:column;gap:3px;border:1px solid #bbd8e6;border-radius:12px;padding:18px;background:#fff;color:#15475f;text-decoration:none}
+.resuelve-admin-work-card:hover,.resuelve-admin-work-card:focus-visible{outline:2px solid #14799b;outline-offset:2px}
+.resuelve-admin-work-card strong{font-size:2rem;font-variant-numeric:tabular-nums}
+.resuelve-admin-work-card span{font-weight:750}
+.resuelve-admin-work-card small{color:#526577}
+#adminWorkStatus{margin:0;font-size:.85rem}
+@media(max-width:650px){.resuelve-admin-work{padding:14px}.resuelve-admin-work-grid{grid-template-columns:1fr}.resuelve-admin-work-head button{width:100%}}
