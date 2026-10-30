@@ -45,6 +45,12 @@ router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12)
  if(!row)return fail(res,404,'peticion_no_encontrada');
  res.json({ok:true,id:row.id});
 }));
+// Estadísticas privadas y agregadas, sin datos identificativos ni valores estimados.
+router.get('/admin/impact',requireAuth,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ const metrics=await service.adminImpactStats();
+ res.json({ok:true,metrics,asOf:new Date().toISOString()});
+}));
 router.get('/admin/solutions/pending',requireAuth,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
  const before=req.query?.antes;

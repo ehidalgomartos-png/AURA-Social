@@ -370,4 +370,36 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+// V3.5.18 — impacto de ayuda real: métricas agregadas, no perfiles ni puntuaciones.
+async function adminImpactStats(){
+ await ensureSchema();
+ const sql=[
+  "WITH public_questions AS (",
+  "SELECT q.* FROM resuelve_questions q",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "WHERE q.status IN ('open','resolved')",
+  "), visible_answers AS (",
+  "SELECT a.* FROM resuelve_answers a",
+  "JOIN public_questions q ON q.id=a.question_id",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE a.status='visible'",
+  ") SELECT",
+  "(SELECT count(*)::int FROM public_questions) AS public_questions,",
+  "(SELECT count(*)::int FROM public_questions WHERE status='open') AS open_questions,",
+  "(SELECT count(*)::int FROM public_questions q WHERE q.status='resolved'",
+  "AND EXISTS(SELECT 1 FROM visible_answers a WHERE a.id=q.accepted_answer_id)) AS resolved_questions,",
+  "(SELECT count(DISTINCT question_id)::int FROM visible_answers) AS questions_with_answers,",
+  "(SELECT count(DISTINCT author_id)::int FROM visible_answers) AS unique_helpers,",
+  "(SELECT count(*)::int FROM public_questions q WHERE q.status='resolved' AND q.thanked_at IS NOT NULL",
+  "AND EXISTS(SELECT 1 FROM visible_answers a WHERE a.id=q.accepted_answer_id)) AS thanked_resolutions,",
+  "(SELECT count(*)::int FROM public_questions WHERE created_at>=now()-interval '30 days') AS questions_30d,",
+  "(SELECT count(*)::int FROM public_questions q WHERE q.status='resolved'",
+  "AND q.solved_at>=now()-interval '30 days'",
+  "AND EXISTS(SELECT 1 FROM visible_answers a WHERE a.id=q.accepted_answer_id)) AS resolved_30d"
+ ].join(' ');
+ const result=(await db.query(sql)).rows[0]||{};
+ const names=['public_questions','open_questions','resolved_questions','questions_with_answers',
+  'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
+ return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
+}
+module.exports={adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};

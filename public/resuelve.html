@@ -74,6 +74,19 @@
   </form>
   <p id="resuelveAuthStatus" class="resuelve-auth-status" role="status" aria-live="polite"></p>
  </section>
+ <section id="adminImpactPanel" class="panel resuelve-impact-panel" hidden aria-labelledby="adminImpactTitle">
+  <div class="panel-head">
+   <div>
+    <p class="eyebrow dark">SOLO ADMINISTRACIÓN · DATOS REALES</p>
+    <h2 id="adminImpactTitle">Impacto de Resuelve</h2>
+    <p class="muted">Actividad registrada de la comunidad. No incluye respuestas ocultas ni cifras estimadas. Los agradecimientos son voluntarios.</p>
+   </div>
+   <button id="refreshAdminImpact" class="secondary" type="button">Actualizar datos</button>
+  </div>
+  <p id="adminImpactStatus" class="muted" role="status" aria-live="polite">Cargando estadísticas…</p>
+  <div id="adminImpactMetrics" class="resuelve-impact-grid"></div>
+  <p class="muted">Una petición con respuestas no significa necesariamente que esté resuelta. Las soluciones son las que sus autores han confirmado.</p>
+ </section>
  <section id="libraryReviewPanel" class="panel" hidden aria-labelledby="libraryReviewTitle">
   <div class="panel-head"><div>
    <p class="eyebrow dark">SOLO ADMINISTRACIÓN</p>

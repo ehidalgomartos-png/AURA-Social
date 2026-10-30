@@ -23,6 +23,24 @@ function database(){
    const u=users.get(Number(args[0]));
    return {rowCount:u?1:0,rows:u?[{...u,age_verified:true,show_sensitive:false,status:'active',auth_token_version:0,suspended_until:null,suspension_reason:''}]:[]};
   }
+  if(sql.startsWith('WITH public_questions AS (')){
+   const visible=[...questions.values()].filter(q=>['open','resolved'].includes(q.status)&&users.has(q.author_id));
+   const allAnswers=[...answers.values()].filter(a=>a.status==='visible'&&
+    visible.some(q=>q.id===a.question_id)&&users.has(a.author_id));
+   const accepted=q=>allAnswers.some(a=>a.id===q.accepted_answer_id&&a.question_id===q.id);
+   const recent=date=>date&&new Date(date).getTime()>=Date.now()-30*24*60*60*1000;
+   const row={
+    public_questions:visible.length,
+    open_questions:visible.filter(q=>q.status==='open').length,
+    resolved_questions:visible.filter(q=>q.status==='resolved'&&accepted(q)).length,
+    questions_with_answers:new Set(allAnswers.map(a=>a.question_id)).size,
+    unique_helpers:new Set(allAnswers.map(a=>a.author_id)).size,
+    thanked_resolutions:visible.filter(q=>q.status==='resolved'&&q.thanked_at&&accepted(q)).length,
+    questions_30d:visible.filter(q=>recent(q.created_at)).length,
+    resolved_30d:visible.filter(q=>q.status==='resolved'&&recent(q.solved_at)&&accepted(q)).length
+   };
+   return {rows:[row],rowCount:1};
+  }
   if(sql.startsWith('INSERT INTO resuelve_questions(')){
    const row={id:qi++,author_id:Number(args[0]),title:args[1],body:args[2],category:args[3],professional_help_requested:args[4]===true,
     status:'open',accepted_answer_id:null,library_approved_answer_id:null,library_opt_out:false,created_at:new Date().toISOString()};
@@ -659,6 +677,52 @@ test('V3.5.17: agradecimiento único y previsualización social solo para autora
   assert.ok(stub.audit.some(x=>x.sql.includes('q.author_id=$2')&&x.sql.includes("q.status='resolved'")));
  });
 });
+test('V3.5.18: estadísticas agregadas reales y exclusivas de administradores',async()=>{
+ await withApp(async(req,stub)=>{
+  const url='/api/resuelve/admin/impact',now=new Date().toISOString(),old='2024-01-01T00:00:00Z';
+  assert.equal((await req(url)).status,401);
+  assert.equal((await req(url,{user:1})).status,403);
+  assert.equal((await req(url,{user:2})).status,403);
+  const empty=await req(url,{user:3});
+  assert.equal(empty.status,200);
+  assert.deepEqual(empty.data.metrics,{
+   public_questions:0,open_questions:0,resolved_questions:0,
+   questions_with_answers:0,unique_helpers:0,thanked_resolutions:0,
+   questions_30d:0,resolved_30d:0
+  });
+  assert.ok(!Number.isNaN(Date.parse(empty.data.asOf)));
+  const q=(id,author_id,status,created_at=now)=>({
+   id,author_id,status,created_at,title:'Ejemplo real de ayuda',
+   body:'Consulta para recibir una orientación útil de la comunidad.',
+   category:'ayuda',accepted_answer_id:null,thanked_at:null,solved_at:null
+  });
+  stub.questions.set(991,q(991,1,'open'));
+  stub.questions.set(992,{...q(992,2,'resolved'),accepted_answer_id:998,thanked_at:now,solved_at:now});
+  stub.questions.set(993,q(993,3,'hidden'));
+  stub.questions.set(994,{...q(994,1,'resolved'),accepted_answer_id:996,solved_at:now});
+  stub.questions.set(995,q(995,3,'open',old));
+  stub.answers.set(997,{id:997,question_id:991,author_id:2,status:'visible'});
+  stub.answers.set(998,{id:998,question_id:992,author_id:1,status:'visible'});
+  stub.answers.set(999,{id:999,question_id:993,author_id:2,status:'visible'});
+  stub.answers.set(996,{id:996,question_id:994,author_id:2,status:'hidden'});
+  const response=await req(url,{user:3});
+  assert.equal(response.status,200);
+  assert.deepEqual(response.data.metrics,{
+   public_questions:4,open_questions:2,resolved_questions:1,
+   questions_with_answers:2,unique_helpers:2,thanked_resolutions:1,
+   questions_30d:3,resolved_30d:1
+  });
+  assert.deepEqual(Object.keys(response.data),['ok','metrics','asOf']);
+  assert.ok(!JSON.stringify(response.data).includes('998'));
+  const query=stub.audit.find(x=>x.sql.startsWith('WITH public_questions AS ('));
+  assert.ok(query.sql.includes("author.status='active'"));
+  assert.ok(query.sql.includes("respondent.status='active'"));
+  assert.ok(query.sql.includes("a.status='visible'"));
+  assert.ok(query.sql.includes("q.status IN ('open','resolved')"));
+  assert.ok(query.sql.includes("count(DISTINCT author_id)"));
+  assert.equal(query.args.length,0);
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -694,6 +758,13 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.doesNotMatch(js,/action\('Explorar Marketplace'/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
+ assert.match(html,/id="adminImpactPanel"/);
+ assert.match(html,/id="adminImpactMetrics"/);
+ assert.match(html,/id="refreshAdminImpact"/);
+ assert.match(js,/async function loadAdminImpact\(\)/);
+ assert.match(js,/\/api\/resuelve\/admin\/impact/);
+ assert.match(js,/resuelve-impact-tile/);
+
  assert.match(html,/id="inviteHelpSection"/);
  assert.match(html,/id="inviteHelpToggle"/);
  assert.match(html,/id="inviteWhatsApp"/);

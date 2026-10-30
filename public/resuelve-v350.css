@@ -369,3 +369,15 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .question-share-methods>a,.question-share-methods>button{width:100%;min-width:0;font-size:.83rem}
 }
 @media(max-width:360px){.question-share-methods{grid-template-columns:1fr}}
+
+/* V3.5.18: impacto real, solo administradores; cifras legibles en móvil */
+.resuelve-impact-panel{border:1px solid #c9dfe8;background:#f8fbfd}
+.resuelve-impact-panel .panel-head{align-items:center;gap:12px;flex-wrap:wrap}
+.resuelve-impact-panel #refreshAdminImpact{min-height:44px;color:#125575;background:#fff;border-color:#bbd4de}
+.resuelve-impact-panel #adminImpactStatus{margin:11px 0}
+.resuelve-impact-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.resuelve-impact-tile{display:flex;flex-direction:column;gap:7px;border-radius:11px;border:1px solid #d6e7ee;background:#fff;padding:13px;min-width:0}
+.resuelve-impact-tile strong{font-size:1.7rem;line-height:1.15;font-weight:800;color:#135d7a;font-variant-numeric:tabular-nums}
+.resuelve-impact-tile span{font-size:.85rem;color:#3d5769;line-height:1.35}
+@media(max-width:800px){.resuelve-impact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.resuelve-impact-grid{gap:8px}.resuelve-impact-tile{padding:11px}.resuelve-impact-tile strong{font-size:1.45rem}.resuelve-impact-panel #refreshAdminImpact{width:100%}}

@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false};
+ const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false,impactLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -131,6 +131,41 @@
   finally{state.solutionLoading=false;}
  }
 // V3.5.8: cola editorial disponible solo en sesiones de administración.
+ // V3.5.18 — cifras verificables en servidor, visibles solo para administración.
+ async function loadAdminImpact(){
+  if(!(state.user?.is_admin||state.user?.isAdmin)||state.impactLoading)return;
+  state.impactLoading=true;
+  const status=el('adminImpactStatus'),grid=el('adminImpactMetrics'),refresh=el('refreshAdminImpact');
+  refresh.disabled=true;
+  status.textContent='Actualizando datos reales…';
+  try{
+   const result=await request('/api/resuelve/admin/impact');
+   if(!result.ok||!result.metrics)throw Error('estadisticas_no_disponibles');
+   const definitions=[
+    ['public_questions','Peticiones públicas'],
+    ['open_questions','Pendientes de resolver'],
+    ['questions_with_answers','Peticiones con respuestas'],
+    ['resolved_questions','Problemas resueltos'],
+    ['unique_helpers','Personas que han respondido'],
+    ['thanked_resolutions','Soluciones agradecidas'],
+    ['questions_30d','Peticiones · últimos 30 días'],
+    ['resolved_30d','Resueltas · últimos 30 días']
+   ];
+   const tiles=[];
+   for(const [key,label] of definitions){
+    const raw=result.metrics[key],value=Number(raw);
+    if(!Number.isSafeInteger(value)||value<0)throw Error('estadisticas_no_validas');
+    const tile=create('div','resuelve-impact-tile');
+    tile.append(create('strong',null,value.toLocaleString('es-ES')),
+     create('span',null,label));
+    tiles.push(tile);
+   }
+   grid.replaceChildren(...tiles);
+   const at=new Date(result.asOf);
+   status.textContent='Actualizado: '+(Number.isNaN(at.getTime())?'recientemente':at.toLocaleString('es-ES'));
+  }catch(_){status.textContent='No se pudieron cargar las estadísticas. Inténtalo de nuevo.';}
+  finally{state.impactLoading=false;refresh.disabled=false;}
+ }
  async function loadReviewQueue(more=false){
   if(!(state.user?.is_admin||state.user?.isAdmin)||state.reviewLoading)return;
   state.reviewLoading=true;
@@ -242,6 +277,7 @@
   if(state.user?.is_admin||state.user?.isAdmin){
    el('libraryReviewPanel').hidden=open;
    el('adminReportsPanel').hidden=open;
+   el('adminImpactPanel').hidden=open;
   }
   el('askPanel').hidden=true;
  }
@@ -640,6 +676,7 @@
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
   el('libraryReviewPanel').hidden=!isAdmin;
   el('adminReportsPanel').hidden=!isAdmin;
+  el('adminImpactPanel').hidden=!isAdmin;
   return isAdmin;
  }
  function authError(error,status){
@@ -669,6 +706,7 @@
   el('resuelveLoginForm').reset();
   renderSession();
   if(state.user?.is_admin||state.user?.isAdmin){
+   await loadAdminImpact();
    await loadReviewQueue();
    await loadAnswerReports();
   }
@@ -728,7 +766,7 @@
   bindResuelveAuth();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(isAdmin){await loadReviewQueue();await loadAnswerReports();}
+  if(isAdmin){await loadAdminImpact();await loadReviewQueue();await loadAnswerReports();}
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;
@@ -819,6 +857,7 @@
   el('moreSolutions').addEventListener('click',()=>loadSolutions(true));
   el('moreLibraryReview').addEventListener('click',()=>loadReviewQueue(true));
   el('moreAdminReports').addEventListener('click',()=>loadAnswerReports(true));
+  el('refreshAdminImpact').addEventListener('click',()=>loadAdminImpact());
   el('askForm').addEventListener('submit',async event=>{
    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');
    if(submit.disabled)return;submit.disabled=true;
