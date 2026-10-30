@@ -387,10 +387,13 @@ test('V3.5.11 orienta hacia una profesión sin permitir anuncios, teléfonos ni 
  assert.equal(valid(45),undefined);
  assert.equal(valid('x'.repeat(71)),undefined);
  await withApp(async(req,stub)=>{
-  const q=(await req('/api/resuelve/questions',{user:1,method:'POST',body:{
-   title:'Problema eléctrico en una vivienda',
+  const q=939;
+  stub.questions.set(q,{
+   id:q,author_id:1,title:'Problema eléctrico en una vivienda',
    body:'Necesito saber a quién consultar porque salta continuamente un interruptor de protección.',
-   category:'ayuda'}})).data.id;
+   category:'ayuda',status:'open',accepted_answer_id:null,
+   library_approved_answer_id:null,library_opt_out:false
+  });
   const route='/api/resuelve/questions/'+q+'/answers';
   const body='No manipules el cuadro ni desmontes enchufes. Un especialista puede revisar la instalación con seguridad.';
   assert.equal((await req(route,{user:2,method:'POST',body:{body,professionalRole:'https://empresa.es'}})).status,400);
@@ -421,7 +424,7 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(js,/answerContent\(a\.body,a\.professional_role\)/);
  assert.match(html,/id="resuelveExtras"/);
  assert.match(html,/class="optional-listing"/);
- assert.match(html,/no hace falta comprar/i);
+ assert.match(html,/Nadie tiene que comprar/i);
  assert.match(js,/editorialReviewControls/);
  assert.match(js,/nonCommercialReviewed:true/);
  assert.match(js,/create\('details','answer-related-link'\)/);
