@@ -13,7 +13,7 @@ const SECRET='local-test-only-resuelve-350';
 const TOKENS=new Map();
 function token(id){if(!TOKENS.has(id))TOKENS.set(id,jwt.sign({id,authVersion:0},SECRET));return TOKENS.get(id);}
 function database(){
- const questions=new Map(),answers=new Map(),reports=new Map();let qi=1,ai=1,ri=1;
+ const questions=new Map(),answers=new Map(),reports=new Map(),helpPrefs=new Map();let qi=1,ai=1,ri=1;
  const audit=[];
  const users=new Map([[1,{id:1,username:'ana',is_admin:false}],[2,{id:2,username:'luis',is_admin:false}],[3,{id:3,username:'admin',is_admin:true}]]);
  async function query(sql,args=[]){
@@ -70,6 +70,25 @@ function database(){
    if(!q||q.author_id!==Number(args[1])||q.status==='hidden')return {rows:[],rowCount:0};
    q.library_opt_out=true;q.library_approved_answer_id=null;
    return {rows:[{id:q.id}],rowCount:1};
+  }
+  if(sql.startsWith('SELECT categories FROM resuelve_help_preferences WHERE user_id=')){
+   const pref=helpPrefs.get(Number(args[0]));
+   return {rows:pref?[{categories:pref}]:[],rowCount:pref?1:0};
+  }
+  if(sql.startsWith('INSERT INTO resuelve_help_preferences(')){
+   const topics=[...args[1]];
+   helpPrefs.set(Number(args[0]),topics);
+   return {rows:[{categories:topics}],rowCount:1};
+  }
+  if(sql.startsWith('SELECT q.id,q.title,q.body') && sql.includes('JOIN resuelve_help_preferences p')){
+   const topics=helpPrefs.get(Number(args[0]))||[];
+   const rows=[...questions.values()].filter(q=>q.status==='open'&&
+    q.author_id!==Number(args[0])&&topics.includes(q.category)&&
+    (!args[1]||q.id<Number(args[1]))&&users.has(q.author_id))
+    .sort((a,b)=>b.id-a.id).slice(0,24)
+    .map(q=>({...q,author_username:users.get(q.author_id).username,
+     answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
+   return {rows,rowCount:rows.length};
   }
   if(sql.startsWith('SELECT q.id, q.title')) {
    const rows=[...questions.values()].filter(q=>q.author_id===Number(args[0])&&q.status!=='hidden'&&
@@ -170,7 +189,7 @@ function database(){
   }
   throw Error('SQL no esperado en prueba: '+sql.slice(0,145));
  }
- return {query,audit,questions,answers,reports};
+ return {query,audit,questions,answers,reports,helpPrefs};
 }
 async function withApp(callback){
  const previous=db.query,previousJwt=process.env.JWT_SECRET;
@@ -551,6 +570,50 @@ test('V3.5.14: avisos privados, permisos, duplicados y moderación humana',async
   assert.equal(stub.reports.get(Number(first.data.id)).status,'dismissed');
  });
 });
+test('V3.5.16: áreas voluntarias, consulta privada y sin recomendar peticiones propias',async()=>{
+ assert.equal(service.validHelpTopics([]),true);
+ assert.equal(service.validHelpTopics(['consejo','ayuda']),true);
+ for(const bad of [null,'ayuda',['desconocido'],['ayuda','ayuda'],['consejo',7],['consejo','busco','ayuda','experiencia','otro']])
+  assert.equal(service.validHelpTopics(bad),false);
+ await withApp(async(req,stub)=>{
+  const pref='/api/resuelve/help-topics',feed='/api/resuelve/questions/for-me';
+  assert.equal((await req(pref)).status,401);
+  assert.equal((await req(feed)).status,401);
+  assert.equal((await req(pref,{user:1})).data.categories.length,0);
+  assert.equal((await req(pref,{user:1,method:'POST',body:{categories:['consejo']},origin:'foreign'})).status,403);
+  assert.equal((await req(pref,{user:1,method:'POST',body:{categories:['consejo','consejo']}})).status,400);
+  assert.equal((await req(pref,{user:1,method:'POST',body:{categories:['no_existe']}})).status,400);
+  assert.equal((await req(pref,{user:1,method:'POST',body:{categories:'ayuda'}})).status,400);
+  stub.questions.set(1041,{id:1041,author_id:1,title:'Pido consejo',body:'Pido ayuda para un trámite',
+   category:'ayuda',status:'open',created_at:new Date().toISOString()});
+  stub.questions.set(1042,{id:1042,author_id:2,title:'Consulta sobre trámite',body:'¿Cómo orientar a una persona que necesita información?',
+   category:'ayuda',status:'open',created_at:new Date().toISOString()});
+  stub.questions.set(1043,{id:1043,author_id:3,title:'Experiencias útiles',body:'Compartir una experiencia sobre un procedimiento',
+   category:'experiencia',status:'open',created_at:new Date().toISOString()});
+  stub.questions.set(1044,{id:1044,author_id:2,title:'Consejo resuelto',body:'Cómo solucionar una cuestión concreta',
+   category:'ayuda',status:'resolved',created_at:new Date().toISOString()});
+  stub.questions.set(1045,{id:1045,author_id:2,title:'Contenido oculto',body:'Este contenido está moderado',
+   category:'ayuda',status:'hidden',created_at:new Date().toISOString()});
+  assert.equal((await req(feed,{user:1})).data.items.length,0);
+  const save=await req(pref,{user:1,method:'POST',body:{categories:['ayuda','experiencia']}});
+  assert.equal(save.status,200);
+  assert.deepEqual(save.data.categories,['ayuda','experiencia']);
+  assert.deepEqual((await req(pref,{user:1})).data.categories,['ayuda','experiencia']);
+  assert.equal((await req(pref,{user:2})).data.categories.length,0);
+  const visible=await req(feed,{user:1});
+  assert.equal(visible.status,200);
+  assert.deepEqual(visible.data.items.map(q=>Number(q.id)),[1043,1042]);
+  assert.equal(visible.data.items.some(q=>q.author_id===1),false);
+  assert.equal((await req(feed+'?antes=-1',{user:1})).status,400);
+  assert.deepEqual((await req(feed+'?antes=1043',{user:1})).data.items.map(q=>Number(q.id)),[1042]);
+  assert.equal((await req(feed,{user:2})).data.items.length,0);
+  assert.equal((await req(pref,{user:1,method:'POST',body:{categories:[]}})).status,200);
+  assert.equal((await req(feed,{user:1})).data.items.length,0);
+  assert.equal(stub.helpPrefs.get(1).length,0);
+  assert.ok(stub.audit.some(x=>x.sql.includes('q.author_id<>$1')));
+  assert.ok(stub.audit.some(x=>x.sql.includes('q.category=ANY(p.categories)')));
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -586,6 +649,14 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.doesNotMatch(js,/action\('Explorar Marketplace'/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
+ assert.match(html,/data-filter="help"[^>]*hidden>Puedo ayudar/);
+ assert.match(html,/id="helpTopicsPanel"/);
+ assert.match(html,/id="helpTopicsForm"/);
+ assert.match(html,/id="helpTopicsStatus"/);
+ assert.match(js,/\/api\/resuelve\/questions\/for-me/);
+ assert.match(js,/\/api\/resuelve\/help-topics/);
+ assert.match(js,/loadHelpTopics\(\)/);
+ assert.match(js,/saveHelpTopics\(categories\)/);
  assert.match(html,/placeholder="Ej.: ayuda para hacer un trámite"/);
  assert.match(html,/placeholder="Ej.: cómo actuar ante una avería"/);
  assert.match(html,/id="askProfessionalHelp"/);
