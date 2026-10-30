@@ -121,6 +121,13 @@
   </form>
   <p id="helpTopicsStatus" class="muted" role="status" aria-live="polite"></p>
  </section>
+ <details id="resuelveReplyEmailSettings" class="resuelve-email-settings" hidden>
+  <summary>Avisos cuando respondan a mis preguntas</summary>
+  <p class="muted">Los avisos dentro de RedLibertad ya funcionan. Si activas el correo, recibirás un recordatorio solo cuando haya respuestas nuevas sin consultar, sin copiar datos privados ni el contenido.</p>
+  <label class="resuelve-email-opt-in"><input id="resuelveReplyEmailToggle" type="checkbox" disabled> Quiero recibir avisos opcionales por correo electrónico</label>
+  <p id="resuelveReplyEmailStatus" class="muted" role="status" aria-live="polite">Comprobando preferencias…</p>
+  <p><a href="/app?view=notifications">Ver mis notificaciones en RedLibertad</a></p>
+ </details>
  <form id="questionSearchForm" class="resuelve-search" role="search">
    <label class="resuelve-search-main" for="questionSearch">Buscar peticiones
     <input id="questionSearch" type="search" maxlength="80" placeholder="Ej.: ayuda para hacer un trámite" autocomplete="off">
