@@ -24,8 +24,14 @@
  <section class="hero" aria-labelledby="hero-title">
   <p class="eyebrow">PERSONAS QUE AYUDAN A PERSONAS</p>
   <h1 id="hero-title">Pide ayuda. Comparte lo que sabes.</h1>
-  <p>Un consejo sincero o una experiencia real pueden resolver mucho. Si el problema necesita un especialista, podemos orientar sobre qué profesional consultar. Nadie tiene que comprar ni contratar nada para participar.</p>
-  <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><button id="joinResuelveButton" class="primary" type="button" hidden>Crear cuenta y pedir ayuda</button><button id="loginResuelveButton" class="secondary" type="button" hidden>Ya tengo cuenta</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
+  <p class="hero-description">Pide consejo o comparte tu experiencia. Nadie tiene que comprar ni contratar nada para participar.</p>
+  <div id="heroActions" class="hero-actions">
+   <button id="askButton" class="primary hero-main-action" type="button" hidden>Pedir ayuda</button>
+   <button id="joinResuelveButton" class="primary hero-main-action" type="button" hidden>Pedir ayuda</button>
+   <button id="loginResuelveButton" class="secondary hero-login" type="button" hidden>Ya tengo cuenta</button>
+   <a id="viewQuestionsLink" href="#questions" class="secondary hero-explore">Ver peticiones</a>
+   <a href="#solutions" class="hero-tertiary">Ver soluciones útiles</a>
+  </div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
  <section id="resuelveAuthPanel" class="panel resuelve-auth-panel" hidden aria-labelledby="resuelveAuthTitle">
