@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.31 Topic landings with author consent and thin-page noindex
+        run: node --test tests/resuelve-topic-landings-v3531.test.js
       - name: V3.5.30 Approved Resuelve sitemap and Article JSON-LD
         run: node --test tests/resuelve-sitemap-v3530.test.js
       - name: V3.5.29 Opt-in public solution SEO pages
