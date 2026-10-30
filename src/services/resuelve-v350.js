@@ -683,6 +683,50 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
+// V3.5.37 — serie de 7 días para revisión humana, sin identidades ni contenido privado.
+async function adminActivity7d(){
+ await ensureSchema();
+ const sql=[
+  "WITH days AS (SELECT (current_date - n)::date AS day FROM generate_series(0,6) AS n),",
+  "new_questions AS (SELECT q.created_at::date AS day,count(*)::int AS qty",
+  "FROM resuelve_questions q",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "WHERE q.status<>'hidden' AND q.created_at>=current_date-interval '6 days'",
+  "GROUP BY q.created_at::date),",
+  "new_answers AS (SELECT a.created_at::date AS day,count(*)::int AS qty",
+  "FROM resuelve_answers a",
+  "JOIN resuelve_questions q ON q.id=a.question_id AND q.status<>'hidden'",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE a.status='visible' AND a.created_at>=current_date-interval '6 days'",
+  "GROUP BY a.created_at::date),",
+  "new_resolutions AS (SELECT q.solved_at::date AS day,count(*)::int AS qty",
+  "FROM resuelve_questions q",
+  "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.status='visible'",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE q.status='resolved' AND q.solved_at>=current_date-interval '6 days'",
+  "GROUP BY q.solved_at::date)",
+  "SELECT to_char(days.day,'YYYY-MM-DD') AS day,",
+  "coalesce(new_questions.qty,0)::int AS questions,",
+  "coalesce(new_answers.qty,0)::int AS answers,",
+  "coalesce(new_resolutions.qty,0)::int AS resolutions",
+  "FROM days LEFT JOIN new_questions ON new_questions.day=days.day",
+  "LEFT JOIN new_answers ON new_answers.day=days.day",
+  "LEFT JOIN new_resolutions ON new_resolutions.day=days.day",
+  "ORDER BY days.day ASC"
+ ].join(' ');
+ const r=await db.query(sql);
+ return r.rows.map(row=>{
+  const result={day:row.day};
+  for(const key of ['questions','answers','resolutions']){
+   const n=Number(row[key]);
+   if(!Number.isSafeInteger(n)||n<0)throw Error('metricas_invalidas');
+   result[key]=n;
+  }
+  return result;
+ });
+}
 // V3.5.18 — impacto de ayuda real: métricas agregadas, no perfiles ni puntuaciones.
 async function adminImpactStats(){
  await ensureSchema();
@@ -715,4 +759,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={similarQueryTokens,similarQuestions,publicQuestionSharePreview,TOPICS,setQuestionTopic,sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={adminActivity7d,similarQueryTokens,similarQuestions,publicQuestionSharePreview,TOPICS,setQuestionTopic,sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};

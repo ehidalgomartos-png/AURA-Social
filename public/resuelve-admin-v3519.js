@@ -69,6 +69,30 @@
    status.textContent='Actualizado: '+(Number.isNaN(updated.getTime())?'ahora':updated.toLocaleString('es-ES'));
   }catch(err){status.textContent=err.message;}finally{state.impactBusy=false;refresh.disabled=false;}
  }
+ // V3.5.37 — tendencia real solo para administración; jamás cifras estimadas.
+ async function activity7d(){
+  const button=el('refreshActivity7d'),tbody=el('activity7dRows'),status=el('activity7dStatus');
+  if(button.disabled)return;
+  button.disabled=true;status.textContent='Consultando la actividad diaria…';
+  try{
+   const data=await api('/api/resuelve/admin/activity-7d');
+   if(!Array.isArray(data.days)||data.days.length!==7)throw Error('Datos diarios incompletos.');
+   const rows=data.days.map(day=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(day.day||'')))throw Error('Fecha inválida.');
+    const tr=node('tr');
+    tr.append(node('th',null,day.day));
+    for(const key of ['questions','answers','resolutions']){
+     const value=Number(day[key]);
+     if(!Number.isSafeInteger(value)||value<0)throw Error('Cifras diarias inválidas.');
+     tr.append(node('td',null,value.toLocaleString('es-ES')));
+    }
+    return tr;
+   });
+   tbody.replaceChildren(...rows);
+   status.textContent='Datos agregados de los 7 últimos días según el calendario del servidor, sin información personal.';
+  }catch(err){status.textContent=err.message;}
+  finally{button.disabled=false;}
+ }
  const requirements=[
   ['qualityReviewed','La solución aporta una explicación útil sin necesidad de comprar o contratar nada.'],
   ['privacyReviewed','He comprobado que no contiene información personal que deba quedar expuesta.'],
@@ -205,6 +229,7 @@
    el('resuelveAdminAccess').hidden=true;
    el('resuelveAdminContent').hidden=false;
    el('refreshAdminImpact').addEventListener('click',impact);
+   el('refreshActivity7d').addEventListener('click',activity7d);
    el('refreshAdminWork').addEventListener('click',async()=>{await Promise.all([solutions(),reports()]);});
    el('refreshLibraryReview').addEventListener('click',()=>solutions());
    el('refreshAdminReports').addEventListener('click',()=>reports());
@@ -212,7 +237,7 @@
    el('moreLibraryReview').addEventListener('click',()=>solutions(true));
    el('moreAdminReports').addEventListener('click',()=>reports(true));
    // Cargar de forma independiente para que un error no impida acceder a otros paneles.
-   await Promise.all([impact(),solutions(),reports(),trustSummary()]);
+   await Promise.all([impact(),solutions(),reports(),trustSummary(),activity7d()]);
   }catch(err){
    el('resuelveAdminAccess').textContent=err.message+
     ' Puedes volver a Resuelve para iniciar sesión con tu cuenta administradora.';

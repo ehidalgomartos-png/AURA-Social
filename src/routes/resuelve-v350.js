@@ -69,6 +69,11 @@ router.post('/questions/:id/library/opt-out',requireAuth,checkOrigin,limiter(12)
  res.json({ok:true,id:row.id});
 }));
 // Estadísticas privadas y agregadas, sin datos identificativos ni valores estimados.
+router.get('/admin/activity-7d',requireAuth,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ const days=await service.adminActivity7d();
+ res.json({ok:true,days,asOf:new Date().toISOString()});
+}));
 router.get('/admin/impact',requireAuth,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
  const metrics=await service.adminImpactStats();
