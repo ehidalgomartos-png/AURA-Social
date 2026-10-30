@@ -561,3 +561,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-help-suggestion a{font-weight:750;line-height:1.45;overflow-wrap:anywhere}
 .resuelve-help-suggestion .muted{margin:0;font-size:.79rem}
 @media(max-width:740px){.resuelve-help-suggestions{padding:14px}.resuelve-help-suggestions-list{grid-template-columns:1fr}.resuelve-help-suggestions-head>button{width:100%}}
+
+/* V3.6.1 — Seguimiento voluntario de preguntas abiertas, sin correo. */
+.resuelve-follow-control{margin:15px 0;padding:15px;border-radius:14px;border:1px solid #c5ded9;background:#f7fcfa;display:grid;gap:8px;justify-items:start}
+.resuelve-follow-control button{min-height:44px;padding:10px 17px;border-radius:12px}
+.resuelve-follow-control button[aria-pressed="true"]{background:#155e60;color:#fff;border-color:#155e60}
+.resuelve-follow-control button:focus-visible{outline:3px solid #16858c;outline-offset:3px}
+.resuelve-follow-control p{margin:0;line-height:1.5}
+@media(max-width:650px){.resuelve-follow-control{padding:12px}.resuelve-follow-control button{width:100%}}

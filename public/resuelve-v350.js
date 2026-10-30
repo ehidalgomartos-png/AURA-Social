@@ -711,6 +711,43 @@
   details.append(form);
   return details;
  }
+ // V3.6.1 — seguir una pregunta abierta es opcional y revocable.
+ function questionFollowControl(q){
+  const followerId=String(state.user?.id??'');
+  const wrap=create('section','resuelve-follow-control');
+  const action=button('Seguir esta pregunta',async()=>{
+   if(action.disabled)return;
+   action.disabled=true;
+   try{
+    const enabled=action.dataset.enabled!=='true';
+    await write('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/follow',{enabled});
+    await refresh();
+   }catch(error){status.textContent=error.message;action.disabled=false;}
+  },'secondary');
+  action.disabled=true;action.setAttribute('aria-pressed','false');
+  const status=create('p','muted','Comprobando seguimiento…');
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const description=create('p','muted',
+   'Recibirás como máximo un aviso al día dentro de RedLibertad si alguien responde. No se enviarán correos y podrás dejar de seguirla.');
+  async function refresh(){
+   try{
+    const data=await request('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/follow');
+    if(!state.user||String(state.user.id)!==followerId||String(state.question?.id)!==String(q.id))return;
+    const enabled=data.enabled===true;
+    action.dataset.enabled=String(enabled);
+    action.setAttribute('aria-pressed',String(enabled));
+    action.textContent=enabled?'Dejar de seguir esta pregunta':'Seguir esta pregunta';
+    action.disabled=q.status!=='open'&&!enabled;
+    status.textContent=enabled?'Seguimiento activado. Puedes cambiarlo cuando quieras.':
+     q.status==='open'?'Seguimiento desactivado.':'Esta pregunta ya está resuelta. No admite nuevos seguidores.';
+   }catch(error){
+    if(String(state.user?.id??'')!==followerId||String(state.question?.id)!==String(q.id))return;
+    action.disabled=true;status.textContent=error.message;
+   }
+  }
+  wrap.append(action,description,status);
+  void refresh();return wrap;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -725,6 +762,7 @@
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
   if(mine)host.append(questionTopicControls(q));
+  if(state.user&&!mine)host.append(questionFollowControl(q));
   if(mine&&!solved){
    const details=create('details','resuelve-clarification');
    details.append(create('summary',null,'Añadir una aclaración a mi pregunta'));
