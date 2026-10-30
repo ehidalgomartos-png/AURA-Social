@@ -108,7 +108,7 @@ ${renderPublicShareLinks(canonical,'solucion')}
 <a class="primary" href="/resuelve">Pedir ayuda o ayudar a alguien</a>
 </div>
 </article></main>
-<footer class="foot">Resuelve · Personas que ayudan a personas</footer>
+<footer class="foot">Resuelve · Personas que ayudan a personas · <a href="/resuelve/como-funciona">Cómo funciona Resuelve</a> · <a href="/">Conocer RedLibertad</a></footer>
 </body></html>`;
 }
 // V3.5.32: vista previa para compartir una pregunta, siempre NOINDEX.
