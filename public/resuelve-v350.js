@@ -713,6 +713,7 @@
  }
  // V3.6.1 — seguir una pregunta abierta es opcional y revocable.
  function questionFollowControl(q){
+  const followerId=String(state.user?.id??'');
   const wrap=create('section','resuelve-follow-control');
   const action=button('Seguir esta pregunta',async()=>{
    if(action.disabled)return;
@@ -731,7 +732,7 @@
   async function refresh(){
    try{
     const data=await request('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/follow');
-    if(!state.user||String(state.question?.id)!==String(q.id))return;
+    if(!state.user||String(state.user.id)!==followerId||String(state.question?.id)!==String(q.id))return;
     const enabled=data.enabled===true;
     action.dataset.enabled=String(enabled);
     action.setAttribute('aria-pressed',String(enabled));
@@ -739,7 +740,10 @@
     action.disabled=q.status!=='open'&&!enabled;
     status.textContent=enabled?'Seguimiento activado. Puedes cambiarlo cuando quieras.':
      q.status==='open'?'Seguimiento desactivado.':'Esta pregunta ya está resuelta. No admite nuevos seguidores.';
-   }catch(error){action.disabled=true;status.textContent=error.message;}
+   }catch(error){
+    if(String(state.user?.id??'')!==followerId||String(state.question?.id)!==String(q.id))return;
+    action.disabled=true;status.textContent=error.message;
+   }
   }
   wrap.append(action,description,status);
   void refresh();return wrap;
