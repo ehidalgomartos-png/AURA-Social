@@ -25,7 +25,10 @@ test('V3.6.15: preguntas frecuentes nativas tienen controles grandes y foco visi
 
 test('V3.6.15: fichas y temas no desbordan en móvil ni reducen áreas táctiles',()=>{
  const css=read('public/resuelve-v350.css');
- const tail=css.slice(css.lastIndexOf('/* V3.6.15'));
+ const start=css.lastIndexOf('/* V3.6.15');
+ const end=css.indexOf('/* V3.6.17',start);
+ assert.ok(start>=0&&end>start);
+ const tail=css.slice(start,end);
  assert.ok(tail.startsWith('/* V3.6.15'));
  assert.match(tail,/\.resuelve-seo-solution h1/);
  assert.match(tail,/\.resuelve-topic-item h2/);

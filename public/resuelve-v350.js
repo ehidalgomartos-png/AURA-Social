@@ -180,7 +180,8 @@
   try{
    const params=new URLSearchParams();
    if(!['mine','help','contributed'].includes(state.filter)){
-    params.set('estado',state.filter);
+    params.set('estado',state.filter==='unanswered'?'open':state.filter);
+    if(state.filter==='unanswered')params.set('sin_respuestas','si');
     if(state.category)params.set('categoria',state.category);
     if(state.search)params.set('q',state.search);
     if(state.professionalOnly)params.set('profesional','si');
@@ -197,6 +198,7 @@
     state.filter==='mine'?'Todavía no has publicado ninguna petición.':
     state.filter==='contributed'?'Todavía no has respondido a ninguna petición. Puedes empezar por «Puedo ayudar».':
     state.filter==='help'?(state.helpTopics.length?'No hay peticiones abiertas de tus temas por ahora.':'Elige los temas en los que quieres ayudar para descubrir peticiones.') :
+    state.filter==='unanswered'?'Ahora mismo no hay peticiones abiertas sin respuestas visibles. Puedes seguir ayudando en «Por resolver».':
     'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.');
   }catch(err){status.textContent=err.message;}
   finally{state.loading=false;}

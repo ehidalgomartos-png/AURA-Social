@@ -141,7 +141,11 @@ router.get('/questions',wrap(async(req,res)=>{
   return fail(res,400,'busqueda_invalida');
  const professional=req.query?.profesional;
  if(professional!==undefined&&professional!=='si')return fail(res,400,'filtro_profesional_invalido');
- const items=await service.list({filter,before:before||null,category:category||null,query:query.trim(),professionalOnly:professional==='si'});
+ // V3.6.21 — descubre peticiones abiertas sin respuestas visibles.
+ const unanswered=req.query?.sin_respuestas;
+ if(unanswered!==undefined&&unanswered!=='si')return fail(res,400,'filtro_sin_respuestas_invalido');
+ if(unanswered==='si'&&filter!=='open')return fail(res,400,'filtros_incompatibles');
+ const items=await service.list({filter,before:before||null,category:category||null,query:query.trim(),professionalOnly:professional==='si',unansweredOnly:unanswered==='si'});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
 // V3.5.16: temas elegidos voluntariamente; solo cada usuario puede consultarlos o cambiarlos.

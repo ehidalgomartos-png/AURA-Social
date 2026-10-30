@@ -776,3 +776,29 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
   padding-inline:2px;
  }
 }
+
+/* V3.6.21 — filtros táctiles desplazables para encontrar preguntas sin respuesta. */
+.filters{min-width:0;max-width:100%}
+.filters button:focus-visible{outline:3px solid #137e89;outline-offset:2px}
+@media(max-width:650px){
+ .filters,.filters.with-help{
+  display:flex;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;
+  scrollbar-width:thin;
+  gap:5px;
+  padding:6px;
+ }
+ .filters button,.filters.with-help button{
+  flex:0 0 auto;
+  min-height:44px;
+  min-width:max-content;
+  width:auto;
+  white-space:nowrap;
+  padding:10px 13px;
+  scroll-snap-align:start;
+ }
+}
+@media(prefers-reduced-motion:reduce){.filters{scroll-snap-type:none}}
