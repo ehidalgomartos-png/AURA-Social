@@ -4,6 +4,7 @@ const express=require('express');
 const topics=require('../services/resuelve-topics-v3531');
 const {escapeHtml}=require('./resuelve-public-seo-v3529');
 const {xmlText}=require('./resuelve-sitemap-v3530');
+const {renderPublicShareLinks}=require('../services/resuelve-share-page-v366');
 const ORIGIN='https://redlibertad.com';
 const router=express.Router();
 const topicApiRouter=express.Router();
@@ -51,7 +52,8 @@ function renderTopicPage(topic,items,count,allCounts={}){
   '<meta property="og:description" content="'+escapeHtml(description)+'">'+
   '<meta property="og:url" content="'+escapeHtml(canonical)+'">'+structured+
   '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
-  '<link rel="stylesheet" href="/resuelve-v350.css"></head><body>'+
+  '<link rel="stylesheet" href="/resuelve-v350.css">'+
+  '<script src="/resuelve-public-share-v366.js" defer></script></head><body>'+
   '<a class="skip" href="#main">Saltar al contenido</a>'+
   '<header class="topbar"><a class="brand" href="/resuelve"><strong>RedLibertad Resuelve</strong></a>'+
   '<nav aria-label="Navegación"><a href="/resuelve#solutions">Biblioteca de ayuda</a></nav></header>'+
@@ -62,6 +64,7 @@ function renderTopicPage(topic,items,count,allCounts={}){
   (items.length?'<h2>Soluciones compartidas</h2><ol class="resuelve-topic-list">'+entries+'</ol>':
   '<p>De momento no hay soluciones publicadas de este tema. Puedes compartir una pregunta o ayudar a otra persona.</p>')+
   '<p class="muted">Los consejos compartidos no sustituyen asesoramiento profesional cuando sea necesario.</p>'+otherLinks+
+  (indexable?renderPublicShareLinks(canonical,'tema'):'')+
   '<a class="primary resuelve-topic-cta" href="/resuelve">Pedir ayuda o compartir experiencia</a>'+
   '</section></main><footer class="foot">Resuelve · Personas que ayudan a personas</footer></body></html>';
 }

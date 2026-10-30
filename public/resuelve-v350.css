@@ -629,3 +629,13 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-seo-related a:focus-visible,.resuelve-seo-breadcrumbs a:focus-visible{outline:3px solid #107f89;outline-offset:2px;border-radius:3px}
 .resuelve-seo-related>a{display:inline-flex;min-height:44px;align-items:center;padding:10px 14px;border-radius:11px;text-decoration:none}
 @media(max-width:650px){.resuelve-seo-related{padding:13px}.resuelve-seo-breadcrumbs{font-size:.82rem;gap:6px}.resuelve-seo-related>a{width:100%;justify-content:center}}
+
+/* V3.6.6 — Compartir ayuda pública manualmente desde fichas y temas. */
+.resuelve-public-share{margin:24px 0;padding:17px;border:1px solid #cddfdc;background:#f7fbf9;border-radius:15px}
+.resuelve-public-share h2{margin:0 0 9px;font-size:1.13rem;color:#194e57}
+.resuelve-public-share p{margin:8px 0 13px;line-height:1.6}
+.resuelve-public-share-actions{display:flex;gap:9px;flex-wrap:wrap}
+.resuelve-public-share-actions a,.resuelve-public-share-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;text-align:center;border-radius:11px}
+.resuelve-public-share-actions [hidden]{display:none!important}
+.resuelve-public-share-actions :focus-visible{outline:3px solid #107e88;outline-offset:2px}
+@media(max-width:650px){.resuelve-public-share{padding:13px}.resuelve-public-share-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.resuelve-public-share-actions a,.resuelve-public-share-actions button{width:100%}}

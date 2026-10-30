@@ -3,6 +3,7 @@
 const express=require('express');
 const service=require('../services/resuelve-v350');
 const topics=require('../services/resuelve-topics-v3531');
+const {renderPublicShareLinks}=require('../services/resuelve-share-page-v366');
 const router=express.Router();
 const CANONICAL_ORIGIN='https://redlibertad.com';
 const CATEGORY_LABELS={consejo:'Consejos',busco:'Orientación',ayuda:'Ayuda',experiencia:'Experiencias'};
@@ -78,6 +79,7 @@ function renderApprovedSolution(item,navigation={}){
 <meta property="og:image" content="${CANONICAL_ORIGIN}/assets/og-redlibertad-v1922.jpg">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/resuelve-v350.css">
+<script src="/resuelve-public-share-v366.js" defer></script>
 </head><body>
 <a class="skip" href="#main">Saltar al contenido</a>
 <header class="topbar"><a class="brand" href="/resuelve"><strong>RedLibertad Resuelve</strong></a><nav aria-label="Navegación"><a href="/resuelve">Explorar ayuda</a></nav></header>
@@ -91,6 +93,7 @@ ${breadcrumbNav}
 <p class="resuelve-seo-solution-body">${escapeHtml(text)}</p>
 <p class="muted">Se comparte con autorización del autor de la petición. La información procede de experiencias de otras personas y no sustituye asesoramiento profesional cuando sea necesario.</p>
 ${relatedSection}
+${renderPublicShareLinks(canonical,'solucion')}
 <div class="resuelve-seo-actions">
 <a class="secondary" href="/resuelve?id=${encodeURIComponent(id)}">Ver la petición y su contexto</a>
 <a class="primary" href="/resuelve">Pedir ayuda o ayudar a alguien</a>
