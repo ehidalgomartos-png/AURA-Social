@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.36 Voluntary help suggestions by chosen topic
+        run: node --test tests/resuelve-relevant-help-v3536.test.js
       - name: V3.5.35 Suggest similar real public questions before publishing
         run: node --test tests/resuelve-similar-questions-v3535.test.js
       - name: V3.5.34 Rounded Resuelve search controls and mobile accessibility
