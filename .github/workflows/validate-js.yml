@@ -799,7 +799,8 @@ jobs:
       - name: Push preferences and notification tests
         run: npm run test:notifications
       - name: V3.2.40 mobile push preferences layout and account safety
-        run: npm run test:push-settings-mobile
+        timeout-minutes: 3
+        run: timeout --signal=TERM 120s npm run test:push-settings-mobile
 
   stripe-test-postgres:
     name: Stripe TEST canceled-to-new-Plus PostgreSQL 18
