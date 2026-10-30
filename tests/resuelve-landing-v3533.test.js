@@ -55,5 +55,9 @@ test('V3.5.33: mobile content is readable and accessible',()=>{
  assert.match(css,/@media\(max-width:720px\)/);
  assert.match(css,/grid-template-columns:1fr/);
  assert.match(css,/:focus-visible/);
- assert.doesNotMatch(html,/<script\b/i);
+ const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+ assert.equal(scripts.length,1,'Solo se permiten los datos estructurados no ejecutables');
+ assert.match(scripts[0][0],/^<script type="application\/ld\+json">/);
+ assert.equal(JSON.parse(scripts[0][1])['@type'],'WebPage');
+ assert.doesNotMatch(html,/<script\b(?! type="application\/ld\+json")/i);
 });
