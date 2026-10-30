@@ -1437,9 +1437,12 @@
   const start=new URLSearchParams(location.search).get('id');
   // Al entrar desde la landing, crear cuenta directamente en Resuelve.
   if(!state.user&&new URLSearchParams(location.search).get('registro')==='1')openAuth('register');
-  if(start)await openDetail(start,false);else await loadList();
-  await loadSolutions();
-  await loadTopicHubs();
+  // V3.6.14 — los tres paneles son independientes: mejor primera carga en móvil.
+  await Promise.all([
+   start?openDetail(start,false):loadList(),
+   loadSolutions(),
+   loadTopicHubs()
+  ]);
  }
  init().catch(()=>message('No se pudo iniciar Resuelve. Inténtalo de nuevo.'));
 })();
