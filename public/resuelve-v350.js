@@ -505,6 +505,11 @@
   el('inviteTelegram').href='https://t.me/share/url?'+new URLSearchParams({url,text});
   el('inviteEmail').href='mailto:?'+new URLSearchParams({subject:'¿Te animas a ayudar en Resuelve?',body:text+'\n\n'+url}).toString().replace(/\+/g,'%20');
   const options=el('inviteHelpOptions'),toggle=el('inviteHelpToggle'),status=el('inviteHelpStatus');
+  // V3.6.18 — mostrar opciones solo si la persona llega desde «Invitar», nunca enviarlas.
+  if(new URLSearchParams(location.search).get('invitar')==='1'){
+   options.hidden=false;
+   toggle.setAttribute('aria-expanded','true');
+  }
   toggle.addEventListener('click',()=>{
    options.hidden=!options.hidden;
    toggle.setAttribute('aria-expanded',options.hidden?'false':'true');
