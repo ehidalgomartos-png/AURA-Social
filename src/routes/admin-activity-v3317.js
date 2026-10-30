@@ -26,6 +26,18 @@ SELECT
  (SELECT count(*)::int FROM users WHERE status='active') AS active_members
 `;
 
+// V3.6.11 — cifras mínimas para la portada administrativa; ninguna identidad ni mensaje.
+const OVERVIEW_SQL=`
+SELECT
+ (SELECT count(*)::int FROM users WHERE created_at >= now()-interval '7 days') AS registrations,
+ (SELECT count(*)::int FROM posts WHERE post_kind='post' AND moderation_status='published'
+    AND created_at >= now()-interval '7 days') AS posts,
+ (SELECT count(*)::int FROM posts WHERE post_kind='reel' AND moderation_status='published'
+    AND created_at >= now()-interval '7 days') AS reels,
+ (SELECT count(*)::int FROM comments WHERE created_at >= now()-interval '7 days') AS comments,
+ (SELECT count(*)::int FROM reports WHERE status='open') AS open_reports
+`;
+
 // Only public normal-content activity from publicly discoverable members who
 // elected to show their activity. Private conversations/reports never appear.
 const ACTIVITY_SQL=`
@@ -81,6 +93,17 @@ function createAdminActivityRouter({db}){
  if(!db?.query)throw Error('db_required');
  const router=express.Router();
  router.use(requireAdmin);
+ router.get('/summary-7d',async(_req,res)=>{
+   try{
+     const stats=await db.query(OVERVIEW_SQL);
+     res.set('Cache-Control','no-store');
+     res.set('X-Robots-Tag','noindex,nofollow');
+     res.json({ok:true,days:7,updatedAt:new Date().toISOString(),metrics:stats.rows[0]||{}});
+   }catch(error){
+     console.error('Admin aggregate summary unavailable:',error.message);
+     res.status(503).json({error:'summary_unavailable'});
+   }
+ });
  router.get('/',async(req,res)=>{
    const opts=normalizedOptions(req.query);
    if(!opts)return res.status(400).json({error:'invalid_filters'});
@@ -110,4 +133,4 @@ function createAdminActivityRouter({db}){
  });
  return router;
 }
-module.exports={createAdminActivityRouter,normalizedOptions,METRICS_SQL,ACTIVITY_SQL,PAGE_SIZE};
+module.exports={createAdminActivityRouter,normalizedOptions,METRICS_SQL,OVERVIEW_SQL,ACTIVITY_SQL,PAGE_SIZE};

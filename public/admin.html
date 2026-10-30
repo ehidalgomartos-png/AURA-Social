@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin.css?v=3.2.63.2&amp;activity=3.3.17&amp;growth=3.3.24">
+  <link rel="stylesheet" href="/admin-overview-v3611.css">
+  <script src="/admin-overview-v3611.js" defer></script>
 </head>
 <body>
 <header>
@@ -27,6 +29,7 @@
 
   <nav class="admin-quick-nav-v3610" aria-label="Accesos rápidos de administración">
     <span class="admin-quick-label-v3610">Ir directamente a</span>
+    <a href="#admin-overview-v3611">Resumen</a>
     <a href="#admin-users-v3610">Usuarios</a>
     <a href="#admin-reports-v3610">Denuncias</a>
     <a href="/resuelve/admin">Resuelve</a>
@@ -36,6 +39,33 @@
     <a href="#admin-seo-v3610">SEO</a>
     <a href="#admin-alerts-v3610">Alertas técnicas</a>
   </nav>
+
+  <section class="panel admin-overview-v3611" id="admin-overview-v3611" aria-labelledby="adminOverviewTitleV3611">
+    <div class="admin-overview-head-v3611">
+      <div>
+        <span class="eyebrow">ACTIVIDAD REAL · ÚLTIMOS 7 DÍAS</span>
+        <h2 id="adminOverviewTitleV3611">RedLibertad y Resuelve, de un vistazo</h2>
+        <p>Actividad registrada en ambos espacios, separada por su finalidad. Las cifras se consultan en vivo y no representan usuarios ficticios ni predicciones.</p>
+      </div>
+      <button id="refreshAdminOverviewV3611" type="button">Actualizar resumen</button>
+    </div>
+    <div class="admin-overview-layout-v3611">
+      <section class="admin-overview-group-v3611" aria-labelledby="adminOverviewSocialTitleV3611">
+        <h3 id="adminOverviewSocialTitleV3611">RedLibertad · Comunidad</h3>
+        <div id="adminOverviewSocialV3611" class="admin-overview-tiles-v3611" aria-live="polite"></div>
+        <p id="adminOverviewSocialStatusV3611" class="admin-overview-message-v3611" role="status"></p>
+        <a class="admin-overview-link-v3611" href="/admin/actividad">Ver actividad social</a>
+      </section>
+      <section class="admin-overview-group-v3611" aria-labelledby="adminOverviewHelpTitleV3611">
+        <h3 id="adminOverviewHelpTitleV3611">Resuelve · Ayuda entre personas</h3>
+        <div id="adminOverviewHelpV3611" class="admin-overview-tiles-v3611" aria-live="polite"></div>
+        <p id="adminOverviewHelpStatusV3611" class="admin-overview-message-v3611" role="status"></p>
+        <a class="admin-overview-link-v3611" href="/resuelve/admin">Ver actividad y moderación de Resuelve</a>
+      </section>
+    </div>
+    <p id="adminOverviewStatusV3611" class="admin-overview-message-v3611" role="status" aria-live="polite">Cargando resumen…</p>
+    <p class="admin-overview-privacy-v3611">Solo el número de registros, publicaciones, comentarios, peticiones, respuestas y resoluciones. Las denuncias abiertas muestran el total actual, no solo los últimos 7 días. No se muestran mensajes privados, nombres ni datos de contacto.</p>
+  </section>
 
   <section class="panel" id="importantUpdatesAdminV3316" aria-labelledby="importantUpdatesTitleV3316">
     <div class="panel-head"><div><span class="eyebrow">COMUNICADOS · V3.3.16</span>

@@ -10,7 +10,9 @@ test('V3.6.10: atajos internos a secciones realmente existentes sin duplicar mó
  const nav=html.match(/<nav class="admin-quick-nav-v3610"[\s\S]*?<\/nav>/);
  assert.ok(nav,'Faltan atajos');
  const anchors=[...nav[0].matchAll(/href="#([^"]+)"/g)].map(m=>m[1]);
- assert.deepEqual(anchors,['admin-users-v3610','admin-reports-v3610','editorialInbox','admin-growth-v3610','admin-seo-v3610','admin-alerts-v3610']);
+ const expected=['admin-users-v3610','admin-reports-v3610','editorialInbox','admin-growth-v3610','admin-seo-v3610','admin-alerts-v3610'];
+ assert.deepEqual(anchors.filter(id=>expected.includes(id)),expected,'La navegación original conserva sus accesos y orden');
+ assert.equal(new Set(anchors).size,anchors.length,'No debe haber destinos repetidos');
  for(const id of anchors){
    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
  }
