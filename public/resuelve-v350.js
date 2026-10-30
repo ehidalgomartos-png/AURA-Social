@@ -127,6 +127,68 @@
   a.href=safe;a.rel='noopener noreferrer';wrap.append(a);
   return wrap;
  }
+
+ // V3.5.3: compartir manualmente en una comunidad de la que se es miembro.
+ function communitySharePanel(q){
+  const section=create('section','resuelve-community-share');
+  const toggle=button('Compartir en una comunidad',()=>{form.hidden=!form.hidden;if(!form.hidden)load();},'secondary');
+  const form=create('form','resuelve-community-form');form.hidden=true;
+  const label=create('label',null,'Elige una comunidad');
+  const select=create('select');select.required=true;
+  label.append(select);
+  const noteLabel=create('label',null,'Mensaje adicional (opcional)');
+  const note=create('textarea');note.rows=3;note.maxLength=300;
+  note.placeholder='Explica por qué esta petición puede interesar a la comunidad.';
+  noteLabel.append(note);
+  const preview=create('p','muted','Se compartirá el título y el enlace público de esta petición.');
+  const status=create('p','muted');status.setAttribute('role','status');
+  const submit=create('button','primary','Publicar en la comunidad');
+  submit.type='submit';
+  form.append(label,noteLabel,preview,status,submit);
+  section.append(toggle,form);
+  let members=null;
+  async function load(){
+   if(members)return;
+   select.replaceChildren();status.textContent='Cargando tus comunidades…';
+   try{
+    const data=await request('/api/communities?scope=joined');
+    members=(Array.isArray(data.communities)?data.communities:[]).filter(c=>c.is_member && /^[1-9]\\d{0,15}$/.test(String(c.id)));
+    select.append(create('option',null,'Selecciona una comunidad'));
+    select.firstChild.value='';
+    for(const c of members){
+     const option=create('option',null,c.name+(c.privacy==='private'?' · privada':''));
+     option.value=String(c.id);select.append(option);
+    }
+    submit.disabled=members.length===0;
+    status.textContent=members.length?'Elige el destino. Solo se publicará al confirmar.':'Todavía no perteneces a ninguna comunidad. Puedes unirte desde Comunidades.';
+    if(!members.length){
+     const a=create('a',null,'Explorar comunidades');a.href='/comunidades';form.insertBefore(a,submit);
+    }
+   }catch(error){status.textContent=error.message;}
+  }
+  form.addEventListener('submit',async event=>{
+   event.preventDefault();
+   if(submit.disabled)return;
+   const id=String(select.value||'');
+   if(!members?.some(c=>String(c.id)===id)){status.textContent='Selecciona una comunidad válida.';return;}
+   const url=new URL('/resuelve?id='+encodeURIComponent(q.id),location.origin).href;
+   const text='Petición en RedLibertad Resuelve: '+q.title+'\\n'+url+
+    (note.value.trim()?'\\n'+note.value.trim():'');
+   if(text.length>2200){status.textContent='El texto es demasiado largo.';return;}
+   if(!confirm('¿Quieres publicar esta petición en la comunidad seleccionada?'))return;
+   submit.disabled=true;status.textContent='Publicando…';
+   try{
+    await request('/api/communities/'+encodeURIComponent(id)+'/posts',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({body:text,contentLevel:'normal'})
+    });
+    status.textContent='Publicación enviada a la comunidad. Puedes verla desde Comunidades.';
+    form.reset();form.hidden=true;
+    message('Petición compartida en la comunidad seleccionada.');
+   }catch(error){status.textContent=error.message;submit.disabled=false;}
+  });
+  return section;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -137,6 +199,7 @@
     create('span',null,date(q.created_at))),
    create('p','detail-body',q.body));
   host.append(connectedActions(q));
+  if(state.user)host.append(communitySharePanel(q));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   if(mine&&solved)host.append(button('Reabrir mi petición',async()=>{
    if(!confirm('¿Quieres volver a aceptar respuestas?'))return;
