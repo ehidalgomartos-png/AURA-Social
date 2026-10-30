@@ -20,8 +20,13 @@ function renderApprovedSolution(item,navigation={}){
  const label=CATEGORY_LABELS[item.category]||'Ayuda';
  const canonical=CANONICAL_ORIGIN+'/resuelve/solucion/'+encodeURIComponent(id);
  const excerpt=(text.length>170?text.slice(0,167).trimEnd()+'…':text);
- const pageTitle=title+' — Solución revisada | Resuelve';
- const description='Consejo revisado sobre '+title+'. '+excerpt;
+ // V3.6.13: título corto para buscadores sin recortar el H1 real.
+ const shortTitle=title.length>57?title.slice(0,56).replace(/\s+\S*$/,'').trimEnd()+'…':title;
+ const pageTitle=shortTitle+' | Resuelve';
+ const cleanAnswer=text.replace(/\s+/g,' ').trim();
+ const summary=cleanAnswer.length>115?
+  cleanAnswer.slice(0,112).replace(/\s+\S*$/,'').trimEnd()+'…':cleanAnswer;
+ const description='Solución elegida y revisada en Resuelve: '+summary;
  // V3.6.5: la página temática se enlaza solo si contiene al menos tres
  // soluciones realmente públicas y revisadas. Nunca enlazar material pendiente.
  const topic=topics.validTopic(item.topic)?item.topic:null;
@@ -66,7 +71,7 @@ function renderApprovedSolution(item,navigation={}){
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(pageTitle)}</title>
-<meta name="description" content="${escapeHtml(description.slice(0,240))}">
+<meta name="description" content="${escapeHtml(description.slice(0,160))}">
 <meta name="robots" content="index,follow">
 <script type="application/ld+json">${jsonLd}</script>
 <script type="application/ld+json">${breadcrumbJson}</script>
@@ -74,9 +79,13 @@ function renderApprovedSolution(item,navigation={}){
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="RedLibertad Resuelve">
 <meta property="og:title" content="${escapeHtml(pageTitle)}">
-<meta property="og:description" content="${escapeHtml(description.slice(0,240))}">
+<meta property="og:description" content="${escapeHtml(description.slice(0,160))}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:image" content="${CANONICAL_ORIGIN}/assets/og-redlibertad-v1922.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(pageTitle)}">
+<meta name="twitter:description" content="${escapeHtml(description.slice(0,160))}">
+<meta name="twitter:image" content="${CANONICAL_ORIGIN}/assets/og-redlibertad-v1922.jpg">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/resuelve-v350.css">
 <script src="/resuelve-public-share-v366.js" defer></script>
