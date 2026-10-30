@@ -794,3 +794,55 @@ main>.panel,.metrics .metric{border-radius:22px}
  main>.panel,.metrics .metric{border-radius:19px}
  .report,.user-card{border-radius:17px}
 }
+
+/* V3.6.10 — Centro de administración: atajos reales sin más menús ni pantallas. */
+.admin-hero h1{font-size:clamp(29px,4.8vw,48px);line-height:1.12;margin-bottom:18px}
+.admin-hero>p{margin:0 0 13px;line-height:1.55}
+.admin-hero>p:last-of-type{margin-bottom:16px}
+.admin-quick-nav-v3610{
+ display:flex;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:9px;
+ padding:15px;
+ margin:19px 0 24px;
+ border:1px solid var(--line);
+ border-radius:22px;
+ background:var(--paper);
+ box-shadow:0 5px 22px rgba(13,34,56,.06);
+}
+.admin-quick-label-v3610{color:var(--muted);font-size:12px;font-weight:700;margin-right:5px}
+.admin-quick-nav-v3610 a{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-height:44px;
+ padding:10px 14px;
+ border:1px solid #c5dcdb;
+ border-radius:14px;
+ color:#15505e;
+ background:#edf7f4;
+ font-size:13px;
+ font-weight:750;
+ text-decoration:none;
+ white-space:nowrap;
+}
+.admin-quick-nav-v3610 a:hover{background:#dff1eb;border-color:#96cabb}
+.admin-quick-nav-v3610 a:focus-visible{outline:3px solid #148487;outline-offset:2px}
+#admin-users-v3610,#admin-reports-v3610,#admin-growth-v3610,
+#admin-seo-v3610,#admin-alerts-v3610,#editorialInbox{scroll-margin-top:94px}
+@media(max-width:620px){
+ .admin-hero h1{font-size:clamp(28px,8vw,38px)}
+ .admin-quick-nav-v3610{
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;
+  gap:8px;
+  padding:12px;
+  margin:14px -6px 19px;
+  border-radius:18px;
+ }
+ .admin-quick-nav-v3610 a{flex:0 0 auto;scroll-snap-align:start}
+ .admin-quick-label-v3610{flex:0 0 auto}
+}
