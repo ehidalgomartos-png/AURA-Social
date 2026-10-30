@@ -53,13 +53,14 @@
   btn.hidden=true;
   if(!more){list.replaceChildren();status.textContent='Cargando peticiones…';}
   try{
-   const url='/api/resuelve/questions?estado='+encodeURIComponent(state.filter)+
-    (more&&state.next?'&antes='+encodeURIComponent(state.next):'');
+   const url=(state.filter==='mine'?'/api/resuelve/questions/mine':
+    '/api/resuelve/questions?estado='+encodeURIComponent(state.filter))+
+    (more&&state.next?(state.filter==='mine'?'?':'&')+'antes='+encodeURIComponent(state.next):'');
    const data=await request(url);
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
    btn.hidden=!state.next;
-   status.textContent=list.childElementCount?'':'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.';
+   status.textContent=list.childElementCount?'':(state.filter==='mine'?'Todavía no has publicado ninguna petición.':'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.');
   }catch(err){status.textContent=err.message;}
   finally{state.loading=false;}
  }
@@ -248,6 +249,7 @@
   try{const me=await request('/api/auth/me');state.user=me.user;}
   catch(_){state.user=null;}
   el('askButton').hidden=!state.user;
+  document.querySelector('[data-filter="mine"]').hidden=!state.user;
   if(!state.user)message('Puedes leer las peticiones sin entrar. Para publicar o responder, inicia sesión en RedLibertad.');
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;el('askTitleInput').focus();
