@@ -99,6 +99,30 @@ router.post('/questions',requireAuth,checkOrigin,limiter(10),wrap(async(req,res)
  const row=await service.ask(req.user.id,data);
  res.status(201).json({ok:true,id:row.id});
 }));
+// Avisos de confianza: solo personas autenticadas, sin sanción ni ocultación automática.
+router.post('/answers/:id/report',requireAuth,checkOrigin,limiter(20),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const reason=req.body?.reason;
+ if(typeof reason!=='string'||!service.REPORT_REASONS.includes(reason))
+  return fail(res,400,'motivo_invalido');
+ const saved=await service.reportAnswer(req.params.id,req.user.id,reason);
+ if(!saved)return fail(res,409,'aviso_no_disponible_o_ya_enviado');
+ res.status(201).json({ok:true,id:saved.id});
+}));
+router.get('/admin/reports/pending',requireAuth,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ const before=req.query?.antes;
+ if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
+ const items=await service.pendingAnswerReports({before:before||null});
+ res.json({ok:true,items,next:items.length===20?items[items.length-1].id:null});
+}));
+router.post('/admin/reports/:id/dismiss',requireAuth,checkOrigin,limiter(40),wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
+ const saved=await service.dismissAnswerReport(req.params.id,req.user.id);
+ if(!saved)return fail(res,409,'aviso_ya_revisado_o_no_disponible');
+ res.json({ok:true,id:saved.id});
+}));
 router.post('/questions/:id/answers',requireAuth,checkOrigin,limiter(30),wrap(async(req,res)=>{
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const body=service.validateAnswer(req.body);
