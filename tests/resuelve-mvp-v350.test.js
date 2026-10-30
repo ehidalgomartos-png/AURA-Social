@@ -62,6 +62,7 @@ function database(){
     status:'visible',created_at:new Date().toISOString()};
    answers.set(a.id,a);return {rows:[{id:a.id}],rowCount:1};
   }
+  if(sql.startsWith('INSERT INTO notifications('))return {rows:[],rowCount:1};
   if(sql.startsWith('UPDATE resuelve_questions q SET status=')){
    const q=questions.get(Number(args[0])),a=answers.get(Number(args[2]));
    if(!q||q.author_id!==Number(args[1])||q.status!=='open'||
@@ -147,6 +148,10 @@ test('lectura pública, escritura restringida, creación y respuesta entre perso
   const other=await req('/api/resuelve/questions/'+id+'/answers',{user:2,method:'POST',
    body:{body:'Mide la pared primero y prueba un sofá de dos plazas.'}});
   assert.equal(other.status,201);
+  const notices=dbMock.audit.filter(call=>call.sql.startsWith('INSERT INTO notifications('));
+  assert.equal(notices.length,1);
+  assert.deepEqual(notices[0].args,[String(id),2].map((v,i)=>i===0?v:v));
+  assert.match(notices[0].sql,/\'system\',\'resuelve\'/);
   const detail=await req('/api/resuelve/questions/'+id);
   assert.equal(detail.status,200);
   assert.equal(detail.data.answers.length,1);
@@ -240,4 +245,7 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.doesNotMatch(js,/\.innerHTML\s*=/);
  assert.match(css,/@media\(max-width:650px\)/);
  assert.match(js,/aria-pressed/);
+ const social=fs.readFileSync(path.join(__dirname,'../public/social.js'),'utf8');
+ assert.match(social,/entityType==='resuelve'/);
+ assert.match(social,/location\.assign\('\/resuelve\?id='/);
 });
