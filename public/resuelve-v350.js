@@ -53,10 +53,45 @@
   return article;
  }
 // V3.5.16 — intereses privados, sin perfiles públicos ni mensajes automáticos.
+ // V3.6.2: pendientes propios, nunca muestra preguntas o recordatorios de otras cuentas.
+ async function loadPendingMine(){
+  const panel=el('myPendingPanel'),list=el('myPendingList'),status=el('myPendingStatus');
+  panel.hidden=!state.user||state.filter!=='mine';
+  if(panel.hidden){list.replaceChildren();return;}
+  const userId=String(state.user.id);
+  list.replaceChildren();status.textContent='Consultando tus peticiones pendientes…';
+  try{
+   const response=await request('/api/resuelve/questions/mine/pending');
+   if(!state.user||String(state.user.id)!==userId||state.filter!=='mine')return;
+   const items=Array.isArray(response.items)?response.items:[];
+   for(const q of items){
+    if(!/^[1-9]\d{0,15}$/.test(String(q.id||'')))continue;
+    const count=Number(q.answer_count);
+    if(!Number.isSafeInteger(count)||count<0)continue;
+    const card=create('article','resuelve-pending-card');
+    const link=create('a',null,q.title);
+    link.href='/resuelve?id='+encodeURIComponent(q.id);
+    card.append(link,create('span','muted',count
+     ?count+' respuesta'+(count===1?'':'s')+' para revisar'
+     :'Aún no tiene respuestas'));
+    list.append(card);
+   }
+   status.textContent=list.childElementCount
+    ?'Hasta 12 peticiones abiertas, ordenadas para revisar primero las que no tienen respuesta.'
+    :'No tienes preguntas pendientes. Puedes publicar una nueva cuando necesites ayuda.';
+  }catch(error){
+   if(state.user&&String(state.user.id)===userId&&state.filter==='mine')
+    status.textContent='No se pudo consultar el resumen. Tus peticiones siguen disponibles arriba.';
+  }
+ }
  async function loadMyHelpStats(){
   const panel=el('myHelpDashboard');
-  if(!state.user||!['mine','contributed'].includes(state.filter)){panel.hidden=true;return;}
+  if(!state.user||!['mine','contributed'].includes(state.filter)){
+   panel.hidden=true;el('myPendingPanel').hidden=true;return;
+  }
   panel.hidden=false;
+  el('myPendingPanel').hidden=state.filter!=='mine';
+  if(state.filter==='mine')void loadPendingMine();
   const status=el('myHelpStatus'),metrics=el('myHelpMetrics');
   status.textContent='Consultando tus ayudas…';metrics.replaceChildren();
   try{
@@ -653,7 +688,7 @@
    list.replaceChildren();
    const items=Array.isArray(data.items)?data.items:[];
    for(const q of items){
-    if(!/^[1-9]\\d{0,15}$/.test(String(q.id||'')))continue;
+    if(!/^[1-9]\d{0,15}$/.test(String(q.id||'')))continue;
     const item=create('li','resuelve-similar-item');
     const link=create('a',null,q.title);
     link.href='/resuelve?id='+encodeURIComponent(q.id);
@@ -712,6 +747,54 @@
   return details;
  }
  // V3.6.1 — seguir una pregunta abierta es opcional y revocable.
+ // V3.6.2 — recordatorio semanal opcional únicamente para el autor.
+ function ownerReminderControl(q){
+  const userId=String(state.user?.id??'');
+  const panel=create('section','resuelve-owner-reminder');
+  const title=create('h3',null,'Recordatorio de mi petición');
+  const status=create('p','muted','Comprobando tu preferencia…');
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const description=create('p','muted',
+   'Solo si lo activas, recibirás un aviso dentro de RedLibertad, como máximo una vez cada 7 días, cuando tu pregunta lleve al menos 3 días abierta. Sin correos.');
+  const action=button('Activar recordatorio semanal',async()=>{
+   if(action.disabled)return;
+   const enabled=action.dataset.enabled!=='true';
+   action.disabled=true;
+   try{
+    const response=await write('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/reminder',{enabled});
+    if(!state.user||String(state.user.id)!==userId||String(state.question?.id)!==String(q.id))return;
+    update(response.enabled===true,q.status);
+   }catch(error){
+    if(state.user&&String(state.user.id)===userId&&String(state.question?.id)===String(q.id)){
+     action.disabled=false;status.textContent=error.message;
+    }
+   }
+  },'secondary');
+  action.disabled=true;
+  action.setAttribute('aria-pressed','false');
+  function update(enabled,questionStatus){
+   panel.hidden=questionStatus!=='open'&&!enabled;
+   action.dataset.enabled=String(enabled);
+   action.setAttribute('aria-pressed',String(enabled));
+   action.textContent=enabled?'Desactivar recordatorio':'Activar recordatorio semanal';
+   action.disabled=questionStatus!=='open'&&!enabled;
+   status.textContent=enabled?'Recordatorio voluntario activo. Puedes desactivarlo cuando quieras.':
+    'Recordatorio desactivado. No enviaremos avisos de esta petición.';
+  }
+  panel.append(title,description,action,status);
+  void (async()=>{
+   try{
+    const data=await request('/api/resuelve/questions/'+encodeURIComponent(q.id)+'/reminder');
+    if(!state.user||String(state.user.id)!==userId||String(state.question?.id)!==String(q.id))return;
+    update(data.enabled===true,data.status);
+   }catch(error){
+    if(state.user&&String(state.user.id)===userId&&String(state.question?.id)===String(q.id)){
+     action.disabled=true;status.textContent='No se pudo consultar el recordatorio.';
+    }
+   }
+  })();
+  return panel;
+ }
  function questionFollowControl(q){
   const followerId=String(state.user?.id??'');
   const wrap=create('section','resuelve-follow-control');
@@ -761,7 +844,7 @@
   if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
-  if(mine)host.append(questionTopicControls(q));
+  if(mine)host.append(questionTopicControls(q),ownerReminderControl(q));
   if(state.user&&!mine)host.append(questionFollowControl(q));
   if(mine&&!solved){
    const details=create('details','resuelve-clarification');
@@ -900,6 +983,7 @@
   document.querySelector('[data-filter="mine"]').hidden=guest;
   document.querySelector('[data-filter="contributed"]').hidden=guest;
   el('myHelpDashboard').hidden=guest||!['mine','contributed'].includes(state.filter);
+  el('myPendingPanel').hidden=guest||state.filter!=='mine';
   document.querySelector('[data-filter="help"]').hidden=guest;
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
