@@ -197,6 +197,11 @@ router.post('/answers/:id/report',requireAuth,checkOrigin,limiter(20),wrap(async
  if(!saved)return fail(res,409,'aviso_no_disponible_o_ya_enviado');
  res.status(201).json({ok:true,id:saved.id});
 }));
+router.get('/admin/trust-summary',requireAuth,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ const summary=await service.adminTrustSummary();
+ res.json({ok:true,...summary,asOf:new Date().toISOString()});
+}));
 router.get('/admin/reports/pending',requireAuth,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
  const before=req.query?.antes;

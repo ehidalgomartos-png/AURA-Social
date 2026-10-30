@@ -434,6 +434,26 @@ async function reportAnswer(answerId,reporterId,reason){
  ].join(' ');
  return (await db.query(sql,[answerId,reporterId,reason])).rows[0]||null;
 }
+// V3.5.27 — solo agregados, sin identidades ni decisiones automáticas.
+async function adminTrustSummary(){
+ await ensureSchema();
+ const result=await db.query([
+  "SELECT r.reason,count(*)::int AS pending",
+  "FROM resuelve_answer_reports r",
+  "JOIN resuelve_answers a ON a.id=r.answer_id AND a.status='visible'",
+  "JOIN resuelve_questions q ON q.id=a.question_id AND q.status<>'hidden'",
+  "WHERE r.status='pending'",
+  "GROUP BY r.reason"
+ ].join(' '));
+ const counts=Object.fromEntries(REPORT_REASONS.map(reason=>[reason,0]));
+ for(const row of result.rows){
+  if(Object.hasOwn(counts,row.reason)){
+   const n=Number(row.pending);
+   if(Number.isSafeInteger(n)&&n>=0)counts[row.reason]=n;
+  }
+ }
+ return {pendingByReason:counts,totalPending:Object.values(counts).reduce((sum,n)=>sum+n,0)};
+}
 async function pendingAnswerReports({before=null}={}){
  await ensureSchema();
  const sql=[
@@ -554,4 +574,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
