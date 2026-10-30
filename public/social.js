@@ -8489,6 +8489,11 @@ async function navigateNotification(notification) {
     return;
   }
 
+  if(type==='system' && entityType==='resuelve' && /^[1-9]\\d{0,15}$/.test(String(entityId))){
+    window.location.assign('/resuelve?id='+encodeURIComponent(String(entityId)));
+    return;
+  }
+
   if(type==='system' && entityType==='community' && entityId){
     showView('communities');
     await openCommunityDetail(entityId);
