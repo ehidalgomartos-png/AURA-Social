@@ -18,6 +18,12 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.3 Resuelve explicit community sharing
+        run: node --test tests/resuelve-community-share-v353.test.js
+      - name: V3.5.2 Resuelve Marketplace recommendation
+        run: node --test tests/resuelve-marketplace-recommendation-v352.test.js
+      - name: V3.5.1 Resuelve contextual links
+        run: node --test tests/resuelve-connections-v351.test.js
       - name: V3.5.0 Resuelve community MVP authentication and privacy
         run: node --test tests/resuelve-mvp-v350.test.js
       - name: V3.4.6.16.1 comparison homepage order
