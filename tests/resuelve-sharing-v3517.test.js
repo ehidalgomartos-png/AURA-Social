@@ -46,3 +46,21 @@ test('V3.5.17: publicación solo con borrador editable, sin extraer soluciones a
  assert.match(route,/router\.post\('\/questions\/:id\/thank',requireAuth,checkOrigin/);
  assert.match(service,/thanked_at IS NULL/);
 });
+
+test('V3.5.17.2: invitación situada al final, por debajo de peticiones, soluciones y detalle',()=>{
+ const html=read('public/resuelve.html');
+ const invite=html.indexOf('id="inviteHelpSection"');
+ const questions=html.indexOf('id="questions"');
+ const solutions=html.indexOf('id="solutions"');
+ const detail=html.indexOf('id="detailPanel"');
+ const mainEnd=html.indexOf('</main>');
+ const footer=html.indexOf('<footer class="foot">');
+ assert.ok(questions>=0&&solutions>questions&&detail>solutions);
+ assert.ok(invite>detail&&invite<mainEnd&&mainEnd<footer,
+  'El módulo para invitar debe aparecer al final del contenido, antes del pie.');
+ assert.equal(html.match(/id="inviteHelpSection"/g).length,1);
+ assert.match(html.slice(invite,mainEnd),/id="inviteHelpToggle"/);
+ assert.match(html.slice(invite,mainEnd),/id="inviteHelpOptions"/);
+ assert.match(html.slice(invite,mainEnd),/id="inviteWhatsApp"/);
+ assert.match(html.slice(invite,mainEnd),/id="inviteCopyLink"/);
+});
