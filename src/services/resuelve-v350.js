@@ -436,6 +436,23 @@ async function publicSeoSolution(questionId){
  ].join(' '),[questionId]);
  return r.rows[0]||null;
 }
+// V3.5.30 — sitemap exclusivamente de URLs que seguirían siendo públicas al abrirlas.
+async function sitemapSeoSolutions(){
+ await ensureSchema();
+ const r=await db.query([
+  "SELECT q.id,GREATEST(q.updated_at,COALESCE(q.library_reviewed_at,q.updated_at)) AS lastmod",
+  "FROM resuelve_questions q",
+  "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
+  "JOIN users author ON author.id=q.author_id AND author.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE q.seo_public_opt_in=TRUE AND q.library_opt_out=FALSE",
+  "AND q.status='resolved' AND q.library_approved_answer_id=q.accepted_answer_id",
+  "AND char_length(trim(split_part(a.body,' Anuncio recomendado:',1)))>=80",
+  "AND char_length(trim(q.body))>=50",
+  "ORDER BY q.id DESC LIMIT 2000"
+ ].join(' '));
+ return r.rows;
+}
 async function reopen(userId,qid){
  await ensureSchema();
  const r=await db.query([
@@ -519,7 +536,7 @@ async function library({before=null,category=null,query=''}={}){
  const chosenCategory=CATEGORIES.includes(category)?category:null;
  const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
-  "SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body,' Anuncio recomendado:',1) AS solution,",
+  "SELECT q.id,q.title,q.category,q.solved_at,q.seo_public_opt_in,split_part(a.body,' Anuncio recomendado:',1) AS solution,",
   "u.username AS author_username FROM resuelve_questions q",
   "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
   "JOIN users u ON u.id=q.author_id AND u.status='active'",
@@ -640,4 +657,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={sitemapSeoSolutions,getSeoConsent,setSeoConsent,publicSeoSolution,librarySummary,adminTrustSummary,helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
