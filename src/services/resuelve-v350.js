@@ -170,6 +170,43 @@ async function listMine(userId,{before=null}={}){
  ].join(' ');
  return (await db.query(sql,[userId,cursor])).rows;
 }
+// V3.5.22 — actividad privada del titular; nunca se exponen datos ajenos.
+async function myActivityStats(userId){
+ await ensureSchema();
+ const result=await db.query([
+  "SELECT",
+  "(SELECT count(*)::int FROM resuelve_questions q WHERE q.author_id=$1 AND q.status='open') AS open_questions,",
+  "(SELECT count(*)::int FROM resuelve_questions q WHERE q.author_id=$1 AND q.status<>'hidden' AND EXISTS(",
+  "SELECT 1 FROM resuelve_answers a JOIN users au ON au.id=a.author_id AND au.status='active'",
+  "WHERE a.question_id=q.id AND a.status='visible')) AS questions_with_answers,",
+  "(SELECT count(*)::int FROM resuelve_questions q WHERE q.author_id=$1 AND q.status='resolved' AND EXISTS(",
+  "SELECT 1 FROM resuelve_answers a WHERE a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible')) AS resolved_questions,",
+  "(SELECT count(DISTINCT q.id)::int FROM resuelve_answers a",
+  "JOIN resuelve_questions q ON q.id=a.question_id AND q.status<>'hidden'",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "WHERE a.author_id=$1 AND a.status='visible' AND q.author_id<>$1) AS contributed_questions"
+ ].join(' '),[userId]);
+ return result.rows[0];
+}
+async function listMyContributions(userId,{before=null}={}){
+ await ensureSchema();
+ const cursor=validId(before)?String(before):null;
+ const sql=[
+  "WITH mine AS (SELECT a.question_id,max(a.id) AS last_answer_id FROM resuelve_answers a",
+  "JOIN resuelve_questions q ON q.id=a.question_id AND q.status<>'hidden'",
+  "WHERE a.author_id=$1 AND a.status='visible' AND q.author_id<>$1 GROUP BY a.question_id)",
+  "SELECT q.id,q.title,q.body,q.category,q.professional_help_requested,q.status,q.created_at,",
+  "u.username AS author_username,m.last_answer_id AS my_answer_id,",
+  "(SELECT count(*)::int FROM resuelve_answers ra WHERE ra.question_id=q.id AND ra.status='visible') AS answer_count,",
+  "(q.status='resolved' AND EXISTS(SELECT 1 FROM resuelve_answers sa WHERE",
+  "sa.id=q.accepted_answer_id AND sa.author_id=$1 AND sa.status='visible')) AS my_answer_selected",
+  "FROM mine m JOIN resuelve_questions q ON q.id=m.question_id",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "WHERE ($2::bigint IS NULL OR m.last_answer_id<$2::bigint)",
+  "ORDER BY m.last_answer_id DESC LIMIT 24"
+ ].join(' ');
+ return (await db.query(sql,[userId,cursor])).rows;
+}
 async function detail(id){
  await ensureSchema();
  const q=await db.query([
@@ -405,4 +442,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
