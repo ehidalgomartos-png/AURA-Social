@@ -108,3 +108,15 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .solution-card .solution-excerpt{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .solution-card .card-meta{margin-top:auto}
 @media(max-width:650px){#solutions .cards{grid-template-columns:1fr}.solution-card{padding:15px}}
+
+/* V3.5.8 — cola editorial privada de revisión */
+#libraryReviewPanel{border-color:#c9dfe8}
+#libraryReviewPanel .eyebrow{margin:0 0 5px}
+#libraryReviewPanel .panel-head{align-items:start}
+.review-list{display:grid;gap:10px;margin-top:12px}
+.review-item{border:1px solid var(--line);border-radius:12px;padding:14px;background:#f9fcfe}
+.review-item h3{margin:0 0 5px;font-size:1rem;overflow-wrap:anywhere}
+.review-item p{margin:0 0 10px;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.review-item-actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:9px}
+.review-item-actions .secondary{color:var(--blue);min-height:42px;border-color:#b5d6e4;background:#fff}
+@media(max-width:650px){.review-item-actions .secondary{width:100%}}
