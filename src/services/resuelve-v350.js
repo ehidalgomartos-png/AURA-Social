@@ -95,7 +95,20 @@ async function answer(userId,id,body){
   "INSERT INTO resuelve_answers(question_id,author_id,body)",
   "SELECT q.id,$2,$3 FROM resuelve_questions q",
   "WHERE q.id=$1 AND q.status='open' AND q.author_id<>$2 RETURNING id"
- ].join(' '),[id,userId,body]);return r.rows[0]||null;
+ ].join(' '),[id,userId,body]);
+ const saved=r.rows[0]||null;
+ if(saved){
+  // La respuesta es válida aunque el sistema de notificaciones falle.
+  try{
+   await db.query([
+    "INSERT INTO notifications(user_id,actor_id,type,entity_type,entity_id,text)",
+    "SELECT q.author_id,$2,'system','resuelve',q.id,",
+    "'Han respondido a tu petición en RedLibertad Resuelve.'",
+    "FROM resuelve_questions q WHERE q.id=$1 AND q.author_id<>$2 AND q.status<>'hidden'"
+   ].join(' '),[id,userId]);
+  }catch(error){console.warn('Resuelve: notificación no disponible',error?.code||error?.message||'error');}
+ }
+ return saved;
 }
 async function solve(userId,qid,aid){
  await ensureSchema();
