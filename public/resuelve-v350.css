@@ -78,3 +78,8 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-related-actions{display:flex;flex-wrap:wrap;gap:9px}
 .resuelve-related-actions .secondary{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 13px;text-decoration:none;cursor:pointer}
 @media(max-width:650px){.resuelve-related{padding:13px}.resuelve-related-actions{display:grid;grid-template-columns:1fr}.resuelve-related-actions .secondary{width:100%}}
+
+/* V3.5.2 — recomendación de anuncios legible en móvil */
+.marketplace-recommendation{display:inline-flex;align-items:center;min-height:44px;margin:4px 0 10px;padding:9px 13px;border-radius:10px;background:#e5f4f4;color:#07596b;font-weight:700;text-decoration:none;border:1px solid #c2e4e5}
+.marketplace-recommendation:focus-visible{outline:3px solid #0e7996;outline-offset:2px}
+@media(max-width:650px){.marketplace-recommendation{width:100%;justify-content:center;text-align:center;overflow-wrap:anywhere}}
