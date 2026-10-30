@@ -69,6 +69,8 @@ async function ensureSchema(){
   await db.query("CREATE TABLE IF NOT EXISTS resuelve_helper_profiles_v3525 ("+
    "user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"+
    "enabled BOOLEAN NOT NULL DEFAULT FALSE,updated_at TIMESTAMPTZ NOT NULL DEFAULT now())");
+  // Solo una especialidad autodeclarada; no equivale a un título ni acreditación.
+  await db.query("ALTER TABLE resuelve_helper_profiles_v3525 ADD COLUMN IF NOT EXISTS declared_speciality VARCHAR(70)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_feed ON resuelve_questions(status,created_at DESC,id DESC)");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_answers_question ON resuelve_answers(question_id,created_at ASC,id ASC) WHERE status='visible'");
   await db.query("CREATE INDEX IF NOT EXISTS idx_resuelve_questions_author ON resuelve_questions(author_id,created_at DESC)");
@@ -161,11 +163,26 @@ async function setHelperProfilePreference(userId,enabled){
   "RETURNING enabled",[userId,enabled]);
  return r.rows[0]||null;
 }
+async function helperProfileSettings(userId){
+ await ensureSchema();
+ const r=await db.query('SELECT enabled,declared_speciality FROM resuelve_helper_profiles_v3525 WHERE user_id=$1',[userId]);
+ return {enabled:r.rows[0]?.enabled===true,declaredSpeciality:r.rows[0]?.declared_speciality||''};
+}
+async function setHelperSpeciality(userId,rawSpeciality){
+ const speciality=validateProfessionalRole(rawSpeciality);
+ if(speciality===undefined)return null;
+ await ensureSchema();
+ const r=await db.query(
+  "INSERT INTO resuelve_helper_profiles_v3525(user_id,declared_speciality) VALUES($1,$2) "+
+  "ON CONFLICT(user_id) DO UPDATE SET declared_speciality=excluded.declared_speciality,updated_at=now() "+
+  "RETURNING declared_speciality",[userId,speciality]);
+ return r.rows[0]||null;
+}
 async function publicHelperProfile(username){
  if(typeof username!=='string'||!/^[a-zA-Z0-9_.]{3,30}$/.test(username))return null;
  await ensureSchema();
  const r=await db.query([
-  "SELECT u.username,",
+  "SELECT u.username,p.declared_speciality,",
   "(SELECT count(DISTINCT q.id)::int FROM resuelve_answers a",
   "JOIN resuelve_questions q ON q.id=a.question_id AND q.status<>'hidden'",
   "JOIN users author ON author.id=q.author_id AND author.status='active'",
@@ -537,4 +554,4 @@ async function adminImpactStats(){
   'unique_helpers','thanked_resolutions','questions_30d','resolved_30d'];
  return Object.fromEntries(names.map(key=>[key,Number(result[key]||0)]));
 }
-module.exports={helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
+module.exports={helperProfileSettings,setHelperSpeciality,helperProfilePreference,setHelperProfilePreference,publicHelperProfile,validateClarification,clarifyQuestion,getHelpAlertPreference,setHelpAlertPreference,notifyVolunteers,myActivityStats,listMyContributions,adminImpactStats,ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,validHelpTopics,getHelpTopics,setHelpTopics,listToHelp,detail,ask,answer,solve,thankResolved,shareResolvedPreview,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,REPORT_REASONS,reportAnswer,pendingAnswerReports,dismissAnswerReport,CATEGORIES};
