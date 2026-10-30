@@ -100,6 +100,17 @@ router.post('/help-topics',requireAuth,checkOrigin,limiter(20),wrap(async(req,re
  if(!saved)return fail(res,400,'temas_invalidos');
  res.json({ok:true,categories:saved.categories});
 }));
+// V3.5.23: avisos solo para temas elegidos, con consentimiento explícito.
+router.get('/help-alerts/preference',requireAuth,wrap(async(req,res)=>{
+ const enabled=await service.getHelpAlertPreference(req.user.id);
+ res.json({ok:true,enabled});
+}));
+router.post('/help-alerts/preference',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(typeof req.body?.enabled!=='boolean')return fail(res,400,'preferencia_invalida');
+ const saved=await service.setHelpAlertPreference(req.user.id,req.body.enabled);
+ if(!saved)return fail(res,400,'preferencia_invalida');
+ res.json({ok:true,enabled:saved.notify_new_questions===true});
+}));
 // V3.5.21: consentimiento de correo independiente y desactivado por defecto.
 router.get('/reply-email/preference',requireAuth,wrap(async(req,res)=>{
  const enabled=await resuelveReplyEmailService.preference(req.user.id);
