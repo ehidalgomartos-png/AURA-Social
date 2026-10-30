@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.15 Resuelve signup and login with shared account
+        run: node --test tests/resuelve-unified-signup-v3515.test.js
       - name: V3.5.3 Resuelve explicit community sharing
         run: node --test tests/resuelve-community-share-v353.test.js
       - name: V3.5.2 Resuelve Marketplace recommendation
