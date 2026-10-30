@@ -53,6 +53,7 @@
    const data=await api('/api/resuelve/admin/impact');
    const definitions=[
     ['public_questions','Peticiones públicas'],['open_questions','Pendientes de resolver'],
+    ['open_without_answers','Abiertas sin respuestas visibles'],
     ['questions_with_answers','Peticiones con respuestas'],['resolved_questions','Problemas resueltos'],
     ['unique_helpers','Personas que han respondido'],['thanked_resolutions','Soluciones agradecidas'],
     ['questions_30d','Peticiones · últimos 30 días'],['resolved_30d','Resueltas · últimos 30 días']
