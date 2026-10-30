@@ -1403,6 +1403,16 @@
    }catch(err){message(err.message);}
    finally{submit.disabled=false;}
   });
+  // V3.6.17 — orientación útil sin impedir respuestas ni introducir contenido comercial.
+  function syncAnswerCounter(){
+   const count=el('answerBody').value.length;
+   const output=el('answerCharCountV3617');
+   output.textContent=count+' / 1500 caracteres'+
+    (count>=1350?' · Queda poco espacio para añadir un enlace opcional.':'');
+   output.dataset.nearLimit=String(count>=1350);
+  }
+  el('answerBody').addEventListener('input',syncAnswerCounter);
+  syncAnswerCounter();
   el('answerForm').addEventListener('submit',async event=>{
    event.preventDefault();if(!state.question)return;
    const form=event.currentTarget,submit=form.querySelector('[type=submit]');
@@ -1426,7 +1436,7 @@
      throw new Error('Explica tu consejo profesional con al menos 60 caracteres útiles.');
     await write('/api/resuelve/questions/'+state.question.id+'/answers',
      {body,professionalRole,selfProfessionalRole,commercialInterest});
-    form.reset();message('Respuesta publicada. Gracias por ayudar.');await openDetail(state.question.id,false);
+    form.reset();syncAnswerCounter();message('Respuesta publicada. Gracias por ayudar.');await openDetail(state.question.id,false);
    }catch(err){message(err.message);}
    finally{submit.disabled=false;}
   });
