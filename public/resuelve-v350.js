@@ -172,7 +172,7 @@
    ['WhatsApp','https://api.whatsapp.com/send?text='+encodeURIComponent(text)],
    ['Facebook','https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url)],
    ['Telegram','https://t.me/share/url?'+new URLSearchParams({url,text:'Solución útil revisada en Resuelve'})],
-   ['Correo electrónico','mailto:?'+new URLSearchParams({subject:'Solución útil revisada en Resuelve',body:text}).toString().replace(/\\+/g,'%20')]
+   ['Correo electrónico','mailto:?'+new URLSearchParams({subject:'Solución útil revisada en Resuelve',body:text}).toString().replace(/\+/g,'%20')]
   ];
   for(const [label,href] of options){
    const a=create('a','secondary',label);a.href=href;
