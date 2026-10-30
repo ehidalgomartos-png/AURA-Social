@@ -736,8 +736,9 @@
     action.dataset.enabled=String(enabled);
     action.setAttribute('aria-pressed',String(enabled));
     action.textContent=enabled?'Dejar de seguir esta pregunta':'Seguir esta pregunta';
-    action.disabled=false;
-    status.textContent=enabled?'Seguimiento activado. Puedes cambiarlo cuando quieras.':'Seguimiento desactivado.';
+    action.disabled=q.status!=='open'&&!enabled;
+    status.textContent=enabled?'Seguimiento activado. Puedes cambiarlo cuando quieras.':
+     q.status==='open'?'Seguimiento desactivado.':'Esta pregunta ya está resuelta. No admite nuevos seguidores.';
    }catch(error){action.disabled=true;status.textContent=error.message;}
   }
   wrap.append(action,description,status);
@@ -757,7 +758,7 @@
   const mine=state.user&&String(state.user.id)===String(q.author_id);
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
   if(mine)host.append(questionTopicControls(q));
-  if(state.user&&!mine&&!solved)host.append(questionFollowControl(q));
+  if(state.user&&!mine)host.append(questionFollowControl(q));
   if(mine&&!solved){
    const details=create('details','resuelve-clarification');
    details.append(create('summary',null,'Añadir una aclaración a mi pregunta'));
