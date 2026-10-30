@@ -362,13 +362,13 @@ test('V3.5.8 revisión: cola exclusiva de admin y actualizada tras aprobar o exc
 });
 test('V3.5.10: un enlace comercial no sustituye una respuesta realmente útil',async()=>{
  await withApp(async(req,dbMock)=>{
-  const q=(await req('/api/resuelve/questions',{user:1,method:'POST',body:{
-   title:'Busco orientación para comprar sin gastar de más',
-   body:'Quiero opiniones y pasos concretos para comparar opciones sin comprometer mi presupuesto familiar.',
-   category:'busco'}})).data.id;
+  // Preparamos una petición resuelta sin consumir el límite horario de creación de otros tests.
+  const q=937;
   const sales='Compra aquí. Anuncio recomendado: https://redlibertad.com/marketplace/explorar?'+('ofertas'.repeat(14));
-  const answer=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{body:sales}})).data.id;
-  assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:answer}})).status,200);
+  dbMock.questions.set(q,{id:q,author_id:1,title:'Busco orientación para comprar sin gastar de más',
+   body:'Quiero opiniones y pasos concretos para comparar opciones sin comprometer mi presupuesto familiar.',
+   category:'busco',status:'resolved',accepted_answer_id:938,library_approved_answer_id:null,library_opt_out:false});
+  dbMock.answers.set(938,{id:938,question_id:q,author_id:2,body:sales,status:'visible'});
   const flag={qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true};
   assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/approve',{user:3,method:'POST',body:flag})).status,409);
   assert.equal((await req('/api/resuelve/admin/solutions/pending',{user:3})).data.items.length,0);
