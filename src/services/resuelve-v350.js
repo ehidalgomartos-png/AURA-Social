@@ -1,6 +1,7 @@
 'use strict';
 // V3.5.0: RedLibertad Resuelve, solo personas reales, sin mensajes automáticos.
 const db=require('../db');
+const {resuelveReplyEmailService}=require('./resuelve-reply-email-v3521');
 let ready=null;
 const CATEGORIES=['consejo','busco','ayuda','experiencia'];
 const validId=x=>/^[1-9]\d{0,15}$/.test(String(x??''));
@@ -210,6 +211,8 @@ async function answer(userId,id,body,professionalRole=null,disclosure={role:null
     "FROM resuelve_questions q WHERE q.id=$1 AND q.author_id<>$2 AND q.status<>'hidden'"
    ].join(' '),[id,userId]);
   }catch(error){console.warn('Resuelve: notificación no disponible',error?.code||error?.message||'error');}
+  // El correo opcional no afecta a la publicación de la respuesta.
+  await resuelveReplyEmailService.enqueue(id,saved.id,userId);
  }
  return saved;
 }
