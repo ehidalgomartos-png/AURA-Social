@@ -760,3 +760,19 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .resuelve-answer-tips-v3617{padding:10px 11px;gap:7px}
  .resuelve-answer-counter-v3617{width:100%;text-align:right}
 }
+
+/* V3.6.18 — invitación voluntaria clara, sin publicidad ni envíos automáticos. */
+.invite-help-options .invite-help-disclaimer-v3618{
+ flex:1 0 100%;
+ width:100%;
+ margin:0 0 5px;
+ font-size:13px;
+ line-height:1.55;
+ color:#426577;
+}
+@media(max-width:650px){
+ .invite-help-options .invite-help-disclaimer-v3618{
+  grid-column:1/-1;
+  padding-inline:2px;
+ }
+}
