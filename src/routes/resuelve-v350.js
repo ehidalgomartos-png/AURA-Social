@@ -197,9 +197,20 @@ router.get('/questions/:id',wrap(async(req,res)=>{
 }));
 router.post('/questions',requireAuth,checkOrigin,limiter(10),wrap(async(req,res)=>{
  const data=service.validateQuestion(req.body);
- if(!data)return fail(res,400,'peticion_invalida');
+ if(!data||!(req.body?.topic===undefined||req.body?.topic===null||req.body?.topic===''||
+   service.TOPICS.includes(req.body?.topic)))return fail(res,400,'peticion_invalida');
+ data.topic=req.body?.topic||null;
  const row=await service.ask(req.user.id,data);
  res.status(201).json({ok:true,id:row.id});
+}));
+// V3.5.31: temas opcionales definidos por el autor, no implica indexación o promoción.
+router.post('/questions/:id/topic',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ const topic=req.body?.topic;
+ if(!service.validId(req.params.id)||!(topic===null||topic===''||service.TOPICS.includes(topic)))
+  return fail(res,400,'tema_invalido');
+ const result=await service.setQuestionTopic(req.params.id,req.user.id,topic||null);
+ if(!result)return fail(res,404,'peticion_no_encontrada');
+ res.json({ok:true,id:result.id,topic:result.topic});
 }));
 // V3.5.24: aclarar una pregunta propia abierta sin sustituir respuestas ni cambiar autor.
 router.post('/questions/:id/clarify',requireAuth,checkOrigin,limiter(5),wrap(async(req,res)=>{
