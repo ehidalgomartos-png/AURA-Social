@@ -28,6 +28,18 @@ function database(){
     status:'open',accepted_answer_id:null,library_approved_answer_id:null,library_opt_out:false,created_at:new Date().toISOString()};
    questions.set(row.id,row);return {rows:[{id:row.id}],rowCount:1};
   }
+  if(sql.startsWith('SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution') &&
+     sql.includes('library_approved_answer_id IS NULL OR')){
+   const rows=[...questions.values()].filter(q=>{
+    const a=answers.get(q.accepted_answer_id);
+    return q.status==='resolved'&&!q.library_opt_out&&
+      q.library_approved_answer_id!==q.accepted_answer_id&&
+      a?.status==='visible'&&a.body.trim().length>=80&&q.body.trim().length>=50&&
+      (!args[0]||q.id<Number(args[0]));
+   }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
+     author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
+   return {rows,rowCount:rows.length};
+  }
   if(sql.startsWith('SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution')){
    const rows=[...questions.values()].filter(q=>{
     const a=answers.get(q.accepted_answer_id);
@@ -305,6 +317,30 @@ test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, c
   assert.ok(stub.audit.some(entry=>entry.sql.includes('library_opt_out=FALSE')));
  });
 });
+test('V3.5.8 revisión: cola exclusiva de admin y actualizada tras aprobar o excluir',async()=>{
+ await withApp(async req=>{
+  const q=(await req('/api/resuelve/questions',{user:1,method:'POST',body:{
+   title:'Cómo elegir un sofá cómodo para casa',
+   body:'Quiero conocer medidas y consejos para elegir un sofá cómodo sin ocupar demasiado espacio en casa.',
+   category:'consejo'}})).data.id;
+  const a=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{
+   body:'Mide antes el espacio libre del salón, comprueba la profundidad y prueba el respaldo. Revisa también las medidas del ascensor y la apertura de las puertas antes de comprar.'}})).data.id;
+  assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:a}})).status,200);
+  const url='/api/resuelve/admin/solutions/pending';
+  assert.equal((await req(url)).status,401);
+  assert.equal((await req(url,{user:2})).status,403);
+  assert.equal((await req(url+'?antes=-1',{user:3})).status,400);
+  const pending=await req(url,{user:3});
+  assert.equal(pending.status,200);
+  assert.deepEqual(pending.data.items.map(q=>Number(q.id)),[Number(q)]);
+  assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/approve',{user:3,method:'POST',body:{}})).status,200);
+  assert.equal((await req(url,{user:3})).data.items.length,0);
+  assert.equal((await req('/api/resuelve/admin/solutions/'+q+'/revoke',{user:3,method:'POST',body:{}})).status,200);
+  assert.equal((await req(url,{user:3})).data.items.length,1);
+  assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:1,method:'POST',body:{}})).status,200);
+  assert.equal((await req(url,{user:3})).data.items.length,0);
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -319,6 +355,9 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
  assert.match(html,/id="solutionList"/);
+ assert.match(html,/id="libraryReviewPanel"/);
+ assert.match(js,/loadReviewQueue/);
+ assert.match(js,/\/api\/resuelve\/admin\/solutions\/pending/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(js,/loadSolutions/);
  assert.match(js,/\/api\/resuelve\/solutions/);

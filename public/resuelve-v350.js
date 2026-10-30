@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Estoy buscando algo',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false,solutionNext:null,solutionLoading:false};
+ const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,reviewNext:null,reviewLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -100,10 +100,37 @@
   }catch(err){status.textContent=err.message;}
   finally{state.solutionLoading=false;}
  }
+// V3.5.8: cola editorial disponible solo en sesiones de administración.
+ async function loadReviewQueue(more=false){
+  if(!(state.user?.is_admin||state.user?.isAdmin)||state.reviewLoading)return;
+  state.reviewLoading=true;
+  const list=el('libraryReviewList'),status=el('libraryReviewStatus'),btn=el('moreLibraryReview');
+  btn.hidden=true;
+  if(!more){list.replaceChildren();status.textContent='Cargando pendientes de revisión…';}
+  try{
+   const url='/api/resuelve/admin/solutions/pending'+
+    (more&&state.reviewNext?'?antes='+encodeURIComponent(state.reviewNext):'');
+   const data=await request(url);
+   for(const q of data.items){
+    const item=create('article','review-item');
+    const title=create('h3',null,q.title);
+    const body=create('p','muted',q.solution);
+    const actions=create('div','review-item-actions');
+    actions.append(chip(categories[q.category]||'Petición'),
+      button('Revisar petición',()=>openDetail(q.id),'secondary'));
+    item.append(title,body,actions);list.append(item);
+   }
+   state.reviewNext=data.next;
+   btn.hidden=!state.reviewNext;
+   status.textContent=list.childElementCount?'':'No hay soluciones pendientes que cumplan los requisitos mínimos.';
+  }catch(err){status.textContent=err.message;}
+  finally{state.reviewLoading=false;}
+ }
  function displayDetail(open){
   el('detailPanel').hidden=!open;
   el('questions').hidden=open;
   el('solutions').hidden=open;
+  if(state.user?.is_admin||state.user?.isAdmin)el('libraryReviewPanel').hidden=open;
   el('askPanel').hidden=true;
  }
  async function openDetail(id,push=true){
@@ -256,7 +283,7 @@
     try{
      await write('/api/resuelve/admin/solutions/'+q.id+'/'+(reviewed?'revoke':'approve'),{});
      message(reviewed?'Solución retirada de la biblioteca.':'Solución aprobada para la biblioteca.');
-     await openDetail(q.id,false);await loadSolutions();
+     await openDetail(q.id,false);await loadSolutions();await loadReviewQueue();
     }catch(error){message(error.message);}
    }));
   }
@@ -309,6 +336,9 @@
   catch(_){state.user=null;}
   el('askButton').hidden=!state.user;
   document.querySelector('[data-filter="mine"]').hidden=!state.user;
+  const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
+  el('libraryReviewPanel').hidden=!isAdmin;
+  if(isAdmin)await loadReviewQueue();
   if(!state.user)message('Puedes leer las peticiones sin entrar. Para publicar o responder, inicia sesión en RedLibertad.');
   el('askButton').addEventListener('click',()=>{
    el('askPanel').hidden=false;el('askTitleInput').focus();
@@ -339,6 +369,7 @@
   });
   el('moreButton').addEventListener('click',()=>loadList(true));
   el('moreSolutions').addEventListener('click',()=>loadSolutions(true));
+  el('moreLibraryReview').addEventListener('click',()=>loadReviewQueue(true));
   el('askForm').addEventListener('submit',async event=>{
    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');
    if(submit.disabled)return;submit.disabled=true;
