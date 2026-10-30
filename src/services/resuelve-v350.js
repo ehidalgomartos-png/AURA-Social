@@ -157,7 +157,7 @@ async function library({before=null,category=null,query=''}={}){
  const chosenCategory=CATEGORIES.includes(category)?category:null;
  const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
-  "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
+  "SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body,' Anuncio recomendado:',1) AS solution,",
   "u.username AS author_username FROM resuelve_questions q",
   "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
   "JOIN users u ON u.id=q.author_id AND u.status='active'",
@@ -168,7 +168,7 @@ async function library({before=null,category=null,query=''}={}){
   "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
   "AND ($2::text IS NULL OR q.category=$2)",
   "AND ($3::text='' OR position(lower($3::text) in lower(q.title))>0",
-  "OR position(lower($3::text) in lower(a.body))>0)",
+  "OR position(lower($3::text) in lower(split_part(a.body,' Anuncio recomendado:',1)))>0)",
   "ORDER BY q.id DESC LIMIT 12"
  ].join(' ');
  return (await db.query(sql,[validId(before)?String(before):null,chosenCategory,search])).rows;
@@ -177,7 +177,7 @@ async function library({before=null,category=null,query=''}={}){
 async function pendingSolutions({before=null}={}){
  await ensureSchema();
  const sql=[
-  "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
+  "SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body,' Anuncio recomendado:',1) AS solution,",
   "u.username AS author_username FROM resuelve_questions q",
   "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
   "JOIN users u ON u.id=q.author_id AND u.status='active'",
