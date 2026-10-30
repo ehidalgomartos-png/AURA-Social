@@ -423,3 +423,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .helper-public-panel h2{font-size:1.3rem;color:#184d65;margin:2px 0 9px}
 .helper-public-panel .my-help-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:650px){.helper-public-panel{padding:14px}.helper-public-panel .my-help-metrics{grid-template-columns:1fr}}
+
+/* V3.5.26 — especialidad autodeclarada y claramente diferenciada de una acreditación. */
+.helper-speciality-form{display:grid;gap:8px;margin-top:13px;padding-top:13px;border-top:1px solid #d2e3eb}
+.helper-speciality-form label{font-weight:650}
+.helper-speciality-form input{min-height:44px;max-width:520px;width:100%}
+.helper-speciality-form button{min-height:44px;justify-self:start}
+.helper-speciality-form p{margin:0}
+@media(max-width:650px){.helper-speciality-form button{width:100%}}
