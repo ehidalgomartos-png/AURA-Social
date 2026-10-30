@@ -693,6 +693,7 @@
   try{
    const data=await request('/api/resuelve/helper-profile/preference');
    toggle.checked=data.enabled===true;toggle.disabled=false;
+   el('helperSpecialityInput').value=data.declaredSpeciality||'';
    const username=String(state.user.username||'');
    const valid=/^[A-Za-z0-9_.]{3,30}$/.test(username);
    share.hidden=!toggle.checked||!valid;
@@ -711,6 +712,13 @@
   try{
    const data=await request('/api/resuelve/helpers/'+encodeURIComponent(username));
    status.textContent='@'+data.helper.username+' · Esta persona ha compartido ayuda en Resuelve.';
+   const declared=String(data.helper.declared_speciality||'');
+   if(declared){
+    const note=create('p','resuelve-professional-disclosure');
+    note.append(create('strong',null,'Oficio declarado: '),create('span',null,declared));
+    const warning=create('p','muted','El oficio lo indica la propia persona. RedLibertad no ha verificado sus títulos ni su identidad profesional.');
+    note.append(warning);panel.append(note);
+   }
    const fields=[
     ['helped_questions','Peticiones ajenas en las que ha ayudado'],
     ['chosen_solutions','Respuestas elegidas como solución']
@@ -725,6 +733,19 @@
   }catch(_){status.textContent='Este perfil no está disponible o su propietario ha desactivado la visibilidad.';}
  }
  function bindHelperProfile(){
+  el('helperSpecialityForm').addEventListener('submit',async(event)=>{
+   event.preventDefault();
+   const form=event.currentTarget,submit=form.querySelector('[type="submit"]');
+   if(submit.disabled||!form.reportValidity())return;
+   submit.disabled=true;
+   const status=el('helperSpecialityStatus');
+   status.textContent='Guardando…';
+   try{
+    await write('/api/resuelve/helper-profile/speciality',{speciality:el('helperSpecialityInput').value.trim()});
+    status.textContent='Especialidad guardada. Solo será pública si has activado tu ficha de ayuda.';
+   }catch(error){status.textContent=error.message;}
+   finally{submit.disabled=false;}
+  });
   el('helperProfileToggle').addEventListener('change',async()=>{
    const toggle=el('helperProfileToggle');
    toggle.disabled=true;el('helperProfileStatus').textContent='Guardando tu elección…';
