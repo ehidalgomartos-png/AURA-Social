@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.15.2 Resuelve compact search and expandable filters
+        run: node --test tests/resuelve-compact-search-v35152.test.js
       - name: V3.5.15.1 Resuelve compact mobile UX and contextual actions
         run: node --test tests/resuelve-mobile-ux-v35151.test.js
       - name: V3.5.15 Resuelve signup and login with shared account
