@@ -20,12 +20,21 @@ function renderApprovedSolution(item){
  const excerpt=(text.length>170?text.slice(0,167).trimEnd()+'…':text);
  const pageTitle=title+' — Solución revisada | Resuelve';
  const description='Consejo revisado sobre '+title+'. '+excerpt;
+ const structured={
+  '@context':'https://schema.org','@type':'Article',
+  headline:title,description:excerpt,inLanguage:'es',
+  mainEntityOfPage:canonical,
+  publisher:{'@type':'Organization',name:'RedLibertad'}
+ };
+ // Nunca cerrar un script JSON-LD a través de texto facilitado por otra persona.
+ const jsonLd=JSON.stringify(structured).replace(/</g,'\\u003c');
  return `<!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(pageTitle)}</title>
 <meta name="description" content="${escapeHtml(description.slice(0,240))}">
 <meta name="robots" content="index,follow">
+<script type="application/ld+json">${jsonLd}</script>
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="RedLibertad Resuelve">
