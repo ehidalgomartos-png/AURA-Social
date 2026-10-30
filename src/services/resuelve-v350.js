@@ -27,6 +27,7 @@ async function ensureSchema(){
   ].join(' ');
   await db.query(ddl);
   await db.query(answers);
+  await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS professional_role VARCHAR(70)");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_at TIMESTAMPTZ");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   // V3.5.7: inclusión editorial manual; los contenidos antiguos nunca se publican automáticamente.
@@ -44,6 +45,15 @@ function validateQuestion(body){
   CATEGORIES.includes(category)?{title,body:description,category}:null;
 }
 function validateAnswer(body){const v=clean(body?.body,1500);return v.length>=10&&v.length<=1500?v:null;}
+// V3.5.11: sugerir un oficio, no un proveedor, contacto comercial ni acreditación.
+function validateProfessionalRole(value){
+ if(value==null||value==='')return null;
+ if(typeof value!=='string')return undefined;
+ const v=clean(value,70);
+ if(v.length<3||v.length>70)return undefined;
+ if(/(?:https?:\/\/|www\.|@|\b[\w-]+\.(?:com|es|net|org)\b|(?:\+?\d[\s()./-]?){7,})/i.test(v))return undefined;
+ return v;
+}
 async function list({filter='open',before=null,category=null,query=''}={}){
  await ensureSchema();
  const state=['open','resolved','all'].includes(filter)?filter:'open';
@@ -87,7 +97,7 @@ async function detail(id){
  ].join(' '),[id]);
  if(!q.rowCount)return null;
  const answers=await db.query([
-  "SELECT a.id,a.question_id,a.author_id,a.body,a.created_at,u.username AS author_username",
+  "SELECT a.id,a.question_id,a.author_id,a.body,a.professional_role,a.created_at,u.username AS author_username",
   "FROM resuelve_answers a JOIN users u ON u.id=a.author_id AND u.status='active'",
   "WHERE a.question_id=$1 AND a.status='visible'",
   "ORDER BY (a.id=$2::bigint) DESC,a.id ASC LIMIT 100"
@@ -99,13 +109,13 @@ async function ask(userId,data){
  const r=await db.query("INSERT INTO resuelve_questions(author_id,title,body,category) VALUES($1,$2,$3,$4) RETURNING id",
   [userId,data.title,data.body,data.category]);return r.rows[0];
 }
-async function answer(userId,id,body){
+async function answer(userId,id,body,professionalRole=null){
  await ensureSchema();
  const r=await db.query([
-  "INSERT INTO resuelve_answers(question_id,author_id,body)",
-  "SELECT q.id,$2,$3 FROM resuelve_questions q",
+  "INSERT INTO resuelve_answers(question_id,author_id,body,professional_role)",
+  "SELECT q.id,$2,$3,$4 FROM resuelve_questions q",
   "WHERE q.id=$1 AND q.status='open' AND q.author_id<>$2 RETURNING id"
- ].join(' '),[id,userId,body]);
+ ].join(' '),[id,userId,body,professionalRole]);
  const saved=r.rows[0]||null;
  if(saved){
   // La respuesta es válida aunque el sistema de notificaciones falle.
@@ -217,4 +227,4 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,CATEGORIES};

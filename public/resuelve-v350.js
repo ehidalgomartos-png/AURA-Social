@@ -193,13 +193,22 @@
    return url.href;
   }catch(_){return null;}
  }
- function answerContent(body){
+ function answerContent(body,professionalRole){
   const wrap=create('div','answer-content');
+  function appendProfessionalAdvice(){
+   if(typeof professionalRole!=='string'||!professionalRole.trim())return;
+   const advice=create('aside','professional-advice');
+   advice.append(create('strong',null,'Puede convenir consultar a un profesional:'),
+    create('span',null,' '+professionalRole),
+    create('p','muted','Sugerencia de otro usuario; no supone acreditación ni recomendación de un proveedor concreto.'));
+   wrap.append(advice);
+  }
   const match=String(body||'').match(/^(.*?)\s+Anuncio recomendado: (https:\/\/\S+)$/);
-  if(!match){wrap.append(create('p',null,body));return wrap;}
+  if(!match){wrap.append(create('p',null,body));appendProfessionalAdvice();return wrap;}
   const safe=validatedMarketplaceUrl(match[2]);
-  if(!safe){wrap.append(create('p',null,body));return wrap;}
+  if(!safe){wrap.append(create('p',null,body));appendProfessionalAdvice();return wrap;}
   if(match[1])wrap.append(create('p',null,match[1]));
+  appendProfessionalAdvice();
   const extra=create('details','answer-related-link');
   extra.append(create('summary',null,'Ver enlace de Marketplace compartido (opcional)'));
   const a=create('a',null,'Consultar este anuncio, si te interesa');
@@ -355,7 +364,7 @@
    const accepted=String(a.id)===String(q.accepted_answer_id);
    const item=create('article','answer'+(accepted?' accepted':''));
    item.append(create('header','', '@'+a.author_username+' · '+date(a.created_at)),
-    answerContent(a.body));
+    answerContent(a.body,a.professional_role));
    const actions=create('div','answer-actions');
    if(accepted)actions.append(chip('✓ Solución elegida',true));
    if(mine&&!solved)actions.append(button('Marcar como solución',async()=>{
@@ -460,7 +469,9 @@
     if(listing&&!safe)throw new Error('Pega un enlace HTTPS válido de un anuncio de RedLibertad Marketplace.');
     const body=raw+(safe?' Anuncio recomendado: '+safe:'');
     if(body.length>1500)throw new Error('La respuesta con el enlace supera los 1500 caracteres.');
-    await write('/api/resuelve/questions/'+state.question.id+'/answers',{body});
+    const professionalRole=el('answerProfessionalRole').value.trim();
+    if(professionalRole.length>70)throw new Error('Indica una profesión en menos de 70 caracteres.');
+    await write('/api/resuelve/questions/'+state.question.id+'/answers',{body,professionalRole});
     form.reset();message('Respuesta publicada. Gracias por ayudar.');await openDetail(state.question.id,false);
    }catch(err){message(err.message);}
    finally{submit.disabled=false;}

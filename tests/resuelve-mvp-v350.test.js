@@ -102,7 +102,7 @@ function database(){
   if(sql.startsWith('INSERT INTO resuelve_answers(')){
    const q=questions.get(Number(args[0]));
    if(!q||q.status!=='open'||q.author_id===Number(args[1]))return {rows:[],rowCount:0};
-   const a={id:ai++,question_id:q.id,author_id:Number(args[1]),body:args[2],
+   const a={id:ai++,question_id:q.id,author_id:Number(args[1]),body:args[2],professional_role:args[3]||null,
     status:'visible',created_at:new Date().toISOString()};
    answers.set(a.id,a);return {rows:[{id:a.id}],rowCount:1};
   }
@@ -376,6 +376,37 @@ test('V3.5.10: un enlace comercial no sustituye una respuesta realmente útil',a
   assert.ok(dbMock.audit.some(e=>e.sql.includes('split_part(a.body')));
  });
 });
+test('V3.5.11 orienta hacia una profesión sin permitir anuncios, teléfonos ni autoacreditación',async()=>{
+ const valid=service.validateProfessionalRole;
+ assert.equal(valid('electricista'),'electricista');
+ assert.equal(valid('  técnico de calderas  '),'técnico de calderas');
+ assert.equal(valid(''),null);
+ assert.equal(valid('https://ejemplo.es'),undefined);
+ assert.equal(valid('contacto@ejemplo.es'),undefined);
+ assert.equal(valid('699 123 456'),undefined);
+ assert.equal(valid(45),undefined);
+ assert.equal(valid('x'.repeat(71)),undefined);
+ await withApp(async(req,stub)=>{
+  const q=939;
+  stub.questions.set(q,{
+   id:q,author_id:1,title:'Problema eléctrico en una vivienda',
+   body:'Necesito saber a quién consultar porque salta continuamente un interruptor de protección.',
+   category:'ayuda',status:'open',accepted_answer_id:null,
+   library_approved_answer_id:null,library_opt_out:false
+  });
+  const route='/api/resuelve/questions/'+q+'/answers';
+  const body='No manipules el cuadro ni desmontes enchufes. Un especialista puede revisar la instalación con seguridad.';
+  assert.equal((await req(route,{user:2,method:'POST',body:{body,professionalRole:'https://empresa.es'}})).status,400);
+  assert.equal((await req(route,{user:2,method:'POST',body:{body,professionalRole:'612 555 123'}})).status,400);
+  const response=await req(route,{user:2,method:'POST',body:{body,professionalRole:'electricista'}});
+  assert.equal(response.status,201);
+  const detail=await req('/api/resuelve/questions/'+q);
+  assert.equal(detail.status,200);
+  assert.equal(detail.data.answers[0].professional_role,'electricista');
+  assert.equal(detail.data.answers[0].body,body);
+  assert.ok(stub.audit.some(call=>call.sql.startsWith('INSERT INTO resuelve_answers(')&&call.args[3]==='electricista'));
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -387,9 +418,13 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(app,/href="\/resuelve"/);
  assert.match(html,/id="askForm"/);
  assert.match(html,/id="answerForm"/);
+ assert.match(html,/id="answerProfessionalRole"/);
+ assert.match(html,/class="professional-help-option"/);
+ assert.match(js,/professional-advice/);
+ assert.match(js,/answerContent\(a\.body,a\.professional_role\)/);
  assert.match(html,/id="resuelveExtras"/);
  assert.match(html,/class="optional-listing"/);
- assert.match(html,/no hace falta comprar/i);
+ assert.match(html,/Nadie tiene que comprar/i);
  assert.match(js,/editorialReviewControls/);
  assert.match(js,/nonCommercialReviewed:true/);
  assert.match(js,/create\('details','answer-related-link'\)/);

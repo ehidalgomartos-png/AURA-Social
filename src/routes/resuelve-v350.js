@@ -101,7 +101,9 @@ router.post('/questions/:id/answers',requireAuth,checkOrigin,limiter(30),wrap(as
  if(!service.validId(req.params.id))return fail(res,400,'id_invalido');
  const body=service.validateAnswer(req.body);
  if(!body)return fail(res,400,'respuesta_invalida');
- const row=await service.answer(req.user.id,req.params.id,body);
+ const professionalRole=service.validateProfessionalRole(req.body?.professionalRole);
+ if(professionalRole===undefined)return fail(res,400,'profesion_invalida');
+ const row=await service.answer(req.user.id,req.params.id,body,professionalRole);
  if(!row)return fail(res,409,'peticion_no_disponible');
  res.status(201).json({ok:true,id:row.id});
 }));
