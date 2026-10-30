@@ -549,3 +549,15 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-similar-item .muted{font-size:.8rem}
 .resuelve-similar-item a:focus-visible{outline:2px solid #146b82;outline-offset:3px}
 @media(max-width:650px){.resuelve-similar-panel{padding:12px}.resuelve-similar-item a{min-height:42px;display:flex;align-items:center}}
+
+/* V3.5.36 — oportunidades reales para ayudar, sin perfiles ni actividad artificial. */
+.resuelve-help-suggestions{margin:20px 0;padding:18px;border:1px solid #cbe0db;border-radius:17px;background:#f5faf7}
+.resuelve-help-suggestions-head{display:flex;justify-content:space-between;align-items:start;gap:14px;flex-wrap:wrap}
+.resuelve-help-suggestions-head h2{margin:5px 0 9px;font-size:1.3rem;color:#184f54}
+.resuelve-help-suggestions-head .muted{margin:3px 0}
+.resuelve-help-suggestions-head>button{min-height:44px;border:1px solid #9dc8bd;color:#145d53;background:white}
+.resuelve-help-suggestions-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:15px 0}
+.resuelve-help-suggestion{display:flex;flex-direction:column;gap:7px;min-width:0;padding:15px;background:#fff;border:1px solid #cbded9;border-radius:12px}
+.resuelve-help-suggestion a{font-weight:750;line-height:1.45;overflow-wrap:anywhere}
+.resuelve-help-suggestion .muted{margin:0;font-size:.79rem}
+@media(max-width:740px){.resuelve-help-suggestions{padding:14px}.resuelve-help-suggestions-list{grid-template-columns:1fr}.resuelve-help-suggestions-head>button{width:100%}}
