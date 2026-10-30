@@ -28,6 +28,9 @@ async function ensureSchema(){
   await db.query(ddl);
   await db.query(answers);
   await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS professional_role VARCHAR(70)");
+  // Autodeclaración de experiencia: no implica acreditación, perfil profesional ni publicidad.
+  await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS self_professional_role VARCHAR(70)");
+  await db.query("ALTER TABLE resuelve_answers ADD COLUMN IF NOT EXISTS self_commercial_interest BOOLEAN NOT NULL DEFAULT FALSE");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS professional_help_requested BOOLEAN NOT NULL DEFAULT FALSE");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_at TIMESTAMPTZ");
   await db.query("ALTER TABLE resuelve_questions ADD COLUMN IF NOT EXISTS library_reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
@@ -56,6 +59,18 @@ function validateProfessionalRole(value){
  if(v.length<3||v.length>70)return undefined;
  if(/(?:https?:\/\/|www\.|@|\b[\w-]+\.(?:com|es|net|org)\b|(?:\+?\d[\s()./-]?){7,})/i.test(v))return undefined;
  return v;
+}
+// V3.5.13: distinción entre profesión sugerida y experiencia propia autodeclarada.
+function validateProfessionalDisclosure(data){
+ const role=validateProfessionalRole(data?.selfProfessionalRole);
+ const interest=data?.commercialInterest;
+ if(role===undefined)return null;
+ if(!role){
+  if(interest!==undefined&&interest!==null&&interest!=='')return null;
+  return {role:null,commercialInterest:false};
+ }
+ if(interest!=='yes'&&interest!=='no')return null;
+ return {role,commercialInterest:interest==='yes'};
 }
 async function list({filter='open',before=null,category=null,query='',professionalOnly=false}={}){
  await ensureSchema();
@@ -101,7 +116,7 @@ async function detail(id){
  ].join(' '),[id]);
  if(!q.rowCount)return null;
  const answers=await db.query([
-  "SELECT a.id,a.question_id,a.author_id,a.body,a.professional_role,a.created_at,u.username AS author_username",
+  "SELECT a.id,a.question_id,a.author_id,a.body,a.professional_role,a.self_professional_role,a.self_commercial_interest,a.created_at,u.username AS author_username",
   "FROM resuelve_answers a JOIN users u ON u.id=a.author_id AND u.status='active'",
   "WHERE a.question_id=$1 AND a.status='visible'",
   "ORDER BY (a.id=$2::bigint) DESC,a.id ASC LIMIT 100"
@@ -113,13 +128,13 @@ async function ask(userId,data){
  const r=await db.query("INSERT INTO resuelve_questions(author_id,title,body,category,professional_help_requested) VALUES($1,$2,$3,$4,$5) RETURNING id",
   [userId,data.title,data.body,data.category,data.professionalHelpRequested===true]);return r.rows[0];
 }
-async function answer(userId,id,body,professionalRole=null){
+async function answer(userId,id,body,professionalRole=null,disclosure={role:null,commercialInterest:false}){
  await ensureSchema();
  const r=await db.query([
-  "INSERT INTO resuelve_answers(question_id,author_id,body,professional_role)",
-  "SELECT q.id,$2,$3,$4 FROM resuelve_questions q",
+  "INSERT INTO resuelve_answers(question_id,author_id,body,professional_role,self_professional_role,self_commercial_interest)",
+  "SELECT q.id,$2,$3,$4,$5,$6 FROM resuelve_questions q",
   "WHERE q.id=$1 AND q.status='open' AND q.author_id<>$2 RETURNING id"
- ].join(' '),[id,userId,body,professionalRole]);
+ ].join(' '),[id,userId,body,professionalRole,disclosure.role,disclosure.commercialInterest]);
  const saved=r.rows[0]||null;
  if(saved){
   // La respuesta es válida aunque el sistema de notificaciones falle.
@@ -231,4 +246,4 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validateProfessionalRole,validateProfessionalDisclosure,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,CATEGORIES};
