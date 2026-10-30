@@ -525,6 +525,7 @@
   el('joinResuelveButton').hidden=!guest;
   el('loginResuelveButton').hidden=!guest;
   el('askButton').hidden=guest;
+  el('heroActions').classList.toggle('is-authenticated',!guest);
   el('resuelveAuthPanel').hidden=!guest;
   if(guest)el('resuelveAuthPanel').hidden=true;
   document.querySelector('[data-filter="mine"]').hidden=guest;
@@ -619,9 +620,11 @@
   bindResuelveAuth();
   const isAdmin=renderSession();
   if(isAdmin){await loadReviewQueue();await loadAnswerReports();}
-  if(!state.user)message('Puedes leer las peticiones sin registrarte. Para publicar o responder, crea tu cuenta aquí mismo o entra si ya tienes una.');
+  // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
-   el('askPanel').hidden=false;el('askTitleInput').focus();
+   el('askPanel').hidden=false;
+   el('askPanel').scrollIntoView({block:'start',behavior:'smooth'});
+   el('askTitleInput').focus({preventScroll:true});
   });
   el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;});
   el('backButton').addEventListener('click',goList);
