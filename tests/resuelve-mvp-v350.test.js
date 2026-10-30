@@ -32,6 +32,8 @@ function database(){
    const row={
     public_questions:visible.length,
     open_questions:visible.filter(q=>q.status==='open').length,
+    open_without_answers:visible.filter(q=>q.status==='open'&&
+      ![...answers.values()].some(a=>a.question_id===q.id&&a.status==='visible')).length,
     resolved_questions:visible.filter(q=>q.status==='resolved'&&accepted(q)).length,
     questions_with_answers:new Set(allAnswers.map(a=>a.question_id)).size,
     unique_helpers:new Set(allAnswers.map(a=>a.author_id)).size,
@@ -686,7 +688,7 @@ test('V3.5.18: estadísticas agregadas reales y exclusivas de administradores',a
   const empty=await req(url,{user:3});
   assert.equal(empty.status,200);
   assert.deepEqual(empty.data.metrics,{
-   public_questions:0,open_questions:0,resolved_questions:0,
+   public_questions:0,open_questions:0,open_without_answers:0,resolved_questions:0,
    questions_with_answers:0,unique_helpers:0,thanked_resolutions:0,
    questions_30d:0,resolved_30d:0
   });
@@ -708,7 +710,7 @@ test('V3.5.18: estadísticas agregadas reales y exclusivas de administradores',a
   const response=await req(url,{user:3});
   assert.equal(response.status,200);
   assert.deepEqual(response.data.metrics,{
-   public_questions:4,open_questions:2,resolved_questions:1,
+   public_questions:4,open_questions:2,open_without_answers:1,resolved_questions:1,
    questions_with_answers:2,unique_helpers:2,thanked_resolutions:1,
    questions_30d:3,resolved_30d:1
   });
@@ -720,6 +722,8 @@ test('V3.5.18: estadísticas agregadas reales y exclusivas de administradores',a
   assert.ok(query.sql.includes("a.status='visible'"));
   assert.ok(query.sql.includes("q.status IN ('open','resolved')"));
   assert.ok(query.sql.includes("count(DISTINCT author_id)"));
+  assert.ok(query.sql.includes("AS open_without_answers"));
+  assert.ok(query.sql.includes("a.status='visible'"));
   assert.equal(query.args.length,0);
  });
 });
