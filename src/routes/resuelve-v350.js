@@ -4,6 +4,7 @@ const express=require('express');
 const rateLimit=require('express-rate-limit');
 const {requireAuth}=require('../middleware/auth');
 const service=require('../services/resuelve-v350');
+const {resuelveReplyEmailService}=require('../services/resuelve-reply-email-v3521');
 const router=express.Router();
 const fail=(res,status,error)=>res.status(status).json({error});
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -98,6 +99,16 @@ router.post('/help-topics',requireAuth,checkOrigin,limiter(20),wrap(async(req,re
  const saved=await service.setHelpTopics(req.user.id,req.body.categories);
  if(!saved)return fail(res,400,'temas_invalidos');
  res.json({ok:true,categories:saved.categories});
+}));
+// V3.5.21: consentimiento de correo independiente y desactivado por defecto.
+router.get('/reply-email/preference',requireAuth,wrap(async(req,res)=>{
+ const enabled=await resuelveReplyEmailService.preference(req.user.id);
+ res.json({ok:true,enabled,available:resuelveReplyEmailService.config.enabled});
+}));
+router.post('/reply-email/preference',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(typeof req.body?.enabled!=='boolean')return fail(res,400,'preferencia_invalida');
+ const enabled=await resuelveReplyEmailService.savePreference(req.user.id,req.body.enabled);
+ res.json({ok:true,enabled,available:resuelveReplyEmailService.config.enabled});
 }));
 router.get('/questions/for-me',requireAuth,wrap(async(req,res)=>{
  const before=req.query?.antes;

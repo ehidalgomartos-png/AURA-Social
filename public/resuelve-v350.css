@@ -381,3 +381,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-impact-tile span{font-size:.85rem;color:#3d5769;line-height:1.35}
 @media(max-width:800px){.resuelve-impact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){.resuelve-impact-grid{gap:8px}.resuelve-impact-tile{padding:11px}.resuelve-impact-tile strong{font-size:1.45rem}.resuelve-impact-panel #refreshAdminImpact{width:100%}}
+
+/* V3.5.21 — preferencias opcionales de avisos por correo. */
+.resuelve-email-settings{margin:18px 0 12px;border:1px solid #c5dce6;border-radius:13px;background:#f7fbfc;padding:14px 17px}
+.resuelve-email-settings summary{cursor:pointer;font-weight:750;color:#155276}
+.resuelve-email-settings .resuelve-email-opt-in{display:flex;gap:10px;align-items:flex-start;font-weight:650;margin:13px 0}
+.resuelve-email-settings input{width:19px;height:19px;min-width:19px;margin:2px 0 0;accent-color:#176c80}
+.resuelve-email-settings a{color:#145d83;font-weight:750}
+@media(max-width:650px){.resuelve-email-settings{padding:13px;margin:13px 0}}

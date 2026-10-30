@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.5.21 Opt-in reply email and deep links
+        run: node --test tests/resuelve-reply-notification-v3521.test.js
       - name: V3.5.20 Moderation inbox and safe pending actions
         run: node --test tests/resuelve-admin-work-v3520.test.js
       - name: V3.5.19 Separate admin center with protected access
