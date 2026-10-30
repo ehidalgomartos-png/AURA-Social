@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.2 Private unresolved questions and weekly opt-in reminders
+        run: node --test tests/resuelve-pending-v362.test.js
       - name: V3.6.1 Voluntary question follows and in-app reply alerts
         run: node --test tests/resuelve-follow-v361.test.js
       - name: V3.6.0 Resuelve 2.0 release integration and privacy safeguards
