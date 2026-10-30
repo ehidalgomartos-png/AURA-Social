@@ -1,0 +1,54 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+
+test('V3.6.14: primera carga ejecuta paneles independientes en paralelo, conservando rutas',()=>{
+ const source=read('public/resuelve-v350.js');
+ const init=source.slice(source.indexOf(' async function init()'),source.indexOf(' init().catch'));
+ assert.ok(init.startsWith(' async function init()'));
+ assert.match(init,/await request\('\/api\/auth\/me'\)/);
+ assert.match(init,/bindResuelveAuth\(\)/);
+ assert.match(init,/bindReplyEmailPreferences\(\)/);
+ assert.match(init,/if\(start\)\s*[^\n]*/);
+ assert.match(init,/await Promise\.all\(\[\s*start\?openDetail\(start,false\):loadList\(\),\s*loadSolutions\(\),\s*loadTopicHubs\(\)\s*\]\)/);
+ assert.ok(init.indexOf("request('/api/auth/me')")<init.lastIndexOf('await Promise.all(['));
+ assert.doesNotMatch(init,/await loadSolutions\(\);\s*await loadTopicHubs\(\)/);
+ assert.match(source,/async function loadList\(more=false\)/);
+ assert.match(source,/async function loadSolutions\(more=false\)/);
+ assert.match(source,/async function loadTopicHubs\(\)/);
+ assert.doesNotThrow(()=>new Function(source));
+});
+test('V3.6.14: navegación móvil desplazable con accesos y áreas táctiles adecuadas',()=>{
+ const css=read('public/resuelve-v350.css');
+ const html=read('public/resuelve.html');
+ const block=css.slice(css.lastIndexOf('/* V3.6.14'));
+ assert.ok(block.startsWith('/* V3.6.14'));
+ assert.match(block,/@media\(max-width:650px\)/);
+ assert.match(block,/\.topbar nav\{/);
+ assert.match(block,/min-width:0/);
+ assert.match(block,/overflow-x:auto/);
+ assert.match(block,/scrollbar-width:thin/);
+ assert.match(block,/overscroll-behavior-x:contain/);
+ assert.match(block,/min-height:44px/);
+ assert.match(block,/:focus-visible/);
+ assert.doesNotMatch(block,/display:none|visibility:hidden|position:fixed|overflow:hidden/i);
+ for(const url of ['/app','/resuelve','/resuelve/admin'])assert.ok(html.includes('href="'+url+'"'),url);
+ assert.match(html,/aria-label="Navegación"/);
+ assert.match(html,/id="resuelveRegisterForm"/);
+ assert.match(html,/id="questionList"/);
+ assert.match(html,/id="solutionList"/);
+});
+test('V3.6.14: rutas existentes y privacidad Resuelve permanecen intactas',()=>{
+ const code=read('src/routes/resuelve-v350.js');
+ const services=read('src/services/resuelve-v350.js');
+ const html=read('public/resuelve.html');
+ assert.match(code,/router\.get\('\/solutions'/);
+ assert.match(code,/router\.get\('\/questions'/);
+ assert.match(code,/router\.get\('\/admin\/impact',requireAuth/);
+ assert.match(services,/seo_public_opt_in=TRUE AND q\.library_opt_out=FALSE/);
+ assert.match(html,/name="robots" content="noindex,follow"/);
+ assert.match(html,/Una única cuenta para Resuelve y RedLibertad/);
+});
