@@ -802,3 +802,76 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  }
 }
 @media(prefers-reduced-motion:reduce){.filters{scroll-snap-type:none}}
+
+/* V3.6.23 — Resuelve Desktop: equilibrio visual sin modificar la experiencia móvil. */
+@media (min-width:960px){
+ .wrap{max-width:1160px;padding:24px 24px 70px}
+ .hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.12fr) minmax(350px,.88fr);
+  grid-template-rows:auto auto auto;
+  column-gap:clamp(26px,4vw,56px);
+  align-items:center;
+  min-height:360px;
+  padding:44px clamp(36px,4.5vw,62px);
+  background:radial-gradient(circle at 95% 0%,rgba(66,183,195,.20),transparent 45%),
+   linear-gradient(120deg,#102e48,#145f74);
+ }
+ .hero>.eyebrow{grid-column:1;grid-row:1;align-self:end}
+ .hero>h1{
+  grid-column:1;grid-row:2;align-self:center;
+  font-size:clamp(2.5rem,3.7vw,3.4rem);
+  line-height:1.13;max-width:600px;margin:11px 0 12px;
+  text-wrap:balance;
+ }
+ .hero>.hero-description{
+  grid-column:1;grid-row:3;align-self:start;
+  max-width:540px;margin:0;line-height:1.7;
+ }
+ .hero-actions{
+  grid-column:2;grid-row:1/4;align-self:center;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  width:100%;min-width:0;max-width:none;margin:0;
+  gap:10px;padding:22px;
+  border:1px solid rgba(214,245,255,.25);
+  border-radius:21px;
+  background:rgba(255,255,255,.085);
+  box-shadow:0 12px 26px rgba(3,30,45,.13);
+ }
+ .hero-actions .hero-main-action{grid-column:1/-1;min-height:54px;font-size:1rem}
+ .hero-actions .hero-login,.hero-actions .hero-explore{
+  grid-column:auto;min-height:50px;overflow-wrap:anywhere;
+ }
+ .hero-actions.is-authenticated .hero-explore{grid-column:1/-1}
+ .hero-actions .hero-tertiary{
+  grid-column:auto;display:flex;align-items:center;justify-content:center;
+  min-height:44px;overflow-wrap:anywhere;
+ }
+ #questions .section-top{
+  display:grid;grid-template-columns:minmax(0,1fr);
+  align-items:start;justify-content:stretch;
+  row-gap:15px;margin-bottom:17px;
+ }
+ #questions .section-top>div:first-child{min-width:0}
+ #questions .filters{
+  width:max-content;max-width:100%;flex-wrap:wrap;
+  gap:6px;padding:6px;border:1px solid #d6e4ed;border-radius:14px;
+ }
+ #questions .filters button{min-height:45px;padding:10px 16px}
+ #questionSearchForm.resuelve-search{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;column-gap:18px;padding:17px 20px;margin-bottom:18px;
+ }
+ #questionSearchForm .resuelve-search-main{grid-column:1;min-width:0}
+ #questionSearchForm .resuelve-search-actions{grid-column:2;flex-wrap:nowrap;gap:10px}
+ #questionSearchForm .resuelve-search-actions button{min-height:48px;white-space:nowrap}
+ #questionSearchForm .resuelve-search-advanced{grid-column:1/-1}
+}
+/* Tablet: ancho aprovechado sin imponer la rejilla de escritorio a pantallas pequeñas. */
+@media (min-width:651px) and (max-width:959px){
+ .hero{padding:36px}
+ .hero-actions{max-width:100%}
+ .hero-actions .hero-tertiary{grid-column:auto;align-self:center}
+ #questions .section-top{align-items:stretch}
+ #questions .filters{width:max-content;max-width:100%;flex-wrap:wrap}
+}
