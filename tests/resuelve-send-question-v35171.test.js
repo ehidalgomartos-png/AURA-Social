@@ -29,7 +29,7 @@ function fixture(){
  return {questionShareControl,all,calls};
 }
 
-test('V3.5.17.1: enviar una pregunta concreta a WhatsApp, Telegram, correo y SMS',()=>{
+test('V3.5.17.1: enviar una pregunta concreta a WhatsApp, Facebook, Telegram, correo y SMS',()=>{
  const {questionShareControl,all,calls}=fixture();
  const q={id:742,title:'¿Cómo solicitar una ayuda para mi familia?',body:'NO COPIAR: teléfono 612 999 000, datos privados'};
  const root=questionShareControl(q),nodes=all(root);
@@ -39,17 +39,18 @@ test('V3.5.17.1: enviar una pregunta concreta a WhatsApp, Telegram, correo y SMS
  assert.equal(toggle.attrs['aria-expanded'],'false');
  assert.equal(calls.length,0,'no se envía nada de forma automática');
  const actions=nodes.filter(n=>n.tag==='a');
- assert.deepEqual(actions.map(n=>n.textContent),['WhatsApp','Telegram','Correo electrónico','SMS']);
- const url='https://redlibertad.com/resuelve?id=742';
+ assert.deepEqual(actions.map(n=>n.textContent),['WhatsApp','Facebook','Telegram','Correo electrónico','SMS']);
+ const url='https://redlibertad.com/resuelve/pregunta/742';
  for(const action of actions){
   assert.ok(decodeURIComponent(action.href.replace(/\+/g,' ')).includes(url),action.textContent);
   assert.ok(!action.href.includes('612'), 'sin teléfono ni cuerpo de la pregunta');
  }
  assert.match(actions[0].href,/^https:\/\/api\.whatsapp\.com\/send\?text=/);
  assert.match(decodeURIComponent(actions[0].href),/¿Cómo solicitar una ayuda para mi familia\?/);
- assert.match(actions[1].href,/^https:\/\/t\.me\/share\/url\?/);
- assert.match(actions[2].href,/^mailto:\?subject=/);
- assert.match(actions[3].href,/^sms:\?body=/);
+ assert.match(actions[1].href,/^https:\/\/www\.facebook\.com\/sharer\/sharer\.php\?u=/);
+ assert.match(actions[2].href,/^https:\/\/t\.me\/share\/url\?/);
+ assert.match(actions[3].href,/^mailto:\?subject=/);
+ assert.match(actions[4].href,/^sms:\?body=/);
  assert.equal(actions[0].target,'_blank');
  assert.equal(actions[0].rel,'noopener noreferrer');
  toggle.events.click();
@@ -68,10 +69,10 @@ test('V3.5.17.1: copiar y menú del móvil solo actúan tras pulsar',async()=>{
  const native=nodes.find(n=>n.textContent==='Compartir desde mi móvil');
  assert.equal(calls.length,0);
  await copy.events.click();
- assert.deepEqual(calls[0],['copy','https://redlibertad.com/resuelve?id=7']);
+ assert.deepEqual(calls[0],['copy','https://redlibertad.com/resuelve/pregunta/7']);
  await native.events.click();
  assert.equal(calls[1][0],'native');
- assert.equal(calls[1][1].url,'https://redlibertad.com/resuelve?id=7');
+ assert.equal(calls[1][1].url,'https://redlibertad.com/resuelve/pregunta/7');
  assert.equal(calls[1][1].title,'Busco orientación');
 });
 
