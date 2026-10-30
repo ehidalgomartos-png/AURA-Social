@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Busco orientación',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false};
+ const state={user:null,filter:'open',category:'',search:'',professionalOnly:false,helpTopics:[],next:null,question:null,loading:false,solutionNext:null,solutionLoading:false,solutionCategory:'',solutionSearch:'',reviewNext:null,reviewLoading:false,reportNext:null,reportLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -48,6 +48,25 @@
   );
   return article;
  }
+// V3.5.16 — intereses privados, sin perfiles públicos ni mensajes automáticos.
+ function renderHelpTopicSelection(){
+  for(const input of el('helpTopicsForm').querySelectorAll('input[name="helpTopic"]'))
+   input.checked=state.helpTopics.includes(input.value);
+ }
+ async function loadHelpTopics(){
+  const result=await request('/api/resuelve/help-topics');
+  state.helpTopics=Array.isArray(result.categories)?result.categories:[];
+  renderHelpTopicSelection();
+ }
+ async function saveHelpTopics(categories){
+  const response=await write('/api/resuelve/help-topics',{categories});
+  state.helpTopics=response.categories;
+  renderHelpTopicSelection();
+  el('helpTopicsStatus').textContent=categories.length
+   ?'Temas guardados. Aquí encontrarás peticiones abiertas en las que puedes ayudar.'
+   :'Temas desactivados. Puedes volver a elegirlos cuando quieras.';
+  await loadList();
+ }
  async function loadList(more=false){
   if(state.loading)return;
   state.loading=true;
@@ -56,19 +75,23 @@
   if(!more){list.replaceChildren();status.textContent='Cargando peticiones…';}
   try{
    const params=new URLSearchParams();
-   if(state.filter!=='mine'){
+   if(state.filter!=='mine'&&state.filter!=='help'){
     params.set('estado',state.filter);
     if(state.category)params.set('categoria',state.category);
     if(state.search)params.set('q',state.search);
     if(state.professionalOnly)params.set('profesional','si');
    }
    if(more&&state.next)params.set('antes',state.next);
-   const url=(state.filter==='mine'?'/api/resuelve/questions/mine':'/api/resuelve/questions')+'?'+params.toString();
-   const data=await request(url);
+   const endpoint=state.filter==='mine'?'/api/resuelve/questions/mine':
+    state.filter==='help'?'/api/resuelve/questions/for-me':'/api/resuelve/questions';
+   const data=await request(endpoint+'?'+params.toString());
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
    btn.hidden=!state.next;
-   status.textContent=list.childElementCount?'':(state.filter==='mine'?'Todavía no has publicado ninguna petición.':'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.');
+   status.textContent=list.childElementCount?'':(
+    state.filter==='mine'?'Todavía no has publicado ninguna petición.':
+    state.filter==='help'?(state.helpTopics.length?'No hay peticiones abiertas de tus temas por ahora.':'Elige los temas en los que quieres ayudar para descubrir peticiones.') :
+    'Aún no hay peticiones en esta sección. Puedes ser la primera persona en participar.');
   }catch(err){status.textContent=err.message;}
   finally{state.loading=false;}
  }
@@ -529,6 +552,8 @@
   el('resuelveAuthPanel').hidden=!guest;
   if(guest)el('resuelveAuthPanel').hidden=true;
   document.querySelector('[data-filter="mine"]').hidden=guest;
+  document.querySelector('[data-filter="help"]').hidden=guest;
+  document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
   el('libraryReviewPanel').hidden=!isAdmin;
   el('adminReportsPanel').hidden=!isAdmin;
@@ -629,15 +654,37 @@
   el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;});
   el('backButton').addEventListener('click',goList);
   for(const btn of document.querySelectorAll('[data-filter]')){
-   btn.addEventListener('click',()=>{
+   btn.addEventListener('click',async()=>{
     state.filter=btn.dataset.filter;
-    el('questionSearchForm').hidden=state.filter==='mine';
+    el('questionSearchForm').hidden=state.filter==='mine'||state.filter==='help';
+    el('helpTopicsPanel').hidden=state.filter!=='help';
     for(const t of document.querySelectorAll('[data-filter]')){
      const active=t===btn;t.classList.toggle('active',active);t.setAttribute('aria-pressed',active?'true':'false');
     }
-    loadList();
+    if(state.filter==='help'){
+     try{await loadHelpTopics();}catch(err){el('helpTopicsStatus').textContent=err.message;return;}
+    }
+    await loadList();
    });
   }
+  el('helpTopicsForm').addEventListener('submit',async(event)=>{
+   event.preventDefault();
+   if(!state.user)return openAuth('login');
+   const values=[...el('helpTopicsForm').querySelectorAll('input[name="helpTopic"]:checked')]
+    .map(input=>input.value);
+   const submit=el('helpTopicsForm').querySelector('[type="submit"]');
+   submit.disabled=true;
+   try{await saveHelpTopics(values);}
+   catch(err){el('helpTopicsStatus').textContent=err.message;}
+   finally{submit.disabled=false;}
+  });
+  el('clearHelpTopics').addEventListener('click',async()=>{
+   if(!state.user)return;
+   const button=el('clearHelpTopics');button.disabled=true;
+   try{await saveHelpTopics([]);}
+   catch(err){el('helpTopicsStatus').textContent=err.message;}
+   finally{button.disabled=false;}
+  });
   // V3.5.15.2: controles avanzados plegados, accesibles y sin perder filtros aplicados.
   function setQuestionAdvancedFilters(open){
    el('questionAdvancedFilters').hidden=!open;
