@@ -8,7 +8,7 @@
  };
  const append=(parent,...children)=>{parent.append(...children);return parent;};
  const categories={consejo:'Necesito consejo',busco:'Estoy buscando algo',ayuda:'Necesito ayuda',experiencia:'Experiencias'};
- const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false};
+ const state={user:null,filter:'open',category:'',search:'',next:null,question:null,loading:false,solutionNext:null,solutionLoading:false};
  const message=(text)=>{el('banner').textContent=text;};
  async function request(url,options){
   const response=await fetch(url,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options?.headers||{})}});
@@ -69,9 +69,41 @@
   }catch(err){status.textContent=err.message;}
   finally{state.loading=false;}
  }
+// V3.5.7 — mostrar exclusivamente soluciones aprobadas por revisión editorial.
+ function solutionCard(q){
+  const article=create('article','question-card solution-card');
+  const heading=create('h3');
+  const link=create('a',null,q.title);
+  link.href='/resuelve?id='+encodeURIComponent(q.id);
+  heading.append(link);
+  const content=create('p','solution-excerpt',q.solution);
+  article.append(meta(chip('Solución revisada',true),chip(categories[q.category]||'Petición')),
+   heading,content,
+   meta(create('span',null,'Petición de @'+q.author_username),create('span',null,date(q.solved_at))),
+   button('Leer solución completa',()=>openDetail(q.id))
+  );
+  return article;
+ }
+ async function loadSolutions(more=false){
+  if(state.solutionLoading)return;
+  state.solutionLoading=true;
+  const list=el('solutionList'),status=el('solutionStatus'),btn=el('moreSolutions');
+  btn.hidden=true;
+  if(!more){list.replaceChildren();status.textContent='Cargando soluciones…';}
+  try{
+   const url='/api/resuelve/solutions'+(more&&state.solutionNext?'?antes='+encodeURIComponent(state.solutionNext):'');
+   const data=await request(url);
+   for(const q of data.items)list.append(solutionCard(q));
+   state.solutionNext=data.next;
+   btn.hidden=!state.solutionNext;
+   status.textContent=list.childElementCount?'':'Aún no hay soluciones revisadas. Iremos incorporándolas cuando existan respuestas útiles.';
+  }catch(err){status.textContent=err.message;}
+  finally{state.solutionLoading=false;}
+ }
  function displayDetail(open){
   el('detailPanel').hidden=!open;
   el('questions').hidden=open;
+  el('solutions').hidden=open;
   el('askPanel').hidden=true;
  }
  async function openDetail(id,push=true){
@@ -207,6 +239,28 @@
   host.append(connectedActions(q));
   if(state.user)host.append(communitySharePanel(q));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
+  const reviewed=solved && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
+  if(state.user && mine && solved && !q.library_opt_out){
+   host.append(button('Excluir mi petición de la biblioteca',async()=>{
+    if(!confirm('¿Excluir esta petición de la biblioteca de forma permanente? Seguirá visible como petición normal.'))return;
+    try{
+     await write('/api/resuelve/questions/'+q.id+'/library/opt-out',{});
+     message('Petición excluida de la biblioteca.');await openDetail(q.id,false);await loadSolutions();
+    }catch(error){message(error.message);}
+   }));
+  }
+  if((state.user?.is_admin||state.user?.isAdmin)&&solved){
+   if(q.library_opt_out)host.append(create('p','muted','El autor ha excluido esta petición de la biblioteca.'));
+   else host.append(button(reviewed?'Retirar solución de la biblioteca':'Aprobar solución para biblioteca',async()=>{
+    if(!confirm(reviewed?'¿Retirar esta solución de la biblioteca?':'¿Has revisado la privacidad, la originalidad y la utilidad de esta solución?'))return;
+    try{
+     await write('/api/resuelve/admin/solutions/'+q.id+'/'+(reviewed?'revoke':'approve'),{});
+     message(reviewed?'Solución retirada de la biblioteca.':'Solución aprobada para la biblioteca.');
+     await openDetail(q.id,false);await loadSolutions();
+    }catch(error){message(error.message);}
+   }));
+  }
+
   if(mine&&solved)host.append(button('Reabrir mi petición',async()=>{
    if(!confirm('¿Quieres volver a aceptar respuestas?'))return;
    try{await write('/api/resuelve/questions/'+q.id+'/reopen',{});message('Petición reabierta.');await openDetail(q.id,false);}
@@ -284,6 +338,7 @@
    message('Filtros eliminados.');loadList();
   });
   el('moreButton').addEventListener('click',()=>loadList(true));
+  el('moreSolutions').addEventListener('click',()=>loadSolutions(true));
   el('askForm').addEventListener('submit',async event=>{
    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');
    if(submit.disabled)return;submit.disabled=true;
@@ -316,6 +371,7 @@
   });
   const start=new URLSearchParams(location.search).get('id');
   if(start)await openDetail(start,false);else await loadList();
+  await loadSolutions();
  }
  init().catch(()=>message('No se pudo iniciar Resuelve. Inténtalo de nuevo.'));
 })();

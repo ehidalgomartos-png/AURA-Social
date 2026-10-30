@@ -25,8 +25,37 @@ function database(){
   }
   if(sql.startsWith('INSERT INTO resuelve_questions(')){
    const row={id:qi++,author_id:Number(args[0]),title:args[1],body:args[2],category:args[3],
-    status:'open',accepted_answer_id:null,created_at:new Date().toISOString()};
+    status:'open',accepted_answer_id:null,library_approved_answer_id:null,library_opt_out:false,created_at:new Date().toISOString()};
    questions.set(row.id,row);return {rows:[{id:row.id}],rowCount:1};
+  }
+  if(sql.startsWith('SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution')){
+   const rows=[...questions.values()].filter(q=>{
+    const a=answers.get(q.accepted_answer_id);
+    return q.status==='resolved'&&!q.library_opt_out&&q.accepted_answer_id===q.library_approved_answer_id &&
+     a?.status==='visible'&&a.body.trim().length>=80&&q.body.trim().length>=50 &&
+     (!args[0]||q.id<Number(args[0]));
+   }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
+     author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
+   return {rows,rowCount:rows.length};
+  }
+  if(sql.startsWith('UPDATE resuelve_questions q SET library_approved_answer_id=')){
+   const q=questions.get(Number(args[0])),a=answers.get(q?.accepted_answer_id);
+   if(!q||q.status!=='resolved'||q.library_opt_out||q.body.trim().length<50||
+    !a||a.status!=='visible'||a.body.trim().length<80)return {rows:[],rowCount:0};
+   q.library_approved_answer_id=q.accepted_answer_id;
+   return {rows:[{id:q.id,library_approved_answer_id:q.library_approved_answer_id}],rowCount:1};
+  }
+  if(sql.startsWith('UPDATE resuelve_questions SET library_approved_answer_id=NULL')){
+   const q=questions.get(Number(args[0]));
+   if(!q)return {rows:[],rowCount:0};
+   q.library_approved_answer_id=null;
+   return {rows:[{id:q.id,library_approved_answer_id:null}],rowCount:1};
+  }
+  if(sql.startsWith('UPDATE resuelve_questions SET library_opt_out=TRUE')){
+   const q=questions.get(Number(args[0]));
+   if(!q||q.author_id!==Number(args[1])||q.status==='hidden')return {rows:[],rowCount:0};
+   q.library_opt_out=true;q.library_approved_answer_id=null;
+   return {rows:[{id:q.id}],rowCount:1};
   }
   if(sql.startsWith('SELECT q.id, q.title')) {
    const rows=[...questions.values()].filter(q=>q.author_id===Number(args[0])&&q.status!=='hidden'&&
@@ -73,11 +102,11 @@ function database(){
   if(sql.startsWith("UPDATE resuelve_questions SET status='open',accepted_answer_id=NULL")&&sql.includes('WHERE id=$1 AND author_id=')){
    const q=questions.get(Number(args[0]));
    if(!q||q.author_id!==Number(args[1])||q.status!=='resolved')return {rows:[],rowCount:0};
-   q.status='open';q.accepted_answer_id=null;return {rows:[{id:q.id}],rowCount:1};
+   q.status='open';q.accepted_answer_id=null;q.library_approved_answer_id=null;return {rows:[{id:q.id}],rowCount:1};
   }
   if(sql.startsWith("UPDATE resuelve_questions SET status='hidden'")){
    const q=questions.get(Number(args[0]));if(!q)return {rows:[],rowCount:0};
-   q.status='hidden';return {rows:[{id:q.id}],rowCount:1};
+   q.status='hidden';q.library_approved_answer_id=null;return {rows:[{id:q.id}],rowCount:1};
   }
   if(sql.startsWith("UPDATE resuelve_answers SET status='hidden'")){
    const a=answers.get(Number(args[0]));if(!a)return {rows:[],rowCount:0};
@@ -243,6 +272,39 @@ test('V3.5.6: búsqueda literal y categorías sin fuga entre filtros',async()=>{
   assert.equal((await req('/api/resuelve/questions?q='+('a'.repeat(81)))).status,400);
  });
 });
+test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, con baja del autor',async()=>{
+ await withApp(async(req,stub)=>{
+  const q=(await req('/api/resuelve/questions',{user:1,method:'POST',body:{
+   title:'Cómo escoger un sofá para un salón pequeño',
+   body:'Necesito un sofá para un salón estrecho y me preocupa la distancia hasta el televisor y el paso libre.',
+   category:'consejo'}})).data.id;
+  const short=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{
+   body:'Mide antes de comprar.'}})).data.id;
+  assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:short}})).status,200);
+  assert.equal((await req('/api/resuelve/solutions')).data.items.length,0);
+  const admin='/api/resuelve/admin/solutions/'+q+'/approve';
+  assert.equal((await req(admin,{method:'POST',body:{}})).status,401);
+  assert.equal((await req(admin,{user:2,method:'POST',body:{}})).status,403);
+  assert.equal((await req(admin,{user:3,method:'POST',origin:'foreign',body:{}})).status,403);
+  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,409);
+  const reopened=await req('/api/resuelve/questions/'+q+'/reopen',{user:1,method:'POST',body:{}});
+  assert.equal(reopened.status,200);
+  const good=(await req('/api/resuelve/questions/'+q+'/answers',{user:2,method:'POST',body:{
+   body:'Primero mide el ancho de la habitación y deja al menos un paso cómodo. Después compara fondos reales, prueba el respaldo y revisa las medidas del ascensor antes de elegir.'}})).data.id;
+  assert.equal((await req('/api/resuelve/questions/'+q+'/solve',{user:1,method:'POST',body:{answerId:good}})).status,200);
+  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,200);
+  const library=await req('/api/resuelve/solutions');
+  assert.equal(library.status,200);
+  assert.deepEqual(library.data.items.map(x=>Number(x.id)),[Number(q)]);
+  assert.ok(library.data.items[0].solution.includes('Primero mide'));
+  assert.equal((await req('/api/resuelve/solutions?antes=-1')).status,400);
+  assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:2,method:'POST',body:{}})).status,404);
+  assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:1,method:'POST',body:{}})).status,200);
+  assert.equal((await req('/api/resuelve/solutions')).data.items.length,0);
+  assert.equal((await req(admin,{user:3,method:'POST',body:{}})).status,409);
+  assert.ok(stub.audit.some(entry=>entry.sql.includes('library_opt_out=FALSE')));
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -256,6 +318,10 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(html,/id="answerForm"/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
+ assert.match(html,/id="solutionList"/);
+ assert.match(html,/name="robots" content="noindex,follow"/);
+ assert.match(js,/loadSolutions/);
+ assert.match(js,/\/api\/resuelve\/solutions/);
  assert.match(js,/questionSearchClear/);
  assert.match(js,/\/api\/resuelve\/questions\/mine/);
  assert.match(html,/name="robots" content="noindex,follow"/);
