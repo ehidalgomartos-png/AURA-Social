@@ -47,7 +47,7 @@ test('V3.5.35: only real public question titles are suggested; reviewed solution
 
 test('V3.5.35: public API validates length, excludes private fields and sits before dynamic ID route',()=>{
  const router=read('src/routes/resuelve-v350.js');
- assert.match(router,/router.get\('\/questions\/similar',wrap/);
+ assert.match(router,/router.get\('\/questions\/similar',publicSimilarityLimiter,wrap/);
  assert.match(router,/title.length>125\|\|title.trim\(\).length<8/);
  assert.match(router,/service.similarQuestions\(title\)/);
  assert.ok(router.indexOf("router.get('/questions/similar'")<router.indexOf("router.get('/questions/:id'"));
