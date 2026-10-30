@@ -441,3 +441,18 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-solution-shortcut:focus-visible{outline:3px solid #087e89;outline-offset:2px}
 #solutionSummaryStatus{font-size:.8rem;margin:9px 0 0}
 @media(max-width:650px){.resuelve-solution-explore{padding:11px}.resuelve-solution-shortcuts{flex-wrap:nowrap;overflow-x:auto;padding:3px 2px 8px;scrollbar-width:thin}.resuelve-solution-shortcut{flex:none}}
+
+/* V3.5.29 — permiso editorial independiente para buscadores. */
+.resuelve-seo-consent{margin:17px 0;padding:15px;border:1px solid #b8d9e5;border-radius:14px;background:#f5fafc}
+.resuelve-seo-consent h3{margin:0 0 8px}
+.resuelve-seo-consent .muted{margin:7px 0}
+.resuelve-seo-consent-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.resuelve-seo-consent-actions button,.resuelve-seo-consent-actions a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:10px 14px}
+.resuelve-seo-consent-actions [hidden]{display:none!important}
+.resuelve-seo-solution{max-width:820px;margin:22px auto;background:#fff;border:1px solid #d6e6eb;border-radius:18px;padding:clamp(17px,4vw,32px)}
+.resuelve-seo-solution h1{font-size:clamp(1.6rem,4.2vw,2.5rem);line-height:1.2;color:#144c6b}
+.resuelve-seo-solution h2{font-size:1.2rem;margin-top:24px}
+.resuelve-seo-solution-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8}
+.resuelve-seo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.resuelve-seo-actions a{display:inline-flex;align-items:center;min-height:44px;padding:10px 15px}
+@media(max-width:650px){.resuelve-seo-consent-actions button,.resuelve-seo-consent-actions a,.resuelve-seo-actions a{width:100%}}
