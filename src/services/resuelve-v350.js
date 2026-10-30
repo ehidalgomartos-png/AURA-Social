@@ -165,6 +165,23 @@ async function library({before=null}={}){
  ].join(' ');
  return (await db.query(sql,[validId(before)?String(before):null])).rows;
 }
+// V3.5.8: cola privada para revisión manual, sin exponer contenido nuevo en la biblioteca.
+async function pendingSolutions({before=null}={}){
+ await ensureSchema();
+ const sql=[
+  "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
+  "u.username AS author_username FROM resuelve_questions q",
+  "JOIN resuelve_answers a ON a.id=q.accepted_answer_id AND a.question_id=q.id AND a.status='visible'",
+  "JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "JOIN users respondent ON respondent.id=a.author_id AND respondent.status='active'",
+  "WHERE q.status='resolved' AND q.library_opt_out=FALSE",
+  "AND (q.library_approved_answer_id IS NULL OR q.library_approved_answer_id<>q.accepted_answer_id)",
+  "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
+  "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
+  "ORDER BY q.id DESC LIMIT 12"
+ ].join(' ');
+ return (await db.query(sql,[validId(before)?String(before):null])).rows;
+}
 async function approveLibrary(questionId,approved){
  await ensureSchema();
  const sql=approved?[
@@ -192,4 +209,4 @@ async function optOutLibrary(questionId,authorId){
  ].join(' ');
  return (await db.query(sql,[questionId,authorId])).rows[0]||null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,approveLibrary,optOutLibrary,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,library,pendingSolutions,approveLibrary,optOutLibrary,CATEGORIES};
