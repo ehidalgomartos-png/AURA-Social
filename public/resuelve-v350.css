@@ -705,3 +705,31 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  }
  .topbar nav a:focus-visible{outline:3px solid #12648b;outline-offset:-3px}
 }
+
+/* V3.6.15 — texto público legible incluso en pantallas estrechas y títulos largos. */
+.resuelve-seo-solution,.resuelve-topic-page{min-width:0;max-width:100%}
+.resuelve-seo-solution h1,.resuelve-topic-item h2{
+ overflow-wrap:anywhere;
+ hyphens:auto;
+}
+.resuelve-seo-breadcrumbs{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}
+.resuelve-seo-breadcrumbs [aria-current="page"]{min-width:0;overflow-wrap:anywhere}
+.resuelve-topic-item{min-width:0}
+.resuelve-topic-item h2 a{
+ display:inline-flex;
+ align-items:center;
+ min-height:44px;
+ padding:6px 0;
+ overflow-wrap:anywhere;
+}
+.resuelve-question-topic summary{
+ min-height:44px;
+ padding:10px 9px;
+ border-radius:9px;
+}
+.resuelve-topic-item h2 a:focus-visible,
+.resuelve-question-topic summary:focus-visible{outline:3px solid #137e89;outline-offset:3px}
+@media(max-width:650px){
+ .resuelve-seo-solution{padding:17px 14px}
+ .resuelve-topic-item{padding:13px}
+}

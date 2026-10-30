@@ -33,3 +33,19 @@
  .resuelve-about-actions a{width:100%}
  .resuelve-about-last{padding:20px 16px}
 }
+
+/* V3.6.15 — preguntas frecuentes con toque y teclado cómodos, sin JavaScript. */
+.resuelve-about-faq summary{
+ min-height:44px;
+ padding:11px 12px;
+ border-radius:10px;
+ line-height:1.5;
+ overflow-wrap:anywhere;
+}
+.resuelve-about-faq details[open]>summary{background:#eef7f5}
+.resuelve-about-faq details p{padding-inline:12px;overflow-wrap:anywhere}
+.resuelve-about-faq summary:focus-visible{outline:3px solid #137e89;outline-offset:2px}
+@media(max-width:720px){
+ .resuelve-about-hero,.resuelve-about-section,.resuelve-about-last{min-width:0;max-width:100%}
+ .resuelve-about-faq summary{padding:12px;min-height:48px}
+}
