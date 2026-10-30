@@ -140,6 +140,7 @@
   if(!/^[1-9]\d{0,15}$/.test(String(id)))return;
   displayDetail(true);el('questionDetail').textContent='Cargando petición…';
   el('answerList').replaceChildren();el('answerForm').hidden=true;
+  el('resuelveExtras').replaceChildren();
   if(push)history.pushState({id},'', '/resuelve?id='+encodeURIComponent(id));
   try{
    const data=await request('/api/resuelve/questions/'+encodeURIComponent(id));
@@ -151,14 +152,13 @@
 
  function connectedActions(q){
   const wrap=create('section','resuelve-related');
-  const title=create('h3',null,'Conecta esta petición con RedLibertad');
-  const info=create('p','muted','Encuentra opciones en Marketplace, conversa en comunidades o comparte esta petición. No se publicará nada automáticamente.');
+  const title=create('h3',null,'Difunde esta petición para recibir más ayuda');
+  const info=create('p','muted','Compartir una pregunta puede acercarla a quien sabe responder. No se publicará nada sin tu permiso.');
   const links=create('div','resuelve-related-actions');
   function action(label,href){
    const a=create('a','secondary',label);a.href=href;links.append(a);
   }
-  action('Explorar Marketplace','/marketplace/explorar');
-  action('Ver comunidades','/comunidades');
+  action('Explorar comunidades','/comunidades');
   const share=button('Compartir petición',async()=>{
    const url=new URL('/resuelve?id='+encodeURIComponent(q.id),location.origin).href;
    try{
@@ -169,7 +169,16 @@
    }catch(e){if(e.name==='AbortError')return;}
    window.prompt('Copia el enlace de la petición:',url);
   },'secondary');
-  links.append(share);wrap.append(title,info,links);return wrap;
+  links.append(share);wrap.append(title,info,links);
+  if(q.category==='busco'){
+   const extra=create('details','resuelve-market-optional');
+   extra.append(create('summary',null,'Si estás buscando un producto: ver otras opciones (opcional)'));
+   const explanation=create('p','muted','La ayuda no depende de ninguna compra. Consulta anuncios solo si te resultan útiles.');
+   const market=create('a',null,'Explorar anuncios de Marketplace');
+   market.href='/marketplace/explorar';
+   extra.append(explanation,market);wrap.append(extra);
+  }
+  return wrap;
  }
 
  // V3.5.2: solo enlaces del Marketplace propio, aportados voluntariamente.
@@ -191,8 +200,11 @@
   const safe=validatedMarketplaceUrl(match[2]);
   if(!safe){wrap.append(create('p',null,body));return wrap;}
   if(match[1])wrap.append(create('p',null,match[1]));
-  const a=create('a','marketplace-recommendation','Ver anuncio recomendado en Marketplace');
-  a.href=safe;a.rel='noopener noreferrer';wrap.append(a);
+  const extra=create('details','answer-related-link');
+  extra.append(create('summary',null,'Ver enlace de Marketplace compartido (opcional)'));
+  const a=create('a',null,'Consultar este anuncio, si te interesa');
+  a.href=safe;a.rel='noopener noreferrer';
+  extra.append(a);wrap.append(extra);
   return wrap;
  }
 
@@ -257,6 +269,55 @@
   });
   return section;
  }
+// V3.5.10: revisión humana explícita; ninguna casilla está marcada por defecto.
+ function editorialReviewControls(q,reviewed){
+  const panel=create('section','editorial-review');
+  panel.append(create('h3',null,'Revisión humana de la solución'));
+  if(q.library_opt_out){
+   panel.append(create('p','muted','El autor ha excluido esta petición de la biblioteca.'));
+   return panel;
+  }
+  if(reviewed){
+   panel.append(create('p','muted','Esta solución ya está publicada en la biblioteca tras revisión.'));
+   panel.append(button('Retirar solución de la biblioteca',async()=>{
+    if(!confirm('¿Retirar esta solución de la biblioteca?'))return;
+    try{
+     await write('/api/resuelve/admin/solutions/'+q.id+'/revoke',{});
+     message('Solución retirada de la biblioteca.');
+     await openDetail(q.id,false);await loadSolutions();await loadReviewQueue();
+    }catch(error){message(error.message);}
+   },'secondary'));
+   return panel;
+  }
+  panel.append(create('p','muted','Revisa la respuesta completa. Se priorizan explicaciones y experiencias, nunca una venta como única solución.'));
+  const checklist=create('div','editorial-review-checklist');
+  const fields=[
+   ['qualityReviewed','Aporta pasos, experiencia o consejos útiles por sí mismos, sin depender de una compra.'],
+   ['privacyReviewed','No contiene datos personales, contactos privados ni información sensible que no deba destacarse.'],
+   ['nonCommercialReviewed','No es publicidad encubierta, una oferta ni una promoción engañosa.']
+  ];
+  const checks=[];
+  const submit=button('Publicar en biblioteca',async()=>{
+   if(!checks.every(c=>c.checked))return;
+   if(!confirm('¿Publicar esta solución útil y revisada en la biblioteca pública?'))return;
+   submit.disabled=true;
+   try{
+    await write('/api/resuelve/admin/solutions/'+q.id+'/approve',
+     {qualityReviewed:true,privacyReviewed:true,nonCommercialReviewed:true});
+    message('Solución aprobada tras revisión humana.');
+    await openDetail(q.id,false);await loadSolutions();await loadReviewQueue();
+   }catch(error){message(error.message);submit.disabled=false;}
+  },'primary');
+  submit.disabled=true;
+  for(const [key,text] of fields){
+   const label=create('label','editorial-review-item');
+   const input=create('input');input.type='checkbox';input.name=key;
+   input.addEventListener('change',()=>{submit.disabled=!checks.every(c=>c.checked);});
+   checks.push(input);label.append(input,create('span',null,text));checklist.append(label);
+  }
+  panel.append(checklist,submit);
+  return panel;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -266,10 +327,8 @@
    create('h2','',q.title),meta(create('span',null,'Publicado por @'+q.author_username),
     create('span',null,date(q.created_at))),
    create('p','detail-body',q.body));
-  host.append(connectedActions(q));
-  if(state.user)host.append(communitySharePanel(q));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
-  const reviewed=solved && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
+  const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
   if(state.user && mine && solved && !q.library_opt_out){
    host.append(button('Excluir mi petición de la biblioteca',async()=>{
     if(!confirm('¿Excluir esta petición de la biblioteca de forma permanente? Seguirá visible como petición normal.'))return;
@@ -279,18 +338,6 @@
     }catch(error){message(error.message);}
    }));
   }
-  if((state.user?.is_admin||state.user?.isAdmin)&&solved){
-   if(q.library_opt_out)host.append(create('p','muted','El autor ha excluido esta petición de la biblioteca.'));
-   else host.append(button(reviewed?'Retirar solución de la biblioteca':'Aprobar solución para biblioteca',async()=>{
-    if(!confirm(reviewed?'¿Retirar esta solución de la biblioteca?':'¿Has revisado la privacidad, la originalidad y la utilidad de esta solución?'))return;
-    try{
-     await write('/api/resuelve/admin/solutions/'+q.id+'/'+(reviewed?'revoke':'approve'),{});
-     message(reviewed?'Solución retirada de la biblioteca.':'Solución aprobada para la biblioteca.');
-     await openDetail(q.id,false);await loadSolutions();await loadReviewQueue();
-    }catch(error){message(error.message);}
-   }));
-  }
-
   if(mine&&solved)host.append(button('Reabrir mi petición',async()=>{
    if(!confirm('¿Quieres volver a aceptar respuestas?'))return;
    try{await write('/api/resuelve/questions/'+q.id+'/reopen',{});message('Petición reabierta.');await openDetail(q.id,false);}
@@ -328,6 +375,11 @@
   if(!state.user&&!solved)list.append(create('p','muted','Entra en tu cuenta de RedLibertad para responder. La lectura es pública.'));
   else if(mine&&!solved)list.append(create('p','muted','Puedes marcar la respuesta que te haya ayudado.'));
   else if(solved)list.append(create('p','muted','Esta petición está resuelta. Su autor puede reabrirla si necesita más ayuda.'));
+  const extras=el('resuelveExtras');extras.replaceChildren();
+  extras.append(connectedActions(q));
+  if(state.user)extras.append(communitySharePanel(q));
+  if((state.user?.is_admin||state.user?.isAdmin)&&solved)
+   extras.append(editorialReviewControls(q,reviewed));
  }
  function goList(){
   state.question=null;
