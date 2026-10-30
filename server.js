@@ -62,6 +62,7 @@ const {router:resuelveV350}=require('./src/routes/resuelve-v350');
 const {router:resuelvePublicSeoV3529}=require('./src/routes/resuelve-public-seo-v3529');
 const {router:resuelveTopicsV3531,topicApiRouter,topicsSitemapHandler}=require('./src/routes/resuelve-topics-v3531');
 const {resuelveSitemapHandler}=require('./src/routes/resuelve-sitemap-v3530');
+const {createResuelveAboutHandler}=require('./src/services/resuelve-public-directory-v3619');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
@@ -1379,11 +1380,7 @@ app.get('/sitemap-resuelve-presentacion.xml',(_req,res)=>{
   '<url><loc>https://redlibertad.com/resuelve/como-funciona</loc></url></urlset>');
 });
 // V3.5.33 — landing de explicación, indexable por contenido editorial propio.
-app.get('/resuelve/como-funciona',(_req,res)=>{
- res.set('Cache-Control','no-cache');
- res.set('X-Robots-Tag','index,follow');
- res.sendFile(path.join(__dirname,'public','resuelve-como-funciona-v3533.html'));
-});
+app.get('/resuelve/como-funciona',createResuelveAboutHandler());
 // V3.5.19 — HTML de administración fuera de /public, protegido antes de servirlo.
 app.get('/resuelve/admin',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','no-store');
