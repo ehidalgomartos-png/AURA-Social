@@ -12,7 +12,7 @@ test('V3.6.14: primera carga ejecuta paneles independientes en paralelo, conserv
  assert.match(init,/await request\('\/api\/auth\/me'\)/);
  assert.match(init,/bindResuelveAuth\(\)/);
  assert.match(init,/bindReplyEmailPreferences\(\)/);
- assert.match(init,/if\(start\)\s*[^\n]*/);
+ assert.match(init,/const start=new URLSearchParams\(location\.search\)\.get\('id'\)/);
  assert.match(init,/await Promise\.all\(\[\s*start\?openDetail\(start,false\):loadList\(\),\s*loadSolutions\(\),\s*loadTopicHubs\(\)\s*\]\)/);
  assert.ok(init.indexOf("request('/api/auth/me')")<init.lastIndexOf('await Promise.all(['));
  assert.doesNotMatch(init,/await loadSolutions\(\);\s*await loadTopicHubs\(\)/);
