@@ -9,6 +9,15 @@ const changeSchema=z.object({
   note:z.string().trim().max(500).optional().default('')
 });
 
+// V3.6.12 — estado resumido, sin títulos, detalles ni historial de alertas.
+const ALERT_PRIORITY_SQL=`
+SELECT
+ count(*) FILTER (WHERE status='open')::int AS open_alerts,
+ count(*) FILTER (WHERE status='open' AND is_active=TRUE AND severity='critical')::int AS critical_active,
+ count(*) FILTER (WHERE status='acknowledged')::int AS monitoring_alerts
+FROM operational_alerts_v215
+`;
+
 function createOperationalAlertAdminRoutes({db,service}){
   if(!db?.query||!service?.ensureSchema)throw new TypeError('db and alert service required');
   const router=express.Router();
@@ -17,6 +26,17 @@ function createOperationalAlertAdminRoutes({db,service}){
     res.setHeader('Cache-Control','no-store');
     try{await service.ensureSchema();next();}
     catch(_){res.status(503).json({error:'operational_alerts_unavailable'});}
+  });
+
+  router.get('/ops/alerts/summary',async(_req,res)=>{
+    try{
+      const data=await db.query(ALERT_PRIORITY_SQL);
+      res.set('X-Robots-Tag','noindex,nofollow');
+      res.json({ok:true,scope:'current_instance_signals',
+       metrics:data.rows[0]||{},asOf:new Date().toISOString()});
+    }catch(_error){
+      res.status(503).json({error:'operational_alert_summary_unavailable'});
+    }
   });
 
   router.get('/ops/alerts',async(req,res)=>{
@@ -84,4 +104,4 @@ function createOperationalAlertAdminRoutes({db,service}){
 
   return router;
 }
-module.exports={createOperationalAlertAdminRoutes};
+module.exports={createOperationalAlertAdminRoutes,ALERT_PRIORITY_SQL};
