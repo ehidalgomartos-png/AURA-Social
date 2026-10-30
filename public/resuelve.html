@@ -28,6 +28,16 @@
   <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
+ <section id="libraryReviewPanel" class="panel" hidden aria-labelledby="libraryReviewTitle">
+  <div class="panel-head"><div>
+   <p class="eyebrow dark">SOLO ADMINISTRACIÓN</p>
+   <h2 id="libraryReviewTitle">Revisión de soluciones pendientes</h2>
+   <p class="muted">Abre cada petición para comprobar utilidad, datos personales y contenido original antes de aprobarla. Ninguna solución se publica aquí automáticamente.</p>
+  </div></div>
+  <div id="libraryReviewStatus" class="muted" role="status" aria-live="polite"></div>
+  <div id="libraryReviewList" class="review-list"></div>
+  <button id="moreLibraryReview" type="button" class="secondary more" hidden>Ver más pendientes</button>
+ </section>
  <section id="askPanel" class="panel editor" hidden aria-labelledby="askTitle">
   <div class="panel-head"><h2 id="askTitle">¿Qué necesitas resolver?</h2><button id="closeAsk" type="button" class="plain">Cerrar</button></div>
   <p class="muted">Esta petición será pública. Evita publicar teléfonos, direcciones exactas u otros datos personales.</p>
