@@ -27,7 +27,7 @@ test('V3.5.25: consent is separate from category or email preferences',()=>{
  const service=read('src/services/resuelve-v350.js');
  assert.match(service,/async function setHelperProfilePreference\(userId,enabled\)/);
  assert.match(service,/if\(typeof enabled!=='boolean'\)return null/);
- const choices=service.slice(service.indexOf('async function setHelpTopics'),service.indexOf('async function getHelpAlertPreference'));
+ const choices=service.slice(service.indexOf('async function setHelpTopics'),service.indexOf('async function helperProfilePreference'));
  assert.doesNotMatch(choices,/setHelperProfilePreference\(/);
  const html=read('public/resuelve.html');
  assert.match(html,/name="robots" content="noindex,follow"/);
