@@ -289,6 +289,32 @@
   return wrap;
  }
 
+ // V3.5.17: invitar sin crear cuentas o enviar mensajes automáticamente.
+ function bindHelpInvitation(){
+  const url=new URL('/resuelve',location.origin).href;
+  const text='En RedLibertad Resuelve compartimos consejos y experiencias para ayudar a otras personas. Puedes leer peticiones o aportar lo que sabes, sin necesidad de comprar nada.';
+  el('inviteWhatsApp').href='https://api.whatsapp.com/send?'+new URLSearchParams({text:text+' '+url});
+  el('inviteTelegram').href='https://t.me/share/url?'+new URLSearchParams({url,text});
+  el('inviteEmail').href='mailto:?'+new URLSearchParams({subject:'¿Te animas a ayudar en Resuelve?',body:text+'\n\n'+url}).toString().replace(/\+/g,'%20');
+  const options=el('inviteHelpOptions'),toggle=el('inviteHelpToggle'),status=el('inviteHelpStatus');
+  toggle.addEventListener('click',()=>{
+   options.hidden=!options.hidden;
+   toggle.setAttribute('aria-expanded',options.hidden?'false':'true');
+  });
+  const native=el('inviteNativeShare');
+  native.hidden=typeof navigator.share!=='function';
+  native.addEventListener('click',async()=>{
+   try{await navigator.share({title:'Ayuda a otras personas en Resuelve',text,url});}
+   catch(err){if(err.name!=='AbortError')status.textContent='No se pudo abrir el menú para compartir. Puedes copiar el enlace.';}
+  });
+  el('inviteCopyLink').addEventListener('click',async()=>{
+   try{
+    if(!navigator.clipboard||!window.isSecureContext)throw Error('clipboard_unavailable');
+    await navigator.clipboard.writeText(url);
+    status.textContent='Enlace de Resuelve copiado. Puedes enviarlo a quien quieras.';
+   }catch(_){window.prompt('Copia este enlace para compartir Resuelve:',url);}
+  });
+ }
  // V3.5.2: solo enlaces del Marketplace propio, aportados voluntariamente.
  function validatedMarketplaceUrl(value){
   if(!value||typeof value!=='string')return null;
@@ -470,6 +496,25 @@
     }catch(error){message(error.message);}
    }));
   }
+  if(solved&&q.thanked_at)host.append(create('p','resuelve-thanks-note','El autor de la petición ha dado las gracias por la ayuda recibida.'));
+  if(mine&&solved){
+   const block=create('section','resuelve-resolved-share');
+   block.append(create('h3',null,'¡Problema resuelto!'),
+    create('p','muted','Puedes agradecer la ayuda o contar en RedLibertad que has encontrado una solución. Tú decides qué publicar; no se compartirá ninguna respuesta ajena automáticamente.'));
+   const actions=create('div','resuelve-resolved-actions');
+   if(!q.thanked_at)actions.append(button('Dar las gracias',async()=>{
+    if(!confirm('¿Quieres agradecer la ayuda recibida en esta petición?'))return;
+    try{
+     await write('/api/resuelve/questions/'+q.id+'/thank',{});
+     message('Gracias por reconocer la ayuda de la comunidad.');
+     await openDetail(q.id,false);
+    }catch(err){message(err.message);}
+   },'secondary'));
+   actions.append(button('Publícalo en RedLibertad',()=>{
+    location.assign('/app?view=feed&compartirResuelve='+encodeURIComponent(q.id));
+   },'primary'));
+   block.append(actions);host.append(block);
+  }
   if(mine&&solved)host.append(button('Reabrir mi petición',async()=>{
    if(!confirm('¿Quieres volver a aceptar respuestas?'))return;
    try{await write('/api/resuelve/questions/'+q.id+'/reopen',{});message('Petición reabierta.');await openDetail(q.id,false);}
@@ -643,6 +688,7 @@
   try{const me=await request('/api/auth/me');state.user=me.user;}
   catch(_){state.user=null;}
   bindResuelveAuth();
+  bindHelpInvitation();
   const isAdmin=renderSession();
   if(isAdmin){await loadReviewQueue();await loadAnswerReports();}
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
