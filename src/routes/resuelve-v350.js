@@ -31,7 +31,13 @@ router.get('/questions',wrap(async(req,res)=>{
  if(!['open','resolved','all'].includes(filter))return fail(res,400,'filtro_invalido');
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
- const items=await service.list({filter,before:before||null});
+ const category=req.query?.categoria;
+ if(category!==undefined&&(typeof category!=='string'||!service.CATEGORIES.includes(category)))
+  return fail(res,400,'categoria_invalida');
+ const query=req.query?.q??'';
+ if(typeof query!=='string'||query.length>80||(query.trim().length===1))
+  return fail(res,400,'busqueda_invalida');
+ const items=await service.list({filter,before:before||null,category:category||null,query:query.trim()});
  res.json({ok:true,items,next:items.length===24?items[items.length-1].id:null});
 }));
 router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
