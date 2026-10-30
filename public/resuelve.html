@@ -119,10 +119,28 @@
    <div class="filters" role="group" aria-label="Filtrar peticiones">
     <button data-filter="open" class="active" type="button" aria-pressed="true">Por resolver</button>
     <button data-filter="resolved" type="button" aria-pressed="false">Resueltas</button>
+    <button data-filter="help" type="button" aria-pressed="false" hidden>Puedo ayudar</button>
     <button data-filter="mine" type="button" aria-pressed="false" hidden>Mis peticiones</button>
    </div>
   </div>
-  <form id="questionSearchForm" class="resuelve-search" role="search">
+  <section id="helpTopicsPanel" class="help-topics-panel" aria-labelledby="helpTopicsTitle" hidden>
+  <h3 id="helpTopicsTitle">¿En qué temas puedes ayudar?</h3>
+  <p class="muted">Elige los temas en los que te apetezca compartir experiencias o consejos. Solo verás peticiones abiertas de otras personas; nadie recibirá mensajes ni avisos automáticos.</p>
+  <form id="helpTopicsForm">
+   <div class="help-topics-choices">
+    <label><input type="checkbox" name="helpTopic" value="consejo"> Consejos cotidianos</label>
+    <label><input type="checkbox" name="helpTopic" value="busco"> Orientación y búsqueda de información</label>
+    <label><input type="checkbox" name="helpTopic" value="ayuda"> Ayuda con problemas</label>
+    <label><input type="checkbox" name="helpTopic" value="experiencia"> Compartir experiencias</label>
+   </div>
+   <div class="help-topics-actions">
+    <button type="submit" class="secondary">Guardar mis temas</button>
+    <button type="button" id="clearHelpTopics" class="plain">Dejar de recibir sugerencias</button>
+   </div>
+  </form>
+  <p id="helpTopicsStatus" class="muted" role="status" aria-live="polite"></p>
+ </section>
+ <form id="questionSearchForm" class="resuelve-search" role="search">
    <label class="resuelve-search-main" for="questionSearch">Buscar peticiones
     <input id="questionSearch" type="search" maxlength="80" placeholder="Ej.: ayuda para hacer un trámite" autocomplete="off">
    </label>
