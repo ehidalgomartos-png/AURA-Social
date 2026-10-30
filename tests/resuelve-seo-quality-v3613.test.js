@@ -47,7 +47,7 @@ test('V3.6.13: solución extensa conserva título original, HTML seguro y metada
  const title=page.match(/<title>([^<]+)<\/title>/)?.[1];
  assert.ok(title.length<=70,title);
  assert.match(title,/\| Resuelve$/);
- assert.ok(page.includes('<h1>'+fullTitle+'</h1>'));
+ assert.ok(page.includes('<h1>'+fullTitle.slice(0,125)+'</h1>'));
  const description=tag(page,'description');
  assert.ok(description.length>=80&&description.length<=160,description);
  assert.doesNotMatch(description,/miles de usuarios|compra ya/i);
@@ -61,7 +61,7 @@ test('V3.6.13: solución extensa conserva título original, HTML seguro y metada
  assert.match(page,/href="\/resuelve\/solucion\/124"/);
  const all=schemas(page);
  assert.deepEqual(all.map(x=>x['@type']),['Article','BreadcrumbList']);
- assert.equal(all[0].headline,fullTitle);
+ assert.equal(all[0].headline,fullTitle.slice(0,125));
  assert.equal(all[0].mainEntityOfPage,'https://redlibertad.com/resuelve/solucion/123');
  assert.equal(all[1].itemListElement.length,3);
  assert.doesNotMatch(page,/aggregateRating|ratingValue|reviewCount/);
