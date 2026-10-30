@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin.css?v=3.2.63.2&amp;activity=3.3.17&amp;growth=3.3.24">
   <link rel="stylesheet" href="/admin-overview-v3611.css">
+  <link rel="stylesheet" href="/admin-priorities-v3612.css">
+  <script src="/admin-priorities-v3612.js" defer></script>
   <script src="/admin-overview-v3611.js" defer></script>
 </head>
 <body>
@@ -30,6 +32,7 @@
   <nav class="admin-quick-nav-v3610" aria-label="Accesos rápidos de administración">
     <span class="admin-quick-label-v3610">Ir directamente a</span>
     <a href="#admin-overview-v3611">Resumen</a>
+    <a href="#admin-priorities-v3612">Prioridades</a>
     <a href="#admin-users-v3610">Usuarios</a>
     <a href="#admin-reports-v3610">Denuncias</a>
     <a href="/resuelve/admin">Resuelve</a>
@@ -65,6 +68,33 @@
     </div>
     <p id="adminOverviewStatusV3611" class="admin-overview-message-v3611" role="status" aria-live="polite">Cargando resumen…</p>
     <p class="admin-overview-privacy-v3611">Solo el número de registros, publicaciones, comentarios, peticiones, respuestas y resoluciones. Las denuncias abiertas muestran el total actual, no solo los últimos 7 días. No se muestran mensajes privados, nombres ni datos de contacto.</p>
+  </section>
+
+  <section class="panel admin-priorities-v3612" id="admin-priorities-v3612" aria-labelledby="priorityTitleV3612">
+    <div class="admin-priority-head-v3612">
+      <div>
+        <span class="eyebrow">SEGUIMIENTO · ATENCIÓN HUMANA</span>
+        <h2 id="priorityTitleV3612">Qué necesita atención</h2>
+        <p>Señales técnicas y avisos de confianza pendientes de revisar. Los datos no activan sanciones, publicaciones ni respuestas automáticas.</p>
+      </div>
+      <button id="priorityRefreshV3612" type="button">Actualizar prioridades</button>
+    </div>
+    <div class="admin-priority-grid-v3612">
+      <article class="admin-priority-card-v3612" id="priorityTechCardV3612" aria-labelledby="priorityTechTitleV3612">
+        <h3 id="priorityTechTitleV3612">Incidencias técnicas</h3>
+        <strong id="priorityTechCountV3612" aria-label="Alertas técnicas abiertas">—</strong>
+        <p id="priorityTechStatusV3612" role="status">Consultando señales de esta instancia…</p>
+        <a href="#admin-alerts-v3610">Abrir la bandeja de alertas</a>
+      </article>
+      <article class="admin-priority-card-v3612" id="priorityHelpCardV3612" aria-labelledby="priorityHelpTitleV3612">
+        <h3 id="priorityHelpTitleV3612">Avisos de confianza en Resuelve</h3>
+        <strong id="priorityHelpCountV3612" aria-label="Avisos pendientes de Resuelve">—</strong>
+        <p id="priorityHelpStatusV3612" role="status">Consultando avisos pendientes…</p>
+        <a href="/resuelve/admin#avisos">Revisar avisos con su contexto</a>
+      </article>
+    </div>
+    <p id="priorityGlobalStatusV3612" class="admin-priority-note-v3612" role="status" aria-live="polite">Consultando prioridades…</p>
+    <p class="admin-priority-note-v3612">Las incidencias técnicas reflejan las señales guardadas en esta instancia; no sustituyen la comprobación externa de Coolify. Las denuncias necesitan revisión humana: un aviso no demuestra una infracción.</p>
   </section>
 
   <section class="panel" id="importantUpdatesAdminV3316" aria-labelledby="importantUpdatesTitleV3316">
