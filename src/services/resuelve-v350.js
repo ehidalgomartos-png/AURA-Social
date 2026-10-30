@@ -53,6 +53,20 @@ async function list({filter='open',before=null}={}){
  ].join(' ');
  return (await db.query(sql,[state,cursor])).rows;
 }
+// V3.5.4 — solo el autor autenticado consulta sus peticiones (paginación estable).
+async function listMine(userId,{before=null}={}){
+ await ensureSchema();
+ const cursor=validId(before)?String(before):null;
+ const sql=[
+  "SELECT q.id, q.title, q.body, q.category, q.status, q.created_at, q.solved_at,",
+  "u.username AS author_username,",
+  "(SELECT count(*)::int FROM resuelve_answers a WHERE a.question_id=q.id AND a.status='visible') AS answer_count",
+  "FROM resuelve_questions q JOIN users u ON u.id=q.author_id AND u.status='active'",
+  "WHERE q.author_id=$1 AND q.status <> 'hidden' AND ($2::bigint IS NULL OR q.id<$2::bigint)",
+  "ORDER BY q.id DESC LIMIT 24"
+ ].join(' ');
+ return (await db.query(sql,[userId,cursor])).rows;
+}
 async function detail(id){
  await ensureSchema();
  const q=await db.query([
@@ -113,4 +127,4 @@ async function moderate(kind,id){
  }
  return null;
 }
-module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,detail,ask,answer,solve,reopen,moderate,CATEGORIES};
+module.exports={ensureSchema,validateQuestion,validateAnswer,validId,list,listMine,detail,ask,answer,solve,reopen,moderate,CATEGORIES};
