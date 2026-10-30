@@ -24,7 +24,7 @@
  <section class="hero" aria-labelledby="hero-title">
   <p class="eyebrow">PERSONAS QUE AYUDAN A PERSONAS</p>
   <h1 id="hero-title">Pide ayuda. Comparte lo que sabes.</h1>
-  <p>Un consejo sincero, una experiencia real o una explicación útil pueden resolver mucho. No hace falta comprar ni contratar nada para participar.</p>
+  <p>Un consejo sincero o una experiencia real pueden resolver mucho. Si el problema necesita un especialista, podemos orientar sobre qué profesional consultar. Nadie tiene que comprar ni contratar nada para participar.</p>
   <div class="hero-actions"><button id="askButton" class="primary" type="button" hidden>Publicar una petición</button><a href="#questions" class="secondary">Explorar peticiones</a><a href="#solutions" class="secondary">Soluciones útiles</a></div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
@@ -115,6 +115,12 @@
    <label for="answerBody">Tu respuesta</label>
    <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required placeholder="Explica qué harías tú, qué has aprendido o qué pasos concretos pueden servir. Evita respuestas que solo intenten vender."></textarea>
    <p class="muted">Primero ayuda con tu experiencia. No es necesario mencionar tiendas, anuncios ni productos.</p>
+   <details class="professional-help-option">
+    <summary>¿Crees que hace falta ayuda profesional? (opcional)</summary>
+    <label for="answerProfessionalRole">Tipo de profesional que podría ayudar</label>
+    <input id="answerProfessionalRole" type="text" maxlength="70" placeholder="Ej.: electricista, fontanero, asesoría jurídica..." autocomplete="off">
+    <p class="muted">Sugiere un oficio o especialidad y explica el motivo en tu respuesta. No añadas nombres comerciales, teléfonos ni direcciones. No implica que el profesional esté verificado.</p>
+   </details>
    <details class="optional-listing">
     <summary>¿Tienes un enlace que de verdad pueda ayudar? (opcional)</summary>
     <label for="answerListingUrl">Enlace a un anuncio de RedLibertad Marketplace</label>
