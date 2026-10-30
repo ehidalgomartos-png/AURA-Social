@@ -586,3 +586,20 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-owner-reminder button[aria-pressed="true"]{color:white;border-color:#185f63;background:#185f63}
 .resuelve-owner-reminder button:focus-visible{outline:3px solid #16818f;outline-offset:3px}
 @media(max-width:650px){.resuelve-pending-panel,.resuelve-owner-reminder{padding:13px}.resuelve-pending-list{grid-template-columns:1fr}.resuelve-owner-reminder button{width:100%}}
+
+/* V3.6.3 — aclaraciones por respuesta, legibles y moderables en móvil. */
+.resuelve-answer-followups{margin-top:13px;padding:13px;border:1px solid #d2e5e3;background:#f7fbfa;border-radius:12px}
+.resuelve-answer-followups h4{margin:0 0 10px;color:#19576a;font-size:.94rem}
+.resuelve-answer-followups .muted{margin:3px 0;font-size:.84rem}
+.resuelve-followup-item{padding:12px;margin:9px 0;border:1px solid #cdddde;background:#fff;border-radius:11px}
+.resuelve-followup-item p{margin:3px 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.resuelve-followup-author{font-size:.78rem;font-weight:750;color:#4b6878}
+.resuelve-followup-body{color:#1c3e4e}
+.resuelve-followup-form-panel{margin-top:12px;padding:13px;border:1px solid #c2dedd;border-radius:11px;background:#f7fcfa}
+.resuelve-followup-form-panel summary{cursor:pointer;font-weight:750;color:#155c67}
+.resuelve-followup-form{display:grid;gap:9px;margin-top:12px}
+.resuelve-followup-form label{display:grid;gap:7px}
+.resuelve-followup-form textarea{width:100%;min-height:92px;padding:11px;border:1px solid #9ebec8;border-radius:11px;font:inherit}
+.resuelve-followup-form button{min-height:44px;justify-self:start}
+.resuelve-followup-form-panel summary:focus-visible,.resuelve-followup-form button:focus-visible{outline:3px solid #14818a;outline-offset:3px}
+@media(max-width:650px){.resuelve-answer-followups,.resuelve-followup-form-panel{padding:10px}.resuelve-followup-form button{width:100%}}
