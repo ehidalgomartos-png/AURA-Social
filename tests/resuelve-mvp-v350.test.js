@@ -104,6 +104,7 @@ function database(){
    const q=questions.get(Number(args[0]));
    if(!q||q.status!=='open'||q.author_id===Number(args[1]))return {rows:[],rowCount:0};
    const a={id:ai++,question_id:q.id,author_id:Number(args[1]),body:args[2],professional_role:args[3]||null,
+    self_professional_role:args[4]||null,self_commercial_interest:args[5]===true,
     status:'visible',created_at:new Date().toISOString()};
    answers.set(a.id,a);return {rows:[{id:a.id}],rowCount:1};
   }
@@ -430,6 +431,46 @@ test('V3.5.11 orienta hacia una profesión sin permitir anuncios, teléfonos ni 
   assert.ok(stub.audit.some(call=>call.sql.startsWith('INSERT INTO resuelve_answers(')&&call.args[3]==='electricista'));
  });
 });
+test('V3.5.13: experiencia autodeclarada sin verificación ni publicidad encubierta',async()=>{
+ const valid=service.validateProfessionalDisclosure;
+ assert.deepEqual(valid({}),{role:null,commercialInterest:false});
+ assert.deepEqual(valid({selfProfessionalRole:'electricista',commercialInterest:'yes'}),{role:'electricista',commercialInterest:true});
+ assert.deepEqual(valid({selfProfessionalRole:'trabajador social',commercialInterest:'no'}),{role:'trabajador social',commercialInterest:false});
+ assert.equal(valid({selfProfessionalRole:'médico',commercialInterest:''}),null);
+ assert.equal(valid({selfProfessionalRole:'fontanero',commercialInterest:true}),null);
+ assert.equal(valid({selfProfessionalRole:'https://empresa.es',commercialInterest:'no'}),null);
+ assert.equal(valid({commercialInterest:'yes'}),null);
+ await withApp(async(req,stub)=>{
+  const q=953;
+  stub.questions.set(q,{id:q,author_id:1,title:'¿A quién acudir ante una avería?',
+   body:'Busco orientación antes de tocar la instalación eléctrica de mi vivienda.',
+   category:'ayuda',status:'open',accepted_answer_id:null,library_opt_out:false});
+  const url='/api/resuelve/questions/'+q+'/answers';
+  const body='Antes de intervenir en la instalación, deja el equipo desconectado y consulta a un electricista cualificado para que compruebe las protecciones.';
+  assert.equal((await req(url,{user:2,method:'POST',body:{
+   body,selfProfessionalRole:'electricista',commercialInterest:''}})).status,400);
+  assert.equal((await req(url,{user:2,method:'POST',body:{
+   body,selfProfessionalRole:'electricista',commercialInterest:'quizas'}})).status,400);
+  assert.equal((await req(url,{user:2,method:'POST',body:{
+   body:'Contrátame ya',selfProfessionalRole:'electricista',commercialInterest:'yes'}})).status,400);
+  const published=await req(url,{user:2,method:'POST',body:{
+   body,professionalRole:'electricista',selfProfessionalRole:'electricista',commercialInterest:'yes'}});
+  assert.equal(published.status,201);
+  const detail=await req('/api/resuelve/questions/'+q);
+  assert.equal(detail.status,200);
+  assert.equal(detail.data.answers.length,1);
+  assert.equal(detail.data.answers[0].self_professional_role,'electricista');
+  assert.equal(detail.data.answers[0].self_commercial_interest,true);
+  assert.equal(detail.data.answers[0].professional_role,'electricista');
+  assert.ok(stub.audit.some(x=>x.sql.startsWith('INSERT INTO resuelve_answers(')&&x.args[4]==='electricista'&&x.args[5]===true));
+  // Los mensajes corrientes siguen siendo válidos sin declarar una profesión.
+  const ordinary=await req(url,{user:2,method:'POST',body:{body:'Te recomiendo consultar las instrucciones y pedir ayuda antes de hacer nada.'}});
+  assert.equal(ordinary.status,201);
+  const again=await req('/api/resuelve/questions/'+q);
+  assert.equal(again.data.answers[1].self_professional_role,null);
+  assert.equal(again.data.answers[1].self_commercial_interest,false);
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -442,6 +483,12 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(html,/id="askForm"/);
  assert.match(html,/id="answerForm"/);
  assert.match(html,/id="answerProfessionalRole"/);
+ assert.match(html,/id="answerSelfProfessionalRole"/);
+ assert.match(html,/id="answerCommercialInterest"/);
+ assert.match(html,/no una verificación de títulos/);
+ assert.match(js,/resuelve-professional-disclosure/);
+ assert.match(js,/Esta persona declara un posible interés económico/);
+ assert.match(js,/a\.self_professional_role,a\.self_commercial_interest/);
  assert.match(html,/class="professional-help-option"/);
  assert.match(js,/professional-advice/);
  assert.match(js,/answerContent\(a\.body,a\.professional_role\)/);
