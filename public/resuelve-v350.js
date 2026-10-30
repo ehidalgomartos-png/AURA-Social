@@ -183,7 +183,7 @@
      body:JSON.stringify({body:text,contentLevel:'normal'})
     });
     status.textContent='Publicación enviada a la comunidad. Puedes verla desde Comunidades.';
-    form.reset();form.hidden=true;
+    form.reset();form.hidden=true;submit.disabled=false;
     message('Petición compartida en la comunidad seleccionada.');
    }catch(error){status.textContent=error.message;submit.disabled=false;}
   });
