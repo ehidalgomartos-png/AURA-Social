@@ -77,7 +77,7 @@ test('V3.6.2: two concurrent poll calls create only one internal notification ba
  assert.equal(calls.filter(q=>q.sql.includes('INSERT INTO notifications')).length,1);
  const notification=calls.find(q=>q.sql.includes('INSERT INTO notifications'));
  assert.match(notification.args[0],/respuestas pendientes de revisar/);
- assert.match(notification.args[1],/puedes aclararla o compartirla/);
+ assert.match(notification.args[1],/Puedes aclararla o compartirla/);
  assert.ok(notification.args.every(v=>!v.includes('@')));
  svc.start();assert.equal(typeof tick,'function');
  svc.stop();assert.ok(cleared);
