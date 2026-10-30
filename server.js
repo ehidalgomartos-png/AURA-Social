@@ -18,6 +18,7 @@ const { createOperationalAlertAdminRoutes } = require('./src/routes/admin-alerts
 const { createAlertDeliveryService } = require('./src/services/alert-delivery-v216');
 const {messageEmailService}=require('./src/services/message-email-v3275');
 const {resuelveReplyEmailService}=require('./src/services/resuelve-reply-email-v3521');
+const {resuelvePendingService}=require('./src/services/resuelve-pending-v362');
 const {createImportantUpdatesService}=require('./src/services/important-updates-v3316');
 const {createImportantUpdatesRouter}=require('./src/routes/important-updates-v3316');
 const { createAlertDeliveryAdminRoutes } = require('./src/routes/admin-delivery-v216');
@@ -1419,6 +1420,7 @@ async function gracefulShutdown(signal){
   alertDelivery.stop();
   messageEmailService.stop();
   resuelveReplyEmailService.stop();
+  resuelvePendingService.stop();
    importantUpdates.stop();
   console.log(`RedLibertad received ${signal}; shutting down gracefully.`);
 
@@ -1450,6 +1452,7 @@ operationalAlerts.start();
 alertDelivery.start();
 messageEmailService.start();
 resuelveReplyEmailService.start();
+resuelvePendingService.start();
  importantUpdates.start();
 marketplaceComparadorV32132.startBackgroundWorker();
 startWooCommerceSyncScheduler();
