@@ -123,14 +123,21 @@ router.post('/reply-email/preference',requireAuth,checkOrigin,limiter(12),wrap(a
 }));
 // V3.5.25 — privacy-first helper profiles; no username enumeration without opt-in.
 router.get('/helper-profile/preference',requireAuth,wrap(async(req,res)=>{
- const enabled=await service.helperProfilePreference(req.user.id);
- res.json({ok:true,enabled});
+ const settings=await service.helperProfileSettings(req.user.id);
+ res.json({ok:true,...settings});
 }));
 router.post('/helper-profile/preference',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
  if(typeof req.body?.enabled!=='boolean')return fail(res,400,'preferencia_invalida');
  const value=await service.setHelperProfilePreference(req.user.id,req.body.enabled);
  if(!value)return fail(res,400,'preferencia_invalida');
  res.json({ok:true,enabled:value.enabled===true});
+}));
+// V3.5.26: declaración editable, sin permitir contactos ni marcas comerciales.
+router.post('/helper-profile/speciality',requireAuth,checkOrigin,limiter(12),wrap(async(req,res)=>{
+ if(typeof req.body?.speciality!=='string')return fail(res,400,'especialidad_invalida');
+ const result=await service.setHelperSpeciality(req.user.id,req.body.speciality);
+ if(!result)return fail(res,400,'especialidad_invalida');
+ res.json({ok:true,declaredSpeciality:result.declared_speciality||''});
 }));
 router.get('/helpers/:username',wrap(async(req,res)=>{
  const item=await service.publicHelperProfile(req.params.username);
