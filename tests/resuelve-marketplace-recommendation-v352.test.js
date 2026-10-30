@@ -1,0 +1,20 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+test('V3.5.2: enlaces recomendados controlados y voluntarios',()=>{
+ const js=fs.readFileSync(path.join(__dirname,'../public/resuelve-v350.js'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
+ assert.match(html,/id="answerListingUrl"/);
+ assert.match(html,/type="url"/);
+ assert.match(js,/function validatedMarketplaceUrl\(value\)/);
+ assert.match(js,/url\.protocol!=='https:'/);
+ assert.match(js,/url\.origin!==location\.origin/);
+ assert.match(js,/marketplace-recommendation/);
+ assert.match(js,/a\.rel='noopener noreferrer'/);
+ assert.match(js,/if\(listing&&!safe\)throw/);
+ assert.match(js,/if\(body\.length>1500\)throw/);
+ assert.match(js,/answerContent\(a\.body\)/);
+ assert.match(js,/await write\('\/api\/resuelve\/questions\/'/);
+});

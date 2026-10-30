@@ -103,6 +103,30 @@
   },'secondary');
   links.append(share);wrap.append(title,info,links);return wrap;
  }
+
+ // V3.5.2: solo enlaces del Marketplace propio, aportados voluntariamente.
+ function validatedMarketplaceUrl(value){
+  if(!value||typeof value!=='string')return null;
+  try{
+   const url=new URL(value.trim());
+   if(url.username||url.password||url.protocol!=='https:')return null;
+   if(url.origin!==location.origin&&url.origin!=='https://redlibertad.com')return null;
+   if(!/^\/marketplace(?:\/|$)/.test(url.pathname))return null;
+   if(url.href.length>500)return null;
+   return url.href;
+  }catch(_){return null;}
+ }
+ function answerContent(body){
+  const wrap=create('div','answer-content');
+  const match=String(body||'').match(/^(.*?)\s+Anuncio recomendado: (https:\/\/\S+)$/);
+  if(!match){wrap.append(create('p',null,body));return wrap;}
+  const safe=validatedMarketplaceUrl(match[2]);
+  if(!safe){wrap.append(create('p',null,body));return wrap;}
+  if(match[1])wrap.append(create('p',null,match[1]));
+  const a=create('a','marketplace-recommendation','Ver anuncio recomendado en Marketplace');
+  a.href=safe;a.rel='noopener noreferrer';wrap.append(a);
+  return wrap;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
@@ -131,7 +155,7 @@
    const accepted=String(a.id)===String(q.accepted_answer_id);
    const item=create('article','answer'+(accepted?' accepted':''));
    item.append(create('header','', '@'+a.author_username+' · '+date(a.created_at)),
-    create('p','',a.body));
+    answerContent(a.body));
    const actions=create('div','answer-actions');
    if(accepted)actions.append(chip('✓ Solución elegida',true));
    if(mine&&!solved)actions.append(button('Marcar como solución',async()=>{
@@ -192,7 +216,13 @@
    const form=event.currentTarget,submit=form.querySelector('[type=submit]');
    if(submit.disabled)return;submit.disabled=true;
    try{
-    await write('/api/resuelve/questions/'+state.question.id+'/answers',{body:el('answerBody').value});
+    const raw=el('answerBody').value.trim();
+    const listing=el('answerListingUrl').value.trim();
+    const safe=listing?validatedMarketplaceUrl(listing):null;
+    if(listing&&!safe)throw new Error('Pega un enlace HTTPS válido de un anuncio de RedLibertad Marketplace.');
+    const body=raw+(safe?' Anuncio recomendado: '+safe:'');
+    if(body.length>1500)throw new Error('La respuesta con el enlace supera los 1500 caracteres.');
+    await write('/api/resuelve/questions/'+state.question.id+'/answers',{body});
     form.reset();message('Respuesta publicada. Gracias por ayudar.');await openDetail(state.question.id,false);
    }catch(err){message(err.message);}
    finally{submit.disabled=false;}
