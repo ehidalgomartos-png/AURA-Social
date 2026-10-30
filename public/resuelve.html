@@ -212,6 +212,11 @@
      <button class="secondary" type="submit">Buscar soluciones</button>
      <button class="plain" id="clearSolutionFilters" type="button">Limpiar filtros</button>
    </form>
+   <div class="resuelve-solution-explore" aria-label="Explorar biblioteca por categorías">
+    <p class="muted">Explora las categorías con soluciones revisadas. Los números corresponden a la búsqueda actual.</p>
+    <div id="solutionCategoryShortcuts" class="resuelve-solution-shortcuts" role="group" aria-label="Categorías de la biblioteca"></div>
+    <p id="solutionSummaryStatus" class="muted" role="status" aria-live="polite"></p>
+   </div>
    <div id="solutionStatus" class="muted" role="status" aria-live="polite">Cargando soluciones…</div>
    <div id="solutionList" class="cards"></div>
    <button id="moreSolutions" class="secondary more" type="button" hidden>Ver más soluciones</button>

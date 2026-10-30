@@ -167,8 +167,41 @@
    state.solutionNext=data.next;
    btn.hidden=!state.solutionNext;
    status.textContent=list.childElementCount?'':(state.solutionSearch||state.solutionCategory?'No hay soluciones revisadas que coincidan con estos filtros. Prueba con otra categoría o búsqueda.':'Aún no hay soluciones revisadas. Iremos incorporándolas cuando existan respuestas útiles.');
+   if(!more)await loadSolutionSummary();
   }catch(err){status.textContent=err.message;}
   finally{state.solutionLoading=false;}
+ }
+// V3.5.28 — botones de navegación de biblioteca, cifras solo de soluciones revisadas.
+ async function loadSolutionSummary(){
+  const holder=el('solutionCategoryShortcuts'),status=el('solutionSummaryStatus');
+  status.textContent='Consultando soluciones revisadas…';
+  holder.replaceChildren();
+  try{
+   const params=new URLSearchParams();
+   if(state.solutionSearch)params.set('q',state.solutionSearch);
+   const data=await request('/api/resuelve/solutions/summary?'+params.toString());
+   const cats=[['','Todas'],['consejo','Consejos'],['busco','Orientación'],
+    ['ayuda','Ayuda'],['experiencia','Experiencias']];
+   const totals=data.byCategory||{};
+   const approved=Number(data.total);
+   if(!Number.isSafeInteger(approved)||approved<0)throw new Error('Resumen de biblioteca incompleto.');
+   for(const [category,label] of cats){
+    const count=category?Number(totals[category]):approved;
+    if(!Number.isSafeInteger(count)||count<0)throw new Error('Resumen de biblioteca incompleto.');
+    const chosen=category===state.solutionCategory;
+    const control=button(label+' · '+count,async()=>{
+     if(state.solutionLoading)return;
+     state.solutionCategory=category;
+     el('solutionCategory').value=category;
+     await loadSolutions();
+    },'resuelve-solution-shortcut'+(chosen?' active':''));
+    control.setAttribute('aria-pressed',chosen?'true':'false');
+    holder.append(control);
+   }
+   status.textContent=approved?
+    'Solo se incluyen soluciones aprobadas tras revisión humana.':
+    'Todavía no hay soluciones aprobadas para esta búsqueda.';
+  }catch(err){status.textContent='No se pudieron consultar los recuentos. Puedes seguir buscando y leyendo soluciones.';}
  }
 // V3.5.8: cola editorial disponible solo en sesiones de administración.
  // V3.5.18 — cifras verificables en servidor, visibles solo para administración.
