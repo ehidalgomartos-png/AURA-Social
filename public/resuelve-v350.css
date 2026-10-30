@@ -639,3 +639,45 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-public-share-actions [hidden]{display:none!important}
 .resuelve-public-share-actions :focus-visible{outline:3px solid #107e88;outline-offset:2px}
 @media(max-width:650px){.resuelve-public-share{padding:13px}.resuelve-public-share-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.resuelve-public-share-actions a,.resuelve-public-share-actions button{width:100%}}
+
+
+/* V3.6.7 — Superficies redondeadas y legibles en Resuelve (sin cambios de lógica). */
+:root{--resuelve-radius-panel:24px;--resuelve-radius-card:21px}
+.hero{border-radius:26px}
+.panel,.resuelve-help-suggestions,.resuelve-pending-panel,.resuelve-saved-panel,
+.resuelve-public-share,.resuelve-owner-reminder,.resuelve-related{
+ border-radius:var(--resuelve-radius-panel);
+}
+.question-card,.solution-card,.answer,.resuelve-help-suggestion,.resuelve-pending-card,
+.resuelve-saved-item,.resuelve-similar-item,.resuelve-followup-item,.review-item{
+ border-radius:var(--resuelve-radius-card);
+ min-width:0;
+}
+.question-card,.solution-card{
+ box-shadow:0 5px 20px rgba(16,55,77,.055);
+ transition:box-shadow .18s ease,border-color .18s ease;
+}
+@media(hover:hover){
+ .question-card:hover,.solution-card:hover{
+  border-color:#b0d5d5;
+  box-shadow:0 9px 24px rgba(16,55,77,.09);
+ }
+}
+.resuelve-search,.solution-filter-form,.resuelve-similar-panel,.resuelve-auth-tabs,
+.resuelve-follow-control,.resuelve-answer-followups,.resuelve-followup-form-panel{
+ border-radius:18px;
+}
+.resuelve-help-suggestion a,.resuelve-pending-card a,.resuelve-saved-item a{
+ overflow-wrap:anywhere;
+}
+@media(max-width:650px){
+ .hero{border-radius:21px}
+ .panel,.resuelve-help-suggestions,.resuelve-pending-panel,.resuelve-saved-panel,
+ .resuelve-public-share,.resuelve-owner-reminder,.resuelve-related{border-radius:20px}
+ .question-card,.solution-card,.answer,.resuelve-help-suggestion,.resuelve-pending-card,
+ .resuelve-saved-item,.resuelve-similar-item,.resuelve-followup-item,.review-item{border-radius:18px}
+ .question-card,.solution-card{box-shadow:0 3px 13px rgba(16,55,77,.045)}
+}
+@media(prefers-reduced-motion:reduce){
+ .question-card,.solution-card{transition:none}
+}
