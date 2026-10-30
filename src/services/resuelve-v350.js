@@ -149,8 +149,11 @@ async function moderate(kind,id){
  return null;
 }
 // V3.5.7: solo respuestas elegidas y aprobadas manualmente por administración.
-async function library({before=null}={}){
+// V3.5.9: búsqueda literal solo sobre soluciones autorizadas y visibles.
+async function library({before=null,category=null,query=''}={}){
  await ensureSchema();
+ const chosenCategory=CATEGORIES.includes(category)?category:null;
+ const search=typeof query==='string'?query.trim().slice(0,80):'';
  const sql=[
   "SELECT q.id,q.title,q.category,q.solved_at,a.body AS solution,",
   "u.username AS author_username FROM resuelve_questions q",
@@ -161,9 +164,12 @@ async function library({before=null}={}){
   "AND q.library_approved_answer_id=q.accepted_answer_id",
   "AND char_length(trim(a.body))>=80 AND char_length(trim(q.body))>=50",
   "AND ($1::bigint IS NULL OR q.id<$1::bigint)",
+  "AND ($2::text IS NULL OR q.category=$2)",
+  "AND ($3::text='' OR position(lower($3::text) in lower(q.title))>0",
+  "OR position(lower($3::text) in lower(a.body))>0)",
   "ORDER BY q.id DESC LIMIT 12"
  ].join(' ');
- return (await db.query(sql,[validId(before)?String(before):null])).rows;
+ return (await db.query(sql,[validId(before)?String(before):null,chosenCategory,search])).rows;
 }
 // V3.5.8: cola privada para revisión manual, sin exponer contenido nuevo en la biblioteca.
 async function pendingSolutions({before=null}={}){
