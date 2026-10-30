@@ -7,6 +7,7 @@ const service=require('../services/resuelve-v350');
 const {resuelveReplyEmailService}=require('../services/resuelve-reply-email-v3521');
 const {resuelvePendingService}=require('../services/resuelve-pending-v362');
 const {resuelveAnswerFollowups}=require('../services/resuelve-answer-followups-v363');
+const {resuelveSavedSolutions}=require('../services/resuelve-saved-v364');
 const router=express.Router();
 const fail=(res,status,error)=>res.status(status).json({error});
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -36,6 +37,18 @@ function checkOrigin(req,res,next){
 }
 router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();});
 // V3.5.7: biblioteca pública exclusivamente de soluciones revisadas por un administrador.
+// V3.6.4 — favoritos privados, solo soluciones revisadas que sigan disponibles.
+router.get('/solutions/saved',requireAuth,wrap(async(req,res)=>{
+ const items=await resuelveSavedSolutions.list(req.user.id);
+ res.json({ok:true,items});
+}));
+router.post('/solutions/:id/save',requireAuth,checkOrigin,limiter(25),wrap(async(req,res)=>{
+ if(!service.validId(req.params.id)||typeof req.body?.enabled!=='boolean')
+  return fail(res,400,'preferencia_invalida');
+ const result=await resuelveSavedSolutions.save(req.user.id,req.params.id,req.body.enabled);
+ if(!result)return fail(res,409,'solucion_no_disponible_o_limite');
+ res.json({ok:true,enabled:result.enabled===true});
+}));
 router.get('/solutions',wrap(async(req,res)=>{
  const before=req.query?.antes;
  if(before!==undefined&&!service.validId(before))return fail(res,400,'cursor_invalido');
