@@ -64,6 +64,8 @@ test('V3.6.6: sharing a topic appears only if it has at least 3 approved public 
  assert.match(many,/data-resuelve-share-url="https:\/\/redlibertad\.com\/resuelve\/temas\/hogar"/);
  const source=read('src/routes/resuelve-topics-v3531.js');
  assert.match(source,/\(indexable\?renderPublicShareLinks\(canonical,'tema'\):''\)/);
+ assert.match(source,/if\(!items\.length\)return res\.status\(404\)/);
+ assert.match(source,/items\.length>=3&&counts\[topic\]>=3/);
  assert.match(source,/q\.topic|topics\.publishedTopic\(topic\)/);
 });
 
