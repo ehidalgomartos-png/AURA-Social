@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#12304b">
+ <meta name="robots" content="noindex,nofollow,noarchive">
+ <title>Administración de Resuelve · RedLibertad</title>
+ <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+ <link rel="stylesheet" href="/resuelve-v350.css">
+ <link rel="stylesheet" href="/resuelve-admin-v3519.css">
+ <script src="/resuelve-admin-v3519.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Saltar a la administración</a>
+<header class="topbar">
+ <a class="brand" href="/resuelve"><img src="/assets/logo-mark.svg" width="37" height="37" alt=""><strong>RedLibertad</strong></a>
+ <nav aria-label="Navegación"><a href="/resuelve">Volver a Resuelve</a><a href="/admin">Administración general</a></nav>
+</header>
+<main id="main" class="wrap resuelve-admin-wrap">
+ <div class="resuelve-admin-hero">
+  <p class="eyebrow">SOLO ADMINISTRACIÓN</p>
+  <h1>Centro de administración de Resuelve</h1>
+  <p>Consulta la ayuda real de la comunidad y revisa contenidos con criterio humano. Aquí no hay ventas ni decisiones automáticas.</p>
+ </div>
+ <p id="resuelveAdminAccess" role="status" aria-live="polite">Comprobando acceso de administración…</p>
+ <div id="resuelveAdminContent" hidden>
+  <nav class="resuelve-admin-tabs" aria-label="Apartados de administración">
+   <a href="#impacto">Estadísticas</a>
+   <a href="#soluciones">Soluciones pendientes</a>
+   <a href="#avisos">Avisos y denuncias</a>
+  </nav>
+  <section id="impacto" class="panel resuelve-impact-panel" aria-labelledby="adminImpactTitle">
+   <div class="panel-head">
+    <div><p class="eyebrow dark">DATOS REALES</p>
+     <h2 id="adminImpactTitle">Impacto de Resuelve</h2>
+     <p class="muted">Actividad registrada; no se contabilizan respuestas ocultas ni cifras inventadas.</p></div>
+    <button id="refreshAdminImpact" type="button" class="secondary">Actualizar datos</button>
+   </div>
+   <p id="adminImpactStatus" class="muted" role="status" aria-live="polite"></p>
+   <div id="adminImpactMetrics" class="resuelve-impact-grid"></div>
+   <p class="muted">Una respuesta no significa que el problema esté resuelto. Los agradecimientos son voluntarios.</p>
+  </section>
+  <section id="soluciones" class="panel" aria-labelledby="libraryReviewTitle">
+   <div class="panel-head"><div>
+    <p class="eyebrow dark">REVISIÓN HUMANA</p>
+    <h2 id="libraryReviewTitle">Soluciones pendientes</h2>
+    <p class="muted">Examina la petición y la respuesta antes de aprobarla. Sin promocionar anuncios ni exponer datos privados.</p>
+   </div><button id="refreshLibraryReview" type="button" class="secondary">Actualizar</button></div>
+   <p id="libraryReviewStatus" class="muted" role="status" aria-live="polite"></p>
+   <div id="libraryReviewList" class="review-list"></div>
+   <button id="moreLibraryReview" type="button" class="secondary more" hidden>Ver más soluciones</button>
+  </section>
+  <section id="avisos" class="panel" aria-labelledby="adminReportsTitle">
+   <div class="panel-head"><div>
+    <p class="eyebrow dark">MODERACIÓN</p>
+    <h2 id="adminReportsTitle">Avisos de confianza pendientes</h2>
+    <p class="muted">Una denuncia no demuestra una infracción. Revisa el contexto antes de ocultar una respuesta o desestimar el aviso.</p>
+   </div><button id="refreshAdminReports" type="button" class="secondary">Actualizar</button></div>
+   <p id="adminReportsStatus" class="muted" role="status" aria-live="polite"></p>
+   <div id="adminReportsList" class="review-list"></div>
+   <button id="moreAdminReports" type="button" class="secondary more" hidden>Ver más avisos</button>
+  </section>
+ </div>
+</main>
+<footer class="foot">Resuelve · Personas que ayudan a personas · Administración privada</footer>
+</body>
+</html>
