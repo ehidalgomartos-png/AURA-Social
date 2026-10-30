@@ -45,7 +45,8 @@ function database(){
     const a=answers.get(q.accepted_answer_id);
     return q.status==='resolved'&&!q.library_opt_out&&q.accepted_answer_id===q.library_approved_answer_id &&
      a?.status==='visible'&&a.body.trim().length>=80&&q.body.trim().length>=50 &&
-     (!args[0]||q.id<Number(args[0]));
+     (!args[0]||q.id<Number(args[0]))&&(!args[1]||q.category===args[1])&&
+     (!args[2]||(q.title+' '+a.body).toLowerCase().includes(String(args[2]).toLowerCase()));
    }).sort((a,b)=>b.id-a.id).slice(0,12).map(q=>({...q,solution:answers.get(q.accepted_answer_id).body,
      author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
    return {rows,rowCount:rows.length};
@@ -309,6 +310,17 @@ test('V3.5.7 biblioteca: solo solución de calidad aprobada por administrador, c
   assert.equal(library.status,200);
   assert.deepEqual(library.data.items.map(x=>Number(x.id)),[Number(q)]);
   assert.ok(library.data.items[0].solution.includes('Primero mide'));
+  const byCategory=await req('/api/resuelve/solutions?categoria=consejo&q=medidas');
+  assert.equal(byCategory.status,200);
+  assert.deepEqual(byCategory.data.items.map(x=>Number(x.id)),[Number(q)]);
+  assert.equal((await req('/api/resuelve/solutions?categoria=busco')).data.items.length,0);
+  assert.equal((await req('/api/resuelve/solutions?q=bicicleta')).data.items.length,0);
+  assert.equal((await req('/api/resuelve/solutions?q=primero')).data.items.length,1);
+  assert.equal((await req('/api/resuelve/solutions?categoria=no_existe')).status,400);
+  assert.equal((await req('/api/resuelve/solutions?q=x')).status,400);
+  assert.equal((await req('/api/resuelve/solutions?q='+('x'.repeat(81)))).status,400);
+  assert.equal((await req('/api/resuelve/solutions?antes='+q)).status,200);
+  assert.equal((await req('/api/resuelve/solutions?antes='+q)).data.items.length,0);
   assert.equal((await req('/api/resuelve/solutions?antes=-1')).status,400);
   assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:2,method:'POST',body:{}})).status,404);
   assert.equal((await req('/api/resuelve/questions/'+q+'/library/opt-out',{user:1,method:'POST',body:{}})).status,200);
@@ -355,6 +367,10 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(html,/data-filter="mine"[^>]*hidden/);
  assert.match(html,/id="questionSearchForm"/);
  assert.match(html,/id="solutionList"/);
+ assert.match(html,/id="solutionFilterForm"/);
+ assert.match(html,/id="solutionCategory"/);
+ assert.match(js,/solutionSearch/);
+ assert.match(js,/clearSolutionFilters/);
  assert.match(html,/id="libraryReviewPanel"/);
  assert.match(js,/loadReviewQueue/);
  assert.match(js,/\/api\/resuelve\/admin\/solutions\/pending/);
