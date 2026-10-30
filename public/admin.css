@@ -785,3 +785,12 @@ h2{font:800 22px Manrope;color:var(--navy);margin:4px 0}
 }
 .activity-center-entry-v3317:hover{background:#d6eeea}
 .activity-center-entry-v3317:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+
+
+/* V3.6.7 — Tarjetas y paneles coherentes en la administración general. */
+main>.panel,.metrics .metric{border-radius:22px}
+.report,.user-card{border-radius:19px}
+@media(max-width:650px){
+ main>.panel,.metrics .metric{border-radius:19px}
+ .report,.user-card{border-radius:17px}
+}
