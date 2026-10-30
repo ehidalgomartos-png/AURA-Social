@@ -16,6 +16,6 @@ test('V3.5.2: enlaces recomendados controlados y voluntarios',()=>{
  assert.match(js,/a\.rel='noopener noreferrer'/);
  assert.match(js,/if\(listing&&!safe\)throw/);
  assert.match(js,/if\(body\.length>1500\)throw/);
- assert.match(js,/answerContent\(a\.body\)/);
+ assert.match(js,/answerContent\(a\.body,a\.professional_role\)/);
  assert.match(js,/await write\('\/api\/resuelve\/questions\/'/);
 });
