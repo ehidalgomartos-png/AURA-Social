@@ -140,7 +140,9 @@
     const article=create('article','resuelve-help-suggestion');
     const link=create('a',null,q.title);
     link.href='/resuelve?id='+encodeURIComponent(q.id);
-    article.append(link,create('p','muted',categories[q.category]||'Petición abierta'));
+    const action=create('a','resuelve-help-suggestion-cta','Leer y ayudar');
+    action.href=link.href;
+    article.append(link,create('p','muted',categories[q.category]||'Petición abierta'),action);
     list.append(article);
    }
    status.textContent='Solo preguntas públicas y abiertas. No se envían avisos por mostrarlas.';
