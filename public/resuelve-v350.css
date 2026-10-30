@@ -92,3 +92,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .resuelve-community-form textarea,.resuelve-community-form select{width:100%;max-width:100%}
 .resuelve-community-form .primary{justify-self:start}
 @media(max-width:650px){.resuelve-community-form{padding:13px}.resuelve-community-form .primary,.resuelve-community-share>.secondary{width:100%}}
+
+/* V3.5.6 — búsqueda de peticiones con controles accesibles */
+.resuelve-search{display:grid;grid-template-columns:minmax(130px,2fr) minmax(135px,1fr) auto auto;align-items:end;gap:9px;margin:0 0 18px;padding:13px;border:1px solid #dce7ed;border-radius:14px;background:#f8fbfd}
+.resuelve-search[hidden]{display:none}
+.resuelve-search label{display:grid;gap:5px;font-weight:650;font-size:.85rem}
+.resuelve-search input,.resuelve-search select{width:100%;max-width:100%;min-height:43px}
+.resuelve-search button{min-height:43px}
+@media(max-width:650px){.resuelve-search{grid-template-columns:repeat(2,minmax(0,1fr));padding:11px}.resuelve-search label{grid-column:1/-1}.resuelve-search button{width:100%}}

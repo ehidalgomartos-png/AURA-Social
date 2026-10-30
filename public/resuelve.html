@@ -51,6 +51,22 @@
     <button data-filter="mine" type="button" aria-pressed="false" hidden>Mis peticiones</button>
    </div>
   </div>
+  <form id="questionSearchForm" class="resuelve-search" role="search">
+   <label for="questionSearch">Buscar peticiones
+    <input id="questionSearch" type="search" maxlength="80" placeholder="Ej.: sofá pequeño" autocomplete="off">
+   </label>
+   <label for="questionCategoryFilter">Categoría
+    <select id="questionCategoryFilter">
+     <option value="">Todas las categorías</option>
+     <option value="consejo">Consejos</option>
+     <option value="busco">Busco algo</option>
+     <option value="ayuda">Ayuda</option>
+     <option value="experiencia">Experiencias</option>
+    </select>
+   </label>
+   <button type="submit" class="secondary">Buscar</button>
+   <button type="button" class="plain" id="questionSearchClear">Limpiar</button>
+  </form>
   <div id="listStatus" class="muted" role="status" aria-live="polite">Cargando peticiones…</div>
   <div id="questionList" class="cards"></div>
   <button id="moreButton" class="secondary more" hidden type="button">Ver más peticiones</button>

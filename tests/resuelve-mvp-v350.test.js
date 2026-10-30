@@ -37,7 +37,8 @@ function database(){
   }
   if(sql.startsWith('SELECT q.id,q.title')){
    const rows=[...questions.values()].filter(q=>q.status!=='hidden'&&
-    (args[0]==='all'||q.status===args[0])&&(!args[1]||q.id<Number(args[1])))
+    (args[0]==='all'||q.status===args[0])&&(!args[1]||q.id<Number(args[1]))&&
+    (!args[2]||q.category===args[2])&&(!args[3]||(q.title+' '+q.body).toLowerCase().includes(String(args[3]).toLowerCase())))
     .sort((a,b)=>b.id-a.id).slice(0,24).map(q=>({...q,
      author_username:users.get(q.author_id)?.username||'desconocido',
      answer_count:[...answers.values()].filter(a=>a.question_id===q.id&&a.status==='visible').length}));
@@ -227,6 +228,21 @@ test('V3.5.4 Mis peticiones: requiere sesión y no revela preguntas ajenas',asyn
   assert.deepEqual(theirs.data.items.map(q=>Number(q.id)),[Number(other.data.id)]);
  });
 });
+test('V3.5.6: búsqueda literal y categorías sin fuga entre filtros',async()=>{
+ await withApp(async req=>{
+  const a=await req('/api/resuelve/questions',{user:1,method:'POST',body:{
+   title:'Sofá para salón pequeño',body:'Busco consejos sobre un sofá cómodo en color beige.',category:'consejo'}});
+  const b=await req('/api/resuelve/questions',{user:2,method:'POST',body:{
+   title:'Busco bicicleta urbana',body:'Quiero encontrar una bicicleta para moverme por la ciudad.',category:'busco'}});
+  assert.equal(a.status,201);assert.equal(b.status,201);
+  const filtered=await req('/api/resuelve/questions?estado=all&categoria=consejo&q=sof%C3%A1');
+  assert.equal(filtered.status,200);
+  assert.deepEqual(filtered.data.items.map(q=>Number(q.id)),[Number(a.data.id)]);
+  assert.equal((await req('/api/resuelve/questions?estado=all&q=%25')).status,400);
+  assert.equal((await req('/api/resuelve/questions?categoria=inventada')).status,400);
+  assert.equal((await req('/api/resuelve/questions?q='+('a'.repeat(81)))).status,400);
+ });
+});
 test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/resuelve.html'),'utf8');
@@ -239,6 +255,8 @@ test('integración en servidor y pantalla móvil sin HTML inseguro',()=>{
  assert.match(html,/id="askForm"/);
  assert.match(html,/id="answerForm"/);
  assert.match(html,/data-filter="mine"[^>]*hidden/);
+ assert.match(html,/id="questionSearchForm"/);
+ assert.match(js,/questionSearchClear/);
  assert.match(js,/\/api\/resuelve\/questions\/mine/);
  assert.match(html,/name="robots" content="noindex,follow"/);
  assert.match(js,/textContent/);
