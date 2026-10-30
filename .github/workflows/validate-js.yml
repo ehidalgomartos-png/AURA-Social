@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.8 Resuelve admin navigation links and mobile layout
+        run: node --test tests/resuelve-admin-navigation-v368.test.js
       - name: V3.6.7 Rounded public and private Resuelve cards
         run: node --test tests/resuelve-rounded-surfaces-v367.test.js
       - name: V3.6.6 Voluntary sharing of public reviewed solutions
