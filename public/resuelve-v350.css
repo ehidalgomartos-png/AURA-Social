@@ -431,3 +431,13 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .helper-speciality-form button{min-height:44px;justify-self:start}
 .helper-speciality-form p{margin:0}
 @media(max-width:650px){.helper-speciality-form button{width:100%}}
+
+/* V3.5.28 — accesos rápidos a categorías de la biblioteca verificada. */
+.resuelve-solution-explore{margin:0 0 16px;padding:12px 14px;border:1px solid #cae3df;border-radius:13px;background:#f7fcfa}
+.resuelve-solution-explore p{margin:0 0 9px}
+.resuelve-solution-shortcuts{display:flex;flex-wrap:wrap;gap:8px}
+.resuelve-solution-shortcut{min-height:44px;border:1px solid #b9d8d3;border-radius:999px;padding:9px 15px;color:#164b4b;background:white;font-weight:650;cursor:pointer}
+.resuelve-solution-shortcut.active,.resuelve-solution-shortcut[aria-pressed="true"]{background:#145d60;color:white;border-color:#145d60}
+.resuelve-solution-shortcut:focus-visible{outline:3px solid #087e89;outline-offset:2px}
+#solutionSummaryStatus{font-size:.8rem;margin:9px 0 0}
+@media(max-width:650px){.resuelve-solution-explore{padding:11px}.resuelve-solution-shortcuts{flex-wrap:nowrap;overflow-x:auto;padding:3px 2px 8px;scrollbar-width:thin}.resuelve-solution-shortcut{flex:none}}
