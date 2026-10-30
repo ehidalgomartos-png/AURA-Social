@@ -83,3 +83,12 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
 .marketplace-recommendation{display:inline-flex;align-items:center;min-height:44px;margin:4px 0 10px;padding:9px 13px;border-radius:10px;background:#e5f4f4;color:#07596b;font-weight:700;text-decoration:none;border:1px solid #c2e4e5}
 .marketplace-recommendation:focus-visible{outline:3px solid #0e7996;outline-offset:2px}
 @media(max-width:650px){.marketplace-recommendation{width:100%;justify-content:center;text-align:center;overflow-wrap:anywhere}}
+
+/* V3.5.3 — compartir en comunidades con confirmación expresa */
+.resuelve-community-share{margin:16px 0 22px}
+.resuelve-community-form{margin-top:12px;padding:16px;border:1px solid #dce7ed;border-radius:14px;background:#f8fbfd;display:grid;gap:12px}
+.resuelve-community-form[hidden]{display:none}
+.resuelve-community-form label{display:grid;gap:6px}
+.resuelve-community-form textarea,.resuelve-community-form select{width:100%;max-width:100%}
+.resuelve-community-form .primary{justify-self:start}
+@media(max-width:650px){.resuelve-community-form{padding:13px}.resuelve-community-form .primary,.resuelve-community-share>.secondary{width:100%}}
