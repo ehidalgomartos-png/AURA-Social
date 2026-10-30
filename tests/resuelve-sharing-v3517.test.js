@@ -41,7 +41,10 @@ test('V3.5.17: publicación solo con borrador editable, sin extraer soluciones a
  assert.match(service,/async function shareResolvedPreview\(userId,qid\)/);
  assert.match(service,/q\.author_id=\$2 AND q\.status='resolved'/);
  assert.match(service,/SELECT q\.id,q\.title FROM resuelve_questions q/);
- assert.doesNotMatch(service.slice(service.indexOf('async function shareResolvedPreview'),service.indexOf('async function reopen')),/a\.body/);
+ const previewStart=service.indexOf('async function shareResolvedPreview');
+ const previewEnd=service.indexOf('\n}',previewStart);
+ assert.ok(previewStart>=0&&previewEnd>previewStart);
+ assert.doesNotMatch(service.slice(previewStart,previewEnd),/a\.body/);
  assert.match(route,/router\.get\('\/questions\/:id\/share-preview',requireAuth/);
  assert.match(route,/router\.post\('\/questions\/:id\/thank',requireAuth,checkOrigin/);
  assert.match(service,/thanked_at IS NULL/);
