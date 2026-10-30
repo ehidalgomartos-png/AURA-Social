@@ -46,7 +46,7 @@ function database(){
     status:'open',accepted_answer_id:null,library_approved_answer_id:null,library_opt_out:false,created_at:new Date().toISOString()};
    questions.set(row.id,row);return {rows:[{id:row.id}],rowCount:1};
   }
-  if(sql.startsWith("SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body") &&
+  if(sql.startsWith("SELECT q.id,q.title,q.category,q.solved_at,") &&
      sql.includes('library_approved_answer_id IS NULL OR')){
    const rows=[...questions.values()].filter(q=>{
     const a=answers.get(q.accepted_answer_id);
@@ -58,7 +58,7 @@ function database(){
      author_username:users.get(q.author_id).username,solved_at:new Date().toISOString()}));
    return {rows,rowCount:rows.length};
   }
-  if(sql.startsWith("SELECT q.id,q.title,q.category,q.solved_at,split_part(a.body")){
+  if(sql.startsWith("SELECT q.id,q.title,q.category,q.solved_at,")){
    const rows=[...questions.values()].filter(q=>{
     const a=answers.get(q.accepted_answer_id);
     return q.status==='resolved'&&!q.library_opt_out&&q.accepted_answer_id===q.library_approved_answer_id &&

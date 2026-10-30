@@ -149,6 +149,11 @@
    meta(create('span',null,'Petición de @'+q.author_username),create('span',null,date(q.solved_at))),
    button('Leer solución completa',()=>openDetail(q.id))
   );
+  if(q.seo_public_opt_in===true){
+   const publicLink=create('a','secondary resuelve-solution-public-link','Ver página pública');
+   publicLink.href='/resuelve/solucion/'+encodeURIComponent(q.id);
+   article.append(publicLink);
+  }
   return article;
  }
  async function loadSolutions(more=false){
