@@ -127,6 +127,8 @@
    const data=await request('/api/resuelve/help-topics');
    if(!state.user||String(state.user.id??'')!==currentUserId)return;
    const selected=Array.isArray(data.categories)?data.categories:[];
+   // V3.6.25: solo preferencias del usuario actual, sin mostrarlas a visitantes.
+   state.helpTopics=selected.filter(category=>Object.prototype.hasOwnProperty.call(categories,category));
    if(!selected.length)return;
    const response=await request('/api/resuelve/questions/for-me');
    if(!state.user||String(state.user.id??'')!==currentUserId)return;
@@ -1316,6 +1318,15 @@
   el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;clearSimilar();});
   el('backButton').addEventListener('click',goList);
   el('helpSuggestionsMore').addEventListener('click',()=>document.querySelector('[data-filter="help"]')?.click());
+  // V3.6.25 — acceder rápidamente a las preguntas donde se puede ayudar.
+  el('helpOthersButton').addEventListener('click',()=>{
+   const personalized=!!state.user&&state.helpTopics.length>0;
+   const target=document.querySelector(personalized?'[data-filter="help"]':'[data-filter="unanswered"]');
+   if(!target||target.hidden)return;
+   target.click();
+   el('questions').scrollIntoView({block:'start',behavior:'auto'});
+   target.focus({preventScroll:true});
+  });
   for(const btn of document.querySelectorAll('[data-filter]')){
    btn.addEventListener('click',async()=>{
     state.filter=btn.dataset.filter;
