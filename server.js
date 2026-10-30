@@ -58,6 +58,7 @@ const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/mar
 const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
 const marketplaceComparadorV32132=require('./src/routes/marketplace-comparador-v32132');
 const {router:resuelveV350}=require('./src/routes/resuelve-v350');
+const {router:resuelvePublicSeoV3529}=require('./src/routes/resuelve-public-seo-v3529');
 const mediaRoutes = require('./src/routes/media');
 const storyRoutes = require('./src/routes/stories');
 const messageRoutes = require('./src/routes/messages');
@@ -1359,6 +1360,8 @@ function sendHtmlShell(file){
   };
 }
 app.get('/marketplace',sendHtmlShell('marketplace.html'));
+// V3.5.29 — fichas de soluciones sólo con consentimiento y revisión humana.
+app.use('/resuelve',resuelvePublicSeoV3529);
 // V3.5.19 — HTML de administración fuera de /public, protegido antes de servirlo.
 app.get('/resuelve/admin',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','no-store');
