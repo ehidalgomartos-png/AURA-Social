@@ -81,7 +81,7 @@ function renderTopicPage(topic,items,count,allCounts={}){
   '<p class="muted">Los consejos compartidos no sustituyen asesoramiento profesional cuando sea necesario.</p>'+otherLinks+
   (indexable?renderPublicShareLinks(canonical,'tema'):'')+
   '<a class="primary resuelve-topic-cta" href="/resuelve">Pedir ayuda o compartir experiencia</a>'+
-  '</section></main><footer class="foot">Resuelve · Personas que ayudan a personas</footer></body></html>';
+  '</section></main><footer class="foot">Resuelve · Personas que ayudan a personas · <a href="/resuelve/como-funciona">Cómo funciona Resuelve</a> · <a href="/">Conocer RedLibertad</a></footer></body></html>';
 }
 router.get('/temas/:topic',async(req,res)=>{
  res.set('Cache-Control','no-store');

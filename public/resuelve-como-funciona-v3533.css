@@ -49,3 +49,48 @@
  .resuelve-about-hero,.resuelve-about-section,.resuelve-about-last{min-width:0;max-width:100%}
  .resuelve-about-faq summary{padding:12px;min-height:48px}
 }
+
+/* V3.6.19 — enlaces de temas publicados realmente, claros para personas y buscadores. */
+.resuelve-public-topics-v3619{scroll-margin-top:85px}
+.resuelve-public-topics-list-v3619{
+ list-style:none;
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;
+ padding:0;
+ margin:12px 0 0;
+}
+.resuelve-public-topics-list-v3619 li{
+ min-width:0;
+ display:grid;
+ align-content:start;
+ gap:7px;
+ padding:16px;
+ border:1px solid #cce1de;
+ border-radius:15px;
+ background:#f8fcfb;
+}
+.resuelve-public-topics-list-v3619 a{
+ width:fit-content;
+ max-width:100%;
+ min-height:44px;
+ display:inline-flex;
+ align-items:center;
+ padding:8px 0;
+ color:#115b6a;
+ font-weight:800;
+ text-decoration:underline;
+ text-underline-offset:3px;
+ overflow-wrap:anywhere;
+}
+.resuelve-public-topics-list-v3619 a:focus-visible,.resuelve-network-link-v3619 a:focus-visible{
+ outline:3px solid #137e89;
+ outline-offset:3px;
+}
+.resuelve-public-topics-list-v3619 span{color:#425e67;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.resuelve-network-link-v3619{max-width:780px;margin:10px auto 0;line-height:1.6}
+.resuelve-network-link-v3619 a{color:#145b67;font-weight:750;text-underline-offset:3px}
+@media(max-width:720px){
+ .resuelve-public-topics-list-v3619{grid-template-columns:minmax(0,1fr)}
+ .resuelve-public-topics-list-v3619 li{padding:13px}
+}

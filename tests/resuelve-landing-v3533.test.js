@@ -27,8 +27,10 @@ test('V3.5.33: public introduction explains real person-to-person help without s
 test('V3.5.33: indexable page is server-served, in sitemap and reachable from Resuelve',()=>{
  const server=read('server.js'),home=read('public/resuelve.html');
  assert.match(server,/app\.get\('\/resuelve\/como-funciona'/);
- assert.match(server,/resuelve-como-funciona-v3533\.html/);
- assert.match(server,/res\.set\('X-Robots-Tag','index,follow'\)/);
+ const publicDirectory=read('src/services/resuelve-public-directory-v3619.js');
+ assert.match(server,/app\.get\('\/resuelve\/como-funciona',createResuelveAboutHandler\(\)\)/);
+ assert.match(publicDirectory,/resuelve-como-funciona-v3533\.html/);
+ assert.match(publicDirectory,/res\.set\('X-Robots-Tag','index,follow'\)/);
  assert.match(server,/app\.get\('\/sitemap-resuelve-presentacion\.xml'/);
  assert.match(server,/<url><loc>https:\/\/redlibertad\.com\/resuelve\/como-funciona<\/loc><\/url>/);
  assert.match(server,/Sitemap: \$\{origin\}\/sitemap-resuelve-presentacion\.xml/);
