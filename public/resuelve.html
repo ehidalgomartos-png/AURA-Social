@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/resuelve-crosslinks-v3632.css">
 <link rel="stylesheet" href="/resuelve-detail-v3633.css">
 <link rel="stylesheet" href="/resuelve-polish-v3634.css">
+<link rel="stylesheet" href="/resuelve-responsive-v3636.css?v=3.6.36">
 <script src="/resuelve-v350.js" defer></script>
 </head>
 <body>
@@ -83,7 +84,10 @@
    <label for="resuelveLoginPassword">Contraseña</label>
    <input id="resuelveLoginPassword" name="password" type="password" autocomplete="current-password" required>
    <button class="primary" type="submit">Entrar y seguir en Resuelve</button>
-   <p class="muted"><a href="/recuperar-contrasena/">¿Has olvidado tu contraseña?</a></p>
+   <nav class="resuelve-auth-help-v3636" aria-label="Ayuda para acceder a Resuelve">
+    <a href="/recuperar-contrasena/">Recuperar contraseña</a>
+    <a href="/verificar-email/">Reenviar correo de verificación</a>
+   </nav>
   </form>
   <p id="resuelveAuthStatus" class="resuelve-auth-status" role="status" aria-live="polite"></p>
  </section>
