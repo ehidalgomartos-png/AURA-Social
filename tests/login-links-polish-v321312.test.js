@@ -32,5 +32,5 @@ test('Mobile help links have independent touch targets and visible keyboard focu
   assert.match(css,/\.dark-card \.auth-help-link\s*\{[\s\S]*?min-height:49px/);
   assert.match(css,/\.dark-card \.auth-help-link:focus-visible/);
   assert.match(css,/@media\(max-width:359px\)/);
-  assert.match(html,/\/styles\.css\?v=3\.2\.131\.2/);
+  assert.match(html,/\/styles\.css\?v=3\.(?:2\.131\.2|6\.35)/);
 });
