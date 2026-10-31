@@ -11,6 +11,7 @@ const {ensureQualitySchema,qualityReady}=require('../services/editorial-quality-
 const {sourceMatchV3221,eligibleSourcesV3221}=require('../services/editorial-source-relink-v3221');
 const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181');
 const {safeLocalImageV3222}=require('../services/editorial-image-v3222');
+const {renderIndependentVoicesLanding}=require('../services/independent-voices-v3638');
 
 const admin=express.Router();
 const publicRouter=express.Router();
@@ -290,7 +291,7 @@ function origin(){
   try{const u=new URL(process.env.APP_ORIGIN||'https://redlibertad.com');return u.protocol==='https:'?u.origin:'https://redlibertad.com';}
   catch(_){return 'https://redlibertad.com';}
 }
-function page({title,description,pathname,body,noindex=false,imageUrl=null}){
+function page({title,description,pathname,body,noindex=false,imageUrl=null,independentVoices=false}){
   const base=origin();
   const canonical=base+pathname;
   const communityPublicUrl='/comunidades?volver='+encodeURIComponent(pathname);
@@ -304,10 +305,12 @@ function page({title,description,pathname,body,noindex=false,imageUrl=null}){
     '<meta name="theme-color" content="#0d2238">'+
     '<title>'+esc(title)+' · RedLibertad</title><meta name="description" content="'+esc(description.slice(0,155))+'">'+
     '<link rel="canonical" href="'+esc(canonical)+'">'+(noindex?'<meta name="robots" content="noindex,follow">':'')+
-    '<meta property="og:type" content="article"><meta property="og:title" content="'+esc(title)+'">'+
+    '<meta property="og:type" content="'+(independentVoices?'website':'article')+'"><meta property="og:title" content="'+esc(title)+'">'+
     '<meta property="og:description" content="'+esc(description.slice(0,190))+'"><meta property="og:url" content="'+esc(canonical)+'">'+
     (safeLocalImageV3222(imageUrl)?'<meta property="og:image" content="'+esc(base+imageUrl)+'"><meta name="twitter:card" content="summary_large_image">':'')+
-    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.63.2"><script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
+    '<link rel="stylesheet" href="/editorial-v323.css?v=3.2.63.2">'+
+    ((independentVoices||pathname==='/noticias')?'<link rel="stylesheet" href="/editorial-voices-v3638.css?v=3.6.38">':'')+
+    '<script src="/editorial-session-v3212.js?v=3.2.14" defer></script></head><body>'+
     '<a class="ed-skip" href="#ed-main">Saltar al contenido</a>'+
     '<header class="ed-head"><a href="/app" class="ed-brand"><img src="/assets/logo-mark.svg" alt="" width="32" height="32"><span>RedLibertad</span></a>'+
     '<nav class="ed-head-nav" aria-label="Navegación principal">'+desktop+'<a class="ed-head-login" data-ed-auth-link data-ed-logged-label="Mi perfil" href="/app">Entrar</a></nav></header>'+
@@ -346,6 +349,17 @@ async function liveItems(extra='',params=[],limit=50){
     params
   );
 }
+// Informational proposal is public even when the editorial database is unavailable.
+// No submission, voting or tipping endpoints are exposed in this phase.
+publicRouter.get('/redactores',(_req,res)=>{
+  res.type('html').send(page({
+    title:'Voces Independientes — proyecto en preparación',
+    description:'Conoce la propuesta de RedLibertad para artículos originales de personas independientes, revisión editorial y apoyos voluntarios.',
+    pathname:'/noticias/redactores',
+    body:renderIndependentVoicesLanding(),
+    noindex:true,independentVoices:true
+  }));
+});
 publicRouter.use(async(_req,res,next)=>{try{await ensurePublicationSchema();next();}catch(e){console.error('Public editorial schema bootstrap failed:',e);res.status(503).type('text/plain').send('Noticias temporalmente no disponibles');}});
 publicRouter.get('/',async(req,res)=>{
   try{
@@ -358,7 +372,8 @@ publicRouter.get('/',async(req,res)=>{
       '<div class="ed-empty">'+(category?'No hay noticias publicadas en esta categoría todavía.':'Todavía no hay noticias publicadas.')+
       ' <a href="/noticias">Ver todas las noticias</a>.</div>';
     res.type('html').send(page({title:categoryTitle,description:'Noticias originales revisadas por el equipo editorial de RedLibertad, con enlaces a las fuentes originales.',pathname:'/noticias',body:
-      '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section>'+
+      '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section>'+ 
+      '<section class="ed-voices-entry-v3638" aria-label="Proyecto Voces Independientes"><div><h2>Voces Independientes</h2><p>Preparamos un espacio para artículos propios con fuentes, revisión y reconocimiento de lectores reales. Todavía no recibe publicaciones ni propinas.</p></div><a href="/noticias/redactores">Conoce el proyecto</a></section>'+
       discoveryV3248.categoryTabs(category)+
       '<p class="ed-discovery-intro-v3248">'+(category?'Mostrando noticias publicadas de '+esc(categoryLabelV3247(category))+'.':'Explora temas y participa en las conversaciones de RedLibertad.')+'</p>'+
       '<section class="ed-stack">'+cards+'</section>',noindex:items.rows.length===0||Boolean(category)}));
