@@ -1,0 +1,61 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+const source=read('public/resuelve-v350.js');
+const html=read('public/resuelve.html');
+const css=read('public/resuelve-first-reply-v36401.css');
+const start=source.indexOf('function canOfferFirstReply(q){');
+const end=source.indexOf('// V3.6.40.1 — abrir',start);
+const helper=source.slice(start,end);
+function evaluate(q,user){
+ const context={state:{user},q,result:null};
+ vm.createContext(context);
+ vm.runInContext(helper+'\nresult=canOfferFirstReply(q);',context);
+ return context.result;
+}
+const question=(props={})=>({id:12,status:'open',answer_count:0,author_id:42,author_username:'autor',...props});
+test('V3.6.40.1: invitación real y no engañosa para peticiones abiertas sin respuesta',()=>{
+ assert.equal(evaluate(question(),null),true);
+ assert.equal(evaluate(question(),{id:5,username:'colaborador'}),true);
+ assert.equal(evaluate(question({status:'resolved'}),null),false);
+ assert.equal(evaluate(question({answer_count:1}),null),false);
+ assert.equal(evaluate(question({answer_count:-1}),null),false);
+ assert.equal(evaluate(question({answer_count:'desconocido'}),null),false);
+ assert.equal(evaluate(question({my_answer_id:8}),{id:5,username:'colaborador'}),false);
+ assert.equal(evaluate(question(),{id:42,username:'autor'}),false);
+ assert.equal(evaluate(question({author_id:null}),{id:5,username:'AUTOR'}),false);
+});
+test('V3.6.40.1: botón llega al formulario existente tras consultar el estado actualizado',()=>{
+ const idx=source.indexOf('async function goToFirstReply(id){');
+ const last=source.indexOf('function card(q){',idx);
+ const action=source.slice(idx,last);
+ assert.ok(idx>0&&last>idx);
+ assert.match(action,/await openDetail\(id,true,'questions'\)/);
+ assert.match(action,/String\(state\.question\.id\)!==String\(id\)/);
+ assert.match(action,/if\(form\.hidden\)return/);
+ assert.match(action,/scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
+ assert.match(action,/el\('answerBody'\)\.focus\(\{preventScroll:true\}\)/);
+ assert.match(source,/canOfferFirstReply\(q\)\?'secondary resuelve-first-reply-v36401':'plain'/);
+ assert.match(source,/Ser la primera persona en responder/);
+ assert.match(source,/Leer y ayudar/);
+ assert.match(source,/questionShareControl\(q,true\)/);
+ assert.match(html,/id="answerForm"/);
+ assert.match(html,/id="answerBody"/);
+ assert.match(html,/resuelve-first-reply-v36401\.css\?v=3\.6\.40\.1/);
+});
+test('V3.6.40.1: mobile-first accesible sin cambios en datos, privacidad ni monetización',()=>{
+ assert.match(css,/#questionList \.question-card \.resuelve-first-reply-v36401/);
+ assert.match(css,/@media\(max-width:650px\)/);
+ assert.match(css,/@media\(max-width:360px\)/);
+ assert.match(css,/min-height:48px/);
+ assert.match(css,/:focus-visible/);
+ assert.match(css,/overflow-wrap:anywhere/);
+ assert.doesNotMatch(css,/display:none|position:fixed|outline:none|pointer-events:none/);
+ assert.match(source,/\/api\/resuelve\/questions\//);
+ assert.doesNotMatch(source.slice(start,end),/fetch\(|write\(|INSERT|coins|tipping/);
+ assert.doesNotThrow(()=>new Function(source));
+});

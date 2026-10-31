@@ -41,6 +41,25 @@
    void openDetail(id,true,view);
   });
  }
+ // Solo se muestra la llamada a ayudar cuando el contador real indica
+ // cero respuestas y no es una petición propia ni ya contestada.
+ function canOfferFirstReply(q){
+  const count=Number(q.answer_count);
+  if(q.status!=='open'||!Number.isSafeInteger(count)||count!==0||q.my_answer_id)return false;
+  return !state.user||(
+   String(q.author_id??'')!==String(state.user.id)&&
+   String(q.author_username??'').toLowerCase()!==String(state.user.username??'').toLowerCase());
+ }
+ // V3.6.40.1 — abrir la petición y, solo si sigue abierta y permite contestar,
+ // llevar al formulario real. Nunca se simula ni se publica una respuesta.
+ async function goToFirstReply(id){
+  await openDetail(id,true,'questions');
+  if(!state.question||String(state.question.id)!==String(id))return;
+  const form=el('answerForm');
+  if(form.hidden)return;
+  form.scrollIntoView({block:'start',behavior:'auto'});
+  el('answerBody').focus({preventScroll:true});
+ }
  function card(q){
   const article=create('article','question-card');
   const heading=create('h3',null,q.title);
@@ -60,7 +79,10 @@
    meta(create('span',null,'@'+q.author_username),
     create('span',null,date(q.created_at)),
     create('span',null,(Number(q.answer_count)||0)+' respuestas')),
-   button('Ver petición',()=>openDetail(q.id)),
+   button(canOfferFirstReply(q)?
+    (state.user?'Ser la primera persona en responder':'Leer y ayudar'):'Ver petición',
+    ()=>canOfferFirstReply(q)?goToFirstReply(q.id):openDetail(q.id),
+    canOfferFirstReply(q)?'secondary resuelve-first-reply-v36401':'plain'),
    questionShareControl(q,true)
   );
   return article;
