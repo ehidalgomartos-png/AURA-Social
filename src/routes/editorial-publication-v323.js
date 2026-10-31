@@ -364,7 +364,7 @@ publicRouter.get('/redactores/admin',requireAdmin,(_req,res)=>{
  });
  res.set('Cache-Control','no-store').type('html').send(html
   .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"><link rel="stylesheet" href="/editorial-voices-review-v3640.css?v=3.6.40"><link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>')
-  .replace('</body>','<script src="/editorial-voices-review-v3640.js?v=3.6.40" defer></script></body>'));
+  .replace('</body>','<script src="/editorial-voices-review-v3640.js?v=3.6.40" defer></script><script src="/editorial-voices-publication-v3641.js?v=3.6.41" defer></script></body>'));
 });
 publicRouter.get('/redactores/escribir',(_req,res)=>{
  const html=page({
