@@ -434,3 +434,61 @@ body{
  .home-help-actions-v369{display:grid;grid-template-columns:minmax(0,1fr)}
  .home-help-actions-v369 .button{width:100%;min-width:0}
 }
+
+/* V3.6.35 — Pie legal móvil: enlaces alineados y fáciles de pulsar. */
+@media(max-width:639px){
+  .site-footer{
+    padding:24px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+    gap:18px;
+  }
+  .site-footer-main{
+    gap:8px;
+  }
+  .site-footer-main p{
+    font-size:12px;
+    line-height:1.5;
+  }
+  .site-footer-legal{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:0 16px;
+    align-items:stretch;
+    width:100%;
+  }
+  .site-footer-legal > a,
+  .site-footer-legal > #metaCookieSettings{
+    display:flex;
+    align-items:center;
+    min-width:0;
+    min-height:44px;
+    margin:0;
+    padding:10px 0;
+    border:0;
+    border-bottom:1px solid var(--line);
+    border-radius:0;
+    background:transparent;
+    color:var(--navy);
+    font:700 12px/1.45 "DM Sans",sans-serif;
+    text-align:left;
+    text-decoration:none;
+    overflow-wrap:break-word;
+    cursor:pointer;
+  }
+  .site-footer-legal > a:hover,
+  .site-footer-legal > #metaCookieSettings:hover{
+    color:#0a766f;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .site-footer-legal > a:focus-visible,
+  .site-footer-legal > #metaCookieSettings:focus-visible{
+    outline:3px solid var(--teal);
+    outline-offset:3px;
+    border-radius:3px;
+  }
+}
+@media(max-width:339px){
+  .site-footer-legal{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
