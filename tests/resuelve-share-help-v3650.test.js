@@ -45,7 +45,8 @@ test('V3.6.50: el enlace abre solo el filtro público de peticiones sin respuest
  assert.match(js,/tab\.setAttribute\(\x27aria-pressed\x27/);
  assert.match(js,/params\.set\(\x27sin_respuestas\x27,\x27si\x27\)/);
  assert.match(js,/el\(\x27firstHelpCopyV3650\x27\)\.addEventListener\(\x27click\x27/);
- assert.match(js,/navigator\.clipboard\?\.writeText\(link\.value\)/);
+ assert.match(js,/navigator\.clipboard\.writeText\(link\.value\)/);
+ assert.match(js,/if\(!navigator\.clipboard\?\.writeText\)/);
  assert.match(js,/link\.select\(\)/);
  assert.doesNotMatch(js,/fetch\(\x27https:\/\/wa\.me/);
 });
