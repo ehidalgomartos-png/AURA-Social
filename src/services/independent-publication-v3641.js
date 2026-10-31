@@ -88,7 +88,7 @@ async function liveAdmin(){
 }
 async function urlsForSitemap(){
  await ensureSchema();
- const out=await db.query("SELECT p.id,p.published_at"+liveFrom+" ORDER BY p.published_at DESC,p.id DESC LIMIT 1000");
+ const out=await db.query("SELECT p.id,p.published_at,u.username AS author_username"+liveFrom+" ORDER BY p.published_at DESC,p.id DESC LIMIT 1000");
  return out.rows;
 }
 module.exports={ensureSchema,readyForPublication,publish,withdraw,listPublic,getPublic,liveAdmin,urlsForSitemap,publicSource,escapeHtml,types};

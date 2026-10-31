@@ -104,6 +104,13 @@ function renderIndependentVoicesReviewPanel(){
    '<p id="liveStatusV3641" role="status" aria-live="polite"></p>',
    '<div id="liveQueueV3641" class="ed-voices-review-queue-v3640"></div>',
   '</section>',
+  '<section class="ed-voices-form-section-v3639" aria-labelledby="voicesReportsHeadingV3643">',
+   '<h2 id="voicesReportsHeadingV3643">Avisos sobre artículos</h2>',
+   '<p>Revisa los avisos privados de los lectores. Marcar un aviso como revisado o descartado no retira la publicación; para retirarla usa el panel de publicación controlada.</p>',
+   '<button id="voicesReportsRefreshV3643" type="button" class="ed-voices-primary-v3639">Actualizar avisos</button>',
+   '<p id="voicesReportsStatusV3643" role="status" aria-live="polite"></p>',
+   '<div id="voicesReportsListV3643" class="voices-reports-admin-list-v3643"></div>',
+  '</section>',
   '</div>'
  ].join('');
 }

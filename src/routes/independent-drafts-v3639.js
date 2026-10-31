@@ -7,6 +7,7 @@ const drafts=require('../services/independent-drafts-v3639');
 const review=require('../services/independent-review-v3640');
 const publication=require('../services/independent-publication-v3641');
 const support=require('../services/independent-support-v3642');
+const reports=require('../services/independent-reports-v3643');
 const router=express.Router();
 const throttle=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'demasiados_intentos'}});
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -81,6 +82,27 @@ router.post('/voces/:id/apoyo',sameOrigin,throttle,asyncRoute(async(req,res)=>{
  const result=await support.setSupport(req.user.id,req.params.id,req.body.supported);
  if(result.error)return fail(res,result.error==='apoyo_propio_no_permitido'?403:404,result.error);
  return res.json({ok:true,...result});
+}));
+// V3.6.43 — only real users can submit an article report, which is private.
+router.post('/voces/:id/denunciar',sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ const payload=req.body||{};
+ if(Object.keys(payload).some(key=>!['reason','details','confirmed'].includes(key)))
+  return fail(res,400,'denuncia_invalida');
+ const result=await reports.report(req.user.id,req.params.id,payload.reason,payload.details,payload.confirmed);
+ if(result.error)return fail(res,result.error==='articulo_no_disponible'?404:
+  result.error==='denuncia_propia_no_permitida'?403:400,result.error);
+ return res.status(result.alreadyReported?200:201).json({ok:true,received:true,alreadyReported:result.alreadyReported});
+}));
+router.get('/admin/denuncias',requireAdmin,asyncRoute(async(_req,res)=>{
+ return res.json({ok:true,items:await reports.pending()});
+}));
+router.post('/admin/denuncias/:id/revisar',requireAdmin,sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ const payload=req.body||{};
+ if(Object.keys(payload).some(key=>!['decision','note','confirmed'].includes(key)))
+  return fail(res,400,'revision_invalida');
+ const result=await reports.decide(req.user.id,req.params.id,payload.decision,payload.note,payload.confirmed);
+ if(result.error)return fail(res,result.error==='denuncia_no_disponible'?409:400,result.error);
+ return res.json({ok:true,item:result.item});
 }));
 router.get('/borradores',asyncRoute(async(req,res)=>{
  res.json({ok:true,items:await drafts.list(req.user.id)});

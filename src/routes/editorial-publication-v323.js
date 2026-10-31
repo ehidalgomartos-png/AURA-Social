@@ -14,6 +14,7 @@ const {safeLocalImageV3222}=require('../services/editorial-image-v3222');
 const {renderIndependentVoicesLanding,renderIndependentVoicesEditor,renderIndependentVoicesReviewPanel}=require('../services/independent-voices-v3638');
 const independentPublicationV3641=require('../services/independent-publication-v3641');
 const independentSupportV3642=require('../services/independent-support-v3642');
+const independentDiscoveryV3643=require('../services/independent-discovery-v3643');
 const independentPagesV3641=require('../services/independent-public-pages-v3641');
 
 const admin=express.Router();
@@ -365,7 +366,7 @@ publicRouter.get('/redactores/admin',requireAdmin,(_req,res)=>{
  });
  res.set('Cache-Control','no-store').type('html').send(html
   .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"><link rel="stylesheet" href="/editorial-voices-review-v3640.css?v=3.6.40"><link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>')
-  .replace('</body>','<script src="/editorial-voices-review-v3640.js?v=3.6.40" defer></script><script src="/editorial-voices-publication-v3641.js?v=3.6.41" defer></script></body>'));
+  .replace('</body>','<script src="/editorial-voices-review-v3640.js?v=3.6.40" defer></script><script src="/editorial-voices-publication-v3641.js?v=3.6.41" defer></script><script src="/editorial-voices-reports-admin-v3643.js?v=3.6.43" defer></script></body>'));
 });
 publicRouter.get('/redactores/escribir',(_req,res)=>{
  const html=page({
@@ -393,6 +394,25 @@ publicRouter.get('/redactores/voces/:id/apoyos',async(req,res)=>{
   return res.status(503).json({error:'apoyos_temporalmente_no_disponibles'});
  }
 });
+// V3.6.43 — author pages only expose the user's genuinely published articles.
+publicRouter.get('/redactores/autores/:username',async(req,res)=>{
+ if(!independentDiscoveryV3643.validAuthor(req.params.username))
+  return res.status(404).type('text/plain').send('Perfil de autor no disponible');
+ try{
+  const articles=await independentDiscoveryV3643.author(req.params.username);
+  if(!articles?.length)return res.status(404).type('text/plain').send('Perfil de autor no disponible');
+  const name=articles[0].author_username;
+  const html=page({
+   title:'Artículos de @'+name,
+   description:'Artículos independientes publicados por @'+name+' en RedLibertad.',
+   pathname:independentPagesV3641.authorPath(name),
+   body:independentPagesV3641.authorProfile(name,articles),
+   noindex:false,independentVoices:true
+  });
+  return res.type('html').send(html.replace('</head>',
+   '<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-discovery-v3643.css?v=3.6.43"></head>'));
+ }catch(error){console.error('Author profile unavailable:',error);return res.status(503).type('text/plain').send('Perfil temporalmente no disponible');}
+});
 publicRouter.get('/redactores/voces/:id',async(req,res)=>{
  const id=safeId(req.params.id);
  if(!id)return res.status(404).type('text/plain').send('Artículo no disponible');
@@ -406,20 +426,22 @@ publicRouter.get('/redactores/voces/:id',async(req,res)=>{
    body:independentPagesV3641.article(article),
    noindex:false,independentVoices:false
   });
-  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-support-v3642.css?v=3.6.42"></head>').replace('</body>','<script src="/editorial-voices-support-v3642.js?v=3.6.42" defer></script></body>'));
+  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-support-v3642.css?v=3.6.42"><link rel="stylesheet" href="/editorial-voices-discovery-v3643.css?v=3.6.43"></head>').replace('</body>','<script src="/editorial-voices-support-v3642.js?v=3.6.42" defer></script><script src="/editorial-voices-report-v3643.js?v=3.6.43" defer></script></body>'));
  }catch(e){console.error('Independent public article failed:',e);res.status(503).type('text/plain').send('Artículo temporalmente no disponible');}
 });
 publicRouter.get('/redactores/voces',async(_req,res)=>{
  try{
-  const articles=await independentPublicationV3641.listPublic(24);
+  const kind=typeof _req.query.tipo==='string'?_req.query.tipo:null;
+  if(!independentDiscoveryV3643.validKind(kind))return res.redirect(302,'/noticias/redactores/voces');
+  const articles=await independentDiscoveryV3643.browse(kind);
   const html=page({
-   title:'Voces independientes de RedLibertad',
+   title:kind?'Artículos de '+independentPublicationV3641.types[kind]+' — Voces Independientes':'Voces independientes de RedLibertad',
    description:'Artículos originales de colaboradores de RedLibertad, revisados previamente por el equipo editorial.',
    pathname:'/noticias/redactores/voces',
-   body:independentPagesV3641.directory(articles),
-   noindex:articles.length===0,independentVoices:true
+   body:independentPagesV3641.directory(articles,kind),
+   noindex:articles.length===0||!!kind,independentVoices:true
   });
-  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>'));
+  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-discovery-v3643.css?v=3.6.43"></head>'));
  }catch(e){console.error('Independent article index failed:',e);res.status(503).type('text/plain').send('Artículos temporalmente no disponibles');}
 });
 publicRouter.get('/redactores',(_req,res)=>{
@@ -468,11 +490,13 @@ publicRouter.get('/sitemap.xml',async(_req,res)=>{
     try{independentUrls=await independentPublicationV3641.urlsForSitemap();}
     catch(error){console.error('Independent voices sitemap addition unavailable:',error);}
     const profiles=[...new Set(items.map(row=>row.profile_slug))];
+    const independentAuthors=[...new Set(independentUrls.map(row=>row.author_username).filter(independentDiscoveryV3643.validAuthor))];
     const urls=[
       '<url><loc>'+esc(origin()+'/noticias')+'</loc><changefreq>daily</changefreq></url>',
       ...profiles.map(slug=>'<url><loc>'+esc(origin()+'/noticias/perfil/'+encodeURIComponent(slug))+'</loc><changefreq>weekly</changefreq></url>'),
       ...items.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>'),
-      ...independentUrls.map(row=>'<url><loc>'+esc(origin()+independentPagesV3641.path(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
+      ...independentUrls.map(row=>'<url><loc>'+esc(origin()+independentPagesV3641.path(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>'),
+      ...independentAuthors.map(name=>'<url><loc>'+esc(origin()+independentPagesV3641.authorPath(name))+'</loc><changefreq>weekly</changefreq></url>')
     ];
     res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(e){console.error('Editorial sitemap failed:',e);res.status(503).type('text/plain').send('Unavailable');}
