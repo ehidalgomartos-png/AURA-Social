@@ -292,7 +292,7 @@
   const panel=el('firstHelpQuickV3655');
   panel.hidden=true;
   const count=Number(q?.answer_count);
-  if(!q||!/^[1-9]\\d{0,15}$/.test(String(q.id||''))||
+  if(!q||!/^[1-9]\d{0,15}$/.test(String(q.id||''))||
      q.status!=='open'||q.answer_count===null||q.answer_count===undefined||
      !Number.isSafeInteger(count)||count!==0)return;
   const title=el('firstHelpQuickHeadingV3655');
@@ -1756,7 +1756,7 @@
    if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||
       event.shiftKey||event.altKey)return;
    const id=event.currentTarget.dataset.questionId;
-   if(!/^[1-9]\\d{0,15}$/.test(String(id||'')))return;
+   if(!/^[1-9]\d{0,15}$/.test(String(id||'')))return;
    event.preventDefault();
    void goToFirstReply(id);
   });
