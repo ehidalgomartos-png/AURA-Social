@@ -9,7 +9,7 @@ test('V3.6.48: los seis accesos por necesidad abren directamente servicios exist
  const links=[...quick.matchAll(/<a class="sm-intent" href="([^"]+)"[^>]*>[\s\S]*?<span>([^<]+)<\/span><span class="sm-intent-arrow"/g)];
  const expected=[
   ['/resuelve','Necesito ayuda'],
-  ['/resuelve#questions','Quiero ayudar'],
+  ['/resuelve?sin_respuestas=1#questions','Quiero ayudar'],
   ['/noticias','Quiero informarme'],
   ['/marketplace/explorar','Comprar o vender'],
   ['/comparar','Comparar productos'],
