@@ -1,0 +1,72 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {authorProfile,authorPath,directory}=require('../src/services/independent-public-pages-v3641');
+const {renderIndependentVoicesLanding}=require('../src/services/independent-voices-v3638');
+const {page}=require('../src/routes/editorial-publication-v323');
+const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+const article=(id,kind,body='Texto original')=>({
+ id,kind,body,title:'Artículo de la comunidad '+id,author_username:'persona.real',published_at:'2026-10-31T11:00:00Z'
+});
+test('V3.6.44: historial muestra solo la selección real y desglose por tipo',()=>{
+ const rows=[article(7,'noticia'),article(6,'analisis'),article(5,'opinion')];
+ const html=authorProfile('persona.real',rows);
+ assert.match(html,/Artículos de @persona\.real/);
+ assert.match(html,/>3<\/strong><span>Artículos mostrados/);
+ assert.match(html,/1 Noticia/);
+ assert.match(html,/1 Análisis/);
+ assert.match(html,/1 Opinión/);
+ assert.match(html,/Publicación más reciente/);
+ assert.match(html,/Mostrando hasta 40 publicaciones recientes/);
+ assert.match(html,/Historial de artículos publicados/);
+ assert.match(html,/href="\/noticias\/redactores\/voces\/7"/);
+ assert.match(html,/href="\/noticias\/redactores\/voces\/6"/);
+ assert.match(html,/href="\/noticias\/redactores\/voces\/5"/);
+ assert.match(html,/href="\/noticias\/redactores\/escribir"/);
+ assert.ok(html.indexOf('/voces/7')<html.indexOf('/voces/6'));
+ assert.doesNotMatch(html,/verificado profesionalmente|puntuación garantizada/i);
+});
+test('V3.6.44: métricas no inventan publicaciones de otros autores ni más de las recibidas',()=>{
+ const html=authorProfile('otra.persona',[article(1,'reportaje','<script>hola</script>')]);
+ assert.match(html,/>1<\/strong><span>Artículo mostrado/);
+ assert.match(html,/1 Reportaje/);
+ assert.match(html,/&lt;script&gt;hola&lt;\/script&gt;/);
+ assert.doesNotMatch(html,/<script>|<img src|<svg/);
+ assert.doesNotMatch(html,/Total de publicaciones: 1|Todos los artículos publicados/);
+});
+test('V3.6.44: nombres y títulos se escapan; el slug usa codificación de URL',()=>{
+ const tainted=article(31,'noticia','hola & adiós');
+ tainted.title='<script>alert("x")</script>';
+ tainted.author_username='persona<script>';
+ const html=authorProfile('<img>',[tainted]);
+ assert.match(html,/&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
+ assert.match(html,/Artículos de @persona&lt;script&gt;/);
+ assert.doesNotMatch(html,/<script>|<img>/);
+ assert.equal(authorPath('Ana Martínez'),'/noticias/redactores/autores/Ana%20Mart%C3%ADnez');
+});
+test('V3.6.44: portada enlaza la comunidad activa sin atribuir publicaciones inexistentes',()=>{
+ const hub=renderIndependentVoicesLanding();
+ const news=read('src/routes/editorial-publication-v323.js');
+ const css=read('public/editorial-voices-active-v3644.css');
+ assert.match(hub,/ARTÍCULOS ORIGINALES · COMUNIDAD REDLIBERTAD/);
+ assert.match(hub,/Ya puedes redactar borradores y enviarlos a revisión humana/);
+ assert.match(hub,/href="\/noticias\/redactores\/voces">Explorar artículos/);
+ assert.match(hub,/href="\/noticias\/redactores\/escribir">Escribir un artículo/);
+ assert.match(news,/Voces Independientes<\/h2><p>Publica un artículo original/);
+ assert.match(news,/href="\/noticias\/redactores\/voces">Leer artículos/);
+ assert.match(news,/href="\/noticias\/redactores\/escribir">Escribir/);
+ assert.match(news,/noindex:false,independentVoices:true/);
+ assert.match(news,/editorial-voices-active-v3644\.css\?v=3\.6\.44/);
+ assert.match(css,/@media\(max-width:780px\)/);
+ assert.match(css,/@media\(max-width:650px\)/);
+ assert.match(css,/:focus-visible/);
+ assert.match(css,/min-height:48px/);
+ assert.match(css,/overflow-wrap:anywhere/);
+ assert.doesNotMatch(css,/position:fixed|pointer-events:none|outline:none/);
+ const out=page({title:'Voces Independientes',description:'Artículos de la comunidad.',pathname:'/noticias/redactores',body:hub,independentVoices:true,noindex:false});
+ assert.doesNotMatch(out,/meta name="robots" content="noindex,follow"/);
+ assert.match(out,/rel="canonical" href="https:\/\/redlibertad.com\/noticias\/redactores"/);
+ assert.doesNotThrow(()=>directory([]));
+});
