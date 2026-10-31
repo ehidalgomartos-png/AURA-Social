@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="/resuelve-detail-v3633.css">
 <link rel="stylesheet" href="/resuelve-polish-v3634.css">
 <link rel="stylesheet" href="/resuelve-responsive-v3636.css?v=3.6.36">
+<link rel="stylesheet" href="/resuelve-helper-v3637.css?v=3.6.37">
 <script src="/resuelve-v350.js" defer></script>
 </head>
 <body>
@@ -27,6 +28,14 @@
  </nav>
 </header>
 <main id="main" class="wrap">
+ <section id="helperPublicPanel" class="helper-public-panel" aria-labelledby="helperPublicTitle" hidden>
+  <h2 id="helperPublicTitle">Perfil voluntario de colaboración</h2>
+  <p id="helperPublicStatus" role="status" aria-live="polite">Consultando perfil voluntario…</p>
+  <p id="helperPublicEmpty" class="helper-public-empty-v3637" hidden>Esta persona ha activado su ficha voluntaria, pero todavía no tiene aportaciones públicas visibles en Resuelve.</p>
+  <div id="helperPublicStats" class="my-help-metrics" hidden></div>
+  <p id="helperPublicDisclaimer" class="muted" hidden>Estos datos son aportaciones reales, no una acreditación profesional ni una valoración.</p>
+  <a id="helperPublicExplore" href="#questions" class="secondary helper-public-explore-v3637" hidden>Ver peticiones en las que ayudar</a>
+ </section>
  <section class="hero" aria-labelledby="hero-title">
   <p class="eyebrow">PERSONAS QUE AYUDAN A PERSONAS</p>
   <h1 id="hero-title">Pide ayuda. Comparte lo que sabes.</h1>
@@ -42,12 +51,7 @@
   </div>
  </section>
  <div id="banner" role="status" aria-live="polite"></div>
- <section id="helperPublicPanel" class="helper-public-panel" aria-labelledby="helperPublicTitle" hidden>
-  <h2 id="helperPublicTitle">Persona que ayuda en Resuelve</h2>
-  <p id="helperPublicStatus" role="status" aria-live="polite">Consultando perfil voluntario…</p>
-  <div id="helperPublicStats" class="my-help-metrics"></div>
-  <p class="muted">Estos datos son aportaciones reales, no una acreditación profesional ni una valoración.</p>
- </section>
+
  <section id="resuelveAuthPanel" class="panel resuelve-auth-panel" hidden aria-labelledby="resuelveAuthTitle">
   <div class="panel-head">
    <div><p class="eyebrow dark">UNA CUENTA PARA AYUDAR Y PARTICIPAR</p>
@@ -224,7 +228,7 @@
    <button class="secondary" type="submit">Guardar mi especialidad</button>
    <p id="helperSpecialityStatus" class="muted" role="status" aria-live="polite"></p>
   </form>
-  <p><a id="helperProfileShare" href="#" hidden>Ver mi perfil para compartir</a></p>
+  <p><a id="helperProfileShare" href="#" hidden>Abrir mi ficha pública</a></p>
  </details>
  <form id="questionSearchForm" class="resuelve-search" role="search">
    <label class="resuelve-search-main" for="questionSearch">Buscar peticiones
