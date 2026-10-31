@@ -1610,7 +1610,7 @@
   bindHelperProfile();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions(),loadFirstHelpSpotlight()]);
+  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions()]);
   await loadPublicHelperProfile();
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
