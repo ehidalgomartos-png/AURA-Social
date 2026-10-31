@@ -53,6 +53,44 @@
   return article;
  }
 // V3.5.16 — intereses privados, sin perfiles públicos ni mensajes automáticos.
+ // V3.6.26 — actividad de respuestas privada y bajo demanda, sin confundirla con avisos no leídos.
+ async function loadRecentReplyActivity(){
+  if(!state.user)return;
+  const panel=el('myReplyActivityPanel'),list=el('myReplyActivityList');
+  const status=el('myReplyActivityStatus'),refresh=el('refreshMyReplyActivity');
+  const userId=String(state.user.id);
+  refresh.disabled=true;
+  list.replaceChildren();
+  status.textContent='Consultando las respuestas visibles a tus preguntas…';
+  try{
+   const result=await request('/api/resuelve/questions/mine/reply-activity');
+   if(!state.user||String(state.user.id)!==userId||!panel.open)return;
+   const items=Array.isArray(result.items)?result.items:[];
+   for(const q of items){
+    if(!/^[1-9]\d{0,15}$/.test(String(q.id||'')))continue;
+    const count=Number(q.answer_count);
+    if(!Number.isSafeInteger(count)||count<1)continue;
+    const item=create('article','resuelve-reply-activity-item');
+    const link=create('a','resuelve-reply-activity-link',q.title||'Ver pregunta');
+    link.href='/resuelve?id='+encodeURIComponent(q.id);
+    const metadata=create('span','muted',count+' respuesta'+(count===1?'':'s')+' visibles · última '+date(q.last_answer_at));
+    item.append(link,metadata);list.append(item);
+   }
+   status.textContent=list.childElementCount?
+    'Mostrando hasta 6 preguntas con respuestas visibles. No significa que estén sin leer.':
+    'Todavía no hay respuestas visibles a tus preguntas.';
+  }catch(error){
+   if(state.user&&String(state.user.id)===userId&&panel.open)
+    status.textContent='No se pudo cargar este resumen. Puedes consultar tus notificaciones habituales.';
+  }finally{refresh.disabled=false;}
+ }
+ function bindRecentReplyActivity(){
+  const panel=el('myReplyActivityPanel');
+  panel.addEventListener('toggle',()=>{
+   if(panel.open&&state.user)void loadRecentReplyActivity();
+  });
+  el('refreshMyReplyActivity').addEventListener('click',()=>void loadRecentReplyActivity());
+ }
  // V3.6.2: pendientes propios, nunca muestra preguntas o recordatorios de otras cuentas.
  async function loadPendingMine(){
   const panel=el('myPendingPanel'),list=el('myPendingList'),status=el('myPendingStatus');
@@ -1128,6 +1166,8 @@
   el('resuelveAdminEntry').hidden=!isAdmin;
   el('helperProfileSettings').hidden=guest;
   el('resuelveReplyEmailSettings').hidden=guest;
+  el('myReplyActivityPanel').hidden=guest;
+  if(guest){el('myReplyActivityPanel').open=false;el('myReplyActivityList').replaceChildren();}
   el('savedSolutionsPanel').hidden=guest;
   if(guest)state.savedSolutionIds.clear();
   if(guest)el('helpSuggestions').hidden=true;
@@ -1305,6 +1345,7 @@
   catch(_){state.user=null;}
   bindResuelveAuth();
   bindReplyEmailPreferences();
+  bindRecentReplyActivity();
   bindHelperProfile();
   bindHelpInvitation();
   const isAdmin=renderSession();
