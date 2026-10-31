@@ -9,6 +9,7 @@ const {resuelvePendingService}=require('../services/resuelve-pending-v362');
 const {resuelveReplyActivity}=require('../services/resuelve-reply-activity-v3626');
 const {resuelveAnswerFollowups}=require('../services/resuelve-answer-followups-v363');
 const {resuelveSavedSolutions}=require('../services/resuelve-saved-v364');
+const {resuelveSeoDiagnostics}=require('../services/resuelve-seo-diagnostics-v3628');
 const router=express.Router();
 const fail=(res,status,error)=>res.status(status).json({error});
 const wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -100,6 +101,12 @@ router.get('/admin/impact',requireAuth,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
  const metrics=await service.adminImpactStats();
  res.json({ok:true,metrics,asOf:new Date().toISOString()});
+}));
+// V3.6.28 — diagnóstico SEO agregado; no revela preguntas ni indexación de Google.
+router.get('/admin/seo-diagnostics',requireAuth,wrap(async(req,res)=>{
+ if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
+ const data=await resuelveSeoDiagnostics.summary();
+ res.json({ok:true,...data,asOf:new Date().toISOString()});
 }));
 router.get('/admin/solutions/pending',requireAuth,wrap(async(req,res)=>{
  if(!req.user.isAdmin)return fail(res,403,'administrador_requerido');
