@@ -11,7 +11,7 @@ const {ensureQualitySchema,qualityReady}=require('../services/editorial-quality-
 const {sourceMatchV3221,eligibleSourcesV3221}=require('../services/editorial-source-relink-v3221');
 const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181');
 const {safeLocalImageV3222}=require('../services/editorial-image-v3222');
-const {renderIndependentVoicesLanding}=require('../services/independent-voices-v3638');
+const {renderIndependentVoicesLanding,renderIndependentVoicesEditor}=require('../services/independent-voices-v3638');
 
 const admin=express.Router();
 const publicRouter=express.Router();
@@ -351,6 +351,19 @@ async function liveItems(extra='',params=[],limit=50){
 }
 // Informational proposal is public even when the editorial database is unavailable.
 // No submission, voting or tipping endpoints are exposed in this phase.
+// V3.6.39 — HTML is public for sign-in; draft data strictly requires authentication.
+publicRouter.get('/redactores/escribir',(_req,res)=>{
+ const html=page({
+  title:'Mis borradores privados — Voces Independientes',
+  description:'Escribe artículos originales y guarda borradores privados para tu cuenta de RedLibertad.',
+  pathname:'/noticias/redactores/escribir',
+  body:renderIndependentVoicesEditor(),
+  noindex:true,independentVoices:true
+ });
+ res.set('Cache-Control','no-store').type('html').send(html
+  .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"></head>')
+  .replace('</body>','<script src="/editorial-voices-drafts-v3639.js?v=3.6.39" defer></script></body>'));
+});
 publicRouter.get('/redactores',(_req,res)=>{
   res.type('html').send(page({
     title:'Voces Independientes — proyecto en preparación',
