@@ -494,9 +494,9 @@ body{
 }
 
 
-/* V3.6.36 — Servicios es un enlace secundario centrado en la portada móvil. */
+/* V3.6.47 — Servicios es un enlace secundario centrado en la portada móvil. */
 @media(max-width:639px){
-  .hero-actions > .hero-services-cta-v3636{
+  .hero-actions > .hero-services-cta-v3647{
     grid-column:1 / -1;
     width:100%;
     min-height:44px;
@@ -511,7 +511,7 @@ body{
     text-decoration:underline;
     text-underline-offset:3px;
   }
-  .hero-actions > .hero-services-cta-v3636::after{
+  .hero-actions > .hero-services-cta-v3647::after{
     content:"→";
     display:inline-block;
     margin-left:7px;
@@ -519,7 +519,7 @@ body{
     font-size:17px;
     line-height:1;
   }
-  .hero-actions > .hero-services-cta-v3636:hover{
+  .hero-actions > .hero-services-cta-v3647:hover{
     background:rgba(43,183,169,.07);
   }
 }
