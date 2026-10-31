@@ -28,7 +28,7 @@ test('V3.6.41: enlaces externos y HTML de usuarios no atraviesan las vistas púb
  assert.doesNotMatch(article,/<script>|<svg>|<img/);
  assert.match(article,/rel="nofollow noopener noreferrer external"/);
  assert.match(article,/Artículo de @prueba&lt;svg&gt;/);
- assert.match(article,/noticias\/redactores\/voces\/3/);
+ assert.match(directory,/noticias\/redactores\/voces\/3/);
  assert.match(directory,/&lt;img src=x onerror=alert\(1\)&gt;/);
  assert.doesNotMatch(directory,/<img src=x/);
 });
