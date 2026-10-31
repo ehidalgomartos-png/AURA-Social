@@ -18,7 +18,7 @@
 .ed-voices-grid-v3638 p{margin:7px 0 0;font-size:.9rem;color:#355a69}
 .ed-voices-trust-v3638{background:#f3faf8}
 .ed-voices-trust-v3638 p{margin:10px 0}
-.ed-voices-footnav-v3638{display:flex;flex-wrap:wrap;gap:10px}
+.ed-voices-footnav-v3638{display:flex;flex-wrap:wrap;gap:10px;padding-bottom:env(safe-area-inset-bottom,0px)}
 .ed-voices-footnav-v3638 a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 15px;border:1px solid #b8d8dc;border-radius:12px;background:#fff;color:#125668;text-decoration:none;font-weight:750;text-align:center}
 .ed-voices-footnav-v3638 a:hover{text-decoration:underline;text-underline-offset:3px}
 .ed-voices-v3638 a:focus-visible,.ed-voices-entry-v3638 a:focus-visible{outline:3px solid #0d8b97;outline-offset:3px}
