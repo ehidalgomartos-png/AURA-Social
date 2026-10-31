@@ -63,14 +63,14 @@ test('V3.6.43.1: usa API privada, cifras reales y controles de la vista detalle 
  const routes=read('src/routes/resuelve-v350.js');
  assert.match(source,/request\('\/api\/resuelve\/questions\/mine\/pending'\)/);
  assert.match(routes,/router\.get\('\/questions\/mine\/pending',requireAuth/);
- assert.match(source,/Number\.isSafeInteger\(count\)&&count<0/);
+ assert.match(source,/!Number\.isSafeInteger\(count\)\|\|count<0/);
  assert.match(source,/void openPendingOwnerAction\(q\.id,count\?'answers':'clarify'\)/);
  assert.match(source,/count\?'Leer respuestas':'Añadir una aclaración'/);
  assert.match(source,/no indica mensajes nuevos/);
  assert.match(source,/details\.querySelector\('textarea'\)/);
  assert.match(source,/field\.focus\(\{preventScroll:true\}\)/);
  assert.match(source,/if\(answers\.childElementCount\)answers\.scrollIntoView/);
- assert.match(service,/async function listMyPending/);
+ assert.match(routes,/resuelvePendingService\.listPending\(req\.user\.id\)/);
  assert.match(html,/id="myPendingPanel"[^>]*hidden/);
  assert.match(html,/Compartir sigue siendo voluntario/);
  assert.match(html,/resuelve-owner-actions-v36431\.css\?v=3\.6\.43\.1/);
