@@ -5,6 +5,7 @@ const {requireAuth,requireAdmin}=require('../middleware/auth');
 const db=require('../db');
 const drafts=require('../services/independent-drafts-v3639');
 const review=require('../services/independent-review-v3640');
+const publication=require('../services/independent-publication-v3641');
 const router=express.Router();
 const throttle=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'demasiados_intentos'}});
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -35,7 +36,7 @@ router.get('/mis-envios',asyncRoute(async(req,res)=>{
  res.json({ok:true,items:await review.mySubmissions(req.user.id)});
 }));
 router.post('/borradores/:id/enviar',sameOrigin,throttle,asyncRoute(async(req,res)=>{
- const result=await review.submit(req.user.id,req.params.id,req.body?.revision,req.body?.certified);
+ const result=await review.submit(req.user.id,req.params.id,req.body?.revision,req.body?.certified,req.body?.publishConsent);
  if(result.error)return fail(res,result.error==='articulo_incompleto'?400:409,result.error);
  return res.status(201).json({ok:true,item:result.item,published:false});
 }));
@@ -46,6 +47,23 @@ router.post('/admin/envios/:id/revisar',requireAdmin,sameOrigin,throttle,asyncRo
  const result=await review.review(req.user.id,req.params.id,req.body?.revision,req.body?.decision,req.body?.reason,req.body?.confirmed);
  if(result.error)return fail(res,result.error==='revision_invalida'?400:409,result.error);
  return res.json({ok:true,item:result.item,published:false});
+}));
+// V3.6.41 — explicitly separate public release from approval.
+router.get('/admin/aprobados',requireAdmin,asyncRoute(async(req,res)=>{
+ res.json({ok:true,items:await publication.readyForPublication(req.user.id)});
+}));
+router.get('/admin/publicados',requireAdmin,asyncRoute(async(_req,res)=>{
+ res.json({ok:true,items:await publication.liveAdmin()});
+}));
+router.post('/admin/envios/:id/publicar',requireAdmin,sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ const result=await publication.publish(req.user.id,req.params.id,req.body?.revision,req.body?.rightsChecked,req.body?.confirmed);
+ if(result.error)return fail(res,409,result.error);
+ return res.status(201).json({ok:true,published:true,publication:result.item,url:'/noticias/redactores/voces/'+result.item.id});
+}));
+router.post('/admin/publicaciones/:id/retirar',requireAdmin,sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ const result=await publication.withdraw(req.user.id,req.params.id,req.body?.reason,req.body?.confirmed);
+ if(result.error)return fail(res,409,result.error);
+ return res.json({ok:true,withdrawn:true,publication:result.item});
 }));
 router.get('/borradores',asyncRoute(async(req,res)=>{
  res.json({ok:true,items:await drafts.list(req.user.id)});
@@ -76,7 +94,8 @@ router.delete('/borradores/:id',sameOrigin,throttle,asyncRoute(async(req,res)=>{
   return fail(res,409,'borrador_no_disponible_o_modificado');
  return res.json({ok:true,deleted:true});
 }));
-// No submit / publish / votes / tips endpoints in this router.
+// Publication requires an explicit admin decision, separate from human approval.
+// No automatic publish / votes / tips / financial actions exist here.
 router.use((err,_req,res,next)=>{
  if(res.headersSent)return next(err);
  if(err.code==='23503')return res.status(409).json({error:'borrador_en_revision'});

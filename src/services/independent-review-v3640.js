@@ -22,6 +22,7 @@ async function ensureSchema(){
  if(!schemaReady)schemaReady=(async()=>{
   await drafts.ensureSchema();
   await db.query("CREATE TABLE IF NOT EXISTS independent_article_submissions_v3640 (id BIGSERIAL PRIMARY KEY,draft_id BIGINT NOT NULL UNIQUE REFERENCES independent_article_drafts_v3639(id) ON DELETE RESTRICT,author_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,title VARCHAR(180) NOT NULL,body TEXT NOT NULL,kind VARCHAR(16) NOT NULL,sources JSONB NOT NULL,status VARCHAR(25) NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','changes_requested','rejected','approved')),review_revision INTEGER NOT NULL DEFAULT 1,submitted_draft_revision INTEGER NOT NULL,review_reason VARCHAR(600) NOT NULL DEFAULT '',reviewer_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),reviewed_at TIMESTAMPTZ)");
+  await db.query("ALTER TABLE independent_article_submissions_v3640 ADD COLUMN IF NOT EXISTS author_publish_consent_at TIMESTAMPTZ");
   await db.query("CREATE INDEX IF NOT EXISTS idx_independent_submissions_pending_v3640 ON independent_article_submissions_v3640(submitted_at,id) WHERE status='pending'");
   await db.query("CREATE TABLE IF NOT EXISTS independent_article_review_events_v3640 (id BIGSERIAL PRIMARY KEY,submission_id BIGINT NOT NULL REFERENCES independent_article_submissions_v3640(id) ON DELETE RESTRICT,actor_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,action VARCHAR(30) NOT NULL CHECK(action IN ('submitted','resubmitted','approved','changes_requested','rejected')),note VARCHAR(600) NOT NULL DEFAULT '',created_at TIMESTAMPTZ NOT NULL DEFAULT now())");
  })().catch(e=>{schemaReady=null;throw e;});
@@ -37,8 +38,8 @@ async function inTransaction(action){
  }catch(error){await client.query('ROLLBACK');throw error;}
  finally{client.release();}
 }
-async function submit(userId,draftId,draftRevision,certified){
- if(!validId(draftId)||!safeRevision(draftRevision)||certified!==true)return {error:'datos_incorrectos'};
+async function submit(userId,draftId,draftRevision,certified,publishConsent){
+ if(!validId(draftId)||!safeRevision(draftRevision)||certified!==true||publishConsent!==true)return {error:'datos_incorrectos'};
  await ensureSchema();
  return inTransaction(async client=>{
   const draftResult=await client.query("SELECT id,author_user_id,title,body,kind,sources,revision FROM independent_article_drafts_v3639 WHERE id=$1 AND author_user_id=$2 AND status='draft' FOR UPDATE",[draftId,userId]);
@@ -52,11 +53,11 @@ async function submit(userId,draftId,draftRevision,certified){
   let result;
   if(!prev){
    result=await client.query(
-    "INSERT INTO independent_article_submissions_v3640(draft_id,author_user_id,title,body,kind,sources,submitted_draft_revision) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7) RETURNING "+snapshotColumns,
+    "INSERT INTO independent_article_submissions_v3640(draft_id,author_user_id,title,body,kind,sources,submitted_draft_revision,author_publish_consent_at) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,now()) RETURNING "+snapshotColumns,
     values);
   }else{
    result=await client.query(
-    "UPDATE independent_article_submissions_v3640 SET title=$3,body=$4,kind=$5,sources=$6::jsonb,submitted_draft_revision=$7,status='pending',review_revision=review_revision+1,review_reason='',reviewer_user_id=NULL,reviewed_at=NULL,submitted_at=now() WHERE draft_id=$1 AND author_user_id=$2 AND status='changes_requested' RETURNING "+snapshotColumns,values);
+    "UPDATE independent_article_submissions_v3640 SET title=$3,body=$4,kind=$5,sources=$6::jsonb,submitted_draft_revision=$7,status='pending',review_revision=review_revision+1,review_reason='',reviewer_user_id=NULL,reviewed_at=NULL,author_publish_consent_at=now(),submitted_at=now() WHERE draft_id=$1 AND author_user_id=$2 AND status='changes_requested' RETURNING "+snapshotColumns,values);
   }
   const item=result.rows[0];
   if(!item)return {error:'ya_en_revision_o_finalizado'};

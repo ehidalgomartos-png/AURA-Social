@@ -12,6 +12,8 @@ const {sourceMatchV3221,eligibleSourcesV3221}=require('../services/editorial-sou
 const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181');
 const {safeLocalImageV3222}=require('../services/editorial-image-v3222');
 const {renderIndependentVoicesLanding,renderIndependentVoicesEditor,renderIndependentVoicesReviewPanel}=require('../services/independent-voices-v3638');
+const independentPublicationV3641=require('../services/independent-publication-v3641');
+const independentPagesV3641=require('../services/independent-public-pages-v3641');
 
 const admin=express.Router();
 const publicRouter=express.Router();
@@ -361,8 +363,8 @@ publicRouter.get('/redactores/admin',requireAdmin,(_req,res)=>{
   body:renderIndependentVoicesReviewPanel(),noindex:true,independentVoices:true
  });
  res.set('Cache-Control','no-store').type('html').send(html
-  .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"><link rel="stylesheet" href="/editorial-voices-review-v3640.css?v=3.6.40"></head>')
-  .replace('</body>','<script src="/editorial-voices-review-v3640.js?v=3.6.40" defer></script></body>'));
+  .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"><link rel="stylesheet" href="/editorial-voices-review-v3640.css?v=3.6.40"><link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>')
+  .replace('</body>','<script src="/editorial-voices-review-v3640.js?v=3.6.40" defer></script><script src="/editorial-voices-publication-v3641.js?v=3.6.41" defer></script></body>'));
 });
 publicRouter.get('/redactores/escribir',(_req,res)=>{
  const html=page({
@@ -375,6 +377,36 @@ publicRouter.get('/redactores/escribir',(_req,res)=>{
  res.set('Cache-Control','no-store').type('html').send(html
   .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"></head>')
   .replace('</body>','<script src="/editorial-voices-drafts-v3639.js?v=3.6.39" defer></script></body>'));
+});
+// V3.6.41 — independent authors have their own public article namespace.
+publicRouter.get('/redactores/voces/:id',async(req,res)=>{
+ const id=safeId(req.params.id);
+ if(!id)return res.status(404).type('text/plain').send('Artículo no disponible');
+ try{
+  const article=await independentPublicationV3641.getPublic(id);
+  if(!article)return res.status(404).type('text/plain').send('Artículo no disponible');
+  const html=page({
+   title:article.title,
+   description:String(article.body||'').slice(0,155),
+   pathname:independentPagesV3641.path(article.id),
+   body:independentPagesV3641.article(article),
+   noindex:false,independentVoices:false
+  });
+  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>'));
+ }catch(e){console.error('Independent public article failed:',e);res.status(503).type('text/plain').send('Artículo temporalmente no disponible');}
+});
+publicRouter.get('/redactores/voces',async(_req,res)=>{
+ try{
+  const articles=await independentPublicationV3641.listPublic(24);
+  const html=page({
+   title:'Voces independientes de RedLibertad',
+   description:'Artículos originales de colaboradores de RedLibertad, revisados previamente por el equipo editorial.',
+   pathname:'/noticias/redactores/voces',
+   body:independentPagesV3641.directory(articles),
+   noindex:articles.length===0,independentVoices:true
+  });
+  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>'));
+ }catch(e){console.error('Independent article index failed:',e);res.status(503).type('text/plain').send('Artículos temporalmente no disponibles');}
 });
 publicRouter.get('/redactores',(_req,res)=>{
   res.type('html').send(page({
@@ -416,11 +448,17 @@ publicRouter.get('/sitemap.xml',async(_req,res)=>{
       "ORDER BY pub.published_at DESC,pub.id DESC LIMIT 49000"
     );
     const items=r.rows;
+    // Separate user articles may be unavailable while their schema is installed.
+    // A failure here must not break the existing editorial sitemap.
+    let independentUrls=[];
+    try{independentUrls=await independentPublicationV3641.urlsForSitemap();}
+    catch(error){console.error('Independent voices sitemap addition unavailable:',error);}
     const profiles=[...new Set(items.map(row=>row.profile_slug))];
     const urls=[
       '<url><loc>'+esc(origin()+'/noticias')+'</loc><changefreq>daily</changefreq></url>',
       ...profiles.map(slug=>'<url><loc>'+esc(origin()+'/noticias/perfil/'+encodeURIComponent(slug))+'</loc><changefreq>weekly</changefreq></url>'),
-      ...items.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
+      ...items.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>'),
+      ...independentUrls.map(row=>'<url><loc>'+esc(origin()+independentPagesV3641.path(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
     ];
     res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(e){console.error('Editorial sitemap failed:',e);res.status(503).type('text/plain').send('Unavailable');}
