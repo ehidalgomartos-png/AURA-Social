@@ -32,12 +32,22 @@
  function button(text,callback,cls='plain'){
   const b=create('button',cls,text);b.type='button';b.addEventListener('click',callback);return b;
  }
+ // V3.6.33 — enlace real para abrir en otra pestaña, navegación interna sin recarga en la actual.
+ function bindDetailNavigation(link,id,view){
+  link.addEventListener('click',event=>{
+   if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||
+      event.shiftKey||event.altKey)return;
+   event.preventDefault();
+   void openDetail(id,true,view);
+  });
+ }
  function card(q){
   const article=create('article','question-card');
   const heading=create('h3',null,q.title);
   const headingLink=create('a',null,q.title);
   headingLink.href='/resuelve?id='+encodeURIComponent(q.id);
   heading.textContent='';heading.append(headingLink);
+  bindDetailNavigation(headingLink,q.id,'questions');
   article.append(
    meta(chip(q.status==='resolved'?'Resuelta':'Por resolver',q.status==='resolved'),
     chip(categories[q.category]||'Petición'),
@@ -356,12 +366,13 @@
   const heading=create('h3');
   const link=create('a',null,q.title);
   link.href='/resuelve?id='+encodeURIComponent(q.id);
+  bindDetailNavigation(link,q.id,'solutions');
   heading.append(link);
   const content=create('p','solution-excerpt',q.solution);
   article.append(meta(chip('Solución revisada',true),chip(categories[q.category]||'Petición')),
    heading,content,
    meta(create('span',null,'Petición de @'+q.author_username),create('span',null,date(q.solved_at))),
-   button('Leer solución completa',()=>openDetail(q.id))
+   button('Leer solución completa',()=>openDetail(q.id,true,'solutions'))
   );
   if(state.user)article.append(savedSolutionButton(q));
   if(q.seo_public_opt_in===true){
@@ -549,18 +560,44 @@
   if(open)open.click();
   el('questions').scrollIntoView({block:'start',behavior:'auto'});
  }
- async function openDetail(id,push=true){
-  if(!/^[1-9]\d{0,15}$/.test(String(id)))return;
-  displayDetail(true);el('questionDetail').textContent='Cargando petición…';
+ // V3.6.33 — historial claro para enlaces compartidos y para volver a la biblioteca.
+ let detailReturnView='questions';
+ let detailLoadVersion=0;
+ async function openDetail(id,push=true,source='questions'){
+  const requested=String(id||'');
+  const fromHistory=history.state?.from;
+  const direct=!push&&el('detailPanel').hidden&&
+   fromHistory!=='questions'&&fromHistory!=='solutions';
+  if(push)detailReturnView=source==='solutions'?'solutions':'questions';
+  else if(fromHistory==='solutions'||fromHistory==='questions')detailReturnView=fromHistory;
+  else if(direct)detailReturnView='questions';
+  el('backButton').textContent=detailReturnView==='solutions'?
+   '← Volver a las soluciones':direct?'← Ver todas las peticiones':'← Volver a las peticiones';
+  const version=++detailLoadVersion;
+  state.question=null;
+  displayDetail(true);
+  const detail=el('questionDetail');
+  detail.textContent='Cargando petición…';
   el('answerList').replaceChildren();el('answerForm').hidden=true;
   el('resuelveExtras').replaceChildren();
-  if(push)history.pushState({id},'', '/resuelve?id='+encodeURIComponent(id));
+  // Mover la vista al inicio del detalle de forma inmediata, también en móvil.
+  el('detailPanel').scrollIntoView({block:'start',behavior:'auto'});
+  if(!/^[1-9]\d{0,15}$/.test(requested)){
+   detail.textContent='Este enlace no es válido. Puedes volver a las peticiones de Resuelve.';
+   return;
+  }
+  if(push)history.pushState({id:requested,from:detailReturnView},'',
+   '/resuelve?id='+encodeURIComponent(requested));
   try{
-   const data=await request('/api/resuelve/questions/'+encodeURIComponent(id));
+   const data=await request('/api/resuelve/questions/'+encodeURIComponent(requested));
+   // Una respuesta antigua nunca debe volver a abrir un detalle que ya se ha cerrado.
+   if(version!==detailLoadVersion||el('detailPanel').hidden)return;
    state.question=data.question;
    renderDetail(data);
-   el('detailPanel').scrollIntoView({block:'start',behavior:'auto'});
-  }catch(err){el('questionDetail').textContent=err.message;}
+  }catch(err){
+   if(version===detailLoadVersion&&!el('detailPanel').hidden)
+    detail.textContent=err.message;
+  }
  }
 
  // V3.5.17.1 — cada petición pública puede enviarse voluntariamente a un conocido.
@@ -1222,10 +1259,18 @@
   if((state.user?.is_admin||state.user?.isAdmin)&&solved)
    extras.append(editorialReviewControls(q,reviewed));
  }
- function goList(){
+ // V3.6.33 — conserva los filtros y la lista desde la que se abrió el detalle.
+ function restoreBrowse(replaceUrl=true){
+  detailLoadVersion++;
   state.question=null;
-  history.pushState({},'', '/resuelve');
-  displayDetail(false);loadList();
+  if(replaceUrl)history.replaceState({view:detailReturnView},'','/resuelve');
+  displayDetail(false);
+  const view=detailReturnView==='solutions'?'solutions':'questions';
+  if(view==='questions'&&!el('questionList').childElementCount)void loadList();
+  el(view).scrollIntoView({block:'start',behavior:'auto'});
+ }
+ function goList(){
+  restoreBrowse(true);
  }
 // V3.5.15: registro único en la misma pantalla. Sin credenciales guardadas en JS.
  function setAuthMode(mode){
@@ -1624,7 +1669,10 @@
   });
   window.addEventListener('popstate',()=>{
    const id=new URLSearchParams(location.search).get('id');
-   if(id)openDetail(id,false);else{displayDetail(false);loadList();}
+   if(id){void openDetail(id,false);return;}
+   if(history.state?.view==='solutions'||history.state?.view==='questions')
+    detailReturnView=history.state.view;
+   restoreBrowse(false);
   });
   const start=new URLSearchParams(location.search).get('id');
   // Al entrar desde la landing, crear cuenta directamente en Resuelve.
