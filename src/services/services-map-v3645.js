@@ -109,8 +109,8 @@ function renderMap(){
  '<meta name="twitter:description" content="Tu mapa de ayuda, noticias, comparador de precios y comunidad.">'+
  '<script type="application/ld+json">'+jsonLd+'</script>'+
  '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
- '<link rel="stylesheet" href="/services-map-v3645.css?v=3.6.45">'+
- '<script defer src="/services-map-v3645.js?v=3.6.45"></script>'+
+ '<link rel="stylesheet" href="/services-map-v3645.css?v=3.6.54">'+
+ '<script defer src="/services-map-v3645.js?v=3.6.54"></script>'+
  '</head><body class="services-map-v3645">'+
  '<a class="sm-skip" href="#sm-main">Saltar al contenido</a>'+
  '<header class="sm-header"><div class="sm-container sm-header-inner">'+
@@ -137,6 +137,16 @@ function renderMap(){
  '<div id="sm-no-results" class="sm-no-results" hidden><h3>No encontramos ese servicio</h3><p>Prueba con otra palabra o vuelve a ver todas las opciones.</p><button id="sm-clear" type="button">Ver todos los servicios</button></div>'+
  sections+'</section>'+
  '<section class="sm-connection" aria-labelledby="sm-connection-title"><div><span class="sm-eyebrow">TODO FORMA PARTE DE REDLIBERTAD</span><h2 id="sm-connection-title">Distintos servicios, una misma comunidad.</h2><p>Una pregunta puede comenzar en Resuelve. Una experiencia puede convertirse en un artículo de Voces Independientes. También puedes compartir, comparar productos o encontrar personas con intereses comunes.</p></div><a href="/app">Entrar en RedLibertad <span aria-hidden="true">↗</span></a></section>'+
+ '<section class="sm-share-v3654" aria-labelledby="sm-share-title-v3654">'+
+ '<div><h2 id="sm-share-title-v3654">¿A quién podría serle útil este mapa?</h2><p>Compártelo con quien quiera encontrar orientación, información o comunidad. Tú decides cuándo y con quién.</p></div>'+
+ '<div class="sm-share-actions-v3654" role="group" aria-label="Compartir el mapa de servicios">'+
+ '<a href="https://wa.me/?text=Descubre%20los%20servicios%20de%20RedLibertad%3A%20un%20lugar%20para%20pedir%20ayuda%2C%20informarte%20y%20conectar.%20https%3A%2F%2Fredlibertad.com%2Fexplorar" target="_blank" rel="noopener noreferrer external">WhatsApp</a>'+
+ '<a href="mailto:?subject=Conoce%20los%20servicios%20de%20RedLibertad&amp;body=Descubre%20los%20servicios%20de%20RedLibertad%3A%20un%20lugar%20para%20pedir%20ayuda%2C%20informarte%20y%20conectar.%20https%3A%2F%2Fredlibertad.com%2Fexplorar">Correo</a>'+
+ '<button type="button" id="sm-share-copy-v3654" disabled>Copiar enlace</button>'+
+ '</div>'+
+ '<input id="sm-share-link-v3654" type="text" value="https://redlibertad.com/explorar" aria-label="Enlace del mapa de servicios" readonly hidden>'+
+ '<p id="sm-share-status-v3654" role="status" aria-live="polite"></p>'+
+ '</section>'+
  '</main><footer class="sm-footer"><div class="sm-container sm-footer-inner"><p><strong>RedLibertad</strong> · Tu espacio para compartir y ayudar. Plataforma para mayores de 18 años.</p>'+
  '<nav aria-label="Información"><a href="/">Inicio</a><a href="/privacy/">Privacidad</a><a href="/terms/">Términos</a><a href="/community-guidelines/">Normas</a></nav></div></footer>'+
  '</body></html>';
