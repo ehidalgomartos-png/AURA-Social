@@ -6,6 +6,7 @@ const {requireAuth}=require('../middleware/auth');
 const service=require('../services/resuelve-v350');
 const {resuelveReplyEmailService}=require('../services/resuelve-reply-email-v3521');
 const {resuelvePendingService}=require('../services/resuelve-pending-v362');
+const {resuelveReplyActivity}=require('../services/resuelve-reply-activity-v3626');
 const {resuelveAnswerFollowups}=require('../services/resuelve-answer-followups-v363');
 const {resuelveSavedSolutions}=require('../services/resuelve-saved-v364');
 const router=express.Router();
@@ -228,6 +229,11 @@ router.get('/questions/answered-by-me',requireAuth,wrap(async(req,res)=>{
 // V3.6.2 — lista privada de pendientes; solo títulos, fechas y cifras reales.
 router.get('/questions/mine/pending',requireAuth,wrap(async(req,res)=>{
  const items=await resuelvePendingService.listPending(req.user.id);
+ res.json({ok:true,items});
+}));
+// V3.6.26 — resumen privado de respuestas visibles a preguntas propias; sin marcar como no leídas.
+router.get('/questions/mine/reply-activity',requireAuth,wrap(async(req,res)=>{
+ const items=await resuelveReplyActivity.listForOwner(req.user.id);
  res.json({ok:true,items});
 }));
 router.get('/questions/mine',requireAuth,wrap(async(req,res)=>{
