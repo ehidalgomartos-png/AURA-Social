@@ -296,6 +296,44 @@
    if(version===firstHelpRequestVersion)refresh.disabled=false;
   }
  }
+ // V3.6.42.1 — ayudas propias reales aún abiertas. No son avisos de no leído.
+ function contributionFollowupCandidates(items){
+  if(!Array.isArray(items))return [];
+  return items.filter(q=>{
+   const count=Number(q?.answer_count);
+   return q?.status==='open' &&
+    /^[1-9]\d{0,15}$/.test(String(q.id||'')) &&
+    /^[1-9]\d{0,15}$/.test(String(q.my_answer_id||'')) &&
+    q.answer_count!==null&&q.answer_count!==undefined &&
+    Number.isSafeInteger(count)&&count>=1;
+  }).slice(0,3);
+ }
+ function renderContributionFollowups(items){
+  const panel=el('contributionFollowupsV36421');
+  const list=el('contributionFollowupsListV36421');
+  panel.hidden=true;list.replaceChildren();
+  if(!state.user||state.filter!=='contributed')return;
+  const matches=contributionFollowupCandidates(items);
+  if(!matches.length)return;
+  for(const q of matches){
+   const article=create('article','resuelve-contribution-followup-item-v36421');
+   const heading=create('h5');
+   const link=create('a',null,q.title);
+   link.href='/resuelve?id='+encodeURIComponent(q.id);
+   bindDetailNavigation(link,q.id,'questions');
+   heading.append(link);
+   const count=Number(q.answer_count);
+   const detail=create('p','resuelve-contribution-followup-meta-v36421',
+    count===1?'1 respuesta visible en esta petición':'Hay '+count+' respuestas visibles en esta petición');
+   const action=button('Revisar conversación',()=>void openDetail(q.id,true,'questions'),
+    'secondary resuelve-contribution-followup-button-v36421');
+   article.append(heading,detail,action);
+   list.append(article);
+  }
+  el('contributionFollowupsStatusV36421').textContent=
+   'Hasta tres peticiones abiertas en las que has ayudado. Estas cifras no indican respuestas nuevas o sin leer.';
+  panel.hidden=false;
+ }
  async function loadList(more=false){
   if(more&&state.loading)return;
   // V3.6.24: evitar mostrar respuestas tardías de otro tema.
@@ -303,7 +341,7 @@
   state.loading=true;
   const list=el('questionList'),status=el('listStatus'),btn=el('moreButton');
   btn.hidden=true;
-  if(!more){state.next=null;list.replaceChildren();status.textContent='Cargando peticiones…';}
+  if(!more){state.next=null;list.replaceChildren();status.textContent='Cargando peticiones…';renderContributionFollowups([]);}
   try{
    const params=new URLSearchParams();
    if(!['mine','help','contributed'].includes(state.filter)){
@@ -320,6 +358,7 @@
     state.filter==='help'?'/api/resuelve/questions/for-me':'/api/resuelve/questions';
    const data=await request(endpoint+'?'+params.toString());
    if(requestId!==state.listRequestId)return;
+   if(!more&&state.filter==='contributed')renderContributionFollowups(data.items);
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
    btn.hidden=!state.next;
@@ -1400,6 +1439,7 @@
   document.querySelector('[data-filter="contributed"]').hidden=guest;
   el('myHelpDashboard').hidden=guest||!['mine','contributed'].includes(state.filter);
   el('myPendingPanel').hidden=guest||state.filter!=='mine';
+  if(guest)renderContributionFollowups([]);
   document.querySelector('[data-filter="help"]').hidden=guest;
   document.querySelector('.filters').classList.toggle('with-help',!guest);
   const isAdmin=!!(state.user?.is_admin||state.user?.isAdmin);
