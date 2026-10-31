@@ -6,6 +6,7 @@ const db=require('../db');
 const drafts=require('../services/independent-drafts-v3639');
 const review=require('../services/independent-review-v3640');
 const publication=require('../services/independent-publication-v3641');
+const support=require('../services/independent-support-v3642');
 const router=express.Router();
 const throttle=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'demasiados_intentos'}});
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -67,6 +68,19 @@ router.post('/admin/publicaciones/:id/retirar',requireAdmin,sameOrigin,throttle,
  const result=await publication.withdraw(req.user.id,req.params.id,req.body?.reason,req.body?.confirmed);
  if(result.error)return fail(res,409,result.error);
  return res.json({ok:true,withdrawn:true,publication:result.item});
+}));
+// V3.6.42 — authenticated personal recognition; always based on a real live article.
+router.get('/voces/:id/apoyo',asyncRoute(async(req,res)=>{
+ const result=await support.summary(req.params.id,req.user.id);
+ if(!result)return fail(res,404,'articulo_no_disponible');
+ return res.json({ok:true,...result});
+}));
+router.post('/voces/:id/apoyo',sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ if(!req.body||Object.keys(req.body).length!==1||typeof req.body.supported!=='boolean')
+  return fail(res,400,'apoyo_invalido');
+ const result=await support.setSupport(req.user.id,req.params.id,req.body.supported);
+ if(result.error)return fail(res,result.error==='apoyo_propio_no_permitido'?403:404,result.error);
+ return res.json({ok:true,...result});
 }));
 router.get('/borradores',asyncRoute(async(req,res)=>{
  res.json({ok:true,items:await drafts.list(req.user.id)});
