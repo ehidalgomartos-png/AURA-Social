@@ -9,7 +9,7 @@ const {groups,allServices,renderMap,esc}=require('../src/services/services-map-v
 const {router}=require('../src/routes/services-map-v3645');
 const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const known={
- resuelve:'/resuelve',ayudar:'/resuelve#questions',soluciones:'/resuelve#solutions',
+ resuelve:'/resuelve',ayudar:'/resuelve?sin_respuestas=1#questions',soluciones:'/resuelve#solutions',
  noticias:'/noticias',voces:'/noticias/redactores',articulos:'/noticias/redactores/voces',guias:'/guias',
  marketplace:'/marketplace/explorar',comparador:'/comparar',tiendas:'/comparar/comercios/tiendas',
  personas:'/perfiles',comunidades:'/comunidades',publicaciones:'/publicaciones',reels:'/reels',
@@ -22,7 +22,7 @@ test('V3.6.45: cuatro áreas, enlaces reales y cero datos especulativos',()=>{
  assert.equal(new Set(services.map(x=>x.id)).size,17);
  for(const s of services){
   assert.equal(s.href,known[s.id],s.id+' must use a real first-party path');
-  assert.match(s.href,/^\/(?!\/)[A-Za-z0-9/#-]+$/);
+  assert.match(s.href,/^\/(?!\/)[A-Za-z0-9/?#=&-]+$/);
   assert.ok(s.title&&s.description&&s.tag&&s.keywords);
  }
  const html=renderMap();
