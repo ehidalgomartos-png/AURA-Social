@@ -172,3 +172,49 @@
  .resuelve-seo-links-v3628{display:grid;grid-template-columns:minmax(0,1fr)}
  .resuelve-seo-links-v3628 a{width:100%;min-height:47px}
 }
+
+/* V3.6.29 — comprobaciones SEO de producción: resultados claros sin estados inventados. */
+.resuelve-seo-production-v3629{
+ margin:22px 0 2px;padding:17px;
+ border:1px solid #d0e2e6;border-radius:19px;background:#f7fbfc;
+}
+.resuelve-seo-production-head-v3629{
+ display:flex;flex-wrap:wrap;justify-content:space-between;
+ align-items:center;gap:12px;
+}
+.resuelve-seo-production-head-v3629 h3{margin:0 0 8px}
+.resuelve-seo-production-head-v3629 p{margin:0;max-width:72ch;line-height:1.65}
+.resuelve-seo-production-head-v3629 button{min-height:46px}
+.resuelve-seo-production-results-v3629{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;margin:14px 0 9px;
+}
+.resuelve-seo-checked-v3629{
+ min-width:0;padding:13px 14px;background:#fff;
+ border:1px solid #d1e1e6;border-left:4px solid #4c8b79;
+ border-radius:13px;
+}
+.resuelve-seo-checked-v3629.status-warning{border-left-color:#be8733}
+.resuelve-seo-checked-v3629.status-error{border-left-color:#ba5e5e}
+.resuelve-seo-checked-header-v3629{
+ display:flex;align-items:baseline;justify-content:space-between;
+ flex-wrap:wrap;gap:6px 10px;
+}
+.resuelve-seo-checked-header-v3629 a{font-weight:800;color:#164e67;overflow-wrap:anywhere}
+.resuelve-seo-checked-header-v3629 strong{font-size:.8rem;color:#325e52}
+.resuelve-seo-checked-v3629.status-warning strong{color:#8c6522}
+.resuelve-seo-checked-v3629.status-error strong{color:#973b3b}
+.resuelve-seo-checked-v3629 p{margin:7px 0 2px;font-size:.85rem;line-height:1.5}
+.resuelve-seo-checked-messages-v3629{padding-left:19px;margin:7px 0;color:#3d5d6d}
+.resuelve-seo-checked-messages-v3629 li{font-size:.84rem;line-height:1.6}
+.resuelve-seo-production-v3629 a:focus-visible{
+ outline:3px solid #147e9a;outline-offset:3px;
+}
+@media(max-width:750px){
+ .resuelve-seo-production-results-v3629{grid-template-columns:minmax(0,1fr)}
+ .resuelve-seo-production-v3629{padding:14px;border-radius:17px}
+}
+@media(max-width:650px){
+ .resuelve-seo-production-head-v3629 button{width:100%;min-height:46px}
+ .resuelve-seo-checked-v3629{padding:12px}
+}

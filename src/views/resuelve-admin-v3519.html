@@ -9,6 +9,7 @@
  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
  <link rel="stylesheet" href="/resuelve-v350.css">
  <link rel="stylesheet" href="/resuelve-admin-v3519.css">
+ <script src="/resuelve-seo-live-v3629.js" defer></script>
  <script src="/resuelve-admin-v3519.js" defer></script>
 </head>
 <body>
@@ -82,7 +83,18 @@
     <a href="/resuelve/guia-ayudar-personas" target="_blank" rel="noopener noreferrer">Guía para ayudar</a>
     <a href="https://search.google.com/search-console/" target="_blank" rel="noopener noreferrer">Consultar la indexación real en Search Console</a>
    </nav>
-   <p class="muted">Las rutas editoriales están configuradas en la aplicación; este panel no comprueba su disponibilidad HTTP ni el estado de indexación en buscadores.</p>
+   <div class="resuelve-seo-production-v3629" aria-labelledby="adminSeoProductionTitle">
+    <div class="resuelve-seo-production-head-v3629">
+     <div>
+      <h3 id="adminSeoProductionTitle">Comprobación técnica de producción</h3>
+      <p class="muted">Revisión manual y de solo lectura de seis URL públicas de este mismo sitio. Verifica HTTP, canonical, descripción, robots y estructura básica de sitemaps. No rastrea Google ni verifica su índice.</p>
+     </div>
+     <button id="checkAdminSeoProduction" class="secondary" type="button">Comprobar páginas y sitemaps</button>
+    </div>
+    <p id="adminSeoProductionStatus" class="muted" role="status" aria-live="polite">Sin comprobar. Pulsa el botón para iniciar la revisión técnica.</p>
+    <div id="adminSeoProductionResults" class="resuelve-seo-production-results-v3629"></div>
+    <p class="muted">Los resultados describen únicamente lo observado desde este navegador en el momento de la prueba. Un resultado correcto no confirma que Google haya rastreado o indexado una página.</p>
+   </div>
   </section>
   <section id="actividad" class="panel resuelve-admin-trend" aria-labelledby="activity7dTitle">
    <div class="panel-head">
