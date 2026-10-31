@@ -8,6 +8,13 @@ const METRIC_LABELS=[
  ['likes','Me gusta'],['reports','Denuncias recibidas'],
  ['open_reports','Denuncias abiertas · total actual'],['active_members','Cuentas activas · total actual']
 ];
+const SERVICE_METRIC_LABELS_V3652=[
+ ['resuelve_open','Peticiones abiertas · total actual'],
+ ['resuelve_unanswered','Sin respuestas visibles · total actual'],
+ ['resuelve_replies_period','Respuestas visibles · en el período'],
+ ['voices_published','Artículos públicos · total actual'],
+ ['voices_published_period','Nuevos artículos · en el período']
+];
 let currentPage=0,hasMore=false,loadingId=0,autoTimer=null;
 function el(tag,className='',text=''){
  const node=document.createElement(tag);
@@ -35,6 +42,41 @@ function renderMetrics(metrics={}){
    return card;
  });
  root.replaceChildren(...nodes);
+}
+// V3.6.52 — cifras agregadas; null/ausencia se muestra como «no disponible», nunca cero.
+function renderServiceStatsV3652(metrics={}){
+ const cards=SERVICE_METRIC_LABELS_V3652.map(([key,label])=>{
+   const card=el('div','activity-stat');
+   const raw=metrics[key];
+   const number=raw===null||raw===undefined?null:Number(raw);
+   const valid=number!==null&&Number.isSafeInteger(number)&&number>=0;
+   card.append(el('strong','',valid?number.toLocaleString('es-ES'):'—'),el('span','',label));
+   return card;
+ });
+ $('#serviceStatsV3652').replaceChildren(...cards);
+}
+async function refreshServiceStatsV3652(days,requestId){
+ const status=$('#serviceStatusV3652');
+ status.classList.remove('error');
+ status.textContent='Consultando las cifras de Resuelve y Voces…';
+ try{
+   const response=await fetch('/api/admin/activity/services-summary?days='+encodeURIComponent(days),{
+     credentials:'same-origin',cache:'no-store'
+   });
+   if(!response.ok)throw Error('service_summary_unavailable');
+   const data=await response.json();
+   if(requestId!==loadingId)return;
+   if(data.ok!==true||!data.metrics||typeof data.metrics!=='object')throw Error('invalid_service_summary');
+   renderServiceStatsV3652(data.metrics);
+   const missing=SERVICE_METRIC_LABELS_V3652.some(([key])=>data.metrics[key]===null||data.metrics[key]===undefined);
+   status.textContent=missing?'Algunas cifras aún no están disponibles; no se han sustituido por ceros.':
+     'Resumen agregado actualizado para el período seleccionado.';
+ }catch(_){
+   if(requestId!==loadingId)return;
+   renderServiceStatsV3652({});
+   status.classList.add('error');
+   status.textContent='Cifras de servicios temporalmente no disponibles.';
+ }
 }
 function formatDate(value){
  const date=new Date(value);
@@ -72,6 +114,7 @@ function renderFeed(items=[]){
 async function refreshActivity(){
  const request=++loadingId;
  const days=$('#activityDays').value,type=$('#activityType').value;
+ void refreshServiceStatsV3652(days,request);
  const params=new URLSearchParams({days,type,page:String(currentPage)});
  const status=$('#activityStatus');
  status.classList.remove('error');

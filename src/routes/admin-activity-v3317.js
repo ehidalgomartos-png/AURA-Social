@@ -82,6 +82,53 @@ SELECT kind,event_id,occurred_at,actor_username,excerpt,post_id
  ORDER BY occurred_at DESC,event_id DESC,kind
  LIMIT 31 OFFSET $3::int
 `;
+// V3.6.52 — Solo cantidades de Resuelve y Voces visibles en PostgreSQL.
+const RESUELVE_SERVICES_SQL=[
+ 'SELECT',
+ " (SELECT count(*)::int FROM resuelve_questions q JOIN users u ON u.id=q.author_id WHERE q.status='open' AND u.status='active') AS open_questions,",
+ " (SELECT count(*)::int FROM resuelve_questions q JOIN users u ON u.id=q.author_id WHERE q.status='open' AND u.status='active'",
+ " AND NOT EXISTS(SELECT 1 FROM resuelve_answers a JOIN users helper ON helper.id=a.author_id",
+ " WHERE a.question_id=q.id AND a.status='visible' AND helper.status='active')) AS unanswered_questions,",
+ " (SELECT count(*)::int FROM resuelve_answers a JOIN resuelve_questions q ON q.id=a.question_id",
+ " JOIN users u ON u.id=a.author_id WHERE a.created_at>=now()-($1::int*interval '1 day')",
+ " AND a.status='visible' AND q.status IN ('open','resolved') AND u.status='active') AS visible_replies"
+].join(' ');
+const VOICES_SERVICES_SQL=[
+ 'SELECT',
+ " (SELECT count(*)::int FROM independent_article_publications_v3641 p",
+ " JOIN independent_article_submissions_v3640 s ON s.id=p.submission_id JOIN users u ON u.id=s.author_user_id",
+ " WHERE p.unpublished_at IS NULL AND s.status='approved' AND s.author_publish_consent_at IS NOT NULL",
+ " AND u.status='active') AS published_articles,",
+ " (SELECT count(*)::int FROM independent_article_publications_v3641 p",
+ " JOIN independent_article_submissions_v3640 s ON s.id=p.submission_id JOIN users u ON u.id=s.author_user_id",
+ " WHERE p.unpublished_at IS NULL AND p.published_at>=now()-($1::int*interval '1 day')",
+ " AND s.status='approved' AND s.author_publish_consent_at IS NOT NULL",
+ " AND u.status='active') AS recent_articles"
+].join(' ');
+function safeServiceCount(value){
+ if(value===null||value===undefined)return null;
+ const n=Number(value);
+ return Number.isSafeInteger(n)&&n>=0?n:null;
+}
+async function serviceSummary(db,days){
+ // La ausencia de una tabla no equivale a tener cero publicaciones.
+ const [help,voices]=await Promise.allSettled([
+  db.query(RESUELVE_SERVICES_SQL,[days]),
+  db.query(VOICES_SERVICES_SQL,[days])
+ ]);
+ if(help.status==='rejected')console.error('Admin Resuelve aggregate unavailable');
+ if(voices.status==='rejected')console.error('Admin independent articles aggregate unavailable');
+ const h=help.status==='fulfilled'?help.value.rows?.[0]:null;
+ const v=voices.status==='fulfilled'?voices.value.rows?.[0]:null;
+ return {
+  resuelve_open:h?safeServiceCount(h.open_questions):null,
+  resuelve_unanswered:h?safeServiceCount(h.unanswered_questions):null,
+  resuelve_replies_period:h?safeServiceCount(h.visible_replies):null,
+  voices_published:v?safeServiceCount(v.published_articles):null,
+  voices_published_period:v?safeServiceCount(v.recent_articles):null
+ };
+}
+
 function normalizedOptions(query={}){
  const days=Number(query.days??1),type=String(query.type??'all');
  const page=Number(query.page??0);
@@ -93,6 +140,19 @@ function createAdminActivityRouter({db}){
  if(!db?.query)throw Error('db_required');
  const router=express.Router();
  router.use(requireAdmin);
+ router.get('/services-summary',async(req,res)=>{
+   const days=Number(req.query.days??7);
+   if(!ALLOWED_DAYS.has(days))return res.status(400).json({error:'invalid_period'});
+   try{
+     const metrics=await serviceSummary(db,days);
+     res.set('Cache-Control','no-store');
+     res.set('X-Robots-Tag','noindex,nofollow');
+     return res.json({ok:true,days,updatedAt:new Date().toISOString(),metrics});
+   }catch(_){
+     console.error('Admin services aggregate unavailable');
+     return res.status(503).json({error:'services_summary_unavailable'});
+   }
+ });
  router.get('/summary-7d',async(_req,res)=>{
    try{
      const stats=await db.query(OVERVIEW_SQL);
@@ -133,4 +193,4 @@ function createAdminActivityRouter({db}){
  });
  return router;
 }
-module.exports={createAdminActivityRouter,normalizedOptions,METRICS_SQL,OVERVIEW_SQL,ACTIVITY_SQL,PAGE_SIZE};
+module.exports={createAdminActivityRouter,normalizedOptions,METRICS_SQL,OVERVIEW_SQL,ACTIVITY_SQL,RESUELVE_SERVICES_SQL,VOICES_SERVICES_SQL,safeServiceCount,serviceSummary,PAGE_SIZE};
