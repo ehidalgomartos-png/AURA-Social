@@ -1,0 +1,8 @@
+/* V3.6.51 — Public author and article navigation; no private profile details. */
+.voices-public-byline-v3641 a[rel=author]{color:#0b6071;text-decoration:underline;text-underline-offset:3px;font-weight:850}
+.voices-public-byline-v3641 a[rel=author]:hover{color:#124656}
+.voices-author-links-v3651{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:22px;padding-top:19px;border-top:1px solid #d4e6e9}
+.voices-author-links-v3651 a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 15px;border:1px solid #b5d5d9;border-radius:11px;background:#f3f9fa;color:#14586a;font-size:.87rem;line-height:1.4;font-weight:800;text-decoration:none;text-align:center;overflow-wrap:anywhere}
+.voices-author-links-v3651 a:hover{background:#e2f4f5}
+.voices-author-links-v3651 a:focus-visible{outline:3px solid #148c95;outline-offset:3px}
+@media(max-width:650px){.voices-author-links-v3651{display:grid;grid-template-columns:minmax(0,1fr)}.voices-author-links-v3651 a{width:100%;min-height:48px}}

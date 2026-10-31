@@ -33,13 +33,17 @@ function article(a){
  const sources=(Array.isArray(a.sources)?a.sources:[]).map(publicSource).filter(Boolean);
  const refs=sources.map((url,i)=>'<li><a href="'+esc(url)+'" target="_blank" rel="nofollow noopener noreferrer external">Fuente '+(i+1)+': '+esc(new URL(url).hostname)+'</a></li>').join('');
  const body=String(a.body||'');
- const byline='@'+String(a.author_username||'usuario');
+ const authorName=String(a.author_username||'');
+ const byline='@'+(authorName||'usuario');
+ // No enlazar si el nombre no cumple las reglas del directorio público.
+ const publicAuthor=/^[\p{L}\p{N}._-]{2,48}$/u.test(authorName);
+ const authorLink=publicAuthor?'<a rel="author" href="'+authorPath(authorName)+'">'+esc(byline)+'</a>':esc(byline);
  return '<div class="voices-public-v3641">'+
  '<nav class="voices-public-back-v3641"><a href="/noticias/redactores/voces">← Todos los artículos</a></nav>'+
  '<article class="voices-public-article-v3641" aria-labelledby="voicesArticleTitleV3641">'+
  '<p class="voices-public-meta-v3641">'+esc(types[a.kind]||'Artículo')+' · '+esc(when(a.published_at))+'</p>'+
  '<h1 id="voicesArticleTitleV3641">'+esc(a.title)+'</h1>'+
- '<p class="voices-public-byline-v3641">Artículo de '+esc(byline)+' · Redactor independiente en RedLibertad</p>'+
+ '<p class="voices-public-byline-v3641">Artículo de '+authorLink+' · Redactor independiente en RedLibertad</p>'+
  '<p class="voices-public-note-v3641">Revisión editorial previa. Este contenido no es una acreditación profesional y las opiniones son del autor.</p>'+
  '<div class="voices-public-body-v3641">'+esc(body)+'</div>'+
  '<section class="voices-public-sources-v3641" aria-labelledby="voicesSourcesV3641"><h2 id="voicesSourcesV3641">Fuentes aportadas</h2>'+
@@ -64,6 +68,10 @@ function article(a){
  '<button type="submit" id="voicesReportSubmitV3643">Enviar aviso privado</button>'+
  '<p id="voicesReportStatusV3643" role="status" aria-live="polite"></p>'+
  '</form></details></section>'+
+ '<nav class="voices-author-links-v3651" aria-label="Seguir leyendo">'+
+ (publicAuthor?'<a href="'+authorPath(authorName)+'">Más artículos de '+esc(byline)+'</a>':'')+
+ '<a href="/noticias/redactores/voces">Explorar otras voces</a>'+
+ '</nav>'+
  '</article></div>';
 }
 // Profile summaries describe only articles returned from the public-author query.
