@@ -490,11 +490,13 @@ publicRouter.get('/sitemap.xml',async(_req,res)=>{
     try{independentUrls=await independentPublicationV3641.urlsForSitemap();}
     catch(error){console.error('Independent voices sitemap addition unavailable:',error);}
     const profiles=[...new Set(items.map(row=>row.profile_slug))];
+    const independentAuthors=[...new Set(independentUrls.map(row=>row.author_username).filter(independentDiscoveryV3643.validAuthor))];
     const urls=[
       '<url><loc>'+esc(origin()+'/noticias')+'</loc><changefreq>daily</changefreq></url>',
       ...profiles.map(slug=>'<url><loc>'+esc(origin()+'/noticias/perfil/'+encodeURIComponent(slug))+'</loc><changefreq>weekly</changefreq></url>'),
       ...items.map(row=>'<url><loc>'+esc(origin()+publicationPath(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>'),
-      ...independentUrls.map(row=>'<url><loc>'+esc(origin()+independentPagesV3641.path(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>')
+      ...independentUrls.map(row=>'<url><loc>'+esc(origin()+independentPagesV3641.path(row.id))+'</loc><lastmod>'+new Date(row.published_at).toISOString()+'</lastmod></url>'),
+      ...independentAuthors.map(name=>'<url><loc>'+esc(origin()+independentPagesV3641.authorPath(name))+'</loc><changefreq>weekly</changefreq></url>')
     ];
     res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join('')+'</urlset>');
   }catch(e){console.error('Editorial sitemap failed:',e);res.status(503).type('text/plain').send('Unavailable');}
