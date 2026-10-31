@@ -895,6 +895,29 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
  .resuelve-reply-activity button{width:100%}
 }
 
+/* V3.6.27 — enlaces editoriales a guías, discretos y accesibles. */
+.resuelve-guide-shortcuts-v3627{
+ padding:18px 20px;margin:18px 0;
+ border:1px solid #d3e6e9;border-radius:19px;background:#fff;
+ min-width:0;
+}
+.resuelve-guide-shortcuts-v3627 h2{font-size:1.25rem;margin:3px 0 12px;color:#17485c}
+.resuelve-guide-shortcuts-links-v3627{display:flex;flex-wrap:wrap;gap:10px}
+.resuelve-guide-shortcuts-links-v3627 a{
+ display:inline-flex;align-items:center;min-height:45px;min-width:0;
+ padding:11px 15px;border:1px solid #bad6df;border-radius:12px;
+ background:#f3fafb;color:#13536e;font-weight:750;
+ overflow-wrap:anywhere;
+}
+.resuelve-guide-shortcuts-links-v3627 a:focus-visible{
+ outline:3px solid #138a98;outline-offset:3px
+}
+@media(max-width:650px){
+ .resuelve-guide-shortcuts-v3627{padding:14px;margin:15px 0;border-radius:17px}
+ .resuelve-guide-shortcuts-links-v3627{display:grid;grid-template-columns:minmax(0,1fr)}
+ .resuelve-guide-shortcuts-links-v3627 a{width:100%;min-height:46px}
+}
+
 /* V3.6.23 — Resuelve Desktop: equilibrio visual sin modificar la experiencia móvil. */
 @media (min-width:960px){
  .wrap{max-width:1160px;padding:24px 24px 70px}

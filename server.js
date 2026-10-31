@@ -1377,10 +1377,23 @@ app.get('/sitemap-resuelve-presentacion.xml',(_req,res)=>{
  res.set('Cache-Control','no-store');
  res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>'+
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+
-  '<url><loc>https://redlibertad.com/resuelve/como-funciona</loc></url></urlset>');
+  '<url><loc>https://redlibertad.com/resuelve/como-funciona</loc></url>'+ 
+  '<url><loc>https://redlibertad.com/resuelve/guia-pedir-ayuda</loc></url>'+ 
+  '<url><loc>https://redlibertad.com/resuelve/guia-ayudar-personas</loc></url></urlset>');
 });
 // V3.5.33 — landing de explicación, indexable por contenido editorial propio.
 app.get('/resuelve/como-funciona',createResuelveAboutHandler());
+// V3.6.27 — guías editoriales permanentes: contenido original, sin preguntas de usuarios.
+for(const [url,file] of [
+ ['/resuelve/guia-pedir-ayuda','resuelve-guia-pedir-ayuda-v3627.html'],
+ ['/resuelve/guia-ayudar-personas','resuelve-guia-ayudar-v3627.html']
+]){
+ app.get(url,(_req,res)=>{
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('X-Robots-Tag','index,follow');
+  res.sendFile(path.join(__dirname,'public',file));
+ });
+}
 // V3.5.19 — HTML de administración fuera de /public, protegido antes de servirlo.
 app.get('/resuelve/admin',requireAdmin,(_req,res)=>{
  res.setHeader('Cache-Control','no-store');
