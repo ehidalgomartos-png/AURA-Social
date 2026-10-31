@@ -1,0 +1,16 @@
+/* V3.6.42.1 — voluntary, private conversation follow-ups; no unread badges. */
+#contributionFollowupsV36421:not([hidden]){margin:17px 0 0;padding:15px;border:1px solid #bcdcd8;border-radius:16px;background:#f3faf7;min-width:0}
+#contributionFollowupsV36421 h4{color:#164b5c;font-size:1.12rem;line-height:1.35;margin:0 0 7px}
+#contributionFollowupsV36421>.muted{margin:0;font-size:.88rem;line-height:1.55;color:#496c77}
+.resuelve-contribution-followups-list-v36421{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:15px}
+.resuelve-contribution-followup-item-v36421{display:flex;flex-direction:column;gap:9px;min-width:0;padding:14px;border:1px solid #d0e4e3;border-radius:13px;background:#fff}
+.resuelve-contribution-followup-item-v36421 h5{font-size:.98rem;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.resuelve-contribution-followup-item-v36421 h5 a{color:#145a69;text-decoration:none}
+.resuelve-contribution-followup-item-v36421 h5 a:hover{text-decoration:underline;text-underline-offset:3px}
+.resuelve-contribution-followup-meta-v36421{font-size:.81rem;line-height:1.55;color:#486d79;overflow-wrap:anywhere;margin:0}
+.resuelve-contribution-followup-button-v36421{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:46px;margin-top:auto;padding:10px 12px;border:1px solid #9bcac4;border-radius:11px;background:#eaf7f2;color:#155c5f;font-weight:800;font-size:.88rem;text-align:center}
+#contributionFollowupsV36421 :is(a,button):focus-visible{outline:3px solid #138b97;outline-offset:3px}
+#contributionFollowupsStatusV36421{font-size:.8rem;line-height:1.5;margin:12px 0 0}
+@media(max-width:850px){.resuelve-contribution-followups-list-v36421{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){#contributionFollowupsV36421:not([hidden]){padding:13px 11px;border-radius:13px}.resuelve-contribution-followups-list-v36421{grid-template-columns:minmax(0,1fr);gap:9px;margin-top:12px}.resuelve-contribution-followup-item-v36421{padding:12px}.resuelve-contribution-followup-button-v36421{min-height:48px}}
+@media(max-width:350px){#contributionFollowupsV36421:not([hidden]){padding:10px}}
