@@ -371,28 +371,65 @@
   }
   return article;
  }
+ // V3.6.31 — resultados de biblioteca coherentes incluso al cambiar filtros deprisa.
+ let solutionGeneration=0;
+ function updateSolutionCount(count,hasMore){
+  const output=el('solutionResultCount');
+  if(!output)return;
+  const n=Number.isSafeInteger(count)&&count>=0?count:0;
+  const category=state.solutionCategory?' en la categoría seleccionada':'';
+  const searching=state.solutionSearch?' para esta búsqueda':'';
+  output.textContent=n?
+   'Mostrando '+n+(n===1?' solución revisada':' soluciones revisadas')+
+   category+searching+(hasMore?' · Hay más para cargar.':'.'):
+   'Sin soluciones revisadas'+category+searching+'.';
+ }
  async function loadSolutions(more=false){
-  if(state.solutionLoading)return;
+  if(more&&(state.solutionLoading||!state.solutionNext))return;
+  const generation=more?solutionGeneration:++solutionGeneration;
   state.solutionLoading=true;
   const list=el('solutionList'),status=el('solutionStatus'),btn=el('moreSolutions');
   btn.hidden=true;
-  if(!more){list.replaceChildren();status.textContent='Cargando soluciones…';}
+  list.setAttribute('aria-busy','true');
+  if(!more){
+   state.solutionNext=null;
+   list.replaceChildren();
+   status.textContent='Buscando soluciones reales y revisadas…';
+   updateSolutionCount(0,false);
+   el('solutionCategoryShortcuts').replaceChildren();
+   el('solutionSummaryStatus').textContent='Actualizando categorías reales…';
+  }
   try{
    const params=new URLSearchParams();
    if(state.solutionCategory)params.set('categoria',state.solutionCategory);
    if(state.solutionSearch)params.set('q',state.solutionSearch);
    if(more&&state.solutionNext)params.set('antes',state.solutionNext);
    const data=await request('/api/resuelve/solutions?'+params.toString());
+   if(generation!==solutionGeneration)return;
+   if(!Array.isArray(data.items))throw new Error('No se ha podido comprobar la biblioteca de soluciones.');
    for(const q of data.items)list.append(solutionCard(q));
-   state.solutionNext=data.next;
+   state.solutionNext=data.next||null;
    btn.hidden=!state.solutionNext;
-   status.textContent=list.childElementCount?'':(state.solutionSearch||state.solutionCategory?'No hay soluciones revisadas que coincidan con estos filtros. Prueba con otra categoría o búsqueda.':'Aún no hay soluciones revisadas. Iremos incorporándolas cuando existan respuestas útiles.');
+   updateSolutionCount(list.childElementCount,Boolean(state.solutionNext));
+   status.textContent=list.childElementCount?'':(state.solutionSearch||state.solutionCategory?
+    'No hay soluciones revisadas que coincidan con estos filtros. Prueba con otra categoría o búsqueda.':
+    'Aún no hay soluciones revisadas. Iremos incorporándolas cuando existan respuestas útiles.');
    if(!more)await loadSolutionSummary();
-  }catch(err){status.textContent=err.message;}
-  finally{state.solutionLoading=false;}
+  }catch(err){
+   if(generation===solutionGeneration){
+    status.textContent=err.message;
+    updateSolutionCount(list.childElementCount,Boolean(state.solutionNext));
+   }
+  }finally{
+   if(generation===solutionGeneration){
+    state.solutionLoading=false;
+    list.setAttribute('aria-busy','false');
+   }
+  }
  }
 // V3.5.28 — botones de navegación de biblioteca, cifras solo de soluciones revisadas.
  async function loadSolutionSummary(){
+  const generation=solutionGeneration;
   const holder=el('solutionCategoryShortcuts'),status=el('solutionSummaryStatus');
   status.textContent='Consultando soluciones revisadas…';
   holder.replaceChildren();
@@ -400,6 +437,7 @@
    const params=new URLSearchParams();
    if(state.solutionSearch)params.set('q',state.solutionSearch);
    const data=await request('/api/resuelve/solutions/summary?'+params.toString());
+   if(generation!==solutionGeneration)return;
    const cats=[['','Todas'],['consejo','Consejos'],['busco','Orientación'],
     ['ayuda','Ayuda'],['experiencia','Experiencias']];
    const totals=data.byCategory||{};
@@ -410,7 +448,6 @@
     if(!Number.isSafeInteger(count)||count<0)throw new Error('Resumen de biblioteca incompleto.');
     const chosen=category===state.solutionCategory;
     const control=button(label+' · '+count,async()=>{
-     if(state.solutionLoading)return;
      state.solutionCategory=category;
      el('solutionCategory').value=category;
      await loadSolutions();
@@ -421,7 +458,10 @@
    status.textContent=approved?
     'Solo se incluyen soluciones aprobadas tras revisión humana.':
     'Todavía no hay soluciones aprobadas para esta búsqueda.';
-  }catch(err){status.textContent='No se pudieron consultar los recuentos. Puedes seguir buscando y leyendo soluciones.';}
+  }catch(err){
+   if(generation===solutionGeneration)
+    status.textContent='No se pudieron consultar los recuentos. Puedes seguir buscando y leyendo soluciones.';
+  }
  }
 // V3.5.8: cola editorial disponible solo en sesiones de administración.
  // V3.5.18 — cifras verificables en servidor, visibles solo para administración.

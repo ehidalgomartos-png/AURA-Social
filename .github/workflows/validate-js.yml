@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.31 Resuelve library discovery, race-safe filters, real counts and responsive cards
+        run: node --test tests/resuelve-library-discovery-v3631.test.js
       - name: V3.6.30 Resuelve actionable SEO diagnostics, safe report and noindex headers
         run: node --test tests/resuelve-seo-actionable-v3630.test.js
       - name: V3.6.29 Resuelve manual same-origin SEO production checks
