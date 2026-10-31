@@ -8,7 +8,7 @@
   const r=await fetch(root+path,{credentials:'same-origin',...options,headers:{'Accept':'application/json',...(options.headers||{})}});
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
-   const errors={authentication_required:'Inicia sesión para escribir en tu cuenta.',invalid_session:'Tu sesión ha caducado. Vuelve a entrar.',solo_adultos_verificados:'Necesitas una cuenta de adulto verificada para escribir.',borrador_no_disponible_o_modificado:'Este borrador ha cambiado o ya no está disponible. Actualiza la lista antes de editar.',borrador_invalido:'Revisa título, contenido y enlaces de fuentes (HTTPS, máximo 8).',solo_adultos:'Solo mayores de 18 años pueden presentar artículos.',articulo_incompleto:'Para revisión necesitas un título de 12 caracteres, texto de 250 caracteres y fuentes si es noticia, análisis o reportaje.',borrador_modificado:'El borrador ha cambiado. Vuelve a abrirlo.',ya_en_revision_o_finalizado:'Este artículo ya está en revisión o tiene una decisión editorial.',borrador_en_revision:'Los borradores enviados a revisión no pueden eliminarse.'};
+   const errors={authentication_required:'Inicia sesión para escribir en tu cuenta.',invalid_session:'Tu sesión ha caducado. Vuelve a entrar.',solo_adultos:'Necesitas ser mayor de 18 años para escribir artículos.',borrador_no_disponible_o_modificado:'Este borrador ha cambiado o ya no está disponible. Actualiza la lista antes de editar.',borrador_invalido:'Revisa título, contenido y enlaces de fuentes (HTTPS, máximo 8).',solo_adultos:'Solo mayores de 18 años pueden presentar artículos.',articulo_incompleto:'Para revisión necesitas un título de 12 caracteres, texto de 250 caracteres y fuentes si es noticia, análisis o reportaje.',borrador_modificado:'El borrador ha cambiado. Vuelve a abrirlo.',ya_en_revision_o_finalizado:'Este artículo ya está en revisión o tiene una decisión editorial.',borrador_en_revision:'Los borradores enviados a revisión no pueden eliminarse.'};
    const error=new Error(errors[data.error]||'No se pudo completar la operación. Inténtalo de nuevo.');
    error.status=r.status;throw error;
   }
@@ -48,6 +48,7 @@
    (labels[item.status]||'Envío registrado.')+(item.review_reason?' Motivo: '+item.review_reason:'') :
    'Al guardar puedes solicitar una revisión humana. Para enviar necesitas 250 caracteres de texto y fuentes en noticias, reportajes y análisis.';
   el('draftCertifyV3640').checked=false;
+  el('draftPublishConsentV3641').checked=false;
   renderList();
  }
  function openDraft(d){
@@ -116,14 +117,14 @@
  }
  async function submitForReview(){
   if(!state.id||state.loading)return;
-  if(!el('draftCertifyV3640').checked){
-   say('Confirma la autoría y el envío voluntario para solicitar la revisión.');return;
+  if(!el('draftCertifyV3640').checked||!el('draftPublishConsentV3641').checked){
+   say('Confirma la autoría y autoriza expresamente una posible publicación futura con tu nombre de usuario. La revisión no publica automáticamente.');return;
   }
   state.loading=true;el('draftSubmitV3640').disabled=true;
   try{
    await api('/'+encodeURIComponent(state.id)+'/enviar',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({revision:state.revision,certified:true})
+    body:JSON.stringify({revision:state.revision,certified:true,publishConsent:true})
    });
    await load();
    const d=state.items.find(x=>String(x.id)===String(state.id));
