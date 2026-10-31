@@ -183,3 +183,19 @@ body.services-map-v3645 [hidden]{display:none!important}
 .sm-breadcrumb a:hover{color:#126b6f}
 .sm-breadcrumb [aria-current="page"]{color:#1b5665}
 @media(max-width:600px){.sm-breadcrumb{padding:6px 4px 0;gap:8px;font-size:.77rem}}
+
+/* V3.6.54 — Invitar a descubrir servicios, sin interrumpir el recorrido. */
+.sm-share-v3654{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 24px;margin:-19px 0 39px;padding:19px 22px;border:1px solid #d7e8e7;border-radius:17px;background:#f6fbfa}
+.sm-share-v3654 h2{margin:0 0 4px;color:#173f50;font-size:1.06rem;line-height:1.35}
+.sm-share-v3654 p{margin:0;color:#54717d;font-size:.83rem;line-height:1.6}
+.sm-share-actions-v3654{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.sm-share-actions-v3654 :is(a,button){display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 12px;border:1px solid #badbd7;border-radius:10px;background:#fff;color:#155d68;font:inherit;font-size:.82rem;font-weight:800;text-decoration:none;cursor:pointer}
+.sm-share-actions-v3654 :is(a,button):hover{background:#e8f5f3}
+.sm-share-actions-v3654 button:disabled{opacity:.55;cursor:default}
+.sm-share-v3654 :is(a,button,input):focus-visible{outline:3px solid #158d94;outline-offset:3px}
+#sm-share-link-v3654:not([hidden]){grid-column:1 / -1;width:100%;max-width:650px;min-height:44px;border:1px solid #b4d8d4;background:#fff;color:#164b5c;border-radius:10px;padding:10px;font-size:16px}
+#sm-share-status-v3654:empty{display:none}
+#sm-share-status-v3654:not(:empty){grid-column:1 / -1}
+@media(max-width:820px){.sm-share-v3654{grid-template-columns:minmax(0,1fr);margin:-18px 0 32px}.sm-share-actions-v3654{justify-content:flex-start}}
+@media(max-width:600px){.sm-share-v3654{padding:16px 14px;border-radius:14px;gap:12px}.sm-share-actions-v3654{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sm-share-actions-v3654 :is(a,button){min-height:48px}.sm-share-actions-v3654 button{grid-column:1 / -1}}
+@media(max-width:350px){.sm-share-actions-v3654{grid-template-columns:minmax(0,1fr)}.sm-share-actions-v3654 button{grid-column:auto}}
