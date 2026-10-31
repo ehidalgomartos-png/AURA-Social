@@ -24,8 +24,11 @@ function harness(fromDetail=false){
  const state={question:{id:5},solutionCategory:'ayuda',solutionSearch:'vieja',
   category:'busco',search:'antigua',topic:'hogar',professionalOnly:true};
  const chips=[{dataset:{questionTopic:''}},{dataset:{questionTopic:'hogar'}}];
- chips.forEach(chip=>{chip.classList={toggle(k,active){chip.active=active;}},
-  chipAttrs:{},setAttribute(k,v){this.chipAttrs[k]=v}});
+ chips.forEach(chip=>{
+  chip.classList={toggle(k,active){chip.active=active;}};
+  chip.chipAttrs={};
+  chip.setAttribute=function(k,v){this.chipAttrs[k]=v;};
+ });
  const filter={click(){calls.push('click:open');state.filter='open';}};
  const doc={querySelector:x=>x==='[data-filter="open"]'?filter:null,
   querySelectorAll:x=>x==='[data-question-topic]'?chips:[]};
