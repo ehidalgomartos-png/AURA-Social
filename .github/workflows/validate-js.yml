@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.54 Voluntary sharing of the public services map
+        run: node --test tests/services-map-share-v3654.test.js
       - name: V3.6.52 Admin aggregate summary across Resuelve and published Voices
         run: node --test tests/admin-services-summary-v3652.test.js
       - name: V3.6.51 Public author links and mobile article navigation
