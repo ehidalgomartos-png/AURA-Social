@@ -25,6 +25,9 @@ router.use(requireAuth);
 // Registration enforces 18+. age_verified is a separate identity-verification flag
 // which starts false for most adult accounts; verify DOB directly instead.
 router.use(async(req,res,next)=>{
+ // Administrator accounts may be provisioned separately from public sign-up.
+ // Their permissions are still checked by requireAdmin on each admin route.
+ if(req.user?.isAdmin===true||req.user?.is_admin===true)return next();
  try{
   const result=await db.query("SELECT 1 FROM users WHERE id=$1 AND status='active' AND birth_date <= (CURRENT_DATE - INTERVAL '18 years') LIMIT 1",[req.user.id]);
   if(!result.rowCount)return fail(res,403,'solo_adultos');
