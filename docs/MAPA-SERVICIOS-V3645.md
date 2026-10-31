@@ -50,7 +50,7 @@ Una portada de herramientas que explique en pocos segundos para qué sirve RedLi
 - Ejecución de GitHub Actions JavaScript y PostgreSQL 18 antes de fusionar.
 
 ## Próximo roadmap
-- **V3.6.46 — Integración y descubrimiento:** mejorar la navegación de los servicios desde otras pantallas, manteniendo el menú móvil compacto.
+- **V3.6.46 — Integración y descubrimiento:** enlazar el mapa desde los pies de Noticias, Resuelve, Marketplace y Comparador, manteniendo el menú móvil compacto. Implementado en GitHub y sujeto a las pruebas de CI.
 - **V3.6.46.1 — UX y observabilidad:** comprobar rutas rotas, desplegados y accesos fallidos en producción, sin presentar cifras no verificadas.
 - **V3.6.47 — Voces Independientes:** mejorar legibilidad, fuentes y navegación entre autores.
 - **V3.6.47.1 — Resuelve:** continuar facilitando seguimiento y lectura de respuestas reales.

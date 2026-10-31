@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.46 Servicios map cross-links from major RedLibertad sections
+        run: node --test tests/services-map-crosslinks-v3646.test.js
       - name: V3.6.45 Explora RedLibertad public services map, search, SEO and mobile
         run: node --test tests/services-map-v3645.test.js
       - name: V3.6.44.1 Resuelve detail navigation for phone, keyboard and true answer count
