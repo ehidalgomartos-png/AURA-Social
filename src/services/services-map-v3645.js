@@ -5,7 +5,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const groups=[
  {id:'ayuda',title:'Ayuda entre personas',kicker:'ESCUCHAR · COMPARTIR · RESOLVER',intro:'Pregunta cuando lo necesites o comparte una experiencia útil con alguien más.',services:[
   {id:'resuelve',title:'Resuelve',description:'Cuenta tu duda o necesidad y encuentra consejos de otras personas.',href:'/resuelve',icon:'heart-handshake',tag:'Pedir ayuda',keywords:'dudas problemas soluciones consejo orientación resolver'},
-  {id:'ayudar',title:'Ayudar a otras personas',description:'Descubre peticiones abiertas y aporta tu experiencia.',href:'/resuelve#questions',icon:'hand-heart',tag:'Participar',keywords:'ayudar preguntas sin respuesta colaboración voluntariado'},
+  {id:'ayudar',title:'Ayudar a otras personas',description:'Encuentra preguntas abiertas sin respuestas visibles y comparte tu experiencia.',href:'/resuelve?sin_respuestas=1#questions',icon:'hand-heart',tag:'Participar',keywords:'ayudar preguntas sin respuesta colaboración voluntariado'},
   {id:'soluciones',title:'Soluciones de la comunidad',description:'Lee aportaciones útiles que han pasado por revisión.',href:'/resuelve#solutions',icon:'check-circle',tag:'Aprender',keywords:'respuesta solución experiencias ayuda revisadas'}
  ]},
  {id:'informacion',title:'Información y conocimiento',kicker:'LEER · ENTENDER · ESCRIBIR',intro:'Actualidad, explicaciones y artículos originales para conocer otros puntos de vista.',services:[
@@ -73,7 +73,7 @@ function renderMap(){
  // Atajos a servicios reales: una pulsación basta para llegar a la acción elegida.
  const tasks=[
   {href:'/resuelve',text:'Necesito ayuda',icon:'heart-handshake'},
-  {href:'/resuelve#questions',text:'Quiero ayudar',icon:'hand-heart'},
+  {href:'/resuelve?sin_respuestas=1#questions',text:'Quiero ayudar',icon:'hand-heart'},
   {href:'/noticias',text:'Quiero informarme',icon:'newspaper'},
   {href:'/marketplace/explorar',text:'Comprar o vender',icon:'store'},
   {href:'/comparar',text:'Comparar productos',icon:'scan-search'},
