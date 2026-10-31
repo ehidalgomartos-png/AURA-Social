@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.38 Independent voices public proposal and monetization safety
+        run: node --test tests/editorial-voices-foundation-v3638.test.js
       - name: V3.6.37 Resuelve truthful voluntary helper profiles and mobile trust
         run: node --test tests/resuelve-helper-trust-v3637.test.js
       - name: V3.6.36 Resuelve accessible account assistance and responsive forms
