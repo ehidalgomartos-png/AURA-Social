@@ -427,7 +427,7 @@ publicRouter.get('/redactores/voces/:id',async(req,res)=>{
    body:independentPagesV3641.article(article),
    noindex:false,independentVoices:false
   });
-  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-support-v3642.css?v=3.6.42"><link rel="stylesheet" href="/editorial-voices-discovery-v3643.css?v=3.6.43"></head>').replace('</body>','<script src="/editorial-voices-support-v3642.js?v=3.6.42" defer></script><script src="/editorial-voices-report-v3643.js?v=3.6.43" defer></script></body>'));
+  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-support-v3642.css?v=3.6.42"><link rel="stylesheet" href="/editorial-voices-discovery-v3643.css?v=3.6.43"><link rel="stylesheet" href="/editorial-voices-author-links-v3651.css?v=3.6.51"></head>').replace('</body>','<script src="/editorial-voices-support-v3642.js?v=3.6.42" defer></script><script src="/editorial-voices-report-v3643.js?v=3.6.43" defer></script></body>'));
  }catch(e){console.error('Independent public article failed:',e);res.status(503).type('text/plain').send('Artículo temporalmente no disponible');}
 });
 publicRouter.get('/redactores/voces',async(_req,res)=>{
