@@ -18,5 +18,7 @@ test('portada mantiene las dos acciones principales y un enlace real a servicios
 test('la tercera acción móvil ocupa ambas columnas y parece un enlace', () => {
   assert.match(styles, /@media\(max-width:639px\)\s*\{\s*\.hero-actions > \.hero-services-cta-v3647\s*\{/);
   assert.match(styles, /\.hero-actions > \.hero-services-cta-v3647\s*\{[^}]*grid-column:1 \/ -1;[^}]*width:100%;[^}]*min-height:44px;[^}]*border:0;[^}]*text-decoration:underline;/s);
-  assert.match(index, /\/styles\.css\?v=3\.6\.47/);
+  assert.match(index, /\/styles\.css\?v=3\.6\.53/);
+  assert.doesNotMatch(styles, /\.hero-actions\s*>\s*\.hero-services-cta-v3647::after\s*\{/);
+  assert.doesNotMatch(index, /Ver todos los servicios\s*(?:→|↗|&rarr;)/);
 });
