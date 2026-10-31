@@ -60,6 +60,7 @@ const {startScheduler:startWooCommerceSyncScheduler}=require('./src/services/mar
 const marketplaceSeoV3251=require('./src/routes/marketplace-seo-v3251');
 const marketplaceComparadorV32132=require('./src/routes/marketplace-comparador-v32132');
 const {router:resuelveV350}=require('./src/routes/resuelve-v350');
+const {router:servicesMapV3645}=require('./src/routes/services-map-v3645');
 const {router:resuelvePublicSeoV3529}=require('./src/routes/resuelve-public-seo-v3529');
 const {router:resuelveTopicsV3531,topicApiRouter,topicsSitemapHandler}=require('./src/routes/resuelve-topics-v3531');
 const {resuelveSitemapHandler}=require('./src/routes/resuelve-sitemap-v3530');
@@ -1278,6 +1279,7 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /multimedia',
     'Allow: /buscar',
     'Allow: /descubrir',
+    'Allow: /explorar',
     'Allow: /temas',
     'Allow: /tema/',
     'Allow: /guias',
@@ -1335,6 +1337,7 @@ app.get('/sitemap.xml',async(req,res)=>{
     `);
     const urls=[
       `<url><loc>${escapeHtml(origin+'/')}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/explorar')}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`
       `<url><loc>${escapeHtml(origin+'/perfiles')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/publicaciones')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/comunidades')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
@@ -1360,6 +1363,8 @@ app.get('/sitemap.xml',async(req,res)=>{
   }
 });
 
+// V3.6.45 — public, server-rendered map of real platform services.
+app.use(servicesMapV3645);
 app.use(express.static(path.join(__dirname, 'public'),{
   setHeaders: setPerformanceHeaders
 }));
