@@ -9,7 +9,7 @@ function renderIndependentVoicesLanding(){
       '<span class="ed-label">PROYECTO EN PREPARACIÓN · REDLIBERTAD</span>',
       '<h1 id="voicesTitleV3638">Voces Independientes</h1>',
       '<p>Un futuro espacio para que las personas publiquen artículos originales, expliquen lo que conocen y reciban reconocimiento de lectores reales.</p>',
-      '<p class="ed-voices-status-v3638">Actualmente no admite envíos, puntuaciones ni propinas. Ya puedes escribir y guardar borradores privados; no se publican ni se envían a revisión.</p>',
+      '<p class="ed-voices-status-v3638">Ya puedes redactar borradores y enviarlos a revisión humana. Aún no hay publicación pública, puntuaciones ni propinas.</p>',
       '<div class="ed-voices-actions-v3638">',
         '<a href="/noticias/redactores/escribir">Escribir mis borradores</a>',
         '<a href="/noticias">Leer noticias actuales</a>',
@@ -44,7 +44,7 @@ function renderIndependentVoicesEditor(){
   '<div class="ed-voices-editor-v3639">',
   '<nav class="ed-voices-editor-breadcrumb-v3639" aria-label="Navegación de redactores"><a href="/noticias/redactores">← Voces Independientes</a></nav>',
   '<section class="ed-hero" aria-labelledby="editorTitleV3639"><span class="ed-label">SOLO TÚ PUEDES VER TUS BORRADORES</span><h1 id="editorTitleV3639">Escribe tu artículo</h1>',
-  '<p>Guarda tus ideas y vuelve a editarlas cuando quieras. Ningún borrador se publica ni se envía a revisión todavía. No existen puntos ni propinas.</p></section>',
+  '<p>Guarda tus ideas y vuelve a editarlas cuando quieras. Los borradores son privados. Puedes enviar un texto completo a revisión humana, pero no se publicará automáticamente. No existen puntos ni propinas.</p></section>',
   '<div class="ed-voices-editor-columns-v3639">',
    '<section class="ed-voices-drafts-v3639" aria-labelledby="draftsHeadingV3639">',
     '<h2 id="draftsHeadingV3639">Mis borradores</h2>',
@@ -69,6 +69,9 @@ function renderIndependentVoicesEditor(){
      '<p class="ed-voices-hint-v3639">Se guarda solo para tu cuenta. Las noticias necesitarán fuentes y revisión humana antes de poder publicarse en futuras versiones.</p>',
      '<div class="ed-voices-editor-actions-v3639"><button id="draftSaveV3639" type="submit" class="ed-voices-primary-v3639">Guardar borrador</button>',
       '<button id="draftDeleteV3639" type="button" class="ed-voices-danger-v3639" hidden>Eliminar borrador</button></div>',
+     '<label class="ed-voices-editor-consent-v3640"><input id="draftCertifyV3640" type="checkbox"><span>Confirmo que el artículo es original, que puedo usar su contenido y que deseo enviarlo a revisión humana. No se publicará automáticamente.</span></label>',
+     '<button id="draftSubmitV3640" type="button" class="ed-voices-primary-v3639" hidden>Enviar a revisión editorial</button>',
+     '<p id="draftReviewStatusV3640" role="status" aria-live="polite">Solo los artículos suficientemente desarrollados y con las fuentes necesarias pueden enviarse a revisión.</p>',
     '</form>',
     '<p id="draftEditorStatusV3639" role="status" aria-live="polite"></p>',
    '</section>',
@@ -76,4 +79,20 @@ function renderIndependentVoicesEditor(){
  ].join('');
 }
 
-module.exports={renderIndependentVoicesLanding,renderIndependentVoicesEditor};
+
+function renderIndependentVoicesReviewPanel(){
+ return [
+  '<div class="ed-voices-editor-v3639">',
+  '<nav class="ed-voices-editor-breadcrumb-v3639"><a href="/noticias/redactores">← Voces Independientes</a></nav>',
+  '<section class="ed-hero"><span class="ed-label">ADMINISTRACIÓN · REVISIÓN HUMANA</span><h1>Revisión de artículos independientes</h1><p>Las decisiones quedan registradas. Aprobar un artículo en esta fase no lo publica ni autoriza cobros o puntos.</p></section>',
+  '<section class="ed-voices-form-section-v3639" aria-labelledby="reviewHeadingV3640">',
+   '<h2 id="reviewHeadingV3640">Artículos pendientes</h2>',
+   '<p id="reviewQueueStatusV3640" role="status" aria-live="polite">Consultando la cola…</p>',
+   '<button id="reviewRefreshV3640" type="button" class="ed-voices-primary-v3639">Actualizar la cola</button>',
+   '<div id="reviewQueueV3640" class="ed-voices-review-queue-v3640"></div>',
+  '</section>',
+  '</div>'
+ ].join('');
+}
+
+module.exports={renderIndependentVoicesLanding,renderIndependentVoicesEditor,renderIndependentVoicesReviewPanel};
