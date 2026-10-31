@@ -22,7 +22,7 @@ test('V3.6.45: cuatro áreas, enlaces reales y cero datos especulativos',()=>{
  assert.equal(new Set(services.map(x=>x.id)).size,17);
  for(const s of services){
   assert.equal(s.href,known[s.id],s.id+' must use a real first-party path');
-  assert.match(s.href,/^\/(?!\/)[A-Za-z0-9/?#=&-]+$/);
+  assert.match(s.href,/^\/(?!\/)[A-Za-z0-9_/?#=&-]+$/);
   assert.ok(s.title&&s.description&&s.tag&&s.keywords);
  }
  const html=renderMap();
