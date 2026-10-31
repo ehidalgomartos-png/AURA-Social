@@ -218,3 +218,28 @@
  .resuelve-seo-production-head-v3629 button{width:100%;min-height:46px}
  .resuelve-seo-checked-v3629{padding:12px}
 }
+
+
+/* V3.6.30 — informe técnico accesible y recomendaciones sin datos personales. */
+.resuelve-seo-guidance-v3630{
+ margin-top:8px!important;padding-top:9px;border-top:1px solid #e1e9eb;
+ font-size:.86rem!important;color:#214c5d;line-height:1.55!important;
+}
+.resuelve-seo-export-v3630{
+ margin-top:16px;padding:14px;background:#fff;border:1px solid #d4e2e7;
+ border-radius:14px;min-width:0;
+}
+.resuelve-seo-export-v3630[hidden]{display: none}
+.resuelve-seo-export-v3630 label{display:block;color:#173b4e}
+.resuelve-seo-export-v3630 p{margin:5px 0 10px;line-height:1.55}
+.resuelve-seo-export-v3630 textarea{
+ display:block;width:100%;max-width:100%;min-height:170px;resize:vertical;
+ box-sizing:border-box;border:1px solid #aebfc6;border-radius:10px;
+ padding:10px;color:#233d4b;background:#f8fbfc;font: .86rem/1.5 ui-monospace,monospace;
+}
+.resuelve-seo-export-v3630 button{margin-top:10px;min-height:46px}
+.resuelve-seo-export-v3630 :focus-visible{outline:3px solid #147e9a;outline-offset:2px}
+@media(max-width:650px){
+ .resuelve-seo-export-v3630{padding:12px;border-radius:12px}
+ .resuelve-seo-export-v3630 button{width:100%;min-height:46px}
+}

@@ -175,6 +175,12 @@
   if(button.disabled)return;
   button.disabled=true;
   results.replaceChildren();
+  const reportPanel=el('adminSeoProductionExport');
+  const reportInput=el('adminSeoProductionReport');
+  if(reportPanel)reportPanel.hidden=true;
+  if(reportInput)reportInput.value='';
+  const copyStatus=el('adminSeoProductionCopyStatus');
+  if(copyStatus)copyStatus.textContent='';
   const checks=window.ResuelveSeoLiveChecks;
   if(!checks||!Array.isArray(checks.TARGETS)){
    status.textContent='No se ha cargado el comprobador. Actualiza esta página.';
@@ -183,6 +189,8 @@
   const started=new Date();
   status.textContent='Iniciando revisión de '+checks.TARGETS.length+' direcciones públicas…';
   const counts={ok:0,warning:0,error:0};
+  const collected=[];
+  const reportHelper=window.ResuelveSeoReport;
   try{
    for(const target of checks.TARGETS){
     status.textContent='Comprobando '+(counts.ok+counts.warning+counts.error+1)+
@@ -190,6 +198,7 @@
     const result=await checks.checkTarget(target);
     const state=['ok','warning','error'].includes(result.status)?result.status:'error';
     counts[state]++;
+    collected.push({...result,path:target.path});
     const item=node('article','resuelve-seo-checked-v3629 status-'+state);
     const title=node('div','resuelve-seo-checked-header-v3629');
     const link=node('a',null,result.label);
@@ -209,7 +218,13 @@
      for(const message of messages.slice(0,6))list.append(node('li',null,String(message).slice(0,190)));
      item.append(list);
     }
+    if(reportHelper?.recommendation)
+     item.append(node('p','resuelve-seo-guidance-v3630','Siguiente paso: '+reportHelper.recommendation(target,result)));
     results.append(item);
+   }
+   if(reportPanel&&reportInput&&reportHelper?.makeReport){
+    reportInput.value=reportHelper.makeReport(collected,checks.TARGETS,started);
+    reportPanel.hidden=false;
    }
    status.textContent='Revisión terminada: '+counts.ok+' correctas, '+counts.warning+
     ' para revisar y '+counts.error+' con errores. Comprobadas desde este navegador a las '+
@@ -217,6 +232,18 @@
   }catch(_){
    status.textContent='La revisión se ha interrumpido. Vuelve a ejecutarla desde Administración.';
   }finally{button.disabled=false;}
+ }
+ async function copySeoProductionReport(){
+  const input=el('adminSeoProductionReport');
+  const status=el('adminSeoProductionCopyStatus');
+  if(!input||!status||!input.value)return;
+  try{
+   await navigator.clipboard.writeText(input.value);
+   status.textContent='Informe técnico copiado. Puedes compartirlo para revisar las incidencias.';
+  }catch(_){
+   input.focus();input.select();
+   status.textContent='Selecciona el informe y copia con Ctrl+C (o Copiar en tu móvil).';
+  }
  }
  const requirements=[
   ['qualityReviewed','La solución aporta una explicación útil sin necesidad de comprar o contratar nada.'],
@@ -356,6 +383,7 @@
    el('refreshAdminImpact').addEventListener('click',impact);
    el('refreshAdminSeo').addEventListener('click',seoDiagnostics);
    el('checkAdminSeoProduction').addEventListener('click',seoProductionCheck);
+   el('copyAdminSeoProductionReport').addEventListener('click',copySeoProductionReport);
    el('refreshActivity7d').addEventListener('click',activity7d);
    el('refreshAdminWork').addEventListener('click',async()=>{await Promise.all([solutions(),reports()]);});
    el('refreshLibraryReview').addEventListener('click',()=>solutions());

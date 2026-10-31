@@ -150,7 +150,7 @@ test('V3.6.29: manual control remains admin-only and does not auto-run',()=>{
  assert.match(css,/@media\(max-width:650px\)/);
  assert.match(css,/\.resuelve-seo-production-v3629 a:focus-visible/);
  assert.match(css,/min-height:46px/);
- assert.doesNotMatch(css.slice(css.indexOf('/* V3.6.29')),/display:none|position:fixed/);
+ assert.doesNotMatch(css.slice(css.indexOf('/* V3.6.29'),css.indexOf('/* V3.6.30')),/display:none|position:fixed/);
  assert.doesNotThrow(()=>new Function(client));
  assert.doesNotThrow(()=>new Function(helper));
 });

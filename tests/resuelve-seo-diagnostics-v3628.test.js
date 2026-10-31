@@ -135,7 +135,7 @@ test('V3.6.28: links are only fixed known URLs, no invented Google status or cra
  assert.match(block,/límite de 2\.000/);
  assert.doesNotMatch(block,/\.innerHTML\s*=|googleIndexed|indexedByGoogle|robots\.txt.*fetch|XMLHttpRequest/);
  const css=read('public/resuelve-admin-v3519.css');
- const section=css.slice(css.indexOf('/* V3.6.28 — informe SEO privado'));
+ const section=css.slice(css.indexOf('/* V3.6.28 — informe SEO privado'),css.indexOf('/* V3.6.29'));
  assert.match(section,/resuelve-seo-topics-v3628/);
  assert.match(section,/:focus-visible/);
  assert.match(section,/@media\(max-width:650px\)/);
