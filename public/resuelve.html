@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="/resuelve-contribution-followups-v36421.css?v=3.6.42.1">
 <link rel="stylesheet" href="/resuelve-owner-actions-v36431.css?v=3.6.43.1">
 <link rel="stylesheet" href="/resuelve-detail-navigation-v36441.css?v=3.6.44.1">
+<link rel="stylesheet" href="/resuelve-share-help-v3650.css?v=3.6.50">
 <script src="/resuelve-v350.js" defer></script>
 </head>
 <body>
@@ -158,6 +159,17 @@
      <p class="muted">Peticiones reales y recientes que aún no tienen respuestas visibles. A veces un consejo sencillo marca la diferencia.</p>
     </div>
     <button id="firstHelpAllV36411" type="button" class="secondary">Ver todas sin respuestas</button>
+    <details id="firstHelpShareV3650" class="resuelve-share-help-v3650">
+     <summary>Invitar a alguien a ayudar</summary>
+     <p>Comparte esta sección de forma voluntaria. El enlace lleva a las peticiones abiertas sin respuestas visibles; no incluye datos privados.</p>
+     <div class="resuelve-share-help-actions-v3650" role="group" aria-label="Formas de compartir Resuelve">
+      <a href="https://wa.me/?text=En%20Resuelve%20hay%20preguntas%20abiertas%20de%20personas%20que%20buscan%20orientaci%C3%B3n.%20Si%20te%20apetece%20ayudar%2C%20puedes%20leerlas%20aqu%C3%AD%3A%20https%3A%2F%2Fredlibertad.com%2Fresuelve%3Fsin_respuestas%3D1%23questions" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      <a href="mailto:?subject=%C2%BFPuedes%20ayudar%20en%20Resuelve%3F&amp;body=En%20Resuelve%20hay%20preguntas%20abiertas.%20Si%20conoces%20el%20tema%20y%20quieres%20aportar%20tu%20experiencia%2C%20puedes%20verlas%20en%3A%20https%3A%2F%2Fredlibertad.com%2Fresuelve%3Fsin_respuestas%3D1%23questions">Correo</a>
+      <button id="firstHelpCopyV3650" type="button">Copiar enlace</button>
+     </div>
+     <input id="firstHelpLinkV3650" type="text" aria-label="Enlace para compartir peticiones sin respuestas" readonly hidden value="https://redlibertad.com/resuelve?sin_respuestas=1#questions">
+     <p id="firstHelpCopyStatusV3650" role="status" aria-live="polite"></p>
+    </details>
    </div>
    <div id="firstHelpListV36411" class="resuelve-first-help-list-v36411"></div>
    <div class="resuelve-first-help-foot-v36411">

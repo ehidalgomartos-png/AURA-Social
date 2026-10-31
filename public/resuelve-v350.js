@@ -1740,6 +1740,21 @@
    el('questions').scrollIntoView({block:'start',behavior:'auto'});
    filter.focus({preventScroll:true});
   });
+  // V3.6.50 — compartir únicamente el filtro público, sin datos de una pregunta privada.
+  el('firstHelpCopyV3650').addEventListener('click',async()=>{
+   const link=el('firstHelpLinkV3650'),status=el('firstHelpCopyStatusV3650');
+   try{
+    if(!navigator.clipboard?.writeText)throw new Error('clipboard_unavailable');
+    await navigator.clipboard.writeText(link.value);
+    link.hidden=true;
+    status.textContent='Enlace copiado. Compártelo solo si la persona quiere colaborar.';
+   }catch(_){
+    link.hidden=false;
+    link.focus({preventScroll:true});
+    link.select();
+    status.textContent='Selecciona el enlace y cópialo para compartirlo.';
+   }
+  });
   // V3.6.25 — acceder rápidamente a las preguntas donde se puede ayudar.
   el('helpOthersButton').addEventListener('click',()=>{
    const personalized=!!state.user&&state.helpTopics.length>0;
@@ -1913,6 +1928,15 @@
    restoreBrowse(false);
   });
   const start=new URLSearchParams(location.search).get('id');
+  // V3.6.50 — los enlaces compartidos abren directamente el filtro público de peticiones sin respuesta.
+  if(!start&&new URLSearchParams(location.search).get('sin_respuestas')==='1'){
+   state.filter='unanswered';
+   for(const tab of document.querySelectorAll('[data-filter]')){
+    const selected=tab.dataset.filter==='unanswered';
+    tab.classList.toggle('active',selected);
+    tab.setAttribute('aria-pressed',selected?'true':'false');
+   }
+  }
   // Al entrar desde la landing, crear cuenta directamente en Resuelve.
   if(!state.user&&new URLSearchParams(location.search).get('registro')==='1')openAuth('register');
   // V3.6.14 — los tres paneles son independientes: mejor primera carga en móvil.
