@@ -1337,7 +1337,7 @@ app.get('/sitemap.xml',async(req,res)=>{
     `);
     const urls=[
       `<url><loc>${escapeHtml(origin+'/')}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-      `<url><loc>${escapeHtml(origin+'/explorar')}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`
+      `<url><loc>${escapeHtml(origin+'/explorar')}</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/perfiles')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/publicaciones')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/comunidades')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
