@@ -50,8 +50,26 @@ const icons={
 };
 const icon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">'+(icons[name]||icons.search)+'</svg>';
 function allServices(){return groups.flatMap(g=>g.services.map(s=>({...s,group:g.id})));}
+// V3.6.49: datos estructurados basados únicamente en enlaces públicos presentes en el mapa.
+function mapStructuredData(){
+ const base='https://redlibertad.com';
+ const page=base+'/explorar';
+ const services=allServices().filter(s=>s.href!=='/app'&&!s.href.includes('#'));
+ return {
+  '@context':'https://schema.org',
+  '@graph':[
+   {'@type':'CollectionPage','@id':page+'#webpage',url:page,name:'Explora RedLibertad: ayuda, noticias y comunidad',description:'Mapa de servicios públicos para ayudar, informarte, comparar productos y conectar con otras personas.',inLanguage:'es-ES',breadcrumb:{'@id':page+'#breadcrumb'},mainEntity:{'@id':page+'#services'}},
+   {'@type':'BreadcrumbList','@id':page+'#breadcrumb',itemListElement:[
+    {'@type':'ListItem',position:1,name:'Inicio',item:base+'/'},
+    {'@type':'ListItem',position:2,name:'Servicios',item:page}
+   ]},
+   {'@type':'ItemList','@id':page+'#services',name:'Servicios públicos de RedLibertad',numberOfItems:services.length,itemListElement:services.map((s,i)=>({'@type':'ListItem',position:i+1,item:{'@type':'WebPage','@id':base+s.href,name:s.title}}))}
+  ]
+ };
+}
 function renderMap(){
  const number=allServices().length;
+ const jsonLd=JSON.stringify(mapStructuredData()).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
  // Atajos a servicios reales: una pulsación basta para llegar a la acción elegida.
  const tasks=[
   {href:'/resuelve',text:'Necesito ayuda',icon:'heart-handshake'},
@@ -77,8 +95,8 @@ function renderMap(){
  return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
  '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
  '<meta name="theme-color" content="#102f42">'+
- '<title>Explora RedLibertad | Mapa de servicios y herramientas</title>'+
- '<meta name="description" content="Descubre todas las herramientas de RedLibertad: Resuelve, Noticias, Voces Independientes, Marketplace, Comparador y comunidades. Elige lo que necesitas.">'+
+ '<title>Explora RedLibertad | Ayuda, noticias, comparador y comunidad</title>'+
+ '<meta name="description" content="Descubre qué hacer en RedLibertad: resolver dudas, ayudar a otras personas, leer noticias, comparar precios y participar en comunidades.">'+
  '<meta name="robots" content="index,follow,max-image-preview:large">'+
  '<link rel="canonical" href="https://redlibertad.com/explorar">'+
  '<meta property="og:type" content="website"><meta property="og:site_name" content="RedLibertad">'+
@@ -86,6 +104,10 @@ function renderMap(){
  '<meta property="og:description" content="Un mapa visual para descubrir todo lo que puedes hacer en la comunidad.">'+
  '<meta property="og:url" content="https://redlibertad.com/explorar">'+
  '<meta property="og:image" content="https://redlibertad.com/assets/og-redlibertad-v1922.jpg">'+
+ '<meta name="twitter:card" content="summary_large_image">'+
+ '<meta name="twitter:title" content="Explora RedLibertad | Servicios para ayudar y conectar">'+
+ '<meta name="twitter:description" content="Tu mapa de ayuda, noticias, comparador de precios y comunidad.">'+
+ '<script type="application/ld+json">'+jsonLd+'</script>'+
  '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
  '<link rel="stylesheet" href="/services-map-v3645.css?v=3.6.45">'+
  '<script defer src="/services-map-v3645.js?v=3.6.45"></script>'+
@@ -96,6 +118,7 @@ function renderMap(){
  '<nav aria-label="Navegación principal"><a href="#sm-services" aria-current="page">Servicios</a><a href="/resuelve">Resuelve</a><a href="/marketplace/explorar">Marketplace</a><a class="sm-nav-account" href="/app">Entrar en mi espacio</a></nav>'+
  '</div></header>'+
  '<main id="sm-main" class="sm-container" tabindex="-1">'+
+ '<nav class="sm-breadcrumb" aria-label="Ruta de navegación"><a href="/">Inicio</a><span aria-hidden="true">/</span><span aria-current="page">Servicios</span></nav>'+
  '<section class="sm-hero" aria-labelledby="sm-title"><div class="sm-hero-copy">'+
  '<span class="sm-hero-eyebrow">EL MAPA DE TU COMUNIDAD</span>'+
  '<h1 id="sm-title">Todo RedLibertad, <em>en un solo lugar.</em></h1>'+
@@ -118,4 +141,4 @@ function renderMap(){
  '<nav aria-label="Información"><a href="/">Inicio</a><a href="/privacy/">Privacidad</a><a href="/terms/">Términos</a><a href="/community-guidelines/">Normas</a></nav></div></footer>'+
  '</body></html>';
 }
-module.exports={groups,allServices,renderMap,esc};
+module.exports={groups,allServices,mapStructuredData,renderMap,esc};
