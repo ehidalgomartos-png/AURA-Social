@@ -360,9 +360,9 @@ publicRouter.get('/redactores/escribir',(_req,res)=>{
   body:renderIndependentVoicesEditor(),
   noindex:true,independentVoices:true
  });
- res.set('Cache-Control','no-store').type('html').send(html.replace('</body></html>',
-  '<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39">'+
-  '<script src="/editorial-voices-drafts-v3639.js?v=3.6.39" defer></script></body></html>'));
+ res.set('Cache-Control','no-store').type('html').send(html
+  .replace('</head>','<link rel="stylesheet" href="/editorial-voices-drafts-v3639.css?v=3.6.39"></head>')
+  .replace('</body>','<script src="/editorial-voices-drafts-v3639.js?v=3.6.39" defer></script></body>'));
 });
 publicRouter.get('/redactores',(_req,res)=>{
   res.type('html').send(page({
