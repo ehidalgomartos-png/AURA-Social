@@ -248,6 +248,54 @@
   await loadList();
   await loadHelpSuggestions();
  }
+ // V3.6.41.1 — Solo peticiones realmente abiertas sin una respuesta visible.
+ // Sin cifras inventadas, sin prioridad artificial y sin cargar datos personales.
+ function firstHelpCandidates(items,user){
+  if(!Array.isArray(items))return [];
+  return items.filter(q=>{
+   const count=Number(q?.answer_count);
+   if(!/^[1-9]\\d{0,15}$/.test(String(q?.id||''))||q?.status!=='open'||
+      q.answer_count===null||q.answer_count===undefined||
+      !Number.isSafeInteger(count)||count!==0||q.my_answer_id)return false;
+   return !user||(
+    String(q.author_id??'')!==String(user.id)&&
+    String(q.author_username??'').toLowerCase()!==String(user.username??'').toLowerCase());
+  }).slice(0,3);
+ }
+ let firstHelpRequestVersion=0;
+ async function loadFirstHelpSpotlight(){
+  const version=++firstHelpRequestVersion;
+  const userKey=String(state.user?.id??'');
+  const panel=el('firstHelpSpotlightV36411'),list=el('firstHelpListV36411');
+  const status=el('firstHelpStatusV36411'),refresh=el('firstHelpRefreshV36411');
+  refresh.disabled=true;
+  panel.hidden=true;list.replaceChildren();
+  try{
+   const data=await request('/api/resuelve/questions?estado=open&sin_respuestas=si');
+   if(version!==firstHelpRequestVersion||String(state.user?.id??'')!==userKey)return;
+   const items=firstHelpCandidates(data.items,state.user);
+   if(!items.length)return;
+   for(const q of items){
+    const article=create('article','resuelve-first-help-item-v36411');
+    const heading=create('h4');
+    const link=create('a',null,q.title);
+    link.href='/resuelve?id='+encodeURIComponent(q.id);
+    bindDetailNavigation(link,q.id,'questions');
+    heading.append(link);
+    const topic=create('p','resuelve-first-help-meta-v36411',(categories[q.category]||'Petición')+' · @'+q.author_username);
+    const preview=create('p','resuelve-first-help-preview-v36411',String(q.body||'').slice(0,150));
+    const help=button(state.user?'Leer y responder':'Ver cómo ayudar',()=>void goToFirstReply(q.id),'secondary resuelve-first-help-button-v36411');
+    article.append(heading,topic,preview,help);
+    list.append(article);
+   }
+   status.textContent='Solo se muestran hasta tres peticiones públicas reales, abiertas y sin respuestas visibles.';
+   panel.hidden=false;
+  }catch(_){
+   if(version===firstHelpRequestVersion){panel.hidden=true;list.replaceChildren();}
+  }finally{
+   if(version===firstHelpRequestVersion)refresh.disabled=false;
+  }
+ }
  async function loadList(more=false){
   if(more&&state.loading)return;
   // V3.6.24: evitar mostrar respuestas tardías de otro tema.
@@ -1391,7 +1439,7 @@
   el('resuelveRegisterForm').reset();
   el('resuelveLoginForm').reset();
   renderSession();
-  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions()]);
+  await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions(),loadFirstHelpSpotlight()]);
   if(state.question)await openDetail(state.question.id,false);
   else await loadList();
  }
@@ -1562,7 +1610,7 @@
   bindHelperProfile();
   bindHelpInvitation();
   const isAdmin=renderSession();
-  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions()]);
+  if(state.user)await Promise.all([loadReplyEmailPreference(),loadHelperProfilePreference(),loadHelpSuggestions(),loadSavedSolutions(),loadFirstHelpSpotlight()]);
   await loadPublicHelperProfile();
   // La portada es pública: invitamos a registrarse solo cuando la persona decide participar.
   el('askButton').addEventListener('click',()=>{
@@ -1574,6 +1622,14 @@
   el('closeAsk').addEventListener('click',()=>{el('askPanel').hidden=true;clearSimilar();});
   el('backButton').addEventListener('click',goList);
   el('helpSuggestionsMore').addEventListener('click',()=>document.querySelector('[data-filter="help"]')?.click());
+  el('firstHelpRefreshV36411').addEventListener('click',()=>void loadFirstHelpSpotlight());
+  el('firstHelpAllV36411').addEventListener('click',()=>{
+   const filter=document.querySelector('[data-filter="unanswered"]');
+   if(!filter)return;
+   filter.click();
+   el('questions').scrollIntoView({block:'start',behavior:'auto'});
+   filter.focus({preventScroll:true});
+  });
   // V3.6.25 — acceder rápidamente a las preguntas donde se puede ayudar.
   el('helpOthersButton').addEventListener('click',()=>{
    const personalized=!!state.user&&state.helpTopics.length>0;
@@ -1753,7 +1809,8 @@
   await Promise.all([
    start?openDetail(start,false):loadList(),
    loadSolutions(),
-   loadTopicHubs()
+   loadTopicHubs(),
+   loadFirstHelpSpotlight()
   ]);
  }
  init().catch(()=>message('No se pudo iniciar Resuelve. Inténtalo de nuevo.'));
