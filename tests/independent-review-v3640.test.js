@@ -23,8 +23,9 @@ test('V3.6.40: una opinión no necesita fuente, pero noticias y reportajes compl
 });
 test('V3.6.40: solicitud humana exige consentimiento y revisión positiva',async()=>{
  assert.deepEqual(await review.submit(31,'0',4,true),{error:'datos_incorrectos'});
- assert.deepEqual(await review.submit(31,'9',4,false),{error:'datos_incorrectos'});
- assert.deepEqual(await review.submit(31,'9',0,true),{error:'datos_incorrectos'});
+ assert.deepEqual(await review.submit(31,'9',4,false,true),{error:'datos_incorrectos'});
+ assert.deepEqual(await review.submit(31,'9',4,true,false),{error:'datos_incorrectos'});
+ assert.deepEqual(await review.submit(31,'9',0,true,true),{error:'datos_incorrectos'});
  assert.deepEqual(await review.review(5,'2',1,'approved','',false),{error:'revision_invalida'});
  assert.deepEqual(await review.review(5,'2',1,'rejected','breve',true),{error:'revision_invalida'});
  assert.deepEqual(await review.review(5,'2',1,'publish','aprobado',true),{error:'revision_invalida'});
@@ -47,7 +48,7 @@ test('V3.6.40: envío con snapshot, bloqueo por revisión vieja, y auditoría tr
  db.query=async(sql,args=[])=>{statements.push({sql,args});return{rows:[],rowCount:0};};
  db.pool.connect=async()=>client;
  try{
-  const result=await review.submit(31,'9',4,true);
+  const result=await review.submit(31,'9',4,true,true);
   assert.equal(result.item.id,27);
   assert.ok(statements.some(s=>s.sql==='BEGIN'));
   assert.ok(statements.some(s=>s.sql==='COMMIT'));
@@ -60,7 +61,7 @@ test('V3.6.40: envío con snapshot, bloqueo por revisión vieja, y auditoría tr
   const log=statements.find(s=>s.sql.startsWith('INSERT INTO independent_article_review_events_v3640'));
   assert.deepEqual(log.args,[27,31,'submitted']);
   rows[0].revision=5;
-  assert.deepEqual(await review.submit(31,'9',4,true),{error:'borrador_modificado'});
+  assert.deepEqual(await review.submit(31,'9',4,true,true),{error:'borrador_modificado'});
  }finally{db.query=originalQuery;db.pool.connect=originalConnect;}
 });
 test('V3.6.40: revisión humana sin autopremio, pública ni dinero',async()=>{
