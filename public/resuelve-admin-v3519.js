@@ -168,6 +168,56 @@
    status.textContent=error.message;
   }finally{button.disabled=false;}
  }
+ // V3.6.29 — comprobación manual same-origin; no consulta el índice de Google.
+ async function seoProductionCheck(){
+  const button=el('checkAdminSeoProduction'),status=el('adminSeoProductionStatus');
+  const results=el('adminSeoProductionResults');
+  if(button.disabled)return;
+  button.disabled=true;
+  results.replaceChildren();
+  const checks=window.ResuelveSeoLiveChecks;
+  if(!checks||!Array.isArray(checks.TARGETS)){
+   status.textContent='No se ha cargado el comprobador. Actualiza esta página.';
+   button.disabled=false;return;
+  }
+  const started=new Date();
+  status.textContent='Iniciando revisión de '+checks.TARGETS.length+' direcciones públicas…';
+  const counts={ok:0,warning:0,error:0};
+  try{
+   for(const target of checks.TARGETS){
+    status.textContent='Comprobando '+(counts.ok+counts.warning+counts.error+1)+
+     '/'+checks.TARGETS.length+': '+target.label+'…';
+    const result=await checks.checkTarget(target);
+    const state=['ok','warning','error'].includes(result.status)?result.status:'error';
+    counts[state]++;
+    const item=node('article','resuelve-seo-checked-v3629 status-'+state);
+    const title=node('div','resuelve-seo-checked-header-v3629');
+    const link=node('a',null,result.label);
+    link.href=target.path;
+    link.target='_blank';link.rel='noopener noreferrer';
+    const label=node('strong',null,state==='ok'?'Correcta':state==='warning'?'Revisar':'Error técnico');
+    title.append(link,label);
+    const http=node('p','muted','HTTP '+(result.httpStatus??'sin respuesta')+' · '+
+     (result.details||'Sin detalle'));
+    item.append(title,http);
+    const messages=[
+     ...(Array.isArray(result.issues)?result.issues:[]),
+     ...(Array.isArray(result.warnings)?result.warnings:[])
+    ];
+    if(messages.length){
+     const list=node('ul','resuelve-seo-checked-messages-v3629');
+     for(const message of messages.slice(0,6))list.append(node('li',null,String(message).slice(0,190)));
+     item.append(list);
+    }
+    results.append(item);
+   }
+   status.textContent='Revisión terminada: '+counts.ok+' correctas, '+counts.warning+
+    ' para revisar y '+counts.error+' con errores. Comprobadas desde este navegador a las '+
+    started.toLocaleString('es-ES')+'. No indica indexación en Google.';
+  }catch(_){
+   status.textContent='La revisión se ha interrumpido. Vuelve a ejecutarla desde Administración.';
+  }finally{button.disabled=false;}
+ }
  const requirements=[
   ['qualityReviewed','La solución aporta una explicación útil sin necesidad de comprar o contratar nada.'],
   ['privacyReviewed','He comprobado que no contiene información personal que deba quedar expuesta.'],
@@ -305,6 +355,7 @@
    el('resuelveAdminContent').hidden=false;
    el('refreshAdminImpact').addEventListener('click',impact);
    el('refreshAdminSeo').addEventListener('click',seoDiagnostics);
+   el('checkAdminSeoProduction').addEventListener('click',seoProductionCheck);
    el('refreshActivity7d').addEventListener('click',activity7d);
    el('refreshAdminWork').addEventListener('click',async()=>{await Promise.all([solutions(),reports()]);});
    el('refreshLibraryReview').addEventListener('click',()=>solutions());
