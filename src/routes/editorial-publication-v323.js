@@ -13,6 +13,7 @@ const {editorialAlignmentV32181}=require('../services/editorial-alignment-v32181
 const {safeLocalImageV3222}=require('../services/editorial-image-v3222');
 const {renderIndependentVoicesLanding,renderIndependentVoicesEditor,renderIndependentVoicesReviewPanel}=require('../services/independent-voices-v3638');
 const independentPublicationV3641=require('../services/independent-publication-v3641');
+const independentSupportV3642=require('../services/independent-support-v3642');
 const independentPagesV3641=require('../services/independent-public-pages-v3641');
 
 const admin=express.Router();
@@ -379,6 +380,19 @@ publicRouter.get('/redactores/escribir',(_req,res)=>{
   .replace('</body>','<script src="/editorial-voices-drafts-v3639.js?v=3.6.39" defer></script></body>'));
 });
 // V3.6.41 — independent authors have their own public article namespace.
+// V3.6.42 — public aggregate recognition totals; no contributor identities.
+publicRouter.get('/redactores/voces/:id/apoyos',async(req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!safeId(req.params.id))return res.status(404).json({error:'articulo_no_disponible'});
+ try{
+  const value=await independentSupportV3642.summary(req.params.id);
+  if(!value)return res.status(404).json({error:'articulo_no_disponible'});
+  return res.json({ok:true,count:value.count});
+ }catch(error){
+  console.error('Public article support total unavailable:',error);
+  return res.status(503).json({error:'apoyos_temporalmente_no_disponibles'});
+ }
+});
 publicRouter.get('/redactores/voces/:id',async(req,res)=>{
  const id=safeId(req.params.id);
  if(!id)return res.status(404).type('text/plain').send('Artículo no disponible');
@@ -392,7 +406,7 @@ publicRouter.get('/redactores/voces/:id',async(req,res)=>{
    body:independentPagesV3641.article(article),
    noindex:false,independentVoices:false
   });
-  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"></head>'));
+  res.type('html').send(html.replace('</head>','<link rel="stylesheet" href="/editorial-voices-public-v3641.css?v=3.6.41"><link rel="stylesheet" href="/editorial-voices-support-v3642.css?v=3.6.42"></head>').replace('</body>','<script src="/editorial-voices-support-v3642.js?v=3.6.42" defer></script></body>'));
  }catch(e){console.error('Independent public article failed:',e);res.status(503).type('text/plain').send('Artículo temporalmente no disponible');}
 });
 publicRouter.get('/redactores/voces',async(_req,res)=>{
