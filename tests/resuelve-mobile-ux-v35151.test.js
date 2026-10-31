@@ -14,7 +14,7 @@ test('V3.5.15.1: cabecera mobile-first da prioridad a pedir ayuda y a las petici
  assert.match(hero,/<h1 id="hero-title">Pide ayuda\. Comparte lo que sabes\.<\/h1>/);
  assert.match(hero,/id="heroActions" class="hero-actions"/);
  assert.match(hero,/id="askButton" class="primary hero-main-action"[^>]*hidden>Pedir ayuda<\/button>/);
- assert.match(hero,/id="joinResuelveButton" class="primary hero-main-action"[^>]*hidden>Pedir ayuda<\/button>/);
+ assert.match(hero,/id="joinResuelveButton" class="primary hero-main-action"[^>]*aria-controls="resuelveAuthPanel"[^>]*hidden>Crear cuenta gratis<\/button>/);
  assert.match(hero,/id="loginResuelveButton" class="secondary hero-login"[^>]*hidden>Ya tengo cuenta<\/button>/);
  assert.match(hero,/id="viewQuestionsLink" href="#questions" class="secondary hero-explore">Ver peticiones<\/a>/);
  assert.match(hero,/href="#solutions" class="hero-tertiary">Ver soluciones útiles<\/a>/);
