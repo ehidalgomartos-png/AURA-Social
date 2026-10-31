@@ -52,7 +52,7 @@ test('V3.6.42.1: seguimiento solo en la pestaña He ayudado, sin alertas falsas'
  assert.match(html,/resuelve-contribution-followups-v36421\.css\?v=3\.6\.42\.1/);
  assert.match(html,/No indica que haya respuestas nuevas ni obliga a seguir participando/);
  assert.match(js,/if\(!state\.user\|\|state\.filter!=='contributed'\)return/);
- assert.match(js,/if\(!more&&state\.filter==='contributed'\)renderContributionFollowups\(data\.items\)/);
+ assert.match(js,/if\(!more&&state\.filter==='contributed'&&typeof renderContributionFollowups==='function'\)renderContributionFollowups\(data\.items\)/);
  assert.match(js,/renderContributionFollowups\(\[\]\)/);
  assert.match(js,/bindDetailNavigation\(link,q\.id,'questions'\)/);
  assert.match(js,/openDetail\(q\.id,true,'questions'\)/);
