@@ -1,0 +1,35 @@
+/* V3.6.32 — accesos claros entre peticiones y biblioteca, sin apariencia comercial. */
+.resuelve-community-paths-v3632{
+ margin:18px 0 13px;padding:16px 18px;
+ border:1px solid #cce2e6;border-radius:18px;
+ background:linear-gradient(135deg,#f5fbfa,#fbfdfe);
+ min-width:0;
+}
+.resuelve-community-paths-v3632 h3{
+ margin:0 0 7px;color:#173f52;font-size:1.02rem;line-height:1.4;
+}
+.resuelve-community-paths-v3632 p{margin:0 0 12px;line-height:1.55}
+.resuelve-community-paths-buttons-v3632{
+ display:flex;flex-wrap:wrap;gap:10px;
+}
+.resuelve-community-paths-buttons-v3632 button,
+#solutions .resuelve-browse-questions-v3632{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:46px;max-width:100%;padding:10px 14px;
+ border:1px solid #a8d0d7;border-radius:12px;
+ background:#fff;color:#165772;font-weight:750;
+ text-align:center;line-height:1.4;overflow-wrap:anywhere;
+}
+.resuelve-community-paths-buttons-v3632 button:focus-visible,
+#solutions .resuelve-browse-questions-v3632:focus-visible{
+ outline:3px solid #168b9d;outline-offset:3px;
+}
+#solutions .resuelve-browse-questions-v3632{
+ margin-top:5px;align-self:flex-start;
+}
+@media (max-width:760px){
+ .resuelve-community-paths-v3632{padding:14px;border-radius:16px}
+ .resuelve-community-paths-buttons-v3632{flex-direction:column}
+ .resuelve-community-paths-buttons-v3632 button,
+ #solutions .resuelve-browse-questions-v3632{width:100%;min-height:46px}
+}
