@@ -35,7 +35,7 @@ test('V3.6.40.1: botón llega al formulario existente tras consultar el estado a
  const action=source.slice(idx,last);
  assert.ok(idx>0&&last>idx);
  assert.match(action,/await openDetail\(id,true,'questions'\)/);
- assert.match(action,/String\(state\.question\.id\)===String\(id\)/);
+ assert.match(action,/String\(state\.question\.id\)!==String\(id\)/);
  assert.match(action,/if\(form\.hidden\)return/);
  assert.match(action,/scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
  assert.match(action,/el\('answerBody'\)\.focus\(\{preventScroll:true\}\)/);
