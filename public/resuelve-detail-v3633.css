@@ -1,0 +1,25 @@
+/* V3.6.33 — enlaces de detalle y regreso accesible en móvil y escritorio. */
+#detailPanel{scroll-margin-top:84px;min-width:0}
+#detailPanel #backButton{
+ display:inline-flex;justify-content:center;align-items:center;
+ min-height:45px;max-width:100%;padding:10px 15px;
+ border:1px solid #c2dce5;background:#f5fafc;
+ border-radius:12px;color:#19546d;font-weight:750;
+ line-height:1.4;text-align:center;overflow-wrap:anywhere;
+}
+#detailPanel #backButton:focus-visible,
+#questions .question-card h3 a:focus-visible,
+#solutions .solution-card h3 a:focus-visible{
+ outline:3px solid #168b9d;outline-offset:3px;
+}
+#detailPanel #questionDetail{min-width:0;overflow-wrap:anywhere}
+#detailPanel #answerList{min-width:0}
+#questions,#solutions{scroll-margin-top:84px}
+@media(max-width:650px){
+ #detailPanel{padding:16px}
+ #detailPanel #backButton{display:flex;width:100%;min-height:48px;margin:0 0 16px}
+ #detailPanel .answer,#detailPanel .detail-body{overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:reduce){
+ #detailPanel #backButton{scroll-behavior:auto}
+}
