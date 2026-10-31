@@ -1,0 +1,72 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+const js=read('public/resuelve-v350.js');
+const html=read('public/resuelve.html');
+const css=read('public/resuelve-contribution-followups-v36421.css');
+const service=read('src/services/resuelve-v350.js');
+const routes=read('src/routes/resuelve-v350.js');
+const first=js.indexOf('function contributionFollowupCandidates(items){');
+const last=js.indexOf('function renderContributionFollowups(items){',first);
+const code=js.slice(first,last);
+const q=changes=>({id:'27',my_answer_id:'91',status:'open',answer_count:2,title:'¿Cómo mejorar este trámite?',author_username:'persona',...changes});
+function candidates(items){
+ const ctx={items,result:null};
+ vm.createContext(ctx);
+ vm.runInContext(code+'\nresult=contributionFollowupCandidates(items);',ctx);
+ return Array.from(ctx.result);
+}
+test('V3.6.42.1: solo preguntas abiertas con respuestas propias realmente visibles',()=>{
+ assert.equal(candidates([q({})]).length,1);
+ assert.equal(candidates([q({status:'resolved'})]).length,0);
+ assert.equal(candidates([q({status:'hidden'})]).length,0);
+ assert.equal(candidates([q({my_answer_id:undefined})]).length,0);
+ assert.equal(candidates([q({my_answer_id:'../1'})]).length,0);
+ assert.equal(candidates([q({id:'<script>'})]).length,0);
+ assert.equal(candidates([q({answer_count:0})]).length,0);
+ assert.equal(candidates([q({answer_count:null})]).length,0);
+ assert.equal(candidates([q({answer_count:undefined})]).length,0);
+ assert.equal(candidates([q({answer_count:-3})]).length,0);
+ assert.equal(candidates([q({answer_count:'desconocido'})]).length,0);
+ assert.equal(candidates(Array.from({length:7},(_,i)=>q({id:i+1}))).length,3);
+ assert.deepEqual(candidates(null),[]);
+});
+test('V3.6.42.1: datos privados vienen solo de respuestas visibles de la cuenta real',()=>{
+ assert.match(routes,/router\.get\('\/questions\/answered-by-me',requireAuth/);
+ assert.match(routes,/service\.listMyContributions\(req\.user\.id/);
+ assert.match(service,/WHERE a\.author_id=\$1 AND a\.status='visible' AND q\.author_id<>\$1/);
+ assert.match(service,/q\.status<>'hidden'/);
+ assert.match(service,/u\.status='active'/);
+ assert.match(service,/ORDER BY m\.last_answer_id DESC LIMIT 24/);
+ assert.match(service,/my_answer_id/);
+ assert.match(service,/answer_count/);
+});
+test('V3.6.42.1: seguimiento solo en la pestaña He ayudado, sin alertas falsas',()=>{
+ assert.match(html,/id="contributionFollowupsV36421"[^>]*hidden/);
+ assert.match(html,/id="contributionFollowupsListV36421"/);
+ assert.match(html,/id="contributionFollowupsStatusV36421"/);
+ assert.match(html,/resuelve-contribution-followups-v36421\.css\?v=3\.6\.42\.1/);
+ assert.match(html,/No indica que haya respuestas nuevas ni obliga a seguir participando/);
+ assert.match(js,/if\(!state\.user\|\|state\.filter!=='contributed'\)return/);
+ assert.match(js,/if\(!more&&state\.filter==='contributed'\)renderContributionFollowups\(data\.items\)/);
+ assert.match(js,/renderContributionFollowups\(\[\]\)/);
+ assert.match(js,/bindDetailNavigation\(link,q\.id,'questions'\)/);
+ assert.match(js,/openDetail\(q\.id,true,'questions'\)/);
+ assert.match(js,/No son avisos de no leído/);
+ assert.doesNotMatch(code,/Math\.random|INSERT|fake|notify|localStorage|sessionStorage/);
+ assert.doesNotThrow(()=>new Function(js));
+});
+test('V3.6.42.1: diseño compacto, accesible y no intrusivo en móvil',()=>{
+ assert.match(css,/@media\(max-width:850px\)/);
+ assert.match(css,/@media\(max-width:650px\)/);
+ assert.match(css,/@media\(max-width:350px\)/);
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/min-height:48px/);
+ assert.match(css,/:focus-visible/);
+ assert.match(css,/overflow-wrap:anywhere/);
+ assert.doesNotMatch(css,/position:fixed|pointer-events:none|outline:none/);
+});
