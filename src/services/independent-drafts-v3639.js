@@ -9,7 +9,7 @@ function validateDraft(payload){
  const keys=Object.keys(payload);
  if(keys.some(key=>!['title','body','kind','sources'].includes(key)))return null;
  const title=clean(payload.title),body=clean(payload.body),kind=payload.kind;
- if(title.length<12||title.length>180||body.length<100||body.length>15000||!TYPES.has(kind))return null;
+ if(title.length<3||title.length>180||body.length<1||body.length>15000||!TYPES.has(kind))return null;
  if(!Array.isArray(payload.sources)||payload.sources.length>8)return null;
  const urls=[];
  for(const source of payload.sources){
@@ -21,8 +21,7 @@ function validateDraft(payload){
    urls.push(u.href);
   }catch(_){return null;}
  }
- // Facts presented as news require at least one source. Opinions may be unsourced.
- if(kind==='noticia'&&urls.length===0)return null;
+ // Incomplete sources are allowed ONLY in drafts; publication will require review.
  return {title,body,kind,sources:urls};
 }
 let schemaReady;
