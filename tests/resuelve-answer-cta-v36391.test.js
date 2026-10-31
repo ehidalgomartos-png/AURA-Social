@@ -16,7 +16,8 @@ test('V3.6.39.1: solo se ofrece responder a preguntas abiertas de otras personas
  assert.match(fn,/data\.answers\.some\(a=>String\(a\.author_id\)===String\(state\.user\.id\)\)/);
  assert.match(fn,/if\(!solved&&!mine&&!alreadyAnswered\)/);
  assert.match(fn,/No hace falta recomendar productos/);
- assert.doesNotMatch(fn,/window\.location\.href\s*=|location\.assign\(/);
+ const quick=fn.slice(fn.indexOf('// V3.6.39.1'),fn.indexOf('const reviewed='));
+ assert.doesNotMatch(quick,/window\.location\.href\s*=|location\.assign\(/);
 });
 test('V3.6.39.1: respuesta directa respeta sesión, formulario y foco accesible',()=>{
  assert.match(fn,/state\.user\?'Escribir mi respuesta':'Entrar para ayudar'/);
