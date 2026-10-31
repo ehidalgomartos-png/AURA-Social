@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.35 Mobile footer links, privacy controls and responsive layout
+        run: node --test tests/home-footer-mobile-v3635.test.js
       - name: V3.6.34 Resuelve readable question cards, accessible answers and responsive detail
         run: node --test tests/resuelve-visual-accessibility-v3634.test.js
       - name: V3.6.33 Resuelve shared details, reliable back navigation and mobile checks
