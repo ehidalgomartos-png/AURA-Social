@@ -28,6 +28,7 @@
   <nav class="resuelve-admin-tabs" aria-label="Apartados de administración">
    <a href="#trabajo">Bandeja</a>
    <a href="#impacto">Estadísticas</a>
+   <a href="#seo">SEO público</a>
    <a href="#actividad">Últimos 7 días</a>
    <a href="#soluciones">Soluciones pendientes</a>
    <a href="#confianza">Confianza</a>
@@ -56,6 +57,32 @@
    <p id="adminImpactStatus" class="muted" role="status" aria-live="polite"></p>
    <div id="adminImpactMetrics" class="resuelve-impact-grid"></div>
    <p class="muted">Una respuesta no significa que el problema esté resuelto. Los agradecimientos son voluntarios.</p>
+  </section>
+  <section id="seo" class="panel resuelve-admin-seo-v3628" aria-labelledby="adminSeoTitle">
+   <div class="panel-head">
+    <div>
+     <p class="eyebrow dark">DIAGNÓSTICO INTERNO · SIN DATOS PERSONALES</p>
+     <h2 id="adminSeoTitle">SEO y calidad de páginas públicas</h2>
+     <p class="muted">Se contabilizan únicamente soluciones con autorización del autor y revisión editorial. Cumplir los requisitos internos <strong>no significa estar indexado en Google</strong>. La indexación real se comprueba en Search Console.</p>
+    </div>
+    <button id="refreshAdminSeo" type="button" class="secondary">Actualizar diagnóstico SEO</button>
+   </div>
+   <div id="adminSeoMetrics" class="resuelve-impact-grid"></div>
+   <p id="adminSeoStatus" class="muted" role="status" aria-live="polite">Consultando calidad y consentimientos…</p>
+   <h3>Temas con soluciones autorizadas</h3>
+   <p class="muted">Un tema necesita al menos tres soluciones aptas para incluir su página temática en el sitemap. No se crean temas vacíos para Google.</p>
+   <div id="adminSeoTopics" class="resuelve-seo-topics-v3628"></div>
+   <h3>Comprobar páginas y sitemaps</h3>
+   <nav class="resuelve-seo-links-v3628" aria-label="Recursos públicos de Resuelve">
+    <a href="/sitemap-resuelve.xml" target="_blank" rel="noopener noreferrer">Sitemap de soluciones</a>
+    <a href="/sitemap-resuelve-temas.xml" target="_blank" rel="noopener noreferrer">Sitemap de temas</a>
+    <a href="/sitemap-resuelve-presentacion.xml" target="_blank" rel="noopener noreferrer">Sitemap de guías</a>
+    <a href="/resuelve/como-funciona" target="_blank" rel="noopener noreferrer">Cómo funciona</a>
+    <a href="/resuelve/guia-pedir-ayuda" target="_blank" rel="noopener noreferrer">Guía para pedir ayuda</a>
+    <a href="/resuelve/guia-ayudar-personas" target="_blank" rel="noopener noreferrer">Guía para ayudar</a>
+    <a href="https://search.google.com/search-console/" target="_blank" rel="noopener noreferrer">Consultar la indexación real en Search Console</a>
+   </nav>
+   <p class="muted">Las rutas editoriales están configuradas en la aplicación; este panel no comprueba su disponibilidad HTTP ni el estado de indexación en buscadores.</p>
   </section>
   <section id="actividad" class="panel resuelve-admin-trend" aria-labelledby="activity7dTitle">
    <div class="panel-head">
