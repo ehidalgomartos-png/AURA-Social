@@ -89,7 +89,7 @@ test('V3.6.39: API segura no contiene publicación, votos ni pagos',()=>{
  for(const method of ['get','post','put','delete'])assert.match(routes,new RegExp('router\\.'+method+'\\('));
  assert.match(server,/app\.use\('\/api\/noticias\/redactores',independentDraftsV3639\)/);
  assert.doesNotMatch(routes,/\/publish|\/submit|\/vote|\/tip|\/checkout|stripe\./i);
- assert.doesNotMatch(routes,/requireAdmin/);
+ assert.match(routes,/router\.get\('\/admin\/pendientes',requireAdmin/);
 });
 test('V3.6.39: editor privado sin renderizar HTML de usuarios ni falsa publicación',()=>{
  const landing=renderIndependentVoicesLanding();
@@ -101,7 +101,7 @@ test('V3.6.39: editor privado sin renderizar HTML de usuarios ni falsa publicaci
  assert.match(html,/id="draftFormV3639"/);
  assert.match(html,/id="draftLoginV3639"/);
  assert.match(html,/id="draftListV3639"/);
- assert.match(html,/Ningún borrador se publica ni se envía a revisión/);
+ assert.match(html,/no se publicará automáticamente/);
  assert.match(editorial,/publicRouter\.get\('\/redactores\/escribir'/);
  assert.match(editorial,/noindex:true,independentVoices:true/);
  assert.match(editorial,/editorial-voices-drafts-v3639\.js/);
