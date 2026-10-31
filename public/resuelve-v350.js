@@ -254,7 +254,7 @@
   if(!Array.isArray(items))return [];
   return items.filter(q=>{
    const count=Number(q?.answer_count);
-   if(!/^[1-9]\\d{0,15}$/.test(String(q?.id||''))||q?.status!=='open'||
+   if(!/^[1-9]\d{0,15}$/.test(String(q?.id||''))||q?.status!=='open'||
       q.answer_count===null||q.answer_count===undefined||
       !Number.isSafeInteger(count)||count!==0||q.my_answer_id)return false;
    return !user||(
