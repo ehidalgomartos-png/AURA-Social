@@ -51,10 +51,12 @@
   if(kind==='topics')return TOPICS.some(topic=>url.pathname==='/resuelve/temas/'+topic);
   return false;
  }
- function inspectSitemap(text,target,{Parser}={}){
+ function inspectSitemap(text,target,{Parser,headerRobots=''}={}){
   if(typeof text!=='string'||!Parser)throw Error('analizador_xml_no_disponible');
   const doc=new Parser().parseFromString(text,'application/xml');
   const issues=[],warnings=[];
+  if(/(?:^|[,\s])(?:noindex|none)(?:$|[,\s])/i.test(String(headerRobots||'')))
+   issues.push('El servidor bloquea la indexación del sitemap con X-Robots-Tag.');
   if(doc.getElementsByTagName('parsererror').length||
    doc.documentElement?.localName!=='urlset'){
    return {status:'error',issues:['El documento no contiene un sitemap XML urlset válido.'],
@@ -81,8 +83,9 @@
    entries:urls.length};
  }
  async function checkTarget(target,{fetchImpl,Parser,timers}={}){
-  if(!TARGETS.some(item=>item.path===target?.path&&item.type===target.type))
-   throw Error('ruta_fuera_de_la_lista');
+  const fixed=TARGETS.find(item=>item.path===target?.path&&item.type===target.type);
+  if(!fixed)throw Error('ruta_fuera_de_la_lista');
+  target=fixed;
   const send=fetchImpl||(typeof fetch==='function'?fetch:null);
   const DOMParserClass=Parser||(typeof DOMParser!=='undefined'?DOMParser:null);
   const clocks=timers||{after:(fn,ms)=>setTimeout(fn,ms),clear:id=>clearTimeout(id)};
@@ -95,7 +98,9 @@
     headers:{Accept:target.type==='html'?'text/html':'application/xml,text/xml'},
     signal:controller.signal
    });
-   if(!response||response.status!==200||response.type==='opaqueredirect')
+   if(!response||response.status!==200||response.type==='opaqueredirect'||
+      response.redirected===true||
+      (response.url&&response.url!==ORIGIN+target.path))
     return {path:target.path,label:target.label,status:'error',
      httpStatus:response?.status||null,issues:['No devuelve HTTP 200 sin redirecciones.'],
      warnings:[],details:'Revisar respuesta o destino del enlace.',entries:null};
@@ -117,7 +122,7 @@
      details:'Comprobar el archivo manualmente.',entries:null};
    const report=target.type==='html'?
     inspectHtml(body,target,{Parser:DOMParserClass,headerRobots:response.headers?.get('x-robots-tag')}):
-    inspectSitemap(body,target,{Parser:DOMParserClass});
+    inspectSitemap(body,target,{Parser:DOMParserClass,headerRobots:response.headers?.get('x-robots-tag')});
    return {path:target.path,label:target.label,httpStatus:200,...report};
   }catch(_){
    return {path:target.path,label:target.label,status:'error',httpStatus:null,

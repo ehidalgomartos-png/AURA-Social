@@ -10,6 +10,7 @@
  <link rel="stylesheet" href="/resuelve-v350.css">
  <link rel="stylesheet" href="/resuelve-admin-v3519.css">
  <script src="/resuelve-seo-live-v3629.js" defer></script>
+ <script src="/resuelve-seo-report-v3630.js" defer></script>
  <script src="/resuelve-admin-v3519.js" defer></script>
 </head>
 <body>
@@ -93,6 +94,13 @@
     </div>
     <p id="adminSeoProductionStatus" class="muted" role="status" aria-live="polite">Sin comprobar. Pulsa el botón para iniciar la revisión técnica.</p>
     <div id="adminSeoProductionResults" class="resuelve-seo-production-results-v3629"></div>
+    <div id="adminSeoProductionExport" class="resuelve-seo-export-v3630" hidden>
+     <label for="adminSeoProductionReport"><strong>Informe técnico para corregir incidencias</strong></label>
+     <p class="muted">Incluye solo las seis direcciones públicas comprobadas y el resultado técnico observado. No contiene preguntas, mensajes ni datos de usuarios.</p>
+     <textarea id="adminSeoProductionReport" readonly rows="9" spellcheck="false" aria-label="Informe SEO técnico para copiar"></textarea>
+     <button id="copyAdminSeoProductionReport" type="button" class="secondary">Copiar informe técnico</button>
+     <p id="adminSeoProductionCopyStatus" class="muted" role="status" aria-live="polite"></p>
+    </div>
     <p class="muted">Los resultados describen únicamente lo observado desde este navegador en el momento de la prueba. Un resultado correcto no confirma que Google haya rastreado o indexado una página.</p>
    </div>
   </section>
