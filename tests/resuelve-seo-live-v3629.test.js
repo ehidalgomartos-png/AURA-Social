@@ -48,12 +48,12 @@ function response(text,type,status=200){
  return {status,type:'basic',headers:{get:key=>key==='content-type'?type:null},text:async()=>text};
 }
 
-test('V3.6.29: only the six fixed public paths may be audited',()=>{
+test('V3.6.29: only the six fixed public paths may be audited',async()=>{
  assert.deepEqual(check.TARGETS.map(t=>t.path),[
   '/resuelve/como-funciona','/resuelve/guia-pedir-ayuda','/resuelve/guia-ayudar-personas',
   '/sitemap-resuelve.xml','/sitemap-resuelve-temas.xml','/sitemap-resuelve-presentacion.xml'
  ]);
- assert.throws(()=>check.checkTarget({path:'/api/auth/me',type:'html'}),/ruta_fuera_de_la_lista/);
+ await assert.rejects(()=>check.checkTarget({path:'/api/auth/me',type:'html'}),/ruta_fuera_de_la_lista/);
  assert.equal(check.allowedLocation('solutions',BASE+'/resuelve/solucion/18'),true);
  assert.equal(check.allowedLocation('solutions',BASE+'/resuelve/solucion/18?preview=1'),false);
  assert.equal(check.allowedLocation('solutions','https://other.example/resuelve/solucion/18'),false);
