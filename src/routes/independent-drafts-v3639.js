@@ -2,6 +2,7 @@
 const express=require('express');
 const rateLimit=require('express-rate-limit');
 const {requireAuth}=require('../middleware/auth');
+const db=require('../db');
 const drafts=require('../services/independent-drafts-v3639');
 const router=express.Router();
 const throttle=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'demasiados_intentos'}});
@@ -19,7 +20,15 @@ function sameOrigin(req,res,next){
 }
 router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();});
 router.use(requireAuth);
-router.use((req,res,next)=>req.user.ageVerified===true?next():fail(res,403,'solo_adultos_verificados'));
+// Registration enforces 18+. age_verified is a separate identity-verification flag
+// which starts false for most adult accounts; verify DOB directly instead.
+router.use(async(req,res,next)=>{
+ try{
+  const result=await db.query("SELECT 1 FROM users WHERE id=$1 AND status='active' AND birth_date <= (CURRENT_DATE - INTERVAL '18 years') LIMIT 1",[req.user.id]);
+  if(!result.rowCount)return fail(res,403,'solo_adultos');
+  next();
+ }catch(error){next(error);}
+});
 router.get('/borradores',asyncRoute(async(req,res)=>{
  res.json({ok:true,items:await drafts.list(req.user.id)});
 }));
