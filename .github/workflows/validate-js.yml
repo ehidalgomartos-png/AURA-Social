@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.41.1 Resuelve genuine unanswered question spotlight
+        run: node --test tests/resuelve-first-help-v36411.test.js
       - name: V3.6.41 Independent Voices manual publication, consent and withdrawal
         run: node --test tests/independent-publication-v3641.test.js
       - name: V3.6.40.1 Resuelve truthful first reply and mobile navigation

@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="/resuelve-helper-v3637.css?v=3.6.37">
 <link rel="stylesheet" href="/resuelve-help-cta-v36391.css?v=3.6.39.1">
 <link rel="stylesheet" href="/resuelve-first-reply-v36401.css?v=3.6.40.1">
+<link rel="stylesheet" href="/resuelve-first-help-v36411.css?v=3.6.41.1">
 <script src="/resuelve-v350.js" defer></script>
 </head>
 <body>
@@ -146,6 +147,21 @@
   <p id="helpSuggestionsStatus" class="muted" role="status" aria-live="polite"></p>
  </section>
  <section id="questions" class="section" aria-labelledby="questionsTitle">
+  <section id="firstHelpSpotlightV36411" class="resuelve-first-help-v36411" aria-labelledby="firstHelpSpotlightTitleV36411" hidden>
+   <div class="resuelve-first-help-head-v36411">
+    <div>
+     <p class="eyebrow dark">PERSONAS QUE ESPERAN UNA RESPUESTA</p>
+     <h3 id="firstHelpSpotlightTitleV36411">Quizá tú puedas ser la primera ayuda</h3>
+     <p class="muted">Peticiones reales y recientes que aún no tienen respuestas visibles. A veces un consejo sencillo marca la diferencia.</p>
+    </div>
+    <button id="firstHelpAllV36411" type="button" class="secondary">Ver todas sin respuestas</button>
+   </div>
+   <div id="firstHelpListV36411" class="resuelve-first-help-list-v36411"></div>
+   <div class="resuelve-first-help-foot-v36411">
+    <p id="firstHelpStatusV36411" role="status" aria-live="polite" class="muted"></p>
+    <button id="firstHelpRefreshV36411" type="button" class="plain">Actualizar peticiones</button>
+   </div>
+  </section>
   <div class="section-top"><div><p class="eyebrow dark">LA COMUNIDAD</p><h2 id="questionsTitle">Peticiones y soluciones</h2></div>
    <div class="filters" role="group" aria-label="Filtrar peticiones">
     <button data-filter="open" class="active" type="button" aria-pressed="true">Por resolver</button>
