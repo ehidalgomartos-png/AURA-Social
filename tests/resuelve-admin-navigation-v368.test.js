@@ -10,7 +10,7 @@ test('V3.6.8: todos los accesos del menú privado apuntan a secciones existentes
  const nav=html.match(/<nav class="resuelve-admin-tabs"[\s\S]*?<\/nav>/);
  assert.ok(nav);
  const anchors=[...nav[0].matchAll(/href="#([a-z]+)"/g)].map(m=>m[1]);
- assert.deepEqual(anchors,['trabajo','impacto','actividad','soluciones','confianza','avisos']);
+ assert.deepEqual(anchors,['trabajo','impacto','seo','actividad','soluciones','confianza','avisos']);
  for(const id of anchors)assert.ok(html.includes('id="'+id+'"'),'Falta sección '+id);
  assert.match(html,/id="resuelveAdminContent" hidden/);
  assert.match(html,/noindex,nofollow,noarchive/);
