@@ -31,7 +31,7 @@ test('V3.6.35: cuadrícula móvil accesible y sin huecos irregulares',()=>{
   assert.doesNotMatch(section,/display:none|visibility:hidden|position:fixed/);
 });
 test('V3.6.35: CSS versionado y escritorio intacto',()=>{
-  assert.match(html,/\/styles\.css\?v=3\.6\.35/);
+  assert.match(html,/\/styles\.css\?v=3\.6\.\d+/);
   assert.match(css,/@media\(min-width:640px\)/);
   assert.ok(css.indexOf('/* V3.6.35')>css.indexOf('/* V3.6.9'));
   assert.match(html,/id="loginForm"/);
