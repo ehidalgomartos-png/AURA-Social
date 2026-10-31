@@ -18,6 +18,18 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.52 Admin aggregate summary across Resuelve and published Voices
+        run: node --test tests/admin-services-summary-v3652.test.js
+      - name: V3.6.51 Public author links and mobile article navigation
+        run: node --test tests/voices-author-links-v3651.test.js
+      - name: V3.6.50 Voluntary sharing of unanswered Resuelve requests
+        run: node --test tests/resuelve-share-help-v3650.test.js
+      - name: V3.6.49 Service map SEO and sitemap syntax
+        run: node --test tests/services-map-seo-v3649.test.js
+      - name: V3.6.48 Service map intent direct navigation
+        run: node --test tests/services-map-direct-intents-v3648.test.js
+      - name: V3.6.47 Mobile services link visual hierarchy
+        run: node --test tests/landing-services-link-mobile-v3636.test.js
       - name: V3.6.46 Servicios map cross-links from major RedLibertad sections
         run: node --test tests/services-map-crosslinks-v3646.test.js
       - name: V3.6.45 Explora RedLibertad public services map, search, SEO and mobile
