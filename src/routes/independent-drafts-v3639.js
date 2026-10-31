@@ -1,9 +1,10 @@
 'use strict';
 const express=require('express');
 const rateLimit=require('express-rate-limit');
-const {requireAuth}=require('../middleware/auth');
+const {requireAuth,requireAdmin}=require('../middleware/auth');
 const db=require('../db');
 const drafts=require('../services/independent-drafts-v3639');
+const review=require('../services/independent-review-v3640');
 const router=express.Router();
 const throttle=rateLimit({windowMs:60*60*1000,limit:40,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'demasiados_intentos'}});
 const asyncRoute=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res)).catch(next);
@@ -29,6 +30,23 @@ router.use(async(req,res,next)=>{
   next();
  }catch(error){next(error);}
 });
+// V3.6.40 — humans receive submissions privately; nothing is published.
+router.get('/mis-envios',asyncRoute(async(req,res)=>{
+ res.json({ok:true,items:await review.mySubmissions(req.user.id)});
+}));
+router.post('/borradores/:id/enviar',sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ const result=await review.submit(req.user.id,req.params.id,req.body?.revision,req.body?.certified);
+ if(result.error)return fail(res,result.error==='articulo_incompleto'?400:409,result.error);
+ return res.status(201).json({ok:true,item:result.item,published:false});
+}));
+router.get('/admin/pendientes',requireAdmin,asyncRoute(async(req,res)=>{
+ res.json({ok:true,items:await review.pending(req.user.id)});
+}));
+router.post('/admin/envios/:id/revisar',requireAdmin,sameOrigin,throttle,asyncRoute(async(req,res)=>{
+ const result=await review.review(req.user.id,req.params.id,req.body?.revision,req.body?.decision,req.body?.reason,req.body?.confirmed);
+ if(result.error)return fail(res,result.error==='revision_invalida'?400:409,result.error);
+ return res.json({ok:true,item:result.item,published:false});
+}));
 router.get('/borradores',asyncRoute(async(req,res)=>{
  res.json({ok:true,items:await drafts.list(req.user.id)});
 }));
@@ -61,6 +79,7 @@ router.delete('/borradores/:id',sameOrigin,throttle,asyncRoute(async(req,res)=>{
 // No submit / publish / votes / tips endpoints in this router.
 router.use((err,_req,res,next)=>{
  if(res.headersSent)return next(err);
+ if(err.code==='23503')return res.status(409).json({error:'borrador_en_revision'});
  console.error('Independent drafts route error:',err);
  return res.status(503).json({error:'borradores_temporalmente_no_disponibles'});
 });

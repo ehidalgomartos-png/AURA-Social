@@ -14,7 +14,7 @@ test('V3.6.38: propuesta pública informativa no finge una plataforma ya operati
  const html=renderIndependentVoicesLanding();
  assert.match(html,/<h1 id="voicesTitleV3638">Voces Independientes<\/h1>/);
  assert.match(html,/PROYECTO EN PREPARACIÓN/);
- assert.match(html,/Actualmente no admite envíos, puntuaciones ni propinas/);
+ assert.match(html,/Ya puedes redactar borradores y enviarlos a revisión humana/);
  assert.match(html,/Ahora mismo no se reciben ni se pagan propinas/);
  assert.match(html,/artículos originales/);
  assert.match(html,/Fuentes y revisión/);
