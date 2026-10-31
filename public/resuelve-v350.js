@@ -1124,6 +1124,23 @@
    create('p','detail-body',q.body));
   if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
   const mine=state.user&&String(state.user.id)===String(q.author_id);
+  // V3.6.39.1: ayudar sin buscar el formulario entre todas las respuestas.
+  // No se ofrece responder a preguntas cerradas, propias o ya contestadas.
+  const alreadyAnswered=!!state.user&&Array.isArray(data.answers)&&
+   data.answers.some(a=>String(a.author_id)===String(state.user.id));
+  if(!solved&&!mine&&!alreadyAnswered){
+   const guidance=create('section','resuelve-detail-help-cta-v36391');
+   guidance.append(create('p',null,'¿Puedes aportar una experiencia o un consejo útil? No hace falta recomendar productos.'));
+   const action=button(state.user?'Escribir mi respuesta':'Entrar para ayudar',()=>{
+    if(!state.user){openAuth('login');return;}
+    const answerForm=el('answerForm');
+    if(answerForm.hidden)return;
+    answerForm.scrollIntoView({block:'start',behavior:'auto'});
+    el('answerBody').focus({preventScroll:true});
+   },'secondary resuelve-detail-help-button-v36391');
+   action.setAttribute('aria-controls',state.user?'answerForm':'resuelveAuthPanel');
+   guidance.append(action);host.append(guidance);
+  }
   const reviewed=solved && q.accepted_answer_id!=null && q.library_approved_answer_id!=null && String(q.library_approved_answer_id)===String(q.accepted_answer_id);
   if(mine)host.append(questionTopicControls(q),ownerReminderControl(q));
   if(state.user&&!mine)host.append(questionFollowControl(q));

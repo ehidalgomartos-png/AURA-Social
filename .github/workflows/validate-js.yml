@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.39.1 Resuelve direct answers, login focus and mobile safety
+        run: node --test tests/resuelve-answer-cta-v36391.test.js
       - name: V3.6.39 Independent Voices private drafts, ownership and CSRF
         run: node --test tests/independent-drafts-v3639.test.js
       - name: V3.6.38 Independent voices public proposal and monetization safety

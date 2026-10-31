@@ -82,7 +82,9 @@ test('V3.6.39: API segura no contiene publicación, votos ni pagos',()=>{
  const routes=read('src/routes/independent-drafts-v3639.js');
  const server=read('server.js');
  assert.match(routes,/router\.use\(requireAuth\)/);
- assert.match(routes,/req\.user\.ageVerified===true/);
+ assert.match(routes,/birth_date <= \(CURRENT_DATE - INTERVAL '18 years'\)/);
+ assert.match(routes,/req\.user\.id/);
+ assert.doesNotMatch(routes,/req\.user\.ageVerified===true/);
  assert.match(routes,/sameOrigin,throttle/);
  for(const method of ['get','post','put','delete'])assert.match(routes,new RegExp('router\\.'+method+'\\('));
  assert.match(server,/app\.use\('\/api\/noticias\/redactores',independentDraftsV3639\)/);
