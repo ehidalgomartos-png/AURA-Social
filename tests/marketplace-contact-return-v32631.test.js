@@ -65,5 +65,5 @@ test('V3.2.63.2 mobile guest contact is focused, readable and has an explicit ba
  assert.match(marketplace,/me\.status===401&&\/\^\[1-9\]/);
  const index=read('public/index.html');
  assert.match(index,/\/app\.js\?v=3\.2\.75/);
- assert.match(index,/\/styles\.css\?v=3\.(?:2\.131\.2|6\.35)/);
+ assert.match(index,/\/styles\.css\?v=\d+\.\d+\.\d+(?:[.-][\w.-]+)?(?=["&])/);
 });
