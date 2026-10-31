@@ -1,0 +1,50 @@
+/* V3.6.44.1 — gentle mobile-first navigation inside real Resuelve details. */
+#questionDetail .resuelve-detail-navigation-v36441{
+ display:flex;flex-wrap:wrap;align-items:center;gap:9px;
+ margin:16px 0 11px;padding:12px;
+ border:1px solid #c6e1de;border-radius:13px;
+ background:#f2faf7;min-width:0
+}
+#questionDetail .resuelve-detail-navigation-v36441 .resuelve-detail-nav-action-v36441{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:46px;padding:10px 14px;
+ border:1px solid #a6cfc8;border-radius:10px;
+ background:#fff;color:#155a65;font-weight:800;font-size:.9rem;
+ text-align:center;white-space:normal;overflow-wrap:anywhere
+}
+#questionDetail .resuelve-detail-navigation-v36441 .resuelve-detail-nav-action-v36441:hover{
+ background:#e4f4ee;border-color:#7fb7ad
+}
+#questionDetail .resuelve-detail-empty-v36441{
+ color:#456773;font-size:.89rem;line-height:1.5;font-weight:650;min-width:0
+}
+#answerList{scroll-margin-top:25px;min-width:0}
+#answerList :is(article,header,p){overflow-wrap:anywhere}
+#questionDetail .resuelve-clarification{scroll-margin-top:20px}
+#answerList .resuelve-back-to-question-v36441{
+ display:block;min-height:46px;max-width:100%;
+ padding:10px 16px;margin:19px 0 4px;
+ border:1px solid #abcfd6;border-radius:11px;background:#f1f8f9;
+ color:#18576c;font-weight:800;text-align:center;white-space:normal
+}
+#questionDetail .resuelve-detail-navigation-v36441 button:focus-visible,
+#answerList .resuelve-back-to-question-v36441:focus-visible,
+#resuelveAnswersTitle:focus-visible,#detailTitle:focus-visible{
+ outline:3px solid #0e8a96;outline-offset:3px
+}
+@media(max-width:650px){
+ #questionDetail .resuelve-detail-navigation-v36441{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:11px;
+ }
+ #questionDetail .resuelve-detail-navigation-v36441 .resuelve-detail-nav-action-v36441{
+  min-height:48px;min-width:0;width:100%;padding:10px 9px
+ }
+ #questionDetail .resuelve-detail-empty-v36441{grid-column:1 / -1}
+ #answerList .resuelve-back-to-question-v36441{min-height:48px;width:100%}
+}
+@media(max-width:370px){
+ #questionDetail .resuelve-detail-navigation-v36441{grid-template-columns:minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce){
+ #questionDetail .resuelve-detail-navigation-v36441{scroll-behavior:auto}
+}

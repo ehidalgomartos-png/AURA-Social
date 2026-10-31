@@ -1242,12 +1242,50 @@
    for(const host of hosts()){host.replaceChildren(create('p','muted','No se pudieron cargar las aclaraciones.'));}
   }
  }
+ // V3.6.44.1 — contextual shortcuts to real detail sections; no new data/alerts.
+ function detailQuickNavigation(q,count,mine){
+  const nav=create('nav','resuelve-detail-navigation-v36441');
+  nav.setAttribute('aria-label','Accesos directos de esta petición');
+  const safeCount=Number.isSafeInteger(count)&&count>=0?count:0;
+  if(safeCount>0){
+   const link=button(safeCount===1?'Ver la respuesta':'Ver '+safeCount+' respuestas',()=>{
+    const section=el('answerList');
+    section.scrollIntoView({block:'start',behavior:'auto'});
+    const heading=el('resuelveAnswersTitle');
+    if(heading)heading.focus({preventScroll:true});
+   },'secondary resuelve-detail-nav-action-v36441');
+   link.setAttribute('aria-controls','answerList');
+   nav.append(link);
+  }else nav.append(create('span','resuelve-detail-empty-v36441','Todavía no hay respuestas visibles.'));
+  if(mine&&q.status==='open'){
+   const clarify=button('Añadir una aclaración',()=>{
+    const block=el('questionDetail').querySelector('details.resuelve-clarification');
+    if(!block)return;
+    block.open=true;
+    block.scrollIntoView({block:'start',behavior:'auto'});
+    const field=block.querySelector('textarea');
+    if(field)field.focus({preventScroll:true});
+   },'secondary resuelve-detail-nav-action-v36441');
+   nav.append(clarify);
+  }
+  if(q.status==='open'){
+   nav.append(button('Enviar esta pregunta',()=>{
+    const toggle=el('resuelveExtras').querySelector('.question-share-toggle');
+    if(!toggle)return;
+    if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();
+    toggle.scrollIntoView({block:'start',behavior:'auto'});
+    toggle.focus({preventScroll:true});
+   },'secondary resuelve-detail-nav-action-v36441'));
+  }
+  return nav;
+ }
  function renderDetail(data){
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
   const solved=q.status==='resolved';
   const detailHeading=create('h2',null,q.title);
   detailHeading.id='detailTitle';
+  detailHeading.tabIndex=-1;
   host.append(meta(chip(solved?'Solución encontrada':'Por resolver',solved),
    chip(categories[q.category]||'Petición'),
    ...(q.professional_help_requested?[chip('Pide orientación profesional')]:[])),
@@ -1260,6 +1298,7 @@
   // No se ofrece responder a preguntas cerradas, propias o ya contestadas.
   const alreadyAnswered=!!state.user&&Array.isArray(data.answers)&&
    data.answers.some(a=>String(a.author_id)===String(state.user.id));
+  host.append(detailQuickNavigation(q,Array.isArray(data.answers)?data.answers.length:0,mine));
   if(!solved&&!mine&&!alreadyAnswered){
    const guidance=create('section','resuelve-detail-help-cta-v36391');
    guidance.append(create('p',null,'¿Puedes aportar una experiencia o un consejo útil? No hace falta recomendar productos.'));
@@ -1341,6 +1380,7 @@
   }));
   const h=create('h3','',solved?'Respuestas y solución':'Respuestas de la comunidad');
   h.id='resuelveAnswersTitle';
+  h.tabIndex=-1;
   h.append(create('span','resuelve-answer-count-v3634',' · '+data.answers.length));
   list.append(h);
   if(!data.answers.length)list.append(create('p','muted','Todavía no hay respuestas. La primera recomendación puede ayudar mucho.'));
@@ -1403,6 +1443,13 @@
    list.append(item);
   }
   void loadAnswerFollowups(q.id);
+  if(data.answers.length){
+   const back=button('Volver al inicio de la pregunta',()=>{
+    el('detailPanel').scrollIntoView({block:'start',behavior:'auto'});
+    el('detailTitle').focus({preventScroll:true});
+   },'plain resuelve-back-to-question-v36441');
+   list.append(back);
+  }
   const form=el('answerForm');
   form.hidden=!(state.user&&!mine&&!solved);
   if(!state.user&&!solved){
