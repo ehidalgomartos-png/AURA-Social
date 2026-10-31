@@ -92,7 +92,7 @@ test('V3.6.30: report remains admin-only, manual, mobile-friendly, selectable an
  assert.match(js,/reportInput\.value=''/);
  assert.doesNotMatch(js+helper,/\.innerHTML\s*=/);
  assert.doesNotMatch(js.slice(js.indexOf('async function seoProductionCheck'),js.indexOf('const requirements=[')),/search\.google\.com|googleapis\.com|INSERT INTO|DELETE FROM/);
- assert.match(css,/\.resuelve-seo-export-v3630\[hidden\]\{display:none\}/);
+ assert.match(css,/\.resuelve-seo-export-v3630\[hidden\]\{display:\s*none\}/);
  assert.match(css,/@media\(max-width:650px\)/);
  assert.match(css,/min-height:46px/);
  assert.doesNotThrow(()=>new Function(js));
