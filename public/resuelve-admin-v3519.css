@@ -134,3 +134,41 @@
  }
  .resuelve-admin-tabs a:first-child{grid-column:auto}
 }
+
+/* V3.6.28 — informe SEO privado: lectura cómoda, datos reales y enlaces seguros. */
+.resuelve-admin-wrap #seo{scroll-margin-top:95px}
+.resuelve-admin-seo-v3628 h3{
+ margin:24px 0 8px;font-size:1.08rem;color:#194c61;
+}
+.resuelve-admin-seo-v3628 .resuelve-impact-grid{margin:15px 0 10px}
+.resuelve-seo-topics-v3628{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:11px;margin:14px 0 20px;
+}
+.resuelve-seo-topic-card-v3628{
+ display:grid;align-content:start;gap:7px;min-width:0;
+ padding:16px;border:1px solid #cbdfe4;border-radius:16px;background:#f8fbfc;
+}
+.resuelve-seo-topic-card-v3628 strong{color:#164e61;font-size:1rem}
+.resuelve-seo-topic-card-v3628 span{color:#174b65;font-weight:750;line-height:1.5}
+.resuelve-seo-topic-card-v3628 small{color:#57717e;font-size:.82rem;line-height:1.5}
+.resuelve-seo-links-v3628{display:flex;flex-wrap:wrap;gap:9px;margin:13px 0}
+.resuelve-seo-links-v3628 a{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:45px;padding:10px 13px;
+ border:1px solid #bcd6e3;border-radius:11px;background:#f5fbfc;
+ color:#145c79;font-size:.88rem;font-weight:750;text-decoration:none;text-align:center;
+ overflow-wrap:anywhere;
+}
+.resuelve-seo-links-v3628 a:focus-visible{
+ outline:3px solid #137f94;outline-offset:3px;
+}
+@media(max-width:850px){
+ .resuelve-seo-topics-v3628{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .resuelve-seo-topics-v3628{grid-template-columns:minmax(0,1fr);gap:8px}
+ .resuelve-seo-topic-card-v3628{padding:13px;border-radius:14px}
+ .resuelve-seo-links-v3628{display:grid;grid-template-columns:minmax(0,1fr)}
+ .resuelve-seo-links-v3628 a{width:100%;min-height:47px}
+}

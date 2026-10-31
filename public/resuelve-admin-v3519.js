@@ -94,6 +94,80 @@
   }catch(err){status.textContent=err.message;}
   finally{button.disabled=false;}
  }
+ // V3.6.28 — cifras SEO internas: no se interpreta como indexación de Google.
+ async function seoDiagnostics(){
+  const button=el('refreshAdminSeo');
+  if(button.disabled)return;
+  const status=el('adminSeoStatus'),grid=el('adminSeoMetrics'),topicsHost=el('adminSeoTopics');
+  button.disabled=true;
+  status.textContent='Consultando soluciones consentidas y calidad editorial…';
+  try{
+   const data=await api('/api/resuelve/admin/seo-diagnostics');
+   const counters=[
+    ['consentedResolved','Resueltas con autorización SEO vigente'],
+    ['eligibleSolutions','Soluciones aptas para ficha pública'],
+    ['awaitingEditorial','Con respuesta visible pendientes de revisión'],
+    ['shortContent','Revisadas, pero sin contenido suficiente'],
+    ['unavailableAnswer','Sin respuesta aceptada y visible disponible'],
+    ['withoutTopic','Soluciones aptas sin un tema reconocido'],
+    ['readyTopics','Temas aptos para sitemap']
+   ];
+   const readCount=value=>{
+    const number=Number(value);
+    if(!Number.isSafeInteger(number)||number<0)throw Error('El diagnóstico contiene cifras inválidas.');
+    return number;
+   };
+   const metrics=Object.fromEntries(counters.map(([key])=>[key,readCount(data.metrics?.[key])]));
+   if(data.requirements?.googleIndexingVerified!==false||
+    data.requirements?.topicMinimum!==3||
+    data.requirements?.solutionsSitemapLimit!==2000||
+    typeof data.metrics?.sitemapLimitReached!=='boolean')
+    throw Error('No se ha podido validar el diagnóstico recibido.');
+   const topicNames={
+    hogar:'Hogar',tecnologia:'Tecnología',tramites:'Trámites',
+    estudios:'Estudios','vida-cotidiana':'Vida cotidiana'
+   };
+   if(!Array.isArray(data.topics)||data.topics.length!==Object.keys(topicNames).length)
+    throw Error('Falta el detalle de temas.');
+   const seen=new Set(),topicCards=[];
+   for(const entry of data.topics){
+    if(!Object.prototype.hasOwnProperty.call(topicNames,entry.slug)||seen.has(entry.slug))
+     throw Error('Tema SEO desconocido.');
+    seen.add(entry.slug);
+    const count=readCount(entry.eligible),missing=readCount(entry.missing);
+    const ready=count>=3;
+    if(entry.ready!==ready||missing!==Math.max(0,3-count))
+     throw Error('El tema contiene cifras contradictorias.');
+    const card=node('article','resuelve-seo-topic-card-v3628');
+    const caption=node('strong',null,topicNames[entry.slug]);
+    const amount=node('span',null,count+' solución'+(count===1?'':'es')+' apta'+(count===1?'':'s'));
+    const explanation=node('small',null,ready?'Cumple el mínimo para la página temática':
+     count?'Faltan '+missing+' solución'+(missing===1?'':'es')+' apta'+(missing===1?'':'s'):
+     'Todavía no tiene soluciones aptas para la página temática');
+    card.append(caption,amount,explanation);
+    topicCards.push(card);
+   }
+   if(metrics.readyTopics!==data.topics.filter(x=>x.ready===true).length)
+    throw Error('El número de temas listos no coincide.');
+   const tiles=counters.map(([key,label])=>{
+    const tile=node('article','resuelve-impact-tile');
+    tile.append(node('strong',null,metrics[key].toLocaleString('es-ES')),node('span',null,label));
+    return tile;
+   });
+   grid.replaceChildren(...tiles);
+   topicsHost.replaceChildren(...topicCards);
+   const when=new Date(data.asOf);
+   const asOf=Number.isNaN(when.getTime())?'Actualizado ahora.':
+    'Actualizado: '+when.toLocaleString('es-ES')+'.';
+   status.textContent=asOf+
+    ' Estos valores indican requisitos internos, no páginas indexadas por Google.'+
+    (data.metrics.sitemapLimitReached?
+     ' Atención: hay más de 2.000 soluciones aptas y el sitemap actual tiene un límite de 2.000. Revisar su ampliación.':'');
+  }catch(error){
+   grid.replaceChildren();topicsHost.replaceChildren();
+   status.textContent=error.message;
+  }finally{button.disabled=false;}
+ }
  const requirements=[
   ['qualityReviewed','La solución aporta una explicación útil sin necesidad de comprar o contratar nada.'],
   ['privacyReviewed','He comprobado que no contiene información personal que deba quedar expuesta.'],
@@ -230,6 +304,7 @@
    el('resuelveAdminAccess').hidden=true;
    el('resuelveAdminContent').hidden=false;
    el('refreshAdminImpact').addEventListener('click',impact);
+   el('refreshAdminSeo').addEventListener('click',seoDiagnostics);
    el('refreshActivity7d').addEventListener('click',activity7d);
    el('refreshAdminWork').addEventListener('click',async()=>{await Promise.all([solutions(),reports()]);});
    el('refreshLibraryReview').addEventListener('click',()=>solutions());
@@ -238,6 +313,7 @@
    el('moreLibraryReview').addEventListener('click',()=>solutions(true));
    el('moreAdminReports').addEventListener('click',()=>reports(true));
    // Cargar de forma independiente para que un error no impida acceder a otros paneles.
+   void seoDiagnostics();
    await Promise.all([impact(),solutions(),reports(),trustSummary(),activity7d()]);
   }catch(err){
    el('resuelveAdminAccess').textContent=err.message+
