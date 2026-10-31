@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.34 Resuelve readable question cards, accessible answers and responsive detail
+        run: node --test tests/resuelve-visual-accessibility-v3634.test.js
       - name: V3.6.33 Resuelve shared details, reliable back navigation and mobile checks
         run: node --test tests/resuelve-detail-navigation-v3633.test.js
       - name: V3.6.32 Resuelve questions and reviewed solutions navigation, privacy and mobile checks

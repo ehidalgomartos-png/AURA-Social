@@ -44,6 +44,9 @@
  function card(q){
   const article=create('article','question-card');
   const heading=create('h3',null,q.title);
+  // V3.6.34: cada tarjeta tiene un título accesible, sin texto generado ni HTML de usuario.
+  heading.id='resuelve-question-title-'+String(q.id);
+  article.setAttribute('aria-labelledby',heading.id);
   const headingLink=create('a',null,q.title);
   headingLink.href='/resuelve?id='+encodeURIComponent(q.id);
   heading.textContent='';heading.append(headingLink);
@@ -364,6 +367,8 @@
  function solutionCard(q){
   const article=create('article','question-card solution-card');
   const heading=create('h3');
+  heading.id='resuelve-solution-title-'+String(q.id);
+  article.setAttribute('aria-labelledby',heading.id);
   const link=create('a',null,q.title);
   link.href='/resuelve?id='+encodeURIComponent(q.id);
   bindDetailNavigation(link,q.id,'solutions');
@@ -1109,10 +1114,12 @@
   const q=data.question,host=el('questionDetail'),list=el('answerList');
   host.replaceChildren();list.replaceChildren();
   const solved=q.status==='resolved';
+  const detailHeading=create('h2',null,q.title);
+  detailHeading.id='detailTitle';
   host.append(meta(chip(solved?'Solución encontrada':'Por resolver',solved),
    chip(categories[q.category]||'Petición'),
    ...(q.professional_help_requested?[chip('Pide orientación profesional')]:[])),
-   create('h2','',q.title),meta(create('span',null,'Publicado por @'+q.author_username),
+   detailHeading,meta(create('span',null,'Publicado por @'+q.author_username),
     create('span',null,date(q.created_at))),
    create('p','detail-body',q.body));
   if(q.professional_help_requested)host.append(create('p','muted','Esta persona solicita orientación sobre qué profesional podría ayudarla. No es una petición de presupuesto ni implica contratar a nadie.'));
@@ -1184,13 +1191,18 @@
    catch(e){message(e.message);}
   }));
   const h=create('h3','',solved?'Respuestas y solución':'Respuestas de la comunidad');
+  h.id='resuelveAnswersTitle';
+  h.append(create('span','resuelve-answer-count-v3634',' · '+data.answers.length));
   list.append(h);
   if(!data.answers.length)list.append(create('p','muted','Todavía no hay respuestas. La primera recomendación puede ayudar mucho.'));
   for(const a of data.answers){
    const accepted=String(a.id)===String(q.accepted_answer_id);
    const item=create('article','answer'+(accepted?' accepted':''));
    item.id='resuelve-answer-'+a.id;
-   item.append(create('header','', '@'+a.author_username+' · '+date(a.created_at)),
+   const authorHeading=create('header',null,'@'+a.author_username+' · '+date(a.created_at));
+   authorHeading.id='resuelve-answer-author-'+String(a.id);
+   item.setAttribute('aria-labelledby',authorHeading.id);
+   item.append(authorHeading,
     answerContent(a.body,a.professional_role,a.self_professional_role,a.self_commercial_interest));
    const actions=create('div','answer-actions');
    if(accepted)actions.append(chip('✓ Solución elegida',true));
