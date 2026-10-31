@@ -1,0 +1,57 @@
+/* V3.6.27 — guías de participación: legibles en escritorio y móvil, sin efectos invasivos. */
+.resuelve-guide-v3627{max-width:1030px;padding-bottom:42px}
+.resuelve-guide-breadcrumbs{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 16px;
+ font-size:.89rem;color:#3e6474;line-height:1.5;
+}
+.resuelve-guide-breadcrumbs [aria-current="page"]{overflow-wrap:anywhere}
+.resuelve-guide-breadcrumbs a{font-weight:700}
+.resuelve-guide-hero{
+ margin:0 0 18px;padding:clamp(22px,4vw,38px);
+ border:1px solid #c9e0e4;border-radius:23px;
+ background:radial-gradient(circle at 94% 12%,rgba(33,144,153,.12),transparent 48%),
+ linear-gradient(140deg,#f4fafb,#fff);
+}
+.resuelve-guide-hero h1{
+ max-width:800px;margin:7px 0 18px;line-height:1.15;
+ font-size:clamp(1.9rem,4.2vw,3.1rem);letter-spacing:-.035em;color:#143e52;
+ text-wrap:balance;
+}
+.resuelve-guide-intro{max-width:790px;font-size:1.06rem;line-height:1.7;color:#244b60}
+.resuelve-guide-hero .muted{font-size:.86rem;margin:10px 0 0}
+.resuelve-guide-body{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}
+.resuelve-guide-body .resuelve-about-section{margin:7px 0}
+.resuelve-guide-body .resuelve-about-section h2{
+ font-size:clamp(1.25rem,2.6vw,1.6rem);margin:0 0 12px;
+}
+.resuelve-guide-body .resuelve-about-section p{line-height:1.78;max-width:83ch}
+.resuelve-guide-body .resuelve-about-section a{font-weight:700}
+.resuelve-guide-list{padding-left:22px;color:#2b4f62;max-width:85ch}
+.resuelve-guide-list li{line-height:1.75;padding:5px 0}
+.resuelve-guide-next{
+ margin:22px 0 10px;padding:clamp(20px,4vw,32px);
+ background:#ebf6f5;border:1px solid #c7e0dc;border-radius:19px;
+}
+.resuelve-guide-next h2{margin:0 0 10px;color:#164e58}
+.resuelve-guide-next p{max-width:75ch;line-height:1.7}
+.resuelve-guide-next .resuelve-about-actions{margin-bottom:0}
+.resuelve-guide-next .resuelve-about-actions .primary{
+ background:#145f74;border:1px solid #145f74;color:#fff;
+}
+.resuelve-guide-next .resuelve-about-actions .secondary{
+ color:#14536a;background:#fff;border-color:#b5ced8;
+}
+.resuelve-guide-v3627 a:focus-visible{
+ outline:3px solid #138a98;outline-offset:3px;
+}
+@media(max-width:720px){
+ .resuelve-guide-v3627{padding-bottom:24px}
+ .resuelve-guide-breadcrumbs{margin:8px 0 12px}
+ .resuelve-guide-hero{padding:20px 17px;border-radius:19px}
+ .resuelve-guide-hero h1{font-size:clamp(1.65rem,6.6vw,2.15rem)}
+ .resuelve-guide-intro{font-size:1rem}
+ .resuelve-guide-body .resuelve-about-section{padding:17px}
+ .resuelve-guide-next{padding:19px 16px;border-radius:17px}
+ .resuelve-guide-next .resuelve-about-actions a{min-height:46px}
+}
+@media(prefers-reduced-motion:reduce){.resuelve-guide-v3627{scroll-behavior:auto}}
