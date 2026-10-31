@@ -369,6 +369,9 @@
    publicLink.href='/resuelve/solucion/'+encodeURIComponent(q.id);
    article.append(publicLink,solutionShareControl(q));
   }
+  // V3.6.32: las soluciones y las preguntas se conectan sin exigir registro.
+  article.append(button('Ver preguntas abiertas de esta categoría',
+   ()=>browseCommunity(q.category,'questions'),'secondary resuelve-browse-questions-v3632'));
   return article;
  }
  // V3.6.31 — resultados de biblioteca coherentes incluso al cambiar filtros deprisa.
@@ -503,6 +506,49 @@
   el('solutions').hidden=open;
   el('askPanel').hidden=true;
  }
+
+ // V3.6.32 — navegación voluntaria entre preguntas y soluciones, solo con filtros reales.
+ function browseCommunity(category,view){
+  if(view!=='solutions'&&view!=='questions')return;
+  const selected=Object.prototype.hasOwnProperty.call(categories,category)?category:'';
+  // Una petición puede estar abierta en el detalle; el botón Atrás podrá devolverla.
+  if(!el('detailPanel').hidden)history.pushState({},'', '/resuelve');
+  state.question=null;
+  displayDetail(false);
+  if(view==='solutions'){
+   state.solutionCategory=selected;
+   state.solutionSearch='';
+   el('solutionFilterForm').reset();
+   el('solutionCategory').value=selected;
+   void loadSolutions(); // El servidor solo devuelve soluciones revisadas.
+   el('solutions').scrollIntoView({block:'start',behavior:'auto'});
+   return;
+  }
+  state.category=selected;
+  state.search='';
+  state.topic='';
+  state.professionalOnly=false;
+  el('questionSearchForm').reset();
+  el('questionCategoryFilter').value=selected;
+  el('questionSearchForm').hidden=false;
+  el('questionTopicDiscovery').hidden=false;
+  el('helpTopicsPanel').hidden=true;
+  // Dejar visible el filtro elegido, no ocultarlo dentro de «Más filtros».
+  el('questionAdvancedFilters').hidden=!selected;
+  el('questionMoreFiltersToggle').setAttribute('aria-expanded',selected?'true':'false');
+  el('questionMoreFiltersToggle').textContent=selected?'Más filtros (1)':'Más filtros';
+  el('questionMoreFiltersToggle').setAttribute('aria-label',
+   selected?'Más filtros, 1 filtro activo':'Más filtros');
+  for(const tab of document.querySelectorAll('[data-question-topic]')){
+   const active=tab.dataset.questionTopic==='';
+   tab.classList.toggle('active',active);
+   tab.setAttribute('aria-pressed',active?'true':'false');
+  }
+  // Reutilizamos la búsqueda de preguntas abiertas; no inventamos resultados.
+  const open=document.querySelector('[data-filter="open"]');
+  if(open)open.click();
+  el('questions').scrollIntoView({block:'start',behavior:'auto'});
+ }
  async function openDetail(id,push=true){
   if(!/^[1-9]\d{0,15}$/.test(String(id)))return;
   displayDetail(true);el('questionDetail').textContent='Cargando petición…';
@@ -571,6 +617,16 @@
   wrap.append(create('h3',null,'Difunde esta petición para recibir más ayuda'),
    create('p','muted','Si conoces a alguien que pueda orientar, envíale la pregunta directamente. Siempre decides con quién compartirla.'),
    questionShareControl(q));
+  // V3.6.32: navegar por categorías reales, sin prometer recomendaciones personales.
+  const discover=create('div','resuelve-community-paths-v3632');
+  discover.append(create('h3',null,'Sigue explorando ayuda de la comunidad'),
+   create('p','muted','Consulta otras experiencias revisadas o descubre preguntas abiertas de esta categoría. La biblioteca solo muestra respuestas aprobadas.'));
+  const paths=create('div','resuelve-community-paths-buttons-v3632');
+  paths.append(button('Ver soluciones revisadas de esta categoría',
+    ()=>browseCommunity(q.category,'solutions'),'secondary'),
+   button('Ver preguntas abiertas de esta categoría',
+    ()=>browseCommunity(q.category,'questions'),'secondary'));
+  discover.append(paths);wrap.append(discover);
   const links=create('div','resuelve-related-actions');
   const communities=create('a','secondary','Explorar comunidades');
   communities.href='/comunidades';
