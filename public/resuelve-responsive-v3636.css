@@ -1,0 +1,135 @@
+/* V3.6.36 — Resuelve: acceso y formularios legibles por dispositivo.
+ * Solo presentación. Sin modificar sesiones, consentimientos ni publicación. */
+#resuelveAuthPanel .panel-head{align-items:flex-start}
+#resuelveAuthPanel .panel-head>div{min-width:0}
+#resuelveAuthPanel #closeResuelveAuth,
+#askPanel #closeAsk{
+ min-height:44px;
+ flex:0 0 auto;
+ padding:10px 13px;
+ border:1px solid #c7dce6;
+ border-radius:11px;
+ background:#f4fafc;
+ color:#165775;
+}
+#resuelveAuthPanel .resuelve-auth-tabs button{
+ min-height:48px;
+}
+#resuelveLoginForm .resuelve-auth-help-v3636{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
+ margin-top:12px;
+ padding-top:13px;
+ border-top:1px solid #dce9ee;
+}
+#resuelveLoginForm .resuelve-auth-help-v3636 a{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ min-width:0;
+ min-height:46px;
+ padding:11px 13px;
+ border:1px solid #c6dce6;
+ border-radius:12px;
+ background:#f5fafc;
+ color:#145773;
+ font-size:.91rem;
+ font-weight:750;
+ line-height:1.4;
+ text-align:center;
+ text-decoration:none;
+ overflow-wrap:anywhere;
+}
+#resuelveLoginForm .resuelve-auth-help-v3636 a:hover{
+ border-color:#91c6d5;
+ background:#eaf7f9;
+ text-decoration:underline;
+ text-underline-offset:3px;
+}
+#resuelveLoginForm .resuelve-auth-help-v3636 a:focus-visible,
+#resuelveAuthPanel #closeResuelveAuth:focus-visible,
+#askPanel #closeAsk:focus-visible{
+ outline:3px solid #168a99;
+ outline-offset:3px;
+}
+#askPanel,#detailPanel,#resuelveAuthPanel{min-width:0}
+#askPanel #askForm,#detailPanel #answerForm,
+#resuelveAuthPanel .resuelve-auth-form{min-width:0}
+#askPanel #askForm :is(input,textarea,select),
+#detailPanel #answerForm :is(input,textarea,select){
+ min-width:0;
+ max-width:100%;
+}
+@media(min-width:651px) and (max-width:959px){
+ #questionSearchForm.resuelve-search{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+ }
+ #questionSearchForm .resuelve-search-main{grid-column:1}
+ #questionSearchForm .resuelve-search-actions{
+  grid-column:2;
+  flex-wrap:nowrap;
+ }
+ #questionSearchForm .resuelve-search-advanced{grid-column:1/-1}
+}
+@media(max-width:650px){
+ #resuelveAuthPanel .panel-head,
+ #askPanel .panel-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+ }
+ #resuelveAuthPanel .panel-head h2,
+ #askPanel .panel-head h2{overflow-wrap:anywhere}
+ #resuelveLoginForm .resuelve-auth-help-v3636{
+  grid-template-columns:minmax(0,1fr);
+  gap:9px;
+ }
+ #resuelveLoginForm .resuelve-auth-help-v3636 a{
+  justify-content:flex-start;
+  text-align:left;
+  min-height:48px;
+  font-size:.94rem;
+ }
+ /* Evita el zoom involuntario de Safari al enfocar campos en móvil. */
+ #resuelveAuthPanel .resuelve-auth-form>input,
+ #askPanel #askForm :is(input,textarea,select),
+ #detailPanel #answerForm :is(input,textarea,select),
+ #questionSearchForm input,
+ #solutionFilterForm :is(input,select){
+  font-size:16px;
+ }
+ #resuelveAuthPanel #resuelveSignupBirthDate{
+  min-width:0;
+  max-width:100%;
+ }
+ #resuelveAuthPanel .resuelve-auth-form>.primary{
+  min-height:48px;
+  overflow-wrap:anywhere;
+  text-align:center;
+ }
+ #askPanel #askForm .form-bottom{align-items:stretch}
+ #askPanel #askForm .form-bottom>.primary{min-height:48px}
+ #detailPanel #answerForm>.primary{width:100%;min-height:48px}
+ .foot{
+  text-align:left;
+  padding:20px 17px calc(22px + env(safe-area-inset-bottom, 0px));
+  line-height:1.65;
+ }
+ .foot a{
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+ }
+}
+@media(max-width:355px){
+ #resuelveAuthPanel .panel-head,
+ #askPanel .panel-head{grid-template-columns:minmax(0,1fr)}
+ #resuelveAuthPanel #closeResuelveAuth,
+ #askPanel #closeAsk{justify-self:start}
+ #resuelveAuthPanel .resuelve-auth-tabs button{font-size:.86rem;overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:reduce){
+ #resuelveLoginForm .resuelve-auth-help-v3636 a{scroll-behavior:auto}
+}
