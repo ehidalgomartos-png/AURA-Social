@@ -99,7 +99,7 @@ test('V3.6.52: centro m√≥vil presenta el resumen sin datos sensibles ni inyecci√
  assert.match(route,/router.use\(requireAdmin\)/);
  assert.match(js,/service[s]?-summary\?days=/);
  assert.match(js,/renderServiceStatsV3652/);
- assert.match(js,/number===null/);
+ assert.match(js,/number!==null&&Number\.isSafeInteger\(number\)/);
  assert.match(js,/replaceChildren\(\.\.\.cards\)/);
  assert.doesNotMatch(js,/innerHTML/);
  assert.match(css,/@media\(max-width:520px\)/);
