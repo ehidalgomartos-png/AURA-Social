@@ -77,7 +77,9 @@ test('V3.5.17.1: copiar y menú del móvil solo actúan tras pulsar',async()=>{
 });
 
 test('V3.5.17.1: compartir desde listado y detalle, sin modificar el registro ni añadir APIs',()=>{
- assert.match(source,/button\('Ver petición',\(\)=>openDetail\(q\.id\)\),\s*questionShareControl\(q,true\)/);
+ assert.match(source,/button\(canOfferFirstReply\(q\)\?/);
+ assert.match(source,/goToFirstReply\(q\.id\):openDetail\(q\.id\)/);
+ assert.match(source,/questionShareControl\(q,true\)/);
  assert.match(source,/function connectedActions\(q\)/);
  assert.match(source,/questionShareControl\(q\)/);
  assert.match(source,/Elige a quién se la envías/);
