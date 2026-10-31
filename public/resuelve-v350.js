@@ -127,6 +127,24 @@
   el('refreshMyReplyActivity').addEventListener('click',()=>void loadRecentReplyActivity());
  }
  // V3.6.2: pendientes propios, nunca muestra preguntas o recordatorios de otras cuentas.
+ // V3.6.43.1: contextual navigation for owners of still-open requests.
+ // Never marks replies as unread, sends a reminder or changes the question.
+ async function openPendingOwnerAction(id,action){
+  await openDetail(id,true,'questions');
+  if(!state.user||!state.question||String(state.question.id)!==String(id)||
+     String(state.question.author_id)!==String(state.user.id)||state.question.status!=='open')return;
+  if(action==='clarify'){
+   const details=el('questionDetail').querySelector('details.resuelve-clarification');
+   if(!details)return;
+   details.open=true;
+   details.scrollIntoView({block:'start',behavior:'auto'});
+   const field=details.querySelector('textarea');
+   if(field)field.focus({preventScroll:true});
+  }else if(action==='answers'){
+   const answers=el('answerList');
+   if(answers.childElementCount)answers.scrollIntoView({block:'start',behavior:'auto'});
+  }
+ }
  async function loadPendingMine(){
   const panel=el('myPendingPanel'),list=el('myPendingList'),status=el('myPendingStatus');
   panel.hidden=!state.user||state.filter!=='mine';
@@ -144,9 +162,14 @@
     const card=create('article','resuelve-pending-card');
     const link=create('a',null,q.title);
     link.href='/resuelve?id='+encodeURIComponent(q.id);
-    card.append(link,create('span','muted',count
-     ?count+' respuesta'+(count===1?'':'s')+' para revisar'
-     :'Aún no tiene respuestas'));
+    const summary=create('span','muted',count
+     ?count+' respuesta'+(count===1?'':'s')+' visible'+(count===1?'':'s')+' (no indica mensajes nuevos)'
+     :'Aún no tiene respuestas visibles');
+    const action=button(count?'Leer respuestas':'Añadir una aclaración',
+     ()=>void openPendingOwnerAction(q.id,count?'answers':'clarify'),
+     'secondary resuelve-pending-action-v36431');
+    action.setAttribute('aria-label',(count?'Leer respuestas de ':'Añadir una aclaración a ')+q.title);
+    card.append(link,summary,action);
     list.append(card);
    }
    status.textContent=list.childElementCount

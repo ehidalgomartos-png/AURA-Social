@@ -1,0 +1,10 @@
+/* V3.6.43.1 — owner follow-up controls within existing private pending list. */
+#myPendingPanel .resuelve-pending-card{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:9px}
+#myPendingPanel .resuelve-pending-card>a{color:#16536b;overflow-wrap:anywhere;line-height:1.4}
+#myPendingPanel .resuelve-pending-card>span.muted{line-height:1.55;font-size:.86rem;overflow-wrap:anywhere}
+#myPendingPanel .resuelve-pending-action-v36431{display:inline-flex;align-items:center;justify-content:center;min-height:46px;margin-top:auto;padding:10px 14px;border:1px solid #9acfc9;border-radius:11px;background:#eaf8f3;color:#125d61;font-weight:800;font-size:.88rem;text-align:center;white-space:normal}
+#myPendingPanel .resuelve-pending-action-v36431:hover{background:#def2ed;border-color:#75b7af}
+#myPendingPanel :is(button,a):focus-visible{outline:3px solid #138896;outline-offset:3px}
+#questionDetail .resuelve-clarification{scroll-margin-top:25px}
+@media(max-width:650px){#myPendingPanel .resuelve-pending-action-v36431{min-height:48px;width:100%}#myPendingPanel .resuelve-pending-card{gap:8px}#questionDetail .resuelve-clarification{scroll-margin-top:18px}}
+@media(max-width:355px){#myPendingPanel .resuelve-pending-action-v36431{padding:10px}}
