@@ -313,7 +313,8 @@
    el('moreLibraryReview').addEventListener('click',()=>solutions(true));
    el('moreAdminReports').addEventListener('click',()=>reports(true));
    // Cargar de forma independiente para que un error no impida acceder a otros paneles.
-   await Promise.all([impact(),seoDiagnostics(),solutions(),reports(),trustSummary(),activity7d()]);
+   void seoDiagnostics();
+   await Promise.all([impact(),solutions(),reports(),trustSummary(),activity7d()]);
   }catch(err){
    el('resuelveAdminAccess').textContent=err.message+
     ' Puedes volver a Resuelve para iniciar sesión con tu cuenta administradora.';
