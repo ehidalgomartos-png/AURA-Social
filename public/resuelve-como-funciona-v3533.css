@@ -94,3 +94,20 @@
  .resuelve-public-topics-list-v3619{grid-template-columns:minmax(0,1fr)}
  .resuelve-public-topics-list-v3619 li{padding:13px}
 }
+
+/* V3.6.27 — guías editoriales diferenciadas: enlaces claros y responsive. */
+.resuelve-guides-grid-v3627{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+}
+.resuelve-guides-grid-v3627 article{
+ min-width:0;padding:18px;background:#f6fbfc;
+ border:1px solid #cde1e6;border-radius:14px;
+}
+.resuelve-guides-grid-v3627 h3{font-size:1.08rem;line-height:1.4;margin:0 0 10px;color:#164d61}
+.resuelve-guides-grid-v3627 a{display:inline-flex;align-items:center;min-height:44px;font-weight:800}
+.resuelve-guides-grid-v3627 p{margin:0;line-height:1.62;color:#395e6c}
+.resuelve-guides-grid-v3627 a:focus-visible{outline:3px solid #138a98;outline-offset:3px}
+@media(max-width:720px){
+ .resuelve-guides-grid-v3627{grid-template-columns:minmax(0,1fr)}
+ .resuelve-guides-grid-v3627 article{padding:15px}
+}
