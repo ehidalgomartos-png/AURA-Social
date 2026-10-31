@@ -66,19 +66,42 @@ function article(a){
  '</form></details></section>'+
  '</article></div>';
 }
+// Profile summaries describe only articles returned from the public-author query.
+// That query returns up to 40 most recent items; never imply a complete archive.
 function authorProfile(name,items){
  const publicName=items[0]?.author_username||name;
+ const count=items.length;
+ const counts={noticia:0,reportaje:0,analisis:0,opinion:0};
+ for(const item of items)if(Object.prototype.hasOwnProperty.call(counts,item.kind))counts[item.kind]++;
+ const chips=Object.entries(counts).filter(([,n])=>n>0)
+  .map(([kind,n])=>'<span>'+n+' '+esc(n===1?types[kind]:({noticia:'Noticias',reportaje:'Reportajes',analisis:'Análisis',opinion:'Opiniones'}[kind]))+'</span>').join('');
+ const validDates=items.map(a=>new Date(a.published_at))
+  .filter(d=>Number.isFinite(d.getTime())).sort((a,b)=>b.getTime()-a.getTime());
+ const recent=validDates.length?when(validDates[0]):'';
  const cards=items.map(a=>[
-  '<article class="voices-public-card-v3641"><p class="voices-public-meta-v3641">'+esc(types[a.kind]||'Artículo')+' · '+esc(when(a.published_at))+'</p>',
-  '<h2><a href="'+path(a.id)+'">'+esc(a.title)+'</a></h2>',
-  '<p>'+esc(String(a.body||'').slice(0,180))+(String(a.body||'').length>180?'…':'')+'</p></article>'
- ] .join('')).join('');
- return '<div class="voices-public-v3641">'+
+  '<article class="voices-public-card-v3641">',
+   '<p class="voices-public-meta-v3641">'+esc(types[a.kind]||'Artículo')+' · '+esc(when(a.published_at))+'</p>',
+   '<h2><a href="'+path(a.id)+'">'+esc(a.title)+'</a></h2>',
+   '<p>'+esc(String(a.body||'').slice(0,180))+(String(a.body||'').length>180?'…':'')+'</p>',
+   '<a class="voices-public-read-v3641" href="'+path(a.id)+'">Leer artículo</a>',
+  '</article>'
+ ].join('')).join('');
+ return '<div class="voices-public-v3641 voices-author-history-v3644">'+
   '<nav class="voices-public-back-v3641"><a href="/noticias/redactores/voces">← Todos los artículos</a></nav>'+
-  '<header class="voices-public-head-v3641"><span>COLABORADOR INDEPENDIENTE</span>'+
+  '<header class="voices-public-head-v3641"><span>AUTOR EN VOCES INDEPENDIENTES</span>'+
   '<h1>Artículos de @'+esc(publicName)+'</h1>'+
-  '<p>Únicamente se muestran artículos publicados, autorizados y revisados. Este perfil no constituye acreditación profesional ni aporta datos privados del autor.</p></header>'+
-  '<section class="voices-public-grid-v3641" aria-label="Artículos públicos del autor">'+cards+'</section>'+
-  '</div>';
+  '<p>Artículos originales publicados tras revisión editorial. Este perfil solo muestra información pública de las publicaciones; no acredita una profesión.</p></header>'+
+  '<section class="voices-author-summary-v3644" aria-label="Resumen de publicaciones">'+
+  '<div><strong>'+count+'</strong><span>Artículo'+(count===1?'':'s')+' mostrado'+(count===1?'':'s')+'</span></div>'+
+  (recent?'<p>Publicación más reciente: <strong>'+esc(recent)+'</strong></p>':'')+
+  '<div class="voices-author-types-v3644" aria-label="Tipos de artículos mostrados">'+chips+'</div>'+
+  '<p class="voices-author-limit-v3644">Mostrando hasta 40 publicaciones recientes de esta cuenta, ordenadas de más nueva a más antigua.</p>'+
+  '</section>'+
+  '<section aria-labelledby="voicesAuthorHistoryTitleV3644">'+
+   '<div class="voices-author-history-head-v3644"><h2 id="voicesAuthorHistoryTitleV3644">Historial de artículos publicados</h2>'+
+    '<a href="/noticias/redactores/escribir">Escribir mi artículo</a></div>'+
+   '<div class="voices-public-grid-v3641">'+cards+'</div>'+
+  '</section></div>';
 }
+
 module.exports={directory,article,authorProfile,path,authorPath,when};
