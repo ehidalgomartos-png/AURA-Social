@@ -286,6 +286,22 @@
   }).slice(0,3);
  }
  let firstHelpRequestVersion=0;
+ // V3.6.55 — solo una petición pública real, validada por firstHelpCandidates.
+ // Sin nuevas consultas, contadores inventados o datos de sesión publicados.
+ function syncFirstHelpQuickV3655(q){
+  const panel=el('firstHelpQuickV3655');
+  panel.hidden=true;
+  const count=Number(q?.answer_count);
+  if(!q||!/^[1-9]\d{0,15}$/.test(String(q.id||''))||
+     q.status!=='open'||q.answer_count===null||q.answer_count===undefined||
+     !Number.isSafeInteger(count)||count!==0)return;
+  const title=el('firstHelpQuickHeadingV3655');
+  const link=el('firstHelpQuickLinkV3655');
+  title.textContent=String(q.title||'Pregunta pendiente de ayuda').slice(0,125);
+  link.href='/resuelve?id='+encodeURIComponent(String(q.id));
+  link.dataset.questionId=String(q.id);
+  panel.hidden=false;
+ }
  async function loadFirstHelpSpotlight(){
   const version=++firstHelpRequestVersion;
   const userKey=String(state.user?.id??'');
@@ -293,11 +309,13 @@
   const status=el('firstHelpStatusV36411'),refresh=el('firstHelpRefreshV36411');
   refresh.disabled=true;
   panel.hidden=true;list.replaceChildren();
+  syncFirstHelpQuickV3655(null);
   try{
    const data=await request('/api/resuelve/questions?estado=open&sin_respuestas=si');
    if(version!==firstHelpRequestVersion||String(state.user?.id??'')!==userKey)return;
    const items=firstHelpCandidates(data.items,state.user);
    if(!items.length)return;
+   syncFirstHelpQuickV3655(items[0]);
    for(const q of items){
     const article=create('article','resuelve-first-help-item-v36411');
     const heading=create('h4');
@@ -314,7 +332,7 @@
    status.textContent='Solo se muestran hasta tres peticiones públicas reales, abiertas y sin respuestas visibles.';
    panel.hidden=false;
   }catch(_){
-   if(version===firstHelpRequestVersion){panel.hidden=true;list.replaceChildren();}
+   if(version===firstHelpRequestVersion){panel.hidden=true;list.replaceChildren();syncFirstHelpQuickV3655(null);}
   }finally{
    if(version===firstHelpRequestVersion)refresh.disabled=false;
   }
@@ -1733,6 +1751,15 @@
   el('backButton').addEventListener('click',goList);
   el('helpSuggestionsMore').addEventListener('click',()=>document.querySelector('[data-filter="help"]')?.click());
   el('firstHelpRefreshV36411').addEventListener('click',()=>void loadFirstHelpSpotlight());
+  // El enlace funciona también con Ctrl/Cmd y navegación normal del navegador.
+  el('firstHelpQuickLinkV3655').addEventListener('click',event=>{
+   if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||
+      event.shiftKey||event.altKey)return;
+   const id=event.currentTarget.dataset.questionId;
+   if(!/^[1-9]\d{0,15}$/.test(String(id||'')))return;
+   event.preventDefault();
+   void goToFirstReply(id);
+  });
   el('firstHelpAllV36411').addEventListener('click',()=>{
    const filter=document.querySelector('[data-filter="unanswered"]');
    if(!filter)return;

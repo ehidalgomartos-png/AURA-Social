@@ -1,0 +1,35 @@
+/* V3.6.55 — Solo visible al recibir una petición pública real y sin respuestas. */
+#firstHelpQuickV3655:not([hidden]){
+ display:grid;
+ grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;
+ gap:10px 18px;
+ margin:12px 0 22px;
+ padding:14px 18px;
+ border:1px solid #c6e1de;
+ border-radius:15px;
+ background:linear-gradient(105deg,#f1faf8,#fff);
+ min-width:0;
+}
+.resuelve-first-help-quick-copy-v3655{min-width:0}
+.resuelve-first-help-quick-eyebrow-v3655{
+ color:#23696d;font-size:.68rem;letter-spacing:.07em;font-weight:850;
+ line-height:1.45;margin:0 0 5px
+}
+#firstHelpQuickHeadingV3655{
+ font-size:clamp(.93rem,1.7vw,1.08rem);font-weight:800;line-height:1.42;
+ margin:0;color:#163e51;overflow-wrap:anywhere
+}
+#firstHelpQuickLinkV3655{
+ display:inline-flex;align-items:center;justify-content:center;min-height:44px;
+ padding:10px 14px;border:1px solid #a7cfca;border-radius:10px;
+ color:#165b64;background:#fff;text-decoration:none;font-size:.85rem;
+ line-height:1.4;font-weight:800;text-align:center
+}
+#firstHelpQuickLinkV3655:hover{background:#e7f6f3}
+#firstHelpQuickLinkV3655:focus-visible{outline:3px solid #158d94;outline-offset:3px}
+@media(max-width:600px){
+ #firstHelpQuickV3655:not([hidden]){grid-template-columns:minmax(0,1fr);padding:13px 14px;margin:10px 0 18px;gap:9px}
+ #firstHelpQuickLinkV3655{min-height:48px;width:100%}
+}
+@media(max-width:350px){#firstHelpQuickV3655:not([hidden]){padding:11px 12px}}
