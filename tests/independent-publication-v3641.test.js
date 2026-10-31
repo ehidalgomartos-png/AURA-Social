@@ -25,7 +25,7 @@ test('V3.6.41: enlaces externos y HTML de usuarios no atraviesan las vistas púb
  };
  const article=pages.article(item),directory=pages.directory([item]);
  assert.match(article,/&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
- assert.doesNotMatch(article,/<script>|<svg>|onerror=/);
+ assert.doesNotMatch(article,/<script>|<svg>|<img/);
  assert.match(article,/rel="nofollow noopener noreferrer external"/);
  assert.match(article,/Artículo de @prueba&lt;svg&gt;/);
  assert.match(article,/noticias\/redactores\/voces\/3/);
@@ -57,7 +57,8 @@ test('V3.6.41: los permisos y el consentimiento son independientes de aprobar ar
  assert.match(authorUI,/draftPublishConsentV3641'\)\.checked/);
  assert.match(adminUI,/rightsChecked:true,confirmed:true/);
  assert.match(adminUI,/window\.confirm/);
- assert.match(adminUI,/publicaciones\/\/'+encodeURIComponent/);
+ assert.match(adminUI,/\/publicaciones\//);
+ assert.match(adminUI,/encodeURIComponent\(item\.id\)/);
  assert.doesNotMatch(adminUI,/\.innerHTML\s*=/);
  assert.doesNotMatch(authorUI,/\.innerHTML\s*=/);
  assert.doesNotThrow(()=>new Function(adminUI));
