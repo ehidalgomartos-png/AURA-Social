@@ -9,6 +9,7 @@
 <meta name="robots" content="noindex,follow">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/resuelve-v350.css">
+<link rel="stylesheet" href="/resuelve-library-v3631.css">
 <script src="/resuelve-v350.js" defer></script>
 </head>
 <body>
@@ -253,7 +254,7 @@
   <div class="section-top"><div>
     <p class="eyebrow dark">EXPERIENCIAS REALES</p>
     <h2 id="solutionsTitle">Biblioteca de soluciones útiles</h2>
-    <p class="muted">Respuestas elegidas por quien preguntó y revisadas antes de aparecer aquí. La biblioteca puede estar vacía al principio.</p>
+    <p class="muted">Encuentra experiencias y consejos que realmente ayudaron. Son respuestas elegidas por quien preguntó y revisadas antes de aparecer aquí.</p>
    </div></div>
    <form id="solutionFilterForm" class="solution-filter-form" role="search" aria-label="Buscar soluciones revisadas">
      <label for="solutionSearch">Buscar en las soluciones
@@ -276,20 +277,28 @@
     <div id="solutionCategoryShortcuts" class="resuelve-solution-shortcuts" role="group" aria-label="Categorías de la biblioteca"></div>
     <p id="solutionSummaryStatus" class="muted" role="status" aria-live="polite"></p>
    </div>
-   <div id="solutionStatus" class="muted" role="status" aria-live="polite">Cargando soluciones…</div>
-   <div id="solutionList" class="cards"></div>
-   <section id="savedSolutionsPanel" class="resuelve-saved-panel" aria-labelledby="savedSolutionsTitle" hidden>
-    <h3 id="savedSolutionsTitle">Mis soluciones guardadas</h3>
-    <p class="muted">Guarda las soluciones revisadas que quieras volver a consultar. Solo tú ves esta lista; puedes quitar una solución cuando quieras.</p>
-    <div id="savedSolutionsList" class="resuelve-saved-list"></div>
-    <p id="savedSolutionsStatus" class="muted" role="status" aria-live="polite"></p>
-   </section>
    <section class="resuelve-topics-directory" aria-labelledby="resuelveTopicsTitle">
     <h3 id="resuelveTopicsTitle">Explora soluciones por temas</h3>
     <p class="muted">Solo se enlazan temas que tienen suficientes soluciones reales, revisadas y autorizadas para publicación pública.</p>
     <div id="resuelveTopicsLinks" class="resuelve-topics-links"></div>
     <p id="resuelveTopicsStatus" class="muted" role="status" aria-live="polite"></p>
    </section>
+   <div class="resuelve-library-results-head-v3631">
+    <div>
+     <h3 id="solutionResultsTitle">Soluciones revisadas de la comunidad</h3>
+     <p class="muted">Lee lo que funcionó a otras personas y decide qué te puede servir. Aquí no hace falta comprar nada.</p>
+    </div>
+    <p id="solutionResultCount" class="resuelve-library-count-v3631" role="status" aria-live="polite">Consultando soluciones revisadas…</p>
+   </div>
+   <div id="solutionStatus" class="muted" role="status" aria-live="polite">Cargando soluciones…</div>
+   <div id="solutionList" class="cards resuelve-library-cards-v3631" aria-labelledby="solutionResultsTitle" aria-busy="false"></div>
+   <section id="savedSolutionsPanel" class="resuelve-saved-panel" aria-labelledby="savedSolutionsTitle" hidden>
+    <h3 id="savedSolutionsTitle">Mis soluciones guardadas</h3>
+    <p class="muted">Guarda las soluciones revisadas que quieras volver a consultar. Solo tú ves esta lista; puedes quitar una solución cuando quieras.</p>
+    <div id="savedSolutionsList" class="resuelve-saved-list"></div>
+    <p id="savedSolutionsStatus" class="muted" role="status" aria-live="polite"></p>
+   </section>
+
    <button id="moreSolutions" class="secondary more" type="button" hidden>Ver más soluciones</button>
  </section>
  <section id="detailPanel" class="panel detail" hidden aria-labelledby="detailTitle">
