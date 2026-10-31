@@ -175,3 +175,11 @@ body.services-map-v3645 [hidden]{display:none!important}
  .sm-map-node{font-size:.63rem;min-width:66px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sm-service,.sm-intent{transition:none}.sm-intent:hover,.sm-service:hover{transform:none}}
+
+
+/* V3.6.49 — Migas de pan visibles, discretas y accesibles en el mapa público. */
+.sm-breadcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 2px 0;color:#526b78;font-size:.8rem;font-weight:700}
+.sm-breadcrumb a{display:inline-flex;align-items:center;min-height:44px;text-decoration:underline;text-underline-offset:3px}
+.sm-breadcrumb a:hover{color:#126b6f}
+.sm-breadcrumb [aria-current="page"]{color:#1b5665}
+@media(max-width:600px){.sm-breadcrumb{padding:6px 4px 0;gap:8px;font-size:.77rem}}
