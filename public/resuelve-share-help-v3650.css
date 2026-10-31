@@ -1,0 +1,21 @@
+/* V3.6.50 — Compartir voluntariamente peticiones abiertas, sin datos privados. */
+#firstHelpShareV3650{flex:0 1 246px;min-width:0;max-width:100%;color:#194b5b}
+#firstHelpShareV3650[open]{flex-basis:100%}
+#firstHelpShareV3650 summary{display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:46px;padding:10px 14px;border:1px solid #b7d9d2;border-radius:11px;background:#fff;color:#155d64;font-size:.88rem;font-weight:800;line-height:1.35;text-align:center}
+#firstHelpShareV3650 summary:hover{background:#e7f5f1}
+#firstHelpShareV3650[open] summary{background:#e6f5f0}
+#firstHelpShareV3650>p{margin:10px 0 0;font-size:.82rem;line-height:1.55;color:#426673}
+.resuelve-share-help-actions-v3650{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:11px}
+.resuelve-share-help-actions-v3650 :is(a,button){display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:110px;padding:10px 14px;border:1px solid #9bc8c4;border-radius:10px;background:#fff;color:#185e69;text-decoration:none;font:inherit;font-size:.86rem;font-weight:800;cursor:pointer}
+.resuelve-share-help-actions-v3650 :is(a,button):hover{background:#e6f6f3}
+#firstHelpShareV3650 :is(a,button,summary,input):focus-visible{outline:3px solid #148c93;outline-offset:3px}
+#firstHelpLinkV3650:not([hidden]){display:block;width:100%;max-width:580px;margin-top:10px;min-height:44px;padding:10px;border:1px solid #9bc8c4;border-radius:9px;background:#fff;color:#17394d;font-size:16px}
+#firstHelpCopyStatusV3650:empty{display:none}
+@media(max-width:650px){
+ #firstHelpShareV3650{flex:1 1 100%;width:100%}
+ #firstHelpShareV3650 summary{width:100%;min-height:48px}
+ .resuelve-share-help-actions-v3650{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .resuelve-share-help-actions-v3650 :is(a,button){min-width:0;min-height:48px}
+ .resuelve-share-help-actions-v3650 button{grid-column:1/-1}
+}
+@media(max-width:350px){.resuelve-share-help-actions-v3650{grid-template-columns:minmax(0,1fr)}.resuelve-share-help-actions-v3650 button{grid-column:auto}}
