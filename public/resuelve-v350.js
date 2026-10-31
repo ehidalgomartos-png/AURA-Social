@@ -341,7 +341,7 @@
   state.loading=true;
   const list=el('questionList'),status=el('listStatus'),btn=el('moreButton');
   btn.hidden=true;
-  if(!more){state.next=null;list.replaceChildren();status.textContent='Cargando peticiones…';renderContributionFollowups([]);}
+  if(!more){state.next=null;list.replaceChildren();status.textContent='Cargando peticiones…';if(typeof renderContributionFollowups==='function')renderContributionFollowups([]);}
   try{
    const params=new URLSearchParams();
    if(!['mine','help','contributed'].includes(state.filter)){
@@ -358,7 +358,7 @@
     state.filter==='help'?'/api/resuelve/questions/for-me':'/api/resuelve/questions';
    const data=await request(endpoint+'?'+params.toString());
    if(requestId!==state.listRequestId)return;
-   if(!more&&state.filter==='contributed')renderContributionFollowups(data.items);
+   if(!more&&state.filter==='contributed'&&typeof renderContributionFollowups==='function')renderContributionFollowups(data.items);
    for(const q of data.items)list.append(card(q));
    state.next=data.next;
    btn.hidden=!state.next;
