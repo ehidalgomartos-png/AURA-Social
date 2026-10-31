@@ -117,7 +117,7 @@ test('V3.6.43: decisiones privadas solo por personal autorizado, con motivo y si
  };
  try{
   assert.deepEqual(await reports.decide(2,'3','removed','Motivo suficientemente detallado',true),{error:'revision_invalida'});
-  assert.deepEqual(await reports.decide(2,'3','reviewed','demasiado corto',true),{error:'revision_invalida'});
+  assert.deepEqual(await reports.decide(2,'3','reviewed','muy breve',true),{error:'revision_invalida'});
   const x=await reports.decide(2,'8','reviewed','Se ha contrastado la fuente y corregido el artículo.',true);
   assert.equal(x.item.status,'reviewed');
   const write=logs.find(v=>v.sql.startsWith('UPDATE independent_article_reports_v3643'));
