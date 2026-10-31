@@ -52,15 +52,16 @@ const icon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" 
 function allServices(){return groups.flatMap(g=>g.services.map(s=>({...s,group:g.id})));}
 function renderMap(){
  const number=allServices().length;
+ // Atajos a servicios reales: una pulsación basta para llegar a la acción elegida.
  const tasks=[
-  {id:'ayuda',text:'Necesito ayuda',icon:'heart-handshake'},
-  {id:'ayuda',text:'Quiero ayudar',icon:'hand-heart'},
-  {id:'informacion',text:'Quiero informarme',icon:'newspaper'},
-  {id:'comercio',text:'Comprar o vender',icon:'store'},
-  {id:'comercio',text:'Comparar productos',icon:'scan-search'},
-  {id:'comunidad',text:'Conectar con personas',icon:'users'}
+  {href:'/resuelve',text:'Necesito ayuda',icon:'heart-handshake'},
+  {href:'/resuelve#questions',text:'Quiero ayudar',icon:'hand-heart'},
+  {href:'/noticias',text:'Quiero informarme',icon:'newspaper'},
+  {href:'/marketplace/explorar',text:'Comprar o vender',icon:'store'},
+  {href:'/comparar',text:'Comparar productos',icon:'scan-search'},
+  {href:'/perfiles',text:'Conectar con personas',icon:'users'}
  ];
- const quick=tasks.map(t=>'<a class="sm-intent" href="#'+t.id+'"><span class="sm-intent-icon">'+icon(t.icon)+'</span><span>'+esc(t.text)+'</span><span class="sm-intent-arrow" aria-hidden="true">↗</span></a>').join('');
+ const quick=tasks.map(t=>'<a class="sm-intent" href="'+esc(t.href)+'"><span class="sm-intent-icon">'+icon(t.icon)+'</span><span>'+esc(t.text)+'</span><span class="sm-intent-arrow" aria-hidden="true">↗</span></a>').join('');
  const sections=groups.map((g,i)=>{
   const cards=g.services.map(s=>'<a class="sm-service" href="'+esc(s.href)+'" data-service-id="'+esc(s.id)+'" data-search="'+esc([s.title,s.description,s.tag,s.keywords].join(' '))+'">'+
     '<span class="sm-service-icon">'+icon(s.icon)+'</span>'+
