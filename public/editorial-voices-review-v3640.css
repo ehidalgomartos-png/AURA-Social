@@ -1,0 +1,21 @@
+/* V3.6.40 — Private editorial review. No public article feeds or payment controls. */
+.ed-voices-editor-consent-v3640{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #d4e7e5;border-radius:12px;background:#f2faf8;font-size:.91rem;line-height:1.5}
+.ed-voices-editor-consent-v3640 input{flex:0 0 19px!important;width:19px!important;height:19px;margin-top:2px}
+#draftReviewStatusV3640{color:#345d6b;font-size:.88rem;line-height:1.55;overflow-wrap:anywhere}
+.ed-voices-review-queue-v3640{display:grid;gap:15px;margin-top:17px}
+.ed-voices-review-item-v3640{border:1px solid #cfe0e4;border-radius:15px;background:#fbfdfd;padding:18px;min-width:0}
+.ed-voices-review-item-v3640 h3{font-size:1.18rem;line-height:1.32;color:#15465b;margin:0 0 7px;overflow-wrap:anywhere}
+.ed-voices-review-meta-v3640{color:#516d78;font-size:.82rem;margin:0 0 10px}
+.ed-voices-review-body-v3640{white-space:pre-wrap;overflow-wrap:anywhere;color:#264d61;line-height:1.65;font-size:.93rem;max-height:380px;overflow-y:auto;border-left:3px solid #d4e7e5;padding-left:12px}
+.ed-voices-review-sources-v3640{display:grid;gap:5px;padding:9px 0;font-size:.84rem}
+.ed-voices-review-sources-v3640 a{overflow-wrap:anywhere}
+.ed-voices-review-controls-v3640{display:grid;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid #e1ecef}
+.ed-voices-review-controls-v3640 label{font-weight:800;color:#255065}
+.ed-voices-review-controls-v3640 textarea{width:100%;max-width:100%;min-width:0;font:inherit;font-size:16px;padding:11px;border:1px solid #9dbdc9;border-radius:10px}
+.ed-voices-review-controls-v3640 .ed-voices-review-buttons-v3640{display:flex;flex-wrap:wrap;gap:8px}
+.ed-voices-review-buttons-v3640 button{min-height:46px;border:1px solid #b8d2d9;border-radius:11px;padding:10px 13px;background:#fff;color:#154d60;font-weight:750}
+.ed-voices-review-buttons-v3640 button[data-decision="approved"]{background:#e6f6ef;border-color:#8dc1ab}
+.ed-voices-review-buttons-v3640 button[data-decision="rejected"]{color:#923c40;border-color:#e4b5b9}
+.ed-voices-review-item-v3640 :is(button,textarea):focus-visible{outline:3px solid #168999;outline-offset:3px}
+.ed-voices-review-item-v3640 button:disabled{opacity:.55}
+@media(max-width:740px){.ed-voices-review-item-v3640{padding:13px}.ed-voices-review-buttons-v3640{display:grid!important;grid-template-columns:minmax(0,1fr)}.ed-voices-review-buttons-v3640 button{min-height:48px;width:100%}.ed-voices-review-body-v3640{max-height:none}.ed-voices-editor-consent-v3640{font-size:.93rem}}
