@@ -1399,11 +1399,28 @@
   const username=new URLSearchParams(location.search).get('colaborador');
   if(!username)return;
   const panel=el('helperPublicPanel'),status=el('helperPublicStatus'),grid=el('helperPublicStats');
-  panel.hidden=false;grid.replaceChildren();
+  const empty=el('helperPublicEmpty'),disclaimer=el('helperPublicDisclaimer'),explore=el('helperPublicExplore');
+  panel.hidden=false;
+  grid.replaceChildren();
+  grid.hidden=true;empty.hidden=true;disclaimer.hidden=true;explore.hidden=true;
   if(!/^[A-Za-z0-9_.]{3,30}$/.test(username)){status.textContent='Perfil no disponible.';return;}
   try{
    const data=await request('/api/resuelve/helpers/'+encodeURIComponent(username));
-   status.textContent='@'+data.helper.username+' · Esta persona ha compartido ayuda en Resuelve.';
+   const fields=[
+    ['helped_questions','Peticiones ajenas en las que ha ayudado'],
+    ['chosen_solutions','Respuestas elegidas como solución']
+   ];
+   // Solo se muestran cifras que realmente llegaron de la API pública y son válidas.
+   const stats=fields.map(([key,label])=>{
+    if(data.helper[key]===null||data.helper[key]===undefined)throw Error('Datos de perfil incompletos.');
+    const value=Number(data.helper[key]);
+    if(!Number.isSafeInteger(value)||value<0)throw Error('Datos de perfil incompletos.');
+    return {value,label};
+   });
+   const hasVisibleHelp=stats.some(({value})=>value>0);
+   status.textContent='@'+data.helper.username+(hasVisibleHelp?
+    ' · Aportaciones públicas visibles en Resuelve.':
+    ' · Perfil voluntario activo, sin aportaciones públicas visibles todavía.');
    const declared=String(data.helper.declared_speciality||'');
    if(declared){
     const note=create('p','resuelve-professional-disclosure');
@@ -1411,18 +1428,22 @@
     const warning=create('p','muted','El oficio lo indica la propia persona. RedLibertad no ha verificado sus títulos ni su identidad profesional.');
     note.append(warning);panel.append(note);
    }
-   const fields=[
-    ['helped_questions','Peticiones ajenas en las que ha ayudado'],
-    ['chosen_solutions','Respuestas elegidas como solución']
-   ];
-   for(const [key,label] of fields){
-    const value=Number(data.helper[key]);
-    if(!Number.isSafeInteger(value)||value<0)throw Error('Datos de perfil incompletos.');
-    const tile=create('article','my-help-metric');
-    tile.append(create('strong',null,value.toLocaleString('es-ES')),create('span',null,label));
-    grid.append(tile);
+   if(hasVisibleHelp){
+    for(const {value,label} of stats){
+     const tile=create('article','my-help-metric');
+     tile.append(create('strong',null,value.toLocaleString('es-ES')),create('span',null,label));
+     grid.append(tile);
+    }
+    grid.hidden=false;disclaimer.hidden=false;
+   }else{
+    empty.hidden=false;
    }
-  }catch(_){status.textContent='Este perfil no está disponible o su propietario ha desactivado la visibilidad.';}
+   explore.hidden=false;
+  }catch(_){
+   grid.replaceChildren();
+   grid.hidden=true;empty.hidden=true;disclaimer.hidden=true;explore.hidden=true;
+   status.textContent='Este perfil no está disponible o su propietario ha desactivado la visibilidad.';
+  }
  }
  function bindHelperProfile(){
   el('helperSpecialityForm').addEventListener('submit',async(event)=>{
