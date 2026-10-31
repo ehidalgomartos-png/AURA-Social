@@ -1,0 +1,116 @@
+/* V3.6.41.1 — Real open questions that have not received a first answer. */
+#firstHelpSpotlightV36411:not([hidden]){
+ margin:0 0 23px;
+ padding:clamp(15px,2.6vw,24px);
+ border:1px solid #c2e0d9;
+ border-radius:18px;
+ background:linear-gradient(125deg,#f2faf6,#f6fbfd);
+ min-width:0;
+}
+#firstHelpSpotlightV36411 .resuelve-first-help-head-v36411{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:center;
+ justify-content:space-between;
+ gap:14px;
+}
+.resuelve-first-help-head-v36411>div{flex:1 1 310px;min-width:0}
+.resuelve-first-help-head-v36411 h3{
+ margin:5px 0 7px;
+ font-size:clamp(1.12rem,2.2vw,1.35rem);
+ line-height:1.32;
+ color:#144b60;
+ overflow-wrap:anywhere;
+}
+.resuelve-first-help-head-v36411 .muted{
+ margin:0;
+ font-size:.9rem;
+ line-height:1.6;
+}
+#firstHelpAllV36411{
+ flex:0 1 auto;
+ min-height:46px;
+ padding:10px 16px;
+ border:1px solid #a3cfc6;
+ border-radius:11px;
+ color:#165d60;
+ background:#fff;
+ font-weight:800;
+}
+.resuelve-first-help-list-v36411{
+ display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:12px;
+ margin:18px 0 0;
+}
+.resuelve-first-help-item-v36411{
+ display:flex;
+ flex-direction:column;
+ gap:8px;
+ min-width:0;
+ padding:15px;
+ border:1px solid #d2e5e6;
+ border-radius:14px;
+ background:#fff;
+}
+.resuelve-first-help-item-v36411 h4{
+ margin:0;
+ font-size:1.04rem;
+ line-height:1.4;
+ overflow-wrap:anywhere;
+}
+.resuelve-first-help-item-v36411 h4 a{
+ color:#124f6b;
+ text-decoration:none;
+}
+.resuelve-first-help-item-v36411 h4 a:hover{text-decoration:underline;text-underline-offset:3px}
+.resuelve-first-help-item-v36411 .resuelve-first-help-meta-v36411{
+ font-size:.8rem;
+ color:#4b6d7d;
+ margin:0;
+ overflow-wrap:anywhere;
+}
+.resuelve-first-help-item-v36411 .resuelve-first-help-preview-v36411{
+ color:#355568;
+ font-size:.88rem;
+ line-height:1.6;
+ overflow-wrap:anywhere;
+ margin:0;
+ display:-webkit-box;
+ -webkit-line-clamp:3;
+ -webkit-box-orient:vertical;
+ overflow:hidden;
+}
+.resuelve-first-help-item-v36411 .resuelve-first-help-button-v36411{
+ min-height:46px;
+ margin-top:auto;
+ align-self:stretch;
+ padding:10px;
+ border:1px solid #abd6cb;
+ border-radius:11px;
+ background:#e6f7ed;
+ color:#155857;
+ font-size:.89rem;
+ font-weight:800;
+}
+.resuelve-first-help-foot-v36411{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:center;
+ justify-content:space-between;
+ gap:8px;
+ margin-top:14px;
+}
+.resuelve-first-help-foot-v36411 p{margin:0;font-size:.79rem;line-height:1.5;flex:1 1 210px}
+#firstHelpRefreshV36411{min-height:44px;white-space:normal;text-align:center}
+#firstHelpSpotlightV36411 :is(button,a):focus-visible{outline:3px solid #158d94;outline-offset:3px}
+@media(max-width:850px){.resuelve-first-help-list-v36411{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){
+ #firstHelpSpotlightV36411:not([hidden]){padding:15px 13px;border-radius:15px}
+ .resuelve-first-help-list-v36411{grid-template-columns:minmax(0,1fr);gap:9px;margin-top:13px}
+ .resuelve-first-help-item-v36411{padding:12px}
+ .resuelve-first-help-item-v36411 .resuelve-first-help-button-v36411,
+ #firstHelpAllV36411{min-height:48px;width:100%}
+ .resuelve-first-help-foot-v36411{display:grid;grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:350px){#firstHelpSpotlightV36411:not([hidden]){padding:11px}}
