@@ -380,7 +380,7 @@
   const category=state.solutionCategory?' en la categoría seleccionada':'';
   const searching=state.solutionSearch?' para esta búsqueda':'';
   output.textContent=n?
-   'Mostrando '+n+' solución'+(n===1?'':'es')+' revisada'+(n===1?'':'s')+
+   'Mostrando '+n+(n===1?' solución revisada':' soluciones revisadas')+
    category+searching+(hasMore?' · Hay más para cargar.':'.'):
    'Sin soluciones revisadas'+category+searching+'.';
  }
