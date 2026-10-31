@@ -40,6 +40,14 @@ function article(a){
  '<section class="voices-public-sources-v3641" aria-labelledby="voicesSourcesV3641"><h2 id="voicesSourcesV3641">Fuentes aportadas</h2>'+
  (refs?'<ol>'+refs+'</ol>':'<p>Texto de opinión sin fuentes externas aportadas.</p>')+'</section>'+
  '<p class="voices-public-note-v3641">Si observas un error o un posible incumplimiento, contacta con el equipo de moderación de RedLibertad. Los contenidos pueden corregirse o retirarse.</p>'+
+ '<section id="voicesSupportV3642" class="voices-support-v3642" data-publication-id="'+esc(a.id)+'" aria-labelledby="voicesSupportTitleV3642">'+
+ '<h2 id="voicesSupportTitleV3642">¿Te ha resultado útil este artículo?</h2>'+
+ '<p>Reconoce el trabajo del autor si te ha ayudado a comprender un tema. Solo un apoyo voluntario por cuenta y artículo: no equivale a verificar la información ni tiene valor económico.</p>'+
+ '<p id="voicesSupportCountV3642" role="status" aria-live="polite">Consultando apoyos reales…</p>'+
+ '<button id="voicesSupportActionV3642" type="button" hidden disabled>Me ha resultado útil</button>'+
+ '<a id="voicesSupportLoginV3642" href="/app" hidden>Entrar para apoyar</a>'+
+ '<p id="voicesSupportStatusV3642" role="status" aria-live="polite"></p>'+
+ '</section>'+
  '</article></div>';
 }
 module.exports={directory,article,path,when};
