@@ -40,6 +40,27 @@
   update();
   input.focus({preventScroll:true});
  });
+ // V3.6.54 — compartir solo por iniciativa del visitante; ninguna solicitud de red.
+ const shareCopy=document.getElementById('sm-share-copy-v3654');
+ const shareLink=document.getElementById('sm-share-link-v3654');
+ const shareStatus=document.getElementById('sm-share-status-v3654');
+ if(shareCopy&&shareLink&&shareStatus){
+  shareCopy.disabled=false;
+  shareCopy.addEventListener('click',async()=>{
+   try{
+    if(typeof navigator==='undefined'||!navigator.clipboard?.writeText)
+      throw new Error('clipboard_unavailable');
+    await navigator.clipboard.writeText(shareLink.value);
+    shareLink.hidden=true;
+    shareStatus.textContent='Enlace copiado. Puedes compartirlo cuando quieras.';
+   }catch(_){
+    shareLink.hidden=false;
+    shareLink.focus({preventScroll:true});
+    shareLink.select();
+    shareStatus.textContent='Selecciona el enlace y cópialo para compartirlo.';
+   }
+  });
+ }
  // A search query is never sent to a server or stored in the browser.
  update();
 })();
