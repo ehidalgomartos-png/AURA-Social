@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/resuelve-library-v3631.css">
 <link rel="stylesheet" href="/resuelve-crosslinks-v3632.css">
 <link rel="stylesheet" href="/resuelve-detail-v3633.css">
+<link rel="stylesheet" href="/resuelve-polish-v3634.css">
 <script src="/resuelve-v350.js" defer></script>
 </head>
 <body>
@@ -306,7 +307,7 @@
  <section id="detailPanel" class="panel detail" hidden aria-labelledby="detailTitle">
   <button id="backButton" class="plain back" type="button">← Volver a las peticiones</button>
   <article id="questionDetail"></article>
-  <div id="answerList" class="answers"></div>
+  <div id="answerList" class="answers" role="region" aria-labelledby="resuelveAnswersTitle"></div>
   <form id="answerForm" hidden>
    <label for="answerBody">Tu respuesta</label>
    <textarea id="answerBody" minlength="10" maxlength="1500" rows="4" required aria-describedby="answerGuidanceV3617 answerCharCountV3617" placeholder="Explica qué harías tú, qué has aprendido o qué pasos concretos pueden servir. Evita respuestas que solo intenten vender."></textarea>
