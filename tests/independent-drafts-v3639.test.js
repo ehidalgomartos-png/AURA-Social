@@ -102,7 +102,7 @@ test('V3.6.39: editor privado sin renderizar HTML de usuarios ni falsa publicaci
  assert.match(html,/id="draftFormV3639"/);
  assert.match(html,/id="draftLoginV3639"/);
  assert.match(html,/id="draftListV3639"/);
- assert.match(html,/no se publicará automáticamente/);
+ assert.match(html,/publicar requiere una decisión editorial posterior y tu autorización expresa/);
  assert.match(editorial,/publicRouter\.get\('\/redactores\/escribir'/);
  assert.match(editorial,/noindex:true,independentVoices:true/);
  assert.match(editorial,/editorial-voices-drafts-v3639\.js/);
