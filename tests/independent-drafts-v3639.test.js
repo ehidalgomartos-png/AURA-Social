@@ -83,6 +83,7 @@ test('V3.6.39: API segura no contiene publicación, votos ni pagos',()=>{
  const server=read('server.js');
  assert.match(routes,/router\.use\(requireAuth\)/);
  assert.match(routes,/birth_date <= \(CURRENT_DATE - INTERVAL '18 years'\)/);
+ assert.match(routes,/if\(req\.user\?\.isAdmin===true\|\|req\.user\?\.is_admin===true\)return next\(\)/);
  assert.match(routes,/req\.user\.id/);
  assert.doesNotMatch(routes,/req\.user\.ageVerified===true/);
  assert.match(routes,/sameOrigin,throttle/);
