@@ -446,11 +446,11 @@ publicRouter.get('/redactores/voces',async(_req,res)=>{
 });
 publicRouter.get('/redactores',(_req,res)=>{
   res.type('html').send(page({
-    title:'Voces Independientes — proyecto en preparación',
-    description:'Conoce la propuesta de RedLibertad para artículos originales de personas independientes, revisión editorial y apoyos voluntarios.',
+    title:'Voces Independientes — publica y descubre artículos originales',
+    description:'Escribe un artículo independiente, aporta fuentes y descubre trabajos de la comunidad publicados tras revisión editorial.',
     pathname:'/noticias/redactores',
     body:renderIndependentVoicesLanding(),
-    noindex:true,independentVoices:true
+    noindex:false,independentVoices:true
   }));
 });
 publicRouter.use(async(_req,res,next)=>{try{await ensurePublicationSchema();next();}catch(e){console.error('Public editorial schema bootstrap failed:',e);res.status(503).type('text/plain').send('Noticias temporalmente no disponibles');}});
@@ -466,7 +466,7 @@ publicRouter.get('/',async(req,res)=>{
       ' <a href="/noticias">Ver todas las noticias</a>.</div>';
     res.type('html').send(page({title:categoryTitle,description:'Noticias originales revisadas por el equipo editorial de RedLibertad, con enlaces a las fuentes originales.',pathname:'/noticias',body:
       '<section class="ed-hero"><span class="ed-label">Centro Editorial · RedLibertad</span><h1>Noticias y actualidad</h1><p>Publicaciones editoriales con fuentes identificadas, revisión humana y enlaces a la información original.</p></section>'+ 
-      '<section class="ed-voices-entry-v3638" aria-label="Proyecto Voces Independientes"><div><h2>Voces Independientes</h2><p>Preparamos un espacio para artículos propios con fuentes, revisión y reconocimiento de lectores reales. Todavía no recibe publicaciones ni propinas.</p></div><a href="/noticias/redactores">Conoce el proyecto</a></section>'+
+      '<section class="ed-voices-entry-v3638" aria-label="Voces Independientes"><div><h2>Voces Independientes</h2><p>Publica un artículo original con revisión editorial y explora textos de la comunidad. Tú decides qué compartir.</p></div><nav class="ed-voices-entry-actions-v3644" aria-label="Voces Independientes"><a href="/noticias/redactores/voces">Leer artículos</a><a href="/noticias/redactores/escribir">Escribir</a></nav></section>'+
       discoveryV3248.categoryTabs(category)+
       '<p class="ed-discovery-intro-v3248">'+(category?'Mostrando noticias publicadas de '+esc(categoryLabelV3247(category))+'.':'Explora temas y participa en las conversaciones de RedLibertad.')+'</p>'+
       '<section class="ed-stack">'+cards+'</section>',noindex:items.rows.length===0||Boolean(category)}));
