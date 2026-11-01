@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.60 Pulso responsive empty and error state without fake content
+        run: node --test tests/pulso-empty-state-v3660.test.js
       - name: V3.6.59 Pulso authenticated social interactions, privacy and Reel editor deep link
         run: node --test tests/pulso-social-interactions-v3659.test.js
       - name: V3.6.58 Pulso public immersive videos with privacy-safe reuse of Reels

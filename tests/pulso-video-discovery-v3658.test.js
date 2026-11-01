@@ -106,10 +106,12 @@ test('V3.6.58: vacío significa sin publicaciones reales y sin cifras inventadas
  const data=await fetchVideos(stub([]).db,1);
  assert.deepEqual(data,{items:[],hasMore:false});
  const html=renderPage([],false);
- assert.match(html,/Aún no hay vídeos públicos en Pulso/);
+ assert.match(html,/Pulso está empezando/);
+ assert.match(html,/Todavía no hay Reels públicos disponibles/);
  assert.match(html,/name="robots" content="noindex,follow"/);
- assert.match(html,/id="pulsoMore" type="button" hidden/);
- assert.doesNotMatch(html,/id="pulsoMore"[^>]*>0 vídeos/);
+ assert.match(html,/pulso-feed-empty-v3660/);
+ assert.doesNotMatch(html,/id="pulsoMore"/);
+ assert.doesNotMatch(html,/class="pulso-footer-feed"/);
 });
 test('V3.6.58: no expone identificadores externos y respeta límite de páginas',()=>{
  assert.equal(pageParam(undefined),1);
