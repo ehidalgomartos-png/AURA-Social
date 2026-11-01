@@ -11209,13 +11209,26 @@ function updateCreateCounter() {
 }
 createCaption?.addEventListener('input', updateCreateCounter);
 updateCreateCounter();
-async function ensureUpload() {
+// V3.6.68: el Reel usa progreso auténtico y el resto conserva la API original.
+async function ensureUpload({reelProgress=null}={}) {
   if (currentFileMedia) return currentFileMedia;
   const f = $('#mediaFile').files[0]; if (!f) throw new Error('Selecciona un archivo.');
-  currentFileMedia = await uploadFile(f); return currentFileMedia;
+  const media=reelProgress && window.RedLibertadPulsoUploadV3668?.upload
+    ? await window.RedLibertadPulsoUploadV3668.upload(f,reelProgress)
+    : await uploadFile(f);
+  if($('#mediaFile').files[0]!==f)throw new Error('El archivo ha cambiado durante la subida. Revisa el vídeo antes de publicar.');
+  currentFileMedia=media;
+  return media;
+}
+function setReelComposerBusyV3668(busy){
+  for(const element of [$('#mediaFile'),$('#removePostMedia'),$('#closeModal'),...all('[data-composer-tab]')]){
+    if(element)element.disabled=busy;
+  }
 }
 $('#createForm').addEventListener('submit', async e => {
   e.preventDefault(); return runSocialSubmitOnce(e.currentTarget,async()=>{ const msg = $('#createMessage');
+  let reelBusyV3668=false;
+  const reelProgressV3668=$('#composerReelUploadProgressV3668');
   try {
     const fd = new FormData(e.target);
     const file = $('#mediaFile').files[0];
@@ -11266,8 +11279,32 @@ $('#createForm').addEventListener('submit', async e => {
 
     let media = null;
     if (file) {
-      msg.textContent = 'Subiendo archivo...';
-      media = await ensureUpload();
+      if(kind==='reel'){
+        reelBusyV3668=true;
+        setReelComposerBusyV3668(true);
+        if(reelProgressV3668){
+          reelProgressV3668.hidden=false;
+          reelProgressV3668.removeAttribute('value');
+        }
+        msg.textContent=currentFileMedia?'Vídeo ya subido. Publicando…':'Preparando subida del vídeo…';
+      }else{
+        msg.textContent = 'Subiendo archivo...';
+      }
+      const onReelProgressV3668=state=>{
+        if(!reelBusyV3668)return;
+        if(state?.phase==='sending'&&Number.isFinite(state.percent)){
+          const pct=Math.max(0,Math.min(99,Math.floor(state.percent)));
+          if(reelProgressV3668)reelProgressV3668.value=pct;
+          msg.textContent='Subiendo vídeo · '+pct+' %';
+        }else if(state?.phase==='processing'){
+          if(reelProgressV3668)reelProgressV3668.removeAttribute('value');
+          msg.textContent='Archivo enviado. Terminando la subida…';
+        }else if(state?.phase==='complete'){
+          msg.textContent='Vídeo recibido. Preparando publicación…';
+        }
+      };
+      media = await ensureUpload(kind==='reel'?{reelProgress:onReelProgressV3668}:{});
+      if(reelProgressV3668)reelProgressV3668.hidden=true;
     }
 
     msg.textContent = publishMode==='draft'
@@ -11307,6 +11344,9 @@ $('#createForm').addEventListener('submit', async e => {
       body: JSON.stringify(payload)
     });
 
+    if(kind==='reel'&&r.status===0){
+      throw new Error('No se pudo confirmar la publicación. Comprueba tus Reels antes de intentar publicar otra vez.');
+    }
     if (!r.ok) throw new Error(
       d.error === 'verified_creator_required_for_nudity'
         ? 'Necesitas verificación de creador adulto para publicar desnudez.'
@@ -11369,6 +11409,10 @@ $('#createForm').addEventListener('submit', async e => {
       try{await refresh();}catch(_){/* Confirmed save remains successful. */}
     }
   } catch (err) { msg.textContent = err.message; }
+  finally {
+    if(reelBusyV3668)setReelComposerBusyV3668(false);
+    if(reelProgressV3668)reelProgressV3668.hidden=true;
+  }
 });
 });
 $('#storyForm').addEventListener('submit', async e => {

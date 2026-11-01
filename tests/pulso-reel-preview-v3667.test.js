@@ -101,7 +101,9 @@ test('V3.6.67: integración sin modificar APIs de vídeos ni controles de public
  assert.ok(html.indexOf('social.js?v=3.2.75')<html.indexOf('pulso-reel-preview-v3667.js'));
  assert.match(html,/id="mediaFile" name="file"/);
  assert.match(html,/id="createForm"/);
- assert.match(social,/currentFileMedia = await uploadFile\(f\)/);
+ assert.match(social,/await uploadFile\(f\)/);
+ assert.match(social,/currentFileMedia=media/);
+ assert.match(social,/await window\.RedLibertadPulsoUploadV3668\.upload\(f,reelProgress\)/);
  assert.match(social,/await api\('\/api\/posts'/);
  assert.match(social,/if \(kind === 'reel' && !file\)/);
  assert.match(css,/pointer-events:auto/);

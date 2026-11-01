@@ -1,0 +1,11 @@
+/* V3.6.68 — Indicador discreto y accesible, sin añadir botones. */
+#modal .pulso-reel-upload-progress-v3668{
+ display:block;width:100%;height:9px;margin:7px 0 6px;
+ accent-color:var(--teal);border-radius:8px;
+}
+#modal .pulso-reel-upload-progress-v3668[hidden]{display:none!important}
+#modal .composer-media-v3227 input:disabled,
+#modal .composer-media-v3227 button:disabled{cursor:wait}
+@media(max-width:530px){
+ #modal .pulso-reel-upload-progress-v3668{height:10px;margin:9px 0 7px}
+}

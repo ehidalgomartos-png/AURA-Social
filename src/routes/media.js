@@ -21,7 +21,17 @@ const upload = multer({
   }
 });
 
-router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
+// V3.6.68: responder con JSON útil ante límites del multipart y formatos no válidos.
+const acceptUpload=upload.single('file');
+function handleUploadErrors(req,res,next){
+  acceptUpload(req,res,error=>{
+    if(!error)return next();
+    if(error.code==='LIMIT_FILE_SIZE')return res.status(413).json({error:'file_too_large'});
+    if(error.message==='unsupported_media_type')return res.status(415).json({error:'unsupported_media_type'});
+    return next(error);
+  });
+}
+router.post('/upload', requireAuth, handleUploadErrors, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'file_required' });
   const isImage = req.file.mimetype.startsWith('image/');
   const max = isImage ? imageMax : videoMax;

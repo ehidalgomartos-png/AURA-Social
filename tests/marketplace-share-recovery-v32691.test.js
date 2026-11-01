@@ -96,8 +96,8 @@ test('untrusted photo, no photo and unavailable image never trigger automatic pu
 test('image can still be removed or replaced before user confirms publication',()=>{
  assert.match(source,/function clearPostMedia\(\)[\s\S]*?currentFileMedia = null/);
  assert.match(source,/mediaFile'\)\.addEventListener\('change',[\s\S]*?currentFileMedia = null/);
- assert.match(source,/function ensureUpload\(\)/);
- assert.match(source,/media = await ensureUpload\(\)/);
+ assert.match(source,/function ensureUpload\(\{reelProgress=null\}=\{\}\)/);
+ assert.match(source,/media = await ensureUpload\(kind==='reel'\?\{reelProgress:onReelProgressV3668\}:\{\}\)/);
  assert.match(source,/const \{ r, d \} = await api\('\/api\/posts', \{/);
  assert.match(read('public/app.html'),/Quitar foto o vídeo/);
 });
