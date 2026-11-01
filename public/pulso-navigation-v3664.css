@@ -1,0 +1,67 @@
+/* V3.6.64 — controles mínimos de descubrimiento sin tapar el vídeo. */
+.pulso-nav-v3664{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ min-width:0;min-height:43px;padding:3px 8px;
+ border:1px solid #365a68;border-radius:13px;
+ color:#d9eaef;background:#122b39;
+}
+#pulsoNavStatusV3664{
+ min-width:0;overflow-wrap:anywhere;
+ font-size:.76rem;font-weight:800;line-height:1.4;
+}
+.pulso-nav-actions-v3664{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.pulso-nav-actions-v3664 button{
+ min-width:45px;min-height:44px;padding:5px 12px;border:1px solid #6a9aa2;
+ border-radius:11px;background:#224656;color:#f6fffe;
+ font-size:1.2rem;line-height:1;font-weight:900;cursor:pointer;
+ touch-action:manipulation;
+}
+.pulso-nav-actions-v3664 button:disabled{
+ cursor:default;opacity:.42;
+}
+.pulso-nav-actions-v3664 button:not(:disabled):hover{background:#316171}
+.pulso-nav-actions-v3664 button:focus-visible{
+ outline:3px solid #78efde;outline-offset:2px;
+}
+.pulso-center-v3662 .pulso-feed{
+ height:calc(100svh - 220px);
+}
+.pulso-center-v3662 .pulso-feed.pulso-feed-empty-v3660{
+ height:auto;min-height:0;max-height:none;
+}
+.pulso-error-v3664{
+ position:absolute;z-index:4;
+ top:32%;left:50%;transform:translateX(-50%);
+ width:min(85%,310px);padding:15px;
+ border:1px solid #9fcdd0;border-radius:14px;
+ background:#0b2738f5;color:#f1fafa;
+ box-shadow:0 8px 30px #000a;
+ text-align:center;line-height:1.45;
+}
+.pulso-error-v3664 p{font-size:.86rem;margin:0 0 10px}
+.pulso-error-v3664 a{
+ display:inline-flex;min-height:44px;align-items:center;justify-content:center;
+ color:#92efe1;font-weight:800;font-size:.85rem;
+ text-decoration:underline;text-underline-offset:3px;
+}
+.pulso-error-v3664 a:focus-visible{outline:3px solid #82f9e8;outline-offset:2px}
+@media(max-width:800px){
+ .pulso-nav-v3664{width:100%;border-radius:10px;min-height:44px;padding:3px 8px}
+ .pulso-center-v3662 .pulso-feed{
+  height:calc(100svh - 62px - 73px - 54px - env(safe-area-inset-bottom,0px));
+  min-height:230px;max-height:none;
+ }
+ .pulso-center-v3662 .pulso-feed.pulso-feed-empty-v3660{height:auto;min-height:0}
+}
+@media(max-width:530px){
+ .pulso-nav-v3664{border-radius:0;border-left:0;border-right:0}
+ .pulso-nav-actions-v3664 button{min-width:47px;min-height:44px}
+ .pulso-center-v3662 .pulso-feed{
+  height:calc(100svh - 58px - 73px - 54px - env(safe-area-inset-bottom,0px));
+  min-height:200px;
+ }
+ .pulso-center-v3662 .pulso-feed.pulso-feed-empty-v3660{height:auto;min-height:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .pulso-nav-actions-v3664 button{transition:none}
+}
