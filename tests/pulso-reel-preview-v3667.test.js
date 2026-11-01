@@ -26,9 +26,10 @@ function harness(){
  const modal={dataset:{composerMode:'post'},classList:makeClasses()};
  const text={textContent:'',classList:makeClasses()};
  const info={textContent:'',hidden:true};
+ const hint={hidden:true,classList:makeClasses()};
  const remove={addEventListener:(name,fn)=>{handlers.remove=fn}};
  const els={modal,mediaFile:input,preview,composerReelMediaInfoV3667:info,
-  uploadText:text,removePostMedia:remove};
+  uploadText:text,removePostMedia:remove,composerReelHintV3228:hint};
  let observer;
  class MutationObserverFake{
   constructor(fn){this.fn=fn;observer=this}
@@ -38,7 +39,7 @@ function harness(){
  const doc={getElementById:id=>els[id]||null};
  vm.runInNewContext(source,{document:doc,MutationObserver:MutationObserverFake},
   {timeout:2000});
- return {modal,input,preview,label,media,video,info,text,handlers,observer};
+ return {modal,input,preview,label,media,video,info,text,hint,handlers,observer};
 }
 
 test('V3.6.67: la vista previa sale del selector al abrir Reel, sin duplicar subida',()=>{
@@ -52,6 +53,7 @@ test('V3.6.67: la vista previa sale del selector al abrir Reel, sin duplicar sub
  assert.equal(h.video.controls,true);
  assert.equal(h.video.preload,'metadata');
  assert.equal(h.info.hidden,false);
+ assert.equal(h.hint.hidden,true);
  assert.match(h.info.textContent,/mi-reel\.mp4/);
  assert.match(h.info.textContent,/Vista previa local/);
  assert.equal(h.text.textContent,'Cambiar foto o vídeo');
@@ -74,6 +76,7 @@ test('V3.6.67: al cambiar o quitar el archivo no queda una vista previa anterior
  assert.doesNotMatch(h.info.textContent,/anterior\.mp4/);
  h.input.files=[];h.handlers.remove();
  assert.equal(h.info.hidden,true);
+ assert.equal(h.hint.hidden,false);
  assert.equal(h.info.textContent,'');
  assert.equal(h.modal.classList.contains('pulso-reel-selected-v3667'),false);
 });
