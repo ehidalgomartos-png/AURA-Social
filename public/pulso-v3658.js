@@ -49,14 +49,20 @@
   else {const mark=make('span',null,'◉');mark.setAttribute('aria-hidden','true');profile.append(mark);}
   profile.append(make('span',null,String(item.displayName||item.username||'').slice(0,80)));
   info.append(profile);
+  const follow=make('button','pulso-follow','Seguir');
+  follow.type='button';follow.dataset.pulsoFollow=String(item.id);follow.hidden=true;
+  info.append(follow);
   if(item.caption)info.append(make('p','pulso-caption',String(item.caption).slice(0,700)));
   const view=make('a','pulso-detail','Ver vídeo y participar');view.href=detail;info.append(view);
   const actions=make('div','pulso-actions');
-  const likes=make('span','pulso-count','♥ ');
-  likes.setAttribute('aria-label',String(Number(item.likes)||0)+' me gusta');
+  const likes=make('button','pulso-count pulso-like','♥ ');
+  likes.type='button';likes.dataset.pulsoLike=String(item.id);
+  likes.setAttribute('aria-pressed','false');
+  likes.setAttribute('aria-label','Me gusta: '+String(Number(item.likes)||0));
   likes.append(make('b',null,String(Number(item.likes)||0)));
-  const comments=make('a',null,'◌ ');
-  comments.href=detail;comments.setAttribute('aria-label','Ver comentarios');
+  const comments=make('button','pulso-comments-open','◌ ');
+  comments.type='button';comments.dataset.pulsoComments=String(item.id);
+  comments.setAttribute('aria-label','Ver comentarios: '+String(Number(item.comments)||0));
   comments.append(make('b',null,String(Number(item.comments)||0)));
   const share=make('button','pulso-share','↗');
   share.type='button';share.dataset.pulsoShare=detail;share.setAttribute('aria-label','Compartir este vídeo');
