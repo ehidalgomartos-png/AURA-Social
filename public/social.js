@@ -366,6 +366,35 @@ async function api(url,opts={}){
     if(apiInFlightGets.get(key)===task)apiInFlightGets.delete(key);
   }
 }
+// V3.6.69: mostrar la publicación guardada sin exponer Reels pendientes o privados.
+function reelPublishedDestinationV3669({kind,publishMode,waitingApprovals,post}={}){
+  if(kind!=='reel'||publishMode!=='now'||waitingApprovals)return null;
+  if(post?.post_kind!=='reel'||post?.moderation_status!=='published')return null;
+  const id=String(post?.id||'');
+  if(!/^[1-9][0-9]{0,15}$/.test(id))return null;
+  return {
+    href:'/app?post='+id,
+    label:post.audience==='public'&&post.content_level==='normal'?'Ver y compartir':'Ver Reel'
+  };
+}
+function toastPublishedReelV3669(successMessage,details){
+  toast(successMessage);
+  const destination=reelPublishedDestinationV3669(details);
+  if(!destination)return;
+  const el=$('#toast');
+  if(!el)return;
+  const link=document.createElement('a');
+  link.href=destination.href;
+  link.textContent=destination.label;
+  link.className='pulso-published-link-v3669';
+  el.append(' · ',link);
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{
+    el.classList.add('hidden');
+    el.classList.remove('toast-enter');
+  },8500);
+}
+
 function toast(t) {
   const el = $('#toast');
   if (!el) return;
@@ -11388,7 +11417,16 @@ $('#createForm').addEventListener('submit', async e => {
         ? (waitingApprovals ? 'Programada. Esperando aprobaciones.' : 'Publicación programada')
         : (waitingApprovals ? 'Publicación guardada. Esperando aprobaciones.' : 'Publicado');
 
-    toast(successMessage);
+    if(kind==='reel'){
+      const reelMessage=publishMode==='draft'?'Reel guardado como borrador'
+        :publishMode==='scheduled'?(waitingApprovals?'Reel programado. Esperando aprobaciones.':'Reel programado')
+        :(waitingApprovals?'Reel guardado. Esperando aprobaciones.':'Reel publicado');
+      toastPublishedReelV3669(reelMessage,{
+        kind,publishMode,waitingApprovals,post:d.post
+      });
+    }else{
+      toast(successMessage);
+    }
     // Clear only after a confirmed first public post save; never on failures.
     if(publishMode==='now' && kind==='post')clearFirstPostTextV3318();
     $('#modal').classList.add('hidden');
