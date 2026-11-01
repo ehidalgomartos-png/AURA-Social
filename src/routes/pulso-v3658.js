@@ -144,7 +144,7 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<link rel="stylesheet" href="/pulso-compact-mobile-v3666.css?v=3.6.66">'+
   '<link rel="stylesheet" href="/pulso-retry-v3671.css?v=3.6.71">'+
   '<link rel="stylesheet" href="/pulso-buffering-v3677.css?v=3.6.77">'+
-  '<script src="/pulso-v3658.js?v=3.6.58&amp;playback=3.6.70&amp;share=3.6.71&amp;perf=3.6.72&amp;pagination=3.6.73&amp;lifecycle=3.6.74&amp;network=3.6.75&amp;swipe=3.6.76&amp;buffering=3.6.77&amp;resume=3.6.78" defer></script>'+
+  '<script src="/pulso-v3658.js?v=3.6.58&amp;playback=3.6.70&amp;share=3.6.71&amp;perf=3.6.72&amp;pagination=3.6.73&amp;lifecycle=3.6.74&amp;network=3.6.75&amp;swipe=3.6.76&amp;buffering=3.6.77&amp;resume=3.6.78&amp;page-lifecycle=3.6.79" defer></script>'+
   '<script src="/pulso-social-v3659.js?v=3.6.59&amp;notice=3.6.71" defer></script>'+
   '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script>'+
   '<script src="/pulso-navigation-v3664.js?v=3.6.64&amp;recovery=3.6.71&amp;perf=3.6.72&amp;pagination=3.6.73&amp;lifecycle=3.6.74&amp;network=3.6.75" defer></script></head>'+
