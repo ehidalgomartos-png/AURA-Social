@@ -1,0 +1,20 @@
+name: Pulso mobile return and connectivity V3.6.78
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  mobile-resume:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Validate return, BFCache, connectivity, playback and privacy
+        run: node --test tests/pulso-resume-network-v3678.test.js tests/pulso-playback-lifecycle-v3670.test.js tests/pulso-buffering-v3677.test.js tests/pulso-fast-swipe-v3676.test.js tests/pulso-network-v3675.test.js
