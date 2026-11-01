@@ -9,6 +9,7 @@
  const label=input?.closest('label.upload-drop');
  const text=document.getElementById('uploadText');
  const remove=document.getElementById('removePostMedia');
+ const hint=document.getElementById('composerReelHintV3228');
  if(!modal||!input||!preview||!info||!label||!text)return;
 
  const isReel=()=>modal.dataset.composerMode==='reel';
@@ -30,6 +31,8 @@
    label.append(preview);
   }
   modal.classList.toggle('pulso-reel-selected-v3667',!!(reel&&file));
+  // La instrucción de elegir archivo desaparece en cuanto ya está elegido.
+  if(hint){hint.hidden=!reel||!!file;hint.classList.toggle('hidden',!reel||!!file);}
   if(!reel||!file){
    info.hidden=true;
    info.textContent='';
