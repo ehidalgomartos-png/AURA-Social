@@ -142,21 +142,41 @@
  // solicitudes al servidor cuando un observador se activa varias veces.
  let autoBlockedV3673=false;
  let footerInsideV3673=false;
+ // V3.6.74: una carga antigua no puede alterar el feed tras ocultar/restaurar.
+ let requestEpochV3674=0;
+ let requestControllerV3674=null;
+ let loaderObserverV3674=null;
  async function loadMore({manual=false}={}){
   if(!hasMore||loading||(!manual&&autoBlockedV3673))return;
   if(!manual&&document.visibilityState!=='visible')return;
   loading=true;more.disabled=true;status.textContent='Cargando más vídeos…';
+  const thisRequestV3674=++requestEpochV3674;
+  const controllerV3674=typeof AbortController==='function'?new AbortController():null;
+  requestControllerV3674=controllerV3674;
+  let timerV3674=null;
   let result='error',added=0;
   try{
    const endpoint=mode==='siguiendo'?'/api/pulso/following?page=':'/api/pulso/public?page=';
    const fetchOptions=mode==='siguiendo'?{credentials:'same-origin',cache:'no-store'}:{credentials:'omit',cache:'no-store'};
-   const response=await fetch(endpoint+(page+1),fetchOptions);
+   if(controllerV3674)fetchOptions.signal=controllerV3674.signal;
+   // Tiempo máximo total de red + JSON: una respuesta colgada no bloquea el visor.
+   const requestV3674=(async()=>{
+    const response=await fetch(endpoint+(page+1),fetchOptions);
+    return {response,data:response.ok?await response.json():null};
+   })();
+   const deadlineV3674=typeof setTimeout==='function'?new Promise((_,reject)=>{
+    timerV3674=setTimeout(()=>{
+     controllerV3674?.abort();
+     reject(new Error('pulso_load_timeout'));
+    },15000);
+   }):null;
+   const {response,data}=await (deadlineV3674?Promise.race([requestV3674,deadlineV3674]):requestV3674);
+   if(thisRequestV3674!==requestEpochV3674)return;
    if(response.status===401&&mode==='siguiendo'){
     status.textContent='Tu sesión ha caducado. Entra para volver a ver Siguiendo.';
     more.hidden=true;hasMore=false;result='unauthorized';return;
    }
    if(!response.ok)throw Error('not_available');
-   const data=await response.json();
    if(!Array.isArray(data.items)||data.page!==page+1||typeof data.hasMore!=='boolean'||(mode==='siguiendo'&&data.mode!=='siguiendo'))throw Error('invalid_response');
    const seen=new Set([...feed.querySelectorAll('[data-pulso-item]')].map(card=>String(card.dataset.reelId||'')));
    const fragment=document.createDocumentFragment();
@@ -178,10 +198,14 @@
    result=added?'added':hasMore?'empty':'done';
    if(added)observeNew();
   }catch(_){
+   if(thisRequestV3674!==requestEpochV3674)return;
    autoBlockedV3673=true;
    more.hidden=false;
    status.textContent='No se pudieron cargar más vídeos. Pulsa «Ver más vídeos» para reintentar.';
   }finally{
+   if(timerV3674!==null&&typeof clearTimeout==='function')clearTimeout(timerV3674);
+   if(thisRequestV3674!==requestEpochV3674)return;
+   requestControllerV3674=null;
    loading=false;more.disabled=false;
    // La navegación del escritorio debe dejar de esperar a páginas fallidas.
    if(typeof CustomEvent==='function'){
@@ -191,16 +215,49 @@
  }
  more.addEventListener('click',()=>void loadMore({manual:true}));
  if('IntersectionObserver' in window){
-  const loader=new IntersectionObserver(entries=>{
+  loaderObserverV3674=new IntersectionObserver(entries=>{
    const relevant=entries.filter(entry=>entry.target===footer);
    if(!relevant.length)return;
+   // Si el observador notificó mientras la pestaña estaba oculta,
+   // la entrada volverá a comprobarse cuando el usuario regrese.
+   if(document.visibilityState!=='visible'){footerInsideV3673=false;return;}
    const inside=relevant.some(entry=>entry.isIntersecting&&entry.intersectionRatio>0);
    const entered=inside&&!footerInsideV3673;
    footerInsideV3673=inside;
    if(entered&&hasMore&&!loading&&!autoBlockedV3673)void loadMore();
   },{root:feed,rootMargin:'0px 0px 110px 0px',threshold:0});
-  loader.observe(footer);
+  loaderObserverV3674.observe(footer);
  }
+ function suspendPaginationV3674(){
+  footerInsideV3673=false;
+  if(!loading)return;
+  // Invalidar la respuesta ANTES del abort: un fetch tardío nunca añade Reels.
+  requestEpochV3674++;
+  requestControllerV3674?.abort();
+  requestControllerV3674=null;
+  loading=false;more.disabled=false;
+  status.textContent='Carga pausada. Puedes continuar al volver a Pulso.';
+  if(typeof CustomEvent==='function'){
+   feed.dispatchEvent(new CustomEvent('pulso:page-result',{detail:{result:'paused',added:0}}));
+  }
+ }
+ function resumePaginationV3674(){
+  if(document.visibilityState!=='visible'||!hasMore||autoBlockedV3673||!loaderObserverV3674)return;
+  footerInsideV3673=false;
+  loaderObserverV3674.unobserve?.(footer);
+  loaderObserverV3674.observe(footer);
+ }
+ document.addEventListener?.('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')suspendPaginationV3674();
+  else resumePaginationV3674();
+ });
+ window.addEventListener?.('pagehide',()=>{
+  suspendPaginationV3674();
+  loaderObserverV3674?.disconnect();
+ });
+ window.addEventListener?.('pageshow',event=>{
+  if(event.persisted)resumePaginationV3674();
+ });
  // Una reproducción iniciada por la persona también detiene cualquier otra.
  // "play" no burbujea: el listener debe escuchar en fase de captura.
  feed.addEventListener('play',event=>{
