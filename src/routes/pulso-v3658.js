@@ -152,6 +152,10 @@ function createPulsoRouter({db=defaultDb,auth=requireMember}={}){
    res.status(503).type('html').send(renderPage([],false).replace('Aún no hay vídeos públicos en Pulso.','Pulso no está disponible en este momento.'));
   }
  });
+ router.get('/api/pulso/session',auth,(req,res)=>{
+  res.set('Cache-Control','no-store').set('X-Robots-Tag','noindex,nofollow');
+  return res.json({authenticated:true});
+ });
  router.get('/api/pulso/state',auth,async(req,res)=>{
   res.set('Cache-Control','no-store').set('X-Robots-Tag','noindex,nofollow');
   const ids=requestedPublicIds(req.query.ids);
