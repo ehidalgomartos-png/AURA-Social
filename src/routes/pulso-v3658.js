@@ -140,9 +140,11 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<link rel="stylesheet" href="/pulso-empty-v3660.css?v=3.6.60">'+
   '<link rel="stylesheet" href="/pulso-mobile-v3661.css?v=3.6.61">'+
   '<link rel="stylesheet" href="/pulso-tabs-v3662.css?v=3.6.62">'+
+  '<link rel="stylesheet" href="/pulso-navigation-v3664.css?v=3.6.64">'+
   '<script src="/pulso-v3658.js?v=3.6.58" defer></script>'+
   '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script>'+
-  '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script></head>'+
+  '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script>'+
+  '<script src="/pulso-navigation-v3664.js?v=3.6.64" defer></script></head>'+
   '<body><a class="pulso-skip" href="#pulsoFeed">Saltar a los vídeos</a>'+
   '<header class="pulso-top"><a class="pulso-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>'+
   '<span class="pulso-name">Pulso <span>●</span></span>'+
@@ -153,6 +155,11 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<a href="/pulso"'+(!following?' aria-current="page"':'')+'>Para ti</a>'+
   '<a href="/pulso?tab=siguiendo"'+(following?' aria-current="page"':'')+'>Siguiendo</a></nav>'+
   '<p class="pulso-feed-explain-v3662">'+(following?'Solo publicaciones públicas de cuentas que sigues.':'Reels públicos recientes de la comunidad.')+'</p>'+
+  (isEmpty?'':'<div class="pulso-nav-v3664" role="group" aria-label="Navegar entre vídeos">'+
+  '<span id="pulsoNavStatusV3664" role="status" aria-live="polite">Vídeo 1 de '+items.length+' cargados</span>'+
+  '<div class="pulso-nav-actions-v3664">'+
+  '<button type="button" id="pulsoPreviousV3664" aria-label="Vídeo anterior" disabled>↑</button>'+
+  '<button type="button" id="pulsoNextV3664" aria-label="Siguiente vídeo">↓</button></div></div>')+
   '<div class="pulso-feed'+(isEmpty?' pulso-feed-empty-v3660':'')+'" id="pulsoFeed" data-pulso-mode="'+(following?'siguiendo':'para-ti')+'" tabindex="0" aria-label="Vídeos cortos de la comunidad">'+cards+
   (isEmpty?'':'<div class="pulso-footer-feed" id="pulsoFooter">'+
   '<button id="pulsoMore" type="button"'+(!more?' hidden':'')+'>Ver más vídeos</button>'+
