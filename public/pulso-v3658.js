@@ -138,34 +138,66 @@
   });
  }
  observeNew();
- async function loadMore(){
-  if(!hasMore||loading)return;
+ // V3.6.73: los errores se recuperan manualmente; no repetir
+ // solicitudes al servidor cuando un observador se activa varias veces.
+ let autoBlockedV3673=false;
+ let footerInsideV3673=false;
+ async function loadMore({manual=false}={}){
+  if(!hasMore||loading||(!manual&&autoBlockedV3673))return;
+  if(!manual&&document.visibilityState!=='visible')return;
   loading=true;more.disabled=true;status.textContent='Cargando más vídeos…';
+  let result='error',added=0;
   try{
    const endpoint=mode==='siguiendo'?'/api/pulso/following?page=':'/api/pulso/public?page=';
    const fetchOptions=mode==='siguiendo'?{credentials:'same-origin',cache:'no-store'}:{credentials:'omit',cache:'no-store'};
    const response=await fetch(endpoint+(page+1),fetchOptions);
    if(response.status===401&&mode==='siguiendo'){
     status.textContent='Tu sesión ha caducado. Entra para volver a ver Siguiendo.';
-    more.hidden=true;hasMore=false;return;
+    more.hidden=true;hasMore=false;result='unauthorized';return;
    }
    if(!response.ok)throw Error('not_available');
    const data=await response.json();
    if(!Array.isArray(data.items)||data.page!==page+1||typeof data.hasMore!=='boolean'||(mode==='siguiendo'&&data.mode!=='siguiendo'))throw Error('invalid_response');
+   const seen=new Set([...feed.querySelectorAll('[data-pulso-item]')].map(card=>String(card.dataset.reelId||'')));
    const fragment=document.createDocumentFragment();
-   for(const item of data.items){const card=cardFor(item);if(card)fragment.append(card);}
-   feed.insertBefore(fragment,footer);
-   page++;hasMore=data.hasMore&&page<20;
-   more.hidden=!hasMore;status.textContent=hasMore?'':'Has llegado al final de los vídeos disponibles.';
-   observeNew();
+   for(const item of data.items){
+    const id=String(item?.id||'');
+    if(seen.has(id))continue;
+    const card=cardFor(item);
+    if(!card)continue;
+    seen.add(id);fragment.append(card);added++;
+   }
+   if(added)feed.insertBefore(fragment,footer);
+   page++;
+   hasMore=data.hasMore&&page<20;
+   more.hidden=!hasMore;
+   // Una página vacía o duplicada no debe generar bucles automáticos.
+   autoBlockedV3673=added===0&&hasMore;
+   status.textContent=!hasMore?'Has llegado al final de los vídeos disponibles.':
+    autoBlockedV3673?'No hay vídeos nuevos en este bloque. Pulsa «Ver más vídeos» para continuar.':'';
+   result=added?'added':hasMore?'empty':'done';
+   if(added)observeNew();
   }catch(_){
-   status.textContent='No se pudieron cargar más vídeos. Puedes intentarlo otra vez.';
-  }finally{loading=false;more.disabled=false;}
+   autoBlockedV3673=true;
+   more.hidden=false;
+   status.textContent='No se pudieron cargar más vídeos. Pulsa «Ver más vídeos» para reintentar.';
+  }finally{
+   loading=false;more.disabled=false;
+   // La navegación del escritorio debe dejar de esperar a páginas fallidas.
+   if(typeof CustomEvent==='function'){
+    feed.dispatchEvent(new CustomEvent('pulso:page-result',{detail:{result,added}}));
+   }
+  }
  }
- more.addEventListener('click',()=>void loadMore());
+ more.addEventListener('click',()=>void loadMore({manual:true}));
  if('IntersectionObserver' in window){
   const loader=new IntersectionObserver(entries=>{
-   if(entries.some(entry=>entry.isIntersecting)&&hasMore&&!loading)void loadMore();
+   const relevant=entries.filter(entry=>entry.target===footer);
+   if(!relevant.length)return;
+   const inside=relevant.some(entry=>entry.isIntersecting&&entry.intersectionRatio>0);
+   const entered=inside&&!footerInsideV3673;
+   footerInsideV3673=inside;
+   if(entered&&hasMore&&!loading&&!autoBlockedV3673)void loadMore();
   },{root:feed,rootMargin:'0px 0px 110px 0px',threshold:0});
   loader.observe(footer);
  }
