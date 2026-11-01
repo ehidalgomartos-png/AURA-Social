@@ -1,0 +1,26 @@
+/* V3.6.71 — Único control adicional, visible solo si falla el vídeo. */
+.pulso-error-v3664 .pulso-retry-v3671{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-height:44px;
+ max-width:100%;
+ margin:8px 4px 0 0;
+ padding:9px 14px;
+ color:#082d36;
+ background:#d9f8f1;
+ border:1px solid #84d3c6;
+ border-radius:10px;
+ font-size:.85rem;
+ font-weight:800;
+ cursor:pointer;
+}
+.pulso-error-v3664 .pulso-retry-v3671:focus-visible{
+ outline:3px solid #82f9e8;
+ outline-offset:3px;
+}
+.pulso-error-v3664 .pulso-retry-v3671:disabled{opacity:.72;cursor:wait}
+.pulso-error-v3664 .pulso-retry-v3671[hidden]{display:none!important}
+@media(max-width:530px){
+ .pulso-error-v3664{top:24%;width:min(90%,320px)}
+}
