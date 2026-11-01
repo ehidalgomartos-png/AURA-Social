@@ -1,0 +1,20 @@
+name: Pulso adaptive mobile network V3.6.75
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  pulso-network:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Check network tiers, autoplay, mobile preload and regressions
+        run: node --test tests/pulso-network-v3675.test.js tests/pulso-playback-lifecycle-v3670.test.js tests/pulso-preload-performance-v3672.test.js tests/pulso-lifecycle-v3674.test.js

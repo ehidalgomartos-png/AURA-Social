@@ -9,6 +9,10 @@
  if(!feed||!more||!status||!footer)return;
  const motionOff=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
  const saveData=window.navigator?.connection?.saveData===true;
+ const connectionV3675=window.navigator?.connection;
+ const slowNetworkV3675=()=>connectionV3675?.saveData===true||
+  /^(?:slow-2g|2g)$/.test(String(connectionV3675?.effectiveType||''));
+
  let page=1,loading=false,hasMore=!more.hidden;
  const mode=feed.dataset.pulsoMode==='siguiendo'?'siguiendo':'para-ti';
  const observed=new WeakSet();
@@ -113,7 +117,7 @@
   if(changed)pauseAll(winner);
   // No reiniciar una pausa manual del mismo vídeo cada vez que el
   // IntersectionObserver emita otro aviso por un desplazamiento pequeño.
-  if((changed||resume)&&!motionOff&&!saveData&&winner.paused){
+  if((changed||resume)&&!motionOff&&!saveData&&!slowNetworkV3675()&&winner.paused){
    winner.muted=true;
    try{winner.play()?.catch?.(()=>{});}catch(_){/* Los controles nativos siguen disponibles. */}
   }
