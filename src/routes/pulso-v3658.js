@@ -78,7 +78,8 @@ function renderCard(item){
   '<div class="pulso-shade" aria-hidden="true"></div>'+
   '<div class="pulso-item-info"><a class="pulso-creator" href="'+esc(profile)+'">'+avatar+'<span>'+esc(item.displayName)+'</span></a>'+
   '<button type="button" class="pulso-follow" data-pulso-follow="'+esc(item.id)+'" hidden>Seguir</button>'+
-  (item.caption?'<p class="pulso-caption">'+esc(item.caption)+'</p>':'')+
+  (item.caption?'<p class="pulso-caption" id="pulso-caption-'+esc(item.id)+'">'+esc(item.caption)+'</p>'+ 
+    (item.caption.length>135?'<button type="button" class="pulso-caption-toggle-v3661" aria-expanded="false" aria-controls="pulso-caption-'+esc(item.id)+'" data-pulso-caption-toggle>Ver descripción completa</button>':''):'')+
   '<a class="pulso-detail" href="'+esc(reel)+'">Ver vídeo y participar</a></div>'+
   '<div class="pulso-actions">'+
   '<button type="button" class="pulso-count pulso-like" data-pulso-like="'+esc(item.id)+'" aria-pressed="false" aria-label="Me gusta: '+item.likes+'">♥ <b>'+item.likes+'</b></button>'+
@@ -115,8 +116,10 @@ function renderPage(items,more,{unavailable=false}={}){
   '<link rel="stylesheet" href="/pulso-v3658.css?v=3.6.58">'+
   '<link rel="stylesheet" href="/pulso-social-v3659.css?v=3.6.59">'+
   '<link rel="stylesheet" href="/pulso-empty-v3660.css?v=3.6.60">'+
+  '<link rel="stylesheet" href="/pulso-mobile-v3661.css?v=3.6.61">'+
   '<script src="/pulso-v3658.js?v=3.6.58" defer></script>'+
-  '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script></head>'+
+  '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script>'+
+  '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script></head>'+
   '<body><a class="pulso-skip" href="#pulsoFeed">Saltar a los vídeos</a>'+
   '<header class="pulso-top"><a class="pulso-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>'+
   '<span class="pulso-name">Pulso <span>●</span></span>'+
