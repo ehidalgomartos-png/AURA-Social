@@ -18,6 +18,8 @@ jobs:
           node-version: '22'
       - name: Install app dependencies for HTTP route integration tests
         run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: V3.6.58 Pulso public immersive videos with privacy-safe reuse of Reels
+        run: node --test tests/pulso-video-discovery-v3658.test.js
       - name: V3.6.57 Resuelve clear visitor signup CTA and existing registration
         run: node --test tests/resuelve-signup-cta-v3657.test.js
       - name: V3.6.56 Services help links open genuine unanswered Resuelve list
