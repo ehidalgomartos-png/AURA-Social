@@ -100,7 +100,7 @@ function renderCard(item){
   '</div>'+
   '<div class="pulso-actions">'+
   '<button type="button" class="pulso-count pulso-like" data-pulso-like="'+esc(item.id)+'" aria-pressed="false" aria-label="Me gusta: '+item.likes+'">♥ <b>'+item.likes+'</b></button>'+
-  '<button type="button" class="pulso-comments-open" data-pulso-comments="'+esc(item.id)+'" aria-label="Ver comentarios: '+item.comments+'">◌ <b>'+item.comments+'</b></button>'+
+  '<button type="button" class="pulso-comments-open" data-pulso-comments="'+esc(item.id)+'" aria-label="Comentar este vídeo: '+item.comments+' comentarios">◌ <b>'+item.comments+'</b><small>Comentar</small></button>'+
   '<button type="button" class="pulso-share" data-pulso-share="'+esc(reel)+'" aria-label="Compartir este vídeo">↗<small>Compartir</small></button>'+
   '</div></article>';
 }
