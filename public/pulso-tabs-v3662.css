@@ -1,0 +1,26 @@
+/* V3.6.62 — Pulso: cambio transparente entre vídeos públicos recientes y Siguiendo. */
+.pulso-center-v3662{width:100%;min-width:0;display:flex;flex-direction:column;gap:8px}
+.pulso-tabs-v3662{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:5px;background:#1c3949;border:1px solid #355a6c;border-radius:16px}
+.pulso-tabs-v3662 a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:10px 12px;color:#d6e8ee;font-size:.9rem;font-weight:800;text-decoration:none;border-radius:11px}
+.pulso-tabs-v3662 a[aria-current="page"]{color:#092b36;background:#d9f8f2;box-shadow:0 2px 10px #07152155}
+.pulso-tabs-v3662 a:not([aria-current="page"]):hover{background:#ffffff18}
+.pulso-tabs-v3662 a:focus-visible{outline:3px solid #70f4e7;outline-offset:2px}
+.pulso-feed-explain-v3662{min-height:16px;margin:0;color:#a9c6d2;text-align:center;font-size:.73rem;line-height:1.4}
+.pulso-center-v3662 .pulso-feed{height:calc(100svh - 170px)}
+.pulso-layout-empty-v3660 .pulso-center-v3662 .pulso-feed-empty-v3660{height:auto;min-height:0;max-height:none}
+@media(max-width:800px){
+ .pulso-center-v3662{width:min(100%,510px);gap:4px}
+ .pulso-tabs-v3662{width:100%;padding:4px;border-radius:12px}
+ .pulso-tabs-v3662 a{min-height:45px}
+ .pulso-feed-explain-v3662{padding:0 6px;min-height:16px;font-size:.68rem}
+ .pulso-center-v3662 .pulso-feed{height:calc(100svh - 62px - 73px - env(safe-area-inset-bottom,0px));max-height:none}
+ .pulso-layout-empty-v3660 .pulso-center-v3662 .pulso-feed-empty-v3660{height:auto;min-height:0}
+}
+@media(max-width:530px){
+ .pulso-center-v3662{width:100%}
+ .pulso-tabs-v3662{border-radius:0;border-left:0;border-right:0}
+ .pulso-tabs-v3662 a{min-height:46px}
+ .pulso-feed-explain-v3662{font-size:.67rem}
+ .pulso-center-v3662 .pulso-feed{height:calc(100svh - 58px - 73px - env(safe-area-inset-bottom,0px))}
+}
+@media(prefers-reduced-motion:reduce){.pulso-tabs-v3662 a{scroll-behavior:auto}}
