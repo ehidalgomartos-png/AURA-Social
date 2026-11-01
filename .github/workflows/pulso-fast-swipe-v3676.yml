@@ -1,0 +1,20 @@
+name: Pulso fast swipe playback V3.6.76
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  fast-swipe:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Check stale autoplay, low-data playback and regressions
+        run: node --test tests/pulso-fast-swipe-v3676.test.js tests/pulso-playback-lifecycle-v3670.test.js tests/pulso-preload-performance-v3672.test.js tests/pulso-network-v3675.test.js
