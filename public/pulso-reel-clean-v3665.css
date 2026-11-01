@@ -1,0 +1,37 @@
+/* V3.6.65 — Ficha pública de un Reel compartido: simple y conectada a Pulso. */
+/* Mantiene accesible el enlace individual para compartir y los motores de búsqueda. */
+.reel-pulso-info-v3663 h1{
+ font-size:clamp(1.4rem,2.3vw,1.9rem);
+ line-height:1.27;
+ margin:11px 0 15px;
+ overflow-wrap:anywhere;
+}
+.reel-pulso-info-v3663 .reel-pulso-counts-v3663{
+ margin:2px 0 12px;font-size:.78rem;
+}
+.reel-pulso-info-v3663 .reel-pulso-description-v3663{
+ margin-top:12px;
+ padding:12px 0 0;
+ line-height:1.6;
+ border-top:1px solid #e0e7e7;
+}
+.reel-pulso-actions-v3663.reel-pulso-actions-v3665{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+ margin:15px 0 0;
+}
+.reel-pulso-actions-v3665 > :first-child{grid-column:1/-1}
+.reel-pulso-actions-v3665 > :nth-child(2){grid-column:auto}
+.reel-pulso-actions-v3665 > :nth-child(3){grid-column:auto}
+.reel-pulso-actions-v3665 :is(a,button){min-height:46px}
+.reel-pulso-actions-v3665 .reel-pulso-explore-v3661{
+ background:#e3f8f2;color:#134853;
+ border:1px solid #a8d9d1;
+}
+.reel-pulso-info-v3663 .creator{margin-bottom:10px}
+@media(max-width:620px){
+ .reel-pulso-actions-v3665 .reel-pulso-guest-v3663{display:none}
+ .reel-pulso-actions-v3665 > :first-child{grid-column:1/-1}
+ .reel-pulso-actions-v3665 > :last-child{grid-column:1/-1}
+ .reel-pulso-actions-v3665 :is(a,button){min-height:48px}
+ .reel-pulso-info-v3663 h1{font-size:1.35rem}
+}
