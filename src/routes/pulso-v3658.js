@@ -78,7 +78,7 @@ function renderCard(item){
   '<div class="pulso-shade" aria-hidden="true"></div>'+
   '<div class="pulso-item-info"><a class="pulso-creator" href="'+esc(profile)+'">'+avatar+'<span>'+esc(item.displayName)+'</span></a>'+
   '<button type="button" class="pulso-follow" data-pulso-follow="'+esc(item.id)+'" hidden>Seguir</button>'+
-  (item.caption?'<p class="pulso-caption" id="pulso-caption-'+esc(item.id)+'">'+esc(item.caption)+'</p>'+ 
+  (item.caption?'<p class="pulso-caption'+(item.caption.length>135?' pulso-caption-clamped-v3661':'')+'" id="pulso-caption-'+esc(item.id)+'">'+esc(item.caption)+'</p>'+ 
     (item.caption.length>135?'<button type="button" class="pulso-caption-toggle-v3661" aria-expanded="false" aria-controls="pulso-caption-'+esc(item.id)+'" data-pulso-caption-toggle>Ver descripción completa</button>':''):'')+
   '<a class="pulso-detail" href="'+esc(reel)+'">Ver vídeo y participar</a></div>'+
   '<div class="pulso-actions">'+
