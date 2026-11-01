@@ -20,6 +20,9 @@
  // de intersección llegan mezclados durante el gesto de deslizar.
  const visibleRatios=new Map();
  const sharePendingV3671=new WeakSet();
+ // V3.6.76: identificar intentos de autoplay aún pendientes.
+ // Un play tardío de un Reel ya descartado nunca debe pausar el vídeo actual.
+ const autoplayRequestsV3676=new WeakSet();
  let activeVideo=null;
  let resumeWhenVisible=false;
 
@@ -95,7 +98,10 @@
  // Elegir por proporción visible evita que dos avisos simultáneos de swipe
  // reproduzcan varios vídeos o hagan retroceder al anterior.
  function syncPlayback(resume=false){
-  if(document.visibilityState!=='visible'){pauseAll();return;}
+  if(document.visibilityState!=='visible'){
+   if(activeVideo&&!activeVideo.paused)pauseAll();
+   return;
+  }
   let winner=null,best=.679;
   for(const [card,ratio] of visibleRatios){
    if(!card.isConnected){visibleRatios.delete(card);continue;}
@@ -106,7 +112,9 @@
    }
   }
   if(!winner){
-   pauseAll();
+   // Entre dos vídeos no hay que escanear toda la galería en cada aviso
+   // si ya se había detenido el reproductor anterior.
+   if(activeVideo)pauseAll();
    activeVideo=null;
    return;
   }
@@ -119,7 +127,22 @@
   // IntersectionObserver emita otro aviso por un desplazamiento pequeño.
   if((changed||resume)&&!motionOff&&!saveData&&!slowNetworkV3675()&&winner.paused){
    winner.muted=true;
-   try{winner.play()?.catch?.(()=>{});}catch(_){/* Los controles nativos siguen disponibles. */}
+   autoplayRequestsV3676.add(winner);
+   try{
+    const start=winner.play();
+    if(start&&typeof start.then==='function'){
+     start.then(()=>{
+      // El sistema puede confirmar play() después de varios swipes.
+      // Nunca permitir que esa respuesta reactive un vídeo fuera de pantalla.
+      if(activeVideo!==winner||document.visibilityState!=='visible'){
+       if(!winner.paused)winner.pause();
+      }
+     },()=>{}).then(()=>autoplayRequestsV3676.delete(winner));
+    }else autoplayRequestsV3676.delete(winner);
+   }catch(_){
+    autoplayRequestsV3676.delete(winner);
+    /* Los controles nativos siguen disponibles. */
+   }
   }
  }
  function playback(){
@@ -267,6 +290,19 @@
  feed.addEventListener('play',event=>{
   const video=event.target;
   if(!video?.matches?.('video.pulso-video'))return;
+  if(autoplayRequestsV3676.has(video)){
+   autoplayRequestsV3676.delete(video);
+   if(video!==activeVideo||document.visibilityState!=='visible'){
+    video.pause();
+    return;
+   }
+  }
+  // No se permite reproducción en segundo plano, ni siquiera desde controles.
+  if(document.visibilityState!=='visible'){
+   video.pause();
+   return;
+  }
+  // El usuario puede iniciar otro vídeo manualmente; debe detener los demás.
   activeVideo=video;
   pauseAll(video);
  },true);
