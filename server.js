@@ -85,6 +85,7 @@ const releaseControlRoutes = require('./src/routes/release-control');
 const publicCommunitySeoV180Routes = require('./src/public-community-seo-v180');
 const publicEventSeoV181Routes = require('./src/public-event-seo-v181');
 const publicMediaSeoV182Routes = require('./src/public-media-seo-v182');
+const {createPulsoRouter}=require('./src/routes/pulso-v3658');
 const publicSearchV183Routes = require('./src/public-search-v183');
 const publicDiscoveryV184Routes = require('./src/public-discovery-v184');
 const publicTopicsV185Routes = require('./src/public-topics-v185');
@@ -299,6 +300,7 @@ app.use('/noticias', editorialPublishV323Public);
 app.use(publicCommunitySeoV180Routes);
 app.use(publicEventSeoV181Routes);
 app.use(publicMediaSeoV182Routes);
+app.use(createPulsoRouter({db}));
 app.use(publicSearchV183Routes);
 app.use(publicDiscoveryV184Routes);
 app.use(publicTopicsV185Routes);
@@ -1275,6 +1277,7 @@ app.get('/robots.txt',(req,res)=>{
     'Allow: /eventos',
     'Allow: /evento/',
     'Allow: /reels',
+    'Allow: /pulso',
     'Allow: /reel/',
     'Allow: /multimedia',
     'Allow: /buscar',
@@ -1343,6 +1346,7 @@ app.get('/sitemap.xml',async(req,res)=>{
       `<url><loc>${escapeHtml(origin+'/comunidades')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/eventos')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/reels')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
+      `<url><loc>${escapeHtml(origin+'/pulso')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/multimedia')}</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/buscar')}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
       `<url><loc>${escapeHtml(origin+'/descubrir')}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
