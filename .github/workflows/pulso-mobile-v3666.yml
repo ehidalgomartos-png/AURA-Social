@@ -1,0 +1,22 @@
+name: Pulso mobile clean V3.6.66
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pulso-mobile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Check mobile feed and Reel entry without redundant controls
+        run: node --test tests/pulso-mobile-clean-v3666.test.js
