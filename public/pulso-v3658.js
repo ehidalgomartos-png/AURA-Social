@@ -74,6 +74,7 @@
   comments.type='button';comments.dataset.pulsoComments=String(item.id);
   comments.setAttribute('aria-label','Ver comentarios: '+String(Number(item.comments)||0));
   comments.append(make('b',null,String(Number(item.comments)||0)));
+  comments.append(make('small',null,'Comentar'));
   const share=make('button','pulso-share','↗');
   share.type='button';share.dataset.pulsoShare=detail;share.setAttribute('aria-label','Compartir este vídeo');
   share.append(make('small',null,'Compartir'));
