@@ -55,9 +55,9 @@ test('V3.6.63: ficha pública conserva el vídeo original con nuevo equilibrio d
  assert.match(html,/class="rp reel-pulso-frame-v3661"><video src="https:\/\/redlibertad.com\/uploads\/reels\/42.mp4" controls playsinline preload="metadata">/);
  assert.match(html,/class="rm reel-pulso-info-v3663"/);
  assert.match(html,/REEL PÚBLICO · PULSO/);
- assert.match(html,/<h1>Pulso de la comunidad: primera publicación\.<\/h1>/);
- assert.match(html,/href="\/pulso">Explorar Pulso<\/a>/);
- assert.match(html,/href="\/reels">Ver galería de Reels<\/a>/);
+ assert.match(html,/<h1>Vídeo de Autor Público<\/h1>/);
+ assert.match(html,/href="\/pulso">Volver a Pulso<\/a>/);
+ assert.doesNotMatch(html,/Ver galería de Reels/);
  assert.match(html,/href="\/pulso">Pulso<\/a>/);
  assert.match(html,/aria-label="Acciones del Reel"/);
  assert.match(html,/data-public-share/);
@@ -69,7 +69,7 @@ test('V3.6.63: texto largo mantiene lectura ampliable y el título no queda cort
  const response=await detailHarness(caption).render();
  const html=response.body;
  const headline=html.match(/<h1>([^<]+)<\/h1>/)?.[1];
- assert.ok(headline&&headline.length>72&&headline.length<=113,headline);
+ assert.equal(headline,'Vídeo de Autor Público');
  assert.match(html,/<section class="reel-pulso-description-v3663"/);
  assert.match(html,/<details><summary>Leer descripción completa<\/summary>/);
  assert.match(html,/Experiencias reales compartidas con respeto/);
@@ -100,7 +100,7 @@ test('V3.6.63: los estilos específicos de Reel se cargan al final después del 
 });
 test('V3.6.63: sin descripción extensa no se crea un desplegable vacío',async()=>{
  const html=(await detailHarness('Un Reel público real.').render()).body;
- assert.match(html,/<h1>Un Reel público real\.<\/h1>/);
+ assert.match(html,/<h1>Vídeo de Autor Público<\/h1>/);
  assert.doesNotMatch(html,/<details><summary>Leer descripción completa/);
- assert.match(html,/href="\/pulso">Explorar Pulso/);
+ assert.match(html,/href="\/pulso">Volver a Pulso/);
 });
