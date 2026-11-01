@@ -52,7 +52,20 @@
   const follow=make('button','pulso-follow','Seguir');
   follow.type='button';follow.dataset.pulsoFollow=String(item.id);follow.hidden=true;
   info.append(follow);
-  if(item.caption)info.append(make('p','pulso-caption',String(item.caption).slice(0,700)));
+  if(item.caption){
+   const caption=String(item.caption).slice(0,700);
+   const long=caption.length>135;
+   const label=make('p','pulso-caption'+(long?' pulso-caption-clamped-v3661':''),caption);
+   label.id='pulso-caption-'+String(item.id);
+   info.append(label);
+   if(long){
+    const toggle=make('button','pulso-caption-toggle-v3661','Ver descripción completa');
+    toggle.type='button';toggle.setAttribute('aria-expanded','false');
+    toggle.setAttribute('aria-controls',label.id);
+    toggle.dataset.pulsoCaptionToggle='';
+    info.append(toggle);
+   }
+  }
   const view=make('a','pulso-detail','Ver vídeo y participar');view.href=detail;info.append(view);
   const actions=make('div','pulso-actions');
   const likes=make('button','pulso-count pulso-like','♥ ');
