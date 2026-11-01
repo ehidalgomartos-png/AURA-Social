@@ -48,8 +48,8 @@ function harness({following=false,initialIds=['25'],firstPage=1}={}){
  }
  const context={
   page:firstPage,loading:false,hasMore:true,mode:following?'siguiendo':'para-ti',
-  more,status,feed,footer,document:doc,IntersectionObserver:Observer,
-  CustomEvent:CustomEventFake,
+  more,status,feed,footer,document:doc,window:{IntersectionObserver:Observer},
+  IntersectionObserver:Observer,CustomEvent:CustomEventFake,
   cardFor(entry){
    if(!/^[1-9]\d{0,15}$/.test(String(entry?.id||'')))return null;
    if(!String(entry?.video||'').startsWith('/uploads/'))return null;
