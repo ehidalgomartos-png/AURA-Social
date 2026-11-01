@@ -25,11 +25,24 @@
  const autoplayRequestsV3676=new WeakSet();
  let activeVideo=null;
  let resumeWhenVisible=false;
+ // V3.6.78: restaurar solo el vídeo que estaba reproduciéndose.
+ let resumeVideoV3678=null;
+ let restoringV3678=false;
  // V3.6.77: aviso transitorio solo ante una espera REAL de reproducción.
  // Nunca recargamos el archivo ni disparamos reintentos de red automáticos.
  let bufferingVideoV3677=null;
  let bufferingTimerV3677=null;
  let bufferingMessageV3677=null;
+ function bufferingTextV3678(){
+  return window.navigator?.onLine===false?
+   'Sin conexión. Esperando a que vuelva Internet…':'Cargando vídeo…';
+ }
+ function updateBufferingTextV3678(){
+  if(bufferingMessageV3677)bufferingMessageV3677.textContent=bufferingTextV3678();
+ }
+ // Los eventos de red solo actualizan el aviso: nunca recargan ni dan play().
+ window.addEventListener?.('offline',updateBufferingTextV3678);
+ window.addEventListener?.('online',updateBufferingTextV3678);
  function clearBufferingV3677(){
   if(bufferingTimerV3677!==null&&typeof clearTimeout==='function')clearTimeout(bufferingTimerV3677);
   bufferingTimerV3677=null;
@@ -49,7 +62,7 @@
     document.visibilityState!=='visible'||video.paused)return;
    const card=video.closest?.('[data-pulso-item]');
    if(!card?.isConnected||card.querySelector?.('.pulso-error-v3664'))return;
-   const notice=make('p','pulso-buffering-v3677','Cargando vídeo…');
+   const notice=make('p','pulso-buffering-v3677',bufferingTextV3678());
    notice.setAttribute('role','status');
    card.append(notice);
    bufferingMessageV3677=notice;
@@ -158,7 +171,10 @@
   if(changed)pauseAll(winner);
   // No reiniciar una pausa manual del mismo vídeo cada vez que el
   // IntersectionObserver emita otro aviso por un desplazamiento pequeño.
-  if((changed||resume)&&!motionOff&&!saveData&&!slowNetworkV3675()&&winner.paused){
+  // El retorno del móvil nunca activa otro Reel que estuviera pausado.
+  const mayStartV3678=restoringV3678?
+   (resume&&winner===resumeVideoV3678):changed||resume;
+  if(mayStartV3678&&!motionOff&&!saveData&&!slowNetworkV3675()&&winner.paused){
    winner.muted=true;
    autoplayRequestsV3676.add(winner);
    try{
@@ -354,20 +370,33 @@
    if(event.target===bufferingVideoV3677)clearBufferingV3677();
   },true);
  }
+ // Al salir, recordar la intención de reproducción, no solo un booleano.
+ function rememberPlaybackV3678(){
+  if(activeVideo&&!activeVideo.paused){
+   resumeWhenVisible=true;
+   resumeVideoV3678=activeVideo;
+  }
+ }
+ function restorePlaybackV3678(){
+  const resume=resumeWhenVisible;
+  resumeWhenVisible=false;
+  restoringV3678=true;
+  try{syncPlayback(resume);}
+  finally{
+   restoringV3678=false;
+   resumeVideoV3678=null;
+  }
+ }
  document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible'){
    clearBufferingV3677();
-   resumeWhenVisible=resumeWhenVisible||Boolean(activeVideo&&!activeVideo.paused);
+   rememberPlaybackV3678();
    pauseAll();
-  }else{
-   const resume=resumeWhenVisible;
-   resumeWhenVisible=false;
-   syncPlayback(resume);
-  }
+  }else restorePlaybackV3678();
  });
  window.addEventListener('pagehide',()=>{
   clearBufferingV3677();
-  resumeWhenVisible=resumeWhenVisible||Boolean(activeVideo&&!activeVideo.paused);
+  rememberPlaybackV3678();
   pauseAll();
   observer?.disconnect();
  });
@@ -376,9 +405,7 @@
  window.addEventListener('pageshow',event=>{
   if(!event.persisted)return;
   feed.querySelectorAll('[data-pulso-item]').forEach(card=>observer?.observe(card));
-  const resume=resumeWhenVisible;
-  resumeWhenVisible=false;
-  syncPlayback(resume);
+  restorePlaybackV3678();
  });
  feed.addEventListener('click',async event=>{
   const share=event.target.closest?.('[data-pulso-share]');
