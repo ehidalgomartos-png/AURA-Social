@@ -174,6 +174,7 @@
  feed.addEventListener('play',event=>{
   const video=event.target;
   if(!video?.matches?.('video.pulso-video'))return;
+  activeVideo=video;
   pauseAll(video);
  },true);
  document.addEventListener('visibilitychange',()=>{
