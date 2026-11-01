@@ -283,7 +283,7 @@
    else message('No se pudo comprobar tu sesión. Inténtalo de nuevo.');
   });
  });
- commentsDialog.addEventListener('close',invalidateCommentsV3681);
+ commentsDialog.addEventListener('close',()=>{if(!commentsDialog.open)invalidateCommentsV3681();});
  for(const dialog of [authDialog,commentsDialog]){
   dialog.addEventListener('click',event=>{
    if(event.target===dialog)closeDialog(dialog);
