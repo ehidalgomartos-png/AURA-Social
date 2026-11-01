@@ -102,6 +102,18 @@
    for(const id of valid)inFlight.delete(id);
   }
  }
+ async function checkSession(){
+  try{
+   const {response,data}=await json('/api/pulso/session');
+   if(response.status===401){
+    authState='guest';states.clear();paintGuest();return false;
+   }
+   if(response.ok&&data.authenticated===true){
+    authState='member';return true;
+   }
+  }catch(_){}
+  authState='error';return false;
+ }
  function queueStates(ids){
   for(const id of ids)if(validId(id))pendingIds.add(String(id));
   if(stateLoading)return;
@@ -276,8 +288,8 @@
   if(authState==='member')return;
   event.preventDefault();
   if(authState==='guest')showAuth(true);
-  else void loadStates(allCards().map(cardId)).then(()=>{
-   if(authState==='member')location.href=create.href;
+  else void checkSession().then(ok=>{
+   if(ok)location.href=create.href;
    else if(authState==='guest')showAuth(true);
    else message('No se pudo comprobar tu sesión. Inténtalo de nuevo.');
   });
