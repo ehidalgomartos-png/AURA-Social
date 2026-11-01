@@ -149,8 +149,11 @@
   let winner=null,best=.679;
   for(const [card,ratio] of visibleRatios){
    if(!card.isConnected){visibleRatios.delete(card);continue;}
+   // V3.6.80: durante sesiones largas, la mayoría de tarjetas
+   // están apenas visibles; evitar consultar vídeo si no opta a reproducir.
+   if(ratio<.68)continue;
    const video=card.querySelector('video.pulso-video');
-   if(!video||ratio<.68)continue;
+   if(!video)continue;
    if(ratio>best||(ratio===best&&video===activeVideo)){
     winner=video;best=ratio;
    }
@@ -352,9 +355,12 @@
    return;
   }
   // El usuario puede iniciar otro vídeo manualmente; debe detener los demás.
-  if(video!==activeVideo)clearBufferingV3677();
+  // V3.6.80: el autoplay ya pausó los anteriores al cambiar de Reel.
+  // Su evento 'play' no necesita repetir un escaneo completo del feed.
+  const changedV3680=video!==activeVideo;
+  if(changedV3680)clearBufferingV3677();
   activeVideo=video;
-  pauseAll(video);
+  if(changedV3680)pauseAll(video);
  },true);
  // El aviso aparece solo si sigue cargando después de 1,6 s.
  // 'waiting' y 'stalled' pueden repetirse durante una sola interrupción.
