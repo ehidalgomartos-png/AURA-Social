@@ -143,10 +143,10 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<link rel="stylesheet" href="/pulso-navigation-v3664.css?v=3.6.64">'+
   '<link rel="stylesheet" href="/pulso-compact-mobile-v3666.css?v=3.6.66">'+
   '<link rel="stylesheet" href="/pulso-retry-v3671.css?v=3.6.71">'+
-  '<script src="/pulso-v3658.js?v=3.6.58&amp;playback=3.6.70&amp;share=3.6.71" defer></script>'+
+  '<script src="/pulso-v3658.js?v=3.6.58&amp;playback=3.6.70&amp;share=3.6.71&amp;perf=3.6.72" defer></script>'+
   '<script src="/pulso-social-v3659.js?v=3.6.59&amp;notice=3.6.71" defer></script>'+
   '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script>'+
-  '<script src="/pulso-navigation-v3664.js?v=3.6.64&amp;recovery=3.6.71" defer></script></head>'+
+  '<script src="/pulso-navigation-v3664.js?v=3.6.64&amp;recovery=3.6.71&amp;perf=3.6.72" defer></script></head>'+
   '<body><a class="pulso-skip" href="#pulsoFeed">Saltar a los vídeos</a>'+
   '<header class="pulso-top"><a class="pulso-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>'+
   '<span class="pulso-name">Pulso <span>●</span></span>'+
