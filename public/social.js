@@ -388,6 +388,7 @@ function toastPublishedReelV3669(successMessage,details){
   link.textContent=destination.label;
   link.className='pulso-published-link-v3669';
   el.append(' · ',link);
+  el.classList.add('pulso-published-toast-v3669');
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>{
     el.classList.add('hidden');
@@ -400,7 +401,7 @@ function toast(t) {
   if (!el) return;
   if (toastTimer) clearTimeout(toastTimer);
   el.textContent = t;
-  el.classList.remove('hidden', 'toast-enter');
+  el.classList.remove('hidden', 'toast-enter', 'pulso-published-toast-v3669');
   void el.offsetWidth;
   el.classList.add('toast-enter');
   toastTimer = setTimeout(() => {
