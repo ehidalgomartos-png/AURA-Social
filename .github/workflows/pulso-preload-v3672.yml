@@ -1,0 +1,22 @@
+name: Pulso bounded preload V3.6.72
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pulso-performance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Verify bounded preloading, data saving and mobile swipes
+        run: node --test tests/pulso-preload-performance-v3672.test.js
