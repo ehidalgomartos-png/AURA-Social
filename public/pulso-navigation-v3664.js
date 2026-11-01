@@ -14,25 +14,37 @@
  const cards=()=>Array.from(feed.querySelectorAll('[data-pulso-item]'));
  const known=new WeakSet();
  const visible=new Map();
+ // V3.6.72: solo mantener metadatos de un máximo de tres vídeos cercanos.
+ const warmedV3672=new Set();
  let active=null;
  let pendingAdvance=null;
  const smooth=reducedMotion?'auto':'smooth';
 
  function preloadNear(index,items){
-  const foreground=document.visibilityState==='visible';
-  items.forEach((card,i)=>{
-   const video=card.querySelector('video.pulso-video');
-   if(!video)return;
-   // Nunca más del vídeo activo y sus vecinos próximos con metadatos.
-   const near=!saveData&&foreground&&Math.abs(index-i)<=1;
-   const target=near?'metadata':'none';
-   if(video.preload!==target)video.preload=target;
-  });
+  const wanted=new Set();
+  if(!saveData&&document.visibilityState==='visible'){
+   for(const offset of [-1,0,1]){
+    const video=items[index+offset]?.querySelector('video.pulso-video');
+    if(video)wanted.add(video);
+   }
+  }
+  // Al cambiar de vídeo no hay que recorrer otra vez 12–240 Reels.
+  for(const video of warmedV3672){
+   if(!wanted.has(video)){
+    if(video.preload!=='none')video.preload='none';
+    warmedV3672.delete(video);
+   }
+  }
+  for(const video of wanted){
+   if(video.preload!=='metadata')video.preload='metadata';
+   warmedV3672.add(video);
+  }
  }
- function activate(card){
+ function activate(card,{force=false}={}){
   const items=cards();
   const index=items.indexOf(card);
   if(index<0||!items.length)return;
+  if(active===card&&!force)return;
   if(active!==card){
    active?.removeAttribute('data-pulso-active-v3664');
    active=card;
@@ -113,7 +125,7 @@
     const at=pendingAdvance;
     pendingAdvance=null;
     goTo(at);
-   }else if(active)activate(active);
+   }else if(active)activate(active,{force:true});
   }).observe(feed,{childList:true});
  }
  // Degradación accesible en navegadores sin IntersectionObserver.
@@ -207,13 +219,13 @@
   },true);
  }
  document.addEventListener('visibilitychange',()=>{
-  if(active)activate(active);
+  if(active)activate(active,{force:true});
  });
  window.addEventListener('pagehide',()=>watcher?.disconnect());
  // Restaurar la navegación al volver desde el historial del navegador.
  window.addEventListener('pageshow',event=>{
   if(!event.persisted)return;
   for(const card of cards())watcher?.observe(card);
-  if(active)activate(active);
+  if(active)activate(active,{force:true});
  });
 })();
