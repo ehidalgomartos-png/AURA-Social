@@ -378,6 +378,9 @@
   }
  }
  function restorePlaybackV3678(){
+  // V3.6.79: pageshow y resume pueden llegar ANTES de que la pestaña
+  // vuelva a ser visible. Conservar la intención hasta visibilitychange.
+  if(document.visibilityState!=='visible')return;
   const resume=resumeWhenVisible;
   resumeWhenVisible=false;
   restoringV3678=true;
@@ -387,17 +390,21 @@
    resumeVideoV3678=null;
   }
  }
- document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState!=='visible'){
-   clearBufferingV3677();
-   rememberPlaybackV3678();
-   pauseAll();
-  }else restorePlaybackV3678();
- });
- window.addEventListener('pagehide',()=>{
+ function suspendPlaybackV3679(){
   clearBufferingV3677();
   rememberPlaybackV3678();
   pauseAll();
+ }
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible')suspendPlaybackV3679();
+  else restorePlaybackV3678();
+ });
+ // Chrome puede congelar pestañas móviles sin navegar al historial.
+ // Se conservan los mismos límites de autoplay y pausas manuales.
+ document.addEventListener('freeze',suspendPlaybackV3679);
+ document.addEventListener('resume',restorePlaybackV3678);
+ window.addEventListener('pagehide',()=>{
+  suspendPlaybackV3679();
   observer?.disconnect();
  });
  // Regresar desde el historial (BFCache) debe reactivar el observador:
