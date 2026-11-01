@@ -123,7 +123,7 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
    (unavailable?'Volver a intentar':following?'Descubrir vídeos':'Explorar la galería')+'</a>')+'</div>'+
   '<p class="pulso-empty-note-v3660">Con tu cuenta habitual de RedLibertad · Sin vídeos inventados</p></section>':
   items.map(renderCard).join('');
- const robots=isEmpty?'noindex,follow':'index,follow,max-video-preview:-1';
+ const robots=following?'noindex,nofollow':isEmpty?'noindex,follow':'index,follow,max-video-preview:-1';
  return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
   '<meta name="theme-color" content="#0b1c2b">'+
