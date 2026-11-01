@@ -15,6 +15,7 @@
  // V3.6.70: un único reproductor activo, sin iniciar otro cuando los avisos
  // de intersección llegan mezclados durante el gesto de deslizar.
  const visibleRatios=new Map();
+ const sharePendingV3671=new WeakSet();
  let activeVideo=null;
  let resumeWhenVisible=false;
 
@@ -198,19 +199,39 @@
   syncPlayback(resume);
  });
  feed.addEventListener('click',async event=>{
-  const share=event.target.closest('[data-pulso-share]');
-  if(!share)return;
+  const share=event.target.closest?.('[data-pulso-share]');
+  if(!share||sharePendingV3671.has(share))return;
   const path=share.dataset.pulsoShare;
   if(!/^\/reel\/[1-9][0-9]{0,15}$/.test(path||''))return;
   const url=location.origin+path;
+  sharePendingV3671.add(share);
+  share.disabled=true;
   try{
-   if(navigator.share){await navigator.share({title:'Pulso · RedLibertad',url});return;}
-   if(!navigator.clipboard?.writeText)throw Error('no_clipboard');
-   await navigator.clipboard.writeText(url);
-   status.textContent='Enlace copiado para compartir.';
-  }catch(err){
-   if(err?.name==='AbortError')return;
+   if(navigator.share){
+    try{
+     await navigator.share({title:'Pulso · RedLibertad',url});
+     return;
+    }catch(err){
+     if(err?.name==='AbortError')return; // Cancelar no es un error.
+    }
+   }
+   // En ordenador, o si el menú nativo falla, copiar sin inventar enlaces.
+   if(navigator.clipboard?.writeText){
+    try{
+     await navigator.clipboard.writeText(url);
+     status.textContent='Enlace copiado para compartir.';
+     if(typeof CustomEvent==='function'){
+      feed.dispatchEvent(new CustomEvent('pulso:notice',{
+       detail:{text:'Enlace copiado. Ya puedes compartirlo.'}
+      }));
+     }
+     return;
+    }catch(_){/* Copiado bloqueado: ofrecer selección manual. */}
+   }
    window.prompt('Copia el enlace de Pulso:',url);
+  }finally{
+   share.disabled=false;
+   sharePendingV3671.delete(share);
   }
  });
 })();

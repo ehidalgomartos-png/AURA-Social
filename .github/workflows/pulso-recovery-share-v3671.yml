@@ -1,0 +1,22 @@
+name: Pulso recovery share V3.6.71
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pulso-recovery:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Verify retry safety, navigation and share fallbacks
+        run: node --test tests/pulso-recovery-share-v3671.test.js

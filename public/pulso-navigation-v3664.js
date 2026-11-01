@@ -135,20 +135,31 @@
    });
   },{passive:true});
  }
- // Fallos de reproducción: ofrecer el enlace real al Reel, sin ocultar el vídeo.
+ // V3.6.71: se puede reintentar UNA vez cuando falla el reproductor.
+ // Evita bucles de descarga si el archivo o el códec son incompatibles.
+ const retriedVideosV3671=new WeakSet();
  feed.addEventListener('error',event=>{
   const video=event.target;
   if(!video?.matches?.('video.pulso-video'))return;
   const card=video.closest('[data-pulso-item]');
-  if(!card||card.querySelector('.pulso-error-v3664'))return;
+  if(!card)return;
+  const existing=card.querySelector('.pulso-error-v3664');
+  if(existing){
+   if(retriedVideosV3671.has(video)){
+    const copy=existing.querySelector?.('p');
+    if(copy)copy.textContent='El vídeo sigue sin poder reproducirse aquí.';
+    const retry=existing.querySelector?.('[data-pulso-retry]');
+    if(retry)retry.hidden=true;
+   }
+   return;
+  }
   const alert=document.createElement('div');
   alert.className='pulso-error-v3664';
   alert.setAttribute('role','alert');
   const text=document.createElement('p');
   text.textContent='No se pudo reproducir este vídeo aquí.';
   alert.append(text);
-  // El enlace de detalle no ocupa espacio en el feed; se usa únicamente
-  // como alternativa cuando falla la reproducción del propio archivo.
+  // El enlace de detalle no ocupa espacio en el feed salvo cuando falla.
   const reelId=String(card.dataset.reelId||'');
   const href=/^[1-9][0-9]{0,15}$/.test(reelId)?'/reel/'+reelId:'';
   if(href){
@@ -157,10 +168,52 @@
    link.textContent='Abrir la publicación';
    alert.append(link);
   }
+  if(!retriedVideosV3671.has(video)){
+   const retry=document.createElement('button');
+   retry.type='button';
+   retry.className='pulso-retry-v3671';
+   retry.dataset.pulsoRetry='';
+   retry.textContent='Reintentar vídeo';
+   alert.append(retry);
+  }
   card.append(alert);
  },true);
+ feed.addEventListener('click',event=>{
+  const retry=event.target.closest?.('[data-pulso-retry]');
+  if(!retry||retry.disabled)return;
+  const card=retry.closest('[data-pulso-item]');
+  const video=card?.querySelector('video.pulso-video');
+  if(!video||retriedVideosV3671.has(video))return;
+  retriedVideosV3671.add(video);
+  retry.disabled=true;
+  retry.textContent='Reintentando…';
+  const message=card.querySelector('.pulso-error-v3664')?.querySelector?.('p');
+  if(message)message.textContent='Volviendo a cargar el vídeo…';
+  try{
+   video.load();
+   // El toque es una acción de la persona; no se inicia ningún otro vídeo.
+   video.play()?.catch?.(()=>{/* Controles nativos disponibles */});
+  }catch(_){
+   if(message)message.textContent='No se pudo recuperar el vídeo aquí.';
+  }
+ });
+ // Retirar el error solo cuando el navegador confirma que ya puede reproducir.
+ for(const name of ['canplay','playing']){
+  feed.addEventListener(name,event=>{
+   const video=event.target;
+   if(!video?.matches?.('video.pulso-video'))return;
+   const alert=video.closest('[data-pulso-item]')?.querySelector('.pulso-error-v3664');
+   alert?.remove?.();
+  },true);
+ }
  document.addEventListener('visibilitychange',()=>{
   if(active)activate(active);
  });
  window.addEventListener('pagehide',()=>watcher?.disconnect());
+ // Restaurar la navegación al volver desde el historial del navegador.
+ window.addEventListener('pageshow',event=>{
+  if(!event.persisted)return;
+  for(const card of cards())watcher?.observe(card);
+  if(active)activate(active);
+ });
 })();

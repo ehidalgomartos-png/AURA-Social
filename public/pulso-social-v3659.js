@@ -24,6 +24,12 @@
   if(noticeTimer)clearTimeout(noticeTimer);
   noticeTimer=setTimeout(()=>{notice.hidden=true;notice.textContent='';},4600);
  }
+ // El mismo aviso accesible de Pulso informa también de enlaces copiados.
+ feed.addEventListener('pulso:notice',event=>{
+  if(event?.detail?.text==='Enlace copiado. Ya puedes compartirlo.'){
+   message('Enlace copiado. Ya puedes compartirlo.');
+  }
+ });
  function openDialog(dialog){
   lastFocus=document.activeElement;
   feed.querySelectorAll('video.pulso-video').forEach(video=>{if(!video.paused)video.pause();});
