@@ -73,6 +73,7 @@ function playbackHarness(){
  let scans=0;
  for(let i=0;i<30;i++){
   const video={paused:true,muted:true,plays:0,
+   matches:selector=>selector==='video.pulso-video',
    play(){this.paused=false;this.plays++;return Promise.resolve()},
    pause(){this.paused=true}
   };
@@ -99,7 +100,7 @@ function playbackHarness(){
  vm.runInNewContext(read('public/pulso-v3658.js'),{
   document,window,IntersectionObserver:Observer
  },{timeout:2500});
- return {videos,cards,observer:observers[0],scans:()=>scans};
+ return {videos,cards,observer:observers[0],feedListeners,scans:()=>scans};
 }
 const item=id=>({id:String(id),username:'autor_real',displayName:'Autor real',
  caption:'Vídeo auténtico',video:'/uploads/reels/'+id+'.mp4',
@@ -180,6 +181,20 @@ test('V3.6.72: no escanea los 30 reproductores de nuevo cuando el mismo Reel per
  assert.equal(h.scans(),before+1);
  assert.equal(h.videos[0].paused,true);
  assert.equal(h.videos[1].paused,false);
+});
+test('V3.6.72: un vídeo iniciado manualmente no queda reproduciéndose fuera del Reel activo',()=>{
+ const h=playbackHarness();
+ h.observer.emit([{target:h.cards[0],isIntersecting:true,intersectionRatio:.9}]);
+ h.videos[1].play();
+ h.feedListeners.play({target:h.videos[1]});
+ assert.equal(h.videos[0].paused,true);
+ assert.equal(h.videos[1].paused,false);
+ h.observer.emit([
+  {target:h.cards[0],isIntersecting:true,intersectionRatio:.9},
+  {target:h.cards[1],isIntersecting:true,intersectionRatio:.08}
+ ]);
+ assert.equal(h.videos[1].paused,true);
+ assert.equal(h.videos[0].paused,false);
 });
 test('V3.6.72: conserva acciones, privacidad y cache-bust real',()=>{
  const html=renderPage([item(25),item(26)],true);
