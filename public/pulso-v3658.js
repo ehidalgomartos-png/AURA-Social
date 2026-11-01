@@ -1,0 +1,133 @@
+'use strict';
+// V3.6.58 — Pulso: visor público. Las interacciones sociales y el editor
+// permanecen en RedLibertad, sin duplicar usuarios, almacenamiento ni permisos.
+(()=>{
+ const feed=document.getElementById('pulsoFeed');
+ const more=document.getElementById('pulsoMore');
+ const status=document.getElementById('pulsoStatus');
+ const footer=document.getElementById('pulsoFooter');
+ if(!feed||!more||!status||!footer)return;
+ const motionOff=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
+ const saveData=window.navigator?.connection?.saveData===true;
+ let page=1,loading=false,hasMore=!more.hidden;
+ const observed=new WeakSet();
+
+ function pauseAll(except=null){
+  feed.querySelectorAll('video.pulso-video').forEach(v=>{
+   if(v!==except&&!v.paused)v.pause();
+  });
+ }
+ function make(tag,className,text){
+  const el=document.createElement(tag);
+  if(className)el.className=className;
+  if(text!==undefined)el.textContent=String(text);
+  return el;
+ }
+ function validLink(id){
+  const key=String(id||'');
+  return /^[1-9][0-9]{0,15}$/.test(key)?'/reel/'+encodeURIComponent(key):null;
+ }
+ function safeImage(value){
+  const s=String(value||'');
+  return /^\/(?!\/)(?:uploads|assets|api\/media)\/[a-z0-9_~!$&()*+,;=:@%./-]+$/i.test(s)||
+   /^https:\/\/[a-z0-9.-]+(?::443)?\/[a-z0-9_~!$&()*+,;=:@%/?#-]+$/i.test(s)?s:null;
+ }
+ function cardFor(item){
+  const detail=validLink(item?.id),src=safeImage(item?.video);
+  if(!detail||!src)return null;
+  const card=make('article','pulso-card');
+  card.dataset.pulsoItem='';
+  card.dataset.reelId=String(item.id);
+  const video=make('video','pulso-video');
+  video.src=src;video.preload='none';video.muted=true;video.playsInline=true;video.loop=true;video.controls=true;
+  const shade=make('div','pulso-shade');shade.setAttribute('aria-hidden','true');
+  const info=make('div','pulso-item-info');
+  const profile=make('a','pulso-creator');
+  profile.href='/perfil/'+encodeURIComponent(String(item.username||''));
+  const avatar=safeImage(item.avatar);
+  if(avatar){const image=make('img');image.src=avatar;image.alt='';image.loading='lazy';profile.append(image);}
+  else {const mark=make('span',null,'◉');mark.setAttribute('aria-hidden','true');profile.append(mark);}
+  profile.append(make('span',null,String(item.displayName||item.username||'').slice(0,80)));
+  info.append(profile);
+  if(item.caption)info.append(make('p','pulso-caption',String(item.caption).slice(0,700)));
+  const view=make('a','pulso-detail','Ver vídeo y participar');view.href=detail;info.append(view);
+  const actions=make('div','pulso-actions');
+  const likes=make('span','pulso-count','♥ ');
+  likes.setAttribute('aria-label',String(Number(item.likes)||0)+' me gusta');
+  likes.append(make('b',null,String(Number(item.likes)||0)));
+  const comments=make('a',null,'◌ ');
+  comments.href=detail;comments.setAttribute('aria-label','Ver comentarios');
+  comments.append(make('b',null,String(Number(item.comments)||0)));
+  const share=make('button','pulso-share','↗');
+  share.type='button';share.dataset.pulsoShare=detail;share.setAttribute('aria-label','Compartir este vídeo');
+  share.append(make('small',null,'Compartir'));
+  actions.append(likes,comments,share);
+  card.append(video,shade,info,actions);
+  return card;
+ }
+ function playback(){
+  if(!('IntersectionObserver' in window))return null;
+  return new IntersectionObserver(entries=>{
+   for(const entry of entries){
+    const vid=entry.target.querySelector('video');
+    if(!vid)continue;
+    if(entry.isIntersecting && entry.intersectionRatio>=.68 && document.visibilityState==='visible'){
+     pauseAll(vid);
+     if(!motionOff&&!saveData){vid.muted=true;vid.play().catch(()=>{});}
+    }else if(!vid.paused){vid.pause();}
+   }
+  },{root:feed,threshold:[0,.68,.9]});
+ }
+ const observer=playback();
+ function observeNew(){
+  if(!observer)return;
+  feed.querySelectorAll('[data-pulso-item]').forEach(card=>{
+   if(observed.has(card))return;
+   observed.add(card);observer.observe(card);
+  });
+ }
+ observeNew();
+ async function loadMore(){
+  if(!hasMore||loading)return;
+  loading=true;more.disabled=true;status.textContent='Cargando más vídeos…';
+  try{
+   const response=await fetch('/api/pulso/public?page='+(page+1),{credentials:'omit',cache:'no-store'});
+   if(!response.ok)throw Error('not_available');
+   const data=await response.json();
+   if(!Array.isArray(data.items)||data.page!==page+1||typeof data.hasMore!=='boolean')throw Error('invalid_response');
+   const fragment=document.createDocumentFragment();
+   for(const item of data.items){const card=cardFor(item);if(card)fragment.append(card);}
+   feed.insertBefore(fragment,footer);
+   page++;hasMore=data.hasMore&&page<20;
+   more.hidden=!hasMore;status.textContent=hasMore?'':'Has llegado al final de los vídeos disponibles.';
+   observeNew();
+  }catch(_){
+   status.textContent='No se pudieron cargar más vídeos. Puedes intentarlo otra vez.';
+  }finally{loading=false;more.disabled=false;}
+ }
+ more.addEventListener('click',()=>void loadMore());
+ if('IntersectionObserver' in window){
+  const loader=new IntersectionObserver(entries=>{
+   if(entries.some(entry=>entry.isIntersecting)&&hasMore&&!loading)void loadMore();
+  },{root:feed,rootMargin:'0px 0px 110px 0px',threshold:0});
+  loader.observe(footer);
+ }
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')pauseAll();});
+ window.addEventListener('pagehide',()=>{pauseAll();observer?.disconnect();});
+ feed.addEventListener('click',async event=>{
+  const share=event.target.closest('[data-pulso-share]');
+  if(!share)return;
+  const path=share.dataset.pulsoShare;
+  if(!/^\/reel\/[1-9][0-9]{0,15}$/.test(path||''))return;
+  const url=location.origin+path;
+  try{
+   if(navigator.share){await navigator.share({title:'Pulso · RedLibertad',url});return;}
+   if(!navigator.clipboard?.writeText)throw Error('no_clipboard');
+   await navigator.clipboard.writeText(url);
+   status.textContent='Enlace copiado para compartir.';
+  }catch(err){
+   if(err?.name==='AbortError')return;
+   window.prompt('Copia el enlace de Pulso:',url);
+  }
+ });
+})();
