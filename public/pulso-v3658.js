@@ -10,6 +10,7 @@
  const motionOff=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
  const saveData=window.navigator?.connection?.saveData===true;
  let page=1,loading=false,hasMore=!more.hidden;
+ const mode=feed.dataset.pulsoMode==='siguiendo'?'siguiendo':'para-ti';
  const observed=new WeakSet();
 
  function pauseAll(except=null){
@@ -110,10 +111,16 @@
   if(!hasMore||loading)return;
   loading=true;more.disabled=true;status.textContent='Cargando más vídeos…';
   try{
-   const response=await fetch('/api/pulso/public?page='+(page+1),{credentials:'omit',cache:'no-store'});
+   const endpoint=mode==='siguiendo'?'/api/pulso/following?page=':'/api/pulso/public?page=';
+   const fetchOptions=mode==='siguiendo'?{credentials:'same-origin',cache:'no-store'}:{credentials:'omit',cache:'no-store'};
+   const response=await fetch(endpoint+(page+1),fetchOptions);
+   if(response.status===401&&mode==='siguiendo'){
+    status.textContent='Tu sesión ha caducado. Entra para volver a ver Siguiendo.';
+    more.hidden=true;hasMore=false;return;
+   }
    if(!response.ok)throw Error('not_available');
    const data=await response.json();
-   if(!Array.isArray(data.items)||data.page!==page+1||typeof data.hasMore!=='boolean')throw Error('invalid_response');
+   if(!Array.isArray(data.items)||data.page!==page+1||typeof data.hasMore!=='boolean'||(mode==='siguiendo'&&data.mode!=='siguiendo'))throw Error('invalid_response');
    const fragment=document.createDocumentFragment();
    for(const item of data.items){const card=cardFor(item);if(card)fragment.append(card);}
    feed.insertBefore(fragment,footer);
