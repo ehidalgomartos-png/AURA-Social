@@ -3,6 +3,28 @@
 // El feed privado y la creación siguen viviendo en /app?view=reels.
 const express=require('express');
 const defaultDb=require('../db');
+const {requireAuth:requireMember}=require('../middleware/auth');
+const PULSO_STATE_SQL=[
+ "SELECT p.id::text AS id,p.user_id::text AS author_id,",
+ "EXISTS(SELECT 1 FROM likes l WHERE l.post_id=p.id AND l.user_id=$1) AS liked,",
+ "EXISTS(SELECT 1 FROM follows f WHERE f.following_id=p.user_id AND f.follower_id=$1) AS following",
+ "FROM posts p JOIN users u ON u.id=p.user_id",
+ "WHERE p.id=ANY($2::bigint[]) AND p.moderation_status='published'",
+ "AND p.audience='public' AND p.content_level='normal'",
+ "AND p.post_kind='reel' AND p.media_type='video' AND p.media_url IS NOT NULL AND p.media_url<>''",
+ "AND u.status='active' AND u.is_admin=false AND u.discoverable=true",
+ "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE",
+ " (b.blocker_id=$1 AND b.blocked_id=p.user_id) OR (b.blocked_id=$1 AND b.blocker_id=p.user_id))",
+ "AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=p.user_id)",
+ "ORDER BY p.created_at DESC LIMIT 12"
+].join(' ');
+function requestedPublicIds(raw){
+ if(typeof raw!=='string'||raw.length>210)return null;
+ const ids=raw.split(',');
+ if(!ids.length||ids.length>12||ids.some(id=>!/^[1-9][0-9]{0,15}$/.test(id)))return null;
+ return [...new Set(ids)];
+}
+
 
 const PAGE_SIZE=12;
 const MAX_PAGE=20;
@@ -55,11 +77,12 @@ function renderCard(item){
   '<video class="pulso-video" src="'+esc(item.video)+'" preload="none" controls muted playsinline loop></video>'+
   '<div class="pulso-shade" aria-hidden="true"></div>'+
   '<div class="pulso-item-info"><a class="pulso-creator" href="'+esc(profile)+'">'+avatar+'<span>'+esc(item.displayName)+'</span></a>'+
+  '<button type="button" class="pulso-follow" data-pulso-follow="'+esc(item.id)+'" hidden>Seguir</button>'+
   (item.caption?'<p class="pulso-caption">'+esc(item.caption)+'</p>':'')+
   '<a class="pulso-detail" href="'+esc(reel)+'">Ver vídeo y participar</a></div>'+
   '<div class="pulso-actions">'+
-  '<span class="pulso-count" aria-label="'+item.likes+' me gusta">♥ <b>'+item.likes+'</b></span>'+
-  '<a href="'+esc(reel)+'" aria-label="Ver '+item.comments+' comentarios">◌ <b>'+item.comments+'</b></a>'+
+  '<button type="button" class="pulso-count pulso-like" data-pulso-like="'+esc(item.id)+'" aria-pressed="false" aria-label="Me gusta: '+item.likes+'">♥ <b>'+item.likes+'</b></button>'+
+  '<button type="button" class="pulso-comments-open" data-pulso-comments="'+esc(item.id)+'" aria-label="Ver comentarios: '+item.comments+'">◌ <b>'+item.comments+'</b></button>'+
   '<button type="button" class="pulso-share" data-pulso-share="'+esc(reel)+'" aria-label="Compartir este vídeo">↗<small>Compartir</small></button>'+
   '</div></article>';
 }
@@ -78,19 +101,32 @@ function renderPage(items,more){
   '<meta property="og:image" content="https://redlibertad.com/assets/og-redlibertad-v1922.jpg">'+
   '<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'+
   '<link rel="stylesheet" href="/pulso-v3658.css?v=3.6.58">'+
-  '<script src="/pulso-v3658.js?v=3.6.58" defer></script></head>'+
+  '<link rel="stylesheet" href="/pulso-social-v3659.css?v=3.6.59">'+
+  '<script src="/pulso-v3658.js?v=3.6.58" defer></script>'+
+  '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script></head>'+
   '<body><a class="pulso-skip" href="#pulsoFeed">Saltar a los vídeos</a>'+
   '<header class="pulso-top"><a class="pulso-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>'+
   '<span class="pulso-name">Pulso <span>●</span></span>'+
-  '<nav aria-label="Navegación de Pulso"><a href="/reels">Reels</a><a href="/app?view=reels">Mis vídeos</a><a class="pulso-join" href="/#registro">Crear cuenta</a></nav></header>'+
+  '<nav aria-label="Navegación de Pulso"><a href="/reels">Reels</a><a href="/app?view=reels&crear=reel" class="pulso-create" data-pulso-create>Publicar vídeo</a><a class="pulso-join" href="/#registro">Crear cuenta</a></nav></header>'+
   '<main class="pulso-layout"><div class="pulso-heading"><p>LO QUE MUEVE A REDLIBERTAD</p><h1>Pulso</h1><span>Desliza para descubrir vídeos auténticos. Toca el vídeo para controlarlo.</span></div>'+
   '<div class="pulso-feed" id="pulsoFeed" tabindex="0" aria-label="Vídeos cortos de la comunidad">'+cards+
   '<div class="pulso-footer-feed" id="pulsoFooter">'+
   '<button id="pulsoMore" type="button"'+(!more?' hidden':'')+'>Ver más vídeos</button>'+
   '<p id="pulsoStatus" role="status" aria-live="polite"></p></div></div>'+
   '<div class="pulso-side-note"><p>Voces reales, sin cuentas inventadas.</p>'+
-  '<a href="/app?view=reels">Publicar un vídeo en RedLibertad</a><a href="/reels">Explorar la galería</a></div>'+
-  '</main><footer class="pulso-bottom">Pulso es parte de RedLibertad · <a href="/community-guidelines/">Normas</a> · <a href="/privacy/">Privacidad</a></footer>'+
+  '<a href="/app?view=reels&crear=reel" data-pulso-create>Publicar un vídeo</a><a href="/reels">Explorar la galería</a></div>'+
+  '</main><p id="pulsoSocialNotice" class="pulso-social-notice" role="status" aria-live="polite" hidden></p><dialog id="pulsoAuthDialog" class="pulso-dialog pulso-login-dialog" aria-labelledby="pulsoAuthTitle">'+
+  '<button type="button" class="pulso-close" data-pulso-close aria-label="Cerrar">×</button>'+
+  '<h2 id="pulsoAuthTitle">Participa en Pulso</h2><p>Inicia sesión para dar Me gusta, comentar o seguir a un creador. Tu cuenta de RedLibertad sirve también aquí.</p>'+
+  '<div class="pulso-dialog-links"><a href="/?next=%2Fpulso#acceso">Ya tengo cuenta</a><a href="/?next=%2Fpulso#registro">Crear cuenta gratis</a></div></dialog>'+
+  '<dialog id="pulsoCommentsDialog" class="pulso-dialog" aria-labelledby="pulsoCommentsTitle">'+
+  '<button type="button" class="pulso-close" data-pulso-close aria-label="Cerrar comentarios">×</button>'+
+  '<h2 id="pulsoCommentsTitle">Comentarios</h2><div id="pulsoCommentsList" class="pulso-comments-list" aria-live="polite"></div>'+
+  '<form id="pulsoCommentForm"><label for="pulsoCommentBody">Tu comentario</label>'+
+  '<textarea id="pulsoCommentBody" name="body" maxlength="1000" required rows="3" placeholder="Escribe con respeto…"></textarea>'+
+  '<button type="submit">Publicar comentario</button></form>'+
+  '<p id="pulsoCommentStatus" role="status" aria-live="polite"></p></dialog>'+
+  '<footer class="pulso-bottom">Pulso es parte de RedLibertad · <a href="/community-guidelines/">Normas</a> · <a href="/privacy/">Privacidad</a></footer>'+
   '</body></html>';
 }
 function pageParam(raw){
@@ -103,7 +139,7 @@ async function fetchVideos(db,page){
  const clean=(query.rows||[]).map(cleanVideo).filter(Boolean);
  return {items:clean.slice(0,PAGE_SIZE),hasMore:page<MAX_PAGE&&query.rows.length>PAGE_SIZE};
 }
-function createPulsoRouter({db=defaultDb}={}){
+function createPulsoRouter({db=defaultDb,auth=requireMember}={}){
  const router=express.Router();
  router.get('/pulso',async(req,res)=>{
   try{
@@ -114,6 +150,28 @@ function createPulsoRouter({db=defaultDb}={}){
   }catch(err){
    console.error('Pulso public feed unavailable');
    res.status(503).type('html').send(renderPage([],false).replace('Aún no hay vídeos públicos en Pulso.','Pulso no está disponible en este momento.'));
+  }
+ });
+ router.get('/api/pulso/session',auth,(req,res)=>{
+  res.set('Cache-Control','no-store').set('X-Robots-Tag','noindex,nofollow');
+  return res.json({authenticated:true});
+ });
+ router.get('/api/pulso/state',auth,async(req,res)=>{
+  res.set('Cache-Control','no-store').set('X-Robots-Tag','noindex,nofollow');
+  const ids=requestedPublicIds(req.query.ids);
+  if(!ids)return res.status(400).json({error:'invalid_video_ids'});
+  try{
+   const r=await db.query(PULSO_STATE_SQL,[req.user.id,ids]);
+   const states={};
+   for(const row of (r.rows||[])){
+    const id=String(row.id||''),authorId=String(row.author_id||'');
+    if(!ids.includes(id)||!/^[1-9][0-9]{0,15}$/.test(authorId))continue;
+    states[id]={authorId,liked:row.liked===true,following:row.following===true,own:authorId===String(req.user.id)};
+   }
+   return res.json({authenticated:true,states});
+  }catch(_){
+   console.error('Pulso social states unavailable');
+   return res.status(503).json({error:'social_state_unavailable'});
   }
  });
  router.get('/api/pulso/public',async(req,res)=>{
@@ -130,4 +188,4 @@ function createPulsoRouter({db=defaultDb}={}){
  });
  return router;
 }
-module.exports={createPulsoRouter,PUBLIC_VIDEO_SQL,PAGE_SIZE,MAX_PAGE,esc,safeMediaUrl,cleanVideo,renderCard,renderPage,pageParam,fetchVideos};
+module.exports={createPulsoRouter,PUBLIC_VIDEO_SQL,PULSO_STATE_SQL,requestedPublicIds,PAGE_SIZE,MAX_PAGE,esc,safeMediaUrl,cleanVideo,renderCard,renderPage,pageParam,fetchVideos};

@@ -1,0 +1,39 @@
+/* V3.6.59 — Interacción social de Pulso. Conserva scroll vertical y controles de vídeo. */
+.pulso-item-info .pulso-follow{display:inline-flex;align-items:center;justify-content:center;margin:5px 0 0;min-height:38px;padding:7px 13px;border:1px solid #f1fbf6a9;border-radius:18px;background:#163f47aa;color:#fff;font-size:.78rem;font-weight:800}
+.pulso-item-info .pulso-follow[hidden]{display:none}
+.pulso-item-info .pulso-follow:disabled{opacity:.75;cursor:default}
+.pulso-item-info .pulso-follow[aria-pressed=true]{background:#e4f9f4;color:#103c45}
+.pulso-actions .pulso-like.is-liked{color:#ff9faa;border-color:#ff9faab8}
+.pulso-actions .pulso-like.is-liked b{color:#fff}
+.pulso-actions button:disabled{opacity:.6;cursor:progress}
+.pulso-top nav .pulso-create{color:#69e0d2}
+.pulso-social-notice{position:fixed;z-index:19;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);max-width:min(92vw,420px);width:max-content;padding:13px 17px;background:#effbf8;color:#103e47;border:1px solid #8fcec8;border-radius:14px;font-size:.86rem;line-height:1.45;box-shadow:0 8px 30px #0009}
+.pulso-social-notice[hidden]{display:none}
+.pulso-dialog{position:fixed;max-width:min(550px,calc(100vw - 22px));width:100%;max-height:min(80dvh,760px);inset:auto 0 calc(env(safe-area-inset-bottom,0px) + 12px);margin:auto;padding:21px 18px;border:1px solid #2a5b62;border-radius:20px;background:#102a38;color:#e9f5f9;box-shadow:0 20px 70px #000a;overflow:auto}
+.pulso-dialog::backdrop{background:#000a;backdrop-filter:blur(3px)}
+.pulso-dialog h2{font-size:1.22rem;line-height:1.4;margin:0 34px 12px 0}
+.pulso-dialog p{font-size:.88rem;line-height:1.55;color:#d0e1e7}
+.pulso-dialog .pulso-close{float:right;min-width:44px;min-height:44px;border:1px solid #587983;border-radius:11px;color:white;background:#214351;font-size:1.3rem}
+.pulso-dialog-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px}
+.pulso-dialog-links a{min-height:48px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:#dcf8f4;color:#083440;font-weight:850;font-size:.84rem;text-align:center;text-decoration:none;padding:10px}
+.pulso-dialog-links a:first-child{background:#254c5b;color:white}
+.pulso-comments-list{display:grid;gap:12px;min-height:80px;max-height:min(38dvh,350px);overflow-y:auto;overscroll-behavior:contain;padding:8px 0 14px}
+.pulso-comment{border-bottom:1px solid #375664;padding:0 0 10px}
+.pulso-comment-author{font-size:.86rem;font-weight:850;color:#7ce6d7;text-decoration:none}
+.pulso-comment p{margin:5px 0 0;overflow-wrap:anywhere;white-space:pre-wrap;color:#f1f9fb}
+.pulso-comments-intro,.pulso-comments-loading,.pulso-comments-error,.pulso-comments-empty{font-size:.83rem;line-height:1.5;color:#cfe4e9}
+#pulsoCommentForm{display:grid;gap:10px;border-top:1px solid #456875;padding-top:13px}
+#pulsoCommentForm label{font-size:.86rem;font-weight:850}
+#pulsoCommentBody{width:100%;resize:vertical;min-height:85px;padding:12px;border:1px solid #62858a;border-radius:12px;background:#0c1d29;color:#fff;font:inherit;font-size:16px}
+#pulsoCommentForm button{min-height:48px;padding:11px 15px;border:0;border-radius:11px;background:#dcf8f4;color:#093943;font-weight:850}
+#pulsoCommentForm button:disabled{opacity:.6;cursor:wait}
+#pulsoCommentStatus{font-size:.82rem;min-height:0;margin:7px 0 0}
+.pulso-dialog :is(a,button,textarea):focus-visible{outline:3px solid #62e3d4;outline-offset:3px}
+@media(max-width:530px){
+ .pulso-dialog{max-width:100%;width:100%;margin:0;border-radius:18px 18px 0 0;bottom:0;max-height:87dvh;padding:17px 14px calc(15px + env(safe-area-inset-bottom,0px))}
+ .pulso-dialog-links{gap:7px}
+ .pulso-dialog-links a{min-height:48px}
+ .pulso-top nav .pulso-create{font-size:.78rem}
+ .pulso-item-info .pulso-follow{min-height:44px}
+}
+@media(max-width:360px){.pulso-dialog-links{grid-template-columns:1fr}.pulso-top nav .pulso-join{display:none}}
