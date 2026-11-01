@@ -33,6 +33,19 @@ test('V3.6.59: estado personal requiere sesión; no se filtra a visitantes',asyn
   assert.equal(queries.length,0);
  });
 });
+test('V3.6.59: comprobación de sesión permite publicar aun sin vídeos en el feed',async()=>{
+ const db={query:async()=>{throw Error('No se debe consultar publicaciones');}};
+ const auth=(req,res,next)=>req.headers['x-test-user']==='yes'?(req.user={id:10},next()):res.status(401).json({error:'authentication_required'});
+ await serve(db,auth,async base=>{
+  const guest=await fetch(base+'/api/pulso/session');
+  assert.equal(guest.status,401);
+  const member=await fetch(base+'/api/pulso/session',{headers:{'x-test-user':'yes'}});
+  assert.equal(member.status,200);
+  assert.equal(member.headers.get('cache-control'),'no-store');
+  assert.equal(member.headers.get('x-robots-tag'),'noindex,nofollow');
+  assert.deepEqual(await member.json(),{authenticated:true});
+ });
+});
 test('V3.6.59: estado por lote no incluye datos de otros usuarios ni vídeos no solicitados',async()=>{
  const calls=[];
  const db={query:async(sql,params)=>{
@@ -124,6 +137,8 @@ test('V3.6.59: el visor SSR y los vídeos cargados comparten los mismos controle
  assert.match(publicJs,/comments\.dataset\.pulsoComments=String\(item\.id\)/);
  assert.match(publicJs,/follow\.dataset\.pulsoFollow=String\(item\.id\)/);
  assert.match(client,/MutationObserver/);
+ assert.match(client,/\/api\/pulso\/session/);
+ assert.match(client,/void checkSession\(\)\.then/);
  assert.match(client,/\/api\/pulso\/state\?ids=/);
  assert.match(client,/\/api\/posts\/'\+id\+'\/like'/);
  assert.match(client,/\/api\/posts\/'\+id\+'\/comments'/);
