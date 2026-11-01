@@ -115,7 +115,7 @@ function renderPage(items,more){
   '<p id="pulsoStatus" role="status" aria-live="polite"></p></div></div>'+
   '<div class="pulso-side-note"><p>Voces reales, sin cuentas inventadas.</p>'+
   '<a href="/app?view=reels&crear=reel" data-pulso-create>Publicar un vídeo</a><a href="/reels">Explorar la galería</a></div>'+
-  '</main><dialog id="pulsoAuthDialog" class="pulso-dialog pulso-login-dialog" aria-labelledby="pulsoAuthTitle">'+
+  '</main><p id="pulsoSocialNotice" class="pulso-social-notice" role="status" aria-live="polite" hidden></p><dialog id="pulsoAuthDialog" class="pulso-dialog pulso-login-dialog" aria-labelledby="pulsoAuthTitle">'+
   '<button type="button" class="pulso-close" data-pulso-close aria-label="Cerrar">×</button>'+
   '<h2 id="pulsoAuthTitle">Participa en Pulso</h2><p>Inicia sesión para dar Me gusta, comentar o seguir a un creador. Tu cuenta de RedLibertad sirve también aquí.</p>'+
   '<div class="pulso-dialog-links"><a href="/?next=%2Fpulso#acceso">Ya tengo cuenta</a><a href="/?next=%2Fpulso#registro">Crear cuenta gratis</a></div></dialog>'+
