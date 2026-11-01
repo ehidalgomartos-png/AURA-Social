@@ -1,0 +1,22 @@
+name: Pulso Reel preview V3.6.67
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  reel-preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Verify Reel local preview without duplicate uploads
+        run: node --test tests/pulso-reel-preview-v3667.test.js

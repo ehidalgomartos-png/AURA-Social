@@ -1,0 +1,28 @@
+/* V3.6.67 — La vista previa de Reel tiene controles reproducibles en móvil.
+   Solo el modo Reel cambia: posts y Stories conservan su editor original. */
+#modal[data-composer-mode="reel"] .composer-media-v3227 .preview{
+ pointer-events:auto;
+ width:100%;height:min(44svh,335px);min-height:190px;
+ margin:8px 0 0;border-radius:14px;overflow:hidden;background:#101923;
+}
+#modal[data-composer-mode="reel"] .composer-media-v3227 .preview video,
+#modal[data-composer-mode="reel"] .composer-media-v3227 .preview img{
+ display:block;width:100%;height:100%;object-fit:contain;object-position:center;
+}
+#modal[data-composer-mode="reel"].pulso-reel-selected-v3667 .composer-media-v3227 .upload-drop{
+ min-height:48px;padding:8px 12px;border-style:solid;
+}
+#modal[data-composer-mode="reel"].pulso-reel-selected-v3667 #uploadText{
+ display:inline!important;
+}
+#modal .pulso-reel-media-info-v3667{
+ color:var(--navy2);font-size:.76rem;line-height:1.5;
+ overflow-wrap:anywhere;margin:0 0 11px;
+}
+#modal .pulso-reel-media-info-v3667[hidden]{display:none!important}
+@media(max-width:530px){
+ #modal[data-composer-mode="reel"] .composer-media-v3227 .preview{
+  height:min(38svh,290px);min-height:180px;
+ }
+ #modal .pulso-reel-media-info-v3667{font-size:.75rem}
+}
