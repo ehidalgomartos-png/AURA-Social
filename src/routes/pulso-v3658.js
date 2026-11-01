@@ -3,7 +3,7 @@
 // El feed privado y la creación siguen viviendo en /app?view=reels.
 const express=require('express');
 const defaultDb=require('../db');
-const {requireAuth:requireMember}=require('../middleware/auth');
+const {requireAuth:requireMember,optionalAuth:readOptionalMember}=require('../middleware/auth');
 const PULSO_STATE_SQL=[
  "SELECT p.id::text AS id,p.user_id::text AS author_id,",
  "EXISTS(SELECT 1 FROM likes l WHERE l.post_id=p.id AND l.user_id=$1) AS liked,",
@@ -39,6 +39,23 @@ const PUBLIC_VIDEO_SQL=[
  "AND p.media_url IS NOT NULL AND p.media_url<>''",
  "AND u.status='active' AND u.is_admin=false AND u.discoverable=true",
  "ORDER BY p.created_at DESC,p.id DESC LIMIT $1 OFFSET $2"
+].join(' ');
+
+const FOLLOWING_VIDEO_SQL=[
+ "SELECT p.id,p.caption,p.media_url,p.created_at,",
+ "u.username,u.display_name,u.avatar_url,",
+ "(SELECT count(*)::int FROM likes l WHERE l.post_id=p.id) AS like_count,",
+ "(SELECT count(*)::int FROM comments c WHERE c.post_id=p.id) AS comment_count",
+ "FROM posts p JOIN users u ON u.id=p.user_id",
+ "WHERE p.moderation_status='published' AND p.audience='public'",
+ "AND p.content_level='normal' AND p.post_kind='reel' AND p.media_type='video'",
+ "AND p.media_url IS NOT NULL AND p.media_url<>''",
+ "AND u.status='active' AND u.is_admin=false AND u.discoverable=true",
+ "AND EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=$1 AND f.following_id=p.user_id)",
+ "AND NOT EXISTS(SELECT 1 FROM blocks b WHERE",
+ " (b.blocker_id=$1 AND b.blocked_id=p.user_id) OR (b.blocked_id=$1 AND b.blocker_id=p.user_id))",
+ "AND NOT EXISTS(SELECT 1 FROM mutes m WHERE m.muter_id=$1 AND m.muted_id=p.user_id)",
+ "ORDER BY p.created_at DESC,p.id DESC LIMIT $2 OFFSET $3"
 ].join(' ');
 
 const esc=(value='')=>String(value??'').replace(/[&<>"']/g,ch=>({
@@ -87,21 +104,26 @@ function renderCard(item){
   '<button type="button" class="pulso-share" data-pulso-share="'+esc(reel)+'" aria-label="Compartir este vídeo">↗<small>Compartir</small></button>'+
   '</div></article>';
 }
-function renderPage(items,more,{unavailable=false}={}){
+function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=false}={}){
+ const following=mode==='siguiendo';
  const isEmpty=items.length===0;
  const cards=isEmpty?'<section class="pulso-empty" aria-labelledby="pulsoEmptyHeadingV3660">'+
   '<div class="pulso-empty-icon-v3660" aria-hidden="true">▶</div>'+
   '<span class="pulso-empty-eyebrow-v3660">PULSO · REDLIBERTAD</span>'+
-  '<h2 id="pulsoEmptyHeadingV3660">'+(unavailable?'No se pudieron cargar los vídeos':'Pulso está empezando')+'</h2>'+
+  '<h2 id="pulsoEmptyHeadingV3660">'+(unavailable?'No se pudieron cargar los vídeos':loginRequired?'Entra para ver a quién sigues':following?'Aún no hay vídeos en Siguiendo':'Pulso está empezando')+'</h2>'+
   '<p>'+(unavailable?'No podemos mostrar las publicaciones ahora. Puedes probar a recargar Pulso.':
+   loginRequired?'Inicia sesión con tu cuenta de RedLibertad para ver los Reels públicos de las personas a las que sigues.':
+   following?'Aquí aparecerán los Reels públicos de las personas que sigues cuando publiquen vídeos.':
    'Todavía no hay Reels públicos disponibles. Los vídeos aparecerán aquí cuando sus autores los publiquen para todo el mundo.')+'</p>'+
   '<div class="pulso-empty-links-v3660">'+
-  '<a class="pulso-empty-primary-v3660" href="/app?view=reels&crear=reel" data-pulso-create>Publicar un vídeo</a>'+
-  '<a class="pulso-empty-secondary-v3660" href="'+(unavailable?'/pulso':'/reels')+'">'+
-  (unavailable?'Volver a intentar':'Explorar la galería')+'</a></div>'+
+  (loginRequired?'<a class="pulso-empty-primary-v3660" href="/?next=%2Fpulso%3Ftab%3Dsiguiendo#acceso">Entrar en RedLibertad</a>'+
+   '<a class="pulso-empty-secondary-v3660" href="/pulso">Explorar Para ti</a>':
+   '<a class="pulso-empty-primary-v3660" href="/app?view=reels&crear=reel" data-pulso-create>Publicar un vídeo</a>'+
+   '<a class="pulso-empty-secondary-v3660" href="'+(unavailable?(following?'/pulso?tab=siguiendo':'/pulso'):following?'/pulso':'/reels')+'">'+
+   (unavailable?'Volver a intentar':following?'Descubrir vídeos':'Explorar la galería')+'</a>')+'</div>'+
   '<p class="pulso-empty-note-v3660">Con tu cuenta habitual de RedLibertad · Sin vídeos inventados</p></section>':
   items.map(renderCard).join('');
- const robots=isEmpty?'noindex,follow':'index,follow,max-video-preview:-1';
+ const robots=following?'noindex,nofollow':isEmpty?'noindex,follow':'index,follow,max-video-preview:-1';
  return '<!doctype html><html lang="es"><head><meta charset="utf-8">'+
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'+
   '<meta name="theme-color" content="#0b1c2b">'+
@@ -117,6 +139,7 @@ function renderPage(items,more,{unavailable=false}={}){
   '<link rel="stylesheet" href="/pulso-social-v3659.css?v=3.6.59">'+
   '<link rel="stylesheet" href="/pulso-empty-v3660.css?v=3.6.60">'+
   '<link rel="stylesheet" href="/pulso-mobile-v3661.css?v=3.6.61">'+
+  '<link rel="stylesheet" href="/pulso-tabs-v3662.css?v=3.6.62">'+
   '<script src="/pulso-v3658.js?v=3.6.58" defer></script>'+
   '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script>'+
   '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script></head>'+
@@ -124,11 +147,16 @@ function renderPage(items,more,{unavailable=false}={}){
   '<header class="pulso-top"><a class="pulso-brand" href="/"><img src="/assets/logo-mark.svg" alt=""><span>RedLibertad</span></a>'+
   '<span class="pulso-name">Pulso <span>●</span></span>'+
   '<nav aria-label="Navegación de Pulso"><a href="/reels">Reels</a><a href="/app?view=reels&crear=reel" class="pulso-create" data-pulso-create>Publicar vídeo</a><a class="pulso-join" href="/#registro">Crear cuenta</a></nav></header>'+
-  '<main class="pulso-layout'+(isEmpty?' pulso-layout-empty-v3660':'')+'"><div class="pulso-heading"><p>LO QUE MUEVE A REDLIBERTAD</p><h1>Pulso</h1><span>'+(isEmpty?'Un espacio para compartir tus historias reales.':'Desliza para descubrir vídeos auténticos. Toca el vídeo para controlarlo.')+'</span></div>'+
-  '<div class="pulso-feed'+(isEmpty?' pulso-feed-empty-v3660':'')+'" id="pulsoFeed" tabindex="0" aria-label="Vídeos cortos de la comunidad">'+cards+
+  '<main class="pulso-layout'+(isEmpty?' pulso-layout-empty-v3660':'')+'"><div class="pulso-heading"><p>LO QUE MUEVE A REDLIBERTAD</p><h1>Pulso</h1><span>'+(following?'Reels públicos de las personas que sigues.':isEmpty?'Un espacio para compartir tus historias reales.':'Reels públicos recientes, sin perfiles ni actividad inventados.')+'</span></div>'+
+  '<section class="pulso-center-v3662" aria-label="Descubrir vídeos de Pulso">'+
+  '<nav class="pulso-tabs-v3662" aria-label="Elegir vídeos">'+
+  '<a href="/pulso"'+(!following?' aria-current="page"':'')+'>Para ti</a>'+
+  '<a href="/pulso?tab=siguiendo"'+(following?' aria-current="page"':'')+'>Siguiendo</a></nav>'+
+  '<p class="pulso-feed-explain-v3662">'+(following?'Solo publicaciones públicas de cuentas que sigues.':'Reels públicos recientes de la comunidad.')+'</p>'+
+  '<div class="pulso-feed'+(isEmpty?' pulso-feed-empty-v3660':'')+'" id="pulsoFeed" data-pulso-mode="'+(following?'siguiendo':'para-ti')+'" tabindex="0" aria-label="Vídeos cortos de la comunidad">'+cards+
   (isEmpty?'':'<div class="pulso-footer-feed" id="pulsoFooter">'+
   '<button id="pulsoMore" type="button"'+(!more?' hidden':'')+'>Ver más vídeos</button>'+
-  '<p id="pulsoStatus" role="status" aria-live="polite"></p></div>')+'</div>'+
+  '<p id="pulsoStatus" role="status" aria-live="polite"></p></div>')+'</div></section>'+
   '<div class="pulso-side-note"><p>Voces reales, sin cuentas inventadas.</p>'+
   '<a href="/app?view=reels&crear=reel" data-pulso-create>Publicar un vídeo</a><a href="/reels">Explorar la galería</a></div>'+
   '</main><p id="pulsoSocialNotice" class="pulso-social-notice" role="status" aria-live="polite" hidden></p><dialog id="pulsoAuthDialog" class="pulso-dialog pulso-login-dialog" aria-labelledby="pulsoAuthTitle">'+
@@ -155,17 +183,27 @@ async function fetchVideos(db,page){
  const clean=(query.rows||[]).map(cleanVideo).filter(Boolean);
  return {items:clean.slice(0,PAGE_SIZE),hasMore:page<MAX_PAGE&&query.rows.length>PAGE_SIZE};
 }
-function createPulsoRouter({db=defaultDb,auth=requireMember}={}){
+async function fetchFollowingVideos(db,userId,page){
+ const query=await db.query(FOLLOWING_VIDEO_SQL,[userId,PAGE_SIZE+1,(page-1)*PAGE_SIZE]);
+ const clean=(query.rows||[]).map(cleanVideo).filter(Boolean);
+ return {items:clean.slice(0,PAGE_SIZE),hasMore:page<MAX_PAGE&&query.rows.length>PAGE_SIZE};
+}
+function createPulsoRouter({db=defaultDb,auth=requireMember,optionalAuth=readOptionalMember}={}){
  const router=express.Router();
- router.get('/pulso',async(req,res)=>{
+ router.get('/pulso',optionalAuth,async(req,res)=>{
+  const mode=req.query.tab===undefined?'para-ti':req.query.tab==='siguiendo'?'siguiendo':null;
+  if(!mode||pageParam(req.query.page)!==1)return res.redirect(302,'/pulso');
+  res.set('Cache-Control',mode==='siguiendo'?'private, no-store':'no-store');
+  if(mode==='siguiendo')res.set('X-Robots-Tag','noindex,nofollow');
+  if(mode==='siguiendo'&&!req.user){
+   return res.type('html').send(renderPage([],false,{mode,loginRequired:true}));
+  }
   try{
-   const page=pageParam(req.query.page);
-   if(page!==1)return res.redirect(302,'/pulso');
-   const data=await fetchVideos(db,1);
-   res.set('Cache-Control','no-store').type('html').send(renderPage(data.items,data.hasMore));
-  }catch(err){
-   console.error('Pulso public feed unavailable');
-   res.status(503).type('html').send(renderPage([],false,{unavailable:true}));
+   const data=mode==='siguiendo'?await fetchFollowingVideos(db,req.user.id,1):await fetchVideos(db,1);
+   return res.type('html').send(renderPage(data.items,data.hasMore,{mode}));
+  }catch(_){
+   console.error('Pulso feed unavailable');
+   return res.status(503).type('html').send(renderPage([],false,{mode,unavailable:true}));
   }
  });
  router.get('/api/pulso/session',auth,(req,res)=>{
@@ -190,6 +228,18 @@ function createPulsoRouter({db=defaultDb,auth=requireMember}={}){
    return res.status(503).json({error:'social_state_unavailable'});
   }
  });
+ router.get('/api/pulso/following',auth,async(req,res)=>{
+  const page=pageParam(req.query.page);
+  if(!page)return res.status(400).json({error:'invalid_page'});
+  res.set('Cache-Control','private, no-store').set('X-Robots-Tag','noindex,nofollow');
+  try{
+   const {items,hasMore}=await fetchFollowingVideos(db,req.user.id,page);
+   return res.json({items,hasMore,page,mode:'siguiendo'});
+  }catch(_){
+   console.error('Pulso following unavailable');
+   return res.status(503).json({error:'temporarily_unavailable'});
+  }
+ });
  router.get('/api/pulso/public',async(req,res)=>{
   const page=pageParam(req.query.page);
   if(!page)return res.status(400).json({error:'invalid_page'});
@@ -204,4 +254,4 @@ function createPulsoRouter({db=defaultDb,auth=requireMember}={}){
  });
  return router;
 }
-module.exports={createPulsoRouter,PUBLIC_VIDEO_SQL,PULSO_STATE_SQL,requestedPublicIds,PAGE_SIZE,MAX_PAGE,esc,safeMediaUrl,cleanVideo,renderCard,renderPage,pageParam,fetchVideos};
+module.exports={createPulsoRouter,PUBLIC_VIDEO_SQL,FOLLOWING_VIDEO_SQL,PULSO_STATE_SQL,requestedPublicIds,PAGE_SIZE,MAX_PAGE,esc,safeMediaUrl,cleanVideo,renderCard,renderPage,pageParam,fetchVideos,fetchFollowingVideos};

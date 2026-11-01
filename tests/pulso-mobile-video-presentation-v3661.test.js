@@ -74,6 +74,6 @@ test('V3.6.61: no se cambian los Reels, privacidad, multimedia, ni autores',()=>
   "u.is_admin=false","u.discoverable=true"
  ])assert.ok(PUBLIC_VIDEO_SQL.includes(criterion),criterion);
  assert.match(content,/const publicFilter="p\.moderation_status='published'/);
- assert.match(route,/renderPage\(\[\],false,\{unavailable:true\}\)/);
+ assert.match(route,/renderPage\(\[\],false,\{mode,unavailable:true\}\)/);
  assert.doesNotMatch(read('public/pulso-mobile-v3661.js'),/api\/posts|api\/profiles/);
 });
