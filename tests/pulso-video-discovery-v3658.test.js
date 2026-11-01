@@ -55,7 +55,8 @@ test('V3.6.58: los vídeos usan rutas multimedia seguras y no ejecutan HTML del 
  assert.match(html,/&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
  assert.match(html,/&lt;img src=x onerror=alert\(1\)&gt;/);
  assert.doesNotMatch(html,/<script>alert\(|<img src=x onerror=/);
- assert.match(html,/href="\/reel\/42"/);
+ assert.match(html,/data-pulso-share="\/reel\/42"/);
+ assert.doesNotMatch(html,/href="\/reel\/42"/);
  assert.match(html,/src="\/uploads\/reels\/video-42.mp4"/);
  assert.match(html,/<video[^>]*preload="none" controls muted playsinline loop>/);
  assert.match(html,/aria-label="Compartir este vídeo"/);
