@@ -12,6 +12,11 @@
  let page=1,loading=false,hasMore=!more.hidden;
  const mode=feed.dataset.pulsoMode==='siguiendo'?'siguiendo':'para-ti';
  const observed=new WeakSet();
+ // V3.6.70: un único reproductor activo, sin iniciar otro cuando los avisos
+ // de intersección llegan mezclados durante el gesto de deslizar.
+ const visibleRatios=new Map();
+ let activeVideo=null;
+ let resumeWhenVisible=false;
 
  function pauseAll(except=null){
   feed.querySelectorAll('video.pulso-video').forEach(v=>{
@@ -82,17 +87,43 @@
   card.append(video,shade,info,actions);
   return card;
  }
+ // Elegir por proporción visible evita que dos avisos simultáneos de swipe
+ // reproduzcan varios vídeos o hagan retroceder al anterior.
+ function syncPlayback(resume=false){
+  if(document.visibilityState!=='visible'){pauseAll();return;}
+  let winner=null,best=.679;
+  for(const [card,ratio] of visibleRatios){
+   if(!card.isConnected){visibleRatios.delete(card);continue;}
+   const video=card.querySelector('video.pulso-video');
+   if(!video||ratio<.68)continue;
+   if(ratio>best||(ratio===best&&video===activeVideo)){
+    winner=video;best=ratio;
+   }
+  }
+  if(!winner){
+   pauseAll();
+   activeVideo=null;
+   return;
+  }
+  const changed=winner!==activeVideo;
+  activeVideo=winner;
+  pauseAll(winner);
+  // No reiniciar una pausa manual del mismo vídeo cada vez que el
+  // IntersectionObserver emita otro aviso por un desplazamiento pequeño.
+  if((changed||resume)&&!motionOff&&!saveData&&winner.paused){
+   winner.muted=true;
+   try{winner.play()?.catch?.(()=>{});}catch(_){/* Los controles nativos siguen disponibles. */}
+  }
+ }
  function playback(){
   if(!('IntersectionObserver' in window))return null;
   return new IntersectionObserver(entries=>{
    for(const entry of entries){
-    const vid=entry.target.querySelector('video');
-    if(!vid)continue;
-    if(entry.isIntersecting && entry.intersectionRatio>=.68 && document.visibilityState==='visible'){
-     pauseAll(vid);
-     if(!motionOff&&!saveData){vid.muted=true;vid.play().catch(()=>{});}
-    }else if(!vid.paused){vid.pause();}
+    if(entry.isIntersecting&&entry.intersectionRatio>0){
+     visibleRatios.set(entry.target,entry.intersectionRatio);
+    }else visibleRatios.delete(entry.target);
    }
+   syncPlayback();
   },{root:feed,threshold:[0,.68,.9]});
  }
  const observer=playback();
@@ -135,8 +166,37 @@
   },{root:feed,rootMargin:'0px 0px 110px 0px',threshold:0});
   loader.observe(footer);
  }
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')pauseAll();});
- window.addEventListener('pagehide',()=>{pauseAll();observer?.disconnect();});
+ // Una reproducción iniciada por la persona también detiene cualquier otra.
+ // "play" no burbujea: el listener debe escuchar en fase de captura.
+ feed.addEventListener('play',event=>{
+  const video=event.target;
+  if(!video?.matches?.('video.pulso-video'))return;
+  pauseAll(video);
+ },true);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'){
+   resumeWhenVisible=resumeWhenVisible||Boolean(activeVideo&&!activeVideo.paused);
+   pauseAll();
+  }else{
+   const resume=resumeWhenVisible;
+   resumeWhenVisible=false;
+   syncPlayback(resume);
+  }
+ });
+ window.addEventListener('pagehide',()=>{
+  resumeWhenVisible=resumeWhenVisible||Boolean(activeVideo&&!activeVideo.paused);
+  pauseAll();
+  observer?.disconnect();
+ });
+ // Regresar desde el historial (BFCache) debe reactivar el observador:
+ // la página no se carga de nuevo después del evento pagehide.
+ window.addEventListener('pageshow',event=>{
+  if(!event.persisted)return;
+  feed.querySelectorAll('[data-pulso-item]').forEach(card=>observer?.observe(card));
+  const resume=resumeWhenVisible;
+  resumeWhenVisible=false;
+  syncPlayback(resume);
+ });
  feed.addEventListener('click',async event=>{
   const share=event.target.closest('[data-pulso-share]');
   if(!share)return;
