@@ -1,0 +1,28 @@
+/* V3.6.69 — Confirmación efímera y enlace contextual, sin añadir botones al feed. */
+#toast.pulso-published-toast-v3669{
+ max-width:min(420px,calc(100vw - 24px));
+ line-height:1.5;
+ overflow-wrap:anywhere;
+}
+#toast .pulso-published-link-v3669{
+ display:inline;
+ color:#b9fff2;
+ font-weight:800;
+ text-decoration:underline;
+ text-underline-offset:3px;
+}
+#toast .pulso-published-link-v3669:focus-visible{
+ outline:3px solid #b9fff2;
+ outline-offset:3px;
+ border-radius:3px;
+}
+@media(max-width:760px){
+ #toast.pulso-published-toast-v3669{
+  right:12px;
+  bottom:calc(82px + env(safe-area-inset-bottom,0px));
+  left:12px;
+  width:auto;
+  margin:0 auto;
+  text-align:center;
+ }
+}
