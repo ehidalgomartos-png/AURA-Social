@@ -73,7 +73,7 @@ test('V3.6.63: texto largo mantiene lectura ampliable y el título no queda cort
  assert.match(html,/<section class="reel-pulso-description-v3663"/);
  assert.match(html,/<details><summary>Leer descripción completa<\/summary>/);
  assert.match(html,/Experiencias reales compartidas con respeto/);
- assert.ok(html.indexOf('reel-pulso-actions-v3663')<html.indexOf('reel-pulso-description-v3663'));
+ assert.ok(html.indexOf('reel-pulso-description-v3663')<html.indexOf('reel-pulso-actions-v3663'));
 });
 test('V3.6.63: HTML de usuario se escapa también dentro del resumen y la descripción',async()=>{
  const payload='Vídeo <img src=x onerror=alert(1)> & "'+('Más contenido del autor. '.repeat(15));
