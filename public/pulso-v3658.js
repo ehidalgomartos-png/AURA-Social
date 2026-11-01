@@ -108,7 +108,9 @@
   }
   const changed=winner!==activeVideo;
   activeVideo=winner;
-  pauseAll(winner);
+  // V3.6.72: solo recorrer los vídeos al cambiar de Reel.
+  // Si la persona reproduce otro manualmente, el listener 'play' ya pausa el resto.
+  if(changed)pauseAll(winner);
   // No reiniciar una pausa manual del mismo vídeo cada vez que el
   // IntersectionObserver emita otro aviso por un desplazamiento pequeño.
   if((changed||resume)&&!motionOff&&!saveData&&winner.paused){
@@ -172,6 +174,7 @@
  feed.addEventListener('play',event=>{
   const video=event.target;
   if(!video?.matches?.('video.pulso-video'))return;
+  activeVideo=video;
   pauseAll(video);
  },true);
  document.addEventListener('visibilitychange',()=>{
