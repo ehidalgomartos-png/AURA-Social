@@ -1,0 +1,10 @@
+/* V3.6.77 — aviso temporal de carga, no botón ni capa que bloquee el vídeo. */
+.pulso-buffering-v3677{
+ position:absolute;z-index:3;top:39%;left:50%;transform:translate(-50%,-50%);
+ width:max-content;max-width:calc(100% - 44px);margin:0;
+ padding:9px 14px;border:1px solid rgba(190,234,239,.5);
+ border-radius:24px;background:rgba(6,26,38,.9);color:#f0fcff;
+ box-shadow:0 5px 18px rgba(0,0,0,.35);
+ font-size:.83rem;font-weight:750;line-height:1.4;text-align:center;
+ pointer-events:none;
+}
