@@ -141,6 +141,7 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<link rel="stylesheet" href="/pulso-mobile-v3661.css?v=3.6.61">'+
   '<link rel="stylesheet" href="/pulso-tabs-v3662.css?v=3.6.62">'+
   '<link rel="stylesheet" href="/pulso-navigation-v3664.css?v=3.6.64">'+
+  '<link rel="stylesheet" href="/pulso-compact-mobile-v3666.css?v=3.6.66">'+
   '<script src="/pulso-v3658.js?v=3.6.58" defer></script>'+
   '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script>'+
   '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script>'+
@@ -168,7 +169,7 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<a href="/app?view=reels&crear=reel" data-pulso-create>Publicar un vídeo</a><a href="/reels">Explorar la galería</a></div>'+
   '</main><p id="pulsoSocialNotice" class="pulso-social-notice" role="status" aria-live="polite" hidden></p><dialog id="pulsoAuthDialog" class="pulso-dialog pulso-login-dialog" aria-labelledby="pulsoAuthTitle">'+
   '<button type="button" class="pulso-close" data-pulso-close aria-label="Cerrar">×</button>'+
-  '<h2 id="pulsoAuthTitle">Participa en Pulso</h2><p>Inicia sesión para dar Me gusta, comentar o seguir a un creador. Tu cuenta de RedLibertad sirve también aquí.</p>'+
+  '<h2 id="pulsoAuthTitle">Participa en Pulso</h2><p>Inicia sesión para dar Me gusta o comentar vídeos. Tu cuenta de RedLibertad sirve también aquí.</p>'+
   '<div class="pulso-dialog-links"><a href="/?next=%2Fpulso#acceso">Ya tengo cuenta</a><a href="/?next=%2Fpulso#registro">Crear cuenta gratis</a></div></dialog>'+
   '<dialog id="pulsoCommentsDialog" class="pulso-dialog" aria-labelledby="pulsoCommentsTitle">'+
   '<button type="button" class="pulso-close" data-pulso-close aria-label="Cerrar comentarios">×</button>'+
