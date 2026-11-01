@@ -1,0 +1,18 @@
+/* V3.6.66 — Pulso: en móvil manda el vídeo y el gesto de deslizar.
+   Conservamos navegación accesible por teclado y botones en pantallas grandes;
+   no tapamos el contenido con otra barra de acciones. */
+@media(max-width:800px){
+ .pulso-center-v3662 .pulso-nav-v3664{display:none}
+ .pulso-center-v3662 .pulso-feed{
+  height:calc(100svh - 62px - 73px - env(safe-area-inset-bottom,0px));
+  max-height:none;
+ }
+ .pulso-center-v3662 .pulso-feed.pulso-feed-empty-v3660{
+  height:auto;min-height:0;
+ }
+}
+@media(max-width:530px){
+ .pulso-center-v3662 .pulso-feed{
+  height:calc(100svh - 58px - 73px - env(safe-area-inset-bottom,0px));
+ }
+}
