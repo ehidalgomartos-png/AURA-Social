@@ -142,7 +142,7 @@ function renderPage(items,more,{unavailable=false,mode='para-ti',loginRequired=f
   '<link rel="stylesheet" href="/pulso-tabs-v3662.css?v=3.6.62">'+
   '<link rel="stylesheet" href="/pulso-navigation-v3664.css?v=3.6.64">'+
   '<link rel="stylesheet" href="/pulso-compact-mobile-v3666.css?v=3.6.66">'+
-  '<script src="/pulso-v3658.js?v=3.6.58" defer></script>'+
+  '<script src="/pulso-v3658.js?v=3.6.58&amp;playback=3.6.70" defer></script>'+
   '<script src="/pulso-social-v3659.js?v=3.6.59" defer></script>'+
   '<script src="/pulso-mobile-v3661.js?v=3.6.61" defer></script>'+
   '<script src="/pulso-navigation-v3664.js?v=3.6.64" defer></script></head>'+
