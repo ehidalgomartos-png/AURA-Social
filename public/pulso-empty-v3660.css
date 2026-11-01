@@ -1,0 +1,46 @@
+/* V3.6.60 — Empty Pulso is a welcome page, not an empty fullscreen player. */
+.pulso-layout-empty-v3660{align-items:center;min-height:0;padding-top:clamp(22px,5vh,60px);padding-bottom:40px}
+.pulso-feed.pulso-feed-empty-v3660{
+ height:auto;min-height:0;max-height:none;overflow:visible;
+ scroll-snap-type:none;overscroll-behavior:auto;
+ background:linear-gradient(155deg,#173b4d,#102b3b 68%,#0e2232);
+ border:1px solid #355b6d;border-radius:22px;
+ box-shadow:0 22px 60px #0004;
+}
+.pulso-feed-empty-v3660 .pulso-empty{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:12px;min-height:0;padding:clamp(25px,4vw,45px) clamp(18px,3vw,34px);
+ background:transparent;text-align:center;
+}
+.pulso-empty-icon-v3660{
+ display:grid;place-items:center;width:70px;height:70px;border-radius:23px;
+ background:linear-gradient(140deg,#42a9b0,#286778);color:#f2fffd;
+ font-size:29px;line-height:1;box-shadow:0 9px 35px #0717246b;
+}
+.pulso-empty-eyebrow-v3660{color:#7de8db;font-size:.69rem;font-weight:850;letter-spacing:.15em}
+.pulso-feed-empty-v3660 .pulso-empty h2{margin:0;font-size:clamp(1.45rem,3vw,2.1rem);letter-spacing:-.035em;line-height:1.18;color:#fff}
+.pulso-feed-empty-v3660 .pulso-empty>p:not(.pulso-empty-note-v3660){margin:0;max-width:350px;font-size:.94rem;line-height:1.65;color:#c5dfe6}
+.pulso-empty-links-v3660{display:grid;gap:9px;width:100%;max-width:345px;margin-top:10px}
+.pulso-empty-links-v3660 a{display:flex;align-items:center;justify-content:center;min-height:49px;padding:12px 15px;border-radius:12px;font-size:.88rem;line-height:1.35;font-weight:850;text-align:center;text-decoration:none}
+.pulso-empty-primary-v3660{background:#def9f4;color:#0b3740}
+.pulso-empty-secondary-v3660{background:#ffffff10;border:1px solid #92bac3;color:#efffff}
+.pulso-empty-links-v3660 a:hover{filter:brightness(1.09)}
+.pulso-empty-links-v3660 a:focus-visible{outline:3px solid #75f8e7;outline-offset:3px}
+.pulso-empty-note-v3660{color:#9fbdc7;font-size:.73rem;line-height:1.5;margin:8px 0 0}
+.pulso-layout-empty-v3660 .pulso-side-note{padding-top:0}
+@media(max-width:800px){
+ .pulso-layout.pulso-layout-empty-v3660{display:flex;flex-direction:column;gap:16px;justify-content:flex-start;padding:clamp(18px,4vw,30px) 14px 32px;min-height:0;align-items:center}
+ .pulso-layout-empty-v3660 .pulso-feed.pulso-feed-empty-v3660{height:auto;min-height:0;max-height:none;width:min(100%,510px);border:1px solid #355b6d;border-radius:19px}
+ .pulso-layout-empty-v3660 .pulso-heading{display:none}
+ .pulso-layout-empty-v3660 .pulso-side-note{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:center;max-width:510px;padding:0 6px;text-align:center}
+ .pulso-layout-empty-v3660 .pulso-side-note p{width:100%;margin:0}
+ .pulso-layout-empty-v3660 .pulso-side-note a{min-height:44px;display:inline-flex;align-items:center}
+ .pulso-layout-empty-v3660 .pulso-feed-empty-v3660 .pulso-empty{padding:30px 18px 25px}
+}
+@media(max-width:530px){
+ .pulso-layout.pulso-layout-empty-v3660{padding:14px 12px 25px;gap:14px}
+ .pulso-layout-empty-v3660 .pulso-feed.pulso-feed-empty-v3660{height:auto;max-height:none;border-radius:17px}
+ .pulso-layout-empty-v3660 .pulso-feed-empty-v3660 .pulso-empty{padding:30px 15px 24px}
+ .pulso-empty-icon-v3660{width:60px;height:60px;border-radius:19px}
+ .pulso-empty-note-v3660{font-size:.69rem}
+}
