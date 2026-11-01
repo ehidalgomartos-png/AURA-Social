@@ -1,0 +1,20 @@
+name: Pulso long-session playback V3.6.80
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  long-session:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Validate long-session performance and playback regressions
+        run: node --test tests/pulso-long-session-v3680.test.js tests/pulso-playback-lifecycle-v3670.test.js tests/pulso-preload-performance-v3672.test.js tests/pulso-fast-swipe-v3676.test.js tests/pulso-deferred-lifecycle-v3679.test.js
