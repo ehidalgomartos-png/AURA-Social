@@ -30,6 +30,7 @@ function navHarness(){
    setAttribute(k,v){this.attributes[k]=String(v)},
    append(...nodes){for(const node of nodes){node.parentNode=this;this.children.push(node)}},
    closest(selector){
+    if(selector==='[data-pulso-retry]'&&this.dataset?.pulsoRetry==='')return this;
     if(selector!=='[data-pulso-item]')return null;
     let node=this;
     while(node){if(node.marker)return node;node=node.parentNode;}
