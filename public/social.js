@@ -11664,6 +11664,11 @@ async function handleInitialDeepLink() {
 
   if(view && ['feed','explore','communities','reels','messages','notifications','profile'].includes(view)){
     showView(view);
+    // V3.6.59 — Pulso abre el editor de Reel existente, nunca uno paralelo.
+    if(view==='reels' && params.get('crear')==='reel'){
+      await openModal('reel');
+      return;
+    }
     if(view==='feed' && /^[1-9]\d{0,15}$/.test(String(marketShareId||''))){
       await prepareMarketplaceCommunityShareV3269(marketShareId);
       return;
