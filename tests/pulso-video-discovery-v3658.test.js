@@ -76,7 +76,7 @@ test('V3.6.58: landing SSR, ruta pública y paginación limitada son reales y ve
   assert.match(html,/pulso-v3658.js\?v=3.6.58/);
   assert.match(html,/class="pulso-card" data-pulso-item/);
   assert.equal((html.match(/data-pulso-item/g)||[]).length,2);
-  assert.match(html,/href="\/app\?view=reels"/);
+  assert.match(html,/href="\/app\?view=reels&crear=reel"/);
   assert.doesNotMatch(html,/vídeos falsos|usuarios conectados ahora/);
   const api=await fetch(origin+'/api/pulso/public?page=2');
   assert.equal(api.status,200);
