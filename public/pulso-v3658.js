@@ -50,9 +50,6 @@
   else {const mark=make('span',null,'◉');mark.setAttribute('aria-hidden','true');profile.append(mark);}
   profile.append(make('span',null,String(item.displayName||item.username||'').slice(0,80)));
   info.append(profile);
-  const follow=make('button','pulso-follow','Seguir');
-  follow.type='button';follow.dataset.pulsoFollow=String(item.id);follow.hidden=true;
-  info.append(follow);
   if(item.caption){
    const caption=String(item.caption).slice(0,700);
    const long=caption.length>135;
@@ -67,7 +64,6 @@
     info.append(toggle);
    }
   }
-  const view=make('a','pulso-detail','Ver vídeo y participar');view.href=detail;info.append(view);
   const actions=make('div','pulso-actions');
   const likes=make('button','pulso-count pulso-like','♥ ');
   likes.type='button';likes.dataset.pulsoLike=String(item.id);
