@@ -77,6 +77,17 @@
    more.click(); // Reutiliza el paginador existente; no dispara consultas paralelas.
   }
  }
+ // Mantener coherentes flechas y contador también si la página falla,
+ // está vacía o no añade vídeos (sin depender de mutaciones del DOM).
+ feed.addEventListener('pulso:page-result',event=>{
+  const added=Number(event?.detail?.added)||0;
+  if(pendingAdvance!==null){
+   const at=pendingAdvance;
+   pendingAdvance=null;
+   if(added>0)goTo(at);
+  }
+  if(active)activate(active,{force:true});
+ });
  previous.addEventListener('click',()=>navigate(-1));
  next.addEventListener('click',()=>navigate(1));
  feed.addEventListener('keydown',event=>{
