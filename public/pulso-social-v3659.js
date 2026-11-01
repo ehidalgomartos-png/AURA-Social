@@ -53,10 +53,10 @@
   const state=states.get(String(id));
   allCards().filter(card=>cardId(card)===String(id)).forEach(card=>{
    const like=card.querySelector('[data-pulso-like]');
-   if(like&&state){
-    like.setAttribute('aria-pressed',state.liked?'true':'false');
-    like.classList.toggle('is-liked',state.liked===true);
-    like.setAttribute('aria-label',state.liked?'Quitar Me gusta':'Me gusta');
+   if(like){
+    like.setAttribute('aria-pressed',state?.liked?'true':'false');
+    like.classList.toggle('is-liked',state?.liked===true);
+    like.setAttribute('aria-label',state?.liked?'Quitar Me gusta':'Me gusta');
    }
    const follow=card.querySelector('[data-pulso-follow]');
    if(!follow)return;
@@ -84,7 +84,7 @@
     const batch=valid.slice(i,i+12);
     const {response,data}=await json('/api/pulso/state?ids='+encodeURIComponent(batch.join(',')));
     if(response.status===401){
-     authState='guest';paintGuest();return;
+     authState='guest';states.clear();paintGuest();return;
     }
     if(!response.ok||data.authenticated!==true||!data.states||typeof data.states!=='object')throw Error('unavailable');
     authState='member';
@@ -169,20 +169,21 @@
   if(!validId(id)||button.disabled||!await allowed(id))return;
   const state=states.get(id);
   if(!state||state.own||!validId(state.authorId))return;
+  const wasFollowing=state.following;
   button.disabled=true;
   try{
    const {response}=await json('/api/profiles/'+state.authorId+'/follow',{
-    method:state.following?'DELETE':'POST'
+    method:wasFollowing?'DELETE':'POST'
    });
    if(response.status===401){authState='guest';showAuth();return;}
    if(!response.ok)throw Error('follow_failed');
    for(const [reelId,item] of states){
     if(item.authorId===state.authorId){
-     item.following=!state.following;
+     item.following=!wasFollowing;
      paint(reelId);
     }
    }
-   message(state.following?'Has dejado de seguir a esta persona.':'Ahora sigues a esta persona.');
+   message(wasFollowing?'Has dejado de seguir a esta persona.':'Ahora sigues a esta persona.');
   }catch(_){message('No se pudo actualizar el seguimiento.');}
   finally{button.disabled=false;}
  }
