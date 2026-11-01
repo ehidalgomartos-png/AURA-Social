@@ -25,6 +25,36 @@
  const autoplayRequestsV3676=new WeakSet();
  let activeVideo=null;
  let resumeWhenVisible=false;
+ // V3.6.77: aviso transitorio solo ante una espera REAL de reproducción.
+ // Nunca recargamos el archivo ni disparamos reintentos de red automáticos.
+ let bufferingVideoV3677=null;
+ let bufferingTimerV3677=null;
+ let bufferingMessageV3677=null;
+ function clearBufferingV3677(){
+  if(bufferingTimerV3677!==null&&typeof clearTimeout==='function')clearTimeout(bufferingTimerV3677);
+  bufferingTimerV3677=null;
+  bufferingMessageV3677?.remove?.();
+  bufferingMessageV3677=null;
+  bufferingVideoV3677=null;
+ }
+ function scheduleBufferingV3677(video){
+  if(video!==activeVideo||document.visibilityState!=='visible'||video.paused)return;
+  if(bufferingVideoV3677===video)return; // Un único aviso y temporizador por espera.
+  clearBufferingV3677();
+  bufferingVideoV3677=video;
+  if(typeof setTimeout!=='function')return;
+  bufferingTimerV3677=setTimeout(()=>{
+   bufferingTimerV3677=null;
+   if(bufferingVideoV3677!==video||activeVideo!==video||
+    document.visibilityState!=='visible'||video.paused)return;
+   const card=video.closest?.('[data-pulso-item]');
+   if(!card?.isConnected||card.querySelector?.('.pulso-error-v3664'))return;
+   const notice=make('p','pulso-buffering-v3677','Cargando vídeo…');
+   notice.setAttribute('role','status');
+   card.append(notice);
+   bufferingMessageV3677=notice;
+  },1600);
+ }
 
  function pauseAll(except=null){
   feed.querySelectorAll('video.pulso-video').forEach(v=>{
@@ -99,6 +129,7 @@
  // reproduzcan varios vídeos o hagan retroceder al anterior.
  function syncPlayback(resume=false){
   if(document.visibilityState!=='visible'){
+   clearBufferingV3677();
    if(activeVideo&&!activeVideo.paused)pauseAll();
    return;
   }
@@ -112,6 +143,7 @@
    }
   }
   if(!winner){
+   clearBufferingV3677();
    // Entre dos vídeos no hay que escanear toda la galería en cada aviso
    // si ya se había detenido el reproductor anterior.
    if(activeVideo)pauseAll();
@@ -119,6 +151,7 @@
    return;
   }
   const changed=winner!==activeVideo;
+  if(changed)clearBufferingV3677();
   activeVideo=winner;
   // V3.6.72: solo recorrer los vídeos al cambiar de Reel.
   // Si la persona reproduce otro manualmente, el listener 'play' ya pausa el resto.
@@ -303,11 +336,27 @@
    return;
   }
   // El usuario puede iniciar otro vídeo manualmente; debe detener los demás.
+  if(video!==activeVideo)clearBufferingV3677();
   activeVideo=video;
   pauseAll(video);
  },true);
+ // El aviso aparece solo si sigue cargando después de 1,6 s.
+ // 'waiting' y 'stalled' pueden repetirse durante una sola interrupción.
+ for(const name of ['waiting','stalled']){
+  feed.addEventListener(name,event=>{
+   const video=event.target;
+   if(video?.matches?.('video.pulso-video'))scheduleBufferingV3677(video);
+  },true);
+ }
+ // Al reanudarse, pausar, terminar o fallar se retira el aviso.
+ for(const name of ['playing','canplay','pause','ended','error']){
+  feed.addEventListener(name,event=>{
+   if(event.target===bufferingVideoV3677)clearBufferingV3677();
+  },true);
+ }
  document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible'){
+   clearBufferingV3677();
    resumeWhenVisible=resumeWhenVisible||Boolean(activeVideo&&!activeVideo.paused);
    pauseAll();
   }else{
@@ -317,6 +366,7 @@
   }
  });
  window.addEventListener('pagehide',()=>{
+  clearBufferingV3677();
   resumeWhenVisible=resumeWhenVisible||Boolean(activeVideo&&!activeVideo.paused);
   pauseAll();
   observer?.disconnect();
