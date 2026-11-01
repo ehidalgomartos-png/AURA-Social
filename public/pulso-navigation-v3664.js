@@ -10,6 +10,15 @@
  if(!feed||!previous||!next||!counter)return;
 
  const saveData=window.navigator?.connection?.saveData===true;
+ // V3.6.75: adaptar la precarga a la red, sin tocar los controles nativos.
+ // 2G/ahorro: no precargar; 3G: solo el vídeo activo; otras: activo y vecinos.
+ const connectionV3675=window.navigator?.connection;
+ function networkTierV3675(){
+  if(saveData||connectionV3675?.saveData===true||
+   /^(?:slow-2g|2g)$/.test(String(connectionV3675?.effectiveType||'')))return 'minimal';
+  if(connectionV3675?.effectiveType==='3g')return 'limited';
+  return 'normal';
+ }
  const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
  const cards=()=>Array.from(feed.querySelectorAll('[data-pulso-item]'));
  const known=new WeakSet();
@@ -22,8 +31,9 @@
 
  function preloadNear(index,items){
   const wanted=new Set();
-  if(!saveData&&document.visibilityState==='visible'){
-   for(const offset of [-1,0,1]){
+  const tierV3675=networkTierV3675();
+  if(tierV3675!=='minimal'&&document.visibilityState==='visible'){
+   for(const offset of tierV3675==='limited'?[0]:[-1,0,1]){
     const video=items[index+offset]?.querySelector('video.pulso-video');
     if(video)wanted.add(video);
    }
@@ -230,6 +240,11 @@
   },true);
  }
  document.addEventListener('visibilitychange',()=>{
+  if(active)activate(active,{force:true});
+ });
+ // Al activar ahorro de datos o cambiar entre Wi-Fi y red móvil,
+ // actualizar solo la ventana de precarga del vídeo activo.
+ connectionV3675?.addEventListener?.('change',()=>{
   if(active)activate(active,{force:true});
  });
  window.addEventListener('pagehide',()=>watcher?.disconnect());
