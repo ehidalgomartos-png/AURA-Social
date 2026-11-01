@@ -23,7 +23,7 @@ function harness({count=4,saveData=false,reducedMotion=false,hasMore=true}={}){
  const documentListeners={};
  const windowListeners={};
  const element=(tag)=>({
-  tagName:tag.toUpperCase(),className:'',attributes:{},children:[],textContent:'',
+  tagName:tag.toUpperCase(),className:'',attributes:{},dataset:{},children:[],textContent:'',
   setAttribute(k,v){this.attributes[k]=String(v);},
   getAttribute(k){return this.attributes[k]??null;},
   append(child){this.children.push(child);}
