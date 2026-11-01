@@ -94,13 +94,13 @@ function renderCard(item){
   '<video class="pulso-video" src="'+esc(item.video)+'" preload="none" controls muted playsinline loop></video>'+
   '<div class="pulso-shade" aria-hidden="true"></div>'+
   '<div class="pulso-item-info"><a class="pulso-creator" href="'+esc(profile)+'">'+avatar+'<span>'+esc(item.displayName)+'</span></a>'+
-  '<button type="button" class="pulso-follow" data-pulso-follow="'+esc(item.id)+'" hidden>Seguir</button>'+
+
   (item.caption?'<p class="pulso-caption'+(item.caption.length>135?' pulso-caption-clamped-v3661':'')+'" id="pulso-caption-'+esc(item.id)+'">'+esc(item.caption)+'</p>'+ 
     (item.caption.length>135?'<button type="button" class="pulso-caption-toggle-v3661" aria-expanded="false" aria-controls="pulso-caption-'+esc(item.id)+'" data-pulso-caption-toggle>Ver descripción completa</button>':''):'')+
-  '<a class="pulso-detail" href="'+esc(reel)+'">Ver vídeo y participar</a></div>'+
+  '</div>'+
   '<div class="pulso-actions">'+
   '<button type="button" class="pulso-count pulso-like" data-pulso-like="'+esc(item.id)+'" aria-pressed="false" aria-label="Me gusta: '+item.likes+'">♥ <b>'+item.likes+'</b></button>'+
-  '<button type="button" class="pulso-comments-open" data-pulso-comments="'+esc(item.id)+'" aria-label="Ver comentarios: '+item.comments+'">◌ <b>'+item.comments+'</b></button>'+
+  '<button type="button" class="pulso-comments-open" data-pulso-comments="'+esc(item.id)+'" aria-label="Comentar este vídeo: '+item.comments+' comentarios">◌ <b>'+item.comments+'</b><small>Comentar</small></button>'+
   '<button type="button" class="pulso-share" data-pulso-share="'+esc(reel)+'" aria-label="Compartir este vídeo">↗<small>Compartir</small></button>'+
   '</div></article>';
 }

@@ -35,7 +35,7 @@ function harness({count=4,saveData=false,reducedMotion=false,hasMore=true}={}){
   };
   const link={getAttribute:()=>'/reel/'+id};
   const card={
-   id,isConnected:true,attrs:{},video,scrollCalls:[],added:[],
+   id,isConnected:true,attrs:{},dataset:{reelId:String(id)},video,scrollCalls:[],added:[],
    querySelector(s){
     if(s==='video.pulso-video')return video;
     if(s==='.pulso-error-v3664')return this.added[0]||null;

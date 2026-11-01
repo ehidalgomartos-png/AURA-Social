@@ -58,17 +58,6 @@
     like.classList.toggle('is-liked',state?.liked===true);
     like.setAttribute('aria-label',state?.liked?'Quitar Me gusta':'Me gusta');
    }
-   const follow=card.querySelector('[data-pulso-follow]');
-   if(!follow)return;
-   if(authState==='guest'){
-    follow.hidden=false;follow.disabled=false;follow.textContent='Seguir';
-   }else if(state){
-    follow.hidden=false;follow.disabled=state.own===true;
-    follow.textContent=state.own?'Tu vídeo':state.following?'Siguiendo':'Seguir';
-    follow.setAttribute('aria-pressed',String(state.following===true));
-   }else{
-    follow.hidden=true;
-   }
   });
  }
  function paintGuest(){
@@ -176,29 +165,6 @@
   }catch(_){message('No se pudo actualizar el Me gusta.');}
   finally{button.disabled=false;}
  }
- async function toggleFollow(button){
-  const id=String(button.dataset.pulsoFollow||'');
-  if(!validId(id)||button.disabled||!await allowed(id))return;
-  const state=states.get(id);
-  if(!state||state.own||!validId(state.authorId))return;
-  const wasFollowing=state.following;
-  button.disabled=true;
-  try{
-   const {response}=await json('/api/profiles/'+state.authorId+'/follow',{
-    method:wasFollowing?'DELETE':'POST'
-   });
-   if(response.status===401){authState='guest';showAuth();return;}
-   if(!response.ok)throw Error('follow_failed');
-   for(const [reelId,item] of states){
-    if(item.authorId===state.authorId){
-     item.following=!wasFollowing;
-     paint(reelId);
-    }
-   }
-   message(wasFollowing?'Has dejado de seguir a esta persona.':'Ahora sigues a esta persona.');
-  }catch(_){message('No se pudo actualizar el seguimiento.');}
-  finally{button.disabled=false;}
- }
  const safeUsername=value=>/^[\p{L}\p{N}._-]{2,60}$/u.test(String(value||''));
  function el(tag,cls,txt){
   const node=document.createElement(tag);
@@ -247,8 +213,6 @@
  feed.addEventListener('click',event=>{
   const like=event.target.closest('[data-pulso-like]');
   if(like){event.preventDefault();void toggleLike(like);return;}
-  const follow=event.target.closest('[data-pulso-follow]');
-  if(follow){event.preventDefault();void toggleFollow(follow);return;}
   const comments=event.target.closest('[data-pulso-comments]');
   if(comments){event.preventDefault();void openComments(String(comments.dataset.pulsoComments||''));}
  });

@@ -45,7 +45,6 @@
  }
  .pulso-card .pulso-actions :is(button,a,.pulso-count){min-width:52px;min-height:49px}
  .pulso-card .pulso-caption{line-height:1.45;overflow-wrap:anywhere}
- .pulso-card .pulso-detail{min-height:44px}
  .pulso-card .pulso-creator{line-height:1.4}
  .pulso-card .pulso-caption-toggle-v3661{min-height:43px}
 }

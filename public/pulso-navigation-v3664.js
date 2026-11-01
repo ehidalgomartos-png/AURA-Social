@@ -147,9 +147,11 @@
   const text=document.createElement('p');
   text.textContent='No se pudo reproducir este vídeo aquí.';
   alert.append(text);
-  const detail=card.querySelector('a.pulso-detail');
-  const href=detail?.getAttribute('href')||'';
-  if(/^\/reel\/[1-9][0-9]{0,15}$/.test(href)){
+  // El enlace de detalle no ocupa espacio en el feed; se usa únicamente
+  // como alternativa cuando falla la reproducción del propio archivo.
+  const reelId=String(card.dataset.reelId||'');
+  const href=/^[1-9][0-9]{0,15}$/.test(reelId)?'/reel/'+reelId:'';
+  if(href){
    const link=document.createElement('a');
    link.href=href;
    link.textContent='Abrir la publicación';

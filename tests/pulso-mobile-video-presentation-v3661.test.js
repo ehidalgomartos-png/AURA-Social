@@ -57,7 +57,7 @@ test('V3.6.61: página individual Reel es diferente del feed y enlaza de nuevo c
  assert.match(publicRoute,/pulso-reel-detail-v3661\.css\?v=3.6.61/);
  assert.match(publicRoute,/rp reel-pulso-frame-v3661/);
  assert.match(publicRoute,/reel-pulso-layout-v3661/);
- assert.match(publicRoute,/class="button ghost reel-pulso-explore-v3661" href="\/pulso">Explorar Pulso/);
+ assert.match(publicRoute,/class="button ghost reel-pulso-explore-v3661" href="\/pulso">Volver a Pulso/);
  const css=read('public/pulso-reel-detail-v3661.css');
  assert.match(css,/\.reel-pulso-frame-v3661 video\{/);
  assert.match(css,/object-fit:contain/);

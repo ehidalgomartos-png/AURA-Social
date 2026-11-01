@@ -1,8 +1,4 @@
 /* V3.6.59 — Interacción social de Pulso. Conserva scroll vertical y controles de vídeo. */
-.pulso-item-info .pulso-follow{display:inline-flex;align-items:center;justify-content:center;margin:5px 0 0;min-height:38px;padding:7px 13px;border:1px solid #f1fbf6a9;border-radius:18px;background:#163f47aa;color:#fff;font-size:.78rem;font-weight:800}
-.pulso-item-info .pulso-follow[hidden]{display:none}
-.pulso-item-info .pulso-follow:disabled{opacity:.75;cursor:default}
-.pulso-item-info .pulso-follow[aria-pressed=true]{background:#e4f9f4;color:#103c45}
 .pulso-actions .pulso-like.is-liked{color:#ff9faa;border-color:#ff9faab8}
 .pulso-actions .pulso-like.is-liked b{color:#fff}
 .pulso-actions button:disabled{opacity:.6;cursor:progress}
@@ -34,6 +30,5 @@
  .pulso-dialog-links{gap:7px}
  .pulso-dialog-links a{min-height:48px}
  .pulso-top nav .pulso-create{font-size:.78rem}
- .pulso-item-info .pulso-follow{min-height:44px}
 }
 @media(max-width:360px){.pulso-dialog-links{grid-template-columns:1fr}.pulso-top nav .pulso-join{display:none}}

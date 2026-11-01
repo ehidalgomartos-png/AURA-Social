@@ -104,7 +104,7 @@ test('V3.6.59: SELECT solo admite Reels públicos y protege bloqueos y silencios
 test('V3.6.59: servidor presenta controles reales, diálogo de comentarios y acceso a crear Reel',()=>{
  const card=renderCard(reel);
  assert.match(card,/data-pulso-like="41"/);
- assert.match(card,/data-pulso-follow="41" hidden/);
+ assert.doesNotMatch(card,/data-pulso-follow|>Seguir</);
  assert.match(card,/data-pulso-comments="41"/);
  assert.match(card,/aria-pressed="false"/);
  assert.match(card,/data-pulso-share="\/reel\/41"/);
@@ -135,16 +135,16 @@ test('V3.6.59: el visor SSR y los vídeos cargados comparten los mismos controle
  const client=read('public/pulso-social-v3659.js');
  assert.match(publicJs,/likes\.dataset\.pulsoLike=String\(item\.id\)/);
  assert.match(publicJs,/comments\.dataset\.pulsoComments=String\(item\.id\)/);
- assert.match(publicJs,/follow\.dataset\.pulsoFollow=String\(item\.id\)/);
+ assert.doesNotMatch(publicJs,/pulsoFollow|pulso-detail|Ver vídeo y participar/);
  assert.match(client,/MutationObserver/);
  assert.match(client,/\/api\/pulso\/session/);
  assert.match(client,/void checkSession\(\)\.then/);
  assert.match(client,/\/api\/pulso\/state\?ids=/);
  assert.match(client,/\/api\/posts\/'\+id\+'\/like'/);
  assert.match(client,/\/api\/posts\/'\+id\+'\/comments'/);
- assert.match(client,/\/api\/profiles\/'\+state\.authorId\+'\/follow'/);
- assert.match(client,/method:wasFollowing\?'DELETE':'POST'/);
- assert.match(client,/item\.following=!wasFollowing/);
+ assert.doesNotMatch(client,/toggleFollow|data-pulso-follow|\/api\/profiles\/'\+state\.authorId/);
+ assert.match(client,/async function toggleLike\(button\)/);
+ assert.match(client,/async function openComments\(id\)/);
  assert.match(client,/states\.clear\(\);paintGuest/);
  assert.match(client,/commentStatus\.textContent='Comentario publicado\.'/);
  assert.match(client,/article\.append\(el\('p',null,String\(comment\.body/);
