@@ -1,0 +1,21 @@
+/* V3.6.61 — Páginas públicas /reel/:id, distintas del visor /pulso. */
+.reel-pulso-frame-v3661{display:grid;place-items:center;min-width:0;background:#061521}
+.reel-pulso-frame-v3661 video{
+ display:block;width:100%;max-width:100%;max-height:min(75dvh,780px);
+ height:auto;object-fit:contain;object-position:center center;
+ background:#060f19;
+}
+.reel-pulso-explore-v3661{display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+.reel-pulso-layout-v3661 .rm{min-width:0}
+@media(max-width:850px){
+ .reel-pulso-layout-v3661{grid-template-columns:minmax(0,1fr)}
+ .reel-pulso-frame-v3661{margin:0 auto;width:100%;max-width:min(100%,calc(74dvh * 9 / 16));border-radius:17px}
+ .reel-pulso-frame-v3661 video{width:100%;height:auto;max-height:min(74dvh,770px);object-fit:contain}
+}
+@media(max-width:620px){
+ .reel-pulso-layout-v3661{gap:14px}
+ .reel-pulso-frame-v3661{max-width:min(100%,calc(70dvh * 9 / 16));border-radius:15px}
+ .reel-pulso-frame-v3661 video{max-height:70dvh;height:auto;width:100%;object-fit:contain}
+ .reel-pulso-layout-v3661 .rm{padding:15px;border-radius:15px}
+ .reel-pulso-explore-v3661{min-height:48px}
+}
