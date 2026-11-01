@@ -113,7 +113,7 @@ test('V3.6.73: error de red suspende carga automática y permite reintento manua
  for(let i=0;i<8;i++){h.leave();h.enter();}
  await tick();
  assert.equal(h.requests.length,1,'no bucle al permanecer visible el footer');
- await h.manual();
+ h.manual();await tick();
  assert.equal(h.requests.length,2);
  assert.equal(h.requests[1].url,'/api/pulso/public?page=2');
  assert.equal(h.state().page,2);
@@ -132,7 +132,7 @@ test('V3.6.73: respuesta inválida no modifica página, vídeos ni estado de ses
 test('V3.6.73: no repite Reels existentes ni repetidos dentro de una misma página',async()=>{
  const h=harness();
  h.queued.push(response(2,[item(25),item(26),item(26),item(27),{id:'-2'}]));
- await h.manual();
+ h.manual();await tick();
  assert.deepEqual(h.cards.map(x=>x.dataset.reelId),['25','26','27']);
  assert.equal(h.events.at(-1).detail.added,2);
  assert.equal(h.observed(),1);
@@ -147,7 +147,7 @@ test('V3.6.73: páginas sin novedades no provocan cascadas de consultas',async()
  assert.match(h.status.textContent,/No hay vídeos nuevos en este bloque/);
  h.leave();h.enter();await tick();
  assert.equal(h.requests.length,1);
- await h.manual();
+ h.manual();await tick();
  assert.equal(h.requests.length,2);
  assert.equal(h.state().page,3);
  assert.deepEqual(h.cards.map(x=>x.dataset.reelId),['25','26']);
@@ -159,16 +159,16 @@ test('V3.6.73: el último bloque deja de solicitar páginas',async()=>{
  assert.equal(h.more.hidden,true);
  assert.equal(h.state().hasMore,false);
  assert.match(h.status.textContent,/final de los vídeos/);
- h.leave();h.enter();await h.manual();await tick();
+ h.leave();h.enter();h.manual();await tick();await tick();
  assert.equal(h.requests.length,1);
 });
 test('V3.6.73: al llegar a la página 20 no consulta una página 21',async()=>{
  const h=harness({firstPage:19});
  h.queued.push(response(20,[item(26)],true));
- await h.manual();
+ h.manual();await tick();
  assert.equal(h.requests[0].url,'/api/pulso/public?page=20');
  assert.equal(h.state().hasMore,false);
- await h.manual();
+ h.manual();await tick();
  assert.equal(h.requests.length,1);
 });
 test('V3.6.73: la pestaña Siguiendo respeta sesión y se detiene en 401',async()=>{
