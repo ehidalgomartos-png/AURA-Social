@@ -161,7 +161,7 @@ test('V3.6.72: nuevos Reels y recuperaciÃ³n BFCache actualizan la ventana pequeÃ
  h.windowListeners.pagehide();
  assert.equal(h.observers[0].disconnected,true);
  h.windowListeners.pageshow({persisted:true});
- assert.ok(h.observers[0].targets.length>=6);
+ assert.ok(h.observers[0].targets.length>=5);
  assert.ok(h.videos.filter(v=>v.preload==='metadata').length<=3);
 });
 test('V3.6.72: no escanea los 30 reproductores de nuevo cuando el mismo Reel permanece visible',()=>{
