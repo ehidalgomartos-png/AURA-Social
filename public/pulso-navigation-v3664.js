@@ -210,4 +210,10 @@
   if(active)activate(active);
  });
  window.addEventListener('pagehide',()=>watcher?.disconnect());
+ // Restaurar la navegación al volver desde el historial del navegador.
+ window.addEventListener('pageshow',event=>{
+  if(!event.persisted)return;
+  for(const card of cards())watcher?.observe(card);
+  if(active)activate(active);
+ });
 })();
