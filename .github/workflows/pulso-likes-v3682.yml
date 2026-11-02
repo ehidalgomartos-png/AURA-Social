@@ -1,0 +1,20 @@
+name: Pulso like consistency V3.6.82
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  like-consistency:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Test like concurrency, session expiry and regressions
+        run: node --test tests/pulso-likes-v3682.test.js tests/pulso-comments-consistency-v3681.test.js tests/pulso-long-session-v3680.test.js tests/pulso-pagination-recovery-v3673.test.js
