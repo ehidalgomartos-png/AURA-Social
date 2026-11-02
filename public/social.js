@@ -366,6 +366,21 @@ async function api(url,opts={}){
     if(apiInFlightGets.get(key)===task)apiInFlightGets.delete(key);
   }
 }
+// V3.6.83: no confundir publicar en RedLibertad con aparecer en Pulso.
+function reelPublishMessageV3683({kind,publishMode,waitingApprovals,post}={}){
+  if(kind!=='reel')return null;
+  if(publishMode==='draft')return 'Reel guardado como borrador';
+  if(publishMode==='scheduled')return waitingApprovals
+    ?'Reel programado. Esperando aprobaciones.':'Reel programado';
+  if(waitingApprovals)return 'Reel guardado. Esperando aprobaciones.';
+  if(post?.post_kind!=='reel'||post?.moderation_status!=='published')
+    return 'Reel guardado. Aún no está publicado; comprueba su estado en RedLibertad.';
+  if(post.media_type!=='video')
+    return 'Reel con foto publicado en RedLibertad. Pulso solo muestra vídeos.';
+  if(post.audience!=='public'||post.content_level!=='normal')
+    return 'Reel publicado para tu audiencia. No aparecerá en Pulso público.';
+  return 'Reel publicado. Consulta Pulso para comprobar si aparece.';
+}
 // V3.6.69: mostrar la publicación guardada sin exponer Reels pendientes o privados.
 function reelPublishedDestinationV3669({kind,publishMode,waitingApprovals,post}={}){
   if(kind!=='reel'||publishMode!=='now'||waitingApprovals)return null;
@@ -11419,9 +11434,7 @@ $('#createForm').addEventListener('submit', async e => {
         : (waitingApprovals ? 'Publicación guardada. Esperando aprobaciones.' : 'Publicado');
 
     if(kind==='reel'){
-      const reelMessage=publishMode==='draft'?'Reel guardado como borrador'
-        :publishMode==='scheduled'?(waitingApprovals?'Reel programado. Esperando aprobaciones.':'Reel programado')
-        :(waitingApprovals?'Reel guardado. Esperando aprobaciones.':'Reel publicado');
+      const reelMessage=reelPublishMessageV3683({kind,publishMode,waitingApprovals,post:d.post});
       toastPublishedReelV3669(reelMessage,{
         kind,publishMode,waitingApprovals,post:d.post
       });
