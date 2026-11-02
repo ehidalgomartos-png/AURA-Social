@@ -45,9 +45,12 @@
   text.classList.remove('hidden');
   info.hidden=false;
   const name=String(file.name||'Archivo seleccionado').slice(0,120);
-  const kind=String(file.type||'').startsWith('video/')?'Vídeo':'Imagen';
+  const isVideoV3683=String(file.type||'').startsWith('video/')||
+   /\.(mp4|webm|mov)$/i.test(String(file.name||''));
+  const kind=isVideoV3683?'Vídeo':'Imagen';
   const base=[kind,name,sizeLabel(file.size)].filter(Boolean).join(' · ');
-  info.textContent=base+' · Vista previa local';
+  info.textContent=base+(isVideoV3683?' · Vista previa local':
+   ' · Vista previa local · Las fotos se publican en RedLibertad, pero Pulso solo muestra vídeos.');
   const video=preview.querySelector('video');
   if(!video)return;
   video.controls=true;
