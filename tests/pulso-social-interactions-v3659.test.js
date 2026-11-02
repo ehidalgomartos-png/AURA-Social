@@ -145,7 +145,7 @@ test('V3.6.59: el visor SSR y los vídeos cargados comparten los mismos controle
  assert.doesNotMatch(client,/toggleFollow|data-pulso-follow|\/api\/profiles\/'\+state\.authorId/);
  assert.match(client,/async function toggleLike\(button\)/);
  assert.match(client,/async function openComments\(id\)/);
- assert.match(client,/states\.clear\(\);paintGuest/);
+ assert.match(client,/function enterGuestV3682\(\)\{[\s\S]*?states\.clear\(\);[\s\S]*?paintGuest\(\)/);
  assert.match(client,/commentStatus\.textContent='Comentario publicado\.'/);
  assert.match(client,/article\.append\(el\('p',null,String\(comment\.body/);
  assert.doesNotMatch(client,/\.innerHTML\s*=|localStorage|sessionStorage|Math\.random|sendBeacon/);

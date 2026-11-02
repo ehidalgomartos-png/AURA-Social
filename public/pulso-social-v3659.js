@@ -14,6 +14,10 @@
  const states=new Map();
  const inFlight=new Set();
  const pendingIds=new Set();
+ // V3.6.82: one in-flight like per Reel, even across duplicated cards.
+ const pendingLikesV3682=new Set();
+ const likeRevisionsV3682=new Map();
+ let memberEpochV3682=0;
  let authState='unknown',stateLoading=false,activeCommentId=null,noticeTimer=null,lastFocus=null;
  // V3.6.81: invalidate older modal openings and GET requests independently.
  let commentOpenEpochV3681=0,commentLoadEpochV3681=0;
@@ -77,21 +81,39 @@
  function paintGuest(){
   for(const card of allCards())paint(cardId(card));
  }
+ function enterGuestV3682(){
+  memberEpochV3682++;
+  authState='guest';
+  states.clear();
+  paintGuest();
+ }
+ function setLikeBusyV3682(id,busy){
+  for(const card of allCards().filter(card=>cardId(card)===id)){
+   const like=card.querySelector('[data-pulso-like]');
+   if(like)like.disabled=busy;
+  }
+ }
  async function loadStates(ids){
   const valid=[...new Set(ids.map(String).filter(validId))].filter(id=>!inFlight.has(id));
   if(!valid.length)return;
   for(const id of valid)inFlight.add(id);
+  const epochV3682=memberEpochV3682;
   try{
    // Cada consulta cubre como máximo los 12 elementos de una página.
    for(let i=0;i<valid.length;i+=12){
     const batch=valid.slice(i,i+12);
+    const likeRevisionAtRequestV3682=new Map(batch.map(id=>[id,likeRevisionsV3682.get(id)||0]));
     const {response,data}=await json('/api/pulso/state?ids='+encodeURIComponent(batch.join(',')));
+    if(epochV3682!==memberEpochV3682)return; // Session expired while request was pending.
     if(response.status===401){
-     authState='guest';states.clear();paintGuest();return;
+     enterGuestV3682();return;
     }
     if(!response.ok||data.authenticated!==true||!data.states||typeof data.states!=='object')throw Error('unavailable');
     authState='member';
     for(const id of batch){
+     // A stale GET must not overwrite a newer like mutation or an ongoing write.
+     if(pendingLikesV3682.has(id)||
+      (likeRevisionsV3682.get(id)||0)!==likeRevisionAtRequestV3682.get(id))continue;
      const v=data.states[id];
      if(v&&validId(v.authorId)&&typeof v.liked==='boolean'&&typeof v.following==='boolean'&&typeof v.own==='boolean'){
       states.set(id,{authorId:String(v.authorId),liked:v.liked,following:v.following,own:v.own});
@@ -109,7 +131,7 @@
   try{
    const {response,data}=await json('/api/pulso/session');
    if(response.status===401){
-    authState='guest';states.clear();paintGuest();return false;
+    enterGuestV3682();return false;
    }
    if(response.ok&&data.authenticated===true){
     authState='member';return true;
@@ -159,25 +181,41 @@
  }
  async function toggleLike(button){
   const id=String(button.dataset.pulsoLike||'');
-  if(!validId(id)||button.disabled||!await allowed(id))return;
-  const state=states.get(id);
-  if(!state)return;
-  button.disabled=true;
+  if(!validId(id)||button.disabled||pendingLikesV3682.has(id))return;
+  // Lock before any async session check, preventing duplicate requests.
+  pendingLikesV3682.add(id);
+  setLikeBusyV3682(id,true);
+  const epochV3682=memberEpochV3682;
   try{
+   if(!await allowed(id)||epochV3682!==memberEpochV3682)return;
+   const state=states.get(id);
+   if(!state||authState!=='member')return;
    const {response,data}=await json('/api/posts/'+id+'/like',{method:state.liked?'DELETE':'POST'});
-   if(response.status===401){authState='guest';showAuth();return;}
-   if(!response.ok||typeof data.liked!=='boolean'||!Number.isSafeInteger(Number(data.likeCount)))throw Error('like_failed');
+   if(epochV3682!==memberEpochV3682)return;
+   if(response.status===401){enterGuestV3682();showAuth();return;}
+   const countV3682=Number(data.likeCount);
+   if(!response.ok||typeof data.liked!=='boolean'||
+    !(typeof data.likeCount==='number'||
+      (typeof data.likeCount==='string'&&/^(0|[1-9][0-9]*)$/.test(data.likeCount)))||
+    !Number.isSafeInteger(countV3682)||countV3682<0)throw Error('like_failed');
    state.liked=data.liked;
+   likeRevisionsV3682.set(id,(likeRevisionsV3682.get(id)||0)+1);
    paint(id);
    for(const card of allCards().filter(c=>cardId(c)===id)){
     const control=card.querySelector('[data-pulso-like]');
     if(control){
-     control.querySelector('b').textContent=String(Math.max(0,Number(data.likeCount)));
+     const count=control.querySelector('b');
+     if(count)count.textContent=String(countV3682);
      control.setAttribute('aria-label',data.liked?'Quitar Me gusta':'Me gusta');
     }
    }
-  }catch(_){message('No se pudo actualizar el Me gusta.');}
-  finally{button.disabled=false;}
+  }catch(_){
+   // Network errors leave the last confirmed like and count untouched.
+   if(epochV3682===memberEpochV3682)message('No se pudo actualizar el Me gusta.');
+  }finally{
+   pendingLikesV3682.delete(id);
+   setLikeBusyV3682(id,false);
+  }
  }
  const safeUsername=value=>/^[\p{L}\p{N}._-]{2,60}$/u.test(String(value||''));
  function el(tag,cls,txt){
