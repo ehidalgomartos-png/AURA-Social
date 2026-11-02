@@ -15,6 +15,13 @@
  const inFlight=new Set();
  const pendingIds=new Set();
  let authState='unknown',stateLoading=false,activeCommentId=null,noticeTimer=null,lastFocus=null;
+ // V3.6.81: invalidate older modal openings and GET requests independently.
+ let commentOpenEpochV3681=0,commentLoadEpochV3681=0;
+ function invalidateCommentsV3681(){
+  activeCommentId=null;
+  commentOpenEpochV3681++;
+  commentLoadEpochV3681++;
+ }
  const validId=value=>/^[1-9][0-9]{0,15}$/.test(String(value||''));
  const allCards=()=>[...feed.querySelectorAll('[data-pulso-item]')];
  const cardId=card=>String(card?.dataset?.reelId||'');
@@ -37,6 +44,7 @@
   else dialog.setAttribute('open','');
  }
  function closeDialog(dialog){
+  if(dialog===commentsDialog)invalidateCommentsV3681();
   if(typeof dialog.close==='function'&&dialog.open)dialog.close();
   else dialog.removeAttribute('open');
   if(lastFocus?.isConnected)lastFocus.focus({preventScroll:true});
@@ -197,19 +205,22 @@
   }
  }
  async function loadComments(id){
+  const requestEpochV3681=++commentLoadEpochV3681;
   list.replaceChildren(el('p','pulso-comments-loading','Cargando comentarios…'));
   try{
    const {response,data}=await json('/api/posts/'+id+'/comments');
-   if(activeCommentId!==id)return;
+   if(activeCommentId!==id||requestEpochV3681!==commentLoadEpochV3681)return;
    if(response.status===401){closeDialog(commentsDialog);authState='guest';showAuth();return;}
    if(!response.ok||!Array.isArray(data.comments))throw Error('comments_unavailable');
    renderComments(data.comments);
   }catch(_){
-   if(activeCommentId===id)list.replaceChildren(el('p','pulso-comments-error','No se pudieron cargar los comentarios.'));
+   if(activeCommentId===id&&requestEpochV3681===commentLoadEpochV3681)
+    list.replaceChildren(el('p','pulso-comments-error','No se pudieron cargar los comentarios.'));
   }
  }
  async function openComments(id){
-  if(!validId(id)||!await allowed(id))return;
+  const openEpochV3681=++commentOpenEpochV3681;
+  if(!validId(id)||!await allowed(id)||openEpochV3681!==commentOpenEpochV3681)return;
   activeCommentId=id;
   commentStatus.textContent='';
   composer.value='';
@@ -235,16 +246,24 @@
    const {response}=await json('/api/posts/'+id+'/comments',{
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body})
    });
-   if(response.status===401){closeDialog(commentsDialog);authState='guest';showAuth();return;}
+   if(response.status===401){
+    if(activeCommentId===id){closeDialog(commentsDialog);authState='guest';showAuth();}
+    return;
+   }
    if(!response.ok)throw Error('comment_failed');
-   composer.value='';
-   commentStatus.textContent='Comentario publicado.';
    for(const card of allCards().filter(c=>cardId(c)===id)){
     const count=card.querySelector('[data-pulso-comments] b');
     if(count)count.textContent=String(Number(count.textContent||0)+1);
    }
-   await loadComments(id);
-  }catch(_){commentStatus.textContent='No se pudo publicar el comentario. Inténtalo otra vez.';}
+   // The user may have closed this dialog or opened a different Reel while POST completed.
+   if(activeCommentId===id){
+    composer.value='';
+    commentStatus.textContent='Comentario publicado.';
+    await loadComments(id);
+   }
+  }catch(_){
+   if(activeCommentId===id)commentStatus.textContent='No se pudo publicar el comentario. Inténtalo otra vez.';
+  }
   finally{button.disabled=false;}
  });
  document.addEventListener('click',event=>{
@@ -264,7 +283,7 @@
    else message('No se pudo comprobar tu sesión. Inténtalo de nuevo.');
   });
  });
- commentsDialog.addEventListener('close',()=>{activeCommentId=null;});
+ commentsDialog.addEventListener('close',()=>{if(!commentsDialog.open)invalidateCommentsV3681();});
  for(const dialog of [authDialog,commentsDialog]){
   dialog.addEventListener('click',event=>{
    if(event.target===dialog)closeDialog(dialog);
