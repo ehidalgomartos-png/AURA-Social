@@ -193,8 +193,11 @@
    const {response,data}=await json('/api/posts/'+id+'/like',{method:state.liked?'DELETE':'POST'});
    if(epochV3682!==memberEpochV3682)return;
    if(response.status===401){enterGuestV3682();showAuth();return;}
+   const countV3682=Number(data.likeCount);
    if(!response.ok||typeof data.liked!=='boolean'||
-    !Number.isSafeInteger(data.likeCount)||data.likeCount<0)throw Error('like_failed');
+    !(typeof data.likeCount==='number'||
+      (typeof data.likeCount==='string'&&/^(0|[1-9][0-9]*)$/.test(data.likeCount)))||
+    !Number.isSafeInteger(countV3682)||countV3682<0)throw Error('like_failed');
    state.liked=data.liked;
    likeRevisionsV3682.set(id,(likeRevisionsV3682.get(id)||0)+1);
    paint(id);
@@ -202,7 +205,7 @@
     const control=card.querySelector('[data-pulso-like]');
     if(control){
      const count=control.querySelector('b');
-     if(count)count.textContent=String(data.likeCount);
+     if(count)count.textContent=String(countV3682);
      control.setAttribute('aria-label',data.liked?'Quitar Me gusta':'Me gusta');
     }
    }
