@@ -3,8 +3,19 @@ name: Pulso Reel published V3.6.69
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+    paths:
+      - 'server.js'
+      - 'package.json'
+      - 'src/**/pulso*'
+      - 'src/**/reel*'
+      - 'public/**/pulso*'
+      - 'public/**/reel*'
+      - 'tests/pulso-*'
+      - 'tests/reel-*'
+# Solo la versión más reciente del PR necesita estas pruebas.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   published-reel:
