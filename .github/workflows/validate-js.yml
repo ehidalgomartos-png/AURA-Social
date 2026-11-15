@@ -6,8 +6,35 @@ on:
   push:
     branches: [main]
 
+# Evita gastar minutos en PRs obsoletos; no interrumpe los despliegues de main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Todas las pruebas extensas siguen siendo obligatorias en PR.
+  # No repetir las ~300 comprobaciones por separado después de cada fusión.
+  main-checks:
+    if: github.event_name == 'push'
+    name: Main · comprobación rápida y segura
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --package-lock=false --no-audit --no-fund
+      - name: Syntax and essential public flows
+        run: |
+          node --check server.js
+          node --test tests/pulso-clean-interactions-v3665.test.js tests/resuelve-signup-cta-v3657.test.js tests/services-map-v3645.test.js tests/independent-review-v3640.test.js
+
   validate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
