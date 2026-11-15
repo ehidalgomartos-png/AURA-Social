@@ -976,6 +976,7 @@ jobs:
         run: timeout --signal=TERM 120s npm run test:push-settings-mobile
 
   stripe-test-postgres:
+    if: github.event_name == 'pull_request'
     name: Stripe TEST canceled-to-new-Plus PostgreSQL 18
     runs-on: ubuntu-latest
     permissions:
